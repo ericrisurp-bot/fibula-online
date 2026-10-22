@@ -2,7 +2,7 @@ import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
 
 type Vec = { x: number; y: number };
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
-type Tree = Vec & { id: number; hits: number };
+type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type WoodDrop = Vec & { id: number; amount: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
@@ -229,7 +229,9 @@ export class GameEngine {
       if (this.validTreePosition(x, y, initial ? 300 : 0)) position = { x, y };
     }
     if (!position) return false;
-    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut });
+    const roll = Math.random();
+    const size: Tree['size'] = roll < CONFIG.trees.sizeWeights.small ? 'small' : roll < CONFIG.trees.sizeWeights.small + CONFIG.trees.sizeWeights.medium ? 'medium' : 'large';
+    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
     return true;
   }
 
@@ -237,7 +239,8 @@ export class GameEngine {
     const tree = this.state.trees.find(value => value.id === id);
     if (!tree) return;
     this.state.trees = this.state.trees.filter(value => value.id !== id);
-    const amount = Math.random() < 0.5 ? CONFIG.trees.woodDrops[0] : CONFIG.trees.woodDrops[1];
+    const roll = Math.random();
+    const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
     this.state.woodDrops.push({ id: this.nextId++, x: tree.x, y: tree.y, amount });
   }
 
