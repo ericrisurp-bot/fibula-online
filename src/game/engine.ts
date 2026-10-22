@@ -99,7 +99,7 @@ export class GameEngine {
   private visibleStateKey() {
     const s = this.state;
     return [
-      Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
+      Math.floor(s.elapsed), Math.ceil(s.player.hp), s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
       s.cameraFull, s.dead, s.kills,
     ].join('|');
