@@ -1,13 +1,14 @@
-import { CONFIG, LEVEL_GROWTH, type WeaponId } from './config';
+import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
 
 type Vec = { x: number; y: number };
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
 type Orb = Vec & { id: number; value: number };
+type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number };
-  enemies: Enemy[]; xpOrbs: Orb[]; shots: Shot[]; wave: number; elapsed: number;
-  weapon: WeaponId; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  enemies: Enemy[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; wave: number; elapsed: number;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 
@@ -24,6 +25,8 @@ export class GameEngine {
   private animation = 0;
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
   private enemyDamageTimer = 0;
+  private druidRegenTimer = 0;
+  private druidOrbHealTimer = 0;
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
@@ -33,7 +36,7 @@ export class GameEngine {
   private freshState(): GameSnapshot {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase },
-      enemies: [], xpOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada',
+      enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -46,22 +49,48 @@ export class GameEngine {
   stop() { cancelAnimationFrame(this.animation); this.animation = 0; }
   setKey(key: string, down: boolean) { if (this.state.dead) return; down ? this.keys.add(key.toLowerCase()) : this.keys.delete(key.toLowerCase()); }
   setMove(x: number, y: number) { if (this.state.dead) return; this.input = { x, y }; }
-  setWeapon(weapon: WeaponId) { if (this.state.dead || this.state.weapon === weapon) return; this.state.weapon = weapon; this.emit(); }
+  setClass(classId: ClassId) {
+    if (this.state.dead) return;
+    const changed = this.state.classId !== classId;
+    this.state.classId = classId;
+
+    // A classe selecionada define a arma; não existe troca independente de arma.
+    const classWeapon: Record<ClassId, WeaponId> = {
+      guerreiro: 'espada',
+      mago: 'cajado',
+      arqueiro: 'arco',
+      druida: 'bastao',
+    };
+    this.state.weapon = classWeapon[classId];
+
+    // Habilidades exclusivas do Druida nunca sobrevivem ao sair da classe.
+    if (classId !== 'druida') {
+      this.druidRegenTimer = 0;
+      this.druidOrbHealTimer = 0;
+      this.state.healingOrbs = [];
+    } else if (changed) {
+      this.druidRegenTimer = 0;
+      this.druidOrbHealTimer = 0;
+    }
+
+    // Publica classe, arma e habilidades juntas como um único estado coerente.
+    this.emit();
+  }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     this.stop(); this.state = this.freshState(); this.nextId = 1; this.waveTimer = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], xpOrbs: [...this.state.xpOrbs], shots: [...this.state.shots] }); }
+  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
     const s = this.state;
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
-      s.player.xp, s.player.nextXp, s.wave, s.weapon, s.showRange,
+      s.player.xp, s.player.nextXp, s.wave, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
       s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
@@ -90,7 +119,20 @@ export class GameEngine {
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
     if (this.waveTimer >= CONFIG.waves.interval) { this.waveTimer = 0; this.state.wave += 1; this.spawnWave(); }
-    this.moveEnemies(dt); this.moveShots(dt); this.autoAttack(); this.collectXp();
+    this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
+    if (this.state.classId === 'druida') {
+      this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
+      if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
+      this.druidOrbHealTimer -= dt;
+      if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
+        this.state.healingOrbs.shift(); p.hp = Math.min(p.maxHp, p.hp + 14); this.druidOrbHealTimer = 0.65;
+      }
+    } else {
+      // Invariante: nenhuma habilidade/órbe do Druida pode sobreviver fora dessa classe.
+      this.druidRegenTimer = 0;
+      this.druidOrbHealTimer = 0;
+      if (this.state.healingOrbs.length > 0) this.state.healingOrbs = [];
+    }
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
   }
 
@@ -132,8 +174,21 @@ export class GameEngine {
     if (!target) return;
     this.attackTimer = 0;
     if (weapon.kind === 'melee') {
-      target.e.hp -= weapon.damage;
-      if (target.e.hp <= 0) this.killEnemy(target.e.id);
+      this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      this.state.swordSwingTimer = 0.24;
+      const arc = Math.PI * 0.62;
+      const hits = this.state.enemies.filter(e => {
+        const ex = e.x - p.x, ey = e.y - p.y;
+        const distance = Math.hypot(ex, ey);
+        const angle = Math.atan2(ey, ex);
+        const difference = Math.abs(Math.atan2(Math.sin(angle - this.state.swordSwingAngle), Math.cos(angle - this.state.swordSwingAngle)));
+        return distance <= weapon.range && difference <= arc / 2;
+      });
+      for (const enemy of hits) {
+        enemy.hp -= weapon.damage;
+        if (this.state.classId === 'druida') this.druidRegenTimer = 3;
+      }
+      for (const enemy of hits.filter(e => e.hp <= 0)) this.killEnemy(enemy.id);
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
@@ -145,7 +200,8 @@ export class GameEngine {
       shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt;
       const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6);
       if (target) {
-        target.hp -= shot.damage; this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+        target.hp -= shot.damage; if (this.state.classId === 'druida') this.druidRegenTimer = 3;
+        this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         if (target.hp <= 0) this.killEnemy(target.id);
       } else if (shot.life <= 0) this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
     }
@@ -154,14 +210,21 @@ export class GameEngine {
   private killEnemy(id: number) {
     const e = this.state.enemies.find(v => v.id === id); if (!e) return;
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
+    if (this.state.classId === 'druida' && this.state.healingOrbs.length < 7) this.state.healingOrbs.push({ id: this.nextId++, value: 14 });
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
   }
 
-  private collectXp() {
+  private collectXp(dt: number) {
     const p = this.state.player;
     for (const orb of [...this.state.xpOrbs]) {
-      if (Math.hypot(orb.x - p.x, orb.y - p.y) <= CONFIG.player.pickupRadius) {
+      const dx = p.x - orb.x, dy = p.y - orb.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      if (distance <= CONFIG.player.pickupRadius) {
         this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
+      } else if (distance <= CONFIG.xp.attractionRadius) {
+        const step = Math.min(distance - CONFIG.player.pickupRadius, CONFIG.xp.attractionSpeed * dt);
+        orb.x += dx / distance * step;
+        orb.y += dy / distance * step;
       }
     }
     while (p.xp >= p.nextXp) {
