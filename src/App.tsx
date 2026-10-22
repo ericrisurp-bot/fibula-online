@@ -5,7 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
-  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -80,7 +80,34 @@ export default function App() {
         ctx.restore();
       }
       for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
+      for (const e of s.dyingEnemies) {
+        const progress = Math.min(1, e.deathAge / 0.48);
+        ctx.save();
+        ctx.globalAlpha = 1 - progress;
+        ctx.translate(e.x, e.y + progress * CONFIG.enemy.radius * 0.65);
+        ctx.scale(1 + progress * 0.38, Math.max(0.06, 1 - progress * 0.92));
+        drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
+        ctx.restore();
+      }
       drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer);
+      for (const damage of s.floatingDamage) {
+        const progress = Math.min(1, damage.age / damage.duration);
+        const scale = 0.62 + Math.min(1, progress / 0.28) * 0.42;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - progress);
+        ctx.translate(damage.x, damage.y - progress * 34);
+        ctx.scale(scale, scale);
+        ctx.font = '900 17px ui-sans-serif, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = 'rgba(8, 12, 14, 0.88)';
+        ctx.strokeText(String(damage.amount), 0, 0);
+        ctx.fillStyle = damage.color;
+        ctx.fillText(String(damage.amount), 0, 0);
+        ctx.restore();
+      }
       ctx.restore();
       frame = requestAnimationFrame(render);
     };
