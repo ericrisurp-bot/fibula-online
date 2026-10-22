@@ -19,7 +19,7 @@ export default function App() {
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
-  const zoomRef = useRef(1);
+  const zoomRef = useRef(1.6);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
