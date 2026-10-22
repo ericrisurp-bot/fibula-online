@@ -92,8 +92,19 @@ export class GameEngine {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
     this.state.classId = classId;
-    // A classe altera apenas os multiplicadores dos próximos ganhos; o histórico fica intacto.
-    this.playerAttributes = { ...this.playerAttributes, multipliers: { ...CLASS_ATTRIBUTE_PROGRESSION[classId].multipliers } };
+    // A classe aplica sua base e seus multiplicadores futuros; ganhos anteriores ficam intactos.
+    const classProfile = CLASS_ATTRIBUTE_PROGRESSION[classId];
+    const previousMaxHp = this.state.player.maxHp;
+    this.playerAttributes = {
+      ...this.playerAttributes,
+      base: { ...this.playerAttributes.base, ...classProfile.base },
+      multipliers: { ...classProfile.multipliers },
+    };
+    this.state.player.maxHp = getAttributeValue(this.playerAttributes, 'health');
+    this.state.player.hp = Math.min(
+      this.state.player.maxHp,
+      this.state.player.hp + this.state.player.maxHp - previousMaxHp,
+    );
 
     // A classe selecionada define a arma; não existe troca independente de arma.
     const classWeapon: Record<ClassId, WeaponId> = {
