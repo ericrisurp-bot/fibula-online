@@ -130,12 +130,16 @@ export default function App() {
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" />
       <div className="hud-top" aria-label="Status da partida">
-        <div className="hud-row hud-row-primary">
-          <div className="hud-meter health-meter"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
+        <div className="hud-left-stack">
+          <div className="hud-meter health-meter"><span>HP · VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
           <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+        </div>
+        <div className="hud-center-stack">
           <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
-          <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
-          <div className="hud-chip kills-chip"><span>☠</span><strong>{state.kills}</strong></div>
+          <div className="hud-substats">
+            <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
+            <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+          </div>
         </div>
       </div>
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
