@@ -5,7 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
-  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'druida', showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -78,7 +78,7 @@ export default function App() {
         ctx.restore();
       }
       for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
-      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed);
+      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer);
       ctx.restore();
       frame = requestAnimationFrame(render);
     };
@@ -153,7 +153,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number) {
   const r = CONFIG.player.radius, bob = Math.sin(time * 8) * 2;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
@@ -162,9 +162,24 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   // Capuz com ponta e sombra, feito apenas com formas.
   ctx.beginPath(); ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32); ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35); ctx.fillStyle = '#33465c'; ctx.fill(); ctx.strokeStyle = '#647d98'; ctx.stroke();
   ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = weapon === 'espada' ? '#dce8ed' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
-  if (weapon === 'espada') { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .33); ctx.lineTo(r * 1.6, -r * .6); ctx.stroke(); }
-  else if (weapon === 'cajado') { ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 4, 0, Math.PI * 2); ctx.fillStyle = '#bba0ff'; ctx.fill(); }
-  else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+  if (weapon === 'espada') {
+    const duration = 0.24;
+    const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
+    const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : -0.45;
+    ctx.save(); ctx.rotate(angle);
+    ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
+    if (swordSwingTimer > 0) {
+      ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
+      ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, r * 2.1, swordSwingAngle - 0.62, swordSwingAngle + 0.62); ctx.stroke();
+    }
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
+    if (weapon === 'cajado') { ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 4, 0, Math.PI * 2); ctx.fillStyle = '#bba0ff'; ctx.fill(); }
+    else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+  }
   ctx.restore();
 }
