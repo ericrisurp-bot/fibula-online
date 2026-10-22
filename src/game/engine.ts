@@ -2,7 +2,7 @@ import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
 
 type Vec = { x: number; y: number };
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
-type Tree = Vec & { id: number; hits: number };
+type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type WoodDrop = Vec & { id: number; amount: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
@@ -12,7 +12,7 @@ type DyingEnemy = Enemy & { deathAge: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   enemies: Enemy[]; trees: Tree[]; woodDrops: WoodDrop[]; wood: number; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number;
-  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 
@@ -43,7 +43,7 @@ export class GameEngine {
   private freshState(): GameSnapshot {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
-      enemies: [], trees: [], woodDrops: [], wood: 0, xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0,
+      enemies: [], trees: [], woodDrops: [], wood: 0, xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -153,7 +153,7 @@ export class GameEngine {
         this.spawnWave();
       }
     }
-    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood();
+    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -229,7 +229,9 @@ export class GameEngine {
       if (this.validTreePosition(x, y, initial ? 300 : 0)) position = { x, y };
     }
     if (!position) return false;
-    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut });
+    const roll = Math.random();
+    const size: Tree['size'] = roll < 0.35 ? 'small' : roll < 0.75 ? 'medium' : 'large';
+    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
     return true;
   }
 
@@ -237,7 +239,8 @@ export class GameEngine {
     const tree = this.state.trees.find(value => value.id === id);
     if (!tree) return;
     this.state.trees = this.state.trees.filter(value => value.id !== id);
-    const amount = Math.random() < 0.5 ? CONFIG.trees.woodDrops[0] : CONFIG.trees.woodDrops[1];
+    const roll = Math.random();
+    const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
     this.state.woodDrops.push({ id: this.nextId++, x: tree.x, y: tree.y, amount });
   }
 
@@ -280,6 +283,8 @@ export class GameEngine {
       const treeTarget = this.state.trees.map(tree => ({ tree, d: Math.hypot(tree.x - p.x, tree.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
       if (!treeTarget) return;
       this.attackTimer = 0;
+      this.state.treeChopAngle = Math.atan2(treeTarget.tree.y - p.y, treeTarget.tree.x - p.x);
+      this.state.treeChopTimer = 0.2;
       treeTarget.tree.hits -= 1;
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
       return;
