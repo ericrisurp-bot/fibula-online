@@ -60,8 +60,8 @@ export default function Controls({ onMove, onRange, onZoom, onClass, classId, sh
     {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
       <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
 <div className="menu-section-label">BAG · {inventory.reduce((total, item) => total + item.quantity, 0)} itens</div>
-<div className="bag-slot-grid" aria-label="Mochila com 13 espaços">
-  {Array.from({ length: 13 }, (_, index) => {
+<div className="bag-slot-grid" aria-label="Mochila com 3 espaços">
+  {Array.from({ length: 3 }, (_, index) => {
     const item = inventory[index];
     const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId) : 'vazio';
     return <div className={item ? 'bag-slot filled' : 'bag-slot'} key={index} aria-label={'Espaço ' + (index + 1) + ': ' + itemName + (item ? ', ' + item.quantity : '')}>
