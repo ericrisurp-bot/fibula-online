@@ -50,7 +50,25 @@ export class GameEngine {
   setKey(key: string, down: boolean) { if (this.state.dead) return; down ? this.keys.add(key.toLowerCase()) : this.keys.delete(key.toLowerCase()); }
   setMove(x: number, y: number) { if (this.state.dead) return; this.input = { x, y }; }
   setWeapon(weapon: WeaponId) { if (this.state.dead || this.state.weapon === weapon) return; this.state.weapon = weapon; this.emit(); }
-  setClass(classId: ClassId) { if (this.state.dead || this.state.classId === classId) return; this.state.classId = classId; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; if (classId !== 'druida') this.state.healingOrbs = []; this.emit(); }
+  setClass(classId: ClassId) {
+    if (this.state.dead) return;
+    const changed = this.state.classId !== classId;
+    this.state.classId = classId;
+
+    // Toda seleção não-Druida revalida a invariante, mesmo se a classe já estiver selecionada.
+    if (classId !== 'druida') {
+      this.druidRegenTimer = 0;
+      this.druidOrbHealTimer = 0;
+      this.state.healingOrbs = [];
+    } else if (changed) {
+      // Ao entrar no Druida, a passiva começa limpa; não herda temporizadores anteriores.
+      this.druidRegenTimer = 0;
+      this.druidOrbHealTimer = 0;
+    }
+
+    // Publica a seleção imediatamente para o HUD e para qualquer consumidor do snapshot.
+    this.emit();
+  }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
