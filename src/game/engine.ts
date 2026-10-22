@@ -55,18 +55,26 @@ export class GameEngine {
     const changed = this.state.classId !== classId;
     this.state.classId = classId;
 
-    // Toda seleção não-Druida revalida a invariante, mesmo se a classe já estiver selecionada.
+    // A classe selecionada define a arma-base; os atalhos de arma podem alterá-la depois.
+    const classWeapon: Record<ClassId, WeaponId> = {
+      guerreiro: 'espada',
+      mago: 'cajado',
+      arqueiro: 'arco',
+      druida: 'cajado',
+    };
+    this.state.weapon = classWeapon[classId];
+
+    // Habilidades exclusivas do Druida nunca sobrevivem ao sair da classe.
     if (classId !== 'druida') {
       this.druidRegenTimer = 0;
       this.druidOrbHealTimer = 0;
       this.state.healingOrbs = [];
     } else if (changed) {
-      // Ao entrar no Druida, a passiva começa limpa; não herda temporizadores anteriores.
       this.druidRegenTimer = 0;
       this.druidOrbHealTimer = 0;
     }
 
-    // Publica a seleção imediatamente para o HUD e para qualquer consumidor do snapshot.
+    // Publica classe, arma e habilidades juntas como um único estado coerente.
     this.emit();
   }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
