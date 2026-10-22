@@ -102,7 +102,12 @@ export class GameEngine {
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
         this.state.healingOrbs.shift(); p.hp = Math.min(p.maxHp, p.hp + 14); this.druidOrbHealTimer = 0.65;
       }
-    } else { this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; }
+    } else {
+      // Invariante: nenhuma habilidade/órbe do Druida pode sobreviver fora dessa classe.
+      this.druidRegenTimer = 0;
+      this.druidOrbHealTimer = 0;
+      if (this.state.healingOrbs.length > 0) this.state.healingOrbs = [];
+    }
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
   }
 
