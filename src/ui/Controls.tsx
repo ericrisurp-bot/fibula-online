@@ -1,18 +1,16 @@
 import { useRef, type PointerEvent } from 'react';
-import { CLASSES, type ClassId, type WeaponId } from '../game/config';
+import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
   onMove: (x: number, y: number) => void;
   onCamera: () => void;
-  onWeapon: (id: WeaponId) => void;
   onClass: (id: ClassId) => void;
-  weapon: WeaponId;
   classId: ClassId;
 };
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onMove, onCamera, onWeapon, onClass, weapon, classId }: Props) {
+export default function Controls({ onMove, onCamera, onClass, classId }: Props) {
   const stickRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<number | null>(null);
 
@@ -65,9 +63,6 @@ export default function Controls({ onMove, onCamera, onWeapon, onClass, weapon, 
     </div>
     <div className="mobile-actions">
       <button onClick={onCamera}>Câmera</button>
-      <button className={weapon === 'espada' ? 'selected' : ''} onClick={() => onWeapon('espada')}>5 Espada</button>
-      <button className={weapon === 'cajado' ? 'selected' : ''} onClick={() => onWeapon('cajado')}>6 Cajado</button>
-      <button className={weapon === 'arco' ? 'selected' : ''} onClick={() => onWeapon('arco')}>7 Arco</button>
       {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} className={classId === id ? 'selected class-button' : 'class-button'} onClick={() => onClass(id)}>{index + 1} {CLASSES[id].label}</button>)}
     </div>
   </div>;
