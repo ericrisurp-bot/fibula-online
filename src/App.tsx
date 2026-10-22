@@ -98,7 +98,10 @@ export default function App() {
       if (k === '1') engine.setWeapon('espada');
       if (k === '2') engine.setWeapon('cajado');
       if (k === '3') engine.setWeapon('arco');
-      if (k === '4') engine.setClass('druida');
+      if (k === '4') engine.setClass('guerreiro');
+      if (k === '5') engine.setClass('mago');
+      if (k === '6') engine.setClass('arqueiro');
+      if (k === '7') engine.setClass('druida');
       if (k === 'r') engine.toggleRange();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
@@ -135,7 +138,7 @@ export default function App() {
           <button onClick={toggleCamera}>{state.cameraFull ? '◎ Seguir' : '▣ Mapa'}</button>
         </div>
       </div>
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o slime. <b>C</b> alterna a câmera. <b>1, 2, 3</b> trocam a arma e <b>4</b> seleciona o Druida. <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>C</b> alterna a câmera. <b>1, 2, 3</b> trocam a arma. <b>4 Guerreiro, 5 Mago, 6 Arqueiro e 7 Druida</b> trocam a classe. <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
     </section>
@@ -158,13 +161,32 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r); ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .25); const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
+  const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
     guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
     mago: { body: '#9c8be8', outline: '#ded4ff', hood: '#463b78', hoodOutline: '#b7a7ff' },
     arqueiro: { body: '#d7b66e', outline: '#fff0b7', hood: '#66502c', hoodOutline: '#e8ce8a' },
     druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
   };
   const appearance = classColors[classId];
+  // O corpo também muda de silhueta por classe; não depende da arma equipada.
+  ctx.beginPath();
+  if (classId === 'guerreiro') {
+    ctx.moveTo(-r, r * .2); ctx.lineTo(-r * .9, -r * .5); ctx.lineTo(-r * .35, -r * .95);
+    ctx.lineTo(r * .35, -r * .95); ctx.lineTo(r * .9, -r * .5); ctx.lineTo(r, r * .2);
+    ctx.quadraticCurveTo(0, r * .95, -r, r * .2);
+  } else if (classId === 'mago') {
+    ctx.moveTo(-r * .9, r * .25); ctx.quadraticCurveTo(-r * 1.3, -r * .8, 0, -r * .85);
+    ctx.quadraticCurveTo(r * 1.3, -r * .8, r * .9, r * .25);
+    ctx.quadraticCurveTo(r * .6, r * .95, 0, r * .68); ctx.quadraticCurveTo(-r * .6, r * .95, -r * .9, r * .25);
+  } else if (classId === 'arqueiro') {
+    ctx.moveTo(-r * .95, r * .3); ctx.quadraticCurveTo(-r * .8, -r * .95, 0, -r * .72);
+    ctx.quadraticCurveTo(r * .8, -r * .95, r * .95, r * .3);
+    ctx.lineTo(r * .55, r * .75); ctx.lineTo(-r * .55, r * .75); ctx.closePath();
+  } else {
+    ctx.moveTo(-r, r * .2); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r);
+    ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .2); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72);
+    ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .2);
+  }
   ctx.fillStyle = appearance.body; ctx.fill(); ctx.strokeStyle = appearance.outline; ctx.lineWidth = 2; ctx.stroke();
   // Silhueta própria por classe: trocar de classe muda o personagem, não só a arma.
   ctx.fillStyle = appearance.hood; ctx.strokeStyle = appearance.hoodOutline; ctx.lineWidth = 2;
@@ -191,6 +213,10 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.closePath(); ctx.fill(); ctx.stroke();
   }
   ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
+  // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
+  const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
+  ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 1.85);
   if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
