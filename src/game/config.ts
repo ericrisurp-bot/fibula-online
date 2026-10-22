@@ -1,3 +1,5 @@
+import type { AttributeMultipliers, AttributeValues } from './attributes';
+
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 export const CONFIG = {
   map: { size: 2400, wall: 34, grid: 80 },
@@ -35,4 +37,45 @@ export const CLASSES = {
 } as const;
 
 export type ClassId = keyof typeof CLASSES;
-export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008, intelligence: 1 };
+
+/**
+ * Ponto único de configuração para o balanceamento futuro.
+ * Todos os atributos existem em todas as classes; valores omitidos equivalem
+ * a base/ganho zero e multiplicador 1x. Nenhum valor de classe é balanceado aqui.
+ */
+export type ClassAttributeProgression = {
+  base: Partial<AttributeValues>;
+  perLevel: Partial<AttributeValues>;
+  multipliers: AttributeMultipliers;
+};
+
+const COMMON_LEVEL_GROWTH: Partial<AttributeValues> = {
+  health: 8,
+  armor: 0.4,
+  movementSpeed: 5,
+  attackSpeed: 0.045,
+  dodge: 0.008,
+};
+
+const EMPTY_CLASS_PROGRESSION: ClassAttributeProgression = {
+  base: {},
+  perLevel: COMMON_LEVEL_GROWTH,
+  multipliers: {},
+};
+
+/** Edite base, perLevel e multipliers de cada classe sem mexer no motor. */
+export const CLASS_ATTRIBUTE_PROGRESSION: Record<ClassId, ClassAttributeProgression> = {
+  guerreiro: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+  mago: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+  arqueiro: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+  druida: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+};
+
+/** Crescimento dos monstros aplicado a cada nova onda; sem balanceamento novo. */
+export const ENEMY_WAVE_GROWTH: Partial<AttributeValues> = {
+  health: CONFIG.enemy.healthPerWave,
+};
+export const ENEMY_ATTRIBUTE_MULTIPLIERS: AttributeMultipliers = {};
+
+/** Compatibilidade temporária com referências antigas durante a migração. */
+export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008, intelligence: 0 };
