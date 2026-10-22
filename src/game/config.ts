@@ -35,4 +35,4 @@ export const CLASSES = {
 } as const;
 
 export type ClassId = keyof typeof CLASSES;
-export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008 };
+export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008, intelligence: 1 };
