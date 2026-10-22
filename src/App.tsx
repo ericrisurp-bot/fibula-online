@@ -158,9 +158,16 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r); ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .25); ctx.fillStyle = classId === 'druida' ? '#82df83' : '#8bd5c2'; ctx.fill(); ctx.strokeStyle = classId === 'druida' ? '#c9ffc2' : '#c1f2df'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r); ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .25); const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
+    guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
+    mago: { body: '#9c8be8', outline: '#ded4ff', hood: '#463b78', hoodOutline: '#b7a7ff' },
+    arqueiro: { body: '#d7b66e', outline: '#fff0b7', hood: '#66502c', hoodOutline: '#e8ce8a' },
+    druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
+  };
+  const appearance = classColors[classId];
+  ctx.fillStyle = appearance.body; ctx.fill(); ctx.strokeStyle = appearance.outline; ctx.lineWidth = 2; ctx.stroke();
   // Capuz com ponta e sombra, feito apenas com formas.
-  ctx.beginPath(); ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32); ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35); ctx.fillStyle = '#33465c'; ctx.fill(); ctx.strokeStyle = '#647d98'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32); ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35); ctx.fillStyle = appearance.hood; ctx.fill(); ctx.strokeStyle = appearance.hoodOutline; ctx.stroke();
   ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
   if (weapon === 'espada') {
     const duration = 0.24;
@@ -170,12 +177,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
     ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
+    ctx.restore();
     if (swordSwingTimer > 0) {
+      ctx.save();
       ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
       ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - Math.PI * 0.31, swordSwingAngle + Math.PI * 0.31); ctx.stroke();
+      ctx.restore();
     }
-    ctx.restore();
   } else {
     ctx.strokeStyle = weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
     if (weapon === 'cajado') { ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 4, 0, Math.PI * 2); ctx.fillStyle = '#bba0ff'; ctx.fill(); }
