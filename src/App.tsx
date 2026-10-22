@@ -63,7 +63,7 @@ export default function App() {
         ctx.strokeStyle = '#d4fff0'; ctx.lineWidth = 2; ctx.stroke();
       }
       if (s.classId === 'druida') {
-        s.healingOrbs.forEach((orb, index) => {
+        s.healingOrbs.forEach((_, index) => {
           const angle = s.elapsed * 1.4 + index * (Math.PI * 2 / Math.max(1, s.healingOrbs.length));
           const ox = s.player.x + Math.cos(angle) * 30, oy = s.player.y + Math.sin(angle) * 30;
           ctx.save(); ctx.shadowColor = '#8dff9c'; ctx.shadowBlur = 12;
