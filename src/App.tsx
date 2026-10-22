@@ -119,21 +119,23 @@ export default function App() {
     </header>
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" />
-      <div className="hud-top">
-        <div className="hud-chip"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
-        <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
-        <div className="hud-chip"><span>ELIMINAÇÕES</span><strong>{state.kills}</strong></div>
-      </div>
-      <div className="hud-vitals" aria-label="Informações do personagem">
-        <div className="health-row"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
-        <div className="xp-row"><span>XP · NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
+      <div className="hud-top" aria-label="Status da partida">
+        <div className="hud-row hud-row-primary">
+          <div className="hud-meter health-meter"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
+          <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
+        </div>
+        <div className="hud-row hud-row-secondary">
+          <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+          <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
+          <div className="hud-chip kills-chip"><span>☠️</span><strong>{state.kills}</strong></div>
+        </div>
       </div>
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
+      <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
-    <footer className="footer"><span>ETAPA 01 <i /> PROTÓTIPO JOGÁVEL</span><span className="footer-right">CADA ONDA É MAIS PERIGOSA</span></footer>
-    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} />
+
   </main>;
 }
 
