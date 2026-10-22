@@ -1,4 +1,4 @@
-import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
+import { CLASS_ATTRIBUTE_PROGRESSION, CONFIG, ENEMY_ATTRIBUTE_MULTIPLIERS, ENEMY_WAVE_GROWTH, type ClassId, type WeaponId } from './config';
 import { applyAttributeProgression, createAttributeState, getAttributeValue, type AttributeState } from './attributes';
 
 type Vec = { x: number; y: number };
@@ -35,7 +35,8 @@ export class GameEngine {
   private druidRegenTimer = 0;
   private druidOrbHealTimer = 0;
 
-  private createPlayerAttributes(): AttributeState {
+  private createPlayerAttributes(classId: ClassId = 'guerreiro'): AttributeState {
+    const profile = CLASS_ATTRIBUTE_PROGRESSION[classId];
     return createAttributeState({
       health: CONFIG.player.maxHealth,
       armor: CONFIG.player.armor,
@@ -43,19 +44,17 @@ export class GameEngine {
       movementSpeed: CONFIG.player.speed,
       attackSpeed: 0,
       strength: 0,
-      accuracy: 0,
-      rangedDamage: 0,
+      dexterity: 0,
       intelligence: 0,
-      magicDamage: 0,
       fireDamage: 0,
       waterDamage: 0,
       earthDamage: 0,
-      physicalResistance: 0,
       magicResistance: 0,
       fireResistance: 0,
       waterResistance: 0,
       earthResistance: 0,
-    });
+      ...profile.base,
+    }, profile.multipliers);
   }
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
@@ -93,6 +92,8 @@ export class GameEngine {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
     this.state.classId = classId;
+    // A classe altera apenas os multiplicadores dos próximos ganhos; o histórico fica intacto.
+    this.playerAttributes = { ...this.playerAttributes, multipliers: { ...CLASS_ATTRIBUTE_PROGRESSION[classId].multipliers } };
 
     // A classe selecionada define a arma; não existe troca independente de arma.
     const classWeapon: Record<ClassId, WeaponId> = {
@@ -209,8 +210,19 @@ export class GameEngine {
       if (edge === 2) { x = offset; y = CONFIG.map.wall + 24; }
       if (edge === 3) { x = offset; y = this.world - CONFIG.map.wall - 24; }
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 320) { x = this.clamp(x + 420, 80, this.world - 80); }
-      this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
+      this.state.enemies.push({ id: this.nextId++, x, y, hp: this.getEnemyWaveHealth(this.state.wave), hitWait: 0, wobble: Math.random() * 8 });
     }
+  }
+
+  private getEnemyWaveHealth(wave: number): number {
+    let attributes = createAttributeState(
+      { health: CONFIG.enemy.health },
+      ENEMY_ATTRIBUTE_MULTIPLIERS,
+    );
+    for (let currentWave = 2; currentWave <= wave; currentWave++) {
+      attributes = applyAttributeProgression(attributes, ENEMY_WAVE_GROWTH, 'wave');
+    }
+    return getAttributeValue(attributes, 'health');
   }
 
   private treeSpawnDuration() {
@@ -385,14 +397,11 @@ export class GameEngine {
     }
     while (p.xp >= p.nextXp) {
       p.xp -= p.nextXp; p.level += 1; p.nextXp = CONFIG.xp.levelBase + p.level * CONFIG.xp.levelGrowth;
-      this.playerAttributes = applyAttributeProgression(this.playerAttributes, {
-        health: LEVEL_GROWTH.health,
-        armor: LEVEL_GROWTH.armor,
-        movementSpeed: LEVEL_GROWTH.speed,
-        attackSpeed: LEVEL_GROWTH.attackSpeed,
-        dodge: LEVEL_GROWTH.dodge,
-        ...(this.state.classId === 'mago' ? { intelligence: LEVEL_GROWTH.intelligence } : {}),
-      }, 'level');
+      this.playerAttributes = applyAttributeProgression(
+        this.playerAttributes,
+        CLASS_ATTRIBUTE_PROGRESSION[this.state.classId].perLevel,
+        'level',
+      );
       const previousMaxHp = p.maxHp;
       p.maxHp = getAttributeValue(this.playerAttributes, 'health');
       p.hp = Math.min(p.maxHp, p.hp + (p.maxHp - previousMaxHp));
