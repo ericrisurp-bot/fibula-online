@@ -68,6 +68,25 @@ export default function App() {
         else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = '#a98cff'; ctx.fill(); }
         ctx.restore();
       }
+      const slash = engine.swordSlash;
+      if (slash) {
+        const progress = 1 - slash.life / slash.maxLife;
+        const radius = CONFIG.weapons.espada.range;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - progress);
+        ctx.strokeStyle = '#e8f7ff';
+        ctx.lineWidth = 7 * (1 - progress * 0.45);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(slash.x, slash.y, radius * (0.78 + progress * 0.22), slash.angle - 0.95 + progress * 0.25, slash.angle + 0.95 + progress * 0.25);
+        ctx.stroke();
+        ctx.strokeStyle = '#8fd8f4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(slash.x, slash.y, radius * (0.78 + progress * 0.22), slash.angle - 0.95 + progress * 0.25, slash.angle + 0.95 + progress * 0.25);
+        ctx.stroke();
+        ctx.restore();
+      }
       for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
       drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.elapsed);
       ctx.restore();
