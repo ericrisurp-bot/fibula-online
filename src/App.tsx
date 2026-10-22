@@ -20,6 +20,8 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
   const zoomRef = useRef(1.6);
+  const cyclePosition = state.elapsed % CONFIG.waves.cycle;
+  const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda em andamento' : `Respiro: ${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -174,9 +176,10 @@ export default function App() {
         <div className="hud-center-stack">
           <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
           <div className="hud-substats">
-            <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
+            <div className="hud-chip compact"><span>CICLO</span><strong>Horda {state.wave}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
           </div>
+          <div className="hud-chip compact"><span>STATUS</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
       </div>
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">

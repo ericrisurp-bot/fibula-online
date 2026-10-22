@@ -14,7 +14,7 @@ export const CONFIG = {
     contactDamageEveryWaves: 4,
     contactCooldown: 0.8,
   },
-  waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, interval: 3 },
+  waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, cycle: 60, hordaDuration: 12, maxAlive: 150 },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
