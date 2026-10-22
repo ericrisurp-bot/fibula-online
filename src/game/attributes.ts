@@ -1,63 +1,44 @@
 /**
  * Sistema universal de atributos do Fíbula Online.
  *
- * Regra: o valor fixo inicial fica separado dos ganhos de progressão.
- * Multiplicadores afetam somente o ganho novo de cada nível/onda; nunca
- * recalculam a base fixa nem os ganhos já acumulados.
- *
- * Este módulo define a fundação do sistema. A ligação ao motor e os perfis
- * específicos de classe/inimigo serão feitos depois da validação desta etapa.
+ * A base fixa não recebe multiplicadores. Cada nível/onda soma apenas o
+ * incremento novo multiplicado pelo perfil atual; ganhos antigos não mudam.
  */
-
 export const ATTRIBUTE_KEYS = [
-  // Atributos comuns
-  'health',
-  'armor',
-  'dodge',
-  'movementSpeed',
-  'attackSpeed',
-
-  // Combate físico
   'strength',
-  'accuracy',
-  'rangedDamage',
-
-  // Magia
+  'dexterity',
   'intelligence',
-  'magicDamage',
-
-  // Dano elemental (separado do dano mágico)
-  'fireDamage',
-  'waterDamage',
-  'earthDamage',
-
-  // Resistências
-  'physicalResistance',
+  'health',
+  'attackSpeed',
+  'movementSpeed',
+  'armor',
   'magicResistance',
+  'dodge',
   'fireResistance',
   'waterResistance',
   'earthResistance',
+  'fireDamage',
+  'waterDamage',
+  'earthDamage',
 ] as const;
 
 export type AttributeKey = (typeof ATTRIBUTE_KEYS)[number];
 export type AttributeValues = Record<AttributeKey, number>;
-
-/**
- * Multiplicador de progressão por atributo.
- * A ausência de um valor significa 1x, sem escolher multiplicadores de classe.
- */
 export type AttributeMultipliers = Partial<Record<AttributeKey, number>>;
+export type ProgressionSource = 'level' | 'wave';
 
-/** Estado por personagem/inimigo: base fixa e ganhos progressivos separados. */
 export type AttributeState = {
   base: AttributeValues;
   gained: AttributeValues;
   multipliers: AttributeMultipliers;
 };
 
-export type ProgressionSource = 'level' | 'wave';
+export type ElementalScaling = {
+  strengthMultiplier: number;
+  intelligenceMultiplier: number;
+};
 
-/** Cria uma ficha com valores iniciais fixos, sem aplicar multiplicadores à base. */
+/** Cria atributos com base fixa e ganhos acumulados separados. */
 export function createAttributeState(
   fixedBase: Partial<AttributeValues>,
   multipliers: AttributeMultipliers = {},
@@ -69,44 +50,53 @@ export function createAttributeState(
   };
 }
 
-/**
- * Adiciona o crescimento de um nível ou onda.
- * O valor-base é o incremento novo; o multiplicador não toca no histórico.
- */
+/** Soma somente os ganhos novos; não recalcula base nem histórico. */
 export function applyAttributeProgression(
   state: AttributeState,
   baseIncrement: Partial<AttributeValues>,
   _source: ProgressionSource,
 ): AttributeState {
   const gained = { ...state.gained };
-
   for (const key of ATTRIBUTE_KEYS) {
     const increment = baseIncrement[key] ?? 0;
     const multiplier = state.multipliers[key] ?? 1;
-
     if (!Number.isFinite(increment) || increment < 0) {
-      throw new RangeError(`O crescimento de "${key}" deve ser um número finito não negativo.`);
+      throw new RangeError(`O crescimento de "${key}" deve ser finito e não negativo.`);
     }
     if (!Number.isFinite(multiplier) || multiplier < 0) {
-      throw new RangeError(`O multiplicador de "${key}" deve ser um número finito não negativo.`);
+      throw new RangeError(`O multiplicador de "${key}" deve ser finito e não negativo.`);
     }
-
     gained[key] += increment * multiplier;
   }
-
   return { ...state, gained };
 }
 
-/** Valor do atributo sem equipamentos: base fixa + progressão acumulada. */
 export function getAttributeValue(state: AttributeState, key: AttributeKey): number {
   return state.base[key] + state.gained[key];
 }
 
-/** Calcula a ficha efetiva para leitura, preservando a separação base/ganhos. */
 export function getAttributeValues(state: AttributeState): AttributeValues {
   return Object.fromEntries(
     ATTRIBUTE_KEYS.map(key => [key, getAttributeValue(state, key)]),
   ) as AttributeValues;
+}
+
+/**
+ * Dano elemental preparado para equipamento/skills:
+ * base do item + Força x multiplicador + Inteligência x multiplicador.
+ * Os multiplicadores são explícitos e não representam balanceamento definido.
+ */
+export function calculateElementalDamage(
+  baseDamage: number,
+  strength: number,
+  intelligence: number,
+  scaling: ElementalScaling,
+): number {
+  const inputs = [baseDamage, strength, intelligence, scaling.strengthMultiplier, scaling.intelligenceMultiplier];
+  if (inputs.some(value => !Number.isFinite(value) || value < 0)) {
+    throw new RangeError('Dano, atributos e multiplicadores elementais devem ser finitos e não negativos.');
+  }
+  return baseDamage + strength * scaling.strengthMultiplier + intelligence * scaling.intelligenceMultiplier;
 }
 
 function completeValues(values: Partial<AttributeValues>): AttributeValues {
@@ -114,7 +104,7 @@ function completeValues(values: Partial<AttributeValues>): AttributeValues {
     ATTRIBUTE_KEYS.map(key => {
       const value = values[key] ?? 0;
       if (!Number.isFinite(value) || value < 0) {
-        throw new RangeError(`O valor inicial de "${key}" deve ser um número finito não negativo.`);
+        throw new RangeError(`O valor inicial de "${key}" deve ser finito e não negativo.`);
       }
       return [key, value];
     }),
