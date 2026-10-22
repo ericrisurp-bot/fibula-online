@@ -24,6 +24,7 @@ export class GameEngine {
   private animation = 0;
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
   private enemyDamageTimer = 0;
+  swordSlash: { x: number; y: number; angle: number; life: number; maxLife: number } | null = null;
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
@@ -52,7 +53,7 @@ export class GameEngine {
   restart() {
     this.stop(); this.state = this.freshState(); this.nextId = 1; this.waveTimer = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.swordSlash = null; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], xpOrbs: [...this.state.xpOrbs], shots: [...this.state.shots] }); }
 
@@ -78,6 +79,10 @@ export class GameEngine {
   private update(dt: number) {
     this.elapsed += dt; this.state.elapsed = this.elapsed;
     this.waveTimer += dt; this.attackTimer += dt; this.enemyDamageTimer -= dt;
+    if (this.swordSlash) {
+      this.swordSlash.life -= dt;
+      if (this.swordSlash.life <= 0) this.swordSlash = null;
+    }
     const p = this.state.player;
     let dx = this.input.x, dy = this.input.y;
     if (this.keys.has('a') || this.keys.has('arrowleft')) dx -= 1;
@@ -132,8 +137,23 @@ export class GameEngine {
     if (!target) return;
     this.attackTimer = 0;
     if (weapon.kind === 'melee') {
-      target.e.hp -= weapon.damage;
-      if (target.e.hp <= 0) this.killEnemy(target.e.id);
+      const angle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      this.swordSlash = { x: p.x, y: p.y, angle, life: 0.2, maxLife: 0.2 };
+      const hitIds = this.state.enemies
+        .filter(e => {
+          const dx = e.x - p.x, dy = e.y - p.y;
+          const distance = Math.hypot(dx, dy);
+          if (distance > weapon.range + CONFIG.enemy.radius) return false;
+          const difference = Math.atan2(Math.sin(Math.atan2(dy, dx) - angle), Math.cos(Math.atan2(dy, dx) - angle));
+          return Math.abs(difference) <= Math.PI / 3;
+        })
+        .map(e => e.id);
+      for (const id of hitIds) {
+        const enemy = this.state.enemies.find(e => e.id === id);
+        if (!enemy) continue;
+        enemy.hp -= weapon.damage;
+        if (enemy.hp <= 0) this.killEnemy(id);
+      }
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
