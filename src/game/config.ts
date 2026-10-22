@@ -1,3 +1,5 @@
+import type { AttributeMultipliers, AttributeValues } from './attributes';
+
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 export const CONFIG = {
   map: { size: 2400, wall: 34, grid: 80 },
@@ -15,6 +17,7 @@ export const CONFIG = {
     contactCooldown: 0.8,
   },
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, interval: 3 },
+  trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 }, hitsToCut: 5, carryLimit: 15 },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
@@ -34,4 +37,45 @@ export const CLASSES = {
 } as const;
 
 export type ClassId = keyof typeof CLASSES;
-export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008 };
+
+/**
+ * Ponto único de configuração para o balanceamento futuro.
+ * Todos os atributos existem em todas as classes; valores omitidos equivalem
+ * a base/ganho zero e multiplicador 1x. Nenhum valor de classe é balanceado aqui.
+ */
+export type ClassAttributeProgression = {
+  base: Partial<AttributeValues>;
+  perLevel: Partial<AttributeValues>;
+  multipliers: AttributeMultipliers;
+};
+
+const COMMON_LEVEL_GROWTH: Partial<AttributeValues> = {
+  health: 8,
+  armor: 0.4,
+  movementSpeed: 5,
+  attackSpeed: 0.045,
+  dodge: 0.008,
+};
+
+const EMPTY_CLASS_PROGRESSION: ClassAttributeProgression = {
+  base: {},
+  perLevel: COMMON_LEVEL_GROWTH,
+  multipliers: {},
+};
+
+/** Edite base, perLevel e multipliers de cada classe sem mexer no motor. */
+export const CLASS_ATTRIBUTE_PROGRESSION: Record<ClassId, ClassAttributeProgression> = {
+  guerreiro: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+  mago: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+  arqueiro: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+  druida: { ...EMPTY_CLASS_PROGRESSION, base: {}, perLevel: { ...COMMON_LEVEL_GROWTH }, multipliers: {} },
+};
+
+/** Crescimento dos monstros aplicado a cada nova onda; sem balanceamento novo. */
+export const ENEMY_WAVE_GROWTH: Partial<AttributeValues> = {
+  health: CONFIG.enemy.healthPerWave,
+};
+export const ENEMY_ATTRIBUTE_MULTIPLIERS: AttributeMultipliers = {};
+
+/** Compatibilidade temporária com referências antigas durante a migração. */
+export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008, intelligence: 0 };
