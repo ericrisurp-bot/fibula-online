@@ -213,14 +213,26 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
   ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45);
-  if (weapon === 'espada') {
+  if (weapon === 'espada' || weapon === 'bastao') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
     const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : -0.45;
     ctx.save(); ctx.rotate(angle);
-    ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
-    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
+    if (weapon === 'bastao') {
+      // Bastão de raízes exclusivo do Druida: madeira retorcida, espinhos e folhas verdes.
+      ctx.strokeStyle = '#70462b'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(r * .68, r * .12); ctx.quadraticCurveTo(r * 1.05, -r * .05, r * 1.28, -r * .28); ctx.quadraticCurveTo(r * 1.55, -r * .48, r * 1.92, -r * .55); ctx.stroke();
+      ctx.strokeStyle = '#b7834b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(r * .76, r * .04); ctx.quadraticCurveTo(r * 1.05, -r * .04, r * 1.28, -r * .28); ctx.stroke();
+      ctx.strokeStyle = '#4b8a48'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(r * 1.12, -r * .18); ctx.lineTo(r * .98, -r * .5); ctx.moveTo(r * 1.48, -r * .4); ctx.lineTo(r * 1.7, -r * .72); ctx.stroke();
+      ctx.fillStyle = '#80dc73';
+      ctx.beginPath(); ctx.ellipse(r * .96, -r * .52, 3, 5, -.6, 0, Math.PI * 2); ctx.ellipse(r * 1.72, -r * .75, 3, 5, .6, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
+      ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
+    }
     ctx.restore();
     if (swordSwingTimer > 0) {
       ctx.save();
