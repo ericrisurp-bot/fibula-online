@@ -285,20 +285,22 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
     const angle = swordSwingTimer > 0 ? swordSwingAngle - facingRotation + (progress - 0.5) * 1.55 : aimAngle;
-    ctx.save(); ctx.rotate(angle);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(angle);
     ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
     ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
     ctx.restore();
     if (swordSwingTimer > 0) {
       ctx.save();
+      ctx.scale(facingScaleX, 1);
       ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
       ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - facingRotation - Math.PI * 0.31, swordSwingAngle - facingRotation + Math.PI * 0.31); ctx.stroke();
       ctx.restore();
     }
   } else {
-    ctx.save(); ctx.rotate(aimAngle);
+    // Cancela o espelhamento horizontal do personagem antes de aplicar o ângulo mundial da mira.
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(aimAngle);
     const isDruidStaff = weapon === 'bastao';
     ctx.strokeStyle = isDruidStaff ? '#8b623d' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
     if (weapon === 'cajado' || isDruidStaff) {
