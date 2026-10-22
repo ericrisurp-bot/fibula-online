@@ -59,7 +59,7 @@ export class GameEngine {
       guerreiro: 'espada',
       mago: 'cajado',
       arqueiro: 'arco',
-      druida: 'cajado',
+      druida: 'bastao',
     };
     this.state.weapon = classWeapon[classId];
 
