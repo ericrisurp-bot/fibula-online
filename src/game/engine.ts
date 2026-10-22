@@ -391,6 +391,7 @@ export class GameEngine {
         movementSpeed: LEVEL_GROWTH.speed,
         attackSpeed: LEVEL_GROWTH.attackSpeed,
         dodge: LEVEL_GROWTH.dodge,
+        ...(this.state.classId === 'mago' ? { intelligence: LEVEL_GROWTH.intelligence } : {}),
       }, 'level');
       const previousMaxHp = p.maxHp;
       p.maxHp = getAttributeValue(this.playerAttributes, 'health');
