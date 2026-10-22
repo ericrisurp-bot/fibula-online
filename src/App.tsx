@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
+import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
-  player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
-  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
+  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -18,6 +18,8 @@ export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
+  const [showStart, setShowStart] = useState(true);
+  const zoomRef = useRef(1.6);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -36,7 +38,7 @@ export default function App() {
       ctx.fillStyle = '#121b21'; ctx.fillRect(0, 0, w, h);
       // O Canvas lê o estado mutável do motor a cada frame, sem render React por quadro.
       const s = engine.state;
-      const scale = s.cameraFull ? Math.min(w, h) / (engine.world + 80) : Math.min(w / 950, h / 680, 1.45);
+      const scale = (s.cameraFull ? Math.min(w, h) / (engine.world + 80) : Math.min(w / 950, h / 680, 1.45)) * zoomRef.current;
       const viewW = w / scale, viewH = h / scale;
       const left = s.cameraFull
         ? engine.world / 2 - viewW / 2
@@ -78,7 +80,41 @@ export default function App() {
         ctx.restore();
       }
       for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
-      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer);
+      for (const e of s.dyingEnemies) {
+        const progress = Math.min(1, e.deathAge / 0.48);
+        ctx.save();
+        ctx.globalAlpha = 1 - progress;
+        ctx.translate(e.x, e.y + progress * CONFIG.enemy.radius * 0.65);
+        ctx.scale(1 + progress * 0.38, Math.max(0.06, 1 - progress * 0.92));
+        drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
+        ctx.restore();
+      }
+      const aimTarget = s.enemies
+        .map((enemy) => ({ enemy, distance: Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) }))
+        .filter(({ distance }) => distance <= CONFIG.weapons[s.weapon].range)
+        .sort((a, b) => a.distance - b.distance)[0]?.enemy;
+      const aimAngle = aimTarget
+        ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
+        : s.player.facingX < -0.35 ? Math.PI : 0;
+      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle);
+      for (const damage of s.floatingDamage) {
+        const progress = Math.min(1, damage.age / damage.duration);
+        const scale = 0.62 + Math.min(1, progress / 0.28) * 0.42;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - progress);
+        ctx.translate(damage.x, damage.y - progress * 34);
+        ctx.scale(scale, scale);
+        ctx.font = '900 17px ui-sans-serif, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = 'rgba(8, 12, 14, 0.88)';
+        ctx.strokeText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
+        ctx.fillStyle = damage.color;
+        ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
+        ctx.restore();
+      }
       ctx.restore();
       frame = requestAnimationFrame(render);
     };
@@ -107,9 +143,17 @@ export default function App() {
   }, []);
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
-  const toggleCamera = () => engineRef.current?.toggleCamera();
   const toggleRange = () => engineRef.current?.toggleRange();
   const restart = () => { engineRef.current?.restart(); };
+  const startGame = () => {
+    const stage = canvasRef.current?.parentElement;
+    if (stage?.requestFullscreen) {
+      void stage.requestFullscreen().catch(() => {
+        // Alguns navegadores ou modos incorporados não permitem tela cheia.
+      });
+    }
+    setShowStart(false);
+  };
 
   return <main className="game-shell">
     <header className="topbar">
@@ -119,43 +163,65 @@ export default function App() {
     </header>
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" />
-      <div className="hud-top">
-        <div className="hud-chip"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
-        <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
-        <div className="hud-chip"><span>ELIMINAÇÕES</span><strong>{state.kills}</strong></div>
-      </div>
-      <div className="hud-bottom">
-        <div className="health-row"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
-        <div className="xp-row"><span>NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
-        <div className="class-row"><span>CLASSE</span>{(Object.keys(CLASSES) as ClassId[]).map(id => <button key={id} title={CLASSES[id].description} onClick={() => pickClass(id)} className={state.classId === id ? 'selected' : ''}>{id === 'druida' ? `Druida ${state.healingOrbs.length}/7` : CLASSES[id].label}</button>)}</div>
-        <div className="weapon-row">
-          <span>ARMA <b>{CONFIG.weapons[state.weapon].label.toUpperCase()}</b></span>
-          <button onClick={toggleRange} className={state.showRange ? 'active' : ''}>◉ Alcance</button>
-          <button onClick={toggleCamera}>{state.cameraFull ? '◎ Seguir' : '▣ Mapa'}</button>
+      <div className="hud-top" aria-label="Status da partida">
+        <div className="hud-left-stack">
+          <div className="hud-vitals-panel">
+            <div className="hud-level">NÍVEL <strong>{state.player.level}</strong></div>
+            <div className="hud-meter health-meter"><span>HP</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
+            <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+          </div>
+        </div>
+        <div className="hud-center-stack">
+          <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
+          <div className="hud-substats">
+            <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
+            <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+          </div>
         </div>
       </div>
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera e <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
+      {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
+        <div className="start-panel">
+          <div className="start-eyebrow">FÍBULA ONLINE</div>
+          <h1>Pronto para sobreviver?</h1>
+          <p>Entre no campo de batalha e sobreviva às ondas.</p>
+          <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
+          <button className="start-normal" type="button" onClick={() => setShowStart(false)}>Jogar sem tela cheia</button>
+        </div>
+      </div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
+      <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
-    <footer className="footer"><span>ETAPA 01 <i /> PROTÓTIPO JOGÁVEL</span><span className="footer-right">CADA ONDA É MAIS PERIGOSA</span></footer>
-    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onClass={pickClass} classId={state.classId} />
+
   </main>;
 }
 
 function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, shade: string, phase = 0) {
-  const bob = Math.sin(performance.now() / 180 + phase) * 2;
-  ctx.save(); ctx.translate(x, y + bob);
-  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, r * 0.7, r * 1.05, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+  const pulse = Math.sin(performance.now() / 115 + phase);
+  const squash = Math.max(0, pulse);
+  const stretch = Math.max(0, -pulse);
+  const bob = stretch * -1.5 + squash * 0.7;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, r * 0.7, r * (1.05 + squash * 0.08), r * (0.42 - stretch * 0.04), 0, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(0, bob);
+  ctx.scale(1 + squash * 0.13 - stretch * 0.035, 1 - squash * 0.16 + stretch * 0.09);
   ctx.strokeStyle = shade; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-r * .45, r * .45); ctx.lineTo(-r * .62, r * .9); ctx.moveTo(r * .45, r * .45); ctx.lineTo(r * .62, r * .9); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.15, -r * .8, 0, -r); ctx.quadraticCurveTo(r * 1.15, -r * .8, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .85, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .85, -r, r * .25); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = shade; ctx.stroke();
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number) {
-  const r = CONFIG.player.radius, bob = Math.sin(time * 8) * 2;
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number) {
+  const r = CONFIG.player.radius;
+  const breath = Math.sin(time * 2.6);
+  const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
+  // Mantém a cabeça sempre para cima: a arte é virada horizontalmente, nunca girada 180°.
+  const facingRotation = 0;
+  const facingScaleX = facingX < -0.35 ? -1 : 1;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.scale(facingScaleX, 1);
+  if (!moving) ctx.scale(1 + breath * 0.012, 1 - breath * 0.018);
   ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
     guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
@@ -211,12 +277,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
   // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
+  ctx.save(); ctx.rotate(-facingRotation);
   ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45);
+  ctx.restore();
   if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
-    const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : -0.45;
+    const angle = swordSwingTimer > 0 ? swordSwingAngle - facingRotation + (progress - 0.5) * 1.55 : aimAngle;
     ctx.save(); ctx.rotate(angle);
     ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
@@ -226,10 +294,11 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
       ctx.save();
       ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
       ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - Math.PI * 0.31, swordSwingAngle + Math.PI * 0.31); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - facingRotation - Math.PI * 0.31, swordSwingAngle - facingRotation + Math.PI * 0.31); ctx.stroke();
       ctx.restore();
     }
   } else {
+    ctx.save(); ctx.rotate(aimAngle);
     const isDruidStaff = weapon === 'bastao';
     ctx.strokeStyle = isDruidStaff ? '#8b623d' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
     if (weapon === 'cajado' || isDruidStaff) {
@@ -240,6 +309,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
         ctx.fillStyle = '#a5f58d'; ctx.beginPath(); ctx.ellipse(r * 1.13, -r * .67, 3, 5, -.5, 0, Math.PI * 2); ctx.ellipse(r * 1.68, -r * .63, 3, 5, .5, 0, Math.PI * 2); ctx.fill();
       }
     } else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+    ctx.restore();
   }
   ctx.restore();
 }

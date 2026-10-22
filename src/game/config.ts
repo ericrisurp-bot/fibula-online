@@ -1,10 +1,21 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 export const CONFIG = {
   map: { size: 2400, wall: 34, grid: 80 },
-  player: { radius: 18, speed: 220, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 10 },
-  enemy: { radius: 16, speed: 68, health: 30, contactDamage: 9, contactCooldown: 0.8 },
-  waves: { firstCount: 5, addedPerWave: 3, interval: 18 },
-  xp: { perSlime: 1, radius: 7, attractionRadius: 65, attractionSpeed: 220, levelBase: 4, levelGrowth: 2 },
+  player: { radius: 18, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
+  enemy: {
+    radius: 16,
+    speed: 155,
+    speedIncrease: 5,
+    speedEveryWaves: 3,
+    health: 30,
+    healthPerWave: 1.2,
+    contactDamage: 9,
+    contactDamageIncrease: 1,
+    contactDamageEveryWaves: 4,
+    contactCooldown: 0.8,
+  },
+  waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, interval: 3 },
+  xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 260, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
