@@ -1,8 +1,8 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 export const CONFIG = {
   map: { size: 2400, wall: 34, grid: 80 },
-  player: { radius: 18, speed: 735, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 34 },
-  enemy: { radius: 16, speed: 273, health: 30, contactDamage: 9, contactCooldown: 0.8 },
+  player: { radius: 18, speed: 245, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 34 },
+  enemy: { radius: 16, speed: 117, health: 30, contactDamage: 9, contactCooldown: 0.8 },
   waves: { firstCount: 5, addedPerWave: 3, interval: 18 },
   xp: { perSlime: 1, radius: 7, magnetRadius: 160, magnetInitialSpeed: 900, magnetAcceleration: 2400, magnetMaxSpeed: 1600, levelBase: 4, levelGrowth: 2 },
   weapons: {
@@ -13,4 +13,4 @@ export const CONFIG = {
 } as const;
 
 export type WeaponId = keyof typeof CONFIG.weapons;
-export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 15, attackSpeed: 0.045, dodge: 0.008 };
+export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008 };
