@@ -137,16 +137,11 @@ export class GameEngine {
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
-    if (this.state.enemies.length > 0) {
-      // O intervalo só começa depois que todos os inimigos da onda forem derrotados.
+    this.waveTimer += dt;
+    if (this.waveTimer >= CONFIG.waves.interval) {
       this.waveTimer = 0;
-    } else {
-      this.waveTimer += dt;
-      if (this.waveTimer >= CONFIG.waves.interval) {
-        this.waveTimer = 0;
-        this.state.wave += 1;
-        this.spawnWave();
-      }
+      this.state.wave += 1;
+      this.spawnWave();
     }
     this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
     if (this.state.classId === 'druida') {
