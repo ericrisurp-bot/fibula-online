@@ -140,7 +140,7 @@ export default function App() {
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
     </section>
     <footer className="footer"><span>ETAPA 01 <i /> PROTÓTIPO JOGÁVEL</span><span className="footer-right">CADA ONDA É MAIS PERIGOSA</span></footer>
-    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onWeapon={pickWeapon} weapon={state.weapon} />
+    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onWeapon={pickWeapon} onClass={pickClass} weapon={state.weapon} classId={state.classId} />
   </main>;
 }
 
