@@ -110,7 +110,7 @@ export class GameEngine {
     this.elapsed += dt; this.state.elapsed = this.elapsed;
     this.state.floatingDamage = this.state.floatingDamage.map(text => ({ ...text, age: text.age + dt })).filter(text => text.age < text.duration);
     this.state.dyingEnemies = this.state.dyingEnemies.map(enemy => ({ ...enemy, deathAge: enemy.deathAge + dt })).filter(enemy => enemy.deathAge < 0.48);
-    this.waveTimer += dt; this.attackTimer += dt; this.enemyDamageTimer -= dt;
+    this.attackTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
     let dx = this.input.x, dy = this.input.y;
     if (this.keys.has('a') || this.keys.has('arrowleft')) dx -= 1;
@@ -122,7 +122,17 @@ export class GameEngine {
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
-    if (this.waveTimer >= CONFIG.waves.interval) { this.waveTimer = 0; this.state.wave += 1; this.spawnWave(); }
+    if (this.state.enemies.length > 0) {
+      // O intervalo só começa depois que todos os inimigos da onda forem derrotados.
+      this.waveTimer = 0;
+    } else {
+      this.waveTimer += dt;
+      if (this.waveTimer >= CONFIG.waves.interval) {
+        this.waveTimer = 0;
+        this.state.wave += 1;
+        this.spawnWave();
+      }
+    }
     this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
@@ -150,7 +160,7 @@ export class GameEngine {
       if (edge === 2) { x = offset; y = CONFIG.map.wall + 24; }
       if (edge === 3) { x = offset; y = this.world - CONFIG.map.wall - 24; }
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 320) { x = this.clamp(x + 420, 80, this.world - 80); }
-      this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * 2, hitWait: 0, wobble: Math.random() * 8 });
+      this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
     }
   }
 
@@ -158,12 +168,14 @@ export class GameEngine {
     const p = this.state.player;
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
-      e.x += dx / dist * CONFIG.enemy.speed * dt; e.y += dy / dist * CONFIG.enemy.speed * dt;
+      const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
+      e.x += dx / dist * speed * dt; e.y += dy / dist * speed * dt;
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (Math.random() > CONFIG.player.dodge + this.levelStats.dodge) {
-          const damage = Math.max(1, CONFIG.enemy.contactDamage - CONFIG.player.armor - this.levelStats.armor);
+          const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
+          const damage = Math.max(1, waveDamage - CONFIG.player.armor - this.levelStats.armor);
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
