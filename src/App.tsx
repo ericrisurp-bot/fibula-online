@@ -198,11 +198,10 @@ export default function App() {
         <div className="hud-center-stack">
           <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
           <div className="hud-substats">
-            <div className="hud-chip compact"><span>CICLO</span><strong>Horda {state.wave}</strong></div>
+            <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
-            <div className="hud-chip compact inventory-chip"><span>INV {state.inventory.length}/{CONFIG.inventory.maxTypes}</span><strong>{state.inventory.map(item => (item.itemId === 'wood' ? 'MADEIRA' : item.itemId.toUpperCase()) + ' ' + item.quantity + '/' + CONFIG.inventory.maxPerType).join(' · ') || 'Vazio'}</strong></div>
           </div>
-          <div className="hud-chip compact"><span>STATUS</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
+          <div className="hud-chip compact"><span>RESPIRO</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
       </div>
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
@@ -217,7 +216,7 @@ export default function App() {
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
-      <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
+      <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
     </section>
 
   </main>;
