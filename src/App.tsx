@@ -173,7 +173,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     if (swordSwingTimer > 0) {
       ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
       ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(0, 0, r * 2.1, swordSwingAngle - 0.62, swordSwingAngle + 0.62); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - Math.PI * 0.31, swordSwingAngle + Math.PI * 0.31); ctx.stroke();
     }
     ctx.restore();
   } else {
