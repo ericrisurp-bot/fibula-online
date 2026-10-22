@@ -1,0 +1,158 @@
+import { useEffect, useRef, useState } from 'react';
+import { CONFIG, type WeaponId } from './game/config';
+import { GameEngine, type GameSnapshot } from './game/engine';
+import Controls from './ui/Controls';
+
+const initial: GameSnapshot = {
+  player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
+  enemies: [], xpOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', showRange: false, cameraFull: false, dead: false, kills: 0,
+};
+const fmtTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return m + ':' + s;
+};
+
+export default function App() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<GameEngine | null>(null);
+  const [state, setState] = useState<GameSnapshot>(initial);
+  const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext('2d'); if (!ctx) return;
+    const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
+    engine.start();
+    let frame = 0;
+    const render = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#121b21'; ctx.fillRect(0, 0, w, h);
+      // O Canvas lê o estado mutável do motor a cada frame, sem render React por quadro.
+      const s = engine.state;
+      const scale = s.cameraFull ? Math.min(w, h) / (engine.world + 80) : Math.min(w / 950, h / 680, 1.45);
+      const viewW = w / scale, viewH = h / scale;
+      const left = s.cameraFull
+        ? engine.world / 2 - viewW / 2
+        : viewW >= engine.world
+          ? (engine.world - viewW) / 2
+          : Math.max(0, Math.min(s.player.x - viewW / 2, engine.world - viewW));
+      const top = s.cameraFull
+        ? engine.world / 2 - viewH / 2
+        : viewH >= engine.world
+          ? (engine.world - viewH) / 2
+          : Math.max(0, Math.min(s.player.y - viewH / 2, engine.world - viewH));
+      ctx.save(); ctx.scale(scale, scale); ctx.translate(-left, -top);
+      ctx.fillStyle = '#18262a'; ctx.fillRect(0, 0, engine.world, engine.world);
+      ctx.strokeStyle = 'rgba(160,190,176,0.075)'; ctx.lineWidth = 1;
+      for (let x = 0; x <= engine.world; x += CONFIG.map.grid) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, engine.world); ctx.stroke(); }
+      for (let y = 0; y <= engine.world; y += CONFIG.map.grid) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(engine.world, y); ctx.stroke(); }
+      ctx.strokeStyle = '#91a99a'; ctx.lineWidth = CONFIG.map.wall; ctx.strokeRect(CONFIG.map.wall / 2, CONFIG.map.wall / 2, engine.world - CONFIG.map.wall, engine.world - CONFIG.map.wall);
+      if (s.showRange && !s.cameraFull) {
+        ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      for (const orb of s.xpOrbs) {
+        ctx.beginPath(); ctx.arc(orb.x, orb.y, CONFIG.xp.radius, 0, Math.PI * 2); ctx.fillStyle = '#77e6c0'; ctx.fill();
+        ctx.strokeStyle = '#d4fff0'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      for (const shot of s.shots) {
+        ctx.save(); ctx.translate(shot.x, shot.y); ctx.rotate(Math.atan2(shot.vy, shot.vx));
+        if (shot.kind === 'arrow') { ctx.strokeStyle = '#f3d59b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.lineTo(6, -4); ctx.moveTo(12, 0); ctx.lineTo(6, 4); ctx.stroke(); }
+        else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = '#a98cff'; ctx.fill(); }
+        ctx.restore();
+      }
+      for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
+      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.elapsed);
+      ctx.restore();
+      frame = requestAnimationFrame(render);
+    };
+    frame = requestAnimationFrame(render);
+    const resize = () => { canvas.style.width = '100%'; };
+    window.addEventListener('resize', resize);
+    return () => { cancelAnimationFrame(frame); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    const engine = engineRef.current; if (!engine) return;
+    const down = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+      engine.setKey(k, true);
+      if (k === 'c') engine.toggleCamera();
+      if (k === '1') engine.setWeapon('espada');
+      if (k === '2') engine.setWeapon('cajado');
+      if (k === '3') engine.setWeapon('arco');
+      if (k === 'r') engine.toggleRange();
+    };
+    const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
+    window.addEventListener('keydown', down); window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
+
+  const pickWeapon = (id: WeaponId) => engineRef.current?.setWeapon(id);
+  const toggleCamera = () => engineRef.current?.toggleCamera();
+  const toggleRange = () => engineRef.current?.toggleRange();
+  const restart = () => { engineRef.current?.restart(); };
+
+  return <main className="game-shell">
+    <header className="topbar">
+      <div className="brand-mark">F<span>Í</span>BULA</div>
+      <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
+      <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
+    </header>
+    <section className="game-stage">
+      <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" />
+      <div className="hud-top">
+        <div className="hud-chip"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
+        <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
+        <div className="hud-chip"><span>ELIMINAÇÕES</span><strong>{state.kills}</strong></div>
+      </div>
+      <div className="hud-bottom">
+        <div className="health-row"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
+        <div className="xp-row"><span>NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
+        <div className="weapon-row">
+          <span>ARMA <b>{CONFIG.weapons[state.weapon].label.toUpperCase()}</b></span>
+          <button onClick={toggleRange} className={state.showRange ? 'active' : ''}>◉ Alcance</button>
+          <button onClick={toggleCamera}>{state.cameraFull ? '◎ Seguir' : '▣ Mapa'}</button>
+        </div>
+      </div>
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o slime. <b>C</b> alterna a câmera. <b>1, 2, 3</b> testam espada, cajado e arco. <b>R</b> liga/desliga o alcance. O ataque é automático quando há inimigos por perto.</p></div>}
+      {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
+      {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
+    </section>
+    <footer className="footer"><span>ETAPA 01 <i /> PROTÓTIPO JOGÁVEL</span><span className="footer-right">CADA ONDA É MAIS PERIGOSA</span></footer>
+    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onWeapon={pickWeapon} weapon={state.weapon} />
+  </main>;
+}
+
+function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, shade: string, phase = 0) {
+  const bob = Math.sin(performance.now() / 180 + phase) * 2;
+  ctx.save(); ctx.translate(x, y + bob);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, r * 0.7, r * 1.05, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = shade; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-r * .45, r * .45); ctx.lineTo(-r * .62, r * .9); ctx.moveTo(r * .45, r * .45); ctx.lineTo(r * .62, r * .9); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.15, -r * .8, 0, -r); ctx.quadraticCurveTo(r * 1.15, -r * .8, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .85, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .85, -r, r * .25); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = shade; ctx.stroke();
+  ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, time: number) {
+  const r = CONFIG.player.radius, bob = Math.sin(time * 8) * 2;
+  ctx.save(); ctx.translate(x, y + bob);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r); ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .25); ctx.fillStyle = '#8bd5c2'; ctx.fill(); ctx.strokeStyle = '#c1f2df'; ctx.lineWidth = 2; ctx.stroke();
+  // Capuz com ponta e sombra, feito apenas com formas.
+  ctx.beginPath(); ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32); ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35); ctx.fillStyle = '#33465c'; ctx.fill(); ctx.strokeStyle = '#647d98'; ctx.stroke();
+  ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = weapon === 'espada' ? '#dce8ed' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
+  if (weapon === 'espada') { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .33); ctx.lineTo(r * 1.6, -r * .6); ctx.stroke(); }
+  else if (weapon === 'cajado') { ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 4, 0, Math.PI * 2); ctx.fillStyle = '#bba0ff'; ctx.fill(); }
+  else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+  ctx.restore();
+}
