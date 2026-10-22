@@ -2,7 +2,7 @@ import { CONFIG, LEVEL_GROWTH, type WeaponId } from './config';
 
 type Vec = { x: number; y: number };
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
-type Orb = Vec & { id: number; value: number };
+type Orb = Vec & { id: number; value: number; magnetSpeed: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number };
@@ -24,6 +24,7 @@ export class GameEngine {
   private animation = 0;
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
   private enemyDamageTimer = 0;
+  swordSlash: { x: number; y: number; angle: number; life: number; maxLife: number } | null = null;
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
@@ -52,7 +53,7 @@ export class GameEngine {
   restart() {
     this.stop(); this.state = this.freshState(); this.nextId = 1; this.waveTimer = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.swordSlash = null; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], xpOrbs: [...this.state.xpOrbs], shots: [...this.state.shots] }); }
 
@@ -78,6 +79,10 @@ export class GameEngine {
   private update(dt: number) {
     this.elapsed += dt; this.state.elapsed = this.elapsed;
     this.waveTimer += dt; this.attackTimer += dt; this.enemyDamageTimer -= dt;
+    if (this.swordSlash) {
+      this.swordSlash.life -= dt;
+      if (this.swordSlash.life <= 0) this.swordSlash = null;
+    }
     const p = this.state.player;
     let dx = this.input.x, dy = this.input.y;
     if (this.keys.has('a') || this.keys.has('arrowleft')) dx -= 1;
@@ -90,7 +95,7 @@ export class GameEngine {
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
     if (this.waveTimer >= CONFIG.waves.interval) { this.waveTimer = 0; this.state.wave += 1; this.spawnWave(); }
-    this.moveEnemies(dt); this.moveShots(dt); this.autoAttack(); this.collectXp();
+    this.moveEnemies(dt); this.moveShots(dt); this.autoAttack(); this.collectXp(dt);
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
   }
 
@@ -132,8 +137,23 @@ export class GameEngine {
     if (!target) return;
     this.attackTimer = 0;
     if (weapon.kind === 'melee') {
-      target.e.hp -= weapon.damage;
-      if (target.e.hp <= 0) this.killEnemy(target.e.id);
+      const angle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      this.swordSlash = { x: p.x, y: p.y, angle, life: 0.2, maxLife: 0.2 };
+      const hitIds = this.state.enemies
+        .filter(e => {
+          const dx = e.x - p.x, dy = e.y - p.y;
+          const distance = Math.hypot(dx, dy);
+          if (distance > weapon.range + CONFIG.enemy.radius) return false;
+          const difference = Math.atan2(Math.sin(Math.atan2(dy, dx) - angle), Math.cos(Math.atan2(dy, dx) - angle));
+          return Math.abs(difference) <= Math.PI / 3;
+        })
+        .map(e => e.id);
+      for (const id of hitIds) {
+        const enemy = this.state.enemies.find(e => e.id === id);
+        if (!enemy) continue;
+        enemy.hp -= weapon.damage;
+        if (enemy.hp <= 0) this.killEnemy(id);
+      }
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
@@ -153,15 +173,28 @@ export class GameEngine {
 
   private killEnemy(id: number) {
     const e = this.state.enemies.find(v => v.id === id); if (!e) return;
-    this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
+    this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime, magnetSpeed: 0 });
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
   }
 
-  private collectXp() {
+  private collectXp(dt: number) {
     const p = this.state.player;
     for (const orb of [...this.state.xpOrbs]) {
-      if (Math.hypot(orb.x - p.x, orb.y - p.y) <= CONFIG.player.pickupRadius) {
+      const dx = p.x - orb.x, dy = p.y - orb.y, dist = Math.hypot(dx, dy);
+      if (dist <= CONFIG.player.pickupRadius) {
         this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
+      } else if (orb.magnetSpeed > 0 || dist <= CONFIG.xp.magnetRadius) {
+        if (orb.magnetSpeed <= 0) {
+          orb.magnetSpeed = CONFIG.xp.magnetInitialSpeed;
+        } else {
+          orb.magnetSpeed = Math.min(
+            CONFIG.xp.magnetMaxSpeed,
+            orb.magnetSpeed + CONFIG.xp.magnetAcceleration * dt,
+          );
+        }
+        const travel = Math.min(orb.magnetSpeed * dt, dist);
+        orb.x += dx / dist * travel;
+        orb.y += dy / dist * travel;
       }
     }
     while (p.xp >= p.nextXp) {
