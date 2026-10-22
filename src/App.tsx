@@ -21,7 +21,7 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const zoomRef = useRef(1.6);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
-  const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda em andamento' : `Respiro: ${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
+  const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
