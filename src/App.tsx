@@ -18,6 +18,7 @@ export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
+  const [showStart, setShowStart] = useState(true);
   const zoomRef = useRef(1);
 
   useEffect(() => {
@@ -110,6 +111,15 @@ export default function App() {
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const restart = () => { engineRef.current?.restart(); };
+  const startGame = () => {
+    const stage = canvasRef.current?.parentElement;
+    if (stage?.requestFullscreen) {
+      void stage.requestFullscreen().catch(() => {
+        // Alguns navegadores ou modos incorporados não permitem tela cheia.
+      });
+    }
+    setShowStart(false);
+  };
 
   return <main className="game-shell">
     <header className="topbar">
@@ -122,14 +132,21 @@ export default function App() {
       <div className="hud-top" aria-label="Status da partida">
         <div className="hud-row hud-row-primary">
           <div className="hud-meter health-meter"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
-          <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
-        </div>
-        <div className="hud-row hud-row-secondary">
           <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+          <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
           <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
-          <div className="hud-chip kills-chip"><span>☠️</span><strong>{state.kills}</strong></div>
+          <div className="hud-chip kills-chip"><span>☠</span><strong>{state.kills}</strong></div>
         </div>
       </div>
+      {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
+        <div className="start-panel">
+          <div className="start-eyebrow">FÍBULA ONLINE</div>
+          <h1>Pronto para sobreviver?</h1>
+          <p>Entre no campo de batalha e sobreviva às ondas.</p>
+          <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
+          <button className="start-normal" type="button" onClick={() => setShowStart(false)}>Jogar sem tela cheia</button>
+        </div>
+      </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
