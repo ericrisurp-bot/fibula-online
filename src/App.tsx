@@ -62,10 +62,10 @@ export default function App() {
       }
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
-        ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 16, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 22);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
         ctx.scale(scale, scale);
+        // A sombra fica na base do tronco para ancorar visualmente a árvore no chão.
+        ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 29, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
         ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -73,6 +73,10 @@ export default function App() {
         if (tree.size === 'large') {
           ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
         }
+        // O tronco é desenhado por último, à frente das folhas, para nunca desaparecer.
+        ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 30);
+        ctx.fillStyle = '#a9784e'; ctx.fillRect(-2, 1, 2, 26);
+        ctx.strokeStyle = '#593820'; ctx.lineWidth = 1.5; ctx.strokeRect(-5, -1, 10, 30);
         ctx.restore();
       }
       for (const drop of s.woodDrops) {
