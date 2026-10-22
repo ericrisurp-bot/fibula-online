@@ -49,13 +49,12 @@ export class GameEngine {
   stop() { cancelAnimationFrame(this.animation); this.animation = 0; }
   setKey(key: string, down: boolean) { if (this.state.dead) return; down ? this.keys.add(key.toLowerCase()) : this.keys.delete(key.toLowerCase()); }
   setMove(x: number, y: number) { if (this.state.dead) return; this.input = { x, y }; }
-  setWeapon(weapon: WeaponId) { if (this.state.dead || this.state.weapon === weapon) return; this.state.weapon = weapon; this.emit(); }
   setClass(classId: ClassId) {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
     this.state.classId = classId;
 
-    // A classe selecionada define a arma-base; os atalhos de arma podem alterá-la depois.
+    // A classe selecionada define a arma; não existe troca independente de arma.
     const classWeapon: Record<ClassId, WeaponId> = {
       guerreiro: 'espada',
       mago: 'cajado',
