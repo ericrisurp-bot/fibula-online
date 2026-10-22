@@ -9,6 +9,7 @@ export const CONFIG = {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 260, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 390, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
+    bastao: { label: 'Bastão de Raízes', range: 76, damage: 20, attackSpeed: 1.15, kind: 'melee' as const, projectileSpeed: 0 },
   },
 } as const;
 
@@ -18,7 +19,7 @@ export const CLASSES = {
   guerreiro: { label: 'Guerreiro', description: 'Resistência e combate corpo a corpo' },
   mago: { label: 'Mago', description: 'Dano mágico à distância' },
   arqueiro: { label: 'Arqueiro', description: 'Precisão e alcance' },
-  druida: { label: 'Druida', description: 'Regeneração e orbes de cura' },
+  druida: { label: 'Druida', description: 'Bastão de raízes, regeneração e orbes de cura' },
 } as const;
 
 export type ClassId = keyof typeof CLASSES;
