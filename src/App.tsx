@@ -61,8 +61,7 @@ export default function App() {
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
       for (const tree of s.trees) {
-        const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
-        ctx.save(); ctx.translate(tree.x, tree.y); ctx.scale(scale, scale);
+        ctx.save(); ctx.translate(tree.x, tree.y);
         ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 16, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 22);
         ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
