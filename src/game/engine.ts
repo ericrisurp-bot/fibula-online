@@ -151,7 +151,10 @@ export class GameEngine {
   }
 
   private spawnWave() {
-    const count = CONFIG.waves.firstCount + (this.state.wave - 1) * CONFIG.waves.addedPerWave;
+    let count = CONFIG.waves.firstCount;
+    for (let wave = 2; wave <= this.state.wave; wave++) {
+      count += CONFIG.waves.addedPerWave + Math.floor((wave - 1) / CONFIG.waves.increaseEveryWaves) * CONFIG.waves.addedIncrease;
+    }
     for (let i = 0; i < count; i++) {
       const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
       let x = offset, y = offset;
