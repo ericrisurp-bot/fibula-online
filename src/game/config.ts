@@ -2,7 +2,7 @@
 export const CONFIG = {
   map: { size: 2400, wall: 34, grid: 80 },
   player: { radius: 18, speed: 245, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 34 },
-  enemy: { radius: 16, speed: 117, health: 30, contactDamage: 9, contactCooldown: 0.8 },
+  enemy: { radius: 16, speed: 368, health: 30, contactDamage: 9, contactCooldown: 0.8 },
   waves: { firstCount: 5, addedPerWave: 3, interval: 18 },
   xp: { perSlime: 1, radius: 7, magnetRadius: 160, magnetInitialSpeed: 900, magnetAcceleration: 2400, magnetMaxSpeed: 1600, levelBase: 4, levelGrowth: 2 },
   weapons: {
