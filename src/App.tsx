@@ -131,8 +131,10 @@ export default function App() {
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" />
       <div className="hud-top" aria-label="Status da partida">
         <div className="hud-left-stack">
-          <div className="hud-meter health-meter"><span>HP · VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
-          <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+          <div className="hud-vitals-panel">
+            <div className="hud-meter health-meter"><span>HP · VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
+            <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+          </div>
         </div>
         <div className="hud-center-stack">
           <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
