@@ -1,12 +1,13 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 export const CONFIG = {
   map: { size: 2400, wall: 34, grid: 80 },
-  player: { radius: 18, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
+  player: { radius: 18, speed: 125, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   enemy: {
     radius: 16,
-    speed: 155,
-    speedIncrease: 5,
+    speed: 95,
+    speedIncrease: 3,
     speedEveryWaves: 3,
+    maxSpeed: 115,
     health: 30,
     healthPerWave: 1.2,
     contactDamage: 9,

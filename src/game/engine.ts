@@ -258,7 +258,7 @@ export class GameEngine {
     const p = this.state.player;
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
-      const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
+      const speed = Math.min(CONFIG.enemy.maxSpeed, CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease);
       e.x += dx / dist * speed * dt; e.y += dy / dist * speed * dt;
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
