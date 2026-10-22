@@ -208,10 +208,12 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
-  const facingRotation = Math.atan2(facingY, facingX) - Math.PI / 2;
+  // Mantém a cabeça sempre para cima: a arte é virada horizontalmente, nunca girada 180°.
+  const facingRotation = 0;
+  const facingScaleX = facingX < -0.35 ? -1 : 1;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.rotate(facingRotation);
+  ctx.scale(facingScaleX, 1);
   if (!moving) ctx.scale(1 + breath * 0.012, 1 - breath * 0.018);
   ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
