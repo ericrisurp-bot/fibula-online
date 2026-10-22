@@ -2,7 +2,7 @@ import { CONFIG, LEVEL_GROWTH, type WeaponId } from './config';
 
 type Vec = { x: number; y: number };
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
-type Orb = Vec & { id: number; value: number };
+type Orb = Vec & { id: number; value: number; magnetSpeed: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number };
@@ -90,7 +90,7 @@ export class GameEngine {
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
     if (this.waveTimer >= CONFIG.waves.interval) { this.waveTimer = 0; this.state.wave += 1; this.spawnWave(); }
-    this.moveEnemies(dt); this.moveShots(dt); this.autoAttack(); this.collectXp();
+    this.moveEnemies(dt); this.moveShots(dt); this.autoAttack(); this.collectXp(dt);
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
   }
 
@@ -153,15 +153,28 @@ export class GameEngine {
 
   private killEnemy(id: number) {
     const e = this.state.enemies.find(v => v.id === id); if (!e) return;
-    this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
+    this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime, magnetSpeed: 0 });
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
   }
 
-  private collectXp() {
+  private collectXp(dt: number) {
     const p = this.state.player;
     for (const orb of [...this.state.xpOrbs]) {
-      if (Math.hypot(orb.x - p.x, orb.y - p.y) <= CONFIG.player.pickupRadius) {
+      const dx = p.x - orb.x, dy = p.y - orb.y, dist = Math.hypot(dx, dy);
+      if (dist <= CONFIG.player.pickupRadius) {
         this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
+      } else if (orb.magnetSpeed > 0 || dist <= CONFIG.xp.magnetRadius) {
+        if (orb.magnetSpeed <= 0) {
+          orb.magnetSpeed = CONFIG.xp.magnetInitialSpeed;
+        } else {
+          orb.magnetSpeed = Math.min(
+            CONFIG.xp.magnetMaxSpeed,
+            orb.magnetSpeed + CONFIG.xp.magnetAcceleration * dt,
+          );
+        }
+        const travel = Math.min(orb.magnetSpeed * dt, dist);
+        orb.x += dx / dist * travel;
+        orb.y += dy / dist * travel;
       }
     }
     while (p.xp >= p.nextXp) {
