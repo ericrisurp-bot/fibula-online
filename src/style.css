@@ -272,3 +272,35 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   .hud-center-stack .hud-substats .hud-chip span{font-size:5px}
   .hud-center-stack .hud-substats .hud-chip strong{font-size:8px}
 }
+
+
+/* Ajuste fino do HUD: painel único de vitais e estatísticas no espaço real entre vitais e menu. */
+.hud-left-stack{width:clamp(150px,28vw,260px);max-width:calc(100vw - 100px)}
+.hud-vitals-panel{display:flex;flex-direction:column;gap:3px;width:100%;padding:6px 8px;border:1px solid rgba(235,235,235,.36);border-radius:10px;background:rgba(34,35,34,.86);box-shadow:0 3px 12px rgba(0,0,0,.22)}
+.hud-vitals-panel .hud-meter{display:grid;grid-template-columns:auto minmax(18px,1fr) auto;align-items:center;width:100%;min-width:0;gap:7px;padding:3px 1px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.hud-vitals-panel .health-meter{padding-bottom:5px;border-bottom:1px solid rgba(230,230,230,.16)}
+.hud-vitals-panel .health-meter .bar{height:11px;min-width:20px}
+.hud-vitals-panel .xp-meter{width:100%;padding-top:3px;gap:6px}
+.hud-vitals-panel .xp-meter .bar{height:7px;min-width:18px}
+.hud-vitals-panel .hud-meter>span{font-size:9px;font-weight:900;white-space:nowrap;color:#f1f1f1}
+.hud-vitals-panel .hud-meter>b{font-size:10px;font-weight:900;white-space:nowrap;color:#fff}
+.hud-center-stack{left:calc(clamp(150px,28vw,260px) + (100% - clamp(150px,28vw,260px) - 40px)/2);}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .hud-left-stack{width:clamp(132px,34vw,210px);max-width:calc(100vw - 92px)}
+  .hud-vitals-panel{gap:2px;padding:5px 6px;border-radius:9px}
+  .hud-vitals-panel .hud-meter{gap:5px;padding:3px 0}
+  .hud-vitals-panel .health-meter{padding-bottom:4px}
+  .hud-vitals-panel .health-meter .bar{height:10px}
+  .hud-vitals-panel .xp-meter .bar{height:7px}
+  .hud-vitals-panel .hud-meter>span{font-size:8px}
+  .hud-vitals-panel .hud-meter>b{font-size:9px}
+  .hud-center-stack{left:calc(clamp(132px,34vw,210px) + (100% - clamp(132px,34vw,210px) - 40px)/2);}
+}
+@media (max-width:380px){
+  .hud-left-stack{width:clamp(120px,37vw,145px);max-width:calc(100vw - 78px)}
+  .hud-vitals-panel{padding:4px 4px;gap:1px}
+  .hud-vitals-panel .hud-meter{gap:4px}
+  .hud-vitals-panel .hud-meter>span{font-size:7px}
+  .hud-vitals-panel .hud-meter>b{font-size:8px}
+  .hud-center-stack{left:calc(clamp(120px,37vw,145px) + (100% - clamp(120px,37vw,145px) - 40px)/2);}
+}
