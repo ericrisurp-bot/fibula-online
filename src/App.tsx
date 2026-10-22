@@ -61,12 +61,17 @@ export default function App() {
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
       for (const tree of s.trees) {
-        ctx.save(); ctx.translate(tree.x, tree.y);
+        const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
+        ctx.save(); ctx.translate(tree.x, tree.y); ctx.scale(scale, scale);
         ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 16, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 22);
-        ctx.fillStyle = '#285b3b'; ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
+        ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
+        ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+        if (tree.size === 'large') {
+          ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
         ctx.restore();
       }
       for (const drop of s.woodDrops) {
@@ -112,7 +117,7 @@ export default function App() {
       const aimAngle = aimTarget
         ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
-      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle);
+      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle, s.treeChopAngle, s.treeChopTimer);
       for (const damage of s.floatingDamage) {
         const progress = Math.min(1, damage.age / damage.duration);
         const scale = 0.62 + Math.min(1, progress / 0.28) * 0.42;
@@ -228,7 +233,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
@@ -328,6 +333,17 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
         ctx.fillStyle = '#a5f58d'; ctx.beginPath(); ctx.ellipse(r * 1.13, -r * .67, 3, 5, -.5, 0, Math.PI * 2); ctx.ellipse(r * 1.68, -r * .63, 3, 5, .5, 0, Math.PI * 2); ctx.fill();
       }
     } else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+    ctx.restore();
+  }
+  if (treeChopTimer > 0) {
+    const progress = 1 - treeChopTimer / 0.2;
+    const swing = (progress - 0.5) * (Math.PI / 2.25); // golpe curto de aproximadamente 40 graus
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
+    ctx.fillStyle = '#c5d0d3'; ctx.strokeStyle = '#64747a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(r * 1.18, -r * 0.48); ctx.lineTo(r * 1.62, -r * 0.62); ctx.lineTo(r * 1.72, -r * 0.27); ctx.lineTo(r * 1.32, -r * 0.18); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
   }
   ctx.restore();
