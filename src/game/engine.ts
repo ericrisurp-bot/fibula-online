@@ -258,7 +258,11 @@ export class GameEngine {
     const p = this.state.player;
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
-      const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
+      // Slimes começam a 75% da velocidade atual do jogador e ganham 2,5 pontos percentuais por onda.
+      // A velocidade fica limitada à do jogador e alcança 100% na onda 11, sem ultrapassá-la.
+      const playerSpeed = CONFIG.player.speed + this.levelStats.speed;
+      const speedRatio = Math.min(1, 0.75 + (this.state.wave - 1) * 0.025);
+      const speed = playerSpeed * speedRatio;
       e.x += dx / dist * speed * dt; e.y += dy / dist * speed * dt;
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
