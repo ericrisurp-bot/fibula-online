@@ -13,4 +13,13 @@ export const CONFIG = {
 } as const;
 
 export type WeaponId = keyof typeof CONFIG.weapons;
+
+export const CLASSES = {
+  guerreiro: { label: 'Guerreiro', description: 'Resistência e combate corpo a corpo' },
+  mago: { label: 'Mago', description: 'Dano mágico à distância' },
+  arqueiro: { label: 'Arqueiro', description: 'Precisão e alcance' },
+  druida: { label: 'Druida', description: 'Regeneração e orbes de cura' },
+} as const;
+
+export type ClassId = keyof typeof CLASSES;
 export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008 };
