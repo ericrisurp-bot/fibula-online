@@ -15,7 +15,7 @@ export const CONFIG = {
     contactCooldown: 0.8,
   },
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, interval: 3 },
-  trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, woodDrops: [1, 3], hitsToCut: 5, carryLimit: 15 },
+  trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, sizeWeights: { small: 0.35, medium: 0.4, large: 0.25 }, hitsToCut: 5, carryLimit: 15 },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
