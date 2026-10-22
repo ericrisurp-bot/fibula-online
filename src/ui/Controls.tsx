@@ -36,12 +36,15 @@ export default function Controls({ onMove, onRange, onZoom, onClass, classId, sh
     e.preventDefault();
     const dx = e.clientX - (active.originX + (controlsRef.current?.getBoundingClientRect().left ?? 0));
     const dy = e.clientY - (active.originY + (controlsRef.current?.getBoundingClientRect().top ?? 0));
-    const distance = Math.hypot(dx, dy) || 1;
-    const scale = Math.min(distance, STICK_RADIUS) / distance;
+    const distance = Math.hypot(dx, dy);
+    const magnitude = Math.min(1, distance / STICK_RADIUS);
+    const dirX = distance === 0 ? 0 : dx / distance;
+    const dirY = distance === 0 ? 0 : dy / distance;
+    const scale = Math.min(distance, STICK_RADIUS) / (distance || 1);
     const knobX = dx * scale;
     const knobY = dy * scale;
     setStick(current => ({ ...current, dx: knobX, dy: knobY, active: true }));
-    onMove(Math.max(-1, Math.min(1, dx / STICK_RADIUS)), Math.max(-1, Math.min(1, dy / STICK_RADIUS)));
+    onMove(dirX * magnitude, dirY * magnitude);
   };
 
   const resetStick = (e: PointerEvent<HTMLDivElement>) => {
