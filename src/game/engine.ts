@@ -8,7 +8,7 @@ type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'o
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number };
   enemies: Enemy[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; wave: number; elapsed: number;
-  weapon: WeaponId; classId: ClassId; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 
@@ -36,7 +36,7 @@ export class GameEngine {
   private freshState(): GameSnapshot {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase },
-      enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'druida',
+      enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -94,7 +94,7 @@ export class GameEngine {
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
     if (this.waveTimer >= CONFIG.waves.interval) { this.waveTimer = 0; this.state.wave += 1; this.spawnWave(); }
-    this.moveEnemies(dt); this.moveShots(dt); this.autoAttack(); this.collectXp();
+    this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -144,9 +144,21 @@ export class GameEngine {
     if (!target) return;
     this.attackTimer = 0;
     if (weapon.kind === 'melee') {
-      target.e.hp -= weapon.damage;
-      if (this.state.classId === 'druida') this.druidRegenTimer = 3;
-      if (target.e.hp <= 0) this.killEnemy(target.e.id);
+      this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      this.state.swordSwingTimer = 0.24;
+      const arc = Math.PI * 0.62;
+      const hits = this.state.enemies.filter(e => {
+        const ex = e.x - p.x, ey = e.y - p.y;
+        const distance = Math.hypot(ex, ey);
+        const angle = Math.atan2(ey, ex);
+        const difference = Math.abs(Math.atan2(Math.sin(angle - this.state.swordSwingAngle), Math.cos(angle - this.state.swordSwingAngle)));
+        return distance <= weapon.range && difference <= arc / 2;
+      });
+      for (const enemy of hits) {
+        enemy.hp -= weapon.damage;
+        if (this.state.classId === 'druida') this.druidRegenTimer = 3;
+      }
+      for (const enemy of hits.filter(e => e.hp <= 0)) this.killEnemy(enemy.id);
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
@@ -172,11 +184,17 @@ export class GameEngine {
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
   }
 
-  private collectXp() {
+  private collectXp(dt: number) {
     const p = this.state.player;
     for (const orb of [...this.state.xpOrbs]) {
-      if (Math.hypot(orb.x - p.x, orb.y - p.y) <= CONFIG.player.pickupRadius) {
+      const dx = p.x - orb.x, dy = p.y - orb.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      if (distance <= CONFIG.player.pickupRadius) {
         this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
+      } else if (distance <= CONFIG.xp.attractionRadius) {
+        const step = Math.min(distance - CONFIG.player.pickupRadius, CONFIG.xp.attractionSpeed * dt);
+        orb.x += dx / distance * step;
+        orb.y += dy / distance * step;
       }
     }
     while (p.xp >= p.nextXp) {
