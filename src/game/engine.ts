@@ -20,7 +20,9 @@ export class GameEngine {
   private keys = new Set<string>();
   private input: InputState = { x: 0, y: 0 };
   private nextId = 1;
-  private waveTimer = 0;
+  private hordeCycle = 0;
+  private hordeTarget = 0;
+  private hordeSpawned = 0;
   private attackTimer = 0;
   private elapsed = 0;
   private lastTime = 0;
@@ -32,7 +34,7 @@ export class GameEngine {
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
-    this.spawnWave(); // A primeira onda nasce uma única vez ao iniciar o motor.
+    this.startHorde(); // A primeira horda começa em t=0.
   }
 
   private freshState(): GameSnapshot {
@@ -89,9 +91,9 @@ export class GameEngine {
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
-    this.stop(); this.state = this.freshState(); this.nextId = 1; this.waveTimer = 0; this.attackTimer = 0;
+    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeCycle = 0; this.hordeTarget = 0; this.hordeSpawned = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.startHorde(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
@@ -137,16 +139,16 @@ export class GameEngine {
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
-    if (this.state.enemies.length > 0) {
-      // O intervalo só começa depois que todos os inimigos da onda forem derrotados.
-      this.waveTimer = 0;
-    } else {
-      this.waveTimer += dt;
-      if (this.waveTimer >= CONFIG.waves.interval) {
-        this.waveTimer = 0;
-        this.state.wave += 1;
-        this.spawnWave();
-      }
+    const cycle = Math.floor(this.elapsed / CONFIG.waves.cycle);
+    if (cycle > this.hordeCycle) {
+      this.hordeCycle = cycle;
+      this.state.wave = cycle + 1;
+      this.startHorde();
+    }
+    const cycleElapsed = this.elapsed % CONFIG.waves.cycle;
+    if (cycleElapsed <= CONFIG.waves.hordeDuration) {
+      const targetSpawned = Math.min(this.hordeTarget, 1 + Math.floor((this.hordeTarget - 1) * cycleElapsed / CONFIG.waves.hordeDuration));
+      if (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.waves.maxAlive) this.spawnHordeEnemy();
     }
     this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
     if (this.state.classId === 'druida') {
@@ -165,21 +167,27 @@ export class GameEngine {
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
   }
 
-  private spawnWave() {
+  private startHorde() {
     let count = CONFIG.waves.firstCount;
     for (let wave = 2; wave <= this.state.wave; wave++) {
       count += CONFIG.waves.addedPerWave + Math.floor((wave - 1) / CONFIG.waves.increaseEveryWaves) * CONFIG.waves.addedIncrease;
     }
-    for (let i = 0; i < count; i++) {
-      const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
-      let x = offset, y = offset;
-      if (edge === 0) { x = CONFIG.map.wall + 24; y = offset; }
-      if (edge === 1) { x = this.world - CONFIG.map.wall - 24; y = offset; }
-      if (edge === 2) { x = offset; y = CONFIG.map.wall + 24; }
-      if (edge === 3) { x = offset; y = this.world - CONFIG.map.wall - 24; }
-      if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 320) { x = this.clamp(x + 420, 80, this.world - 80); }
-      this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
-    }
+    this.hordeTarget = count;
+    this.hordeSpawned = 0;
+    this.spawnHordeEnemy();
+  }
+
+  private spawnHordeEnemy() {
+    if (this.state.enemies.length >= CONFIG.waves.maxAlive || this.hordeSpawned >= this.hordeTarget) return;
+    const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
+    let x = offset, y = offset;
+    if (edge === 0) { x = CONFIG.map.wall + 24; y = offset; }
+    if (edge === 1) { x = this.world - CONFIG.map.wall - 24; y = offset; }
+    if (edge === 2) { x = offset; y = CONFIG.map.wall + 24; }
+    if (edge === 3) { x = offset; y = this.world - CONFIG.map.wall - 24; }
+    if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 320) { x = this.clamp(x + 420, 80, this.world - 80); }
+    this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
+    this.hordeSpawned += 1;
   }
 
   private moveEnemies(dt: number) {
