@@ -8,7 +8,7 @@ type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'o
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 export type GameSnapshot = {
-  player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number };
+  player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   enemies: Enemy[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
@@ -37,7 +37,7 @@ export class GameEngine {
 
   private freshState(): GameSnapshot {
     return {
-      player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase },
+      player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       enemies: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -50,7 +50,15 @@ export class GameEngine {
   }
   stop() { cancelAnimationFrame(this.animation); this.animation = 0; }
   setKey(key: string, down: boolean) { if (this.state.dead) return; down ? this.keys.add(key.toLowerCase()) : this.keys.delete(key.toLowerCase()); }
-  setMove(x: number, y: number) { if (this.state.dead) return; this.input = { x, y }; }
+  setMove(x: number, y: number) {
+    if (this.state.dead) return;
+    this.input = { x, y };
+    const magnitude = Math.hypot(x, y);
+    if (magnitude > 0.12) {
+      this.state.player.facingX = x / magnitude;
+      this.state.player.facingY = y / magnitude;
+    }
+  }
   setClass(classId: ClassId) {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
@@ -117,7 +125,14 @@ export class GameEngine {
     if (this.keys.has('d') || this.keys.has('arrowright')) dx += 1;
     if (this.keys.has('w') || this.keys.has('arrowup')) dy -= 1;
     if (this.keys.has('s') || this.keys.has('arrowdown')) dy += 1;
-    const mag = Math.hypot(dx, dy); if (mag > 1) { dx /= mag; dy /= mag; }
+    const mag = Math.hypot(dx, dy);
+    if (mag > 1) { dx /= mag; dy /= mag; }
+    this.state.player.moving = mag > 0.08;
+    if (this.state.player.moving) {
+      const directionLength = Math.hypot(dx, dy) || 1;
+      this.state.player.facingX = dx / directionLength;
+      this.state.player.facingY = dy / directionLength;
+    }
     const speed = CONFIG.player.speed + this.levelStats.speed;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
