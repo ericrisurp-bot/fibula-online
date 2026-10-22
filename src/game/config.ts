@@ -6,7 +6,7 @@ export const CONFIG = {
   waves: { firstCount: 5, addedPerWave: 3, interval: 18 },
   xp: { perSlime: 1, radius: 7, magnetRadius: 160, magnetInitialSpeed: 900, magnetAcceleration: 2400, magnetMaxSpeed: 1600, levelBase: 4, levelGrowth: 2 },
   weapons: {
-    espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
+    espada: { label: 'Espada', range: 150, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 260, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 390, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
   },
