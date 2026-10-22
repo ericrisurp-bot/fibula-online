@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { CONFIG, type WeaponId } from './game/config';
+import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
-  enemies: [], xpOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -62,6 +62,15 @@ export default function App() {
         ctx.beginPath(); ctx.arc(orb.x, orb.y, CONFIG.xp.radius, 0, Math.PI * 2); ctx.fillStyle = '#77e6c0'; ctx.fill();
         ctx.strokeStyle = '#d4fff0'; ctx.lineWidth = 2; ctx.stroke();
       }
+      if (s.classId === 'druida') {
+        s.healingOrbs.forEach((orb, index) => {
+          const angle = s.elapsed * 1.4 + index * (Math.PI * 2 / Math.max(1, s.healingOrbs.length));
+          const ox = s.player.x + Math.cos(angle) * 30, oy = s.player.y + Math.sin(angle) * 30;
+          ctx.save(); ctx.shadowColor = '#8dff9c'; ctx.shadowBlur = 12;
+          ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI * 2); ctx.fillStyle = '#9bff9b'; ctx.fill();
+          ctx.strokeStyle = '#e3ffe0'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+        });
+      }
       for (const shot of s.shots) {
         ctx.save(); ctx.translate(shot.x, shot.y); ctx.rotate(Math.atan2(shot.vy, shot.vx));
         if (shot.kind === 'arrow') { ctx.strokeStyle = '#f3d59b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.lineTo(6, -4); ctx.moveTo(12, 0); ctx.lineTo(6, 4); ctx.stroke(); }
@@ -69,7 +78,7 @@ export default function App() {
         ctx.restore();
       }
       for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
-      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.elapsed);
+      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed);
       ctx.restore();
       frame = requestAnimationFrame(render);
     };
@@ -89,6 +98,7 @@ export default function App() {
       if (k === '1') engine.setWeapon('espada');
       if (k === '2') engine.setWeapon('cajado');
       if (k === '3') engine.setWeapon('arco');
+      if (k === '4') engine.setClass('druida');
       if (k === 'r') engine.toggleRange();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
@@ -97,6 +107,7 @@ export default function App() {
   }, []);
 
   const pickWeapon = (id: WeaponId) => engineRef.current?.setWeapon(id);
+  const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleCamera = () => engineRef.current?.toggleCamera();
   const toggleRange = () => engineRef.current?.toggleRange();
   const restart = () => { engineRef.current?.restart(); };
@@ -117,13 +128,14 @@ export default function App() {
       <div className="hud-bottom">
         <div className="health-row"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
         <div className="xp-row"><span>NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
+        <div className="class-row"><span>CLASSE</span>{(Object.keys(CLASSES) as ClassId[]).map(id => <button key={id} title={CLASSES[id].description} onClick={() => pickClass(id)} className={state.classId === id ? 'selected' : ''}>{CLASSES[id].label}</button>)}</div>
         <div className="weapon-row">
           <span>ARMA <b>{CONFIG.weapons[state.weapon].label.toUpperCase()}</b></span>
           <button onClick={toggleRange} className={state.showRange ? 'active' : ''}>◉ Alcance</button>
           <button onClick={toggleCamera}>{state.cameraFull ? '◎ Seguir' : '▣ Mapa'}</button>
         </div>
       </div>
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o slime. <b>C</b> alterna a câmera. <b>1, 2, 3</b> testam espada, cajado e arco. <b>R</b> liga/desliga o alcance. O ataque é automático quando há inimigos por perto.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o slime. <b>C</b> alterna a câmera. <b>1, 2, 3</b> trocam a arma e <b>4</b> seleciona o Druida. <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
     </section>
@@ -141,12 +153,12 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, time: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number) {
   const r = CONFIG.player.radius, bob = Math.sin(time * 8) * 2;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r); ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .25); ctx.fillStyle = '#8bd5c2'; ctx.fill(); ctx.strokeStyle = '#c1f2df'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r); ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .25); ctx.fillStyle = classId === 'druida' ? '#82df83' : '#8bd5c2'; ctx.fill(); ctx.strokeStyle = classId === 'druida' ? '#c9ffc2' : '#c1f2df'; ctx.lineWidth = 2; ctx.stroke();
   // Capuz com ponta e sombra, feito apenas com formas.
   ctx.beginPath(); ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32); ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35); ctx.fillStyle = '#33465c'; ctx.fill(); ctx.strokeStyle = '#647d98'; ctx.stroke();
   ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
