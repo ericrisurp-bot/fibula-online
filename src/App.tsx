@@ -103,9 +103,9 @@ export default function App() {
         ctx.lineJoin = 'round';
         ctx.lineWidth = 3.5;
         ctx.strokeStyle = 'rgba(8, 12, 14, 0.88)';
-        ctx.strokeText(String(damage.amount), 0, 0);
+        ctx.strokeText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.fillStyle = damage.color;
-        ctx.fillText(String(damage.amount), 0, 0);
+        ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.restore();
       }
       ctx.restore();
