@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
+import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
 
@@ -18,6 +18,7 @@ export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
+  const zoomRef = useRef(1);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -36,7 +37,7 @@ export default function App() {
       ctx.fillStyle = '#121b21'; ctx.fillRect(0, 0, w, h);
       // O Canvas lê o estado mutável do motor a cada frame, sem render React por quadro.
       const s = engine.state;
-      const scale = s.cameraFull ? Math.min(w, h) / (engine.world + 80) : Math.min(w / 950, h / 680, 1.45);
+      const scale = (s.cameraFull ? Math.min(w, h) / (engine.world + 80) : Math.min(w / 950, h / 680, 1.45)) * zoomRef.current;
       const viewW = w / scale, viewH = h / scale;
       const left = s.cameraFull
         ? engine.world / 2 - viewW / 2
@@ -124,22 +125,16 @@ export default function App() {
         <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
         <div className="hud-chip"><span>ELIMINAÇÕES</span><strong>{state.kills}</strong></div>
       </div>
-      <div className="hud-bottom">
+      <div className="hud-vitals" aria-label="Informações do personagem">
         <div className="health-row"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
-        <div className="xp-row"><span>NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
-        <div className="class-row"><span>CLASSE</span>{(Object.keys(CLASSES) as ClassId[]).map(id => <button key={id} title={CLASSES[id].description} onClick={() => pickClass(id)} className={state.classId === id ? 'selected' : ''}>{id === 'druida' ? `Druida ${state.healingOrbs.length}/7` : CLASSES[id].label}</button>)}</div>
-        <div className="weapon-row">
-          <span>ARMA <b>{CONFIG.weapons[state.weapon].label.toUpperCase()}</b></span>
-          <button onClick={toggleRange} className={state.showRange ? 'active' : ''}>◉ Alcance</button>
-          <button onClick={toggleCamera}>{state.cameraFull ? '◎ Seguir' : '▣ Mapa'}</button>
-        </div>
+        <div className="xp-row"><span>XP · NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
       </div>
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera e <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
     </section>
     <footer className="footer"><span>ETAPA 01 <i /> PROTÓTIPO JOGÁVEL</span><span className="footer-right">CADA ONDA É MAIS PERIGOSA</span></footer>
-    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onClass={pickClass} classId={state.classId} />
+    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} />
   </main>;
 }
 

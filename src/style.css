@@ -29,3 +29,18 @@
   .joystick-label{bottom:5px;font-size:7px}
   .mobile-actions button{padding:5px 7px;min-height:28px}
 }
+
+
+/* HUD informativo no canto superior esquerdo; controles touch à esquerda do joystick. */
+.hud-vitals{position:absolute;z-index:2;top:62px;left:14px;width:min(260px,calc(100% - 28px));padding:9px 11px;display:flex;flex-direction:column;gap:7px;background:#101916d9;border:1px solid #4b6158;border-radius:7px;backdrop-filter:blur(8px);pointer-events:none}
+.hud-vitals .health-row,.hud-vitals .xp-row{grid-template-columns:74px minmax(30px,1fr) auto;gap:6px}
+.hud-vitals .health-row>b,.hud-vitals .xp-row>b{font-size:9px}
+.mobile-controls{align-items:center;justify-content:space-between;gap:6px}
+.mobile-actions{order:1;flex:1 1 auto;min-width:0;max-width:none;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.class-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.class-buttons button{min-width:0;white-space:nowrap}
+.utility-buttons{display:flex;flex-wrap:wrap;gap:4px}
+.utility-buttons button{flex:1 1 auto;min-width:0}
+.joystick{order:2;flex-shrink:0}
+@media(max-width:700px){.hud-vitals{top:57px;left:8px;width:min(250px,calc(100% - 16px));padding:7px 8px;gap:5px}.hud-vitals .health-row,.hud-vitals .xp-row{grid-template-columns:65px minmax(24px,1fr) auto;gap:5px}.hud-vitals .health-row>b,.hud-vitals .xp-row>b{font-size:8px}}
+@media (pointer:coarse) and (max-width:390px){.mobile-controls{gap:5px}.mobile-actions{gap:4px}.class-buttons{gap:3px}.class-buttons button{padding:6px 4px;font-size:8px}.utility-buttons button{padding:6px 4px;font-size:8px}}

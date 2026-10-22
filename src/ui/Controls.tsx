@@ -3,14 +3,16 @@ import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
   onMove: (x: number, y: number) => void;
-  onCamera: () => void;
+  onRange: () => void;
+  onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
+  showRange: boolean;
 };
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onMove, onCamera, onClass, classId }: Props) {
+export default function Controls({ onMove, onRange, onZoom, onClass, classId, showRange }: Props) {
   const stickRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<number | null>(null);
 
@@ -45,6 +47,16 @@ export default function Controls({ onMove, onCamera, onClass, classId }: Props) 
   };
 
   return <div className="mobile-controls" aria-label="Controles de celular">
+    <div className="mobile-actions">
+      <div className="class-buttons" aria-label="Selecionar classe">
+        {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} className={classId === id ? 'selected class-button' : 'class-button'} aria-pressed={classId === id} onClick={() => onClass(id)}>{index + 1} {CLASSES[id].label}</button>)}
+      </div>
+      <div className="utility-buttons">
+        <button onClick={onRange} className={showRange ? 'active' : ''} aria-pressed={showRange}>◉ Alcance</button>
+        <button onClick={() => onZoom(0.15)} aria-label="Aumentar zoom">Zoom +</button>
+        <button onClick={() => onZoom(-0.15)} aria-label="Diminuir zoom">Zoom −</button>
+      </div>
+    </div>
     <div
       className="joystick"
       ref={stickRef}
@@ -60,10 +72,6 @@ export default function Controls({ onMove, onCamera, onClass, classId }: Props) 
       <span className="joystick-cross vertical" />
       <span className="joystick-knob" />
       <span className="joystick-label">MOVER</span>
-    </div>
-    <div className="mobile-actions">
-      <button onClick={onCamera}>Câmera</button>
-      {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} className={classId === id ? 'selected class-button' : 'class-button'} onClick={() => onClass(id)}>{index + 1} {CLASSES[id].label}</button>)}
     </div>
   </div>;
 }
