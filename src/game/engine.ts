@@ -146,8 +146,9 @@ export class GameEngine {
       this.startHorde();
     }
     const cycleElapsed = this.elapsed % CONFIG.waves.cycle;
-    if (cycleElapsed <= CONFIG.waves.hordeDuration) {
-      const targetSpawned = Math.min(this.hordeTarget, 1 + Math.floor((this.hordeTarget - 1) * cycleElapsed / CONFIG.waves.hordeDuration));
+    if (cycleElapsed < CONFIG.waves.hordeDuration || cycleElapsed - dt < CONFIG.waves.hordeDuration) {
+      const hordeProgress = Math.min(cycleElapsed, CONFIG.waves.hordeDuration);
+      const targetSpawned = Math.min(this.hordeTarget, 1 + Math.floor((this.hordeTarget - 1) * hordeProgress / CONFIG.waves.hordeDuration));
       if (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.waves.maxAlive) this.spawnHordeEnemy();
     }
     this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
