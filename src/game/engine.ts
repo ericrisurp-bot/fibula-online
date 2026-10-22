@@ -146,10 +146,9 @@ export class GameEngine {
       this.startHorde();
     }
     const cycleElapsed = this.elapsed % CONFIG.waves.cycle;
-    if (cycleElapsed < CONFIG.waves.hordeDuration || cycleElapsed - dt < CONFIG.waves.hordeDuration) {
-      const hordeProgress = Math.min(cycleElapsed, CONFIG.waves.hordeDuration);
-      const targetSpawned = Math.min(this.hordeTarget, 1 + Math.floor((this.hordeTarget - 1) * hordeProgress / CONFIG.waves.hordeDuration));
-      if (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.waves.maxAlive) this.spawnHordeEnemy();
+    if (cycleElapsed < CONFIG.waves.hordaDuration) {
+      const targetSpawned = Math.min(this.hordeTarget, Math.floor(cycleElapsed / (CONFIG.waves.hordaDuration / this.hordeTarget)) + 1);
+      while (this.hordeSpawned < targetSpawned) this.spawnHordeEnemy();
     }
     this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.autoAttack(); this.collectXp(dt);
     if (this.state.classId === 'druida') {
@@ -179,7 +178,9 @@ export class GameEngine {
   }
 
   private spawnHordeEnemy() {
-    if (this.state.enemies.length >= CONFIG.waves.maxAlive || this.hordeSpawned >= this.hordeTarget) return;
+    if (this.hordeSpawned >= this.hordeTarget) return;
+    this.hordeSpawned += 1;
+    if (this.state.enemies.length >= CONFIG.waves.maxAlive) return;
     const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
     let x = offset, y = offset;
     if (edge === 0) { x = CONFIG.map.wall + 24; y = offset; }
@@ -188,7 +189,6 @@ export class GameEngine {
     if (edge === 3) { x = offset; y = this.world - CONFIG.map.wall - 24; }
     if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 320) { x = this.clamp(x + 420, 80, this.world - 80); }
     this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
-    this.hordeSpawned += 1;
   }
 
   private moveEnemies(dt: number) {
