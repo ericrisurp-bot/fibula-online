@@ -99,9 +99,6 @@ export default function App() {
       if (k === '2') engine.setClass('mago');
       if (k === '3') engine.setClass('arqueiro');
       if (k === '4') engine.setClass('druida');
-      if (k === '5') engine.setWeapon('espada');
-      if (k === '6') engine.setWeapon('cajado');
-      if (k === '7') engine.setWeapon('arco');
       if (k === 'r') engine.toggleRange();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
@@ -109,7 +106,6 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
-  const pickWeapon = (id: WeaponId) => engineRef.current?.setWeapon(id);
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleCamera = () => engineRef.current?.toggleCamera();
   const toggleRange = () => engineRef.current?.toggleRange();
@@ -138,12 +134,12 @@ export default function App() {
           <button onClick={toggleCamera}>{state.cameraFull ? '◎ Seguir' : '▣ Mapa'}</button>
         </div>
       </div>
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe e sua arma correspondente. <b>5, 6, 7</b> trocam manualmente para Espada, Cajado e Arco. <b>C</b> alterna a câmera e <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera e <b>R</b> liga/desliga o alcance. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
     </section>
     <footer className="footer"><span>ETAPA 01 <i /> PROTÓTIPO JOGÁVEL</span><span className="footer-right">CADA ONDA É MAIS PERIGOSA</span></footer>
-    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onWeapon={pickWeapon} onClass={pickClass} weapon={state.weapon} classId={state.classId} />
+    <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onCamera={toggleCamera} onClass={pickClass} classId={state.classId} />
   </main>;
 }
 
