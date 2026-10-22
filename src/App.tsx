@@ -108,7 +108,6 @@ export default function App() {
   }, []);
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
-  const toggleCamera = () => engineRef.current?.toggleCamera();
   const toggleRange = () => engineRef.current?.toggleRange();
   const restart = () => { engineRef.current?.restart(); };
 
