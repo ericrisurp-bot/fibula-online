@@ -268,8 +268,10 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
   // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
+  ctx.save(); ctx.rotate(-facingRotation);
   ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45);
+  ctx.restore();
   if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
