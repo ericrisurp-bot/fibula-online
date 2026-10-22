@@ -18,9 +18,9 @@ export const CONFIG = {
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
-    cajado: { label: 'Cajado', range: 260, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
-    arco: { label: 'Arco', range: 390, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
-    bastao: { label: 'Cajado da Natureza', range: 260, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
+    cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
+    arco: { label: 'Arco', range: 420, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
+    bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
   },
 } as const;
 
