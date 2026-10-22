@@ -191,7 +191,7 @@ export class GameEngine {
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
-        if (Math.random() > CONFIG.player.dodge + this.levelStats.dodge) {
+        if (Math.random() > Math.min(0.35, CONFIG.player.dodge + this.levelStats.dodge)) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const damage = Math.max(1, waveDamage - CONFIG.player.armor - this.levelStats.armor);
           p.hp -= damage;
