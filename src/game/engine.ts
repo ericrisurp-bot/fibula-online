@@ -191,14 +191,15 @@ export class GameEngine {
         return distance <= weapon.range && difference <= arc / 2;
       });
       for (const enemy of hits) {
-        enemy.hp -= weapon.damage;
-        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, weapon.damage, '#ffffff');
+        const damage = weapon.damage + this.state.player.level * 0.3;
+        enemy.hp -= damage;
+        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         if (this.state.classId === 'druida') this.druidRegenTimer = 3;
       }
       for (const enemy of hits.filter(e => e.hp <= 0)) this.killEnemy(enemy.id);
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
-      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
+      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage + this.state.player.level * 0.3, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
     }
   }
 
@@ -225,7 +226,7 @@ export class GameEngine {
   }
 
   private addFloatingDamage(x: number, y: number, amount: number, color: FloatingDamage['color']) {
-    this.state.floatingDamage.push({ id: this.nextId++, x, y, amount: Math.round(amount), color, age: 0, duration: 0.72 });
+    this.state.floatingDamage.push({ id: this.nextId++, x, y, amount, color, age: 0, duration: 0.72 });
   }
 
   private collectXp(dt: number) {
