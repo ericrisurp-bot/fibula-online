@@ -299,7 +299,8 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
       ctx.restore();
     }
   } else {
-    ctx.save(); ctx.rotate(aimAngle);
+    // Cancela o espelhamento horizontal do personagem antes de aplicar o ângulo mundial da mira.
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(aimAngle);
     const isDruidStaff = weapon === 'bastao';
     ctx.strokeStyle = isDruidStaff ? '#8b623d' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
     if (weapon === 'cajado' || isDruidStaff) {
