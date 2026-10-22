@@ -5,7 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
-  enemies: [], trees: [], woodDrops: [], wood: 0, xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -200,7 +200,7 @@ export default function App() {
           <div className="hud-substats">
             <div className="hud-chip compact"><span>CICLO</span><strong>Horda {state.wave}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
-            <div className="hud-chip compact"><span>MADEIRA</span><strong>{state.wood}/{CONFIG.trees.carryLimit}</strong></div>
+            <div className="hud-chip compact inventory-chip"><span>INV {state.inventory.length}/{CONFIG.inventory.maxTypes}</span><strong>{state.inventory.map(item => (item.itemId === 'wood' ? 'MADEIRA' : item.itemId.toUpperCase()) + ' ' + item.quantity + '/' + CONFIG.inventory.maxPerType).join(' · ') || 'Vazio'}</strong></div>
           </div>
           <div className="hud-chip compact"><span>STATUS</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
