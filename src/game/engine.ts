@@ -230,7 +230,7 @@ export class GameEngine {
     }
     if (!position) return false;
     const roll = Math.random();
-    const size: Tree['size'] = roll < 0.35 ? 'small' : roll < 0.75 ? 'medium' : 'large';
+    const size: Tree['size'] = roll < CONFIG.trees.sizeWeights.small ? 'small' : roll < CONFIG.trees.sizeWeights.small + CONFIG.trees.sizeWeights.medium ? 'medium' : 'large';
     this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
     return true;
   }
