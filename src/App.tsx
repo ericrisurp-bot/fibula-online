@@ -5,7 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
-  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], woodDrops: [], wood: 0, xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -59,6 +59,22 @@ export default function App() {
       if (s.showRange && !s.cameraFull) {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      for (const tree of s.trees) {
+        ctx.save(); ctx.translate(tree.x, tree.y);
+        ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 16, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 22);
+        ctx.fillStyle = '#285b3b'; ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      for (const drop of s.woodDrops) {
+        ctx.save(); ctx.translate(drop.x, drop.y);
+        ctx.strokeStyle = '#d9b17a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(8, 3); ctx.moveTo(-8, 4); ctx.lineTo(8, -2); ctx.stroke();
+        ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(String(drop.amount), 0, -8); ctx.restore();
       }
       for (const orb of s.xpOrbs) {
         ctx.beginPath(); ctx.arc(orb.x, orb.y, CONFIG.xp.radius, 0, Math.PI * 2); ctx.fillStyle = '#77e6c0'; ctx.fill();
@@ -176,6 +192,7 @@ export default function App() {
           <div className="hud-substats">
             <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave.toString().padStart(2, '0')}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+            <div className="hud-chip compact"><span>MADEIRA</span><strong>{state.wood}/{CONFIG.trees.carryLimit}</strong></div>
           </div>
         </div>
       </div>
