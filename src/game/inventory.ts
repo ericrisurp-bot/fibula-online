@@ -4,8 +4,8 @@ export type InventoryStack = {
 };
 
 export type InventoryLimits = {
-  maxTypes: number;
-  maxPerType: number;
+  maxSlots: number;
+  maxPerSlot: number;
 };
 
 export type AddItemResult = {
@@ -14,8 +14,8 @@ export type AddItemResult = {
 };
 
 /**
- * Adds as much as possible without exceeding the slot or per-item limits.
- * The caller keeps any remainder in the world as a drop.
+ * Fills partial stacks of the same item first, then creates new slots.
+ * Any amount that does not fit remains in the world as a drop.
  */
 export function addToInventory(
   inventory: InventoryStack[],
@@ -24,22 +24,27 @@ export function addToInventory(
   limits: InventoryLimits,
 ): AddItemResult {
   const amount = Math.max(0, Math.floor(requested));
-  if (!itemId || amount === 0) return { inventory: inventory.map(stack => ({ ...stack })), added: 0 };
-
   const next = inventory.map(stack => ({ ...stack }));
-  const index = next.findIndex(stack => stack.itemId === itemId);
-  if (index < 0 && next.length >= limits.maxTypes) return { inventory: next, added: 0 };
+  if (!itemId || amount === 0) return { inventory: next, added: 0 };
 
-  const current = index < 0 ? 0 : next[index].quantity;
-  const added = Math.min(amount, Math.max(0, limits.maxPerType - current));
-  if (added === 0) return { inventory: next, added: 0 };
+  let remaining = amount;
+  for (const stack of next) {
+    if (stack.itemId !== itemId || remaining <= 0) continue;
+    const room = Math.max(0, limits.maxPerSlot - stack.quantity);
+    const added = Math.min(room, remaining);
+    stack.quantity += added;
+    remaining -= added;
+  }
 
-  if (index < 0) next.push({ itemId, quantity: added });
-  else next[index].quantity += added;
+  while (remaining > 0 && next.length < limits.maxSlots) {
+    const added = Math.min(limits.maxPerSlot, remaining);
+    next.push({ itemId, quantity: added });
+    remaining -= added;
+  }
 
-  return { inventory: next, added };
+  return { inventory: next, added: amount - remaining };
 }
 
 export function getItemQuantity(inventory: InventoryStack[], itemId: string): number {
-  return inventory.find(stack => stack.itemId === itemId)?.quantity ?? 0;
+  return inventory.reduce((total, stack) => stack.itemId === itemId ? total + stack.quantity : total, 0);
 }
