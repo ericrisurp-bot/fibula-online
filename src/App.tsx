@@ -74,7 +74,7 @@ export default function App() {
       for (const shot of s.shots) {
         ctx.save(); ctx.translate(shot.x, shot.y); ctx.rotate(Math.atan2(shot.vy, shot.vx));
         if (shot.kind === 'arrow') { ctx.strokeStyle = '#f3d59b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.lineTo(6, -4); ctx.moveTo(12, 0); ctx.lineTo(6, 4); ctx.stroke(); }
-        else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = '#a98cff'; ctx.fill(); }
+        else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = s.classId === 'druida' ? '#65e65d' : '#a98cff'; ctx.fill(); if (s.classId === 'druida') { ctx.strokeStyle = '#c6ffad'; ctx.lineWidth = 2; ctx.stroke(); } }
         ctx.restore();
       }
       for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
@@ -213,26 +213,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
   ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45);
-  if (weapon === 'espada' || weapon === 'bastao') {
+  if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
     const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : -0.45;
     ctx.save(); ctx.rotate(angle);
-    if (weapon === 'bastao') {
-      // Bastão de raízes exclusivo do Druida: madeira retorcida, espinhos e folhas verdes.
-      ctx.strokeStyle = '#70462b'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(r * .68, r * .12); ctx.quadraticCurveTo(r * 1.05, -r * .05, r * 1.28, -r * .28); ctx.quadraticCurveTo(r * 1.55, -r * .48, r * 1.92, -r * .55); ctx.stroke();
-      ctx.strokeStyle = '#b7834b'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(r * .76, r * .04); ctx.quadraticCurveTo(r * 1.05, -r * .04, r * 1.28, -r * .28); ctx.stroke();
-      ctx.strokeStyle = '#4b8a48'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(r * 1.12, -r * .18); ctx.lineTo(r * .98, -r * .5); ctx.moveTo(r * 1.48, -r * .4); ctx.lineTo(r * 1.7, -r * .72); ctx.stroke();
-      ctx.fillStyle = '#80dc73';
-      ctx.beginPath(); ctx.ellipse(r * .96, -r * .52, 3, 5, -.6, 0, Math.PI * 2); ctx.ellipse(r * 1.72, -r * .75, 3, 5, .6, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
-      ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
-    }
+    ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
     ctx.restore();
     if (swordSwingTimer > 0) {
       ctx.save();
@@ -242,9 +230,16 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
       ctx.restore();
     }
   } else {
-    ctx.strokeStyle = weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
-    if (weapon === 'cajado') { ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 4, 0, Math.PI * 2); ctx.fillStyle = '#bba0ff'; ctx.fill(); }
-    else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+    const isDruidStaff = weapon === 'bastao';
+    ctx.strokeStyle = isDruidStaff ? '#8b623d' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
+    if (weapon === 'cajado' || isDruidStaff) {
+      ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 5, 0, Math.PI * 2); ctx.fillStyle = isDruidStaff ? '#7ee66e' : '#bba0ff'; ctx.fill();
+      if (isDruidStaff) {
+        ctx.strokeStyle = '#4a9b48'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(r * 1.36, -r * .36); ctx.lineTo(r * 1.15, -r * .65); ctx.moveTo(r * 1.42, -r * .36); ctx.lineTo(r * 1.66, -r * .61); ctx.stroke();
+        ctx.fillStyle = '#a5f58d'; ctx.beginPath(); ctx.ellipse(r * 1.13, -r * .67, 3, 5, -.5, 0, Math.PI * 2); ctx.ellipse(r * 1.68, -r * .63, 3, 5, .5, 0, Math.PI * 2); ctx.fill();
+      }
+    } else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
   }
   ctx.restore();
 }
