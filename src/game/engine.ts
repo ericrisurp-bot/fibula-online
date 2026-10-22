@@ -1,4 +1,5 @@
 import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
+import { applyAttributeProgression, createAttributeState, getAttributeValue, type AttributeState } from './attributes';
 
 type Vec = { x: number; y: number };
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
@@ -29,9 +30,33 @@ export class GameEngine {
   private lastTime = 0;
   private animation = 0;
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
+  private playerAttributes = this.createPlayerAttributes();
   private enemyDamageTimer = 0;
   private druidRegenTimer = 0;
   private druidOrbHealTimer = 0;
+
+  private createPlayerAttributes(): AttributeState {
+    return createAttributeState({
+      health: CONFIG.player.maxHealth,
+      armor: CONFIG.player.armor,
+      dodge: CONFIG.player.dodge,
+      movementSpeed: CONFIG.player.speed,
+      attackSpeed: 0,
+      strength: 0,
+      accuracy: 0,
+      rangedDamage: 0,
+      intelligence: 0,
+      magicDamage: 0,
+      fireDamage: 0,
+      waterDamage: 0,
+      earthDamage: 0,
+      physicalResistance: 0,
+      magicResistance: 0,
+      fireResistance: 0,
+      waterResistance: 0,
+      earthResistance: 0,
+    });
+  }
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
@@ -96,6 +121,7 @@ export class GameEngine {
   restart() {
     this.stop(); this.state = this.freshState(); this.nextId = 1; this.waveTimer = 0; this.treeSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
+    this.playerAttributes = this.createPlayerAttributes();
     this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.spawnWave(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
@@ -138,7 +164,7 @@ export class GameEngine {
       this.state.player.facingX = dx / directionLength;
       this.state.player.facingY = dy / directionLength;
     }
-    const speed = CONFIG.player.speed + this.levelStats.speed;
+    const speed = getAttributeValue(this.playerAttributes, 'movementSpeed');
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
 
@@ -260,16 +286,16 @@ export class GameEngine {
       const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
       // Slimes começam a 75% da velocidade atual do jogador e ganham 2,5 pontos percentuais por onda.
       // A velocidade fica limitada à do jogador e alcança 100% na onda 11, sem ultrapassá-la.
-      const playerSpeed = CONFIG.player.speed + this.levelStats.speed;
+      const playerSpeed = getAttributeValue(this.playerAttributes, 'movementSpeed');
       const speedRatio = Math.min(1, 0.75 + (this.state.wave - 1) * 0.025);
       const speed = playerSpeed * speedRatio;
       e.x += dx / dist * speed * dt; e.y += dy / dist * speed * dt;
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
-        if (Math.random() > CONFIG.player.dodge + this.levelStats.dodge) {
+        if (Math.random() > getAttributeValue(this.playerAttributes, 'dodge')) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
-          const damage = Math.max(1, waveDamage - CONFIG.player.armor - this.levelStats.armor);
+          const damage = Math.max(1, waveDamage - getAttributeValue(this.playerAttributes, 'armor'));
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
@@ -279,7 +305,7 @@ export class GameEngine {
 
   private autoAttack() {
     const weapon = CONFIG.weapons[this.state.weapon];
-    const speedBonus = this.levelStats.attackSpeed;
+    const speedBonus = getAttributeValue(this.playerAttributes, 'attackSpeed');
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
     const target = this.state.enemies.map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
@@ -359,9 +385,20 @@ export class GameEngine {
     }
     while (p.xp >= p.nextXp) {
       p.xp -= p.nextXp; p.level += 1; p.nextXp = CONFIG.xp.levelBase + p.level * CONFIG.xp.levelGrowth;
-      p.maxHp += LEVEL_GROWTH.health; p.hp = Math.min(p.maxHp, p.hp + LEVEL_GROWTH.health);
-      this.levelStats.armor += LEVEL_GROWTH.armor; this.levelStats.speed += LEVEL_GROWTH.speed;
-      this.levelStats.attackSpeed += LEVEL_GROWTH.attackSpeed; this.levelStats.dodge += LEVEL_GROWTH.dodge;
+      this.playerAttributes = applyAttributeProgression(this.playerAttributes, {
+        health: LEVEL_GROWTH.health,
+        armor: LEVEL_GROWTH.armor,
+        movementSpeed: LEVEL_GROWTH.speed,
+        attackSpeed: LEVEL_GROWTH.attackSpeed,
+        dodge: LEVEL_GROWTH.dodge,
+      }, 'level');
+      const previousMaxHp = p.maxHp;
+      p.maxHp = getAttributeValue(this.playerAttributes, 'health');
+      p.hp = Math.min(p.maxHp, p.hp + (p.maxHp - previousMaxHp));
+      this.levelStats.armor = getAttributeValue(this.playerAttributes, 'armor') - CONFIG.player.armor;
+      this.levelStats.speed = getAttributeValue(this.playerAttributes, 'movementSpeed') - CONFIG.player.speed;
+      this.levelStats.attackSpeed = getAttributeValue(this.playerAttributes, 'attackSpeed');
+      this.levelStats.dodge = getAttributeValue(this.playerAttributes, 'dodge') - CONFIG.player.dodge;
     }
   }
   private clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
