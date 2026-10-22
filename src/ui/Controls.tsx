@@ -65,10 +65,10 @@ export default function Controls({ onMove, onCamera, onWeapon, onClass, weapon, 
     </div>
     <div className="mobile-actions">
       <button onClick={onCamera}>Câmera</button>
-      <button className={weapon === 'espada' ? 'selected' : ''} onClick={() => onWeapon('espada')}>1 Espada</button>
-      <button className={weapon === 'cajado' ? 'selected' : ''} onClick={() => onWeapon('cajado')}>2 Cajado</button>
-      <button className={weapon === 'arco' ? 'selected' : ''} onClick={() => onWeapon('arco')}>3 Arco</button>
-      {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} className={classId === id ? 'selected class-button' : 'class-button'} onClick={() => onClass(id)}>{index + 4} {CLASSES[id].label}</button>)}
+      <button className={weapon === 'espada' ? 'selected' : ''} onClick={() => onWeapon('espada')}>Espada (Q)</button>
+      <button className={weapon === 'cajado' ? 'selected' : ''} onClick={() => onWeapon('cajado')}>Cajado (W)</button>
+      <button className={weapon === 'arco' ? 'selected' : ''} onClick={() => onWeapon('arco')}>Arco (E)</button>
+      {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} className={classId === id ? 'selected class-button' : 'class-button'} onClick={() => onClass(id)}>{index + 1} {CLASSES[id].label}</button>)}
     </div>
   </div>;
 }
