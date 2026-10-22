@@ -64,13 +64,10 @@ export default function App() {
         ctx.save(); ctx.translate(tree.x, tree.y);
         ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 16, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 22);
-        ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
+        ctx.fillStyle = '#2d6942';
         ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
-        if (tree.size === 'large') {
-          ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
-        }
         ctx.restore();
       }
       for (const drop of s.woodDrops) {
