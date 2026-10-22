@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
-import type { ClassId, WeaponId } from '../game/config';
+import { CLASSES, type ClassId, type WeaponId } from '../game/config';
 
 type Props = {
   onMove: (x: number, y: number) => void;
@@ -68,7 +68,7 @@ export default function Controls({ onMove, onCamera, onWeapon, onClass, weapon, 
       <button className={weapon === 'espada' ? 'selected' : ''} onClick={() => onWeapon('espada')}>1 Espada</button>
       <button className={weapon === 'cajado' ? 'selected' : ''} onClick={() => onWeapon('cajado')}>2 Cajado</button>
       <button className={weapon === 'arco' ? 'selected' : ''} onClick={() => onWeapon('arco')}>3 Arco</button>
-      <button className={classId === 'druida' ? 'selected druid-button' : 'druid-button'} onClick={() => onClass('druida')}>Druida (4)</button>
+      {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} className={classId === id ? 'selected class-button' : 'class-button'} onClick={() => onClass(id)}>{index + 4} {CLASSES[id].label}</button>)}
     </div>
   </div>;
 }
