@@ -4,7 +4,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
-  player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
+  player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   enemies: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
@@ -89,7 +89,7 @@ export default function App() {
         drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
         ctx.restore();
       }
-      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer);
+      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, s.player.facingY);
       for (const damage of s.floatingDamage) {
         const progress = Math.min(1, damage.age / damage.duration);
         const scale = 0.62 + Math.min(1, progress / 0.28) * 0.42;
@@ -191,18 +191,28 @@ export default function App() {
 }
 
 function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, shade: string, phase = 0) {
-  const bob = Math.sin(performance.now() / 180 + phase) * 2;
-  ctx.save(); ctx.translate(x, y + bob);
-  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, r * 0.7, r * 1.05, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+  const pulse = Math.sin(performance.now() / 115 + phase);
+  const squash = Math.max(0, pulse);
+  const stretch = Math.max(0, -pulse);
+  const bob = stretch * -1.5 + squash * 0.7;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, r * 0.7, r * (1.05 + squash * 0.08), r * (0.42 - stretch * 0.04), 0, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(0, bob);
+  ctx.scale(1 + squash * 0.13 - stretch * 0.035, 1 - squash * 0.16 + stretch * 0.09);
   ctx.strokeStyle = shade; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-r * .45, r * .45); ctx.lineTo(-r * .62, r * .9); ctx.moveTo(r * .45, r * .45); ctx.lineTo(r * .62, r * .9); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(-r, r * .25); ctx.quadraticCurveTo(-r * 1.15, -r * .8, 0, -r); ctx.quadraticCurveTo(r * 1.15, -r * .8, r, r * .25); ctx.quadraticCurveTo(r * .8, r * .85, 0, r * .72); ctx.quadraticCurveTo(-r * .8, r * .85, -r, r * .25); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = shade; ctx.stroke();
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number) {
-  const r = CONFIG.player.radius, bob = Math.sin(time * 8) * 2;
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, facingY: number) {
+  const r = CONFIG.player.radius;
+  const breath = Math.sin(time * 2.6);
+  const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
+  const facingRotation = Math.atan2(facingY, facingX) - Math.PI / 2;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.rotate(facingRotation);
+  if (!moving) ctx.scale(1 + breath * 0.012, 1 - breath * 0.018);
   ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
     guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
@@ -263,7 +273,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
-    const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : -0.45;
+    const angle = swordSwingTimer > 0 ? swordSwingAngle - facingRotation + (progress - 0.5) * 1.55 : -0.45;
     ctx.save(); ctx.rotate(angle);
     ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
@@ -273,7 +283,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
       ctx.save();
       ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
       ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - Math.PI * 0.31, swordSwingAngle + Math.PI * 0.31); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - facingRotation - Math.PI * 0.31, swordSwingAngle - facingRotation + Math.PI * 0.31); ctx.stroke();
       ctx.restore();
     }
   } else {
