@@ -5,7 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4 },
-  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], xpOrbs: [], healingOrbs: [], shots: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'druida', showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -128,7 +128,7 @@ export default function App() {
       <div className="hud-bottom">
         <div className="health-row"><span>VIDA</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.ceil(state.player.hp)}/{state.player.maxHp}</b></div>
         <div className="xp-row"><span>NÍVEL {state.player.level}</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp} XP</b></div>
-        <div className="class-row"><span>CLASSE</span>{(Object.keys(CLASSES) as ClassId[]).map(id => <button key={id} title={CLASSES[id].description} onClick={() => pickClass(id)} className={state.classId === id ? 'selected' : ''}>{CLASSES[id].label}</button>)}</div>
+        <div className="class-row"><span>CLASSE</span>{(Object.keys(CLASSES) as ClassId[]).map(id => <button key={id} title={CLASSES[id].description} onClick={() => pickClass(id)} className={state.classId === id ? 'selected' : ''}>{id === 'druida' ? `Druida ${state.healingOrbs.length}/7` : CLASSES[id].label}</button>)}</div>
         <div className="weapon-row">
           <span>ARMA <b>{CONFIG.weapons[state.weapon].label.toUpperCase()}</b></span>
           <button onClick={toggleRange} className={state.showRange ? 'active' : ''}>◉ Alcance</button>
