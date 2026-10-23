@@ -6,6 +6,7 @@ import Controls from './ui/Controls';
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false },
+  cart: { x: 1800, y: 600, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
@@ -29,6 +30,9 @@ export default function App() {
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
+  const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
+  const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -72,6 +76,7 @@ export default function App() {
       }
       for (const flag of flagsRef.current) drawFlag(ctx, flag.x, flag.y, flag.color);
       drawHouse(ctx, s.house);
+      drawCart(ctx, s.cart);
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -200,6 +205,7 @@ export default function App() {
       if (k === '3') engine.setClass('arqueiro');
       if (k === '4') engine.setClass('druida');
       if (k === 'r') engine.toggleRange();
+      if (k === 'e' && !e.repeat) engine.toggleCart();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
@@ -208,6 +214,9 @@ export default function App() {
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
+  const toggleCart = () => engineRef.current?.toggleCart();
+  const transferBagToCart = (index: number) => engineRef.current?.transferBagToCart(index);
+  const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
     setFlagWheel(next);
@@ -355,7 +364,9 @@ export default function App() {
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
+      {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
+      {cartActionVisible && <button className="cart-action-button" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
+      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
     </section>
 
   </main>;
