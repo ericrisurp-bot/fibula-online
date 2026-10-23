@@ -533,7 +533,7 @@ export class GameEngine {
     const margin = CONFIG.map.wall + 80;
     if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
     if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.rocks.noSpawnRadius) return false;
-    const radius = this.rockFootprintRadius({ x, y, size, id: 0, hits: 0 });
+    const radius = size === 'small' ? 16 : size === 'medium' ? 23 : 31;
     if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + radius) return false;
     if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < radius + 38) return false;
     if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < radius + this.treeFootprintRadius(tree))) return false;
