@@ -520,14 +520,9 @@ export default function App() {
       </div>}
       {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho">
         <header><strong>INVENTÁRIO</strong><span>B ou Esc fecha</span></header>
-        <section className="house-storage-section">
-          <h3>Casa <small>{state.house.built ? `CONCLUÍDA · ${state.house.inventory.length} tipos` : `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}% · ${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`}</small></h3>
+        <section className="house-construction-section">
+          <h3>Construção da casa <small>{state.house.built ? 'CONCLUÍDA' : `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}% · ${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`}</small></h3>
           {!state.house.built && <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da casa" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}><span style={{ width: `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}%` }} /></div>}
-          {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
-            {state.house.inventory.map(item => <div key={item.itemId} className="quick-slot filled" aria-label={`${item.itemId} x${item.quantity}`}>
-              <span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b>
-            </div>)}
-          </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Os itens serão guardados quando você se aproximar.' : 'A casa ainda está em construção.'}</p>}
         </section>
         <section>
           <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
@@ -550,6 +545,14 @@ export default function App() {
               </div>;
             })}
           </div>
+        </section>
+        <section className="house-storage-section">
+          <h3>Armazém da casa <small>{state.house.built ? `${state.house.inventory.length} tipos` : 'INDISPONÍVEL ATÉ CONCLUIR'}</small></h3>
+          {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
+            {state.house.inventory.map(item => <div key={item.itemId} className="quick-slot filled" aria-label={`${item.itemId} x${item.quantity}`}>
+              <span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b>
+            </div>)}
+          </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Os itens serão guardados quando você se aproximar.' : 'Conclua a construção para usar o armazém.'}</p>}
         </section>
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
