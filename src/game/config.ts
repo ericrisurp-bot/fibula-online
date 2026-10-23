@@ -13,6 +13,7 @@ export const CONFIG = {
     contactDamageIncrease: 1,
     contactDamageEveryWaves: 4,
     contactCooldown: 0.8,
+    separation: { minDistance: 28, iterations: 2 },
   },
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, cycle: 60, hordaDuration: 12, maxAlive: 150 },
   trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },

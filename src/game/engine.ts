@@ -423,6 +423,59 @@ export class GameEngine {
         }
       }
     }
+    this.separateEnemies();
+  }
+
+  private separateEnemies() {
+    const { minDistance, iterations } = CONFIG.enemy.separation;
+    const cellSize = 64;
+    const minX = CONFIG.map.wall + CONFIG.enemy.radius;
+    const maxX = this.world - CONFIG.map.wall - CONFIG.enemy.radius;
+    const minY = minX;
+    const maxY = maxX;
+
+    for (let iteration = 0; iteration < iterations; iteration++) {
+      const grid = new Map<string, Enemy[]>();
+      const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+      for (const enemy of this.state.enemies) {
+        const key = cellKey(enemy.x, enemy.y);
+        const cell = grid.get(key);
+        if (cell) cell.push(enemy);
+        else grid.set(key, [enemy]);
+      }
+
+      const cellReach = Math.ceil(minDistance / cellSize);
+      for (const enemy of this.state.enemies) {
+        const cellX = Math.floor(enemy.x / cellSize);
+        const cellY = Math.floor(enemy.y / cellSize);
+        for (let offsetY = -cellReach; offsetY <= cellReach; offsetY++) {
+          for (let offsetX = -cellReach; offsetX <= cellReach; offsetX++) {
+            const neighbors = grid.get(`${cellX + offsetX},${cellY + offsetY}`);
+            if (!neighbors) continue;
+            for (const other of neighbors) {
+              if (other.id <= enemy.id) continue;
+              let dx = other.x - enemy.x;
+              let dy = other.y - enemy.y;
+              let distance = Math.hypot(dx, dy);
+              if (distance >= minDistance) continue;
+              if (distance === 0) {
+                const angle = ((enemy.id * 31 + other.id * 17) % 360) * Math.PI / 180;
+                dx = Math.cos(angle);
+                dy = Math.sin(angle);
+                distance = 1;
+              }
+              const overlap = minDistance - distance;
+              const pushX = (dx / distance) * overlap / 2;
+              const pushY = (dy / distance) * overlap / 2;
+              enemy.x = this.clamp(enemy.x - pushX, minX, maxX);
+              enemy.y = this.clamp(enemy.y - pushY, minY, maxY);
+              other.x = this.clamp(other.x + pushX, minX, maxX);
+              other.y = this.clamp(other.y + pushY, minY, maxY);
+            }
+          }
+        }
+      }
+    }
   }
 
   private autoAttack() {
