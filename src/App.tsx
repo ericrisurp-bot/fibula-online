@@ -6,6 +6,7 @@ import Controls from './ui/Controls';
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false },
+  cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
@@ -22,13 +23,16 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const zoomRef = useRef(1.6);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
-  const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
-  const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
+  const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
+  const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -70,8 +74,14 @@ export default function App() {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
-      for (const flag of flagsRef.current) drawFlag(ctx, flag.x, flag.y, flag.color);
+      for (const flag of flagsRef.current) {
+        if (!flag.attachedToCart) drawFlag(ctx, flag.x, flag.y, flag.color);
+      }
       drawHouse(ctx, s.house);
+      drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed);
+      for (const flag of flagsRef.current) {
+        if (flag.attachedToCart) drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color);
+      }
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -152,8 +162,10 @@ export default function App() {
       ctx.restore();
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
-        const targetX = (flag.x - left) * scale;
-        const targetY = (flag.y - top) * scale;
+        const flagX = flag.attachedToCart ? s.cart.x : flag.x;
+        const flagY = flag.attachedToCart ? s.cart.y - 34 : flag.y;
+        const targetX = (flagX - left) * scale;
+        const targetY = (flagY - top) * scale;
         if (targetX >= 0 && targetX <= w && targetY >= 0 && targetY <= h) continue;
         const dx = targetX - w / 2;
         const dy = targetY - h / 2;
@@ -200,6 +212,7 @@ export default function App() {
       if (k === '3') engine.setClass('arqueiro');
       if (k === '4') engine.setClass('druida');
       if (k === 'r') engine.toggleRange();
+      if (k === 'e' && !e.repeat) engine.toggleCart();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
@@ -208,6 +221,9 @@ export default function App() {
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
+  const toggleCart = () => engineRef.current?.toggleCart();
+  const transferBagToCart = (index: number) => engineRef.current?.transferBagToCart(index);
+  const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
     setFlagWheel(next);
@@ -234,7 +250,12 @@ export default function App() {
     const point = worldPointAt(clientX, clientY);
     const player = engineRef.current?.state.player;
     if (!point || !player || Math.hypot(point.x - player.x, point.y - player.y) < 40) return false;
-    const existing = flagsRef.current.find(flag => Math.hypot(flag.x - point.x, flag.y - point.y) <= 22);
+    const cart = engineRef.current?.state.cart;
+    const existing = flagsRef.current.find(flag => {
+      const flagX = flag.attachedToCart && cart ? cart.x : flag.x;
+      const flagY = flag.attachedToCart && cart ? cart.y - 34 : flag.y;
+      return Math.hypot(flagX - point.x, flagY - point.y) <= 22;
+    });
     if (!existing) return false;
     const next = flagsRef.current.filter(flag => flag.colorId !== existing.colorId);
     flagsRef.current = next; setFlags(next);
@@ -262,8 +283,15 @@ export default function App() {
     const wheel = flagWheelRef.current;
     const color = wheel?.selected ? CONFIG.flags.colors.find(item => item.id === wheel.selected) : null;
     const player = engineRef.current?.state.player;
+    const cart = engineRef.current?.state.cart;
     if (color && player) {
-      const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), { colorId: color.id, color: color.color, x: player.x, y: player.y }];
+      const attachToCart = !!cart && Math.hypot(player.x - cart.x, player.y - cart.y) <= CONFIG.cart.interactRadius;
+      const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), {
+        colorId: color.id, color: color.color,
+        x: attachToCart && cart ? cart.x : player.x,
+        y: attachToCart && cart ? cart.y - 34 : player.y,
+        ...(attachToCart ? { attachedToCart: true } : {}),
+      }];
       flagsRef.current = next; setFlags(next);
     }
     setWheel(null);
@@ -348,14 +376,25 @@ export default function App() {
           <button className="start-normal" type="button" onClick={() => setShowStart(false)}>Jogar sem tela cheia</button>
         </div>
       </div>}
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>E</b> pega/solta o carrinho reparado quando estiver perto.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {flagWheel && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={{ left: flagWheel.screenX, top: flagWheel.screenY }}>
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
+      {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
+      {cartAccessible && !state.dead && !showStart && <div className="cart-nearby-inventory" role="group" aria-label="Enviar itens da mochila para o carrinho">
+        {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
+          const item = state.inventory[index];
+          const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId) : 'vazio';
+          return <button key={index} type="button" className={item ? 'cart-nearby-slot filled' : 'cart-nearby-slot'} disabled={!item} onClick={() => transferBagToCart(index)} aria-label={item ? `Enviar ${itemName} x${item.quantity} para o carrinho` : `Espaço ${index + 1} vazio`} title={item ? `Enviar ${itemName} x${item.quantity}` : 'Espaço vazio'}>
+            {item ? <><span aria-hidden="true">{item.itemId === 'wood' ? '🪵' : '📦'}</span><strong>×{item.quantity}</strong></> : <span className="cart-nearby-slot-number">{index + 1}</span>}
+          </button>;
+        })}
+      </div>}
+      {cartActionVisible && <button className="cart-action-button" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
+      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
     </section>
 
   </main>;
@@ -383,6 +422,52 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
     ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-36, -48, 72, 7);
     ctx.fillStyle = '#8fceaa'; ctx.fillRect(-36, -48, 72 * (woodDelivered / CONFIG.house.buildCost), 7);
     ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-36, -48, 72, 7);
+  }
+  ctx.restore();
+}
+
+function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number) {
+  const { x, y, angle, repairWood, repaired, carried } = cart;
+  ctx.save();
+  ctx.translate(x, y);
+  if (nearby) {
+    const pulse = 0.5 + 0.5 * Math.sin(time * 4);
+    ctx.beginPath(); ctx.ellipse(0, 2, 38 + pulse * 3, 25 + pulse * 2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(210, 180, 125, ${0.07 + pulse * 0.06})`; ctx.fill();
+    ctx.strokeStyle = `rgba(230, 200, 150, ${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  // Orientação lateral binária: espelha o desenho, sem girar na diagonal.
+  ctx.scale(angle > Math.PI / 2 ? -1 : 1, 1);
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(0, 14, 30, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(22, -5); ctx.lineTo(30, 8); ctx.stroke();
+  if (repaired) {
+    ctx.fillStyle = '#8b6039'; ctx.fillRect(-23, -23, 42, 22);
+    ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.strokeRect(-23, -23, 42, 22);
+    ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-19, -20); ctx.lineTo(-19, -3); ctx.moveTo(-5, -20); ctx.lineTo(-5, -3); ctx.moveTo(9, -20); ctx.lineTo(9, -3); ctx.stroke();
+    for (const wheelX of [-17, 20]) {
+      ctx.beginPath(); ctx.arc(wheelX, 8, 7, 0, Math.PI * 2); ctx.fillStyle = '#282a29'; ctx.fill();
+      ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(wheelX - 4, 8); ctx.lineTo(wheelX + 4, 8); ctx.moveTo(wheelX, 4); ctx.lineTo(wheelX, 12); ctx.stroke();
+    }
+  } else {
+    ctx.save(); ctx.rotate(-0.18);
+    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(-22, -18); ctx.lineTo(18, -3); ctx.moveTo(-18, -3); ctx.lineTo(16, -19); ctx.stroke();
+    ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(-17, 8, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(20, 8, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
+    ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
+  }
+  if (carried) {
+    ctx.strokeStyle = 'rgba(235,235,235,.65)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.arc(0, -3, 36, 0, Math.PI * 2); ctx.stroke();
   }
   ctx.restore();
 }
