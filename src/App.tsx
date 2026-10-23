@@ -79,61 +79,7 @@ export default function App() {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
-      for (const flag of flagsRef.current) {
-        if (!flag.attachedToCart) drawFlag(ctx, flag.x, flag.y, flag.color);
-      }
-      drawHouse(ctx, s.house);
-      drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed);
-      for (const flag of flagsRef.current) {
-        if (flag.attachedToCart) drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color);
-      }
-      for (const tree of s.trees) {
-        ctx.save(); ctx.translate(tree.x, tree.y);
-        const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
-        ctx.scale(scale, scale);
-        ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 29, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 30);
-        ctx.fillStyle = '#a9784e'; ctx.fillRect(-2, 1, 2, 26);
-        ctx.strokeStyle = '#593820'; ctx.lineWidth = 1.5; ctx.strokeRect(-5, -1, 10, 30);
-        ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
-        ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
-        if (tree.size === 'large') { ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-        ctx.restore();
-      }
-      for (const rock of s.rocks) {
-        ctx.save(); ctx.translate(rock.x, rock.y);
-        const scale = rock.size === 'small' ? 0.72 : rock.size === 'medium' ? 1 : 1.35;
-        ctx.fillStyle = 'rgba(0,0,0,0.28)';
-        ctx.beginPath(); ctx.ellipse(2, 10 * scale, 19 * scale, 8 * scale, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = rock.size === 'large' ? '#777f86' : rock.size === 'medium' ? '#858d94' : '#969da2';
-        ctx.strokeStyle = '#454d53'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-17 * scale, 3 * scale); ctx.lineTo(-14 * scale, -9 * scale);
-        ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale);
-        ctx.lineTo(18 * scale, -5 * scale); ctx.lineTo(16 * scale, 7 * scale);
-        ctx.lineTo(5 * scale, 12 * scale); ctx.lineTo(-9 * scale, 10 * scale);
-        ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = 'rgba(220,226,230,0.42)';
-        ctx.beginPath(); ctx.moveTo(-14 * scale, -8 * scale); ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale); ctx.lineTo(2 * scale, -6 * scale); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(55,62,67,0.6)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-4 * scale, -2 * scale); ctx.lineTo(2 * scale, 3 * scale); ctx.lineTo(8 * scale, -1 * scale); ctx.stroke();
-        ctx.restore();
-      }
-      for (const drop of s.stoneDrops) {
-        ctx.save(); ctx.translate(drop.x, drop.y);
-        ctx.fillStyle = '#9ba4aa'; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(-5, 2); ctx.lineTo(-3, -4); ctx.lineTo(2, -5); ctx.lineTo(6, -1); ctx.lineTo(4, 4); ctx.lineTo(-2, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.restore();
-      }
-      for (const drop of s.woodDrops) {
-        ctx.save(); ctx.translate(drop.x, drop.y);
-        ctx.strokeStyle = '#d9b17a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(8, 3); ctx.moveTo(-8, 4); ctx.lineTo(8, -2); ctx.stroke();
-        ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        ctx.fillText(String(drop.amount), 0, -8); ctx.restore();
-      }
+      // Efeitos de chão/voo ficam em camada própria; entidades sólidas usam ordenação por profundidade Y.
       for (const orb of s.xpOrbs) {
         ctx.beginPath(); ctx.arc(orb.x, orb.y, CONFIG.xp.radius, 0, Math.PI * 2); ctx.fillStyle = '#77e6c0'; ctx.fill();
         ctx.strokeStyle = '#d4fff0'; ctx.lineWidth = 2; ctx.stroke();
@@ -153,16 +99,6 @@ export default function App() {
         else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = s.classId === 'druida' ? '#65e65d' : '#a98cff'; ctx.fill(); if (s.classId === 'druida') { ctx.strokeStyle = '#c6ffad'; ctx.lineWidth = 2; ctx.stroke(); } }
         ctx.restore();
       }
-      for (const e of s.enemies) drawSlime(ctx, e.x, e.y, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
-      for (const e of s.dyingEnemies) {
-        const progress = Math.min(1, e.deathAge / 0.48);
-        ctx.save();
-        ctx.globalAlpha = 1 - progress;
-        ctx.translate(e.x, e.y + progress * CONFIG.enemy.radius * 0.65);
-        ctx.scale(1 + progress * 0.38, Math.max(0.06, 1 - progress * 0.92));
-        drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', e.wobble);
-        ctx.restore();
-      }
       const aimTarget = s.enemies
         .map((enemy) => ({ enemy, distance: Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) }))
         .filter(({ distance }) => distance <= CONFIG.weapons[s.weapon].range)
@@ -170,7 +106,83 @@ export default function App() {
       const aimAngle = aimTarget
         ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
-      drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer);
+      const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
+      for (const flag of flagsRef.current) {
+        if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color) });
+        else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color) });
+      }
+      worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
+      worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed) });
+      for (const tree of s.trees) {
+        const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
+        worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => {
+          ctx.save(); ctx.translate(tree.x, tree.y); ctx.scale(scale, scale);
+          ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 29, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 30);
+          ctx.fillStyle = '#a9784e'; ctx.fillRect(-2, 1, 2, 26);
+          ctx.strokeStyle = '#593820'; ctx.lineWidth = 1.5; ctx.strokeRect(-5, -1, 10, 30);
+          ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
+          ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+          if (tree.size === 'large') { ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+          ctx.restore();
+        }});
+      }
+      for (const rock of s.rocks) {
+        const scale = rock.size === 'small' ? 0.72 : rock.size === 'medium' ? 1 : 1.35;
+        worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => {
+          ctx.save(); ctx.translate(rock.x, rock.y);
+          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          ctx.beginPath(); ctx.ellipse(2, 10 * scale, 19 * scale, 8 * scale, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = rock.size === 'large' ? '#777f86' : rock.size === 'medium' ? '#858d94' : '#969da2';
+          ctx.strokeStyle = '#454d53'; ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-17 * scale, 3 * scale); ctx.lineTo(-14 * scale, -9 * scale);
+          ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale);
+          ctx.lineTo(18 * scale, -5 * scale); ctx.lineTo(16 * scale, 7 * scale);
+          ctx.lineTo(5 * scale, 12 * scale); ctx.lineTo(-9 * scale, 10 * scale);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = 'rgba(220,226,230,0.42)';
+          ctx.beginPath(); ctx.moveTo(-14 * scale, -8 * scale); ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale); ctx.lineTo(2 * scale, -6 * scale); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = 'rgba(55,62,67,0.6)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-4 * scale, -2 * scale); ctx.lineTo(2 * scale, 3 * scale); ctx.lineTo(8 * scale, -1 * scale); ctx.stroke();
+          ctx.restore();
+        }});
+      }
+      for (const drop of s.stoneDrops) {
+        worldDrawables.push({ depth: drop.y + 5, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.fillStyle = '#9ba4aa'; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(-5, 2); ctx.lineTo(-3, -4); ctx.lineTo(2, -5); ctx.lineTo(6, -1); ctx.lineTo(4, 4); ctx.lineTo(-2, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.restore();
+        }});
+      }
+      for (const drop of s.woodDrops) {
+        worldDrawables.push({ depth: drop.y + 4, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.strokeStyle = '#d9b17a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(8, 3); ctx.moveTo(-8, 4); ctx.lineTo(8, -2); ctx.stroke();
+          ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+          ctx.fillText(String(drop.amount), 0, -8); ctx.restore();
+        }});
+      }
+      for (const enemy of s.enemies) {
+        worldDrawables.push({ depth: enemy.y + CONFIG.enemy.radius * 0.7, draw: () => drawSlime(ctx, enemy.x, enemy.y, CONFIG.enemy.radius, '#70d78d', '#397e58', enemy.wobble) });
+      }
+      for (const enemy of s.dyingEnemies) {
+        const progress = Math.min(1, enemy.deathAge / 0.48);
+        worldDrawables.push({ depth: enemy.y + CONFIG.enemy.radius * 0.7 + progress * CONFIG.enemy.radius * 0.65, draw: () => {
+          ctx.save(); ctx.globalAlpha = 1 - progress;
+          ctx.translate(enemy.x, enemy.y + progress * CONFIG.enemy.radius * 0.65);
+          ctx.scale(1 + progress * 0.38, Math.max(0.06, 1 - progress * 0.92));
+          drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', enemy.wobble);
+          ctx.restore();
+        }});
+      }
+      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineTimer) });
+      worldDrawables.sort((a, b) => a.depth - b.depth);
+      for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
         const progress = Math.min(1, damage.age / damage.duration);
         const scale = 0.62 + Math.min(1, progress / 0.28) * 0.42;
@@ -314,6 +326,7 @@ export default function App() {
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
   const transferBagToCart = (index: number) => engineRef.current?.transferBagToCart(index);
+  const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
     setFlagWheel(next);
@@ -554,8 +567,8 @@ export default function App() {
           <div className="quick-slot-grid bag">
             {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
               const item = state.inventory[index];
-              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <><span>{item.itemId === 'wood' ? '🪵' : item.itemId === 'stone' ? '🪨' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId === 'stone' ? 'Pedra' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} style={{ position: 'relative' }} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : item.itemId === 'stone' ? '🪨' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId === 'stone' ? 'Pedra' : item.itemId}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, padding: 0, lineHeight: '16px', borderRadius: 999, background: '#632f35', color: '#fff', border: '1px solid #d98b8b', fontSize: 14 }} onClick={(event) => { event.stopPropagation(); discardBagItem(index); }} aria-label={`Descartar ${item.itemId} x${item.quantity} da mochila`} title="Descartar item">×</button></> : <span className="quick-slot-empty">{index + 1}</span>}
               </div>;
             })}
           </div>
@@ -691,7 +704,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
@@ -805,14 +818,15 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.restore();
   }
   if (rockMineTimer > 0) {
+    // A picareta sempre desce de cima para baixo; a direção da pedra não gira o golpe.
     const progress = 1 - rockMineTimer / 0.22;
-    const swing = (progress - 0.5) * (Math.PI / 2.1);
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(rockMineAngle * facingScaleX + swing);
+    const travel = progress * r * 1.15;
+    ctx.save(); ctx.scale(facingScaleX, 1);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * 0.42, -r * 1.65 + travel); ctx.lineTo(r * 0.72, -r * 0.35 + travel); ctx.stroke();
     ctx.strokeStyle = '#aeb8bd'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 1.18, -r * 0.62); ctx.lineTo(r * 1.72, -r * 0.42); ctx.lineTo(r * 1.72, -r * 0.22); ctx.lineTo(r * 1.18, -r * 0.02); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * 0.12, -r * 1.45 + travel); ctx.lineTo(r * 0.78, -r * 1.6 + travel); ctx.lineTo(r * 0.9, -r * 1.42 + travel); ctx.lineTo(r * 0.25, -r * 1.27 + travel); ctx.stroke();
     ctx.restore();
   }
   ctx.restore();
