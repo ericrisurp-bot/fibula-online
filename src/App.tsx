@@ -165,7 +165,7 @@ export default function App() {
         fog.addColorStop(0, 'rgba(5, 8, 18, 0.025)');
         fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.14)');
         fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.25)');
-        fog.addColorStop(1, 'rgba(5, 8, 18, 0.34)');
+        fog.addColorStop(1, `rgba(5, 8, 18, ${CONFIG.dayNight.nightOverlayStrength})`);
         ctx.fillStyle = fog;
         ctx.fillRect(0, 0, engine.world, engine.world);
       }
