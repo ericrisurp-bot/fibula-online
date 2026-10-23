@@ -156,7 +156,9 @@ export default function App() {
         ctx.strokeText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.fillStyle = damage.color;
         ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
-        if (s.dayNight === 'night') {
+        ctx.restore();
+      }
+      if (s.dayNight === 'night') {
         // Névoa noturna suave: o centro permanece legível e o cenário distante escurece gradualmente.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
         const fog = ctx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
@@ -166,8 +168,6 @@ export default function App() {
         fog.addColorStop(1, 'rgba(5, 8, 18, 0.34)');
         ctx.fillStyle = fog;
         ctx.fillRect(0, 0, engine.world, engine.world);
-      }
-      ctx.restore();
       }
       ctx.restore();
       // Indicadores discretos na borda para bandeiras fora da área visível.
