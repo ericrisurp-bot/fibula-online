@@ -98,6 +98,13 @@ export default function App() {
           ctx.strokeStyle = '#e3ffe0'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
         });
       }
+      for (const effect of s.explosions) {
+        const progress = effect.age / effect.duration;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - progress);
+        ctx.strokeStyle = '#c8a8ff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(effect.x, effect.y, CONFIG.mageExplosion.radius * (0.75 + progress * 0.25), 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
       for (const shot of s.shots) {
         ctx.save(); ctx.translate(shot.x, shot.y); ctx.rotate(Math.atan2(shot.vy, shot.vx));
         if (shot.kind === 'arrow') { ctx.strokeStyle = '#f3d59b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.lineTo(6, -4); ctx.moveTo(12, 0); ctx.lineTo(6, 4); ctx.stroke(); }
