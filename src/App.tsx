@@ -5,7 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
-  house: { x: 600, y: 600, woodDelivered: 0, built: false },
+  house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
@@ -248,10 +248,7 @@ export default function App() {
         return;
       }
       if (k === 'b' && !e.repeat) {
-        closeFlagMenu();
-        const nextOpen = !inventoryPanelOpenRef.current;
-        inventoryPanelOpenRef.current = nextOpen;
-        setInventoryPanelOpen(nextOpen);
+        toggleInventoryPanel();
         return;
       }
       if (k === 't' && !e.repeat) {
@@ -308,6 +305,12 @@ export default function App() {
   const closeInventoryPanel = () => {
     inventoryPanelOpenRef.current = false;
     setInventoryPanelOpen(false);
+  };
+  const toggleInventoryPanel = () => {
+    closeFlagMenu();
+    const nextOpen = !inventoryPanelOpenRef.current;
+    inventoryPanelOpenRef.current = nextOpen;
+    setInventoryPanelOpen(nextOpen);
   };
   const removeFlagAtPlayer = () => {
     const player = engineRef.current?.state.player;
@@ -515,8 +518,17 @@ export default function App() {
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Mochila e carrinho">
-        <header><strong>MOCHILA E CARRINHO</strong><span>B ou Esc fecha</span></header>
+      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho">
+        <header><strong>INVENTÁRIO</strong><span>B ou Esc fecha</span></header>
+        <section className="house-storage-section">
+          <h3>Casa <small>{state.house.built ? `CONCLUÍDA · ${state.house.inventory.length} tipos` : `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}% · ${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`}</small></h3>
+          {!state.house.built && <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da casa" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}><span style={{ width: `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}%` }} /></div>}
+          {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
+            {state.house.inventory.map(item => <div key={item.itemId} className="quick-slot filled" aria-label={`${item.itemId} x${item.quantity}`}>
+              <span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b>
+            </div>)}
+          </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Os itens serão guardados quando você se aproximar.' : 'A casa ainda está em construção.'}</p>}
+        </section>
         <section>
           <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
           <div className="quick-slot-grid bag">
@@ -551,7 +563,7 @@ export default function App() {
         })}
       </div>}
       {cartActionVisible && <button className="cart-action-button" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
-      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
+      <Controls onInventoryToggle={toggleInventoryPanel} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
     </section>
 
   </main>;
