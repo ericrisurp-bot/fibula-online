@@ -174,6 +174,23 @@ export default function App() {
         ctx.fillRect(0, 0, engine.world, engine.world);
       }
       ctx.restore();
+      // Vinheta em coordenadas da tela: centro claro ao redor do personagem e bordas progressivamente escuras.
+      if (darkness > 0.01) {
+        const playerScreenX = (s.player.x - left) * scale;
+        const playerScreenY = (s.player.y - top) * scale;
+        const vignetteRadius = Math.hypot(w / 2, h / 2);
+        const vignette = ctx.createRadialGradient(
+          playerScreenX, playerScreenY, Math.min(w, h) * 0.08,
+          playerScreenX, playerScreenY, vignetteRadius,
+        );
+        vignette.addColorStop(0, `rgba(3, 5, 13, ${0.02 * darkness})`);
+        vignette.addColorStop(0.35, `rgba(3, 5, 13, ${0.08 * darkness})`);
+        vignette.addColorStop(0.6, `rgba(3, 5, 13, ${0.28 * darkness})`);
+        vignette.addColorStop(0.82, `rgba(3, 5, 13, ${0.58 * darkness})`);
+        vignette.addColorStop(1, `rgba(3, 5, 13, ${0.78 * darkness})`);
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, w, h);
+      }
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
         const flagX = flag.attachedToCart ? s.cart.x : flag.x;
