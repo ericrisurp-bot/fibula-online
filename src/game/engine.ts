@@ -30,6 +30,7 @@ export class GameEngine {
   private nextId = 1;
   private hordeTarget = 0;
   private hordeSpawned = 0;
+  private hordeScheduled = 0;
   private startAtNight = false;
   private wasNight = false;
   private nightNumber = 0;
@@ -246,7 +247,7 @@ export class GameEngine {
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
-    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.attackTimer = 0;
+    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
     this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
@@ -312,9 +313,12 @@ export class GameEngine {
       const progress = Math.min(1, dayNight.phaseElapsed / CONFIG.dayNight.dayDuration);
       // A curva desacelera perto do amanhecer sem despejar toda a horda de uma vez.
       const easedProgress = 1 - Math.pow(1 - progress, 2);
-      const targetSpawned = Math.min(this.hordeTarget, Math.ceil(this.hordeTarget * easedProgress));
-      // No máximo um nascimento por atualização evita despejar vários Slimes no mesmo quadro.
-      if (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
+      const targetScheduled = Math.min(this.hordeTarget, Math.ceil(this.hordeTarget * easedProgress));
+      // Agenda no máximo um nascimento por atualização; se o mapa atingir o limite vivo, não acumula uma rajada para depois.
+      if (this.hordeScheduled < targetScheduled) {
+        this.hordeScheduled += 1;
+        if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
+      }
     }
     this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.repairCartWithWood();
     if (this.state.classId === 'druida') {
@@ -480,6 +484,7 @@ export class GameEngine {
     this.nightNumber = 0;
     this.hordeTarget = 0;
     this.hordeSpawned = 0;
+    this.hordeScheduled = 0;
     const phase = this.getDayNightState();
     this.state.dayNight = phase.isNight ? 'night' : 'day';
     this.state.phaseElapsed = phase.phaseElapsed;
@@ -504,10 +509,11 @@ export class GameEngine {
     this.state.wave = this.nightNumber;
     this.hordeTarget = CONFIG.dayNight.firstNightSpawnCount + (this.nightNumber - 1) * CONFIG.dayNight.addedPerNight;
     this.hordeSpawned = 0;
+    this.hordeScheduled = 0;
   }
 
   private spawnHordeEnemy() {
-    if (this.hordeSpawned >= this.hordeTarget || this.state.enemies.length >= CONFIG.dayNight.maxAlive) return;
+    if (this.state.enemies.length >= CONFIG.dayNight.maxAlive) return;
     this.hordeSpawned += 1;
     const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
     let x = offset, y = offset;
