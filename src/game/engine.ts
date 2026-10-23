@@ -366,7 +366,7 @@ export class GameEngine {
     const candidateFootprint = this.treeFootprintRadius(candidate);
     const houseDistance = Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y);
     if (allowNearHouse) {
-      if (houseDistance < candidateFootprint + 38 || houseDistance > CONFIG.trees.rareHouseRadius) return false;
+      if (houseDistance < candidateFootprint + 38) return false;
     } else if (houseDistance < CONFIG.house.treeClearRadius + candidateFootprint) {
       return false;
     }
