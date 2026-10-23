@@ -1,8 +1,9 @@
-import { useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { CLASSES, type ClassId } from '../game/config';
 import type { InventoryStack } from '../game/inventory';
 
 type Props = {
+  flagMenuOpen: boolean;
   onMove: (x: number, y: number) => void;
   onRange: () => void;
   onZoom: (delta: number) => void;
@@ -15,10 +16,11 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
+export default function Controls({ flagMenuOpen, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => { if (flagMenuOpen) setMenuOpen(false); }, [flagMenuOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
