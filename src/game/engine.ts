@@ -97,21 +97,27 @@ export class GameEngine {
     // Publica classe, arma e habilidades juntas como um único estado coerente.
     this.emit();
   }
-  deliverWoodFromBagSlot(index: number) {
+  private deliverWoodToHouseUnderConstruction() {
     const house = this.state.house;
-    const slot = this.state.inventory[index];
-    if (this.state.dead || house.built || Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
-    if (!slot || slot.itemId !== 'wood' || slot.quantity <= 0) return;
-    const amount = Math.min(slot.quantity, CONFIG.house.buildCost - house.woodDelivered);
+    if (house.built || Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
+    const remaining = CONFIG.house.buildCost - house.woodDelivered;
+    if (remaining <= 0) return;
+    const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
+    const amount = Math.min(remaining, carriedWood);
     if (amount <= 0) return;
-    slot.quantity -= amount;
-    this.state.inventory = this.state.inventory.filter(stack => stack.quantity > 0);
+    let toRemove = amount;
+    this.state.inventory = this.state.inventory.flatMap(stack => {
+      if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
+      const used = Math.min(stack.quantity, toRemove);
+      toRemove -= used;
+      const left = stack.quantity - used;
+      return left > 0 ? [{ ...stack, quantity: left }] : [];
+    });
     house.woodDelivered += amount;
     if (house.woodDelivered >= CONFIG.house.buildCost) {
       house.woodDelivered = CONFIG.house.buildCost;
       house.built = true;
     }
-    this.emit();
   }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
@@ -175,7 +181,7 @@ export class GameEngine {
       const targetSpawned = Math.min(this.hordeTarget, Math.floor(cycleElapsed / (CONFIG.waves.hordaDuration / this.hordeTarget)) + 1);
       while (this.hordeSpawned < targetSpawned) this.spawnHordeEnemy();
     }
-    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood();
+    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
