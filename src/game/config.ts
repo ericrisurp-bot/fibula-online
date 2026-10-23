@@ -17,6 +17,15 @@ export const CONFIG = {
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, cycle: 60, hordaDuration: 12, maxAlive: 150 },
   trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
+  flags: {
+    placeRadius: 300,
+    colors: [
+      { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
+      { id: 'green', label: 'Verde', color: '#43c66e' },
+      { id: 'red', label: 'Vermelha', color: '#ef5350' },
+      { id: 'blue', label: 'Azul', color: '#42a5f5' },
+    ],
+  },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, kind: 'melee' as const, projectileSpeed: 0 },
