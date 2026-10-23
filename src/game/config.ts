@@ -29,6 +29,19 @@ export const CONFIG = {
     ],
   },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
+  attributes: {
+    baseValue: 100,
+    gainPerLevel: 1,
+    // Multiplicadores editáveis por classe; neste PR todos permanecem em 1.
+    classMultipliers: {
+      guerreiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      mago: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      arqueiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      druida: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+    },
+    // Coeficientes reproduzem os ganhos atuais por nível quando o multiplicador é 1.
+    effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 5, velocidadeAtaque: 0.045, esquiva: 0.008 },
+  },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, maxTargets: 4, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
@@ -47,4 +60,3 @@ export const CLASSES = {
 } as const;
 
 export type ClassId = keyof typeof CLASSES;
-export const LEVEL_GROWTH = { health: 8, armor: 0.4, speed: 5, attackSpeed: 0.045, dodge: 0.008 };
