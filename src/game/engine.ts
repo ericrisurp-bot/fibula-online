@@ -17,7 +17,7 @@ export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   house: Vec & { woodDelivered: number; built: boolean };
   cart: CartState;
-  enemies: Enemy[]; trees: Tree[]; woodDrops: WoodDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number;
+  enemies: Enemy[]; trees: Tree[]; woodDrops: WoodDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
@@ -28,9 +28,11 @@ export class GameEngine {
   private keys = new Set<string>();
   private input: InputState = { x: 0, y: 0 };
   private nextId = 1;
-  private hordeCycle = 0;
   private hordeTarget = 0;
   private hordeSpawned = 0;
+  private startAtNight = false;
+  private wasNight = false;
+  private nightNumber = 0;
   private treeSpawnCountdown = 0;
   private attackTimer = 0;
   private elapsed = 0;
@@ -43,7 +45,7 @@ export class GameEngine {
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
-    this.startHorde(); // A primeira horda começa em t=0.
+    this.initializeDayNight();
     this.placeHouse();
     this.placeCart();
     this.spawnInitialTrees();
@@ -55,7 +57,7 @@ export class GameEngine {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-      enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
+      enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -244,9 +246,9 @@ export class GameEngine {
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
-    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeCycle = 0; this.hordeTarget = 0; this.hordeSpawned = 0; this.treeSpawnCountdown = 0; this.attackTimer = 0;
+    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.startHorde(); this.placeHouse(); this.placeCart(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
@@ -255,7 +257,7 @@ export class GameEngine {
     const s = this.state;
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
-      s.player.xp, s.player.nextXp, s.wave, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.woodDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.woodDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
       s.house.woodDelivered, s.house.built, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
@@ -300,16 +302,18 @@ export class GameEngine {
     this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
     this.updateCart(dt);
 
-    const cycle = Math.floor(this.elapsed / CONFIG.waves.cycle);
-    if (cycle > this.hordeCycle) {
-      this.hordeCycle = cycle;
-      this.state.wave = cycle + 1;
-      this.startHorde();
-    }
-    const cycleElapsed = this.elapsed % CONFIG.waves.cycle;
-    if (cycleElapsed < CONFIG.waves.hordaDuration) {
-      const targetSpawned = Math.min(this.hordeTarget, Math.floor(cycleElapsed / (CONFIG.waves.hordaDuration / this.hordeTarget)) + 1);
-      while (this.hordeSpawned < targetSpawned) this.spawnHordeEnemy();
+    const dayNight = this.getDayNightState();
+    this.state.dayNight = dayNight.isNight ? 'night' : 'day';
+    this.state.phaseElapsed = dayNight.phaseElapsed;
+    this.state.nightNumber = this.nightNumber;
+    if (dayNight.isNight && !this.wasNight) this.beginNight();
+    this.wasNight = dayNight.isNight;
+    if (dayNight.isNight && this.hordeTarget > 0) {
+      const progress = Math.min(1, dayNight.phaseElapsed / CONFIG.dayNight.dayDuration);
+      // A curva desacelera perto do amanhecer sem despejar toda a horda de uma vez.
+      const easedProgress = 1 - Math.pow(1 - progress, 2);
+      const targetSpawned = Math.min(this.hordeTarget, Math.floor(this.hordeTarget * easedProgress));
+      while (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
     }
     this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.repairCartWithWood();
     if (this.state.classId === 'druida') {
@@ -469,20 +473,41 @@ export class GameEngine {
     }
   }
 
-  private startHorde() {
-    let count = CONFIG.waves.firstCount;
-    for (let wave = 2; wave <= this.state.wave; wave++) {
-      count += CONFIG.waves.addedPerWave + Math.floor((wave - 1) / CONFIG.waves.increaseEveryWaves) * CONFIG.waves.addedIncrease;
-    }
-    this.hordeTarget = count;
+  private initializeDayNight() {
+    this.startAtNight = Math.random() < 0.5;
+    this.wasNight = false;
+    this.nightNumber = 0;
+    this.hordeTarget = 0;
     this.hordeSpawned = 0;
-    this.spawnHordeEnemy();
+    const phase = this.getDayNightState();
+    this.state.dayNight = phase.isNight ? 'night' : 'day';
+    this.state.phaseElapsed = phase.phaseElapsed;
+    this.state.nightNumber = 0;
+    if (phase.isNight) this.beginNight();
+    this.wasNight = phase.isNight;
+  }
+
+  getDayNightState() {
+    const phaseElapsedTotal = (this.elapsed + (this.startAtNight ? 0 : CONFIG.dayNight.dayDuration)) % CONFIG.dayNight.cycle;
+    const isNight = phaseElapsedTotal < CONFIG.dayNight.dayDuration;
+    const phaseElapsed = isNight ? phaseElapsedTotal : phaseElapsedTotal - CONFIG.dayNight.dayDuration;
+    const vulnerability = !isNight && phaseElapsed < CONFIG.dayNight.dawnWeaknessDuration
+      ? Math.min(0.5, (Math.floor(phaseElapsed) + 1) * CONFIG.dayNight.dawnVulnerabilityPerSecond)
+      : 0;
+    return { isNight, phaseElapsed, vulnerability };
+  }
+
+  private beginNight() {
+    this.nightNumber += 1;
+    this.state.nightNumber = this.nightNumber;
+    this.state.wave = this.nightNumber;
+    this.hordeTarget = CONFIG.dayNight.firstNightSpawnCount + (this.nightNumber - 1) * CONFIG.dayNight.addedPerNight;
+    this.hordeSpawned = 0;
   }
 
   private spawnHordeEnemy() {
-    if (this.hordeSpawned >= this.hordeTarget) return;
+    if (this.hordeSpawned >= this.hordeTarget || this.state.enemies.length >= CONFIG.dayNight.maxAlive) return;
     this.hordeSpawned += 1;
-    if (this.state.enemies.length >= CONFIG.waves.maxAlive) return;
     const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
     let x = offset, y = offset;
     if (edge === 0) { x = CONFIG.map.wall + 24; y = offset; }
@@ -682,7 +707,8 @@ export class GameEngine {
         return distance <= weapon.range && difference <= arc / 2;
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
       for (const enemy of hits) {
-        const damage = weapon.damage + this.state.player.level * 0.3;
+        const vulnerability = this.getDayNightState().vulnerability;
+        const damage = (weapon.damage + this.state.player.level * 0.3) * (1 + vulnerability);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         if (this.state.classId === 'druida') this.druidRegenTimer = 3;
@@ -699,8 +725,9 @@ export class GameEngine {
       shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt;
       const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6);
       if (target) {
-        target.hp -= shot.damage;
-        this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, shot.damage, '#ffffff');
+        const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
+        target.hp -= effectiveDamage;
+        this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
         if (this.state.classId === 'druida') this.druidRegenTimer = 3;
         this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         if (target.hp <= 0) this.killEnemy(target.id);
