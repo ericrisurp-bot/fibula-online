@@ -158,14 +158,18 @@ export default function App() {
         ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.restore();
       }
-      if (s.dayNight === 'night') {
-        // Névoa noturna suave: o centro permanece legível e o cenário distante escurece gradualmente.
+      const transition = CONFIG.dayNight.transitionDuration;
+      const darkness = s.dayNight === 'night'
+        ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
+        : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
+      if (darkness > 0.01) {
+        // A noite fica bem mais escura; a iluminação muda gradualmente nos últimos 5s de cada fase.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
         const fog = ctx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
-        fog.addColorStop(0, 'rgba(5, 8, 18, 0.025)');
-        fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.14)');
-        fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.25)');
-        fog.addColorStop(1, `rgba(5, 8, 18, ${CONFIG.dayNight.nightOverlayStrength})`);
+        fog.addColorStop(0, `rgba(5, 8, 18, ${0.24 * darkness})`);
+        fog.addColorStop(0.45, `rgba(5, 8, 18, ${0.5 * darkness})`);
+        fog.addColorStop(0.78, `rgba(5, 8, 18, ${0.75 * darkness})`);
+        fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength) * darkness})`);
         ctx.fillStyle = fog;
         ctx.fillRect(0, 0, engine.world, engine.world);
       }
