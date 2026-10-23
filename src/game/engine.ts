@@ -1,4 +1,5 @@
-import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
+import { CONFIG, type ClassId, type WeaponId } from './config';
+import { getAttributeEffectPerLevel } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
@@ -560,9 +561,12 @@ export class GameEngine {
     }
     while (p.xp >= p.nextXp) {
       p.xp -= p.nextXp; p.level += 1; p.nextXp = CONFIG.xp.levelBase + p.level * CONFIG.xp.levelGrowth;
-      p.maxHp += LEVEL_GROWTH.health; p.hp = Math.min(p.maxHp, p.hp + LEVEL_GROWTH.health);
-      this.levelStats.armor += LEVEL_GROWTH.armor; this.levelStats.speed += LEVEL_GROWTH.speed;
-      this.levelStats.attackSpeed += LEVEL_GROWTH.attackSpeed; this.levelStats.dodge += LEVEL_GROWTH.dodge;
+      const healthGain = getAttributeEffectPerLevel(this.state.classId, p.level, 'vida');
+      p.maxHp += healthGain; p.hp = Math.min(p.maxHp, p.hp + healthGain);
+      this.levelStats.armor += getAttributeEffectPerLevel(this.state.classId, p.level, 'armadura');
+      this.levelStats.speed += getAttributeEffectPerLevel(this.state.classId, p.level, 'velocidadeMovimento');
+      this.levelStats.attackSpeed += getAttributeEffectPerLevel(this.state.classId, p.level, 'velocidadeAtaque');
+      this.levelStats.dodge += getAttributeEffectPerLevel(this.state.classId, p.level, 'esquiva');
     }
   }
   private clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
