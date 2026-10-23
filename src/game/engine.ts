@@ -159,7 +159,7 @@ export class GameEngine {
     this.emit();
   }
   isCartAccessible() {
-    return this.state.cart.repaired && Math.hypot(this.state.player.x - this.state.cart.x, this.state.player.y - this.state.cart.y) <= CONFIG.cart.interactRadius;
+    return this.state.cart.repaired && (this.state.cart.carried || Math.hypot(this.state.player.x - this.state.cart.x, this.state.player.y - this.state.cart.y) <= CONFIG.cart.interactRadius);
   }
   private repairCartWithWood() {
     const cart = this.state.cart;
