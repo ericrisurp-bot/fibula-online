@@ -141,6 +141,8 @@ async function simulate(GameEngine, classId, seed) {
     const engine = new GameEngine(() => {});
     engine.setClass(classId);
     engine.start();
+    // Alinha o relógio virtual ao timestamp usado pelo start() no motor.
+    frameNow = performance.now();
 
     while (queue.length && !engine.state.dead && engine.state.elapsed < MAX_SECONDS) {
       botMove(engine, classId, seed, frame);
