@@ -6,19 +6,24 @@ type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
+type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
 type WoodDrop = Vec & { id: number; amount: number };
+type StoneDrop = Vec & { id: number };
+type BronzeDrop = Vec & { id: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number };
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = Vec & { angle: number; repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
+type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   house: Vec & { woodDelivered: number; built: boolean; inventory: InventoryStack[] };
+  refinery: RefineryState;
   cart: CartState;
-  enemies: Enemy[]; trees: Tree[]; woodDrops: WoodDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
-  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 
@@ -35,6 +40,8 @@ export class GameEngine {
   private wasNight = false;
   private nightNumber = 0;
   private treeSpawnCountdown = 0;
+  private rockSpawnCountdown = 0;
+  private nextRockClusterId = 1;
   private attackTimer = 0;
   private elapsed = 0;
   private lastTime = 0;
@@ -43,22 +50,27 @@ export class GameEngine {
   private enemyDamageTimer = 0;
   private druidRegenTimer = 0;
   private druidOrbHealTimer = 0;
+  private refineryProcessTimer = 0;
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
     this.initializeDayNight();
     this.placeHouse();
     this.placeCart();
+    this.placeRefinery();
     this.spawnInitialTrees();
     this.treeSpawnCountdown = this.treeSpawnDuration();
+    this.spawnInitialRocks();
+    this.rockSpawnCountdown = this.rockSpawnDuration();
   }
 
   private freshState(): GameSnapshot {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
+      refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-      enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
+      enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -150,6 +162,111 @@ export class GameEngine {
       house.built = true;
     }
   }
+  private deliverMaterialsToRefinery() {
+    const refinery = this.state.refinery;
+    if (refinery.built) return;
+    const playerNear = Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    if (!playerNear && !cartNear) return;
+    const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
+      let toRemove = requested, consumed = 0;
+      const nextInventory = inventory.flatMap(stack => {
+        if (stack.itemId !== itemId || toRemove <= 0) return [stack];
+        const used = Math.min(stack.quantity, toRemove);
+        toRemove -= used; consumed += used;
+        const left = stack.quantity - used;
+        return left > 0 ? [{ ...stack, quantity: left }] : [];
+      });
+      return { inventory: nextInventory, consumed };
+    };
+    if (playerNear) {
+      const woodLeft = CONFIG.refinery.buildCostWood - refinery.woodDelivered;
+      const stoneLeft = CONFIG.refinery.buildCostStone - refinery.stoneDelivered;
+      if (woodLeft > 0) {
+        const result = consume(this.state.inventory, 'wood', woodLeft);
+        this.state.inventory = result.inventory; refinery.woodDelivered += result.consumed;
+      }
+      if (stoneLeft > 0) {
+        const result = consume(this.state.inventory, 'stone', stoneLeft);
+        this.state.inventory = result.inventory; refinery.stoneDelivered += result.consumed;
+      }
+    }
+    if (cartCanDeliver) {
+      const woodLeft = CONFIG.refinery.buildCostWood - refinery.woodDelivered;
+      const stoneLeft = CONFIG.refinery.buildCostStone - refinery.stoneDelivered;
+      if (woodLeft > 0) {
+        const result = consume(this.state.cart.inventory, 'wood', woodLeft);
+        this.state.cart.inventory = result.inventory; refinery.woodDelivered += result.consumed;
+      }
+      if (stoneLeft > 0) {
+        const result = consume(this.state.cart.inventory, 'stone', stoneLeft);
+        this.state.cart.inventory = result.inventory; refinery.stoneDelivered += result.consumed;
+      }
+    }
+    if (refinery.woodDelivered >= CONFIG.refinery.buildCostWood && refinery.stoneDelivered >= CONFIG.refinery.buildCostStone) {
+      refinery.woodDelivered = CONFIG.refinery.buildCostWood;
+      refinery.stoneDelivered = CONFIG.refinery.buildCostStone;
+      refinery.built = true;
+    }
+  }
+
+  private deliverStonesToRefinery() {
+    const refinery = this.state.refinery;
+    if (!refinery.built || refinery.stoneStock >= CONFIG.refinery.stoneCapacity) return;
+    const playerNear = Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const transferStones = (inventory: InventoryStack[]) => {
+      const room = CONFIG.refinery.stoneCapacity - refinery.stoneStock;
+      let toRemove = room;
+      let transferred = 0;
+      const nextInventory = inventory.flatMap(stack => {
+        if (stack.itemId !== 'stone' || toRemove <= 0) return [stack];
+        const used = Math.min(stack.quantity, toRemove);
+        toRemove -= used;
+        transferred += used;
+        const left = stack.quantity - used;
+        return left > 0 ? [{ ...stack, quantity: left }] : [];
+      });
+      refinery.stoneStock += transferred;
+      return nextInventory;
+    };
+    if (playerNear && refinery.stoneStock < CONFIG.refinery.stoneCapacity) this.state.inventory = transferStones(this.state.inventory);
+    if (cartCanDeliver && refinery.stoneStock < CONFIG.refinery.stoneCapacity) this.state.cart.inventory = transferStones(this.state.cart.inventory);
+  }
+
+  private processRefinery(dt: number) {
+    const refinery = this.state.refinery;
+    if (!refinery.built || refinery.stoneStock <= 0) {
+      this.refineryProcessTimer = 0;
+      return;
+    }
+
+    this.refineryProcessTimer += dt;
+    if (this.refineryProcessTimer < CONFIG.refinery.processInterval) return;
+    this.refineryProcessTimer -= CONFIG.refinery.processInterval;
+    refinery.stoneStock -= 1;
+    refinery.stonesProcessed += 1;
+    if (Math.random() < CONFIG.refinery.bronzeChance) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 42 + Math.random() * 12;
+      this.state.bronzeDrops.push({ id: this.nextId++, x: refinery.x + Math.cos(angle) * distance, y: refinery.y + Math.sin(angle) * distance });
+      refinery.bronzeProduced += 1;
+    }
+    if (refinery.stoneStock <= 0) this.refineryProcessTimer = 0;
+  }
+
+  private collectBronze() {
+    for (const drop of [...this.state.bronzeDrops]) {
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const result = addToInventory(this.state.inventory, 'bronze', 1, CONFIG.inventory);
+      if (result.added === 0) continue;
+      this.state.inventory = result.inventory;
+      this.state.bronzeDrops = this.state.bronzeDrops.filter(value => value.id !== drop.id);
+    }
+  }
+
   private autoStoreItemsAtHouse() {
     const house = this.state.house;
     if (!house.built) return;
@@ -202,6 +319,12 @@ export class GameEngine {
     }
     cart.inventory = cartInventory;
     this.state.inventory = remainingInventory;
+  }
+  discardBagItem(index: number) {
+    if (this.state.dead) return;
+    if (!this.state.inventory[index]) return;
+    this.state.inventory = this.state.inventory.filter((_, itemIndex) => itemIndex !== index);
+    this.emit();
   }
   transferBagToCart(index: number) {
     if (!this.isCartAccessible()) return;
@@ -285,19 +408,19 @@ export class GameEngine {
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
-    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.attackTimer = 0;
-    this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
+    this.stop(); this.state = this.freshState(); this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
+    this.elapsed = 0; this.refineryProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
+    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
     const s = this.state;
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
-      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.woodDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.woodDrops.length, s.stoneDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
+      s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -366,7 +489,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
+    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -381,6 +504,22 @@ export class GameEngine {
       if (this.state.healingOrbs.length > 0) this.state.healingOrbs = [];
     }
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
+  }
+
+  private placeRefinery() {
+    const margin = CONFIG.map.wall + CONFIG.refinery.wallMargin;
+    for (let attempt = 0; attempt < 1200; attempt++) {
+      const x = margin + Math.random() * (this.world - margin * 2);
+      const y = margin + Math.random() * (this.world - margin * 2);
+      if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.refinery.playerClearRadius) continue;
+      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.refinery.treeClearRadius + 80) continue;
+      if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 120) continue;
+      if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < CONFIG.refinery.treeClearRadius + this.treeFootprintRadius(tree))) continue;
+      if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < CONFIG.refinery.rockClearRadius + this.rockFootprintRadius(rock))) continue;
+      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
+      return;
+    }
+    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
   }
 
   private placeHouse() {
@@ -420,6 +559,7 @@ export class GameEngine {
     const candidate = { x, y, size } as Tree;
     const candidateBase = this.treeBase(candidate);
     const candidateFootprint = this.treeFootprintRadius(candidate);
+    if (this.state.rocks.some(rock => Math.hypot(candidateBase.x - rock.x, candidateBase.y - rock.y) < candidateFootprint + this.rockFootprintRadius(rock))) return false;
     const houseDistance = Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y);
     if (allowNearHouse) {
       if (houseDistance < candidateFootprint + 38) return false;
@@ -427,6 +567,7 @@ export class GameEngine {
       return false;
     }
     if (Math.hypot(candidateBase.x - this.state.cart.x, candidateBase.y - this.state.cart.y) < candidateFootprint + 38) return false;
+    if (Math.hypot(candidateBase.x - this.state.refinery.x, candidateBase.y - this.state.refinery.y) < CONFIG.refinery.treeClearRadius + candidateFootprint) return false;
     return this.state.trees.every(tree => {
       const base = this.treeBase(tree);
       return Math.hypot(candidateBase.x - base.x, candidateBase.y - base.y) >= Math.max(minSpacing, candidateFootprint + this.treeFootprintRadius(tree));
@@ -501,6 +642,140 @@ export class GameEngine {
     if (!position) return false;
     this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
     return true;
+  }
+
+  private rockSpawnDuration() {
+    return Math.max(CONFIG.rocks.spawnMin, CONFIG.rocks.spawnBase - CONFIG.rocks.spawnReductionPerRock * this.state.rocks.length);
+  }
+
+  private spawnInitialRocks() {
+    for (let i = 0; i < CONFIG.rocks.startCount; i++) this.spawnRock();
+  }
+
+  private updateRockSpawner(dt: number) {
+    this.rockSpawnCountdown -= dt;
+    if (this.rockSpawnCountdown > 0) return;
+    if (this.state.rocks.length < CONFIG.rocks.max) this.spawnRock();
+    this.rockSpawnCountdown = this.rockSpawnDuration();
+  }
+
+  private rockFootprintRadius(rock: Rock) {
+    return rock.size === 'small' ? 16 : rock.size === 'medium' ? 23 : 31;
+  }
+
+  private validRockPosition(x: number, y: number, size: Rock['size'], allowNearRefinery = false) {
+    const margin = CONFIG.map.wall + 80;
+    if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
+    if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.rocks.noSpawnRadius) return false;
+    const radius = size === 'small' ? 16 : size === 'medium' ? 23 : 31;
+    if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + radius) return false;
+    const refineryDistance = Math.hypot(x - this.state.refinery.x, y - this.state.refinery.y);
+    if (!allowNearRefinery && refineryDistance < CONFIG.refinery.rockClearRadius + radius) return false;
+    if (allowNearRefinery && refineryDistance < radius + 45) return false;
+    if (allowNearRefinery && refineryDistance > CONFIG.refinery.rareRockSpawnRadius) return false;
+    if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < radius + 38) return false;
+    if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < radius + this.treeFootprintRadius(tree))) return false;
+    if (this.state.rocks.filter(rock => Math.hypot(x - rock.x, y - rock.y) <= CONFIG.rocks.attractionRadius).length >= CONFIG.rocks.attractionMaxNearby) return false;
+    return this.state.rocks.every(rock => Math.hypot(x - rock.x, y - rock.y) >= radius + this.rockFootprintRadius(rock) + 24);
+  }
+
+  private spawnRock() {
+    if (this.state.rocks.length >= CONFIG.rocks.max) return false;
+    const roll = Math.random();
+    const size: Rock['size'] = roll < CONFIG.rocks.sizeWeights.small
+      ? 'small'
+      : roll < CONFIG.rocks.sizeWeights.small + CONFIG.rocks.sizeWeights.medium ? 'medium' : 'large';
+    const margin = CONFIG.map.wall + 80;
+    let position: Vec | null = null;
+    let clusterId: number | null = null;
+
+    // Nascimento perto da refinaria é raro e independente de qualquer atração.
+    if (Math.random() < CONFIG.refinery.rareRockSpawnChance) {
+      for (let attempt = 0; attempt < 120 && !position; attempt++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 45 + Math.random() * Math.max(1, CONFIG.refinery.rareRockSpawnRadius - 45);
+        const x = this.state.refinery.x + Math.cos(angle) * distance;
+        const y = this.state.refinery.y + Math.sin(angle) * distance;
+        if (this.validRockPosition(x, y, size, true)) position = { x, y };
+      }
+    }
+
+    // A densidade de pedras continua sendo a única atração de agrupamento.
+    if (!position && this.state.rocks.length > 0) {
+      const anchors = this.state.rocks.map(rock => ({
+        rock,
+        count: this.state.rocks.filter(other => other.clusterId === rock.clusterId).length,
+      })).filter(item => item.count < CONFIG.rocks.attractionMaxNearby);
+      if (anchors.length > 0) {
+        const weighted = anchors.map(item => ({ ...item, weight: 1 + item.count * item.count }));
+        const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+        let ticket = Math.random() * totalWeight;
+        let selected = weighted[weighted.length - 1];
+        for (const item of weighted) {
+          ticket -= item.weight;
+          if (ticket <= 0) { selected = item; break; }
+        }
+        const count = Math.max(1, selected.count);
+        const attractionChance = Math.min(CONFIG.rocks.attractionMaxChance, 0.1 + count * 0.05);
+        if (Math.random() < attractionChance) {
+          for (let attempt = 0; attempt < 160 && !position; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 90 + Math.random() * 80;
+            const x = selected.rock.x + Math.cos(angle) * distance;
+            const y = selected.rock.y + Math.sin(angle) * distance;
+            if (this.validRockPosition(x, y, size)) {
+              position = { x, y };
+              clusterId = selected.rock.clusterId;
+            }
+          }
+        }
+      }
+    }
+
+    // Fora dos agrupamentos, a região nordeste tem prioridade, sem bloquear o resto do mapa.
+    for (let attempt = 0; attempt < 500 && !position; attempt++) {
+      const northEast = Math.random() < CONFIG.rocks.northEastSpawnChance;
+      const x = northEast
+        ? margin + CONFIG.rocks.northEastMinX * (this.world - margin * 2)
+          + Math.random() * (this.world - margin * 2) * (1 - CONFIG.rocks.northEastMinX)
+        : margin + Math.random() * (this.world - margin * 2);
+      const y = northEast
+        ? margin + Math.random() * (this.world - margin * 2) * CONFIG.rocks.northEastMaxY
+        : margin + Math.random() * (this.world - margin * 2);
+      if (!this.validRockPosition(x, y, size)) continue;
+      position = { x, y };
+    }
+    if (!position) return false;
+    if (clusterId === null) clusterId = this.nextRockClusterId++;
+    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, clusterId });
+    return true;
+  }
+
+  private isPlayerAtRock(rock: Rock) {
+    return Math.hypot(rock.x - this.state.player.x, rock.y - this.state.player.y)
+      <= CONFIG.rocks.mineRange + this.rockFootprintRadius(rock);
+  }
+
+  private hitRock(id: number) {
+    const rock = this.state.rocks.find(value => value.id === id);
+    if (!rock) return;
+    rock.hits -= 1;
+    if (Math.random() < CONFIG.rocks.dropChance) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = this.rockFootprintRadius(rock) + 5;
+      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance });
+    }
+    if (rock.hits <= 0) this.state.rocks = this.state.rocks.filter(value => value.id !== id);
+  }
+
+  private collectStone() {
+    for (const drop of [...this.state.stoneDrops]) {
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const result = addToInventory(this.state.inventory, 'stone', 1, CONFIG.inventory);
+      if (result.added === 0) continue;
+      this.state.inventory = result.inventory;
+      this.state.stoneDrops = this.state.stoneDrops.filter(value => value.id !== drop.id);
+    }
   }
 
   private cutTree(id: number) {
@@ -636,7 +911,10 @@ export class GameEngine {
       }
     }
     this.separateEnemies();
-    for (const enemy of this.state.enemies) this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
+    for (const enemy of this.state.enemies) {
+      this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
+      this.resolveRockBoxCollisions(enemy);
+    }
   }
 
   private treeScale(tree: Tree) {
@@ -656,9 +934,26 @@ export class GameEngine {
       ...this.treeBase(tree),
       radius: 8 * this.treeScale(tree),
     }));
+    circles.push(...this.state.rocks.map(rock => ({ x: rock.x, y: rock.y, radius: this.rockFootprintRadius(rock) })));
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
+    circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: 30 });
     return circles;
+  }
+
+  private resolveRockBoxCollisions(enemy: Enemy) {
+    for (const rock of this.state.rocks) {
+      const half = this.rockFootprintRadius(rock);
+      const halfX = half + CONFIG.enemy.radius;
+      const halfY = half + CONFIG.enemy.radius;
+      const dx = enemy.x - rock.x;
+      const dy = enemy.y - rock.y;
+      if (Math.abs(dx) >= halfX || Math.abs(dy) >= halfY) continue;
+      const pushX = halfX - Math.abs(dx);
+      const pushY = halfY - Math.abs(dy);
+      if (pushX < pushY) enemy.x = this.clamp(rock.x + (dx < 0 ? -halfX : halfX), CONFIG.map.wall + CONFIG.enemy.radius, this.world - CONFIG.map.wall - CONFIG.enemy.radius);
+      else enemy.y = this.clamp(rock.y + (dy < 0 ? -halfY : halfY), CONFIG.map.wall + CONFIG.enemy.radius, this.world - CONFIG.map.wall - CONFIG.enemy.radius);
+    }
   }
 
   private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false) {
@@ -755,13 +1050,23 @@ export class GameEngine {
         .filter(tree => this.isPlayerAtTreeShadow(tree))
         .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
         .sort((a, b) => a.d - b.d)[0];
-      if (!treeTarget) return;
+      const rockTarget = this.state.rocks
+        .filter(rock => this.isPlayerAtRock(rock))
+        .map(rock => ({ rock, d: Math.hypot(rock.x - p.x, rock.y - p.y) }))
+        .sort((a, b) => a.d - b.d)[0];
+      if (!treeTarget && !rockTarget) return;
       this.attackTimer = 0;
-      const treeBase = this.treeBase(treeTarget.tree);
-      this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
-      this.state.treeChopTimer = 0.2;
-      treeTarget.tree.hits -= 1;
-      if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
+      if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d)) {
+        const treeBase = this.treeBase(treeTarget.tree);
+        this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
+        this.state.treeChopTimer = 0.2;
+        treeTarget.tree.hits -= 1;
+        if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
+      } else if (rockTarget) {
+        this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
+        this.state.rockMineTimer = 0.22;
+        this.hitRock(rockTarget.rock.id);
+      }
       return;
     }
     this.attackTimer = 0;
