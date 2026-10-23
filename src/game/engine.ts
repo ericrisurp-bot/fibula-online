@@ -10,9 +10,11 @@ type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number };
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
+type CartState = Vec & { repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   house: Vec & { woodDelivered: number; built: boolean };
+  cart: CartState;
   enemies: Enemy[]; trees: Tree[]; woodDrops: WoodDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
@@ -42,6 +44,7 @@ export class GameEngine {
     this.startHorde(); // A primeira horda começa em t=0.
     this.spawnInitialTrees();
     this.placeHouse();
+    this.placeCart();
     this.treeSpawnCountdown = this.treeSpawnDuration();
   }
 
@@ -49,6 +52,7 @@ export class GameEngine {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false },
+      cart: { x: this.world * 0.75, y: this.world * 0.25, repairWood: 0, repaired: false, carried: false, inventory: [] },
       enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -119,14 +123,102 @@ export class GameEngine {
       house.built = true;
     }
   }
+  toggleCart() {
+    if (this.state.dead || !this.state.cart.repaired) return;
+    const cart = this.state.cart;
+    if (cart.carried) {
+      cart.carried = false;
+      cart.x = this.clamp(this.state.player.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+      cart.y = this.clamp(this.state.player.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+    } else if (Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) <= CONFIG.cart.interactRadius) {
+      cart.carried = true;
+      this.updateCart(0);
+    } else return;
+    this.emit();
+  }
+  transferBagToCart(index: number) {
+    if (!this.isCartAccessible()) return;
+    const stack = this.state.inventory[index];
+    if (!stack) return;
+    const result = addToInventory(this.state.cart.inventory, stack.itemId, stack.quantity, { maxSlots: CONFIG.cart.capacitySlots, maxPerSlot: CONFIG.cart.maxPerSlot });
+    if (result.added <= 0) return;
+    this.state.cart.inventory = result.inventory;
+    const remaining = stack.quantity - result.added;
+    this.state.inventory = this.state.inventory.flatMap((item, itemIndex) => itemIndex !== index ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
+    this.emit();
+  }
+  transferCartToBag(index: number) {
+    if (!this.isCartAccessible()) return;
+    const stack = this.state.cart.inventory[index];
+    if (!stack) return;
+    const result = addToInventory(this.state.inventory, stack.itemId, stack.quantity, CONFIG.inventory);
+    if (result.added <= 0) return;
+    this.state.inventory = result.inventory;
+    const remaining = stack.quantity - result.added;
+    this.state.cart.inventory = this.state.cart.inventory.flatMap((item, itemIndex) => itemIndex !== index ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
+    this.emit();
+  }
+  isCartAccessible() {
+    return this.state.cart.repaired && Math.hypot(this.state.player.x - this.state.cart.x, this.state.player.y - this.state.cart.y) <= CONFIG.cart.interactRadius;
+  }
+  private repairCartWithWood() {
+    const cart = this.state.cart;
+    if (cart.repaired || Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) > CONFIG.cart.interactRadius) return;
+    const remaining = CONFIG.cart.repairCost - cart.repairWood;
+    const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
+    const amount = Math.min(remaining, carriedWood);
+    if (amount <= 0) return;
+    let toRemove = amount;
+    this.state.inventory = this.state.inventory.flatMap(stack => {
+      if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
+      const used = Math.min(stack.quantity, toRemove);
+      toRemove -= used;
+      const left = stack.quantity - used;
+      return left > 0 ? [{ ...stack, quantity: left }] : [];
+    });
+    cart.repairWood += amount;
+    if (cart.repairWood >= CONFIG.cart.repairCost) {
+      cart.repairWood = CONFIG.cart.repairCost;
+      cart.repaired = true;
+    }
+  }
+  private updateCart(dt: number) {
+    const cart = this.state.cart;
+    if (!cart.carried) return;
+    const p = this.state.player;
+    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
+    const targetX = this.clamp(p.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
+    const targetY = this.clamp(p.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
+    const dx = targetX - cart.x;
+    const dy = targetY - cart.y;
+    const distance = Math.hypot(dx, dy);
+    const step = Math.min(distance, CONFIG.cart.followSpeed * dt);
+    if (distance > 0) {
+      cart.x = this.clamp(cart.x + dx / distance * step, margin, this.world - margin);
+      cart.y = this.clamp(cart.y + dy / distance * step, margin, this.world - margin);
+    }
+  }
+  private placeCart() {
+    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
+    for (let attempt = 0; attempt < 1200; attempt++) {
+      const x = margin + Math.random() * (this.world - margin * 2);
+      const y = margin + Math.random() * (this.world - margin * 2);
+      if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
+      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius) continue;
+      if (this.state.trees.some(tree => Math.hypot(x - tree.x, y - tree.y) < CONFIG.house.treeClearRadius)) continue;
+      this.state.cart = { x, y, repairWood: 0, repaired: false, carried: false, inventory: [] };
+      return;
+    }
+    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, repairWood: 0, repaired: false, carried: false, inventory: [] };
+  }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeCycle = 0; this.hordeTarget = 0; this.hordeSpawned = 0; this.treeSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.startHorde(); this.spawnInitialTrees(); this.placeHouse(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.startHorde(); this.spawnInitialTrees(); this.placeHouse(); this.placeCart(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -134,7 +226,7 @@ export class GameEngine {
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.woodDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      s.house.woodDelivered, s.house.built, s.cameraFull, s.dead, s.kills,
+      s.house.woodDelivered, s.house.built, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -166,9 +258,14 @@ export class GameEngine {
       this.state.player.facingX = dx / directionLength;
       this.state.player.facingY = dy / directionLength;
     }
-    const speed = CONFIG.player.speed + this.levelStats.speed;
+    const cartLoad = this.state.cart.inventory.reduce((total, stack) => total + stack.quantity, 0);
+    const cartCapacity = CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot;
+    const loadFraction = Math.min(1, cartLoad / cartCapacity);
+    const loadSpeedFactor = this.state.cart.carried ? Math.max(0.5, 1 - CONFIG.cart.loadSlowdown * loadFraction) : 1;
+    const speed = (CONFIG.player.speed + this.levelStats.speed) * loadSpeedFactor;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
+    this.updateCart(dt);
 
     const cycle = Math.floor(this.elapsed / CONFIG.waves.cycle);
     if (cycle > this.hordeCycle) {
@@ -181,7 +278,7 @@ export class GameEngine {
       const targetSpawned = Math.min(this.hordeTarget, Math.floor(cycleElapsed / (CONFIG.waves.hordaDuration / this.hordeTarget)) + 1);
       while (this.hordeSpawned < targetSpawned) this.spawnHordeEnemy();
     }
-    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction();
+    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.repairCartWithWood();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
