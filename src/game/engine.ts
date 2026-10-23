@@ -536,6 +536,7 @@ export class GameEngine {
     if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + radius) return false;
     if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < radius + 38) return false;
     if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < radius + this.treeFootprintRadius(tree))) return false;
+    if (this.state.rocks.filter(rock => Math.hypot(x - rock.x, y - rock.y) <= CONFIG.rocks.attractionRadius).length >= CONFIG.rocks.attractionMaxNearby) return false;
     return this.state.rocks.every(rock => Math.hypot(x - rock.x, y - rock.y) >= radius + this.rockFootprintRadius(rock) + 24);
   }
 
@@ -546,14 +547,55 @@ export class GameEngine {
       ? 'small'
       : roll < CONFIG.rocks.sizeWeights.small + CONFIG.rocks.sizeWeights.medium ? 'medium' : 'large';
     const margin = CONFIG.map.wall + 80;
-    for (let attempt = 0; attempt < 500; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
-      if (!this.validRockPosition(x, y, size)) continue;
-      this.state.rocks.push({ id: this.nextId++, x, y, hits: CONFIG.rocks.hitsToBreak[size], size });
-      return true;
+    let position: Vec | null = null;
+
+    // Como nas árvores, a densidade local aumenta a chance de novas pedras nascerem juntas.
+    if (this.state.rocks.length > 0) {
+      const anchors = this.state.rocks.map(rock => ({
+        rock,
+        count: this.state.rocks.filter(other =>
+          Math.hypot(other.x - rock.x, other.y - rock.y) <= CONFIG.rocks.attractionRadius
+        ).length,
+      })).filter(item => item.count < CONFIG.rocks.attractionMaxNearby);
+      if (anchors.length > 0) {
+        const weighted = anchors.map(item => ({ ...item, weight: 1 + item.count * item.count }));
+        const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+        let ticket = Math.random() * totalWeight;
+        let selected = weighted[weighted.length - 1];
+        for (const item of weighted) {
+          ticket -= item.weight;
+          if (ticket <= 0) { selected = item; break; }
+        }
+        const count = Math.max(1, selected.count);
+        const attractionChance = Math.min(CONFIG.rocks.attractionMaxChance, 0.1 + count * 0.05);
+        if (Math.random() < attractionChance) {
+          for (let attempt = 0; attempt < 160 && !position; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 90 + Math.random() * 80;
+            const x = selected.rock.x + Math.cos(angle) * distance;
+            const y = selected.rock.y + Math.sin(angle) * distance;
+            if (this.validRockPosition(x, y, size)) position = { x, y };
+          }
+        }
+      }
     }
-    return false;
+
+    // Fora dos agrupamentos, a região nordeste tem prioridade, sem bloquear o resto do mapa.
+    for (let attempt = 0; attempt < 500 && !position; attempt++) {
+      const northEast = Math.random() < CONFIG.rocks.northEastSpawnChance;
+      const x = northEast
+        ? margin + CONFIG.rocks.northEastMinX * (this.world - margin * 2)
+          + Math.random() * (this.world - margin * 2) * (1 - CONFIG.rocks.northEastMinX)
+        : margin + Math.random() * (this.world - margin * 2);
+      const y = northEast
+        ? margin + Math.random() * (this.world - margin * 2) * CONFIG.rocks.northEastMaxY
+        : margin + Math.random() * (this.world - margin * 2);
+      if (!this.validRockPosition(x, y, size)) continue;
+      position = { x, y };
+    }
+    if (!position) return false;
+    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size });
+    return true;
   }
 
   private isPlayerAtRock(rock: Rock) {
@@ -716,7 +758,10 @@ export class GameEngine {
       }
     }
     this.separateEnemies();
-    for (const enemy of this.state.enemies) this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
+    for (const enemy of this.state.enemies) {
+      this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
+      this.resolveRockBoxCollisions(enemy);
+    }
   }
 
   private treeScale(tree: Tree) {
@@ -740,6 +785,21 @@ export class GameEngine {
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: 30 });
     return circles;
+  }
+
+  private resolveRockBoxCollisions(enemy: Enemy) {
+    for (const rock of this.state.rocks) {
+      const half = this.rockFootprintRadius(rock);
+      const halfX = half + CONFIG.enemy.radius;
+      const halfY = half + CONFIG.enemy.radius;
+      const dx = enemy.x - rock.x;
+      const dy = enemy.y - rock.y;
+      if (Math.abs(dx) >= halfX || Math.abs(dy) >= halfY) continue;
+      const pushX = halfX - Math.abs(dx);
+      const pushY = halfY - Math.abs(dy);
+      if (pushX < pushY) enemy.x = this.clamp(rock.x + (dx < 0 ? -halfX : halfX), CONFIG.map.wall + CONFIG.enemy.radius, this.world - CONFIG.map.wall - CONFIG.enemy.radius);
+      else enemy.y = this.clamp(rock.y + (dy < 0 ? -halfY : halfY), CONFIG.map.wall + CONFIG.enemy.radius, this.world - CONFIG.map.wall - CONFIG.enemy.radius);
+    }
   }
 
   private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false) {
