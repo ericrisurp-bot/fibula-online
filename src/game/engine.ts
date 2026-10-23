@@ -153,6 +153,7 @@ export class GameEngine {
       cart.carried = false;
       cart.x = this.clamp(this.state.player.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       cart.y = this.clamp(this.state.player.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+      this.resolveObstacleCollisions(cart, 30, true);
     } else if (Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) <= CONFIG.cart.interactRadius) {
       cart.carried = true;
       cart.angle = this.state.player.facingX < -0.15 ? Math.PI : 0;
@@ -223,6 +224,7 @@ export class GameEngine {
     if (distance > 0) {
       cart.x = this.clamp(cart.x + dx / distance * step, margin, this.world - margin);
       cart.y = this.clamp(cart.y + dy / distance * step, margin, this.world - margin);
+      this.resolveObstacleCollisions(cart, 30, true);
     }
   }
   private placeCart() {
@@ -231,8 +233,8 @@ export class GameEngine {
       const x = margin + Math.random() * (this.world - margin * 2);
       const y = margin + Math.random() * (this.world - margin * 2);
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
-      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius) continue;
-      if (this.state.trees.some(tree => Math.hypot(x - tree.x, y - tree.y) < CONFIG.house.treeClearRadius)) continue;
+      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < 90) continue;
+      if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < 38 + this.treeFootprintRadius(tree))) continue;
       this.state.cart = { x, y, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] };
       return;
     }
@@ -292,7 +294,9 @@ export class GameEngine {
     const loadSpeedFactor = this.state.cart.carried ? 1 - loadPenalty : 1;
     const speed = (CONFIG.player.speed + this.levelStats.speed) * loadSpeedFactor;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
+    this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
+    this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
     this.updateCart(dt);
 
     const cycle = Math.floor(this.elapsed / CONFIG.waves.cycle);
@@ -329,7 +333,8 @@ export class GameEngine {
       const x = margin + Math.random() * (this.world - margin * 2);
       const y = margin + Math.random() * (this.world - margin * 2);
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
-      if (this.state.trees.some(tree => Math.hypot(x - tree.x, y - tree.y) < CONFIG.house.treeClearRadius)) continue;
+      if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < CONFIG.house.treeClearRadius + this.treeFootprintRadius(tree))) continue;
+      if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 90) continue;
       this.state.house = { x, y, woodDelivered: 0, built: false };
       return;
     }
@@ -352,11 +357,19 @@ export class GameEngine {
     this.treeSpawnCountdown = this.treeSpawnDuration();
   }
 
-  private validTreePosition(x: number, y: number, minSpacing = 0) {
+  private validTreePosition(x: number, y: number, minSpacing = 0, size: Tree['size'] = 'large') {
     const margin = CONFIG.map.wall + 80;
     if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
     if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.trees.noSpawnRadius) return false;
-    return this.state.trees.every(tree => Math.hypot(x - tree.x, y - tree.y) >= minSpacing);
+    const candidate = { x, y, size } as Tree;
+    const candidateBase = this.treeBase(candidate);
+    const candidateFootprint = this.treeFootprintRadius(candidate);
+    if (Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y) < candidateFootprint + 45) return false;
+    if (Math.hypot(candidateBase.x - this.state.cart.x, candidateBase.y - this.state.cart.y) < candidateFootprint + 38) return false;
+    return this.state.trees.every(tree => {
+      const base = this.treeBase(tree);
+      return Math.hypot(candidateBase.x - base.x, candidateBase.y - base.y) >= Math.max(minSpacing, candidateFootprint + this.treeFootprintRadius(tree));
+    });
   }
 
   private spawnTree(initial = false) {
@@ -381,6 +394,7 @@ export class GameEngine {
     if (!position) return false;
     const roll = Math.random();
     const size: Tree['size'] = roll < CONFIG.trees.sizeWeights.small ? 'small' : roll < CONFIG.trees.sizeWeights.small + CONFIG.trees.sizeWeights.medium ? 'medium' : 'large';
+    if (!this.validTreePosition(position.x, position.y, initial ? 300 : 0, size)) return false;
     this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
     return true;
   }
@@ -391,7 +405,8 @@ export class GameEngine {
     this.state.trees = this.state.trees.filter(value => value.id !== id);
     const roll = Math.random();
     const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
-    this.state.woodDrops.push({ id: this.nextId++, x: tree.x, y: tree.y, amount });
+    const base = this.treeBase(tree);
+    this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount });
   }
 
   private collectWood() {
@@ -447,6 +462,59 @@ export class GameEngine {
       }
     }
     this.separateEnemies();
+    for (const enemy of this.state.enemies) this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
+  }
+
+  private treeScale(tree: Tree) {
+    return tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
+  }
+
+  private treeBase(tree: Tree): Vec {
+    return { x: tree.x, y: tree.y + 29 * this.treeScale(tree) };
+  }
+
+  private treeFootprintRadius(tree: Tree) {
+    return 20 * this.treeScale(tree);
+  }
+
+  private obstacleCircles(ignoreCart = false) {
+    const circles: Array<Vec & { radius: number }> = this.state.trees.map(tree => ({
+      ...this.treeBase(tree),
+      radius: 8 * this.treeScale(tree),
+    }));
+    circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
+    if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: 30 });
+    return circles;
+  }
+
+  private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false) {
+    for (let pass = 0; pass < 3; pass++) {
+      for (const obstacle of this.obstacleCircles(ignoreCart)) {
+        let dx = entity.x - obstacle.x;
+        let dy = entity.y - obstacle.y;
+        let distance = Math.hypot(dx, dy);
+        const minimum = radius + obstacle.radius;
+        if (distance >= minimum) continue;
+        if (distance === 0) {
+          dx = 1;
+          dy = 0;
+          distance = 1;
+        }
+        const push = minimum - distance;
+        entity.x = this.clamp(entity.x + dx / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
+        entity.y = this.clamp(entity.y + dy / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
+      }
+    }
+  }
+
+  private isPlayerAtTreeShadow(tree: Tree) {
+    const scale = this.treeScale(tree);
+    const shadow = this.treeBase(tree);
+    const dx = this.state.player.x - shadow.x;
+    const dy = this.state.player.y - shadow.y;
+    const rx = 19 * scale + CONFIG.player.radius;
+    const ry = 8 * scale + CONFIG.player.radius;
+    return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
   }
 
   private separateEnemies() {
@@ -508,10 +576,14 @@ export class GameEngine {
     const p = this.state.player;
     const target = this.state.enemies.map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
     if (!target) {
-      const treeTarget = this.state.trees.map(tree => ({ tree, d: Math.hypot(tree.x - p.x, tree.y - p.y) })).filter(v => v.d <= CONFIG.trees.cutRange).sort((a, b) => a.d - b.d)[0];
+      const treeTarget = this.state.trees
+        .filter(tree => this.isPlayerAtTreeShadow(tree))
+        .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
+        .sort((a, b) => a.d - b.d)[0];
       if (!treeTarget) return;
       this.attackTimer = 0;
-      this.state.treeChopAngle = Math.atan2(treeTarget.tree.y - p.y, treeTarget.tree.x - p.x);
+      const treeBase = this.treeBase(treeTarget.tree);
+      this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
       this.state.treeChopTimer = 0.2;
       treeTarget.tree.hits -= 1;
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
