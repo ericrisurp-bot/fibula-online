@@ -7,7 +7,7 @@ const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -100,6 +100,31 @@ export default function App() {
         ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
         if (tree.size === 'large') { ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+        ctx.restore();
+      }
+      for (const rock of s.rocks) {
+        ctx.save(); ctx.translate(rock.x, rock.y);
+        const scale = rock.size === 'small' ? 0.72 : rock.size === 'medium' ? 1 : 1.35;
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        ctx.beginPath(); ctx.ellipse(2, 10 * scale, 19 * scale, 8 * scale, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = rock.size === 'large' ? '#777f86' : rock.size === 'medium' ? '#858d94' : '#969da2';
+        ctx.strokeStyle = '#454d53'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-17 * scale, 3 * scale); ctx.lineTo(-14 * scale, -9 * scale);
+        ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale);
+        ctx.lineTo(18 * scale, -5 * scale); ctx.lineTo(16 * scale, 7 * scale);
+        ctx.lineTo(5 * scale, 12 * scale); ctx.lineTo(-9 * scale, 10 * scale);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(220,226,230,0.42)';
+        ctx.beginPath(); ctx.moveTo(-14 * scale, -8 * scale); ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale); ctx.lineTo(2 * scale, -6 * scale); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(55,62,67,0.6)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-4 * scale, -2 * scale); ctx.lineTo(2 * scale, 3 * scale); ctx.lineTo(8 * scale, -1 * scale); ctx.stroke();
+        ctx.restore();
+      }
+      for (const drop of s.stoneDrops) {
+        ctx.save(); ctx.translate(drop.x, drop.y);
+        ctx.fillStyle = '#9ba4aa'; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(-5, 2); ctx.lineTo(-3, -4); ctx.lineTo(2, -5); ctx.lineTo(6, -1); ctx.lineTo(4, 4); ctx.lineTo(-2, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.restore();
       }
       for (const drop of s.woodDrops) {
