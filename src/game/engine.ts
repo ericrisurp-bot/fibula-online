@@ -12,6 +12,7 @@ type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#f
 type DyingEnemy = Enemy & { deathAge: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
+  house: Vec & { woodDelivered: number; built: boolean };
   enemies: Enemy[]; trees: Tree[]; woodDrops: WoodDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
@@ -40,12 +41,14 @@ export class GameEngine {
     this.state = this.freshState();
     this.startHorde(); // A primeira horda começa em t=0.
     this.spawnInitialTrees();
+    this.placeHouse();
     this.treeSpawnCountdown = this.treeSpawnDuration();
   }
 
   private freshState(): GameSnapshot {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
+      house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false },
       enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -94,14 +97,36 @@ export class GameEngine {
     // Publica classe, arma e habilidades juntas como um único estado coerente.
     this.emit();
   }
+  private deliverWoodToHouseUnderConstruction() {
+    const house = this.state.house;
+    if (house.built || Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
+    const remaining = CONFIG.house.buildCost - house.woodDelivered;
+    if (remaining <= 0) return;
+    const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
+    const amount = Math.min(remaining, carriedWood);
+    if (amount <= 0) return;
+    let toRemove = amount;
+    this.state.inventory = this.state.inventory.flatMap(stack => {
+      if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
+      const used = Math.min(stack.quantity, toRemove);
+      toRemove -= used;
+      const left = stack.quantity - used;
+      return left > 0 ? [{ ...stack, quantity: left }] : [];
+    });
+    house.woodDelivered += amount;
+    if (house.woodDelivered >= CONFIG.house.buildCost) {
+      house.woodDelivered = CONFIG.house.buildCost;
+      house.built = true;
+    }
+  }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeCycle = 0; this.hordeTarget = 0; this.hordeSpawned = 0; this.treeSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.startHorde(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.startHorde(); this.spawnInitialTrees(); this.placeHouse(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house }, enemies: [...this.state.enemies], trees: [...this.state.trees], woodDrops: [...this.state.woodDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -109,7 +134,7 @@ export class GameEngine {
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.woodDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      s.cameraFull, s.dead, s.kills,
+      s.house.woodDelivered, s.house.built, s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -156,7 +181,7 @@ export class GameEngine {
       const targetSpawned = Math.min(this.hordeTarget, Math.floor(cycleElapsed / (CONFIG.waves.hordaDuration / this.hordeTarget)) + 1);
       while (this.hordeSpawned < targetSpawned) this.spawnHordeEnemy();
     }
-    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood();
+    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -171,6 +196,20 @@ export class GameEngine {
       if (this.state.healingOrbs.length > 0) this.state.healingOrbs = [];
     }
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
+  }
+
+  private placeHouse() {
+    const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
+    for (let attempt = 0; attempt < 1200; attempt++) {
+      const x = margin + Math.random() * (this.world - margin * 2);
+      const y = margin + Math.random() * (this.world - margin * 2);
+      if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
+      if (this.state.trees.some(tree => Math.hypot(x - tree.x, y - tree.y) < CONFIG.house.treeClearRadius)) continue;
+      this.state.house = { x, y, woodDelivered: 0, built: false };
+      return;
+    }
+    // Fallback determinístico em uma região afastada do ponto inicial do jogador.
+    this.state.house = { x: this.world * 0.25, y: this.world * 0.25, woodDelivered: 0, built: false };
   }
 
   private treeSpawnDuration() {

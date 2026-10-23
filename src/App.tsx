@@ -5,6 +5,7 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
+  house: { x: 600, y: 600, woodDelivered: 0, built: false },
   enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
@@ -70,6 +71,7 @@ export default function App() {
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
       for (const flag of flagsRef.current) drawFlag(ctx, flag.x, flag.y, flag.color);
+      drawHouse(ctx, s.house);
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -357,6 +359,32 @@ export default function App() {
     </section>
 
   </main>;
+}
+
+function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
+  const { x, y, woodDelivered, built } = house;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
+  ctx.beginPath(); ctx.ellipse(0, 20, 38, 12, 0, 0, Math.PI * 2); ctx.fill();
+  if (built) {
+    ctx.fillStyle = '#755038'; ctx.fillRect(-28, -10, 56, 38);
+    ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.strokeRect(-28, -10, 56, 38);
+    ctx.fillStyle = '#503323'; ctx.beginPath(); ctx.moveTo(-36, -10); ctx.lineTo(0, -38); ctx.lineTo(36, -10); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#2b211b'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#38271d'; ctx.fillRect(-7, 7, 14, 21);
+    ctx.fillStyle = '#b6d8ce'; ctx.fillRect(-21, 0, 10, 10); ctx.fillRect(11, 0, 10, 10);
+    ctx.strokeStyle = '#38271d'; ctx.lineWidth = 2; ctx.strokeRect(-21, 0, 10, 10); ctx.strokeRect(11, 0, 10, 10);
+  } else {
+    ctx.strokeStyle = '#8d6b48'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-29, 19); ctx.lineTo(-29, -10); ctx.lineTo(0, -27); ctx.lineTo(29, -10); ctx.lineTo(29, 19); ctx.stroke();
+    ctx.strokeStyle = '#b28a59'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-24, 15); ctx.lineTo(24, 15); ctx.moveTo(-20, 4); ctx.lineTo(20, 4); ctx.moveTo(-15, -6); ctx.lineTo(15, -6); ctx.stroke();
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-36, -48, 72, 7);
+    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-36, -48, 72 * (woodDelivered / CONFIG.house.buildCost), 7);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-36, -48, 72, 7);
+  }
+  ctx.restore();
 }
 
 function drawFlag(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
