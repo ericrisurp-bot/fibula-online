@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
+import BackgroundMusic from './ui/BackgroundMusic';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
@@ -529,6 +530,7 @@ export default function App() {
   };
 
   return <main className="game-shell">
+    <BackgroundMusic active={!showStart && !state.dead} />
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
