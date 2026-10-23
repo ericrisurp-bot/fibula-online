@@ -193,8 +193,8 @@ export default function App() {
     const stage = canvasRef.current?.parentElement;
     if (!stage) return;
     const rect = stage.getBoundingClientRect();
-    const marginX = Math.min(84, rect.width / 2);
-    const marginY = Math.min(84, rect.height / 2);
+    const marginX = Math.min(90, rect.width / 2);
+    const marginY = Math.min(90, rect.height / 2);
     const screenX = Math.max(marginX, Math.min(clientX - rect.left, rect.width - marginX));
     const screenY = Math.max(marginY, Math.min(clientY - rect.top, rect.height - marginY));
     setWheel({ pointerId, screenX, screenY, originX: clientX, originY: clientY, selected: null });
