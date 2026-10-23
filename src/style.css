@@ -343,3 +343,15 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .flag-wheel-option.blue{left:0;top:61px}
 .flag-wheel-option.selected{opacity:1;transform:scale(1.16);border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.24),0 0 22px rgba(255,255,255,.5),0 5px 16px rgba(0,0,0,.5)}
 .flag-wheel-center{position:absolute;left:65px;top:65px;width:38px;height:38px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.36);border-radius:50%;background:rgba(20,21,20,.9);color:rgba(255,255,255,.72);font-size:22px;font-weight:500;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+/* Painel de entrega da obra, acima dos controles touch e sem capturar o joystick. */
+.house-delivery-panel{position:absolute;z-index:14;left:50%;bottom:18px;transform:translateX(-50%);width:min(320px,calc(100% - 24px));padding:11px;border:1px solid rgba(166,205,179,.48);border-radius:13px;background:rgba(17,27,22,.94);color:#e8f5eb;box-shadow:0 8px 28px rgba(0,0,0,.4);pointer-events:auto;touch-action:manipulation;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.house-delivery-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}.house-delivery-heading strong{font-weight:900}.house-delivery-heading span{font-size:11px;font-weight:800;color:#b8e9c9;font-variant-numeric:tabular-nums}
+.house-progress-track{height:6px;margin-top:7px;overflow:hidden;border-radius:99px;background:rgba(230,245,235,.16)}.house-progress-track span{display:block;height:100%;border-radius:inherit;background:#8fceaa;transition:width 120ms ease}
+.house-delivery-hint{margin:7px 0;color:#b9cabe;font-size:10px;line-height:1.35}
+.house-delivery-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.house-delivery-slot{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:42px;border:1px solid rgba(215,235,221,.22);border-radius:8px;background:rgba(6,14,10,.55);color:#9bac9f;font:inherit;font-size:12px;touch-action:manipulation;cursor:pointer}
+.house-delivery-slot.filled{border-color:rgba(166,220,184,.55);background:rgba(48,87,60,.66);color:#f1fff5}
+.house-delivery-slot b{font-size:10px}.house-delivery-slot:disabled{cursor:default;opacity:.72}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){.house-delivery-panel{bottom:calc(104px + env(safe-area-inset-bottom));width:min(300px,calc(100% - 20px));padding:9px}.house-delivery-slot{min-height:38px}.house-delivery-hint{font-size:9px;margin:6px 0}}
+
