@@ -505,7 +505,7 @@ export class GameEngine {
         const angle = Math.atan2(ey, ex);
         const difference = Math.abs(Math.atan2(Math.sin(angle - this.state.swordSwingAngle), Math.cos(angle - this.state.swordSwingAngle)));
         return distance <= weapon.range && difference <= arc / 2;
-      });
+      }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
       for (const enemy of hits) {
         const damage = weapon.damage + this.state.player.level * 0.3;
         enemy.hp -= damage;
