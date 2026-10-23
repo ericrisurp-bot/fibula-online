@@ -4,6 +4,8 @@ import type { InventoryStack } from '../game/inventory';
 
 type Props = {
   flagMenuOpen: boolean;
+  onLongPress: (clientX: number, clientY: number) => void;
+  onFlagTap: (clientX: number, clientY: number) => boolean;
   onMove: (x: number, y: number) => void;
   onRange: () => void;
   onZoom: (delta: number) => void;
@@ -16,9 +18,10 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ flagMenuOpen, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
+export default function Controls({ flagMenuOpen, onLongPress, onFlagTap, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
-  const activePointer = useRef<{ id: number; originX: number; originY: number } | null>(null);
+  const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
+  const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => { if (flagMenuOpen) setMenuOpen(false); }, [flagMenuOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
@@ -26,9 +29,19 @@ export default function Controls({ flagMenuOpen, onMove, onRange, onZoom, onClas
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current) return;
     e.preventDefault();
+    if (onFlagTap(e.clientX, e.clientY)) return;
     const rect = controlsRef.current?.getBoundingClientRect();
     if (!rect) return;
-    activePointer.current = { id: e.pointerId, originX: e.clientX - rect.left, originY: e.clientY - rect.top };
+    activePointer.current = { id: e.pointerId, originX: e.clientX - rect.left, originY: e.clientY - rect.top, clientX: e.clientX, clientY: e.clientY };
+    longPressRef.current = { id: e.pointerId, clientX: e.clientX, clientY: e.clientY, timer: window.setTimeout(() => {
+      const pending = longPressRef.current;
+      if (!pending || pending.id !== e.pointerId || activePointer.current?.id !== e.pointerId) return;
+      activePointer.current = null;
+      longPressRef.current = null;
+      onMove(0, 0);
+      setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
+      onLongPress(pending.clientX, pending.clientY);
+    }, 400) };
     e.currentTarget.setPointerCapture(e.pointerId);
     setStick({ x: e.clientX - rect.left, y: e.clientY - rect.top, dx: 0, dy: 0, active: true });
     onMove(0, 0);
@@ -38,6 +51,11 @@ export default function Controls({ flagMenuOpen, onMove, onRange, onZoom, onClas
     const active = activePointer.current;
     if (!active || active.id !== e.pointerId) return;
     e.preventDefault();
+    const pending = longPressRef.current;
+    if (pending?.id === e.pointerId && Math.hypot(e.clientX - pending.clientX, e.clientY - pending.clientY) > 10) {
+      window.clearTimeout(pending.timer);
+      longPressRef.current = null;
+    }
     const dx = e.clientX - (active.originX + (controlsRef.current?.getBoundingClientRect().left ?? 0));
     const dy = e.clientY - (active.originY + (controlsRef.current?.getBoundingClientRect().top ?? 0));
     const distance = Math.hypot(dx, dy) || 1;
@@ -50,6 +68,8 @@ export default function Controls({ flagMenuOpen, onMove, onRange, onZoom, onClas
 
   const resetStick = (e: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current?.id !== e.pointerId) return;
+    const pending = longPressRef.current;
+    if (pending?.id === e.pointerId) { window.clearTimeout(pending.timer); longPressRef.current = null; }
     activePointer.current = null;
     onMove(0, 0);
     setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
