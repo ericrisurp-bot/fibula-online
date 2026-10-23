@@ -48,7 +48,7 @@ export const CONFIG = {
     effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 5, velocidadeAtaque: 0.045, esquiva: 0.008 },
   },
   weapons: {
-    espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, maxTargets: 4, kind: 'melee' as const, projectileSpeed: 0 },
+    espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 420, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
     bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
