@@ -23,7 +23,7 @@ export default function App() {
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; worldX: number; worldY: number; timer: number | null } | null>(null);
-  const [flags, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
   const [flagMenu, setFlagMenu] = useState<{ x: number; y: number; screenX: number; screenY: number } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
