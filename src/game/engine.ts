@@ -492,7 +492,7 @@ export class GameEngine {
     this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
   }
 
-  private enemyMovementDirection(enemy: Enemy, targetX: number, targetY: number): Vec {
+  private enemyMovementDirection(enemy: Enemy, targetX: number, targetY: number, obstacles: Array<Vec & { radius: number }>): Vec {
     const distance = Math.hypot(targetX, targetY) || 1;
     const dirX = targetX / distance;
     const dirY = targetY / distance;
@@ -500,7 +500,7 @@ export class GameEngine {
     let steerY = dirY;
     const sensorDistance = CONFIG.enemy.obstacleAvoidanceDistance;
 
-    for (const obstacle of this.obstacleCircles(false)) {
+    for (const obstacle of obstacles) {
       const offsetX = obstacle.x - enemy.x;
       const offsetY = obstacle.y - enemy.y;
       const forward = offsetX * dirX + offsetY * dirY;
@@ -523,10 +523,11 @@ export class GameEngine {
 
   private moveEnemies(dt: number) {
     const p = this.state.player;
+    const obstacles = this.obstacleCircles(false);
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
-      const direction = this.enemyMovementDirection(e, dx, dy);
+      const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
       e.x += direction.x * speed * dt; e.y += direction.y * speed * dt;
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
