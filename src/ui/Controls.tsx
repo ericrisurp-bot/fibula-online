@@ -1,5 +1,6 @@
 import { useRef, useState, type PointerEvent } from 'react';
 import { CLASSES, type ClassId } from '../game/config';
+import type { InventoryStack } from '../game/inventory';
 
 type Props = {
   onMove: (x: number, y: number) => void;
@@ -9,11 +10,12 @@ type Props = {
   classId: ClassId;
   showRange: boolean;
   weaponLabel: string;
+  inventory: InventoryStack[];
 };
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
+export default function Controls({ onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,8 +57,24 @@ export default function Controls({ onMove, onRange, onZoom, onClass, classId, sh
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
+    {menuOpen && <div
+      className="mobile-menu-backdrop"
+      aria-hidden="true"
+      onPointerDown={event => event.stopPropagation()}
+      onClick={event => { event.stopPropagation(); setMenuOpen(false); }}
+    />}
     {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
-      <div className="mobile-menu-heading"><span>CONTROLES</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
+      <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
+<div className="menu-section-label">BAG · {inventory.reduce((total, item) => total + item.quantity, 0)} itens</div>
+<div className="bag-slot-grid" aria-label="Mochila com 3 espaços">
+  {Array.from({ length: 3 }, (_, index) => {
+    const item = inventory[index];
+    const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId) : 'vazio';
+    return <div className={item ? 'bag-slot filled' : 'bag-slot'} key={index} aria-label={'Espaço ' + (index + 1) + ': ' + itemName + (item ? ', ' + item.quantity : '')}>
+      {item ? <><span className="bag-item-icon" aria-hidden="true">{item.itemId === 'wood' ? '🪵' : '📦'}</span><strong>×{item.quantity}</strong></> : <span className="bag-slot-number">{index + 1}</span>}
+    </div>;
+  })}
+</div>
       <div className="menu-section-label">CLASSES</div>
       <div className="menu-class-grid">
         {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} type="button" className={classId === id ? 'selected' : ''} aria-pressed={classId === id} title={CLASSES[id].description} onClick={() => { onClass(id); setMenuOpen(false); }}>{index + 1} · {CLASSES[id].label}</button>)}
