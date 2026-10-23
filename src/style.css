@@ -399,3 +399,13 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   .cart-nearby-inventory{bottom:calc(202px + env(safe-area-inset-bottom));grid-template-columns:repeat(3,minmax(42px,50px));gap:5px;padding:5px}
   .cart-nearby-slot{font-size:17px}
 }
+
+
+/* Seletor de bandeiras do teclado do PC; os controles touch existentes não mudam. */
+.pc-flag-menu{position:absolute;z-index:18;top:50%;left:50%;transform:translate(-50%,-50%);width:min(340px,calc(100% - 28px));padding:14px;border:1px solid rgba(215,215,215,.3);border-radius:12px;background:rgba(34,35,34,.96);box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:10px;color:#f0f0f0}
+.pc-flag-menu>strong{font-size:10px;letter-spacing:.12em;text-align:center}
+.pc-flag-menu>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.pc-flag-menu button{display:flex;align-items:center;gap:7px;padding:9px;border:1px solid rgba(215,215,215,.2);border-radius:8px;background:rgba(55,56,55,.85);color:#eee;font-size:11px}
+.pc-flag-menu button span{width:12px;height:12px;border-radius:50%;border:1px solid #ffffff66}
+.pc-flag-menu button b{font-size:12px}
+.pc-flag-menu small{text-align:center;font-size:9px;color:#c7c7c7}

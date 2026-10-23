@@ -162,8 +162,26 @@ export class GameEngine {
       cart.carried = true;
       cart.angle = this.state.player.facingX < -0.15 ? Math.PI : 0;
       this.updateCart(0);
+      this.autoLoadCartFromInventory();
     } else return;
     this.emit();
+  }
+  private autoLoadCartFromInventory() {
+    const cart = this.state.cart;
+    if (!cart.carried || this.state.inventory.length === 0) return;
+    let cartInventory = cart.inventory;
+    const remainingInventory: InventoryStack[] = [];
+    for (const stack of this.state.inventory) {
+      const result = addToInventory(cartInventory, stack.itemId, stack.quantity, {
+        maxSlots: CONFIG.cart.capacitySlots,
+        maxPerSlot: CONFIG.cart.maxPerSlot,
+      });
+      cartInventory = result.inventory;
+      const remaining = stack.quantity - result.added;
+      if (remaining > 0) remainingInventory.push({ ...stack, quantity: remaining });
+    }
+    cart.inventory = cartInventory;
+    this.state.inventory = remainingInventory;
   }
   transferBagToCart(index: number) {
     if (!this.isCartAccessible()) return;
@@ -328,7 +346,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.repairCartWithWood();
+    this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -705,6 +723,7 @@ export class GameEngine {
   }
 
   private autoAttack() {
+    if (this.state.cart.carried) return;
     const weapon = CONFIG.weapons[this.state.weapon];
     const speedBonus = this.levelStats.attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;

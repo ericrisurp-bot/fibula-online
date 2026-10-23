@@ -28,6 +28,8 @@ export default function App() {
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
+  const flagHotkeyOpenRef = useRef(false);
+  const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
   const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
   // O dia de sobrevivência inclui a noite correspondente: Dia 1 durante Noite 1; após o amanhecer, Dia 2.
   const survivalDay = state.dayNight === 'night' ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
@@ -238,6 +240,23 @@ export default function App() {
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagWheel();
+      if (k === 'escape' && flagHotkeyOpenRef.current) {
+        flagHotkeyOpenRef.current = false;
+        setFlagHotkeyOpen(false);
+        return;
+      }
+      if (k === 't' && !e.repeat) {
+        flagHotkeyOpenRef.current = true;
+        setFlagHotkeyOpen(true);
+        closeFlagWheel();
+        return;
+      }
+      if (flagHotkeyOpenRef.current && ['1', '2', '3', '4'].includes(k)) {
+        placeFlagByIndex(Number(k) - 1);
+        flagHotkeyOpenRef.current = false;
+        setFlagHotkeyOpen(false);
+        return;
+      }
       engine.setKey(k, true);
       if (k === 'c') engine.toggleCamera();
       if (k === '1') engine.setClass('guerreiro');
@@ -245,7 +264,7 @@ export default function App() {
       if (k === '3') engine.setClass('arqueiro');
       if (k === '4') engine.setClass('druida');
       if (k === 'r') engine.toggleRange();
-      if (k === 'e' && !e.repeat) engine.toggleCart();
+      if (k === ' ' && !e.repeat) engine.toggleCart();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
@@ -262,7 +281,28 @@ export default function App() {
     setFlagWheel(next);
   };
   const closeFlagWheel = () => { if (flagWheelRef.current) setWheel(null); };
-  const restart = () => { flagsRef.current = []; setFlags([]); setWheel(null); engineRef.current?.restart(); };
+  const placeFlagByIndex = (index: number) => {
+    const color = CONFIG.flags.colors[index];
+    const player = engineRef.current?.state.player;
+    const cart = engineRef.current?.state.cart;
+    if (!color || !player) return;
+    const attachToCart = !!cart && Math.hypot(player.x - cart.x, player.y - cart.y) <= CONFIG.cart.interactRadius;
+    const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), {
+      colorId: color.id,
+      color: color.color,
+      x: attachToCart && cart ? cart.x : player.x,
+      y: attachToCart && cart ? cart.y - 34 : player.y,
+      ...(attachToCart ? { attachedToCart: true } : {}),
+    }];
+    flagsRef.current = next;
+    setFlags(next);
+  };
+  const chooseFlagHotkey = (index: number) => {
+    placeFlagByIndex(index);
+    flagHotkeyOpenRef.current = false;
+    setFlagHotkeyOpen(false);
+  };
+  const restart = () => { flagsRef.current = []; setFlags([]); setWheel(null); flagHotkeyOpenRef.current = false; setFlagHotkeyOpen(false); engineRef.current?.restart(); };
   const worldPointAt = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -415,12 +455,19 @@ export default function App() {
           <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>E</b> pega/solta o carrinho reparado quando estiver perto.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre as bandeiras; depois, 1 amarela, 2 verde, 3 vermelha ou 4 azul. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {flagWheel && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={{ left: flagWheel.screenX, top: flagWheel.screenY }}>
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
+      </div>}
+      {flagHotkeyOpen && <div className="pc-flag-menu" role="dialog" aria-label="Escolher bandeira">
+        <strong>BANDEIRAS · T + NÚMERO</strong>
+        <div>{CONFIG.flags.colors.map((item, index) => <button key={item.id} type="button" onClick={() => chooseFlagHotkey(index)} title={item.label}>
+          <span style={{ background: item.color }} /> <b>{index + 1}</b> {item.label}
+        </button>)}</div>
+        <small>1 topo · 2 direita · 3 baixo · 4 esquerda · Esc fecha</small>
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
       {cartAccessible && !state.dead && !showStart && <div className="cart-nearby-inventory" role="group" aria-label="Enviar itens da mochila para o carrinho">
