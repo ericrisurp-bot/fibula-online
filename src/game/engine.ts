@@ -311,9 +311,15 @@ export class GameEngine {
     this.wasNight = dayNight.isNight;
     if (dayNight.isNight && this.hordeTarget > 0) {
       const progress = Math.min(1, dayNight.phaseElapsed / CONFIG.dayNight.dayDuration);
-      // A curva desacelera perto do amanhecer sem despejar toda a horda de uma vez.
-      const easedProgress = 1 - Math.pow(1 - progress, 2);
-      const targetScheduled = Math.min(this.hordeTarget, Math.ceil(this.hordeTarget * easedProgress));
+      // Divide a noite em cinco ondas; cada fatia distribui sua parcela gradualmente.
+      const distribution = CONFIG.dayNight.spawnWaveDistribution;
+      const stageProgress = progress * distribution.length;
+      const completedStages = Math.min(distribution.length, Math.floor(stageProgress));
+      let scheduledFraction = distribution.slice(0, completedStages).reduce((sum, share) => sum + share, 0);
+      if (completedStages < distribution.length) {
+        scheduledFraction += distribution[completedStages] * (stageProgress - completedStages);
+      }
+      const targetScheduled = Math.min(this.hordeTarget, Math.ceil(this.hordeTarget * scheduledFraction));
       // Agenda no máximo um nascimento por atualização; se o mapa atingir o limite vivo, não acumula uma rajada para depois.
       if (this.hordeScheduled < targetScheduled) {
         this.hordeScheduled += 1;
