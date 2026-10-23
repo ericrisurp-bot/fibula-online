@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 'react';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
@@ -189,7 +189,7 @@ export default function App() {
     const stageRect = stage.getBoundingClientRect();
     setFlagMenu({ x: worldX, y: worldY, screenX: Math.max(6, Math.min(clientX - stageRect.left, stageRect.width - 190)), screenY: Math.max(6, Math.min(clientY - stageRect.top, stageRect.height - 72)) });
   };
-  const onFlagPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const onFlagPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (flagMenu) return;
     const point = worldPointAt(event.clientX, event.clientY);
     if (!point) return;
@@ -209,7 +209,7 @@ export default function App() {
     }, 400);
     flagHoldRef.current = pending;
   };
-  const onFlagPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const onFlagPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
     const pending = flagHoldRef.current;
     if (!pending || pending.pointerId !== event.pointerId) return;
     if (Math.hypot(event.clientX - pending.clientX, event.clientY - pending.clientY) > 10) {
@@ -217,13 +217,13 @@ export default function App() {
       flagHoldRef.current = null;
     }
   };
-  const onFlagPointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const onFlagPointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
     const pending = flagHoldRef.current;
     if (!pending || pending.pointerId !== event.pointerId) return;
     if (pending.timer !== null) window.clearTimeout(pending.timer);
     flagHoldRef.current = null;
   };
-  const onFlagContextMenu = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     const point = worldPointAt(event.clientX, event.clientY);
     if (point) openFlagMenuAt(event.clientX, event.clientY, point.x, point.y);
