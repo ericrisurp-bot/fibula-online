@@ -342,6 +342,12 @@ export default function App() {
     flagHoldRef.current = null;
   };
   const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
+  const beginGame = () => {
+    // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
+    flagsRef.current = []; setFlags([]); setWheel(null);
+    engineRef.current?.restart();
+    setShowStart(false);
+  };
   const startGame = () => {
     const stage = canvasRef.current?.parentElement;
     if (stage?.requestFullscreen) {
@@ -349,7 +355,7 @@ export default function App() {
         // Alguns navegadores ou modos incorporados não permitem tela cheia.
       });
     }
-    setShowStart(false);
+    beginGame();
   };
 
   return <main className="game-shell">
@@ -383,7 +389,7 @@ export default function App() {
           <h1>Pronto para sobreviver?</h1>
           <p>Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.</p>
           <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
-          <button className="start-normal" type="button" onClick={() => setShowStart(false)}>Jogar sem tela cheia</button>
+          <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>E</b> pega/solta o carrinho reparado quando estiver perto.</p></div>}
