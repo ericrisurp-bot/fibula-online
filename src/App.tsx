@@ -398,6 +398,43 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
   ctx.restore();
 }
 
+function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart']) {
+  const { x, y, repairWood, repaired, carried } = cart;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(0, 14, 30, 9, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(22, -5); ctx.lineTo(30, 8); ctx.stroke();
+  if (repaired) {
+    ctx.fillStyle = '#8b6039'; ctx.fillRect(-23, -23, 42, 22);
+    ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.strokeRect(-23, -23, 42, 22);
+    ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-19, -20); ctx.lineTo(-19, -3); ctx.moveTo(-5, -20); ctx.lineTo(-5, -3); ctx.moveTo(9, -20); ctx.lineTo(9, -3); ctx.stroke();
+    for (const wheelX of [-17, 20]) {
+      ctx.beginPath(); ctx.arc(wheelX, 8, 7, 0, Math.PI * 2); ctx.fillStyle = '#282a29'; ctx.fill();
+      ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(wheelX - 4, 8); ctx.lineTo(wheelX + 4, 8); ctx.moveTo(wheelX, 4); ctx.lineTo(wheelX, 12); ctx.stroke();
+    }
+  } else {
+    ctx.save(); ctx.rotate(-0.18);
+    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(-22, -18); ctx.lineTo(18, -3); ctx.moveTo(-18, -3); ctx.lineTo(16, -19); ctx.stroke();
+    ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(-17, 8, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(20, 8, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
+    ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
+  }
+  if (carried) {
+    ctx.strokeStyle = 'rgba(235,235,235,.65)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.arc(0, -3, 36, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawFlag(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
   ctx.save(); ctx.translate(x, y);
   ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(0, -18); ctx.stroke();
