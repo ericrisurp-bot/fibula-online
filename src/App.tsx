@@ -243,9 +243,9 @@ export default function App() {
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagMenu();
       if (k === 'escape') {
-        if (flagHotkeyOpenRef.current) closeFlagMenu();
-        if (inventoryPanelOpenRef.current) closeInventoryPanel();
-        if (flagHotkeyOpenRef.current || inventoryPanelOpenRef.current) return;
+        closeFlagMenu();
+        closeInventoryPanel();
+        return;
       }
       if (k === 'b' && !e.repeat) {
         closeFlagMenu();
