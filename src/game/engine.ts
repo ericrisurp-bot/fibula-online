@@ -312,8 +312,9 @@ export class GameEngine {
       const progress = Math.min(1, dayNight.phaseElapsed / CONFIG.dayNight.dayDuration);
       // A curva desacelera perto do amanhecer sem despejar toda a horda de uma vez.
       const easedProgress = 1 - Math.pow(1 - progress, 2);
-      const targetSpawned = Math.min(this.hordeTarget, Math.floor(this.hordeTarget * easedProgress));
-      while (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
+      const targetSpawned = Math.min(this.hordeTarget, Math.ceil(this.hordeTarget * easedProgress));
+      // No máximo um nascimento por atualização evita despejar vários Slimes no mesmo quadro.
+      if (this.hordeSpawned < targetSpawned && this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
     }
     this.updateTreeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.deliverWoodToHouseUnderConstruction(); this.repairCartWithWood();
     if (this.state.classId === 'druida') {
