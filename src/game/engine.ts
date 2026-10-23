@@ -6,7 +6,7 @@ type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
-type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
+type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
 type WoodDrop = Vec & { id: number; amount: number };
 type StoneDrop = Vec & { id: number };
 type Orb = Vec & { id: number; value: number };
@@ -38,6 +38,7 @@ export class GameEngine {
   private nightNumber = 0;
   private treeSpawnCountdown = 0;
   private rockSpawnCountdown = 0;
+  private nextRockClusterId = 1;
   private attackTimer = 0;
   private elapsed = 0;
   private lastTime = 0;
@@ -290,7 +291,7 @@ export class GameEngine {
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
-    this.stop(); this.state = this.freshState(); this.nextId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
+    this.stop(); this.state = this.freshState(); this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
     this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.start(); this.emit();
   }
@@ -548,14 +549,13 @@ export class GameEngine {
       : roll < CONFIG.rocks.sizeWeights.small + CONFIG.rocks.sizeWeights.medium ? 'medium' : 'large';
     const margin = CONFIG.map.wall + 80;
     let position: Vec | null = null;
+    let clusterId: number | null = null;
 
     // Como nas árvores, a densidade local aumenta a chance de novas pedras nascerem juntas.
     if (this.state.rocks.length > 0) {
       const anchors = this.state.rocks.map(rock => ({
         rock,
-        count: this.state.rocks.filter(other =>
-          Math.hypot(other.x - rock.x, other.y - rock.y) <= CONFIG.rocks.attractionRadius
-        ).length,
+        count: this.state.rocks.filter(other => other.clusterId === rock.clusterId).length,
       })).filter(item => item.count < CONFIG.rocks.attractionMaxNearby);
       if (anchors.length > 0) {
         const weighted = anchors.map(item => ({ ...item, weight: 1 + item.count * item.count }));
@@ -574,7 +574,10 @@ export class GameEngine {
             const distance = 90 + Math.random() * 80;
             const x = selected.rock.x + Math.cos(angle) * distance;
             const y = selected.rock.y + Math.sin(angle) * distance;
-            if (this.validRockPosition(x, y, size)) position = { x, y };
+            if (this.validRockPosition(x, y, size)) {
+              position = { x, y };
+              clusterId = selected.rock.clusterId;
+            }
           }
         }
       }
@@ -594,7 +597,8 @@ export class GameEngine {
       position = { x, y };
     }
     if (!position) return false;
-    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size });
+    if (clusterId === null) clusterId = this.nextRockClusterId++;
+    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, clusterId });
     return true;
   }
 
