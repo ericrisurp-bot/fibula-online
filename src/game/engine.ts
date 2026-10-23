@@ -291,7 +291,7 @@ export class GameEngine {
     const p = this.state.player;
     const target = this.state.enemies.map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
     if (!target) {
-      const treeTarget = this.state.trees.map(tree => ({ tree, d: Math.hypot(tree.x - p.x, tree.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
+      const treeTarget = this.state.trees.map(tree => ({ tree, d: Math.hypot(tree.x - p.x, tree.y - p.y) })).filter(v => v.d <= CONFIG.trees.cutRange).sort((a, b) => a.d - b.d)[0];
       if (!treeTarget) return;
       this.attackTimer = 0;
       this.state.treeChopAngle = Math.atan2(treeTarget.tree.y - p.y, treeTarget.tree.x - p.x);
