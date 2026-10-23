@@ -27,8 +27,6 @@ export default function App() {
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
-  const houseDistance = Math.hypot(state.player.x - state.house.x, state.player.y - state.house.y);
-  const showHouseDelivery = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
 
