@@ -23,7 +23,7 @@ export const CONFIG = {
   rocks: { max: 30, startCount: 12, spawnBase: 35, spawnReductionPerRock: 0.4, spawnMin: 22, noSpawnRadius: 600, mineRange: 50, dropChance: 0.07, attractionRadius: 300, attractionMaxNearby: 15, attractionMaxChance: 0.8, northEastSpawnChance: 0.7, northEastMinX: 0.55, northEastMaxY: 0.45, hitsToBreak: { small: 7, medium: 12, large: 22 }, sizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 60, interactRadius: 80, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
-  refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 80, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 1 },
+  refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 80, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
   cart: { repairCost: 10, interactRadius: 50, capacitySlots: 10, maxPerSlot: 8, followDistance: 38, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [
