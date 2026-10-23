@@ -346,10 +346,6 @@ export default function App() {
     flagsRef.current = next;
     setFlags(next);
   };
-  const chooseFlagHotkey = (index: number) => {
-    placeFlagByIndex(index);
-    closeFlagMenu();
-  };
   const restart = () => {
     flagsRef.current = [];
     setFlags([]);
