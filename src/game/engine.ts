@@ -261,7 +261,8 @@ export class GameEngine {
     const cartLoad = this.state.cart.inventory.reduce((total, stack) => total + stack.quantity, 0);
     const cartCapacity = CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot;
     const loadFraction = Math.min(1, cartLoad / cartCapacity);
-    const loadSpeedFactor = this.state.cart.carried ? Math.max(0.5, 1 - CONFIG.cart.loadSlowdown * loadFraction) : 1;
+    const loadPenalty = CONFIG.cart.loadSlowdownMin + (CONFIG.cart.loadSlowdownMax - CONFIG.cart.loadSlowdownMin) * loadFraction;
+    const loadSpeedFactor = this.state.cart.carried ? 1 - loadPenalty : 1;
     const speed = (CONFIG.player.speed + this.levelStats.speed) * loadSpeedFactor;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
