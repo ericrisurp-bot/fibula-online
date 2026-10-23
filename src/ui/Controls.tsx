@@ -4,6 +4,7 @@ import type { InventoryStack } from '../game/inventory';
 import type { GameSnapshot } from '../game/engine';
 
 type Props = {
+  onInventoryToggle: () => void;
   flagWheelOpen: boolean;
   onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
@@ -27,7 +28,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory, cart, cartAccessible, onCartToggle, onTransferBagToCart, onTransferCartToBag }: Props) {
+export default function Controls({ onInventoryToggle, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory, cart, cartAccessible, onCartToggle, onTransferBagToCart, onTransferCartToBag }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
@@ -35,6 +36,8 @@ export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWhee
   useEffect(() => { if (flagWheelOpen) setMenuOpen(false); }, [flagWheelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const cartItemCount = cart.inventory.reduce((total, item) => total + item.quantity, 0);
+  const classOrder = Object.keys(CLASSES) as ClassId[];
+  const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current) return;
@@ -150,6 +153,10 @@ export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWhee
       <span className="joystick-cross vertical" />
       <span className="joystick-knob" style={{ transform: `translate(${stick.dx}px, ${stick.dy}px)` }} />
       <span className="joystick-label">MOVER</span>
+    </div>
+    <div className="mobile-quick-buttons" aria-label="Atalhos rápidos">
+      <button type="button" className="mobile-quick-class" onClick={() => onClass(nextClass)} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><span aria-hidden="true">↻</span><small>{CLASSES[classId].label}</small></button>
+      <button type="button" className="mobile-quick-bag" onClick={onInventoryToggle} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><span aria-hidden="true">🎒</span></button>
     </div>
   </div>;
 }
