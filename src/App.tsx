@@ -818,15 +818,17 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.restore();
   }
   if (rockMineTimer > 0) {
-    // A picareta sempre desce de cima para baixo; a direção da pedra não gira o golpe.
+    // Golpe de picareta em arco descendente: de 12h para 3h (pedra à direita)
+    // ou de 12h para 9h (pedra à esquerda). Mantém a ferramenta original.
     const progress = 1 - rockMineTimer / 0.22;
-    const travel = progress * r * 1.15;
-    ctx.save(); ctx.scale(facingScaleX, 1);
+    const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
+    const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.42, -r * 1.65 + travel); ctx.lineTo(r * 0.72, -r * 0.35 + travel); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
     ctx.strokeStyle = '#aeb8bd'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.12, -r * 1.45 + travel); ctx.lineTo(r * 0.78, -r * 1.6 + travel); ctx.lineTo(r * 0.9, -r * 1.42 + travel); ctx.lineTo(r * 0.25, -r * 1.27 + travel); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * 1.18, -r * 0.62); ctx.lineTo(r * 1.72, -r * 0.42); ctx.lineTo(r * 1.72, -r * 0.22); ctx.lineTo(r * 1.18, -r * 0.02); ctx.stroke();
     ctx.restore();
   }
   ctx.restore();
