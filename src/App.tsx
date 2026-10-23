@@ -33,8 +33,8 @@ export default function App() {
   const inventoryPanelOpenRef = useRef(false);
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
   const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
-  // O dia de sobrevivência inclui a noite correspondente: Dia 1 durante Noite 1; após o amanhecer, Dia 2.
-  const survivalDay = state.dayNight === 'night' ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
+  // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
+  const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
