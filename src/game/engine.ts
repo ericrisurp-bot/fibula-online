@@ -357,14 +357,19 @@ export class GameEngine {
     this.treeSpawnCountdown = this.treeSpawnDuration();
   }
 
-  private validTreePosition(x: number, y: number, minSpacing = 0, size: Tree['size'] = 'large') {
+  private validTreePosition(x: number, y: number, minSpacing = 0, size: Tree['size'] = 'large', allowNearHouse = false) {
     const margin = CONFIG.map.wall + 80;
     if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
     if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.trees.noSpawnRadius) return false;
     const candidate = { x, y, size } as Tree;
     const candidateBase = this.treeBase(candidate);
     const candidateFootprint = this.treeFootprintRadius(candidate);
-    if (Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y) < candidateFootprint + 45) return false;
+    const houseDistance = Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y);
+    if (allowNearHouse) {
+      if (houseDistance < candidateFootprint + 38 || houseDistance > CONFIG.trees.rareHouseRadius) return false;
+    } else if (houseDistance < CONFIG.house.treeClearRadius + candidateFootprint) {
+      return false;
+    }
     if (Math.hypot(candidateBase.x - this.state.cart.x, candidateBase.y - this.state.cart.y) < candidateFootprint + 38) return false;
     return this.state.trees.every(tree => {
       const base = this.treeBase(tree);
@@ -377,20 +382,61 @@ export class GameEngine {
     const margin = CONFIG.map.wall + 80;
     const roll = Math.random();
     const size: Tree['size'] = roll < CONFIG.trees.sizeWeights.small ? 'small' : roll < CONFIG.trees.sizeWeights.small + CONFIG.trees.sizeWeights.medium ? 'medium' : 'large';
-    const minSpacing = initial ? 300 : 0;
+    // As árvores iniciais não têm espaçamento artificial; só respeitam colisões e áreas proibidas.
+    const minSpacing = 0;
     let position: Vec | null = null;
 
-    // Árvores posteriores tendem a crescer perto de árvores existentes, formando bosques.
-    if (!initial && this.state.trees.length > 0 && Math.random() < 0.7) {
-      for (let attempt = 0; attempt < 100 && !position; attempt++) {
-        const anchor = this.state.trees[Math.floor(Math.random() * this.state.trees.length)];
+    // Uma árvore espontânea perto da casa é rara; depois de existir, ela atrai normalmente.
+    if (!initial && Math.random() < CONFIG.trees.rareHouseSpawnChance) {
+      for (let attempt = 0; attempt < 120 && !position; attempt++) {
         const angle = Math.random() * Math.PI * 2;
-        const distance = 90 + Math.random() * 80;
-        const x = anchor.x + Math.cos(angle) * distance;
-        const y = anchor.y + Math.sin(angle) * distance;
-        if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
+        const minimumDistance = this.treeFootprintRadius({ x: 0, y: 0, size } as Tree) + 42;
+        const distance = minimumDistance + Math.random() * Math.max(1, CONFIG.trees.rareHouseRadius - minimumDistance);
+        const x = this.state.house.x + Math.cos(angle) * distance;
+        const y = this.state.house.y + Math.sin(angle) * distance;
+        if (this.validTreePosition(x, y, minSpacing, size, true)) position = { x, y };
       }
     }
+
+    // A densidade local pesa a escolha do núcleo; a influência probabilística satura em 20 árvores.
+    if (!initial && !position && this.state.trees.length > 0) {
+      const nearbyCount = (tree: Tree) => this.state.trees.filter(other =>
+        Math.hypot(other.x - tree.x, other.y - tree.y) <= CONFIG.trees.attractionRadius
+      ).length;
+      const weightedAnchors = this.state.trees.map(tree => {
+        const count = Math.min(CONFIG.trees.attractionMaxNearby, nearbyCount(tree));
+        return { tree, count, weight: 1 + count * count };
+      });
+      const totalWeight = weightedAnchors.reduce((sum, item) => sum + item.weight, 0);
+      let ticket = Math.random() * totalWeight;
+      let selected = weightedAnchors[weightedAnchors.length - 1];
+      for (const item of weightedAnchors) {
+        ticket -= item.weight;
+        if (ticket <= 0) { selected = item; break; }
+      }
+
+      const count = Math.max(1, Math.min(CONFIG.trees.attractionMaxNearby, selected.count));
+      const attractionChance = count <= 5
+        ? 0.1 + (count - 1) * 0.05
+        : count <= 10
+          ? 0.3 + (count - 5) * 0.05
+          : count <= 15
+            ? 0.55 + (count - 10) * 0.03
+            : Math.min(CONFIG.trees.attractionMaxChance, 0.7 + (count - 15) * 0.02);
+      if (Math.random() < attractionChance) {
+        const anchor = selected.tree;
+        const anchorNearHouse = Math.hypot(anchor.x - this.state.house.x, anchor.y - this.state.house.y) <= CONFIG.trees.rareHouseRadius;
+        for (let attempt = 0; attempt < 120 && !position; attempt++) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = 90 + Math.random() * 80;
+          const x = anchor.x + Math.cos(angle) * distance;
+          const y = anchor.y + Math.sin(angle) * distance;
+          if (this.validTreePosition(x, y, minSpacing, size, anchorNearHouse)) position = { x, y };
+        }
+      }
+    }
+
+    // O restante dos nascimentos continua podendo ocupar qualquer região válida do mapa.
     for (let attempt = 0; attempt < 500 && !position; attempt++) {
       const x = margin + Math.random() * (this.world - margin * 2);
       const y = margin + Math.random() * (this.world - margin * 2);
@@ -446,12 +492,42 @@ export class GameEngine {
     this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
   }
 
+  private enemyMovementDirection(enemy: Enemy, targetX: number, targetY: number): Vec {
+    const distance = Math.hypot(targetX, targetY) || 1;
+    const dirX = targetX / distance;
+    const dirY = targetY / distance;
+    let steerX = dirX;
+    let steerY = dirY;
+    const sensorDistance = CONFIG.enemy.obstacleAvoidanceDistance;
+
+    for (const obstacle of this.obstacleCircles(false)) {
+      const offsetX = obstacle.x - enemy.x;
+      const offsetY = obstacle.y - enemy.y;
+      const forward = offsetX * dirX + offsetY * dirY;
+      const lateral = Math.abs(offsetX * dirY - offsetY * dirX);
+      const clearance = CONFIG.enemy.radius + obstacle.radius + CONFIG.enemy.obstacleAvoidanceBuffer;
+      if (forward <= 0 || forward > sensorDistance + clearance || lateral > clearance) continue;
+
+      // Desvia para o lado oposto ao obstáculo; em empate, o ID mantém o lado estável.
+      const cross = dirX * offsetY - dirY * offsetX;
+      const side = Math.abs(cross) < 0.001 ? (enemy.id % 2 === 0 ? 1 : -1) : cross > 0 ? -1 : 1;
+      const urgency = 1 - Math.min(forward, sensorDistance + clearance) / (sensorDistance + clearance);
+      const strength = 1.15 + urgency;
+      steerX += -dirY * side * strength;
+      steerY += dirX * side * strength;
+    }
+
+    const magnitude = Math.hypot(steerX, steerY) || 1;
+    return { x: steerX / magnitude, y: steerY / magnitude };
+  }
+
   private moveEnemies(dt: number) {
     const p = this.state.player;
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
-      e.x += dx / dist * speed * dt; e.y += dy / dist * speed * dt;
+      const direction = this.enemyMovementDirection(e, dx, dy);
+      e.x += direction.x * speed * dt; e.y += direction.y * speed * dt;
       e.hitWait -= dt;
       if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
