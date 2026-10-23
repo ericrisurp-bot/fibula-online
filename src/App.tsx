@@ -22,9 +22,10 @@ export default function App() {
   const zoomRef = useRef(1.6);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
-  const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; worldX: number; worldY: number; timer: number | null } | null>(null);
+  const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
-  const [flagMenu, setFlagMenu] = useState<{ x: number; y: number; screenX: number; screenY: number } | null>(null);
+  const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; selected: string | null } | null>(null);
+  const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; selected: string | null } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
 
@@ -160,6 +161,7 @@ export default function App() {
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagWheel();
       engine.setKey(k, true);
       if (k === 'c') engine.toggleCamera();
       if (k === '1') engine.setClass('guerreiro');
@@ -175,55 +177,86 @@ export default function App() {
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
-  const restart = () => { flagsRef.current = []; setFlags([]); setFlagMenu(null); engineRef.current?.restart(); };
+  const setWheel = (next: { pointerId: number; screenX: number; screenY: number; selected: string | null } | null) => {
+    flagWheelRef.current = next;
+    setFlagWheel(next);
+  };
+  const closeFlagWheel = () => { if (flagWheelRef.current) setWheel(null); };
+  const restart = () => { flagsRef.current = []; setFlags([]); setWheel(null); engineRef.current?.restart(); };
   const worldPointAt = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return null;
     const transform = cameraTransformRef.current;
     return { x: (clientX - rect.left) / transform.scale + transform.left, y: (clientY - rect.top) / transform.scale + transform.top };
   };
-  const openFlagMenuAt = (clientX: number, clientY: number, worldX: number, worldY: number) => {
+  const openFlagWheelAt = (clientX: number, clientY: number, pointerId: number) => {
     const stage = canvasRef.current?.parentElement;
-    const canvas = canvasRef.current;
-    const player = engineRef.current?.state.player;
-    if (!stage || !canvas || !player || Math.hypot(worldX - player.x, worldY - player.y) > CONFIG.flags.placeRadius) return;
-    const stageRect = stage.getBoundingClientRect();
-    setFlagMenu({ x: worldX, y: worldY, screenX: Math.max(6, Math.min(clientX - stageRect.left, stageRect.width - 190)), screenY: Math.max(6, Math.min(clientY - stageRect.top, stageRect.height - 72)) });
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    const marginX = Math.min(84, rect.width / 2);
+    const marginY = Math.min(84, rect.height / 2);
+    const screenX = Math.max(marginX, Math.min(clientX - rect.left, rect.width - marginX));
+    const screenY = Math.max(marginY, Math.min(clientY - rect.top, rect.height - marginY));
+    setWheel({ pointerId, screenX, screenY, selected: null });
   };
   const onFlagTap = (clientX: number, clientY: number) => {
     const point = worldPointAt(clientX, clientY);
-    if (!point) return false;
+    const player = engineRef.current?.state.player;
+    if (!point || !player || Math.hypot(point.x - player.x, point.y - player.y) < 40) return false;
     const existing = flagsRef.current.find(flag => Math.hypot(flag.x - point.x, flag.y - point.y) <= 22);
     if (!existing) return false;
     const next = flagsRef.current.filter(flag => flag.colorId !== existing.colorId);
     flagsRef.current = next; setFlags(next);
     return true;
   };
-  const onJoystickLongPress = (clientX: number, clientY: number) => {
-    const point = worldPointAt(clientX, clientY);
-    if (point) openFlagMenuAt(clientX, clientY, point.x, point.y);
+  const updateWheelSelection = (clientX: number, clientY: number, pointerId: number) => {
+    const wheel = flagWheelRef.current;
+    const stage = canvasRef.current?.parentElement;
+    if (!wheel || wheel.pointerId !== pointerId || !stage) return;
+    const rect = stage.getBoundingClientRect();
+    const dx = clientX - (rect.left + wheel.screenX);
+    const dy = clientY - (rect.top + wheel.screenY);
+    let selected: string | null = null;
+    if (Math.hypot(dx, dy) >= 30) {
+      if (Math.abs(dx) > Math.abs(dy)) selected = dx > 0 ? 'green' : 'blue';
+      else selected = dy > 0 ? 'red' : 'yellow';
+    }
+    if (wheel.selected !== selected) setWheel({ ...wheel, selected });
   };
+  const onWheelMove = (clientX: number, clientY: number, pointerId: number) => updateWheelSelection(clientX, clientY, pointerId);
+  const onWheelEnd = (clientX: number, clientY: number, pointerId: number) => {
+    if (flagWheelRef.current?.pointerId !== pointerId) return;
+    updateWheelSelection(clientX, clientY, pointerId);
+    const wheel = flagWheelRef.current;
+    const color = wheel?.selected ? CONFIG.flags.colors.find(item => item.id === wheel.selected) : null;
+    const player = engineRef.current?.state.player;
+    if (color && player) {
+      const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), { colorId: color.id, color: color.color, x: player.x, y: player.y }];
+      flagsRef.current = next; setFlags(next);
+    }
+    setWheel(null);
+  };
+  const onJoystickLongPress = (clientX: number, clientY: number, pointerId: number) => openFlagWheelAt(clientX, clientY, pointerId);
   const onFlagPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (flagMenu) return;
-    const point = worldPointAt(event.clientX, event.clientY);
-    if (!point) return;
-    const existing = flagsRef.current.find(flag => Math.hypot(flag.x - point.x, flag.y - point.y) <= 22);
-    if (existing) {
-      const next = flagsRef.current.filter(flag => flag.colorId !== existing.colorId);
-      flagsRef.current = next; setFlags(next); event.preventDefault(); return;
-    }
+    if (flagWheelRef.current) return;
     if (event.button === 2) {
-      event.preventDefault(); openFlagMenuAt(event.clientX, event.clientY, point.x, point.y); return;
+      event.preventDefault();
+      openFlagWheelAt(event.clientX, event.clientY, event.pointerId);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
     }
-    const pending = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, worldX: point.x, worldY: point.y, timer: null as number | null };
+    if (onFlagTap(event.clientX, event.clientY)) { event.preventDefault(); return; }
+    const pending = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, timer: null as number | null };
     pending.timer = window.setTimeout(() => {
       if (flagHoldRef.current !== pending) return;
-      openFlagMenuAt(pending.clientX, pending.clientY, pending.worldX, pending.worldY);
+      openFlagWheelAt(pending.clientX, pending.clientY, pending.pointerId);
       flagHoldRef.current = null;
     }, 400);
     flagHoldRef.current = pending;
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
   const onFlagPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (flagWheelRef.current?.pointerId === event.pointerId) { updateWheelSelection(event.clientX, event.clientY, event.pointerId); return; }
     const pending = flagHoldRef.current;
     if (!pending || pending.pointerId !== event.pointerId) return;
     if (Math.hypot(event.clientX - pending.clientX, event.clientY - pending.clientY) > 10) {
@@ -232,23 +265,13 @@ export default function App() {
     }
   };
   const onFlagPointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (flagWheelRef.current?.pointerId === event.pointerId) { onWheelEnd(event.clientX, event.clientY, event.pointerId); return; }
     const pending = flagHoldRef.current;
     if (!pending || pending.pointerId !== event.pointerId) return;
     if (pending.timer !== null) window.clearTimeout(pending.timer);
     flagHoldRef.current = null;
   };
-  const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    const point = worldPointAt(event.clientX, event.clientY);
-    if (point) openFlagMenuAt(event.clientX, event.clientY, point.x, point.y);
-  };
-  const placeFlag = (colorId: string) => {
-    if (!flagMenu) return;
-    const color = CONFIG.flags.colors.find(item => item.id === colorId);
-    if (!color) return;
-    const next = [...flagsRef.current.filter(flag => flag.colorId !== colorId), { colorId, color: color.color, x: flagMenu.x, y: flagMenu.y }];
-    flagsRef.current = next; setFlags(next); setFlagMenu(null);
-  };
+  const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
   const startGame = () => {
     const stage = canvasRef.current?.parentElement;
     if (stage?.requestFullscreen) {
@@ -296,9 +319,11 @@ export default function App() {
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
-      {flagMenu && <div className="flag-menu-backdrop" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setFlagMenu(null); }} onContextMenu={event => { event.preventDefault(); setFlagMenu(null); }} />}
-      {flagMenu && <div className="flag-menu" role="dialog" aria-label="Escolher bandeira" style={{ left: flagMenu.screenX, top: flagMenu.screenY }} onPointerDown={event => event.stopPropagation()}>{CONFIG.flags.colors.map(item => <button key={item.id} type="button" aria-label={item.label} title={item.label} onClick={() => placeFlag(item.id)}><span style={{ background: item.color }} />{item.label}</button>)}</div>}
-      <Controls flagMenuOpen={flagMenu !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
+      {flagWheel && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={{ left: flagWheel.screenX, top: flagWheel.screenY }}>
+        {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
+        <div className="flag-wheel-center" aria-hidden="true">×</div>
+      </div>}
+      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
     </section>
 
   </main>;
