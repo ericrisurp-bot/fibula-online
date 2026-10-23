@@ -309,8 +309,10 @@ export class GameEngine {
     this.state.nightNumber = this.nightNumber;
     if (dayNight.isNight && !this.wasNight) this.beginNight();
     this.wasNight = dayNight.isNight;
-    if (dayNight.isNight && this.hordeTarget > 0) {
-      const progress = Math.min(1, dayNight.phaseElapsed / CONFIG.dayNight.dayDuration);
+    if (dayNight.isNight && this.hordeTarget > 0
+      && dayNight.phaseElapsed < CONFIG.dayNight.dayDuration - CONFIG.dayNight.spawnStopBeforeDawn) {
+      const spawnWindow = CONFIG.dayNight.dayDuration - CONFIG.dayNight.spawnStopBeforeDawn;
+      const progress = Math.min(1, dayNight.phaseElapsed / spawnWindow);
       // Divide a noite em cinco ondas; cada fatia distribui sua parcela gradualmente.
       const distribution = CONFIG.dayNight.spawnWaveDistribution;
       const stageProgress = progress * distribution.length;
@@ -503,9 +505,7 @@ export class GameEngine {
     const phaseElapsedTotal = (this.elapsed + (this.startAtNight ? 0 : CONFIG.dayNight.dayDuration)) % CONFIG.dayNight.cycle;
     const isNight = phaseElapsedTotal < CONFIG.dayNight.dayDuration;
     const phaseElapsed = isNight ? phaseElapsedTotal : phaseElapsedTotal - CONFIG.dayNight.dayDuration;
-    const vulnerability = !isNight && phaseElapsed < CONFIG.dayNight.dawnWeaknessDuration
-      ? Math.min(0.5, (Math.floor(phaseElapsed) + 1) * CONFIG.dayNight.dawnVulnerabilityPerSecond)
-      : 0;
+    const vulnerability = isNight ? 0 : CONFIG.dayNight.dayDamageVulnerability;
     return { isNight, phaseElapsed, vulnerability };
   }
 
@@ -521,13 +521,30 @@ export class GameEngine {
   private spawnHordeEnemy() {
     if (this.state.enemies.length >= CONFIG.dayNight.maxAlive) return;
     this.hordeSpawned += 1;
-    const edge = Math.floor(Math.random() * 4), offset = 90 + Math.random() * (this.world - 180);
-    let x = offset, y = offset;
-    if (edge === 0) { x = CONFIG.map.wall + 24; y = offset; }
-    if (edge === 1) { x = this.world - CONFIG.map.wall - 24; y = offset; }
-    if (edge === 2) { x = offset; y = CONFIG.map.wall + 24; }
-    if (edge === 3) { x = offset; y = this.world - CONFIG.map.wall - 24; }
-    if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 320) { x = this.clamp(x + 420, 80, this.world - 80); }
+    const player = this.state.player;
+    const margin = CONFIG.map.wall + CONFIG.enemy.radius + 8;
+    let x = player.x, y = player.y;
+    let placed = false;
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = CONFIG.dayNight.spawnMinDistance
+        + Math.random() * (CONFIG.dayNight.spawnMaxDistance - CONFIG.dayNight.spawnMinDistance);
+      const candidateX = player.x + Math.cos(angle) * distance;
+      const candidateY = player.y + Math.sin(angle) * distance;
+      if (candidateX < margin || candidateX > this.world - margin || candidateY < margin || candidateY > this.world - margin) continue;
+      x = candidateX;
+      y = candidateY;
+      placed = true;
+      break;
+    }
+    if (!placed) {
+      // Fallback for unusual edge positions: move toward the map center and keep the spawn inside bounds.
+      const dx = this.world / 2 - player.x;
+      const dy = this.world / 2 - player.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      x = this.clamp(player.x + dx / distance * CONFIG.dayNight.spawnMinDistance, margin, this.world - margin);
+      y = this.clamp(player.y + dy / distance * CONFIG.dayNight.spawnMinDistance, margin, this.world - margin);
+    }
     this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
   }
 
