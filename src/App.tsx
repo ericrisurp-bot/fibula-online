@@ -185,9 +185,23 @@ export default function App() {
   const openFlagMenuAt = (clientX: number, clientY: number, worldX: number, worldY: number) => {
     const stage = canvasRef.current?.parentElement;
     const canvas = canvasRef.current;
-    if (!stage || !canvas || Math.hypot(worldX - state.player.x, worldY - state.player.y) > CONFIG.flags.placeRadius) return;
+    const player = engineRef.current?.state.player;
+    if (!stage || !canvas || !player || Math.hypot(worldX - player.x, worldY - player.y) > CONFIG.flags.placeRadius) return;
     const stageRect = stage.getBoundingClientRect();
     setFlagMenu({ x: worldX, y: worldY, screenX: Math.max(6, Math.min(clientX - stageRect.left, stageRect.width - 190)), screenY: Math.max(6, Math.min(clientY - stageRect.top, stageRect.height - 72)) });
+  };
+  const onFlagTap = (clientX: number, clientY: number) => {
+    const point = worldPointAt(clientX, clientY);
+    if (!point) return false;
+    const existing = flagsRef.current.find(flag => Math.hypot(flag.x - point.x, flag.y - point.y) <= 22);
+    if (!existing) return false;
+    const next = flagsRef.current.filter(flag => flag.colorId !== existing.colorId);
+    flagsRef.current = next; setFlags(next);
+    return true;
+  };
+  const onJoystickLongPress = (clientX: number, clientY: number) => {
+    const point = worldPointAt(clientX, clientY);
+    if (point) openFlagMenuAt(clientX, clientY, point.x, point.y);
   };
   const onFlagPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
     if (flagMenu) return;
@@ -284,7 +298,7 @@ export default function App() {
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {flagMenu && <div className="flag-menu-backdrop" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setFlagMenu(null); }} onContextMenu={event => { event.preventDefault(); setFlagMenu(null); }} />}
       {flagMenu && <div className="flag-menu" role="dialog" aria-label="Escolher bandeira" style={{ left: flagMenu.screenX, top: flagMenu.screenY }} onPointerDown={event => event.stopPropagation()}>{CONFIG.flags.colors.map(item => <button key={item.id} type="button" aria-label={item.label} title={item.label} onClick={() => placeFlag(item.id)}><span style={{ background: item.color }} />{item.label}</button>)}</div>}
-      <Controls flagMenuOpen={flagMenu !== null} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
+      <Controls flagMenuOpen={flagMenu !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
     </section>
 
   </main>;
