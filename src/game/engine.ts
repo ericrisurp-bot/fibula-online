@@ -52,7 +52,7 @@ export class GameEngine {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false },
-      cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI / 2, repairWood: 0, repaired: false, carried: false, inventory: [] },
+      cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
       enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -132,7 +132,7 @@ export class GameEngine {
       cart.y = this.clamp(this.state.player.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
     } else if (Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) <= CONFIG.cart.interactRadius) {
       cart.carried = true;
-      cart.angle = Math.atan2(this.state.player.facingY, this.state.player.facingX);
+      cart.angle = this.state.player.facingX < -0.15 ? Math.PI : 0;
       this.updateCart(0);
     } else return;
     this.emit();
@@ -187,9 +187,9 @@ export class GameEngine {
     const cart = this.state.cart;
     if (!cart.carried) return;
     const p = this.state.player;
-    const targetAngle = Math.atan2(p.facingY, p.facingX);
-    const angleDelta = Math.atan2(Math.sin(targetAngle - cart.angle), Math.cos(targetAngle - cart.angle));
-    cart.angle += angleDelta * Math.min(1, dt * 10);
+    // O carrinho só espelha na horizontal; movimentos para cima/baixo mantêm o último lado.
+    if (p.facingX < -0.15) cart.angle = Math.PI;
+    else if (p.facingX > 0.15) cart.angle = 0;
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const targetX = this.clamp(p.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
     const targetY = this.clamp(p.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
@@ -210,10 +210,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius) continue;
       if (this.state.trees.some(tree => Math.hypot(x - tree.x, y - tree.y) < CONFIG.house.treeClearRadius)) continue;
-      this.state.cart = { x, y, angle: Math.PI / 2, repairWood: 0, repaired: false, carried: false, inventory: [] };
+      this.state.cart = { x, y, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] };
       return;
     }
-    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI / 2, repairWood: 0, repaired: false, carried: false, inventory: [] };
+    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] };
   }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
