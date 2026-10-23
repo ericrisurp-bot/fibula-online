@@ -24,8 +24,8 @@ export default function App() {
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
-  const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; selected: string | null } | null>(null);
-  const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; selected: string | null } | null>(null);
+  const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
+  const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
 
@@ -177,7 +177,7 @@ export default function App() {
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
-  const setWheel = (next: { pointerId: number; screenX: number; screenY: number; selected: string | null } | null) => {
+  const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
     setFlagWheel(next);
   };
@@ -197,7 +197,7 @@ export default function App() {
     const marginY = Math.min(84, rect.height / 2);
     const screenX = Math.max(marginX, Math.min(clientX - rect.left, rect.width - marginX));
     const screenY = Math.max(marginY, Math.min(clientY - rect.top, rect.height - marginY));
-    setWheel({ pointerId, screenX, screenY, selected: null });
+    setWheel({ pointerId, screenX, screenY, originX: clientX, originY: clientY, selected: null });
   };
   const onFlagTap = (clientX: number, clientY: number) => {
     const point = worldPointAt(clientX, clientY);
@@ -217,7 +217,8 @@ export default function App() {
     const dx = clientX - (rect.left + wheel.screenX);
     const dy = clientY - (rect.top + wheel.screenY);
     let selected: string | null = null;
-    if (Math.hypot(dx, dy) >= 30) {
+    const dragged = Math.hypot(clientX - wheel.originX, clientY - wheel.originY) >= 30;
+    if (dragged && Math.hypot(dx, dy) >= 30) {
       if (Math.abs(dx) > Math.abs(dy)) selected = dx > 0 ? 'green' : 'blue';
       else selected = dy > 0 ? 'red' : 'yellow';
     }
