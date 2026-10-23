@@ -7,7 +7,7 @@ const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -28,8 +28,7 @@ export default function App() {
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
-  const cyclePosition = state.elapsed % CONFIG.waves.cycle;
-  const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
+  const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
   const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
@@ -157,7 +156,18 @@ export default function App() {
         ctx.strokeText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.fillStyle = damage.color;
         ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
-        ctx.restore();
+        if (s.dayNight === 'night') {
+        // Névoa noturna suave: o centro permanece legível e o cenário distante escurece gradualmente.
+        const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
+        const fog = ctx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
+        fog.addColorStop(0, 'rgba(5, 8, 18, 0.025)');
+        fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.14)');
+        fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.25)');
+        fog.addColorStop(1, 'rgba(5, 8, 18, 0.34)');
+        ctx.fillStyle = fog;
+        ctx.fillRect(0, 0, engine.world, engine.world);
+      }
+      ctx.restore();
       }
       ctx.restore();
       // Indicadores discretos na borda para bandeiras fora da área visível.
@@ -364,14 +374,14 @@ export default function App() {
             <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
           </div>
-          <div className="hud-chip compact"><span>RESPIRO</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
+          <div className="hud-chip compact"><span>DIA / NOITE</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
       </div>
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
         <div className="start-panel">
           <div className="start-eyebrow">FÍBULA ONLINE</div>
           <h1>Pronto para sobreviver?</h1>
-          <p>Entre no campo de batalha e sobreviva às ondas.</p>
+          <p>Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.</p>
           <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
           <button className="start-normal" type="button" onClick={() => setShowStart(false)}>Jogar sem tela cheia</button>
         </div>
