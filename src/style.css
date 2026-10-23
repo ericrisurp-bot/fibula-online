@@ -322,3 +322,12 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .bag-slot-number{font-size:9px;font-weight:700;opacity:.5}
 .bag-item-icon{font-size:19px;line-height:1}
 .bag-slot strong{position:absolute;right:3px;bottom:2px;padding:1px 3px;border-radius:4px;background:rgba(0,0,0,.72);color:#fff;font-size:9px;line-height:1.2}
+
+
+/* Menu mobile acima do HUD; o backdrop consome toques fora do painel. */
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .mobile-controls{z-index:5}
+}
+.mobile-menu-backdrop{position:absolute;z-index:7;inset:0;background:transparent;pointer-events:auto;touch-action:manipulation}
+.mobile-menu-panel{z-index:9}
+.mobile-menu-trigger{z-index:8}

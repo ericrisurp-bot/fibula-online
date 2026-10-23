@@ -57,6 +57,12 @@ export default function Controls({ onMove, onRange, onZoom, onClass, classId, sh
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
+    {menuOpen && <div
+      className="mobile-menu-backdrop"
+      aria-hidden="true"
+      onPointerDown={event => event.stopPropagation()}
+      onClick={event => { event.stopPropagation(); setMenuOpen(false); }}
+    />}
     {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
       <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
 <div className="menu-section-label">BAG · {inventory.reduce((total, item) => total + item.quantity, 0)} itens</div>
