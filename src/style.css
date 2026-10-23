@@ -401,6 +401,8 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 }
 
 
+.inventory-quick-backdrop{position:absolute;inset:0;z-index:17;background:transparent;touch-action:manipulation}
+
 /* Painel rápido PC: mochila + carrinho, carvão translúcido no padrão #222322. */
 .inventory-quick-panel{
   position:absolute;
