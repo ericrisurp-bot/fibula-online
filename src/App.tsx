@@ -7,7 +7,7 @@ const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -28,8 +28,9 @@ export default function App() {
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
-  const cyclePosition = state.elapsed % CONFIG.waves.cycle;
-  const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
+  const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
+  // O dia de sobrevivência inclui a noite correspondente: Dia 1 durante Noite 1; após o amanhecer, Dia 2.
+  const survivalDay = state.dayNight === 'night' ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
@@ -159,7 +160,39 @@ export default function App() {
         ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.restore();
       }
+      const transition = CONFIG.dayNight.transitionDuration;
+      const darkness = s.dayNight === 'night'
+        ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
+        : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
+      if (darkness > 0.01) {
+        // A noite fica bem mais escura; a iluminação muda gradualmente nos últimos 5s de cada fase.
+        const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
+        const fog = ctx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
+        fog.addColorStop(0, `rgba(5, 8, 18, ${0.24 * darkness})`);
+        fog.addColorStop(0.45, `rgba(5, 8, 18, ${0.5 * darkness})`);
+        fog.addColorStop(0.78, `rgba(5, 8, 18, ${0.75 * darkness})`);
+        fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength) * darkness})`);
+        ctx.fillStyle = fog;
+        ctx.fillRect(0, 0, engine.world, engine.world);
+      }
       ctx.restore();
+      // Vinheta em coordenadas da tela: centro claro ao redor do personagem e bordas progressivamente escuras.
+      if (darkness > 0.01) {
+        const playerScreenX = (s.player.x - left) * scale;
+        const playerScreenY = (s.player.y - top) * scale;
+        const vignetteRadius = Math.hypot(w / 2, h / 2);
+        const vignette = ctx.createRadialGradient(
+          playerScreenX, playerScreenY, Math.min(w, h) * 0.08,
+          playerScreenX, playerScreenY, vignetteRadius,
+        );
+        vignette.addColorStop(0, `rgba(3, 5, 13, ${0.02 * darkness})`);
+        vignette.addColorStop(0.35, `rgba(3, 5, 13, ${0.08 * darkness})`);
+        vignette.addColorStop(0.6, `rgba(3, 5, 13, ${0.28 * darkness})`);
+        vignette.addColorStop(0.82, `rgba(3, 5, 13, ${0.58 * darkness})`);
+        vignette.addColorStop(1, `rgba(3, 5, 13, ${0.78 * darkness})`);
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, w, h);
+      }
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
         const flagX = flag.attachedToCart ? s.cart.x : flag.x;
@@ -332,6 +365,12 @@ export default function App() {
     flagHoldRef.current = null;
   };
   const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
+  const beginGame = () => {
+    // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
+    flagsRef.current = []; setFlags([]); setWheel(null);
+    engineRef.current?.restart();
+    setShowStart(false);
+  };
   const startGame = () => {
     const stage = canvasRef.current?.parentElement;
     if (stage?.requestFullscreen) {
@@ -339,7 +378,7 @@ export default function App() {
         // Alguns navegadores ou modos incorporados não permitem tela cheia.
       });
     }
-    setShowStart(false);
+    beginGame();
   };
 
   return <main className="game-shell">
@@ -361,19 +400,19 @@ export default function App() {
         <div className="hud-center-stack">
           <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
           <div className="hud-substats">
-            <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave}</strong></div>
+            <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
           </div>
-          <div className="hud-chip compact"><span>RESPIRO</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
+          <div className="hud-chip compact"><span>DIA / NOITE</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
       </div>
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
         <div className="start-panel">
           <div className="start-eyebrow">FÍBULA ONLINE</div>
           <h1>Pronto para sobreviver?</h1>
-          <p>Entre no campo de batalha e sobreviva às ondas.</p>
+          <p>Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.</p>
           <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
-          <button className="start-normal" type="button" onClick={() => setShowStart(false)}>Jogar sem tela cheia</button>
+          <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>E</b> pega/solta o carrinho reparado quando estiver perto.</p></div>}
