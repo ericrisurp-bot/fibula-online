@@ -16,7 +16,7 @@ type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'o
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = Vec & { angle: number; repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
-type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stonesProcessed: number; bronzeProduced: number };
+type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   house: Vec & { woodDelivered: number; built: boolean; inventory: InventoryStack[] };
@@ -68,7 +68,7 @@ export class GameEngine {
     return {
       player: { x: this.world / 2, y: this.world / 2, hp: CONFIG.player.maxHealth, maxHp: CONFIG.player.maxHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
-      refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stonesProcessed: 0, bronzeProduced: 0 },
+      refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
@@ -211,37 +211,42 @@ export class GameEngine {
     }
   }
 
+  private deliverStonesToRefinery() {
+    const refinery = this.state.refinery;
+    if (!refinery.built || refinery.stoneStock >= CONFIG.refinery.stoneCapacity) return;
+    const playerNear = Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const transferStones = (inventory: InventoryStack[]) => {
+      const room = CONFIG.refinery.stoneCapacity - refinery.stoneStock;
+      let toRemove = room;
+      let transferred = 0;
+      const nextInventory = inventory.flatMap(stack => {
+        if (stack.itemId !== 'stone' || toRemove <= 0) return [stack];
+        const used = Math.min(stack.quantity, toRemove);
+        toRemove -= used;
+        transferred += used;
+        const left = stack.quantity - used;
+        return left > 0 ? [{ ...stack, quantity: left }] : [];
+      });
+      refinery.stoneStock += transferred;
+      return nextInventory;
+    };
+    if (playerNear && refinery.stoneStock < CONFIG.refinery.stoneCapacity) this.state.inventory = transferStones(this.state.inventory);
+    if (cartCanDeliver && refinery.stoneStock < CONFIG.refinery.stoneCapacity) this.state.cart.inventory = transferStones(this.state.cart.inventory);
+  }
+
   private processRefinery(dt: number) {
     const refinery = this.state.refinery;
-    if (!refinery.built || Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) > CONFIG.refinery.interactRadius) {
-      this.refineryProcessTimer = 0;
-      return;
-    }
-
-    const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
-    const cartCanDeliver = this.state.cart.carried || cartNear;
-    const hasPlayerStone = this.state.inventory.some(stack => stack.itemId === 'stone' && stack.quantity > 0);
-    const hasCartStone = cartCanDeliver && this.state.cart.inventory.some(stack => stack.itemId === 'stone' && stack.quantity > 0);
-    if (!hasPlayerStone && !hasCartStone) {
+    if (!refinery.built || refinery.stoneStock <= 0) {
       this.refineryProcessTimer = 0;
       return;
     }
 
     this.refineryProcessTimer += dt;
     if (this.refineryProcessTimer < CONFIG.refinery.processInterval) return;
-
-    const consumeOneStone = (inventory: InventoryStack[]) => {
-      const index = inventory.findIndex(stack => stack.itemId === 'stone' && stack.quantity > 0);
-      if (index < 0) return false;
-      const stack = inventory[index];
-      if (stack.quantity <= 1) inventory.splice(index, 1);
-      else inventory[index] = { ...stack, quantity: stack.quantity - 1 };
-      return true;
-    };
-
-    const consumed = hasPlayerStone ? consumeOneStone(this.state.inventory) : consumeOneStone(this.state.cart.inventory);
-    this.refineryProcessTimer = 0;
-    if (!consumed) return;
+    this.refineryProcessTimer -= CONFIG.refinery.processInterval;
+    refinery.stoneStock -= 1;
     refinery.stonesProcessed += 1;
     if (Math.random() < CONFIG.refinery.bronzeChance) {
       const angle = Math.random() * Math.PI * 2;
@@ -249,6 +254,7 @@ export class GameEngine {
       this.state.bronzeDrops.push({ id: this.nextId++, x: refinery.x + Math.cos(angle) * distance, y: refinery.y + Math.sin(angle) * distance });
       refinery.bronzeProduced += 1;
     }
+    if (refinery.stoneStock <= 0) this.refineryProcessTimer = 0;
   }
 
   private collectBronze() {
@@ -414,7 +420,7 @@ export class GameEngine {
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.woodDrops.length, s.stoneDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -483,7 +489,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.processRefinery(dt); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
+    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -510,10 +516,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 120) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < CONFIG.refinery.treeClearRadius + this.treeFootprintRadius(tree))) continue;
       if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < CONFIG.refinery.rockClearRadius + this.rockFootprintRadius(rock))) continue;
-      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stonesProcessed: 0, bronzeProduced: 0 };
+      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
       return;
     }
-    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false };
+    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
   }
 
   private placeHouse() {
