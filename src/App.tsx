@@ -29,6 +29,8 @@ export default function App() {
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
+  // O dia de sobrevivência inclui a noite correspondente: Dia 1 durante Noite 1; após o amanhecer, Dia 2.
+  const survivalDay = state.dayNight === 'night' ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
@@ -398,7 +400,7 @@ export default function App() {
         <div className="hud-center-stack">
           <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
           <div className="hud-substats">
-            <div className="hud-chip compact"><span>ONDA</span><strong>{state.wave}</strong></div>
+            <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
             <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
           </div>
           <div className="hud-chip compact"><span>DIA / NOITE</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
