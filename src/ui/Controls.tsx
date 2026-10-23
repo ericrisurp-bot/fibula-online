@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { CONFIG, CLASSES, type ClassId } from '../game/config';
-import type { InventoryStack } from '../game/inventory';
-import type { GameSnapshot } from '../game/engine';
+import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
+  onInventoryToggle: () => void;
   flagWheelOpen: boolean;
   onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
@@ -17,24 +16,19 @@ type Props = {
   classId: ClassId;
   showRange: boolean;
   weaponLabel: string;
-  inventory: InventoryStack[];
-  cart: GameSnapshot['cart'];
-  cartAccessible: boolean;
-  onCartToggle: () => void;
-  onTransferBagToCart: (index: number) => void;
-  onTransferCartToBag: (index: number) => void;
 };
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory, cart, cartAccessible, onCartToggle, onTransferBagToCart, onTransferCartToBag }: Props) {
+export default function Controls({ onInventoryToggle, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => { if (flagWheelOpen) setMenuOpen(false); }, [flagWheelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
-  const cartItemCount = cart.inventory.reduce((total, item) => total + item.quantity, 0);
+  const classOrder = Object.keys(CLASSES) as ClassId[];
+  const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current) return;
@@ -100,33 +94,7 @@ export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWhee
     />}
     {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
       <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
-<div className="menu-section-label">BAG · {inventory.reduce((total, item) => total + item.quantity, 0)} itens</div>
-<div className="bag-slot-grid" aria-label="Mochila com 3 espaços">
-  {Array.from({ length: 3 }, (_, index) => {
-    const item = inventory[index];
-    const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId) : 'vazio';
-    return <div className={item ? 'bag-slot filled' : 'bag-slot'} key={index} aria-label={'Espaço ' + (index + 1) + ': ' + itemName + (item ? ', ' + item.quantity : '')}>
-      {item ? <><span className="bag-item-icon" aria-hidden="true">{item.itemId === 'wood' ? '🪵' : '📦'}</span><strong>×{item.quantity}</strong></> : <span className="bag-slot-number">{index + 1}</span>}
-    </div>;
-  })}
-</div>
-      <div className="menu-section-label">CARRINHO · {cart.repaired ? `${cartItemCount}/${CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot} itens` : `QUEBRADO · ${cart.repairWood}/${CONFIG.cart.repairCost} madeira`}</div>
-      {!cart.repaired && <p className="cart-menu-note">Aproxime-se com madeira na mochila para consertar automaticamente.</p>}
-      {cart.repaired && <button className="cart-menu-action" type="button" disabled={!cartAccessible} onClick={() => { onCartToggle(); setMenuOpen(false); }}>{cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
-      <div className="cart-slot-grid" aria-label="Carrinho com 10 espaços">
-        {Array.from({ length: CONFIG.cart.capacitySlots }, (_, index) => {
-          const item = cart.inventory[index];
-          const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId) : 'vazio';
-          return <div className={item ? 'cart-slot filled' : 'cart-slot'} key={index} aria-label={'Espaço do carrinho ' + (index + 1) + ': ' + itemName + (item ? ', ' + item.quantity : '')}>
-            {item ? <><span className="bag-item-icon" aria-hidden="true">{item.itemId === 'wood' ? '🪵' : '📦'}</span><strong>×{item.quantity}</strong><button type="button" disabled={!cartAccessible} onClick={() => onTransferCartToBag(index)} aria-label={'Retirar ' + itemName + ' do carrinho'}>↓</button></> : <span className="bag-slot-number">{index + 1}</span>}
-          </div>;
-        })}
-      </div>
-      <div className="cart-transfer-list">
-        {inventory.map((item, index) => <button key={index} type="button" disabled={!cartAccessible} onClick={() => onTransferBagToCart(index)}>Enviar {item.itemId === 'wood' ? '🪵' : '📦'} ×{item.quantity} →</button>)}
-        {inventory.length === 0 && <span>Mochila vazia</span>}
-      </div>
-      <div className="menu-section-label">CLASSES</div>
+<div className="menu-section-label">CLASSES</div>
       <div className="menu-class-grid">
         {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} type="button" className={classId === id ? 'selected' : ''} aria-pressed={classId === id} title={CLASSES[id].description} onClick={() => { onClass(id); setMenuOpen(false); }}>{index + 1} · {CLASSES[id].label}</button>)}
       </div>
@@ -150,6 +118,10 @@ export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWhee
       <span className="joystick-cross vertical" />
       <span className="joystick-knob" style={{ transform: `translate(${stick.dx}px, ${stick.dy}px)` }} />
       <span className="joystick-label">MOVER</span>
+    </div>
+    <div className="mobile-quick-buttons" aria-label="Atalhos rápidos">
+      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><span aria-hidden="true">↻</span><small>{CLASSES[classId].label}</small></button>
+      <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><span aria-hidden="true">🎒</span></button>
     </div>
   </div>;
 }

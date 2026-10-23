@@ -5,9 +5,9 @@ import Controls from './ui/Controls';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
-  house: { x: 600, y: 600, woodDelivered: 0, built: false },
+  house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -28,9 +28,13 @@ export default function App() {
   const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
+  const flagHotkeyOpenRef = useRef(false);
+  const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
+  const inventoryPanelOpenRef = useRef(false);
+  const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
   const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
-  // O dia de sobrevivência inclui a noite correspondente: Dia 1 durante Noite 1; após o amanhecer, Dia 2.
-  const survivalDay = state.dayNight === 'night' ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
+  // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
+  const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
@@ -237,7 +241,36 @@ export default function App() {
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagWheel();
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagMenu();
+      if (k === 'escape') {
+        closeFlagMenu();
+        closeInventoryPanel();
+        return;
+      }
+      if (k === 'b' && !e.repeat) {
+        toggleInventoryPanel();
+        return;
+      }
+      if (k === 't' && !e.repeat) {
+        if (removeFlagAtPlayer()) {
+          closeFlagMenu();
+          closeInventoryPanel();
+          return;
+        }
+        if (flagHotkeyOpenRef.current) closeFlagMenu();
+        else {
+          closeInventoryPanel();
+          flagHotkeyOpenRef.current = true;
+          setFlagHotkeyOpen(true);
+          closeFlagWheel();
+        }
+        return;
+      }
+      if (flagHotkeyOpenRef.current && ['1', '2', '3', '4'].includes(k)) {
+        placeFlagByIndex(Number(k) - 1);
+        closeFlagMenu();
+        return;
+      }
       engine.setKey(k, true);
       if (k === 'c') engine.toggleCamera();
       if (k === '1') engine.setClass('guerreiro');
@@ -245,7 +278,7 @@ export default function App() {
       if (k === '3') engine.setClass('arqueiro');
       if (k === '4') engine.setClass('druida');
       if (k === 'r') engine.toggleRange();
-      if (k === 'e' && !e.repeat) engine.toggleCart();
+      if (k === ' ' && !e.repeat) engine.toggleCart();
     };
     const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
@@ -256,13 +289,73 @@ export default function App() {
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
   const transferBagToCart = (index: number) => engineRef.current?.transferBagToCart(index);
-  const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
     setFlagWheel(next);
   };
   const closeFlagWheel = () => { if (flagWheelRef.current) setWheel(null); };
-  const restart = () => { flagsRef.current = []; setFlags([]); setWheel(null); engineRef.current?.restart(); };
+  const closeFlagMenu = () => {
+    closeFlagWheel();
+    if (flagHotkeyOpenRef.current) {
+      flagHotkeyOpenRef.current = false;
+      setFlagHotkeyOpen(false);
+    }
+  };
+  const closeInventoryPanel = () => {
+    inventoryPanelOpenRef.current = false;
+    setInventoryPanelOpen(false);
+  };
+  const toggleInventoryPanel = () => {
+    closeFlagMenu();
+    const nextOpen = !inventoryPanelOpenRef.current;
+    inventoryPanelOpenRef.current = nextOpen;
+    setInventoryPanelOpen(nextOpen);
+  };
+  const removeFlagAtPlayer = () => {
+    const player = engineRef.current?.state.player;
+    const cart = engineRef.current?.state.cart;
+    if (!player) return false;
+    let nearestIndex = -1;
+    let nearestDistance = Infinity;
+    flagsRef.current.forEach((flag, index) => {
+      const x = flag.attachedToCart && cart ? cart.x : flag.x;
+      const y = flag.attachedToCart && cart ? cart.y - 34 : flag.y;
+      const distance = Math.hypot(player.x - x, player.y - y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+    if (nearestIndex < 0 || nearestDistance > 34) return false;
+    const next = flagsRef.current.filter((_, index) => index !== nearestIndex);
+    flagsRef.current = next;
+    setFlags(next);
+    return true;
+  };
+  const placeFlagByIndex = (index: number) => {
+    const color = CONFIG.flags.colors[index];
+    const player = engineRef.current?.state.player;
+    const cart = engineRef.current?.state.cart;
+    if (!color || !player) return;
+    const attachToCart = !!cart && Math.hypot(player.x - cart.x, player.y - cart.y) <= CONFIG.cart.interactRadius;
+    const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), {
+      colorId: color.id,
+      color: color.color,
+      x: attachToCart && cart ? cart.x : player.x,
+      y: attachToCart && cart ? cart.y - 34 : player.y,
+      ...(attachToCart ? { attachedToCart: true } : {}),
+    }];
+    flagsRef.current = next;
+    setFlags(next);
+  };
+  const restart = () => {
+    flagsRef.current = [];
+    setFlags([]);
+    setWheel(null);
+    closeFlagMenu();
+    closeInventoryPanel();
+    engineRef.current?.restart();
+  };
   const worldPointAt = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -368,6 +461,8 @@ export default function App() {
   const beginGame = () => {
     // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
     flagsRef.current = []; setFlags([]); setWheel(null);
+    closeFlagMenu();
+    closeInventoryPanel();
     engineRef.current?.restart();
     setShowStart(false);
   };
@@ -415,12 +510,50 @@ export default function App() {
           <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>E</b> pega/solta o carrinho reparado quando estiver perto.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
-      {flagWheel && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={{ left: flagWheel.screenX, top: flagWheel.screenY }}>
-        {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
+      {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
+        {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
+      </div>}
+      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-backdrop" aria-hidden="true" onClick={closeInventoryPanel} />}
+      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho" onClick={closeInventoryPanel}>
+        <header><strong>INVENTÁRIO</strong><span>B ou Esc fecha</span></header>
+        <section className="house-construction-section">
+          <h3>Construção da casa <small>{state.house.built ? 'CONCLUÍDA' : `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}% · ${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`}</small></h3>
+          {!state.house.built && <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da casa" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}><span style={{ width: `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}%` }} /></div>}
+        </section>
+        <section>
+          <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
+          <div className="quick-slot-grid bag">
+            {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
+              const item = state.inventory[index];
+              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+              </div>;
+            })}
+          </div>
+        </section>
+        <section>
+          <h3>Carrinho <small>{state.cart.inventory.length}/{CONFIG.cart.capacitySlots}</small></h3>
+          <div className="quick-slot-grid cart">
+            {Array.from({ length: CONFIG.cart.capacitySlots }, (_, index) => {
+              const item = state.cart.inventory[index];
+              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+              </div>;
+            })}
+          </div>
+        </section>
+        <section className="house-storage-section">
+          <h3>Armazém da casa <small>{state.house.built ? `${state.house.inventory.length} tipos` : 'INDISPONÍVEL ATÉ CONCLUIR'}</small></h3>
+          {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
+            {state.house.inventory.map(item => <div key={item.itemId} className="quick-slot filled" aria-label={`${item.itemId} x${item.quantity}`}>
+              <span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b>
+            </div>)}
+          </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Os itens serão guardados quando você se aproximar.' : 'Conclua a construção para usar o armazém.'}</p>}
+        </section>
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
       {cartAccessible && !state.dead && !showStart && <div className="cart-nearby-inventory" role="group" aria-label="Enviar itens da mochila para o carrinho">
@@ -433,7 +566,7 @@ export default function App() {
         })}
       </div>}
       {cartActionVisible && <button className="cart-action-button" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
-      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
+      <Controls onInventoryToggle={toggleInventoryPanel} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
 
   </main>;
