@@ -109,6 +109,7 @@ export class GameEngine {
 
     const playerNearHouse = Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) <= CONFIG.house.interactRadius;
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNearHouse : cartNearHouse;
     if (!playerNearHouse && !cartNearHouse) return;
 
     const consumeWood = (inventory: InventoryStack[], requested: number) => {
@@ -135,7 +136,7 @@ export class GameEngine {
       remaining -= result.consumed;
     }
 
-    if (cartNearHouse && remaining > 0) {
+    if (cartCanDeliver && remaining > 0) {
       const result = consumeWood(this.state.cart.inventory, remaining);
       this.state.cart.inventory = result.inventory;
       house.woodDelivered += result.consumed;
