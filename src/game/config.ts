@@ -18,7 +18,7 @@ export const CONFIG = {
     obstacleAvoidanceBuffer: 12,
   },
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, cycle: 60, hordaDuration: 12, maxAlive: 150 },
-  dayNight: { cycle: 90, dayDuration: 45, transitionDuration: 5, dayDamageVulnerability: 0.5, spawnStopBeforeDawn: 5, spawnMinDistance: 800, spawnMaxDistance: 1000, visibilityRange: 420, nightOverlayStrength: 0.9, maxAlive: 250, firstNightSpawnCount: 5, addedPerNight: 5, spawnWaveDistribution: [0.3, 0.2, 0.25, 0.15, 0.1] },
+  dayNight: { cycle: 90, dayDuration: 45, transitionDuration: 5, dayDamageVulnerability: 1, spawnStopBeforeDawn: 5, spawnMinDistance: 800, spawnMaxDistance: 1000, visibilityRange: 420, nightOverlayStrength: 0.9, maxAlive: 250, firstNightSpawnCount: 5, addedPerNight: 5, spawnWaveDistribution: [0.3, 0.2, 0.25, 0.15, 0.1] },
   trees: { max: 70, startCount: 15, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 600, attractionRadius: 300, attractionMaxNearby: 20, attractionMaxChance: 0.8, rareHouseSpawnChance: 0.009, rareHouseRadius: 220, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 60, interactRadius: 80, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
