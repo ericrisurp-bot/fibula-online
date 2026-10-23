@@ -555,7 +555,7 @@ export default function App() {
             {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
               const item = state.inventory[index];
               return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <><span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : item.itemId === 'stone' ? '🪨' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId === 'stone' ? 'Pedra' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
               </div>;
             })}
           </div>
@@ -566,7 +566,7 @@ export default function App() {
             {Array.from({ length: CONFIG.cart.capacitySlots }, (_, index) => {
               const item = state.cart.inventory[index];
               return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <><span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : item.itemId === 'stone' ? '🪨' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId === 'stone' ? 'Pedra' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
               </div>;
             })}
           </div>
@@ -575,7 +575,7 @@ export default function App() {
           <h3>Armazém da casa <small>{state.house.built ? `${state.house.inventory.length} tipos` : 'INDISPONÍVEL ATÉ CONCLUIR'}</small></h3>
           {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
             {state.house.inventory.map(item => <div key={item.itemId} className="quick-slot filled" aria-label={`${item.itemId} x${item.quantity}`}>
-              <span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b>
+              <span>{item.itemId === 'wood' ? '🪵' : item.itemId === 'stone' ? '🪨' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId === 'stone' ? 'Pedra' : item.itemId}</small><b>×{item.quantity}</b>
             </div>)}
           </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Os itens serão guardados quando você se aproximar.' : 'Conclua a construção para usar o armazém.'}</p>}
         </section>
@@ -584,9 +584,9 @@ export default function App() {
       {cartAccessible && !state.dead && !showStart && <div className="cart-nearby-inventory" role="group" aria-label="Enviar itens da mochila para o carrinho">
         {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
           const item = state.inventory[index];
-          const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId) : 'vazio';
+          const itemName = item ? (item.itemId === 'wood' ? 'Madeira' : item.itemId === 'stone' ? 'Pedra' : item.itemId) : 'vazio';
           return <button key={index} type="button" className={item ? 'cart-nearby-slot filled' : 'cart-nearby-slot'} disabled={!item} onClick={() => transferBagToCart(index)} aria-label={item ? `Enviar ${itemName} x${item.quantity} para o carrinho` : `Espaço ${index + 1} vazio`} title={item ? `Enviar ${itemName} x${item.quantity}` : 'Espaço vazio'}>
-            {item ? <><span aria-hidden="true">{item.itemId === 'wood' ? '🪵' : '📦'}</span><strong>×{item.quantity}</strong></> : <span className="cart-nearby-slot-number">{index + 1}</span>}
+            {item ? <><span aria-hidden="true">{item.itemId === 'wood' ? '🪵' : item.itemId === 'stone' ? '🪨' : '📦'}</span><strong>×{item.quantity}</strong></> : <span className="cart-nearby-slot-number">{index + 1}</span>}
           </button>;
         })}
       </div>}
