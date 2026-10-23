@@ -156,7 +156,7 @@ export default function Controls({ onInventoryToggle, flagWheelOpen, onLongPress
     </div>
     <div className="mobile-quick-buttons" aria-label="Atalhos rápidos">
       <button type="button" className="mobile-quick-class" onClick={() => onClass(nextClass)} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><span aria-hidden="true">↻</span><small>{CLASSES[classId].label}</small></button>
-      <button type="button" className="mobile-quick-bag" onClick={onInventoryToggle} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><span aria-hidden="true">🎒</span></button>
+      <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><span aria-hidden="true">🎒</span></button>
     </div>
   </div>;
 }
