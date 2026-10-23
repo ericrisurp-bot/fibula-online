@@ -148,6 +148,35 @@ export default function App() {
         ctx.restore();
       }
       ctx.restore();
+      // Indicadores discretos na borda para bandeiras fora da área visível.
+      for (const flag of flagsRef.current) {
+        const targetX = (flag.x - left) * scale;
+        const targetY = (flag.y - top) * scale;
+        if (targetX >= 0 && targetX <= w && targetY >= 0 && targetY <= h) continue;
+        const dx = targetX - w / 2;
+        const dy = targetY - h / 2;
+        const inset = 20;
+        const halfW = Math.max(1, w / 2 - inset);
+        const halfH = Math.max(1, h / 2 - inset);
+        const factor = Math.min(halfW / Math.max(0.0001, Math.abs(dx)), halfH / Math.max(0.0001, Math.abs(dy)));
+        const x = w / 2 + dx * factor;
+        const y = h / 2 + dy * factor;
+        const angle = Math.atan2(dy, dx);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.globalAlpha = 0.82;
+        ctx.fillStyle = flag.color;
+        ctx.shadowColor = flag.color;
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.moveTo(9, 0);
+        ctx.lineTo(-5, -4.5);
+        ctx.lineTo(-5, 4.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
