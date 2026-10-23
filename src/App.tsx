@@ -6,6 +6,7 @@ import Controls from './ui/Controls';
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
+  refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
@@ -112,6 +113,7 @@ export default function App() {
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color) });
       }
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
+      worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed) });
       for (const tree of s.trees) {
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -562,6 +564,10 @@ export default function App() {
           <h3>Construção da casa <small>{state.house.built ? 'CONCLUÍDA' : `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}% · ${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`}</small></h3>
           {!state.house.built && <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da casa" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}><span style={{ width: `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}%` }} /></div>}
         </section>
+        <section className="house-construction-section refinery-construction-section">
+          <h3>Construção da refinaria <small>{state.refinery.built ? 'CONCLUÍDA' : `Madeira ${state.refinery.woodDelivered}/${CONFIG.refinery.buildCostWood} · Pedra ${state.refinery.stoneDelivered}/${CONFIG.refinery.buildCostStone}`}</small></h3>
+          {!state.refinery.built && <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da refinaria" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}><span style={{ width: `${Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}%` }} /></div>}
+        </section>
         <section>
           <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
           <div className="quick-slot-grid bag">
@@ -632,6 +638,28 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
     ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-36, -48, 72, 7);
     ctx.fillStyle = '#8fceaa'; ctx.fillRect(-36, -48, 72 * (woodDelivered / CONFIG.house.buildCost), 7);
     ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-36, -48, 72, 7);
+  }
+  ctx.restore();
+}
+
+function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery']) {
+  const { x, y, woodDelivered, stoneDelivered, built } = refinery;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(0, 20, 42, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = built ? '#656d72' : '#4b5559'; ctx.strokeStyle = '#293438'; ctx.lineWidth = 3;
+  ctx.fillRect(-34, -14, 68, 39); ctx.strokeRect(-34, -14, 68, 39);
+  ctx.fillStyle = '#77838a';
+  ctx.beginPath(); ctx.moveTo(-40, -14); ctx.lineTo(-25, -34); ctx.lineTo(25, -34); ctx.lineTo(40, -14); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#2d3639'; ctx.fillRect(-8, 1, 16, 24);
+  ctx.fillStyle = built ? '#d98b50' : '#6c777b'; ctx.beginPath(); ctx.arc(0, 8, 7, 0, Math.PI * 2); ctx.fill();
+  if (!built) {
+    const woodProgress = woodDelivered / CONFIG.refinery.buildCostWood;
+    const stoneProgress = stoneDelivered / CONFIG.refinery.buildCostStone;
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-40, -49, 80, 8);
+    ctx.fillStyle = '#b28a59'; ctx.fillRect(-40, -49, 80 * woodProgress, 3);
+    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-40, -45, 80 * stoneProgress, 4);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-40, -49, 80, 8);
   }
   ctx.restore();
 }
