@@ -30,6 +30,8 @@ export default function App() {
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagHotkeyOpenRef = useRef(false);
   const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
+  const inventoryPanelOpenRef = useRef(false);
+  const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
   const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
   // O dia de sobrevivência inclui a noite correspondente: Dia 1 durante Noite 1; após o amanhecer, Dia 2.
   const survivalDay = state.dayNight === 'night' ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
@@ -239,22 +241,37 @@ export default function App() {
     const down = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagWheel();
-      if (k === 'escape' && flagHotkeyOpenRef.current) {
-        flagHotkeyOpenRef.current = false;
-        setFlagHotkeyOpen(false);
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagMenu();
+      if (k === 'escape') {
+        if (flagHotkeyOpenRef.current) closeFlagMenu();
+        if (inventoryPanelOpenRef.current) closeInventoryPanel();
+        if (flagHotkeyOpenRef.current || inventoryPanelOpenRef.current) return;
+      }
+      if (k === 'b' && !e.repeat) {
+        closeFlagMenu();
+        const nextOpen = !inventoryPanelOpenRef.current;
+        inventoryPanelOpenRef.current = nextOpen;
+        setInventoryPanelOpen(nextOpen);
         return;
       }
       if (k === 't' && !e.repeat) {
-        flagHotkeyOpenRef.current = true;
-        setFlagHotkeyOpen(true);
-        closeFlagWheel();
+        if (removeFlagAtPlayer()) {
+          closeFlagMenu();
+          closeInventoryPanel();
+          return;
+        }
+        if (flagHotkeyOpenRef.current) closeFlagMenu();
+        else {
+          closeInventoryPanel();
+          flagHotkeyOpenRef.current = true;
+          setFlagHotkeyOpen(true);
+          closeFlagWheel();
+        }
         return;
       }
       if (flagHotkeyOpenRef.current && ['1', '2', '3', '4'].includes(k)) {
         placeFlagByIndex(Number(k) - 1);
-        flagHotkeyOpenRef.current = false;
-        setFlagHotkeyOpen(false);
+        closeFlagMenu();
         return;
       }
       engine.setKey(k, true);
@@ -281,6 +298,38 @@ export default function App() {
     setFlagWheel(next);
   };
   const closeFlagWheel = () => { if (flagWheelRef.current) setWheel(null); };
+  const closeFlagMenu = () => {
+    closeFlagWheel();
+    if (flagHotkeyOpenRef.current) {
+      flagHotkeyOpenRef.current = false;
+      setFlagHotkeyOpen(false);
+    }
+  };
+  const closeInventoryPanel = () => {
+    inventoryPanelOpenRef.current = false;
+    setInventoryPanelOpen(false);
+  };
+  const removeFlagAtPlayer = () => {
+    const player = engineRef.current?.state.player;
+    const cart = engineRef.current?.state.cart;
+    if (!player) return false;
+    let nearestIndex = -1;
+    let nearestDistance = Infinity;
+    flagsRef.current.forEach((flag, index) => {
+      const x = flag.attachedToCart && cart ? cart.x : flag.x;
+      const y = flag.attachedToCart && cart ? cart.y - 34 : flag.y;
+      const distance = Math.hypot(player.x - x, player.y - y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+    if (nearestIndex < 0 || nearestDistance > 34) return false;
+    const next = flagsRef.current.filter((_, index) => index !== nearestIndex);
+    flagsRef.current = next;
+    setFlags(next);
+    return true;
+  };
   const placeFlagByIndex = (index: number) => {
     const color = CONFIG.flags.colors[index];
     const player = engineRef.current?.state.player;
@@ -299,10 +348,16 @@ export default function App() {
   };
   const chooseFlagHotkey = (index: number) => {
     placeFlagByIndex(index);
-    flagHotkeyOpenRef.current = false;
-    setFlagHotkeyOpen(false);
+    closeFlagMenu();
   };
-  const restart = () => { flagsRef.current = []; setFlags([]); setWheel(null); flagHotkeyOpenRef.current = false; setFlagHotkeyOpen(false); engineRef.current?.restart(); };
+  const restart = () => {
+    flagsRef.current = [];
+    setFlags([]);
+    setWheel(null);
+    closeFlagMenu();
+    closeInventoryPanel();
+    engineRef.current?.restart();
+  };
   const worldPointAt = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -408,6 +463,8 @@ export default function App() {
   const beginGame = () => {
     // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
     flagsRef.current = []; setFlags([]); setWheel(null);
+    closeFlagMenu();
+    closeInventoryPanel();
     engineRef.current?.restart();
     setShowStart(false);
   };
@@ -455,19 +512,37 @@ export default function App() {
           <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre as bandeiras; depois, 1 amarela, 2 verde, 3 vermelha ou 4 azul. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
-      {flagWheel && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={{ left: flagWheel.screenX, top: flagWheel.screenY }}>
-        {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
+      {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
+        {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      {flagHotkeyOpen && <div className="pc-flag-menu" role="dialog" aria-label="Escolher bandeira">
-        <strong>BANDEIRAS · T + NÚMERO</strong>
-        <div>{CONFIG.flags.colors.map((item, index) => <button key={item.id} type="button" onClick={() => chooseFlagHotkey(index)} title={item.label}>
-          <span style={{ background: item.color }} /> <b>{index + 1}</b> {item.label}
-        </button>)}</div>
-        <small>1 topo · 2 direita · 3 baixo · 4 esquerda · Esc fecha</small>
+      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Mochila e carrinho">
+        <header><strong>MOCHILA E CARRINHO</strong><span>B ou Esc fecha</span></header>
+        <section>
+          <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
+          <div className="quick-slot-grid bag">
+            {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
+              const item = state.inventory[index];
+              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+              </div>;
+            })}
+          </div>
+        </section>
+        <section>
+          <h3>Carrinho <small>{state.cart.inventory.length}/{CONFIG.cart.capacitySlots}</small></h3>
+          <div className="quick-slot-grid cart">
+            {Array.from({ length: CONFIG.cart.capacitySlots }, (_, index) => {
+              const item = state.cart.inventory[index];
+              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
+                {item ? <><span>{item.itemId === 'wood' ? '🪵' : '📦'}</span><small>{item.itemId === 'wood' ? 'Madeira' : item.itemId}</small><b>×{item.quantity}</b></> : <span className="quick-slot-empty">{index + 1}</span>}
+              </div>;
+            })}
+          </div>
+        </section>
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
       {cartAccessible && !state.dead && !showStart && <div className="cart-nearby-inventory" role="group" aria-label="Enviar itens da mochila para o carrinho">
@@ -480,7 +555,7 @@ export default function App() {
         })}
       </div>}
       {cartActionVisible && <button className="cart-action-button" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
-      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagWheel} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
+      <Controls flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} cart={state.cart} cartAccessible={cartAccessible} onCartToggle={toggleCart} onTransferBagToCart={transferBagToCart} onTransferCartToBag={transferCartToBag} />
     </section>
 
   </main>;
