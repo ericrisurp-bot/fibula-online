@@ -233,7 +233,7 @@ export class GameEngine {
       const x = margin + Math.random() * (this.world - margin * 2);
       const y = margin + Math.random() * (this.world - margin * 2);
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
-      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < 90) continue;
+      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.minimumHouseDistance) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < 38 + this.treeFootprintRadius(tree))) continue;
       this.state.cart = { x, y, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] };
       return;
@@ -375,26 +375,28 @@ export class GameEngine {
   private spawnTree(initial = false) {
     if (this.state.trees.length >= CONFIG.trees.max) return false;
     const margin = CONFIG.map.wall + 80;
-    let position: Vec | null = null;
-    if (!initial && this.state.trees.length > 0 && Math.random() < 0.7) {
-      for (let attempt = 0; attempt < 80 && !position; attempt++) {
-        const anchor = this.state.trees[Math.floor(Math.random() * this.state.trees.length)];
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 150 + Math.random() * 100;
-        const x = anchor.x + Math.cos(angle) * distance;
-        const y = anchor.y + Math.sin(angle) * distance;
-        if (this.validTreePosition(x, y)) position = { x, y };
-      }
-    }
-    for (let attempt = 0; attempt < 400 && !position; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
-      if (this.validTreePosition(x, y, initial ? 300 : 0)) position = { x, y };
-    }
-    if (!position) return false;
     const roll = Math.random();
     const size: Tree['size'] = roll < CONFIG.trees.sizeWeights.small ? 'small' : roll < CONFIG.trees.sizeWeights.small + CONFIG.trees.sizeWeights.medium ? 'medium' : 'large';
-    if (!this.validTreePosition(position.x, position.y, initial ? 300 : 0, size)) return false;
+    const minSpacing = initial ? 300 : 0;
+    let position: Vec | null = null;
+
+    // Árvores posteriores tendem a crescer perto de árvores existentes, formando bosques.
+    if (!initial && this.state.trees.length > 0 && Math.random() < 0.7) {
+      for (let attempt = 0; attempt < 100 && !position; attempt++) {
+        const anchor = this.state.trees[Math.floor(Math.random() * this.state.trees.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 90 + Math.random() * 80;
+        const x = anchor.x + Math.cos(angle) * distance;
+        const y = anchor.y + Math.sin(angle) * distance;
+        if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
+      }
+    }
+    for (let attempt = 0; attempt < 500 && !position; attempt++) {
+      const x = margin + Math.random() * (this.world - margin * 2);
+      const y = margin + Math.random() * (this.world - margin * 2);
+      if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
+    }
+    if (!position) return false;
     this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
     return true;
   }

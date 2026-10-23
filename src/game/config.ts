@@ -1,6 +1,6 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 export const CONFIG = {
-  map: { size: 2400, wall: 34, grid: 80 },
+  map: { size: 4320, wall: 34, grid: 80 },
   player: { radius: 18, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   enemy: {
     radius: 16,
@@ -16,10 +16,10 @@ export const CONFIG = {
     separation: { minDistance: 28, iterations: 2 },
   },
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, cycle: 60, hordaDuration: 12, maxAlive: 150 },
-  trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
+  trees: { max: 30, startCount: 12, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 60, interactRadius: 50, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
-  cart: { repairCost: 10, interactRadius: 50, capacitySlots: 10, maxPerSlot: 8, followDistance: 38, followSpeed: 260, wallMargin: 40, loadSlowdownMin: 0.6, loadSlowdownMax: 0.8 },
+  cart: { repairCost: 10, interactRadius: 50, capacitySlots: 10, maxPerSlot: 8, followDistance: 38, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
