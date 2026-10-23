@@ -23,9 +23,9 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const zoomRef = useRef(1.6);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
-  const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
-  const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const [, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const [flagWheel, setFlagWheel] = useState<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const flagWheelRef = useRef<{ pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
@@ -74,9 +74,14 @@ export default function App() {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
-      for (const flag of flagsRef.current) drawFlag(ctx, flag.x, flag.y, flag.color);
+      for (const flag of flagsRef.current) {
+        if (!flag.attachedToCart) drawFlag(ctx, flag.x, flag.y, flag.color);
+      }
       drawHouse(ctx, s.house);
       drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed);
+      for (const flag of flagsRef.current) {
+        if (flag.attachedToCart) drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color);
+      }
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -157,8 +162,10 @@ export default function App() {
       ctx.restore();
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
-        const targetX = (flag.x - left) * scale;
-        const targetY = (flag.y - top) * scale;
+        const flagX = flag.attachedToCart ? s.cart.x : flag.x;
+        const flagY = flag.attachedToCart ? s.cart.y - 34 : flag.y;
+        const targetX = (flagX - left) * scale;
+        const targetY = (flagY - top) * scale;
         if (targetX >= 0 && targetX <= w && targetY >= 0 && targetY <= h) continue;
         const dx = targetX - w / 2;
         const dy = targetY - h / 2;
@@ -243,7 +250,12 @@ export default function App() {
     const point = worldPointAt(clientX, clientY);
     const player = engineRef.current?.state.player;
     if (!point || !player || Math.hypot(point.x - player.x, point.y - player.y) < 40) return false;
-    const existing = flagsRef.current.find(flag => Math.hypot(flag.x - point.x, flag.y - point.y) <= 22);
+    const cart = engineRef.current?.state.cart;
+    const existing = flagsRef.current.find(flag => {
+      const flagX = flag.attachedToCart && cart ? cart.x : flag.x;
+      const flagY = flag.attachedToCart && cart ? cart.y - 34 : flag.y;
+      return Math.hypot(flagX - point.x, flagY - point.y) <= 22;
+    });
     if (!existing) return false;
     const next = flagsRef.current.filter(flag => flag.colorId !== existing.colorId);
     flagsRef.current = next; setFlags(next);
@@ -271,8 +283,15 @@ export default function App() {
     const wheel = flagWheelRef.current;
     const color = wheel?.selected ? CONFIG.flags.colors.find(item => item.id === wheel.selected) : null;
     const player = engineRef.current?.state.player;
+    const cart = engineRef.current?.state.cart;
     if (color && player) {
-      const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), { colorId: color.id, color: color.color, x: player.x, y: player.y }];
+      const attachToCart = !!cart && Math.hypot(player.x - cart.x, player.y - cart.y) <= CONFIG.cart.interactRadius;
+      const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), {
+        colorId: color.id, color: color.color,
+        x: attachToCart && cart ? cart.x : player.x,
+        y: attachToCart && cart ? cart.y - 34 : player.y,
+        ...(attachToCart ? { attachedToCart: true } : {}),
+      }];
       flagsRef.current = next; setFlags(next);
     }
     setWheel(null);
