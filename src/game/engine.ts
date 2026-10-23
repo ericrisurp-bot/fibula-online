@@ -2,6 +2,7 @@ import { CONFIG, LEVEL_GROWTH, type ClassId, type WeaponId } from './config';
 import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
+const XP_ATTRACTION_RADIUS = 250;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type WoodDrop = Vec & { id: number; amount: number };
@@ -103,21 +104,42 @@ export class GameEngine {
   }
   private deliverWoodToHouseUnderConstruction() {
     const house = this.state.house;
-    if (house.built || Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
-    const remaining = CONFIG.house.buildCost - house.woodDelivered;
+    if (house.built) return;
+
+    const playerNearHouse = Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) <= CONFIG.house.interactRadius;
+    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
+    if (!playerNearHouse && !cartNearHouse) return;
+
+    const consumeWood = (inventory: InventoryStack[], requested: number) => {
+      let toRemove = requested;
+      let consumed = 0;
+      const nextInventory = inventory.flatMap(stack => {
+        if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
+        const used = Math.min(stack.quantity, toRemove);
+        toRemove -= used;
+        consumed += used;
+        const left = stack.quantity - used;
+        return left > 0 ? [{ ...stack, quantity: left }] : [];
+      });
+      return { inventory: nextInventory, consumed };
+    };
+
+    let remaining = CONFIG.house.buildCost - house.woodDelivered;
     if (remaining <= 0) return;
-    const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
-    const amount = Math.min(remaining, carriedWood);
-    if (amount <= 0) return;
-    let toRemove = amount;
-    this.state.inventory = this.state.inventory.flatMap(stack => {
-      if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
-      const used = Math.min(stack.quantity, toRemove);
-      toRemove -= used;
-      const left = stack.quantity - used;
-      return left > 0 ? [{ ...stack, quantity: left }] : [];
-    });
-    house.woodDelivered += amount;
+
+    if (playerNearHouse) {
+      const result = consumeWood(this.state.inventory, remaining);
+      this.state.inventory = result.inventory;
+      house.woodDelivered += result.consumed;
+      remaining -= result.consumed;
+    }
+
+    if (cartNearHouse && remaining > 0) {
+      const result = consumeWood(this.state.cart.inventory, remaining);
+      this.state.cart.inventory = result.inventory;
+      house.woodDelivered += result.consumed;
+    }
+
     if (house.woodDelivered >= CONFIG.house.buildCost) {
       house.woodDelivered = CONFIG.house.buildCost;
       house.built = true;
@@ -552,7 +574,7 @@ export class GameEngine {
       const distance = Math.hypot(dx, dy) || 1;
       if (distance <= CONFIG.player.pickupRadius) {
         this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
-      } else if (distance <= CONFIG.xp.attractionRadius) {
+      } else if (distance <= XP_ATTRACTION_RADIUS) {
         const step = Math.min(distance - CONFIG.player.pickupRadius, CONFIG.xp.attractionSpeed * dt);
         orb.x += dx / distance * step;
         orb.y += dy / distance * step;
