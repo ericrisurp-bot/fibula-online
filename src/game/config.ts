@@ -18,7 +18,6 @@ export const CONFIG = {
   trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   flags: {
-    placeRadius: 300,
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
       { id: 'green', label: 'Verde', color: '#43c66e' },
