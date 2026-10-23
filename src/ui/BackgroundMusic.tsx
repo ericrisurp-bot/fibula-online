@@ -12,7 +12,7 @@ export default function BackgroundMusic({ active }: Props) {
   useEffect(() => {
     if (!active) return;
 
-    const audio = new Audio('/audio/music/Floresta%20indom%C3%A1vel.m4a');
+    const audio = new Audio('/audio/music/floresta_loop.ogg');
     audio.preload = 'auto';
     audio.loop = false;
     audio.volume = 0;
