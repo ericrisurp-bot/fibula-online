@@ -20,6 +20,11 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
   const zoomRef = useRef(1.6);
+  const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
+  const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; worldX: number; worldY: number; timer: number | null } | null>(null);
+  const [flags, setFlags] = useState<Array<{ colorId: string; color: string; x: number; y: number }>>([]);
+  const [flagMenu, setFlagMenu] = useState<{ x: number; y: number; screenX: number; screenY: number } | null>(null);
   const cyclePosition = state.elapsed % CONFIG.waves.cycle;
   const hordeStatus = cyclePosition < CONFIG.waves.hordaDuration ? 'Horda ativa' : `${Math.ceil(CONFIG.waves.cycle - cyclePosition)}s`;
 
@@ -52,6 +57,7 @@ export default function App() {
         : viewH >= engine.world
           ? (engine.world - viewH) / 2
           : Math.max(0, Math.min(s.player.y - viewH / 2, engine.world - viewH));
+      cameraTransformRef.current = { scale, left, top };
       ctx.save(); ctx.scale(scale, scale); ctx.translate(-left, -top);
       ctx.fillStyle = '#18262a'; ctx.fillRect(0, 0, engine.world, engine.world);
       ctx.strokeStyle = 'rgba(160,190,176,0.075)'; ctx.lineWidth = 1;
@@ -62,6 +68,7 @@ export default function App() {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
       }
+      for (const flag of flagsRef.current) drawFlag(ctx, flag.x, flag.y, flag.color);
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -168,7 +175,66 @@ export default function App() {
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
-  const restart = () => { engineRef.current?.restart(); };
+  const restart = () => { flagsRef.current = []; setFlags([]); setFlagMenu(null); engineRef.current?.restart(); };
+  const worldPointAt = (clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const transform = cameraTransformRef.current;
+    return { x: (clientX - rect.left) / transform.scale + transform.left, y: (clientY - rect.top) / transform.scale + transform.top };
+  };
+  const openFlagMenuAt = (clientX: number, clientY: number, worldX: number, worldY: number) => {
+    const stage = canvasRef.current?.parentElement;
+    const canvas = canvasRef.current;
+    if (!stage || !canvas || Math.hypot(worldX - state.player.x, worldY - state.player.y) > CONFIG.flags.placeRadius) return;
+    const stageRect = stage.getBoundingClientRect();
+    setFlagMenu({ x: worldX, y: worldY, screenX: Math.max(6, Math.min(clientX - stageRect.left, stageRect.width - 190)), screenY: Math.max(6, Math.min(clientY - stageRect.top, stageRect.height - 72)) });
+  };
+  const onFlagPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (flagMenu) return;
+    const point = worldPointAt(event.clientX, event.clientY);
+    if (!point) return;
+    const existing = flagsRef.current.find(flag => Math.hypot(flag.x - point.x, flag.y - point.y) <= 22);
+    if (existing) {
+      const next = flagsRef.current.filter(flag => flag.colorId !== existing.colorId);
+      flagsRef.current = next; setFlags(next); event.preventDefault(); return;
+    }
+    if (event.button === 2) {
+      event.preventDefault(); openFlagMenuAt(event.clientX, event.clientY, point.x, point.y); return;
+    }
+    const pending = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, worldX: point.x, worldY: point.y, timer: null as number | null };
+    pending.timer = window.setTimeout(() => {
+      if (flagHoldRef.current !== pending) return;
+      openFlagMenuAt(pending.clientX, pending.clientY, pending.worldX, pending.worldY);
+      flagHoldRef.current = null;
+    }, 400);
+    flagHoldRef.current = pending;
+  };
+  const onFlagPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const pending = flagHoldRef.current;
+    if (!pending || pending.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX - pending.clientX, event.clientY - pending.clientY) > 10) {
+      if (pending.timer !== null) window.clearTimeout(pending.timer);
+      flagHoldRef.current = null;
+    }
+  };
+  const onFlagPointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const pending = flagHoldRef.current;
+    if (!pending || pending.pointerId !== event.pointerId) return;
+    if (pending.timer !== null) window.clearTimeout(pending.timer);
+    flagHoldRef.current = null;
+  };
+  const onFlagContextMenu = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    const point = worldPointAt(event.clientX, event.clientY);
+    if (point) openFlagMenuAt(event.clientX, event.clientY, point.x, point.y);
+  };
+  const placeFlag = (colorId: string) => {
+    if (!flagMenu) return;
+    const color = CONFIG.flags.colors.find(item => item.id === colorId);
+    if (!color) return;
+    const next = [...flagsRef.current.filter(flag => flag.colorId !== colorId), { colorId, color: color.color, x: flagMenu.x, y: flagMenu.y }];
+    flagsRef.current = next; setFlags(next); setFlagMenu(null);
+  };
   const startGame = () => {
     const stage = canvasRef.current?.parentElement;
     if (stage?.requestFullscreen) {
@@ -186,7 +252,7 @@ export default function App() {
       <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
     </header>
     <section className="game-stage">
-      <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" />
+      <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
       <div className="hud-top" aria-label="Status da partida">
         <div className="hud-left-stack">
           <div className="hud-vitals-panel">
@@ -216,10 +282,20 @@ export default function App() {
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
-      <Controls onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
+      {flagMenu && <div className="flag-menu-backdrop" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setFlagMenu(null); }} onContextMenu={event => { event.preventDefault(); setFlagMenu(null); }} />}
+      {flagMenu && <div className="flag-menu" role="dialog" aria-label="Escolher bandeira" style={{ left: flagMenu.screenX, top: flagMenu.screenY }} onPointerDown={event => event.stopPropagation()}>{CONFIG.flags.colors.map(item => <button key={item.id} type="button" aria-label={item.label} title={item.label} onClick={() => placeFlag(item.id)}><span style={{ background: item.color }} />{item.label}</button>)}</div>}
+      <Controls flagMenuOpen={flagMenu !== null} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventory={state.inventory} />
     </section>
 
   </main>;
+}
+
+function drawFlag(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(0, -18); ctx.stroke();
+  ctx.strokeStyle = '#d7d7d7'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-1, 15); ctx.lineTo(-1, -18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1, -17); ctx.lineTo(18, -12); ctx.lineTo(1, -5); ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = 'rgba(20,20,20,.7)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
 }
 
 function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, shade: string, phase = 0) {
