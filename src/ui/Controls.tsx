@@ -3,9 +3,12 @@ import { CLASSES, type ClassId } from '../game/config';
 import type { InventoryStack } from '../game/inventory';
 
 type Props = {
-  flagMenuOpen: boolean;
-  onLongPress: (clientX: number, clientY: number) => void;
+  flagWheelOpen: boolean;
+  onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
+  onWheelMove: (clientX: number, clientY: number, pointerId: number) => void;
+  onWheelEnd: (clientX: number, clientY: number, pointerId: number) => void;
+  onMovementStart: () => void;
   onMove: (x: number, y: number) => void;
   onRange: () => void;
   onZoom: (delta: number) => void;
@@ -18,17 +21,18 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ flagMenuOpen, onLongPress, onFlagTap, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
+export default function Controls({ flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventory }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => { if (flagMenuOpen) setMenuOpen(false); }, [flagMenuOpen]);
+  useEffect(() => { if (flagWheelOpen) setMenuOpen(false); }, [flagWheelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current) return;
     e.preventDefault();
+    onMovementStart();
     if (onFlagTap(e.clientX, e.clientY)) return;
     const rect = controlsRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -40,7 +44,7 @@ export default function Controls({ flagMenuOpen, onLongPress, onFlagTap, onMove,
       longPressRef.current = null;
       onMove(0, 0);
       setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
-      onLongPress(pending.clientX, pending.clientY);
+      onLongPress(pending.clientX, pending.clientY, pending.id);
     }, 400) };
     e.currentTarget.setPointerCapture(e.pointerId);
     setStick({ x: e.clientX - rect.left, y: e.clientY - rect.top, dx: 0, dy: 0, active: true });
@@ -48,6 +52,7 @@ export default function Controls({ flagMenuOpen, onLongPress, onFlagTap, onMove,
   };
 
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (flagWheelOpen) { onWheelMove(e.clientX, e.clientY, e.pointerId); return; }
     const active = activePointer.current;
     if (!active || active.id !== e.pointerId) return;
     e.preventDefault();
@@ -67,6 +72,7 @@ export default function Controls({ flagMenuOpen, onLongPress, onFlagTap, onMove,
   };
 
   const resetStick = (e: PointerEvent<HTMLDivElement>) => {
+    if (flagWheelOpen) { onWheelEnd(e.clientX, e.clientY, e.pointerId); return; }
     if (activePointer.current?.id !== e.pointerId) return;
     const pending = longPressRef.current;
     if (pending?.id === e.pointerId) { window.clearTimeout(pending.timer); longPressRef.current = null; }
