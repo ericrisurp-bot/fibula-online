@@ -209,6 +209,12 @@ export class GameEngine {
     cart.inventory = cartInventory;
     this.state.inventory = remainingInventory;
   }
+  discardBagItem(index: number) {
+    if (this.state.dead) return;
+    if (!this.state.inventory[index]) return;
+    this.state.inventory = this.state.inventory.filter((_, itemIndex) => itemIndex !== index);
+    this.emit();
+  }
   transferBagToCart(index: number) {
     if (!this.isCartAccessible()) return;
     const stack = this.state.inventory[index];
