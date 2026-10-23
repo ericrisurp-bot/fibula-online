@@ -18,7 +18,7 @@ export const CONFIG = {
   waves: { firstCount: 5, addedPerWave: 3, addedIncrease: 2, increaseEveryWaves: 5, cycle: 60, hordaDuration: 12, maxAlive: 150 },
   trees: { max: 15, startCount: 6, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 365, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
-  house: { buildCost: 60, interactRadius: 50, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
+  house: { buildCost: 60, interactRadius: 80, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   cart: { repairCost: 10, interactRadius: 50, capacitySlots: 10, maxPerSlot: 8, followDistance: 38, followSpeed: 260, wallMargin: 40, loadSlowdownMin: 0.6, loadSlowdownMax: 0.8 },
   flags: {
     colors: [
