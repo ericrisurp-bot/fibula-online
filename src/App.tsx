@@ -518,7 +518,8 @@ export default function App() {
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho">
+      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-backdrop" aria-hidden="true" onClick={closeInventoryPanel} />}
+      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho" onClick={closeInventoryPanel}>
         <header><strong>INVENTÁRIO</strong><span>B ou Esc fecha</span></header>
         <section className="house-construction-section">
           <h3>Construção da casa <small>{state.house.built ? 'CONCLUÍDA' : `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}% · ${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`}</small></h3>
