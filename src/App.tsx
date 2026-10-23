@@ -341,20 +341,6 @@ export default function App() {
           <div className="hud-chip compact"><span>RESPIRO</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
       </div>
-      {showHouseDelivery && <div className="house-delivery-panel" role="group" aria-label="Entrega de madeira para a casa" onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
-        <div className="house-delivery-heading"><strong>Obra da casa</strong><span>{state.house.woodDelivered}/{CONFIG.house.buildCost} 🪵</span></div>
-        <div className="house-progress-track"><span style={{ width: `${state.house.woodDelivered / CONFIG.house.buildCost * 100}%` }} /></div>
-        <div className="house-delivery-hint">Toque em um espaço para entregar a madeira dele</div>
-        <div className="house-delivery-slots">
-          {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
-            const item = state.inventory[index];
-            const canDeliver = item?.itemId === 'wood' && item.quantity > 0;
-            return <button key={index} type="button" className={canDeliver ? 'house-delivery-slot filled' : 'house-delivery-slot'} disabled={!canDeliver} onClick={event => { event.stopPropagation(); engineRef.current?.deliverWoodFromBagSlot(index); }} aria-label={`Espaço ${index + 1}${item ? `, ${item.itemId === 'wood' ? 'madeira' : item.itemId}, ${item.quantity}` : ', vazio'}`}>
-              <span>{canDeliver ? '🪵' : index + 1}</span><b>{item ? `×${item.quantity}` : 'Vazio'}</b>
-            </button>;
-          })}
-        </div>
-      </div>}
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
         <div className="start-panel">
           <div className="start-eyebrow">FÍBULA ONLINE</div>
