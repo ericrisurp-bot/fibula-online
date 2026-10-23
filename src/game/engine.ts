@@ -426,7 +426,7 @@ export class GameEngine {
     const candidate = { x, y, size } as Tree;
     const candidateBase = this.treeBase(candidate);
     const candidateFootprint = this.treeFootprintRadius(candidate);
-    if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < candidateFootprint + this.rockFootprintRadius(rock))) return false;
+    if (this.state.rocks.some(rock => Math.hypot(candidateBase.x - rock.x, candidateBase.y - rock.y) < candidateFootprint + this.rockFootprintRadius(rock))) return false;
     const houseDistance = Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y);
     if (allowNearHouse) {
       if (houseDistance < candidateFootprint + 38) return false;
