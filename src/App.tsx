@@ -6,7 +6,7 @@ import Controls from './ui/Controls';
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false },
-  cart: { x: 1800, y: 600, repairWood: 0, repaired: false, carried: false, inventory: [] },
+  cart: { x: 1800, y: 600, angle: Math.PI / 2, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], woodDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const fmtTime = (seconds: number) => {
@@ -76,7 +76,7 @@ export default function App() {
       }
       for (const flag of flagsRef.current) drawFlag(ctx, flag.x, flag.y, flag.color);
       drawHouse(ctx, s.house);
-      drawCart(ctx, s.cart);
+      drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed);
       for (const tree of s.trees) {
         ctx.save(); ctx.translate(tree.x, tree.y);
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
@@ -407,10 +407,18 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
   ctx.restore();
 }
 
-function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart']) {
-  const { x, y, repairWood, repaired, carried } = cart;
+function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number) {
+  const { x, y, angle, repairWood, repaired, carried } = cart;
   ctx.save();
   ctx.translate(x, y);
+  if (nearby) {
+    const pulse = 0.5 + 0.5 * Math.sin(time * 4);
+    ctx.beginPath(); ctx.ellipse(0, 2, 38 + pulse * 3, 25 + pulse * 2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(210, 180, 125, ${0.07 + pulse * 0.06})`; ctx.fill();
+    ctx.strokeStyle = `rgba(230, 200, 150, ${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  ctx.rotate(angle);
   ctx.fillStyle = 'rgba(0,0,0,.3)';
   ctx.beginPath(); ctx.ellipse(0, 14, 30, 9, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
