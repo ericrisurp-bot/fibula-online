@@ -343,3 +343,36 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .flag-wheel-option.blue{left:0;top:61px}
 .flag-wheel-option.selected{opacity:1;transform:scale(1.16);border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.24),0 0 22px rgba(255,255,255,.5),0 5px 16px rgba(0,0,0,.5)}
 .flag-wheel-center{position:absolute;left:65px;top:65px;width:38px;height:38px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.36);border-radius:50%;background:rgba(20,21,20,.9);color:rgba(255,255,255,.72);font-size:22px;font-weight:500;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+
+/* Carrinho: ação independente do joystick e painel compacto de transferência. */
+.cart-action-button,.cart-repair-status{
+  position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:16;
+  max-width:calc(100% - 24px);padding:11px 18px;border:1px solid rgba(230,230,230,.42);
+  border-radius:12px;background:rgba(34,35,34,.94);color:#f4f4f4;
+  box-shadow:0 4px 18px rgba(0,0,0,.38);font-size:12px;font-weight:900;
+  letter-spacing:.025em;text-align:center;white-space:nowrap;touch-action:manipulation;
+}
+.cart-action-button{cursor:pointer}
+.cart-repair-status{bottom:18px;font-size:10px;color:#e8d0a8;pointer-events:none}
+.cart-menu-note{margin:0 0 8px;color:#c9c9c9;font-size:10px;line-height:1.4}
+.cart-menu-action{width:100%;margin:0 0 8px;padding:8px;border:1px solid rgba(220,220,220,.3);border-radius:8px;background:rgba(66,67,66,.85);color:#fff;font-size:11px;font-weight:800}
+.cart-menu-action:disabled,.cart-slot button:disabled,.cart-transfer-list button:disabled{opacity:.42}
+.cart-slot-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:0 0 8px}
+.cart-slot{position:relative;display:flex;min-width:0;aspect-ratio:1;align-items:center;justify-content:center;border:1px solid rgba(215,215,215,.2);border-radius:6px;background:rgba(18,19,18,.72);color:#8f918f}
+.cart-slot.filled{border-color:rgba(202,203,202,.45);background:rgba(72,74,72,.62);color:#fff}
+.cart-slot .bag-item-icon{font-size:15px}
+.cart-slot strong{position:absolute;right:2px;top:1px;padding:1px 2px;border-radius:3px;background:rgba(0,0,0,.72);color:#fff;font-size:8px;line-height:1.1}
+.cart-slot button{position:absolute;right:2px;bottom:2px;display:grid;place-items:center;width:17px;height:15px;padding:0;border:1px solid rgba(235,235,235,.35);border-radius:4px;background:rgba(20,20,20,.9);color:#fff;font-size:10px;line-height:1}
+.cart-transfer-list{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px}
+.cart-transfer-list button{padding:5px 6px;border:1px solid rgba(215,215,215,.22);border-radius:6px;background:rgba(55,56,55,.85);color:#e7e7e7;font-size:9px}
+.cart-transfer-list span{color:#b9bab9;font-size:10px}
+.mobile-menu-panel{max-height:calc(100dvh - 70px);overflow-y:auto;overscroll-behavior:contain}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .cart-action-button,.cart-repair-status{bottom:calc(145px + env(safe-area-inset-bottom));padding:10px 15px}
+  .cart-action-button{z-index:16}
+  .cart-repair-status{z-index:15}
+  .cart-slot-grid{gap:3px}
+  .cart-slot .bag-item-icon{font-size:13px}
+  .cart-slot button{width:15px;height:14px}
+}
