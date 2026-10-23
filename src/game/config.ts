@@ -4,7 +4,7 @@ export const CONFIG = {
   player: { radius: 18, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   enemy: {
     radius: 16,
-    speed: 155,
+    speed: 120,
     speedIncrease: 5,
     speedEveryWaves: 3,
     health: 30,
