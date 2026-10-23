@@ -54,6 +54,7 @@ export default function BackgroundMusic({ active }: Props) {
       window.cancelAnimationFrame(animationFrame);
       audio.volume = 0;
       silenceTimer = window.setTimeout(() => {
+        silenceTimer = undefined;
         void startTrack();
       }, SILENCE_SECONDS * 1000);
     };
