@@ -1017,6 +1017,16 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
     ctx.restore();
   }
-
+  if (cottonHarvestTimer > 0) {
+    // Foice de mão: cabo curto e lâmina fina em curva para colher algodão.
+    const progress = 1 - cottonHarvestTimer / 0.24;
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(r * 0.58, r * 0.05); ctx.lineTo(r * 1.15, -r * 0.18); ctx.stroke();
+    ctx.strokeStyle = '#d5dde0'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(r * 1.02, -r * 0.22); ctx.quadraticCurveTo(r * 1.5, -r * 0.65, r * 1.66, -r * 0.3); ctx.stroke();
+    ctx.restore();
+  }
   ctx.restore();
 }
