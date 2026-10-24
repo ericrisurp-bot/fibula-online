@@ -456,6 +456,7 @@ export class GameEngine {
     this.state.dyingEnemies = this.state.dyingEnemies.map(enemy => ({ ...enemy, deathAge: enemy.deathAge + dt })).filter(enemy => enemy.deathAge < 0.48);
     this.attackTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
+    const previousPlayerPosition = { x: p.x, y: p.y };
     let dx = this.input.x, dy = this.input.y;
     if (this.keys.has('a') || this.keys.has('arrowleft')) dx -= 1;
     if (this.keys.has('d') || this.keys.has('arrowright')) dx += 1;
@@ -479,6 +480,7 @@ export class GameEngine {
     this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
+    const playerSpeed = dt > 0 ? Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y) / dt : 0;
     this.updateCart(dt);
 
     const dayNight = this.getDayNightState();
@@ -506,7 +508,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
+    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
@@ -1195,7 +1197,7 @@ export class GameEngine {
     this.state.floatingDamage.push({ id: this.nextId++, x, y, amount, color, age: 0, duration: 0.72 });
   }
 
-  private collectXp(dt: number) {
+  private collectXp(dt: number, playerSpeed: number) {
     const p = this.state.player;
     for (const orb of [...this.state.xpOrbs]) {
       const dx = p.x - orb.x, dy = p.y - orb.y;
@@ -1203,7 +1205,7 @@ export class GameEngine {
       if (distance <= CONFIG.player.pickupRadius) {
         this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
       } else if (distance <= XP_ATTRACTION_RADIUS) {
-        const step = Math.min(distance - CONFIG.player.pickupRadius, CONFIG.xp.attractionSpeed * dt);
+        const step = Math.min(distance - CONFIG.player.pickupRadius, (CONFIG.xp.attractionSpeed + playerSpeed) * dt);
         orb.x += dx / distance * step;
         orb.y += dy / distance * step;
         if (Math.hypot(p.x - orb.x, p.y - orb.y) <= CONFIG.player.pickupRadius + 0.001) {
