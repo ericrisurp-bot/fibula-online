@@ -61,3 +61,11 @@ export function getAttributeEffectPerLevel(classId: ClassId, level: number, attr
   const previous = getPlayerAttributes(classId, Math.max(0, level - 1))[attribute];
   return (current - previous) * CONFIG.attributes.effectPerPointGained[attribute];
 }
+
+export function getAttributeBonus(classId: ClassId, level: number, attribute: EffectAttribute): number {
+  let total = 0;
+  for (let currentLevel = 1; currentLevel <= Math.max(0, level); currentLevel++) {
+    total += getAttributeEffectPerLevel(classId, currentLevel, attribute);
+  }
+  return total;
+}
