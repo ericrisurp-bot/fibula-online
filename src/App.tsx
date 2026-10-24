@@ -98,32 +98,7 @@ export default function App() {
       terrainCtx.fillStyle = grassPattern ?? '#557a43';
       terrainCtx.fillRect(0, 0, engine.world, engine.world);
 
-      // Lago e caminho são desenhados na camada estática; nunca são recalculados por frame.
-      const lakeX = engine.world * (0.23 + random() * 0.54);
-      const lakeY = engine.world * (0.2 + random() * 0.48);
-      const lakeRx = 190 + random() * 70;
-      const lakeRy = 125 + random() * 55;
-      terrainCtx.save();
-      terrainCtx.fillStyle = 'rgba(35, 63, 47, 0.42)';
-      terrainCtx.beginPath(); terrainCtx.ellipse(lakeX, lakeY, lakeRx + 18, lakeRy + 18, -0.18, 0, Math.PI * 2); terrainCtx.fill();
-      terrainCtx.fillStyle = '#477f91';
-      terrainCtx.strokeStyle = '#8db9b2'; terrainCtx.lineWidth = 10;
-      terrainCtx.beginPath(); terrainCtx.ellipse(lakeX, lakeY, lakeRx, lakeRy, -0.18, 0, Math.PI * 2); terrainCtx.fill(); terrainCtx.stroke();
-      terrainCtx.fillStyle = 'rgba(177, 220, 205, 0.22)';
-      terrainCtx.beginPath(); terrainCtx.ellipse(lakeX - lakeRx * 0.22, lakeY - lakeRy * 0.25, lakeRx * 0.42, lakeRy * 0.18, -0.18, 0, Math.PI * 2); terrainCtx.fill();
-      terrainCtx.restore();
 
-      const pathY1 = engine.world * (0.38 + random() * 0.34);
-      const pathY2 = engine.world * (0.38 + random() * 0.34);
-      const pathControlY1 = engine.world * (0.2 + random() * 0.6);
-      const pathControlY2 = engine.world * (0.2 + random() * 0.6);
-      terrainCtx.lineCap = 'round'; terrainCtx.lineJoin = 'round';
-      terrainCtx.strokeStyle = 'rgba(67, 54, 39, 0.34)'; terrainCtx.lineWidth = 104;
-      terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
-      terrainCtx.strokeStyle = '#b7a078'; terrainCtx.lineWidth = 82;
-      terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
-      terrainCtx.strokeStyle = 'rgba(224, 207, 165, 0.55)'; terrainCtx.lineWidth = 3;
-      terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
     }
     requestAnimationFrame(() => requestAnimationFrame(() => setWorldReady(true)));
     const render = () => {
