@@ -123,6 +123,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       <span className="joystick-label">MOVER</span>
     </div>
     <div className="mobile-quick-buttons" aria-label="Atalhos rápidos">
+      {cartActionVisible && <button type="button" className="mobile-quick-cart" onClick={onCartToggle} aria-label={cartCarried ? 'Largar carrinho' : 'Pegar carrinho'} title={cartCarried ? 'Largar carrinho' : 'Pegar carrinho'}><span aria-hidden="true">🛒</span><small>{cartCarried ? 'Largar' : 'Pegar'}</small></button>}
       <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><span aria-hidden="true">↻</span><small>{CLASSES[classId].label}</small></button>
       <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><span aria-hidden="true">🎒</span></button>
     </div>
