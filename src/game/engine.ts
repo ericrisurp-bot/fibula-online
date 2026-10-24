@@ -4,7 +4,7 @@ import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
@@ -658,7 +658,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
     if (this.state.classId === 'druida') {
       this.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
@@ -1531,11 +1531,37 @@ export class GameEngine {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
-          if (this.state.classId === 'druida') target.slowRemaining = CONFIG.druidSlow.duration;
+          if (this.state.classId === 'druida') {
+            target.slowRemaining = CONFIG.druidSlow.duration;
+            const newPoisonDamage = shot.damage * CONFIG.druidPoison.damagePerTickFactor * (1 + this.getDayNightState().vulnerability);
+            const currentPoisonDamage = (target.poisonRemaining ?? 0) > 0 ? target.poisonDamage ?? 0 : 0;
+            target.poisonDamage = Math.max(currentPoisonDamage, newPoisonDamage);
+            target.poisonRemaining = CONFIG.druidPoison.duration;
+            target.poisonTick = CONFIG.druidPoison.tickInterval;
+          }
           this.registerDruidBasicHit();
           if (target.hp <= 0) this.killEnemy(target.id);
         }
       } else if (shot.life <= 0) this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+    }
+  }
+
+  private updateDruidEffects(dt: number) {
+    for (const enemy of [...this.state.enemies]) {
+      const activeTime = Math.min(dt, enemy.poisonRemaining ?? 0);
+      if (activeTime <= 0) continue;
+      enemy.poisonRemaining = Math.max(0, (enemy.poisonRemaining ?? 0) - dt);
+      enemy.poisonTick = (enemy.poisonTick ?? CONFIG.druidPoison.tickInterval) - activeTime;
+      while ((enemy.poisonTick ?? 0) <= 0) {
+        const damage = enemy.poisonDamage ?? 0;
+        enemy.hp -= damage;
+        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+        enemy.poisonTick = (enemy.poisonTick ?? 0) + CONFIG.druidPoison.tickInterval;
+        if (enemy.hp <= 0) {
+          this.killEnemy(enemy.id);
+          break;
+        }
+      }
     }
   }
 
