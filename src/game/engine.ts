@@ -802,6 +802,8 @@ export class GameEngine {
     }
     if (Math.hypot(candidateBase.x - this.state.cart.x, candidateBase.y - this.state.cart.y) < candidateFootprint + 38) return false;
     if (Math.hypot(candidateBase.x - this.state.refinery.x, candidateBase.y - this.state.refinery.y) < CONFIG.refinery.treeClearRadius + candidateFootprint) return false;
+    if (Math.hypot(candidateBase.x - this.state.tecelaria.x, candidateBase.y - this.state.tecelaria.y) < CONFIG.tecelaria.clearRadius + candidateFootprint) return false;
+    if (this.state.cottonPlants.some(plant => Math.hypot(candidateBase.x - plant.x, candidateBase.y - plant.y) < candidateFootprint + this.cottonFootprintRadius(plant))) return false;
     return this.state.trees.every(tree => {
       const base = this.treeBase(tree);
       return Math.hypot(candidateBase.x - base.x, candidateBase.y - base.y) >= Math.max(minSpacing, candidateFootprint + this.treeFootprintRadius(tree));
@@ -907,8 +909,10 @@ export class GameEngine {
     if (!allowNearRefinery && refineryDistance < CONFIG.refinery.rockClearRadius + radius) return false;
     if (allowNearRefinery && refineryDistance < radius + 45) return false;
     if (allowNearRefinery && refineryDistance > CONFIG.refinery.rareRockSpawnRadius) return false;
+    if (Math.hypot(x - this.state.tecelaria.x, y - this.state.tecelaria.y) < CONFIG.tecelaria.clearRadius + radius) return false;
     if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < radius + 38) return false;
     if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < radius + this.treeFootprintRadius(tree))) return false;
+    if (this.state.cottonPlants.some(plant => Math.hypot(x - plant.x, y - plant.y) < radius + this.cottonFootprintRadius(plant))) return false;
     if (this.state.rocks.filter(rock => Math.hypot(x - rock.x, y - rock.y) <= CONFIG.rocks.attractionRadius).length >= CONFIG.rocks.attractionMaxNearby) return false;
     return this.state.rocks.every(rock => Math.hypot(x - rock.x, y - rock.y) >= radius + this.rockFootprintRadius(rock) + 24);
   }
