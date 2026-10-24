@@ -286,26 +286,6 @@ export class GameEngine {
     }
   }
 
-  private autoStoreItemsAtHouse() {
-    const house = this.state.house;
-    if (!house.built) return;
-    const playerNearHouse = Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) <= CONFIG.house.interactRadius;
-    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
-    if (!playerNearHouse) return;
-    const store = (items: InventoryStack[]) => {
-      for (const stack of items) {
-        const existing = house.inventory.find(item => item.itemId === stack.itemId);
-        if (existing) existing.quantity += stack.quantity;
-        else house.inventory.push({ ...stack });
-      }
-    };
-    store(this.state.inventory);
-    this.state.inventory = [];
-    if (this.state.cart.carried || cartNearHouse) {
-      store(this.state.cart.inventory);
-      this.state.cart.inventory = [];
-    }
-  }
   toggleCart() {
     if (this.state.dead || !this.state.cart.repaired) return;
     const cart = this.state.cart;
@@ -318,13 +298,12 @@ export class GameEngine {
       cart.carried = true;
       cart.angle = this.state.player.facingX < -0.15 ? Math.PI : 0;
       this.updateCart(0);
-      this.autoLoadCartFromInventory();
     } else return;
     this.emit();
   }
-  private autoLoadCartFromInventory() {
+  storeAllBagToCart() {
+    if (this.state.dead || !this.isCartAccessible()) return;
     const cart = this.state.cart;
-    if (!cart.repaired || Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) > CONFIG.cart.interactRadius || this.state.inventory.length === 0) return;
     let cartInventory = cart.inventory;
     const remainingInventory: InventoryStack[] = [];
     for (const stack of this.state.inventory) {
@@ -338,6 +317,7 @@ export class GameEngine {
     }
     cart.inventory = cartInventory;
     this.state.inventory = remainingInventory;
+    this.emit();
   }
   discardBagItem(index: number) {
     if (this.state.dead) return;
@@ -354,6 +334,39 @@ export class GameEngine {
     this.state.cart.inventory = result.inventory;
     const remaining = stack.quantity - result.added;
     this.state.inventory = this.state.inventory.flatMap((item, itemIndex) => itemIndex !== index ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
+    this.emit();
+  }
+  storeAllBagToHouse() {
+    if (this.state.dead || !this.state.house.built) return;
+    const house = this.state.house;
+    if (Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
+    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
+    const store = (items: InventoryStack[]) => {
+      for (const stack of items) {
+        const existing = house.inventory.find(item => item.itemId === stack.itemId);
+        if (existing) existing.quantity += stack.quantity;
+        else house.inventory.push({ ...stack });
+      }
+    };
+    store(this.state.inventory);
+    this.state.inventory = [];
+    if (this.state.cart.carried || cartNearHouse) {
+      store(this.state.cart.inventory);
+      this.state.cart.inventory = [];
+    }
+    this.emit();
+  }
+  transferHouseToBag(itemId: string) {
+    if (this.state.dead || !this.state.house.built) return;
+    const house = this.state.house;
+    if (Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
+    const stack = house.inventory.find(item => item.itemId === itemId);
+    if (!stack) return;
+    const result = addToInventory(this.state.inventory, itemId, Math.min(stack.quantity, CONFIG.inventory.maxPerSlot), CONFIG.inventory);
+    if (result.added <= 0) return;
+    this.state.inventory = result.inventory;
+    const remaining = stack.quantity - result.added;
+    house.inventory = house.inventory.flatMap(item => item.itemId !== itemId ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
     this.emit();
   }
   transferCartToBag(index: number) {
@@ -440,7 +453,7 @@ export class GameEngine {
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.woodDrops.length, s.stoneDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -512,7 +525,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.autoStoreItemsAtHouse(); this.repairCartWithWood(); this.autoLoadCartFromInventory();
+    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.repairCartWithWood();
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
