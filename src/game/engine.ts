@@ -108,12 +108,17 @@ export class GameEngine {
       this.mageAttackCount = 0;
       this.archerHealArrowCount = 0;
     }
+    const player = this.state.player;
+    const currentHp = player.hp;
     this.state.classId = classId;
-    if (this.state.player.level === 0) {
-      const startingHealth = CONFIG.attributes.classStartHealth[classId];
-      this.state.player.maxHp = startingHealth;
-      this.state.player.hp = startingHealth;
+
+    // Recalcula a vida máxima para a classe atual sem restaurar a vida perdida.
+    let classMaxHp = CONFIG.attributes.classStartHealth[classId];
+    for (let level = 1; level <= player.level; level++) {
+      classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida');
     }
+    player.maxHp = classMaxHp;
+    player.hp = Math.min(currentHp, classMaxHp);
 
     // A classe selecionada define a arma; não existe troca independente de arma.
     const classWeapon: Record<ClassId, WeaponId> = {
