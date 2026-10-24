@@ -36,6 +36,7 @@ export const CONFIG = {
   },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   attributes: {
+    classStartHealth: { guerreiro: 200, mago: 90, arqueiro: 100, druida: 110 },
     baseValue: 100,
     gainPerLevel: 1,
     // Multiplicadores aplicados somente ao ganho de cada nível.
