@@ -5,10 +5,10 @@
  *   node tools/balance-sim.mjs 30
  *   node tools/balance-sim.mjs 30 --imortal
  *
- * O simulador carrega o GameEngine real, transpila os três módulos TypeScript
- * necessários para um diretório temporário e fornece um requestAnimationFrame
- * virtual a 30 FPS. Math.random é substituído por um PRNG com semente fixa.
- * O modo --imortal mantém a vida do jogador em um valor alto apenas no simulador;
+ * O simulador carrega todos os módulos TypeScript de src/game para um diretório
+ * temporário e fornece um requestAnimationFrame virtual a 30 FPS. Math.random
+ * é substituído por um PRNG com semente fixa. --imortal mantém HP alto apenas
+ * no simulador.
  *
  * Bots determinísticos (sem decisões aleatórias):
  * - guerreiro: aproxima-se até 42 px, recua abaixo de 30 px e circula no meio
@@ -17,14 +17,13 @@
  * - arqueiro: tenta manter 300 px e faz strafe.
  * O strafe troca de lado a cada 4 s, com o lado inicial derivado da semente.
  *
- * Modo normal: registra abates totais, abates por minuto sobrevivido, onda e
- * tempo da morte; limite de segurança de 600 s.
- * Modo --imortal: mede tempo de limpeza de cada onda (1–10) e abates aos 180
- * e 300 s. A onda é considerada limpa quando terminou de gerar seus inimigos
- * e todos os inimigos gerados para ela foram derrotados.
+ * Modo normal: noites completas sobrevividas, tempo até morte, abates totais,
+ * nível na morte e abates por minuto sobrevivido; limite de segurança de 600 s.
+ * Modo --imortal: abates durante cada noite, percentual da coorte de slimes
+ * nascida em cada noite derrotada até o fim da simulação e nível aos 300 s.
  * Esse arquivo não altera CONFIG nem o motor de gameplay.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -65,9 +64,23 @@ function mulberry32(seed) {
 }
 
 function compileRuntimeModules(tempDir) {
-  for (const name of ['config', 'inventory', 'engine']) {
-    const sourcePath = join(root, 'src', 'game', name + '.ts');
-    let source = readFileSync(sourcePath, 'utf8');
+  const sourceRoot = join(root, 'src', 'game');
+  const sourceFiles = [];
+  const collectTypeScript = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const fullPath = join(directory, entry.name);
+      if (entry.isDirectory()) collectTypeScript(fullPath);
+      else if (entry.isFile() && entry.name.endsWith('.ts')) sourceFiles.push(fullPath);
+    }
+  };
+  collectTypeScript(sourceRoot);
+
+  for (const sourcePath of sourceFiles) {
+    const relativePath = sourcePath.slice(sourceRoot.length + 1);
+    const outputPath = join(tempDir, relativePath.replace(/\.ts$/, '.mjs'));
+    const outputDirectory = dirname(outputPath);
+    mkdirSync(outputDirectory, { recursive: true });
+    const source = readFileSync(sourcePath, 'utf8');
     const output = ts.transpileModule(source, {
       compilerOptions: {
         target: ts.ScriptTarget.ES2022,
@@ -76,8 +89,15 @@ function compileRuntimeModules(tempDir) {
       },
       fileName: sourcePath,
     }).outputText;
-    const fixedImports = output.replace(/from\s+(['"])(\.\/(?:config|inventory))\1/g, 'from "$2.mjs"');
-    writeFileSync(join(tempDir, name + '.mjs'), fixedImports);
+    const fixedImports = output.replace(
+      /(from\s*|import\s*\()(['"])(\.\.?\/[^'"]+)\2/g,
+      (match, prefix, quote, importPath) => {
+        const pathWithoutTs = importPath.endsWith('.ts') ? importPath.slice(0, -3) : importPath;
+        const pathWithExtension = /\.[a-z0-9]+$/i.test(pathWithoutTs) ? pathWithoutTs : pathWithoutTs + '.mjs';
+        return prefix + quote + pathWithExtension + quote;
+      },
+    );
+    writeFileSync(outputPath, fixedImports);
   }
 }
 
@@ -133,15 +153,12 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
   let nextId = 1;
   let queue = [];
   let frame = 0;
-  let killsAt180 = null;
   let killsAt300 = null;
-  const waveByEnemyId = new Map();
-  const waveSpawnAttempts = { 1: 1 };
-  const waveSpawned = { 1: 0 };
-  const waveKills = {};
-  const waveTargets = { 1: CONFIG.waves.firstCount };
-  const waveStartTimes = { 1: 0 };
-  const waveClearSeconds = {};
+  let levelAt300 = null;
+  const enemyNightById = new Map();
+  const spawnedByNight = {};
+  const cohortKillsByNight = {};
+  const killsDuringNight = {};
 
   Math.random = random;
   globalThis.requestAnimationFrame = callback => {
@@ -157,39 +174,29 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
     const engine = new GameEngine(() => {});
     engine.setClass(classId);
 
-    // A primeira horda nasce no construtor, antes da instrumentação.
-    for (const enemy of engine.state.enemies) {
-      waveByEnemyId.set(enemy.id, 1);
-      waveSpawned[1] += 1;
-    }
-
-    // Instrumentação apenas no objeto de simulação: não modifica o arquivo do motor.
+    // Acompanhe o nascimento de cada slime e a noite em que ele surgiu.
     const originalSpawn = engine.spawnHordeEnemy.bind(engine);
     engine.spawnHordeEnemy = function () {
-      const wave = this.state.wave;
-      const beforeAttempt = this.hordeSpawned;
       const beforeIds = new Set(this.state.enemies.map(enemy => enemy.id));
       originalSpawn();
-      if (this.hordeSpawned > beforeAttempt) {
-        waveSpawnAttempts[wave] = (waveSpawnAttempts[wave] ?? 0) + 1;
-        waveTargets[wave] = this.hordeTarget;
-        waveStartTimes[wave] ??= (wave - 1) * CONFIG.waves.cycle;
-      }
       for (const enemy of this.state.enemies) {
         if (beforeIds.has(enemy.id)) continue;
-        waveByEnemyId.set(enemy.id, wave);
-        waveSpawned[wave] = (waveSpawned[wave] ?? 0) + 1;
+        const night = this.state.nightNumber;
+        enemyNightById.set(enemy.id, night);
+        spawnedByNight[night] = (spawnedByNight[night] ?? 0) + 1;
       }
     };
 
     const originalKill = engine.killEnemy.bind(engine);
     engine.killEnemy = function (id) {
       const enemy = this.state.enemies.find(value => value.id === id);
-      const wave = enemy ? (waveByEnemyId.get(id) ?? this.state.wave) : null;
+      const birthNight = enemy ? (enemyNightById.get(id) ?? null) : null;
+      const killNight = this.state.dayNight === 'night' ? this.state.nightNumber : null;
       const previousKills = this.state.kills;
       originalKill(id);
-      if (this.state.kills > previousKills && wave !== null) {
-        waveKills[wave] = (waveKills[wave] ?? 0) + 1;
+      if (this.state.kills > previousKills && birthNight !== null) {
+        cohortKillsByNight[birthNight] = (cohortKillsByNight[birthNight] ?? 0) + 1;
+        if (killNight !== null) killsDuringNight[killNight] = (killsDuringNight[killNight] ?? 0) + 1;
       }
     };
 
@@ -197,8 +204,15 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
     // Alinha o relógio virtual ao timestamp usado pelo start() no motor.
     frameNow = performance.now();
 
-    const durationLimit = immortal ? 300 : MAX_SECONDS;
-    while (queue.length && (immortal ? engine.state.elapsed < durationLimit : !engine.state.dead && engine.state.elapsed < durationLimit)) {
+    const durationLimit = immortal
+      ? CONFIG.dayNight.cycle * 10
+      : MAX_SECONDS;
+    while (
+      queue.length &&
+      (immortal
+        ? engine.state.elapsed < durationLimit
+        : !engine.state.dead && engine.state.elapsed < durationLimit)
+    ) {
       botMove(engine, classId, seed, frame);
       if (immortal) engine.state.player.hp = Number.MAX_SAFE_INTEGER;
       const scheduled = queue.shift();
@@ -206,18 +220,11 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
       frame += 1;
       scheduled.callback(frameNow);
       if (immortal) {
-        // Level-ups podem restaurar HP ao máximo; repõe a vida alta no simulador.
+        // Repor a vida apenas no simulador, inclusive depois de level-ups.
         engine.state.player.hp = Number.MAX_SAFE_INTEGER;
-        if (killsAt180 === null && engine.state.elapsed >= 180) killsAt180 = engine.state.kills;
-        if (killsAt300 === null && engine.state.elapsed >= 300) killsAt300 = engine.state.kills;
-
-        for (let wave = 1; wave <= 10; wave++) {
-          const spawnComplete = (waveSpawnAttempts[wave] ?? 0) >= (waveTargets[wave] ?? Infinity);
-          const allSpawnedEnemiesDefeated = (waveSpawned[wave] ?? 0) > 0
-            && (waveKills[wave] ?? 0) >= waveSpawned[wave];
-          if (waveClearSeconds[wave] === undefined && spawnComplete && allSpawnedEnemiesDefeated) {
-            waveClearSeconds[wave] = Math.max(0, engine.state.elapsed - (waveStartTimes[wave] ?? ((wave - 1) * CONFIG.waves.cycle)));
-          }
+        if (killsAt300 === null && engine.state.elapsed >= 300) {
+          killsAt300 = engine.state.kills;
+          levelAt300 = engine.state.player.level;
         }
       }
     }
@@ -226,22 +233,28 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
       return {
         classId,
         seed,
-        kills180: killsAt180 ?? engine.state.kills,
-        kills300: killsAt300 ?? engine.state.kills,
-        waveClearSeconds,
+        killsAt300: killsAt300 ?? engine.state.kills,
+        levelAt300: levelAt300 ?? engine.state.player.level,
+        spawnedByNight,
+        cohortKillsByNight,
+        killsDuringNight,
       };
     }
 
     const survivedSeconds = engine.state.elapsed;
     const died = engine.state.dead;
-    const totalKills = engine.state.kills;
+    const completeNightsSurvived = Math.max(
+      0,
+      engine.state.nightNumber - (engine.state.dayNight === 'night' ? 1 : 0),
+    );
     const result = {
       classId,
       seed,
-      totalKills,
-      killsPerMinute: survivedSeconds > 0 ? totalKills * 60 / survivedSeconds : 0,
-      deathWave: died ? engine.state.wave : null,
+      totalKills: engine.state.kills,
+      killsPerMinute: survivedSeconds > 0 ? engine.state.kills * 60 / survivedSeconds : 0,
+      nightsSurvived: completeNightsSurvived,
       deathSeconds: died ? survivedSeconds : null,
+      levelAtDeath: died ? engine.state.player.level : null,
       survivedSeconds,
       died,
     };
@@ -273,48 +286,48 @@ try {
 
   if (!immortal) {
     console.log(`Fíbula Online — simulação determinística | modo: normal | sementes por classe: ${seedCount} | FPS: ${FPS} | limite: ${MAX_SECONDS}s`);
-    console.log('Abates totais e abates por minuto sobrevivido; onda e tempo da morte (média / mediana)');
-    console.log('Classe      Abates totais M/Md   Abates/min M/Md   Onda da morte M/Md   Tempo até morte (s) M/Md   Mortes');
+    console.log('Sobrevivência medida em noites completas; tempo até morte e nível na morte consideram apenas execuções que morreram.');
+    console.log('Classe      Noites sobrevividas M/Md   Tempo até morte (s) M/Md   Abates totais M/Md   Nível na morte M/Md   Abates/min M/Md');
     for (const classId of CLASSES) {
       const rows = results.filter(row => row.classId === classId);
-      const totalKills = rows.map(row => row.totalKills);
-      const killsPerMinute = rows.map(row => row.killsPerMinute);
       const deathRows = rows.filter(row => row.died);
-      const deathWaves = deathRows.map(row => row.deathWave);
+      const nights = rows.map(row => row.nightsSurvived);
       const deathTimes = deathRows.map(row => row.deathSeconds);
-      const deaths = deathRows.length;
+      const kills = rows.map(row => row.totalKills);
+      const levels = deathRows.map(row => row.levelAtDeath);
+      const killsPerMinute = rows.map(row => row.killsPerMinute);
       console.log(
-        `${classId.padEnd(11)} ${fmt(mean(totalKills), 1).padStart(5)} / ${fmt(median(totalKills), 1).padEnd(5)}       ` +
-        `${fmt(mean(killsPerMinute), 2).padStart(5)} / ${fmt(median(killsPerMinute), 2).padEnd(5)}      ` +
-        `${fmt(mean(deathWaves), 1).padStart(5)} / ${fmt(median(deathWaves), 1).padEnd(5)}             ` +
-        `${fmt(mean(deathTimes), 1).padStart(6)} / ${fmt(median(deathTimes), 1).padEnd(6)}          ${deaths}/${seedCount}`,
+        `${classId.padEnd(11)} ${fmt(mean(nights), 1).padStart(5)} / ${fmt(median(nights), 1).padEnd(5)}              ` +
+        `${fmt(mean(deathTimes), 1).padStart(6)} / ${fmt(median(deathTimes), 1).padEnd(6)}          ` +
+        `${fmt(mean(kills), 1).padStart(5)} / ${fmt(median(kills), 1).padEnd(5)}       ` +
+        `${fmt(mean(levels), 1).padStart(5)} / ${fmt(median(levels), 1).padEnd(5)}       ` +
+        `${fmt(mean(killsPerMinute), 2)} / ${fmt(median(killsPerMinute), 2)}`,
       );
     }
     const survivors = results.filter(row => !row.died);
     if (survivors.length) {
-      console.log(`Aviso: ${survivors.length} simulação(ões) não morreram antes do limite de ${MAX_SECONDS}s; esses casos não entram nas estatísticas de morte.`);
+      console.log(`Aviso: ${survivors.length} simulação(ões) não morreram antes do limite de ${MAX_SECONDS}s; não têm tempo/nível de morte.`);
     }
-    console.log('Nota: média/mediana da onda e do tempo consideram apenas execuções em que houve morte.');
   } else {
-    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | janela: 300s`);
-    console.log('Tempo para limpar cada onda em segundos (média / mediana) e abates totais aos 180s e 300s');
-    const waveHeaders = Array.from({ length: 10 }, (_, index) => `Onda ${index + 1} M/Md`.padEnd(15)).join(' ');
-    console.log(`Classe      ${waveHeaders}  Abates 180s M/Md   Abates 300s M/Md`);
+    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | simulação: ${CONFIG.dayNight.cycle * 10}s | nível/abates registrados aos 300s`);
+    console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
+    const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
+    console.log(`Classe      ${nightHeaders} Nível aos 300s M/Md`);
     for (const classId of CLASSES) {
       const rows = results.filter(row => row.classId === classId);
-      const waveCells = Array.from({ length: 10 }, (_, index) => {
-        const values = rows.map(row => row.waveClearSeconds[index + 1]).filter(value => value !== undefined);
-        return `${fmt(mean(values), 1)}/${fmt(median(values), 1)}`.padEnd(15);
+      const nightCells = Array.from({ length: 10 }, (_, index) => {
+        const night = index + 1;
+        const killValues = rows.map(row => row.killsDuringNight[night] ?? 0);
+        const percentValues = rows.map(row => {
+          const spawned = row.spawnedByNight[night] ?? 0;
+          return spawned > 0 ? 100 * (row.cohortKillsByNight[night] ?? 0) / spawned : null;
+        }).filter(value => value !== null);
+        return `${fmt(mean(killValues), 1)}/${fmt(median(killValues), 1)}; ${fmt(mean(percentValues), 1)}%/${fmt(median(percentValues), 1)}%`.padEnd(25);
       }).join(' ');
-      const kills180 = rows.map(row => row.kills180);
-      const kills300 = rows.map(row => row.kills300);
-      console.log(
-        `${classId.padEnd(11)} ${waveCells}  ` +
-        `${fmt(mean(kills180), 1)} / ${fmt(median(kills180), 1)}       ` +
-        `${fmt(mean(kills300), 1)} / ${fmt(median(kills300), 1)}`,
-      );
+      const levels = rows.map(row => row.levelAt300);
+      console.log(`${classId.padEnd(11)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
     }
-    console.log('Nota: ondas não limpas até 300s são exibidas como —; tempos são relativos ao início da respectiva onda.');
+    console.log(`Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.`);
   }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
