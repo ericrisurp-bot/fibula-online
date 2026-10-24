@@ -1005,11 +1005,15 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
-    // Cabeça de ferro transversal com pontas opostas, própria de uma picareta.
-    ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(r * 1.12, -r * 0.6); ctx.quadraticCurveTo(r * 1.42, -r * 0.78, r * 1.72, -r * 0.52); ctx.stroke();
-    ctx.strokeStyle = '#d1d9dc'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(r * 1.12, -r * 0.6); ctx.quadraticCurveTo(r * 1.42, -r * 0.78, r * 1.72, -r * 0.52); ctx.stroke();
+    // Cabeça metálica de picareta: ponta estreita de um lado e lâmina oposta.
+    ctx.fillStyle = '#aebdc4'; ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(r * 1.02, -r * 0.58); ctx.lineTo(r * 1.28, -r * 0.72);
+    ctx.lineTo(r * 1.43, -r * 0.58); ctx.lineTo(r * 1.78, -r * 0.7);
+    ctx.lineTo(r * 1.63, -r * 0.48); ctx.lineTo(r * 1.43, -r * 0.47);
+    ctx.lineTo(r * 1.2, -r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#e0e7ea'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
     ctx.restore();
   }
   if (cottonHarvestTimer > 0) {
