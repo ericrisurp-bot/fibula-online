@@ -904,7 +904,8 @@ export class GameEngine {
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
       e.x += direction.x * speed * dt; e.y += direction.y * speed * dt;
       e.hitWait -= dt;
-      if (dist < CONFIG.player.radius + CONFIG.enemy.radius && e.hitWait <= 0) {
+      const contactDistance = Math.hypot(p.x - e.x, p.y - e.y);
+      if (contactDistance <= CONFIG.player.radius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (Math.random() > CONFIG.player.dodge + this.levelStats.dodge) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
@@ -918,6 +919,29 @@ export class GameEngine {
     for (const enemy of this.state.enemies) {
       this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
       this.resolveRockBoxCollisions(enemy);
+    }
+
+    const minimumDistance = CONFIG.player.radius + CONFIG.enemy.radius;
+    const minX = CONFIG.map.wall + CONFIG.enemy.radius;
+    const maxX = this.world - CONFIG.map.wall - CONFIG.enemy.radius;
+    const minY = minX;
+    const maxY = maxX;
+    for (const enemy of this.state.enemies) {
+      let dx = enemy.x - p.x;
+      let dy = enemy.y - p.y;
+      let distance = Math.hypot(dx, dy);
+      if (distance >= minimumDistance) continue;
+      if (distance === 0) {
+        const angle = ((enemy.id * 137.508) % 360) * Math.PI / 180;
+        dx = Math.cos(angle);
+        dy = Math.sin(angle);
+        enemy.x = this.clamp(p.x + dx * minimumDistance, minX, maxX);
+        enemy.y = this.clamp(p.y + dy * minimumDistance, minY, maxY);
+        continue;
+      }
+      const push = minimumDistance - distance;
+      enemy.x = this.clamp(enemy.x + dx / distance * push, minX, maxX);
+      enemy.y = this.clamp(enemy.y + dy / distance * push, minY, maxY);
     }
   }
 
