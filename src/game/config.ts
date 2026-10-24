@@ -42,9 +42,9 @@ export const CONFIG = {
     // Multiplicadores aplicados somente ao ganho de cada nível.
     classMultipliers: {
       guerreiro: { vida: 1.6, forca: 1.4, armadura: 1.4, resistenciaMagica: 1, inteligencia: 0.4, destreza: 0.6, velocidadeMovimento: 0.8, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 0.8, areaAtaque: 1 },
-      mago: { vida: 0.8, forca: 0.6, armadura: 0.6, resistenciaMagica: 1, inteligencia: 1.8, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      mago: { vida: 0.8, forca: 0.6, armadura: 0.4, resistenciaMagica: 1, inteligencia: 1.8, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
       arqueiro: { vida: 0.8, forca: 0.8, armadura: 0.6, resistenciaMagica: 1, inteligencia: 0.4, destreza: 2.6, velocidadeMovimento: 1.4, velocidadeAtaque: 1.1, alcanceAtaque: 1, esquiva: 1.2, areaAtaque: 1 },
-      druida: { vida: 1, forca: 0.6, armadura: 0.8, resistenciaMagica: 1, inteligencia: 1.25, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      druida: { vida: 1, forca: 0.6, armadura: 0.4, resistenciaMagica: 1, inteligencia: 1.25, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
     },
     archerDamageWeights: { destreza: 0.65, forca: 0.35 },
     // Coeficientes reproduzem os ganhos atuais por nível quando o multiplicador é 1.
@@ -53,8 +53,9 @@ export const CONFIG = {
   mageExplosion: { everyAttack: 4, radius: 40, damageMultiplier: 1.5, maxTargets: 5 },
   archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6, 0.5], rangeLossPerTarget: 0.1 },
   archerHeal: { arrowsPerHeal: 15, amount: 1 },
+  druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
   weapons: {
-    espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
+    espada: { label: 'Espada', range: 70, damage: 12, attackSpeed: 1.25, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 420, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
     bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
