@@ -1133,6 +1133,10 @@ export class GameEngine {
         const step = Math.min(distance - CONFIG.player.pickupRadius, CONFIG.xp.attractionSpeed * dt);
         orb.x += dx / distance * step;
         orb.y += dy / distance * step;
+        if (Math.hypot(p.x - orb.x, p.y - orb.y) <= CONFIG.player.pickupRadius + 0.001) {
+          this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id);
+          p.xp += orb.value;
+        }
       }
     }
     while (p.xp >= p.nextXp) {
