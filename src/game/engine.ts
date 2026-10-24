@@ -180,6 +180,7 @@ export class GameEngine {
       house.woodDelivered = CONFIG.house.buildCost;
       house.built = true;
     }
+    this.emit();
   }
   buildRefinery() {
     const refinery = this.state.refinery;
@@ -228,6 +229,7 @@ export class GameEngine {
       refinery.stoneDelivered = CONFIG.refinery.buildCostStone;
       refinery.built = true;
     }
+    this.emit();
   }
 
   private deliverStonesToRefinery() {
@@ -403,6 +405,7 @@ export class GameEngine {
       cart.repairWood = CONFIG.cart.repairCost;
       cart.repaired = true;
     }
+    this.emit();
   }
   private updateCart(dt: number) {
     const cart = this.state.cart;
@@ -453,7 +456,7 @@ export class GameEngine {
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.woodDrops.length, s.stoneDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.refinery.x, s.player.y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
