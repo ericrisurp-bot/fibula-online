@@ -4,7 +4,7 @@ import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
@@ -61,6 +61,7 @@ export class GameEngine {
   private druidBasicHitCount = 0;
   private druidKillsSinceOrb = 0;
   private druidOrbHealTimer = 0;
+  private druidContagionTimer = 0;
   private refineryProcessTimer = 0;
   private tecelariaProcessTimer = 0;
 
@@ -658,7 +659,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
     if (this.state.classId === 'druida') {
       this.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
@@ -1205,8 +1206,11 @@ export class GameEngine {
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
+      const slowRemaining = e.slowRemaining ?? 0;
+      const speedMultiplier = slowRemaining > 0 ? CONFIG.druidSlow.speedMultiplier : 1;
+      e.slowRemaining = Math.max(0, slowRemaining - dt);
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
-      e.x += direction.x * speed * dt; e.y += direction.y * speed * dt;
+      e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
       const contactDistance = Math.hypot(p.x - e.x, p.y - e.y);
       if (contactDistance <= CONFIG.player.radius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
@@ -1528,10 +1532,58 @@ export class GameEngine {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
+          if (this.state.classId === 'druida') {
+            target.slowRemaining = CONFIG.druidSlow.duration;
+            const newPoisonDamage = shot.damage * CONFIG.druidPoison.damagePerTickFactor * (1 + this.getDayNightState().vulnerability);
+            const currentPoisonDamage = (target.poisonRemaining ?? 0) > 0 ? target.poisonDamage ?? 0 : 0;
+            target.poisonDamage = Math.max(currentPoisonDamage, newPoisonDamage);
+            target.poisonRemaining = CONFIG.druidPoison.duration;
+            target.poisonTick = CONFIG.druidPoison.tickInterval;
+          }
           this.registerDruidBasicHit();
           if (target.hp <= 0) this.killEnemy(target.id);
         }
       } else if (shot.life <= 0) this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+    }
+  }
+
+  private updateDruidEffects(dt: number) {
+    if (this.state.classId === 'druida') {
+      this.druidContagionTimer -= dt;
+      while (this.druidContagionTimer <= 0) {
+        this.druidContagionTimer += CONFIG.druidContagion.checkInterval;
+        let poisonedCount = this.state.enemies.filter(enemy => (enemy.poisonRemaining ?? 0) > 0).length;
+        if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) continue;
+        const sources = this.state.enemies.filter(enemy => (enemy.poisonRemaining ?? 0) > 0 && (enemy.poisonDamage ?? 0) > 0);
+        for (const source of sources) {
+          for (const target of this.state.enemies) {
+            if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) break;
+            if (target.id === source.id || (target.poisonRemaining ?? 0) > 0) continue;
+            if (Math.hypot(target.x - source.x, target.y - source.y) > CONFIG.druidContagion.radius) continue;
+            target.poisonRemaining = source.poisonRemaining;
+            target.poisonTick = source.poisonTick;
+            target.poisonDamage = source.poisonDamage;
+            poisonedCount += 1;
+          }
+          if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) break;
+        }
+      }
+    }
+    for (const enemy of [...this.state.enemies]) {
+      const activeTime = Math.min(dt, enemy.poisonRemaining ?? 0);
+      if (activeTime <= 0) continue;
+      enemy.poisonRemaining = Math.max(0, (enemy.poisonRemaining ?? 0) - dt);
+      enemy.poisonTick = (enemy.poisonTick ?? CONFIG.druidPoison.tickInterval) - activeTime;
+      while ((enemy.poisonTick ?? 0) <= 0) {
+        const damage = enemy.poisonDamage ?? 0;
+        enemy.hp -= damage;
+        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+        enemy.poisonTick = (enemy.poisonTick ?? 0) + CONFIG.druidPoison.tickInterval;
+        if (enemy.hp <= 0) {
+          this.killEnemy(enemy.id);
+          break;
+        }
+      }
     }
   }
 
