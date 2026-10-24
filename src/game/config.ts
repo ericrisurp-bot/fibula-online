@@ -4,9 +4,9 @@ export const CONFIG = {
   player: { radius: 18, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   enemy: {
     radius: 16,
-    speed: 155,
-    speedIncrease: 5,
-    speedEveryWaves: 3,
+    speed: 138,
+    speedIncrease: 4.6,
+    speedEveryWaves: 1,
     health: 30,
     healthPerWave: 1.2,
     contactDamage: 9,
@@ -48,7 +48,7 @@ export const CONFIG = {
     },
     archerDamageWeights: { destreza: 0.65, forca: 0.35 },
     // Coeficientes reproduzem os ganhos atuais por nível quando o multiplicador é 1.
-    effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 5, velocidadeAtaque: 0.045, esquiva: 0.008 },
+    effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 1.5, velocidadeAtaque: 0.045, esquiva: 0.008 },
   },
   mageExplosion: { everyAttack: 4, radius: 40, damageMultiplier: 1.5, maxTargets: 5 },
   weapons: {
