@@ -626,6 +626,7 @@ export default function App() {
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
       {(cartAccessible || houseAccessible) && <div className="nearby-storage-actions">
+        {cartActionVisible && <button className="cart-action-button desktop-cart-action" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
         {cartAccessible && <button className="store-all-button" type="button" disabled={state.inventory.length === 0} onClick={storeAllBagToCart}>Guardar tudo</button>}
         {houseAccessible && <button className="store-all-button" type="button" disabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onClick={storeAllBagToHouse}>Guardar tudo</button>}
       </div>}
