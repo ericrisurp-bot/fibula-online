@@ -1,4 +1,5 @@
 import { CONFIG, type ClassId, type WeaponId } from './config';
+import type { SoundCue } from './proceduralAudio';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
 
@@ -65,7 +66,7 @@ export class GameEngine {
   private refineryProcessTimer = 0;
   private tecelariaProcessTimer = 0;
 
-  constructor(private onUpdate: (state: GameSnapshot) => void) {
+  constructor(private onUpdate: (state: GameSnapshot) => void, private onSound: (cue: SoundCue) => void = () => {}) {
     this.state = this.freshState();
     this.initializeDayNight();
     this.placeHouse();
@@ -178,6 +179,7 @@ export class GameEngine {
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNearHouse : cartNearHouse;
     if (!playerNearHouse) return;
+    const woodDeliveredBefore = house.woodDelivered;
 
     const consumeWood = (inventory: InventoryStack[], requested: number) => {
       let toRemove = requested;
@@ -209,9 +211,11 @@ export class GameEngine {
       house.woodDelivered += result.consumed;
     }
 
+    if (house.woodDelivered > woodDeliveredBefore) this.onSound('deliver');
     if (house.woodDelivered >= CONFIG.house.buildCost) {
       house.woodDelivered = CONFIG.house.buildCost;
       house.built = true;
+      this.onSound('build');
     }
     this.emit();
   }
@@ -222,6 +226,7 @@ export class GameEngine {
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     if (!playerNear) return;
+    const deliveredBefore = refinery.woodDelivered + refinery.stoneDelivered;
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
       const nextInventory = inventory.flatMap(stack => {
@@ -257,10 +262,12 @@ export class GameEngine {
         this.state.cart.inventory = result.inventory; refinery.stoneDelivered += result.consumed;
       }
     }
+    if (refinery.woodDelivered + refinery.stoneDelivered > deliveredBefore) this.onSound('deliver');
     if (refinery.woodDelivered >= CONFIG.refinery.buildCostWood && refinery.stoneDelivered >= CONFIG.refinery.buildCostStone) {
       refinery.woodDelivered = CONFIG.refinery.buildCostWood;
       refinery.stoneDelivered = CONFIG.refinery.buildCostStone;
       refinery.built = true;
+      this.onSound('build');
     }
     this.emit();
   }
@@ -272,6 +279,7 @@ export class GameEngine {
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     if (!playerNear) return;
+    const deliveredBefore = building.bronzeDelivered + building.woodDelivered + building.cottonDelivered + building.stoneDelivered;
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
       const nextInventory = inventory.flatMap(stack => {
@@ -302,12 +310,14 @@ export class GameEngine {
         building[key] += cart.consumed;
       }
     }
+    if (building.bronzeDelivered + building.woodDelivered + building.cottonDelivered + building.stoneDelivered > deliveredBefore) this.onSound('deliver');
     if (building.bronzeDelivered >= CONFIG.tecelaria.buildCostBronze && building.woodDelivered >= CONFIG.tecelaria.buildCostWood && building.cottonDelivered >= CONFIG.tecelaria.buildCostCotton && building.stoneDelivered >= CONFIG.tecelaria.buildCostStone) {
       building.bronzeDelivered = CONFIG.tecelaria.buildCostBronze;
       building.woodDelivered = CONFIG.tecelaria.buildCostWood;
       building.cottonDelivered = CONFIG.tecelaria.buildCostCotton;
       building.stoneDelivered = CONFIG.tecelaria.buildCostStone;
       building.built = true;
+      this.onSound('build');
     }
     this.emit();
   }
@@ -521,9 +531,11 @@ export class GameEngine {
       return left > 0 ? [{ ...stack, quantity: left }] : [];
     });
     cart.repairWood += amount;
+    this.onSound('deliver');
     if (cart.repairWood >= CONFIG.cart.repairCost) {
       cart.repairWood = CONFIG.cart.repairCost;
       cart.repaired = true;
+      this.onSound('build');
     }
     this.emit();
   }
@@ -1402,15 +1414,18 @@ export class GameEngine {
         const treeBase = this.treeBase(treeTarget.tree);
         this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
         this.state.treeChopTimer = 0.2;
+        this.onSound('tree');
         treeTarget.tree.hits -= 1;
         if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
       } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
         this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
         this.state.rockMineTimer = 0.22;
+        this.onSound('rock');
         this.hitRock(rockTarget.rock.id);
       } else if (cottonTarget) {
         this.state.rockMineAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
         this.state.rockMineTimer = 0.22;
+        this.onSound('cotton');
         this.hitCottonPlant(cottonTarget.plant.id);
       }
       return;
