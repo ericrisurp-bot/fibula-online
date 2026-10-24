@@ -4,7 +4,7 @@ import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
@@ -1205,8 +1205,11 @@ export class GameEngine {
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
+      const slowRemaining = e.slowRemaining ?? 0;
+      const speedMultiplier = slowRemaining > 0 ? CONFIG.druidSlow.speedMultiplier : 1;
+      e.slowRemaining = Math.max(0, slowRemaining - dt);
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
-      e.x += direction.x * speed * dt; e.y += direction.y * speed * dt;
+      e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
       const contactDistance = Math.hypot(p.x - e.x, p.y - e.y);
       if (contactDistance <= CONFIG.player.radius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
@@ -1528,6 +1531,7 @@ export class GameEngine {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
+          if (this.state.classId === 'druida') target.slowRemaining = CONFIG.druidSlow.duration;
           this.registerDruidBasicHit();
           if (target.hp <= 0) this.killEnemy(target.id);
         }
