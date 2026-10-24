@@ -547,9 +547,23 @@ export class GameEngine {
 
   private placeRefinery() {
     const margin = CONFIG.map.wall + CONFIG.refinery.wallMargin;
+    const span = this.world - margin * 2;
+    const northEastMinX = margin + CONFIG.rocks.northEastMinX * span;
+    const northEastMaxY = margin + CONFIG.rocks.northEastMaxY * span;
     for (let attempt = 0; attempt < 1200; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
+      // Inverte a prioridade geográfica das pedras: 70% fora do nordeste e 30% no nordeste.
+      const northEast = Math.random() >= CONFIG.rocks.northEastSpawnChance;
+      let x: number;
+      let y: number;
+      if (northEast) {
+        x = northEastMinX + Math.random() * (margin + span - northEastMinX);
+        y = margin + Math.random() * (northEastMaxY - margin);
+      } else {
+        do {
+          x = margin + Math.random() * span;
+          y = margin + Math.random() * span;
+        } while (x >= northEastMinX && y <= northEastMaxY);
+      }
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.refinery.playerClearRadius) continue;
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.refinery.treeClearRadius + 80) continue;
       if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 120) continue;
