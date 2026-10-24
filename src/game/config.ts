@@ -36,15 +36,17 @@ export const CONFIG = {
   },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   attributes: {
+    classStartHealth: { guerreiro: 200, mago: 90, arqueiro: 100, druida: 110 },
     baseValue: 100,
     gainPerLevel: 1,
-    // Multiplicadores editáveis por classe; neste PR todos permanecem em 1.
+    // Multiplicadores aplicados somente ao ganho de cada nível.
     classMultipliers: {
-      guerreiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
-      mago: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
-      arqueiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
-      druida: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 1, inteligencia: 1, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      guerreiro: { vida: 1.6, forca: 1.4, armadura: 1.4, resistenciaMagica: 1, inteligencia: 0.4, destreza: 0.6, velocidadeMovimento: 0.8, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 0.8, areaAtaque: 1 },
+      mago: { vida: 0.8, forca: 0.6, armadura: 0.6, resistenciaMagica: 1, inteligencia: 1.8, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      arqueiro: { vida: 0.8, forca: 0.8, armadura: 0.6, resistenciaMagica: 1, inteligencia: 0.4, destreza: 2.6, velocidadeMovimento: 1.5, velocidadeAtaque: 1.1, alcanceAtaque: 1, esquiva: 1.2, areaAtaque: 1 },
+      druida: { vida: 1, forca: 0.6, armadura: 0.8, resistenciaMagica: 1, inteligencia: 1.25, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
     },
+    archerDamageWeights: { destreza: 0.65, forca: 0.35 },
     // Coeficientes reproduzem os ganhos atuais por nível quando o multiplicador é 1.
     effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 5, velocidadeAtaque: 0.045, esquiva: 0.008 },
   },
