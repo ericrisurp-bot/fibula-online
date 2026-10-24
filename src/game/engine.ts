@@ -1089,6 +1089,19 @@ export class GameEngine {
         if (this.state.classId === 'druida') this.druidRegenTimer = 3;
       }
       for (const enemy of hits.filter(e => e.hp <= 0)) this.killEnemy(enemy.id);
+      for (const enemy of hits) {
+        if (enemy.hp <= 0 || !this.state.enemies.some(alive => alive.id === enemy.id)) continue;
+        const dx = enemy.x - p.x;
+        const dy = enemy.y - p.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const destination = {
+          x: enemy.x + dx / distance * CONFIG.weapons.espada.knockback,
+          y: enemy.y + dy / distance * CONFIG.weapons.espada.knockback,
+        };
+        this.resolveObstacleCollisions(destination, CONFIG.enemy.radius);
+        enemy.x = destination.x;
+        enemy.y = destination.y;
+      }
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage + this.state.player.level * 0.3, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
