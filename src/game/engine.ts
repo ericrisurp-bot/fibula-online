@@ -1,5 +1,5 @@
 import { CONFIG, type ClassId, type WeaponId } from './config';
-import { getAttributeEffectPerLevel } from './attributes';
+import { getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
@@ -1124,7 +1124,7 @@ export class GameEngine {
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
       for (const enemy of hits) {
         const vulnerability = this.getDayNightState().vulnerability;
-        const damage = (weapon.damage + this.state.player.level * 0.3) * (1 + vulnerability);
+        const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level) * (1 + vulnerability);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         if (this.state.classId === 'druida') this.druidRegenTimer = 3;
@@ -1147,7 +1147,7 @@ export class GameEngine {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
-      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage + this.state.player.level * 0.3, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive });
+      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive });
     }
   }
 
