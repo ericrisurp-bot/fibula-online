@@ -94,7 +94,7 @@ export default function App() {
 
       terrainCtx.scale(terrainScale, terrainScale);
       const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
-      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.25));
+      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.5));
       terrainCtx.fillStyle = grassPattern ?? '#557a43';
       terrainCtx.fillRect(0, 0, engine.world, engine.world);
 
@@ -125,7 +125,7 @@ export default function App() {
       terrainCtx.strokeStyle = 'rgba(224, 207, 165, 0.55)'; terrainCtx.lineWidth = 3;
       terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
     }
-    setWorldReady(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setWorldReady(true)));
     const render = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = canvas.clientWidth, h = canvas.clientHeight;
