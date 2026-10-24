@@ -52,7 +52,8 @@ export class GameEngine {
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
   private classHp: Partial<Record<ClassId, number>> = {};
   private enemyDamageTimer = 0;
-  private druidRegenTimer = 0;
+  private druidBasicHitCount = 0;
+  private druidKillsSinceOrb = 0;
   private druidOrbHealTimer = 0;
   private refineryProcessTimer = 0;
 
@@ -132,11 +133,13 @@ export class GameEngine {
 
     // Habilidades exclusivas do Druida nunca sobrevivem ao sair da classe.
     if (classId !== 'druida') {
-      this.druidRegenTimer = 0;
+      this.druidBasicHitCount = 0;
+      this.druidKillsSinceOrb = 0;
       this.druidOrbHealTimer = 0;
       this.state.healingOrbs = [];
     } else if (changed) {
-      this.druidRegenTimer = 0;
+      this.druidBasicHitCount = 0;
+      this.druidKillsSinceOrb = 0;
       this.druidOrbHealTimer = 0;
     }
 
@@ -452,7 +455,7 @@ export class GameEngine {
     const classId = this.state.classId;
     this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
@@ -536,15 +539,14 @@ export class GameEngine {
     }
     this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt);
     if (this.state.classId === 'druida') {
-      this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
-      if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
       this.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
         this.state.healingOrbs.shift(); p.hp = Math.min(p.maxHp, p.hp + 14); this.druidOrbHealTimer = 0.65;
       }
     } else {
       // Invariante: nenhuma habilidade/órbe do Druida pode sobreviver fora dessa classe.
-      this.druidRegenTimer = 0;
+      this.druidBasicHitCount = 0;
+      this.druidKillsSinceOrb = 0;
       this.druidOrbHealTimer = 0;
       if (this.state.healingOrbs.length > 0) this.state.healingOrbs = [];
     }
@@ -1169,7 +1171,7 @@ export class GameEngine {
         const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level) * (1 + vulnerability);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
-        if (this.state.classId === 'druida') this.druidRegenTimer = 3;
+        this.registerDruidBasicHit();
       }
       for (const enemy of hits.filter(e => e.hp <= 0)) this.killEnemy(enemy.id);
       for (const enemy of hits) {
@@ -1261,10 +1263,19 @@ export class GameEngine {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
-          if (this.state.classId === 'druida') this.druidRegenTimer = 3;
+          this.registerDruidBasicHit();
           if (target.hp <= 0) this.killEnemy(target.id);
         }
       } else if (shot.life <= 0) this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+    }
+  }
+
+  private registerDruidBasicHit() {
+    if (this.state.classId !== 'druida') return;
+    this.druidBasicHitCount += 1;
+    if (this.druidBasicHitCount >= CONFIG.druidHeal.basicHitsPerHeal) {
+      this.druidBasicHitCount = 0;
+      this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + CONFIG.druidHeal.basicHitAmount);
     }
   }
 
@@ -1272,7 +1283,13 @@ export class GameEngine {
     const e = this.state.enemies.find(v => v.id === id); if (!e) return;
     this.state.dyingEnemies.push({ ...e, deathAge: 0 });
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
-    if (this.state.classId === 'druida' && this.state.healingOrbs.length < 7) this.state.healingOrbs.push({ id: this.nextId++, value: 14 });
+    if (this.state.classId === 'druida' && this.state.healingOrbs.length < CONFIG.druidHeal.maxOrbs) {
+      this.druidKillsSinceOrb += 1;
+      if (this.druidKillsSinceOrb >= CONFIG.druidHeal.killsPerOrb) {
+        this.druidKillsSinceOrb = 0;
+        this.state.healingOrbs.push({ id: this.nextId++, value: 14 });
+      }
+    }
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
   }
 
