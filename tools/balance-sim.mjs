@@ -206,7 +206,9 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
     // Alinha o relógio virtual ao timestamp usado pelo start() no motor.
     frameNow = performance.now();
 
-    const durationLimit = immortal ? 300 : MAX_SECONDS;
+    const durationLimit = immortal
+      ? CONFIG.dayNight.dayDuration * 2 + CONFIG.dayNight.cycle * 9
+      : MAX_SECONDS;
     while (
       queue.length &&
       (immortal
@@ -309,7 +311,7 @@ try {
       console.log(`Aviso: ${survivors.length} simulação(ões) não morreram antes do limite de ${MAX_SECONDS}s; não têm tempo/nível de morte.`);
     }
   } else {
-    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | janela: 300s`);
+    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | simulação: 900s | nível/abates registrados aos 300s`);
     console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite que foram derrotados até 300s (média / mediana).');
     const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
     console.log(`Classe      ${nightHeaders} Nível aos 300s M/Md`);
