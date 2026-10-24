@@ -1495,7 +1495,15 @@ export class GameEngine {
         target.hp -= damage;
         this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         if (target.hp <= 0) this.killEnemy(target.id);
-        shot.life -= (CONFIG.weapons.arco.range / CONFIG.weapons.arco.projectileSpeed) * CONFIG.archerPierce.rangeLossPerTarget;
+        if (this.state.classId === 'arqueiro') {
+          const speedFactor = CONFIG.archerPierce.speedFactors[hitIndex];
+          if (speedFactor !== undefined) {
+            const currentSpeed = Math.hypot(shot.vx, shot.vy) || 1;
+            const targetSpeed = CONFIG.weapons.arco.projectileSpeed * speedFactor;
+            shot.vx = shot.vx / currentSpeed * targetSpeed;
+            shot.vy = shot.vy / currentSpeed * targetSpeed;
+          }
+        }
         if (hitIds.length >= CONFIG.archerPierce.damageFactors.length || shot.life <= 0) {
           this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         }

@@ -54,7 +54,7 @@ export const CONFIG = {
     effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 1.5, velocidadeAtaque: 0.045, esquiva: 0.008 },
   },
   mageExplosion: { everyAttack: 4, radius: 40, damageMultiplier: 1.5, maxTargets: 5 },
-  archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6, 0.5], rangeLossPerTarget: 0.1 },
+  archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6, 0.5], speedFactors: [0.9, 0.75, 0.6, 0.45, 0.3] },
   archerHeal: { arrowsPerHeal: 15, amount: 1 },
   druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
   weapons: {
