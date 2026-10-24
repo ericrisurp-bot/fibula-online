@@ -42,9 +42,9 @@ export const CONFIG = {
     // Multiplicadores aplicados somente ao ganho de cada nível.
     classMultipliers: {
       guerreiro: { vida: 1.6, forca: 1.4, armadura: 1.4, resistenciaMagica: 1, inteligencia: 0.4, destreza: 0.6, velocidadeMovimento: 0.8, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 0.8, areaAtaque: 1 },
-      mago: { vida: 0.8, forca: 0.6, armadura: 0.6, resistenciaMagica: 1, inteligencia: 1.8, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      mago: { vida: 0.8, forca: 0.6, armadura: 0.8, resistenciaMagica: 1, inteligencia: 1.8, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
       arqueiro: { vida: 0.8, forca: 0.8, armadura: 0.6, resistenciaMagica: 1, inteligencia: 0.4, destreza: 2.6, velocidadeMovimento: 1.4, velocidadeAtaque: 1.1, alcanceAtaque: 1, esquiva: 1.2, areaAtaque: 1 },
-      druida: { vida: 1, forca: 0.6, armadura: 0.8, resistenciaMagica: 1, inteligencia: 1.25, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
+      druida: { vida: 1, forca: 0.6, armadura: 0.1, resistenciaMagica: 1, inteligencia: 1.25, destreza: 0.6, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 1, esquiva: 1, areaAtaque: 1 },
     },
     archerDamageWeights: { destreza: 0.65, forca: 0.35 },
     // Coeficientes reproduzem os ganhos atuais por nível quando o multiplicador é 1.
