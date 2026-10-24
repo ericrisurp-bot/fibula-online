@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
-import BackgroundMusic from './ui/BackgroundMusic';
+import { GameAudio } from './game/audio';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
@@ -24,6 +24,7 @@ const fmtTime = (seconds: number) => {
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const audioRef = useRef<GameAudio | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
@@ -58,7 +59,8 @@ export default function App() {
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
+    const audio = new GameAudio(); audioRef.current = audio;
+    const engine = new GameEngine((next) => { setState(next); audio.setPhase(next.dayNight); }, (event) => audio.play(event)); engineRef.current = engine;
     let frame = 0;
     let readyTimer: number | null = null;
     let firstFrameRendered = false;
@@ -386,7 +388,7 @@ export default function App() {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); engine.stop(); audio.stop(); window.removeEventListener('resize', resize); engineRef.current = null; audioRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -626,6 +628,7 @@ export default function App() {
     flagsRef.current = []; setFlags([]); setWheel(null);
     closeFlagMenu();
     closeInventoryPanel();
+    void audioRef.current?.start(state.dayNight);
     engineRef.current?.restart();
     setShowStart(false);
   };
@@ -640,7 +643,6 @@ export default function App() {
   };
 
   return <main className="game-shell">
-    <BackgroundMusic active={!showStart && !state.dead} />
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
