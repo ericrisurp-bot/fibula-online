@@ -899,7 +899,7 @@ export class GameEngine {
     const p = this.state.player;
     const obstacles = this.obstacleCircles(false);
     for (const e of this.state.enemies) {
-      const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1;
+      const dx = p.x - e.x, dy = p.y - e.y;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
       e.x += direction.x * speed * dt; e.y += direction.y * speed * dt;
