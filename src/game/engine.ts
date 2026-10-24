@@ -107,6 +107,8 @@ export class GameEngine {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
     if (changed) {
+      // Evita que projéteis da classe anterior contem como acertos básicos da nova classe.
+      this.state.shots = [];
       this.classHp[this.state.classId] = this.state.player.hp;
       this.mageAttackCount = 0;
       this.archerHealArrowCount = 0;
