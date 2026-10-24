@@ -508,3 +508,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   .store-all-button{padding:9px 10px;font-size:10px}
   .quick-slot-grid.house-storage .inventory-transfer-slot{border-radius:6px}
 }
+
+.nearby-storage-actions .cart-action-button{position:static;left:auto;bottom:auto;transform:none;padding:10px 13px;font-size:11px}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){.desktop-cart-action{display:none}}
