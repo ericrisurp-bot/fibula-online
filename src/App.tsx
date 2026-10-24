@@ -94,7 +94,7 @@ export default function App() {
 
       terrainCtx.scale(terrainScale, terrainScale);
       const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
-      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.5));
+      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.35));
       terrainCtx.fillStyle = grassPattern ?? '#557a43';
       terrainCtx.fillRect(0, 0, engine.world, engine.world);
 
