@@ -497,7 +497,8 @@ export class GameEngine {
     const result = addToInventory(this.state.inventory, stack.itemId, stack.quantity, CONFIG.inventory);
     if (result.added <= 0) return;
     this.state.inventory = result.inventory;
-    const remaining = stack.quantity - result.added;    this.state.cart.inventory = this.state.cart.inventory.flatMap((item, itemIndex) => itemIndex !== index ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
+    const remaining = stack.quantity - result.added;
+    this.state.cart.inventory = this.state.cart.inventory.flatMap((item, itemIndex) => itemIndex !== index ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
     this.emit();
   }
   isCartAccessible() {
@@ -996,7 +997,8 @@ export class GameEngine {
       const x = northEast
         ? margin + CONFIG.rocks.northEastMinX * (this.world - margin * 2)
           + Math.random() * (this.world - margin * 2) * (1 - CONFIG.rocks.northEastMinX)
-        : margin + Math.random() * (this.world - margin * 2);      const y = northEast
+        : margin + Math.random() * (this.world - margin * 2);
+      const y = northEast
         ? margin + Math.random() * (this.world - margin * 2) * CONFIG.rocks.northEastMaxY
         : margin + Math.random() * (this.world - margin * 2);
       if (!this.validRockPosition(x, y, size)) continue;
@@ -1494,7 +1496,8 @@ export class GameEngine {
         this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         if (target.hp <= 0) this.killEnemy(target.id);
         if (this.state.classId === 'arqueiro') {
-          const speedFactor = CONFIG.archerPierce.speedFactors[hitIndex];          if (speedFactor !== undefined) {
+          const speedFactor = CONFIG.archerPierce.speedFactors[hitIndex];
+          if (speedFactor !== undefined) {
             const currentSpeed = Math.hypot(shot.vx, shot.vy) || 1;
             const targetSpeed = CONFIG.weapons.arco.projectileSpeed * speedFactor;
             shot.vx = shot.vx / currentSpeed * targetSpeed;
