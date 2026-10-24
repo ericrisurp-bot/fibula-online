@@ -327,7 +327,7 @@ try {
       const levels = rows.map(row => row.levelAt300);
       console.log(`${classId.padEnd(11)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
     }
-    console.log('Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.');
+    console.log(`Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.`);
   }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
