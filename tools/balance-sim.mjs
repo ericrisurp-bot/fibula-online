@@ -20,7 +20,7 @@
  * Modo normal: noites completas sobrevividas, tempo até morte, abates totais,
  * nível na morte e abates por minuto sobrevivido; limite de segurança de 600 s.
  * Modo --imortal: abates durante cada noite, percentual da coorte de slimes
- * nascida em cada noite derrotada até 300 s e nível aos 300 s.
+ * nascida em cada noite derrotada até o fim da simulação e nível aos 300 s.
  * Esse arquivo não altera CONFIG nem o motor de gameplay.
  */
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -159,7 +159,6 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
   const spawnedByNight = {};
   const cohortKillsByNight = {};
   const killsDuringNight = {};
-  const nightStartSeconds = {};
 
   Math.random = random;
   globalThis.requestAnimationFrame = callback => {
@@ -185,7 +184,6 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
         const night = this.state.nightNumber;
         enemyNightById.set(enemy.id, night);
         spawnedByNight[night] = (spawnedByNight[night] ?? 0) + 1;
-        nightStartSeconds[night] ??= this.state.elapsed;
       }
     };
 
@@ -312,7 +310,7 @@ try {
     }
   } else {
     console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | simulação: 900s | nível/abates registrados aos 300s`);
-    console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite que foram derrotados até 300s (média / mediana).');
+    console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
     const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
     console.log(`Classe      ${nightHeaders} Nível aos 300s M/Md`);
     for (const classId of CLASSES) {
@@ -329,7 +327,7 @@ try {
       const levels = rows.map(row => row.levelAt300);
       console.log(`${classId.padEnd(11)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
     }
-    console.log('Nota: % derrotados = slimes nascidos na noite e derrotados até 300s ÷ slimes nascidos nessa noite; noites sem nascimento são —.');
+    console.log('Nota: % derrotados = slimes nascidos na noite e derrotados até 900s ÷ slimes nascidos nessa noite; noites sem nascimento são —.');
   }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
