@@ -347,7 +347,6 @@ export default function App() {
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
-  const transferBagToCart = (index: number) => engineRef.current?.transferBagToCart(index);
   const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
