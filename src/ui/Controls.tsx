@@ -6,6 +6,18 @@ type Props = {
   onCartToggle: () => void;
   cartActionVisible: boolean;
   cartCarried: boolean;
+  storeToCartVisible: boolean;
+  storeToCartDisabled: boolean;
+  onStoreToCart: () => void;
+  storeToHouseVisible: boolean;
+  storeToHouseDisabled: boolean;
+  onStoreToHouse: () => void;
+  buildHouseVisible: boolean;
+  buildRefineryVisible: boolean;
+  buildCartVisible: boolean;
+  onBuildHouse: () => void;
+  onBuildRefinery: () => void;
+  onBuildCart: () => void;
   flagWheelOpen: boolean;
   onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
@@ -23,7 +35,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
@@ -124,6 +136,11 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     </div>
     <div className="mobile-quick-buttons" aria-label="Atalhos rápidos">
       {cartActionVisible && <button type="button" className="mobile-quick-cart" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onCartToggle(); }} aria-label={cartCarried ? 'Largar carrinho' : 'Pegar carrinho'} title={cartCarried ? 'Largar carrinho' : 'Pegar carrinho'}><span aria-hidden="true">🛒</span><small>{cartCarried ? 'Largar' : 'Pegar'}</small></button>}
+      {storeToCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onStoreToCart(); }} disabled={storeToCartDisabled} title="Guardar tudo no carrinho"><span aria-hidden="true">📥</span><small>Guardar</small></button>}
+      {storeToHouseVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onStoreToHouse(); }} disabled={storeToHouseDisabled} title="Guardar tudo na casa"><span aria-hidden="true">🏠</span><small>Guardar</small></button>}
+      {buildHouseVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildHouse(); }} title="Construir casa"><span aria-hidden="true">🔨</span><small>Construir</small></button>}
+      {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
+      {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Reparar carrinho"><span aria-hidden="true">🪵</span><small>Construir</small></button>}
       <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><span aria-hidden="true">↻</span><small>{CLASSES[classId].label}</small></button>
       <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><span aria-hidden="true">🎒</span></button>
     </div>
