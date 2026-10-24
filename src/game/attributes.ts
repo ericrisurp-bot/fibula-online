@@ -6,6 +6,7 @@ export type AttributeKey =
   | 'armadura'
   | 'resistenciaMagica'
   | 'inteligencia'
+  | 'destreza'
   | 'velocidadeMovimento'
   | 'velocidadeAtaque'
   | 'alcanceAtaque'
@@ -26,6 +27,7 @@ export function getPlayerAttributes(classId: ClassId, level: number): PlayerAttr
     armadura: baseValue + gainedLevels * multipliers.armadura,
     resistenciaMagica: baseValue + gainedLevels * multipliers.resistenciaMagica,
     inteligencia: baseValue + gainedLevels * multipliers.inteligencia,
+    destreza: baseValue + gainedLevels * multipliers.destreza,
     velocidadeMovimento: baseValue + gainedLevels * multipliers.velocidadeMovimento,
     velocidadeAtaque: baseValue + gainedLevels * multipliers.velocidadeAtaque,
     alcanceAtaque: baseValue + gainedLevels * multipliers.alcanceAtaque,
