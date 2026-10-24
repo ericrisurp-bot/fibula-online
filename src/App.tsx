@@ -44,6 +44,10 @@ export default function App() {
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
   const houseDistance = Math.hypot(state.player.x - state.house.x, state.player.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
+  const houseBuildAccessible = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
+  const refineryDistance = Math.hypot(state.player.x - state.refinery.x, state.player.y - state.refinery.y);
+  const refineryBuildAccessible = !state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
+  const cartBuildAccessible = !state.cart.repaired && cartDistance <= CONFIG.cart.interactRadius;
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
 
   useEffect(() => {
@@ -354,6 +358,9 @@ export default function App() {
   const transferHouseToBag = (itemId: string) => engineRef.current?.transferHouseToBag(itemId);
   const storeAllBagToHouse = () => engineRef.current?.storeAllBagToHouse();
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
+  const buildHouse = () => engineRef.current?.buildHouse();
+  const buildRefinery = () => engineRef.current?.buildRefinery();
+  const buildCart = () => engineRef.current?.buildCart();
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
     setFlagWheel(next);
@@ -625,10 +632,13 @@ export default function App() {
         </section>
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
-      {(cartAccessible || houseAccessible) && <div className="nearby-storage-actions">
+      {(cartAccessible || houseAccessible || houseBuildAccessible || refineryBuildAccessible || cartBuildAccessible) && <div className="nearby-storage-actions">
         {cartActionVisible && <button className="cart-action-button desktop-cart-action" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
         {cartAccessible && <button className="store-all-button" type="button" disabled={state.inventory.length === 0} onClick={storeAllBagToCart}>Guardar tudo</button>}
         {houseAccessible && <button className="store-all-button" type="button" disabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onClick={storeAllBagToHouse}>Guardar tudo</button>}
+        {houseBuildAccessible && <button className="store-all-button build-action-button" type="button" onClick={buildHouse} title="Enviar apenas a madeira necessária para a construção da casa">Construir</button>}
+        {refineryBuildAccessible && <button className="store-all-button build-action-button" type="button" onClick={buildRefinery} title="Enviar apenas madeira e pedra necessárias para a construção da refinaria">Construir</button>}
+        {cartBuildAccessible && <button className="store-all-button build-action-button" type="button" onClick={buildCart} title="Enviar apenas a madeira necessária para reparar o carrinho">Construir</button>}
       </div>}
             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
