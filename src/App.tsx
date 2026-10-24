@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
-import BackgroundMusic from './ui/BackgroundMusic';
+import { playProceduralSound, unlockProceduralAudio } from './game/proceduralAudio';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
@@ -56,9 +56,28 @@ export default function App() {
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
 
   useEffect(() => {
+    if (showStart || state.dead) return;
+    let timer = 0;
+    let cancelled = false;
+    const scheduleAmbient = () => {
+      const night = state.dayNight === 'night';
+      const delay = night ? 10000 + Math.random() * 10000 : 6500 + Math.random() * 7500;
+      timer = window.setTimeout(() => {
+        if (cancelled) return;
+        if (night) { if (Math.random() < 0.42) playProceduralSound('owl'); }
+        else if (Math.random() < 0.52) playProceduralSound('birds');
+        else playProceduralSound('wind');
+        scheduleAmbient();
+      }, delay);
+    };
+    scheduleAmbient();
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [showStart, state.dead, state.dayNight]);
+
+  useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
+    const engine = new GameEngine((next) => setState(next), playProceduralSound); engineRef.current = engine;
     let frame = 0;
     let readyTimer: number | null = null;
     let firstFrameRendered = false;
@@ -622,6 +641,7 @@ export default function App() {
   const beginGame = () => {
     if (!worldReady) return;
     gameStartedRef.current = true;
+    unlockProceduralAudio();
     // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
     flagsRef.current = []; setFlags([]); setWheel(null);
     closeFlagMenu();
@@ -640,7 +660,6 @@ export default function App() {
   };
 
   return <main className="game-shell">
-    <BackgroundMusic active={!showStart && !state.dead} />
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
