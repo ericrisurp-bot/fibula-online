@@ -12,7 +12,7 @@ type StoneDrop = Vec & { id: number };
 type BronzeDrop = Vec & { id: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
-type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean };
+type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean; hitEnemyIds?: number[] };
 type ExplosionEffect = Vec & { id: number; age: number; duration: number };
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
@@ -45,6 +45,7 @@ export class GameEngine {
   private nextRockClusterId = 1;
   private attackTimer = 0;
   private mageAttackCount = 0;
+  private archerHealArrowCount = 0;
   private elapsed = 0;
   private lastTime = 0;
   private animation = 0;
@@ -103,7 +104,10 @@ export class GameEngine {
   setClass(classId: ClassId) {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
-    if (changed) this.mageAttackCount = 0;
+    if (changed) {
+      this.mageAttackCount = 0;
+      this.archerHealArrowCount = 0;
+    }
     this.state.classId = classId;
     if (this.state.player.level === 0) {
       const startingHealth = CONFIG.attributes.classStartHealth[classId];
@@ -1149,15 +1153,39 @@ export class GameEngine {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
       const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
-      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive });
+      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
     }
   }
 
   private moveShots(dt: number) {
     for (const shot of [...this.state.shots]) {
       shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt;
-      const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6);
-      if (target) {
+      const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6 && (shot.kind !== 'arrow' || !(shot.hitEnemyIds ?? []).includes(e.id)));
+      if (target && shot.kind === 'arrow') {
+        const hitIds = shot.hitEnemyIds ?? (shot.hitEnemyIds = []);
+        const hitIndex = hitIds.length;
+        if (hitIndex >= CONFIG.archerPierce.damageFactors.length) {
+          this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+          continue;
+        }
+        const firstHit = hitIds.length === 0;
+        hitIds.push(target.id);
+        if (firstHit && this.state.classId === 'arqueiro') {
+          this.archerHealArrowCount += 1;
+          if (this.archerHealArrowCount >= CONFIG.archerHeal.arrowsPerHeal) {
+            this.archerHealArrowCount = 0;
+            this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + CONFIG.archerHeal.amount);
+          }
+        }
+        const damage = shot.damage * CONFIG.archerPierce.damageFactors[hitIndex] * (1 + this.getDayNightState().vulnerability);
+        target.hp -= damage;
+        this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+        if (target.hp <= 0) this.killEnemy(target.id);
+        shot.life -= (CONFIG.weapons.arco.range / CONFIG.weapons.arco.projectileSpeed) * CONFIG.archerPierce.rangeLossPerTarget;
+        if (hitIds.length >= CONFIG.archerPierce.damageFactors.length || shot.life <= 0) {
+          this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+        }
+      } else if (target) {
         this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         if (shot.explosive) {
           const impact = { x: target.x, y: target.y };
