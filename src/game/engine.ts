@@ -7,8 +7,11 @@ const XP_ATTRACTION_RADIUS = 250;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
+type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type WoodDrop = Vec & { id: number; amount: number };
 type StoneDrop = Vec & { id: number };
+type CottonDrop = Vec & { id: number };
+type LinenDrop = Vec & { id: number };
 type BronzeDrop = Vec & { id: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
@@ -18,12 +21,14 @@ type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#f
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = Vec & { angle: number; repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
 type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
+type TecelariaState = Vec & { bronzeDelivered: number; woodDelivered: number; cottonDelivered: number; stoneDelivered: number; built: boolean; cottonStock: number; cottonProcessed: number; linenProduced: number };
 export type GameSnapshot = {
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
   house: Vec & { woodDelivered: number; built: boolean; inventory: InventoryStack[] };
   refinery: RefineryState;
+  tecelaria: TecelariaState;
   cart: CartState;
-  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
+  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; cottonPlants: CottonPlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
@@ -42,6 +47,7 @@ export class GameEngine {
   private nightNumber = 0;
   private treeSpawnCountdown = 0;
   private rockSpawnCountdown = 0;
+  private cottonSpawnCountdown = 0;
   private nextRockClusterId = 1;
   private attackTimer = 0;
   private mageAttackCount = 0;
@@ -56,6 +62,7 @@ export class GameEngine {
   private druidKillsSinceOrb = 0;
   private druidOrbHealTimer = 0;
   private refineryProcessTimer = 0;
+  private tecelariaProcessTimer = 0;
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
@@ -63,10 +70,13 @@ export class GameEngine {
     this.placeHouse();
     this.placeCart();
     this.placeRefinery();
+    this.placeTecelaria();
     this.spawnInitialTrees();
     this.treeSpawnCountdown = this.treeSpawnDuration();
     this.spawnInitialRocks();
     this.rockSpawnCountdown = this.rockSpawnDuration();
+    this.spawnInitialCottonPlants();
+    this.cottonSpawnCountdown = this.treeSpawnDuration();
   }
 
   private freshState(classId: ClassId = 'guerreiro'): GameSnapshot {
@@ -81,8 +91,9 @@ export class GameEngine {
       player: { x: this.world / 2, y: this.world / 2, hp: startingHealth, maxHp: startingHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
+      tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-      enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0,
+      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [] xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -241,6 +252,93 @@ export class GameEngine {
       refinery.built = true;
     }
     this.emit();
+  }
+
+  buildTecelaria() {
+    const building = this.state.tecelaria;
+    if (this.state.dead || building.built) return;
+    const playerNear = Math.hypot(this.state.player.x - building.x, this.state.player.y - building.y) <= CONFIG.tecelaria.interactRadius;
+    const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    if (!playerNear) return;
+    const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
+      let toRemove = requested, consumed = 0;
+      const nextInventory = inventory.flatMap(stack => {
+        if (stack.itemId !== itemId || toRemove <= 0) return [stack];
+        const used = Math.min(stack.quantity, toRemove);
+        toRemove -= used; consumed += used;
+        const left = stack.quantity - used;
+        return left > 0 ? [{ ...stack, quantity: left }] : [];
+      });
+      return { inventory: nextInventory, consumed };
+    };
+    const costs: Array<[string, 'bronzeDelivered' | 'woodDelivered' | 'cottonDelivered' | 'stoneDelivered', number]> = [
+      ['bronze', 'bronzeDelivered', CONFIG.tecelaria.buildCostBronze],
+      ['wood', 'woodDelivered', CONFIG.tecelaria.buildCostWood],
+      ['cotton', 'cottonDelivered', CONFIG.tecelaria.buildCostCotton],
+      ['stone', 'stoneDelivered', CONFIG.tecelaria.buildCostStone],
+    ];
+    for (const [itemId, key, cost] of costs) {
+      let remaining = cost - building[key];
+      if (remaining <= 0) continue;
+      const bag = consume(this.state.inventory, itemId, remaining);
+      this.state.inventory = bag.inventory;
+      building[key] += bag.consumed;
+      remaining -= bag.consumed;
+      if (cartCanDeliver && remaining > 0) {
+        const cart = consume(this.state.cart.inventory, itemId, remaining);
+        this.state.cart.inventory = cart.inventory;
+        building[key] += cart.consumed;
+      }
+    }
+    if (building.bronzeDelivered >= CONFIG.tecelaria.buildCostBronze && building.woodDelivered >= CONFIG.tecelaria.buildCostWood && building.cottonDelivered >= CONFIG.tecelaria.buildCostCotton && building.stoneDelivered >= CONFIG.tecelaria.buildCostStone) {
+      building.bronzeDelivered = CONFIG.tecelaria.buildCostBronze;
+      building.woodDelivered = CONFIG.tecelaria.buildCostWood;
+      building.cottonDelivered = CONFIG.tecelaria.buildCostCotton;
+      building.stoneDelivered = CONFIG.tecelaria.buildCostStone;
+      building.built = true;
+    }
+    this.emit();
+  }
+
+  private deliverCottonToTecelaria() {
+    const building = this.state.tecelaria;
+    if (!building.built || building.cottonStock >= CONFIG.tecelaria.cottonCapacity) return;
+    const playerNear = Math.hypot(this.state.player.x - building.x, this.state.player.y - building.y) <= CONFIG.tecelaria.interactRadius;
+    const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const transfer = (inventory: InventoryStack[]) => {
+      const room = CONFIG.tecelaria.cottonCapacity - building.cottonStock;
+      let toRemove = room, moved = 0;
+      const nextInventory = inventory.flatMap(stack => {
+        if (stack.itemId !== 'cotton' || toRemove <= 0) return [stack];
+        const used = Math.min(stack.quantity, toRemove);
+        toRemove -= used; moved += used;
+        const left = stack.quantity - used;
+        return left > 0 ? [{ ...stack, quantity: left }] : [];
+      });
+      building.cottonStock += moved;
+      return nextInventory;
+    };
+    if (playerNear && building.cottonStock < CONFIG.tecelaria.cottonCapacity) this.state.inventory = transfer(this.state.inventory);
+    if (cartCanDeliver && building.cottonStock < CONFIG.tecelaria.cottonCapacity) this.state.cart.inventory = transfer(this.state.cart.inventory);
+  }
+
+  private processTecelaria(dt: number) {
+    const building = this.state.tecelaria;
+    if (!building.built || building.cottonStock <= 0) { this.tecelariaProcessTimer = 0; return; }
+    this.tecelariaProcessTimer += dt;
+    if (this.tecelariaProcessTimer < CONFIG.tecelaria.processInterval) return;
+    this.tecelariaProcessTimer -= CONFIG.tecelaria.processInterval;
+    building.cottonStock -= 1;
+    building.cottonProcessed += 1;
+    if (Math.random() < CONFIG.tecelaria.linenChance) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 42 + Math.random() * 12;
+      this.state.linenDrops.push({ id: this.nextId++, x: building.x + Math.cos(angle) * distance, y: building.y + Math.sin(angle) * distance });
+      building.linenProduced += 1;
+    }
+    if (building.cottonStock <= 0) this.tecelariaProcessTimer = 0;
   }
 
   private deliverStonesToRefinery() {
@@ -455,19 +553,19 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
-    this.elapsed = 0; this.refineryProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.start(); this.emit();
+    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0;
+    this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
+    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
     const s = this.state;
     return [
       Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
-      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.woodDrops.length, s.stoneDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.refinery.x, s.player.y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.cottonPlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
+      Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.refinery.x, s.player.y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(s.player.x - s.tecelaria.x, s.player.y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -539,7 +637,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt);
+    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
     if (this.state.classId === 'druida') {
       this.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
@@ -585,6 +683,21 @@ export class GameEngine {
     this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
   }
 
+  private placeTecelaria() {
+    const margin = CONFIG.map.wall + 120;
+    for (let attempt = 0; attempt < 1200; attempt++) {
+      const x = margin + Math.random() * (this.world - margin * 2);
+      const y = margin + Math.random() * (this.world - margin * 2);
+      if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 700) continue;
+      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + CONFIG.tecelaria.clearRadius) continue;
+      if (Math.hypot(x - this.state.refinery.x, y - this.state.refinery.y) < CONFIG.tecelaria.clearRadius + CONFIG.refinery.rockClearRadius) continue;
+      if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < CONFIG.tecelaria.clearRadius + 38) continue;
+      this.state.tecelaria = { x, y, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 };
+      return;
+    }
+    this.state.tecelaria = { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 };
+  }
+
   private placeHouse() {
     const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
     for (let attempt = 0; attempt < 1200; attempt++) {
@@ -598,6 +711,64 @@ export class GameEngine {
     }
     // Fallback determinístico em uma região afastada do ponto inicial do jogador.
     this.state.house = { x: this.world * 0.25, y: this.world * 0.25, woodDelivered: 0, built: false, inventory: [] };
+  }
+
+  private spawnInitialCottonPlants() {
+    for (let i = 0; i < CONFIG.cotton.startCount; i++) this.spawnCottonPlant();
+  }
+
+  private updateCottonSpawner(dt: number) {
+    this.cottonSpawnCountdown -= dt;
+    if (this.cottonSpawnCountdown > 0) return;
+    if (this.state.cottonPlants.length < CONFIG.cotton.max) this.spawnCottonPlant();
+    this.cottonSpawnCountdown = this.treeSpawnDuration();
+  }
+
+  private validCottonPosition(x: number, y: number, size: CottonPlant['size'], minSpacing: number) {
+    const margin = CONFIG.map.wall + 80;
+    if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
+    if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.cotton.plantPlayerClearRadius) return false;
+    if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + 24) return false;
+    if (Math.hypot(x - this.state.refinery.x, y - this.state.refinery.y) < CONFIG.refinery.rockClearRadius + 24) return false;
+    if (Math.hypot(x - this.state.tecelaria.x, y - this.state.tecelaria.y) < CONFIG.tecelaria.clearRadius + 24) return false;
+    if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 62) return false;
+    const radius = size === 'small' ? 12 : size === 'medium' ? 18 : 24;
+    if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < radius + this.treeFootprintRadius(tree))) return false;
+    if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < radius + this.rockFootprintRadius(rock))) return false;
+    return this.state.cottonPlants.every(plant => {
+      const otherRadius = this.cottonFootprintRadius(plant);
+      return Math.hypot(x - plant.x, y - plant.y) >= Math.max(minSpacing, radius + otherRadius + 20);
+    });
+  }
+
+  private spawnCottonPlant() {
+    if (this.state.cottonPlants.length >= CONFIG.cotton.max) return false;
+    const roll = Math.random();
+    const size: CottonPlant['size'] = roll < CONFIG.cotton.plantSizeWeights.small
+      ? 'small'
+      : roll < CONFIG.cotton.plantSizeWeights.small + CONFIG.cotton.plantSizeWeights.medium ? 'medium' : 'large';
+    const margin = CONFIG.map.wall + 80;
+    const spacingOptions = [CONFIG.cotton.minSpacing, 450, 300, 150, 0];
+    let position: Vec | null = null;
+    for (const spacing of spacingOptions) {
+      for (let attempt = 0; attempt < 180 && !position; attempt++) {
+        // Duas amostras uniformes concentram os nascimentos no centro sem proibir os cantos.
+        const x = this.world / 2 + (Math.random() + Math.random() - 1) * (this.world / 2 - margin);
+        const y = this.world / 2 + (Math.random() + Math.random() - 1) * (this.world / 2 - margin);
+        if (this.validCottonPosition(x, y, size, spacing)) position = { x, y };
+      }
+      if (position) break;
+    }
+    if (!position) {
+      for (let attempt = 0; attempt < 600 && !position; attempt++) {
+        const x = margin + Math.random() * (this.world - margin * 2);
+        const y = margin + Math.random() * (this.world - margin * 2);
+        if (this.validCottonPosition(x, y, size, 0)) position = { x, y };
+      }
+    }
+    if (!position) return false;
+    this.state.cottonPlants.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size });
+    return true;
   }
 
   private treeSpawnDuration() {
@@ -831,6 +1002,18 @@ export class GameEngine {
     if (rock.hits <= 0) this.state.rocks = this.state.rocks.filter(value => value.id !== id);
   }
 
+  private hitCottonPlant(id: number) {
+    const plant = this.state.cottonPlants.find(value => value.id === id);
+    if (!plant) return;
+    plant.hits -= 1;
+    if (Math.random() < CONFIG.cotton.dropChance) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = this.cottonFootprintRadius(plant) + 5;
+      this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance });
+    }
+    if (plant.hits <= 0) this.state.cottonPlants = this.state.cottonPlants.filter(value => value.id !== id);
+  }
+
   private collectStone() {
     for (const drop of [...this.state.stoneDrops]) {
       if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
@@ -838,6 +1021,32 @@ export class GameEngine {
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
       this.state.stoneDrops = this.state.stoneDrops.filter(value => value.id !== drop.id);
+    }
+  }
+
+  private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
+
+  private isPlayerAtCottonPlant(plant: CottonPlant) {
+    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= CONFIG.rocks.mineRange + this.cottonFootprintRadius(plant);
+  }
+
+  private collectCotton() {
+    for (const drop of [...this.state.cottonDrops]) {
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const result = addToInventory(this.state.inventory, 'cotton', 1, CONFIG.inventory);
+      if (result.added === 0) continue;
+      this.state.inventory = result.inventory;
+      this.state.cottonDrops = this.state.cottonDrops.filter(value => value.id !== drop.id);
+    }
+  }
+
+  private collectLinen() {
+    for (const drop of [...this.state.linenDrops]) {
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const result = addToInventory(this.state.inventory, 'linen', 1, CONFIG.inventory);
+      if (result.added === 0) continue;
+      this.state.inventory = result.inventory;
+      this.state.linenDrops = this.state.linenDrops.filter(value => value.id !== drop.id);
     }
   }
 
@@ -1022,8 +1231,10 @@ export class GameEngine {
       radius: 8 * this.treeScale(tree),
     }));
     circles.push(...this.state.rocks.map(rock => ({ x: rock.x, y: rock.y, radius: this.rockFootprintRadius(rock) })));
+    circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
+    circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: 30 });
     return circles;
   }
@@ -1141,18 +1352,26 @@ export class GameEngine {
         .filter(rock => this.isPlayerAtRock(rock))
         .map(rock => ({ rock, d: Math.hypot(rock.x - p.x, rock.y - p.y) }))
         .sort((a, b) => a.d - b.d)[0];
-      if (!treeTarget && !rockTarget) return;
+      const cottonTarget = this.state.cottonPlants
+        .filter(plant => this.isPlayerAtCottonPlant(plant))
+        .map(plant => ({ plant, d: Math.hypot(plant.x - p.x, plant.y - p.y) }))
+        .sort((a, b) => a.d - b.d)[0];
+      if (!treeTarget && !rockTarget && !cottonTarget) return;
       this.attackTimer = 0;
-      if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d)) {
+      if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d)) {
         const treeBase = this.treeBase(treeTarget.tree);
         this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
         this.state.treeChopTimer = 0.2;
         treeTarget.tree.hits -= 1;
         if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
-      } else if (rockTarget) {
+      } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
         this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
         this.state.rockMineTimer = 0.22;
         this.hitRock(rockTarget.rock.id);
+      } else if (cottonTarget) {
+        this.state.rockMineAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
+        this.state.rockMineTimer = 0.22;
+        this.hitCottonPlant(cottonTarget.plant.id);
       }
       return;
     }
