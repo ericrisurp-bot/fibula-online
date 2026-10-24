@@ -32,6 +32,7 @@ export type GameSnapshot = {
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
+export type GameSoundEvent = 'chop' | 'mine' | 'harvest' | 'woodDeposit' | 'stoneDeposit' | 'cottonDeposit' | 'metalDeposit' | 'buildComplete';
 
 export class GameEngine {
   readonly world = CONFIG.map.size;
@@ -65,7 +66,7 @@ export class GameEngine {
   private refineryProcessTimer = 0;
   private tecelariaProcessTimer = 0;
 
-  constructor(private onUpdate: (state: GameSnapshot) => void) {
+  constructor(private onUpdate: (state: GameSnapshot) => void, private onSound?: (event: GameSoundEvent) => void) {
     this.state = this.freshState();
     this.initializeDayNight();
     this.placeHouse();
@@ -200,6 +201,7 @@ export class GameEngine {
       const result = consumeWood(this.state.inventory, remaining);
       this.state.inventory = result.inventory;
       house.woodDelivered += result.consumed;
+      if (result.consumed > 0) this.onSound?.('woodDeposit');
       remaining -= result.consumed;
     }
 
@@ -207,11 +209,13 @@ export class GameEngine {
       const result = consumeWood(this.state.cart.inventory, remaining);
       this.state.cart.inventory = result.inventory;
       house.woodDelivered += result.consumed;
+      if (result.consumed > 0) this.onSound?.('woodDeposit');
     }
 
     if (house.woodDelivered >= CONFIG.house.buildCost) {
       house.woodDelivered = CONFIG.house.buildCost;
       house.built = true;
+      this.onSound?.('buildComplete');
     }
     this.emit();
   }
@@ -238,11 +242,11 @@ export class GameEngine {
       const stoneLeft = CONFIG.refinery.buildCostStone - refinery.stoneDelivered;
       if (woodLeft > 0) {
         const result = consume(this.state.inventory, 'wood', woodLeft);
-        this.state.inventory = result.inventory; refinery.woodDelivered += result.consumed;
+        this.state.inventory = result.inventory; refinery.woodDelivered += result.consumed; if (result.consumed > 0) this.onSound?.('woodDeposit');
       }
       if (stoneLeft > 0) {
         const result = consume(this.state.inventory, 'stone', stoneLeft);
-        this.state.inventory = result.inventory; refinery.stoneDelivered += result.consumed;
+        this.state.inventory = result.inventory; refinery.stoneDelivered += result.consumed; if (result.consumed > 0) this.onSound?.('stoneDeposit');
       }
     }
     if (cartCanDeliver) {
@@ -250,17 +254,18 @@ export class GameEngine {
       const stoneLeft = CONFIG.refinery.buildCostStone - refinery.stoneDelivered;
       if (woodLeft > 0) {
         const result = consume(this.state.cart.inventory, 'wood', woodLeft);
-        this.state.cart.inventory = result.inventory; refinery.woodDelivered += result.consumed;
+        this.state.cart.inventory = result.inventory; refinery.woodDelivered += result.consumed; if (result.consumed > 0) this.onSound?.('woodDeposit');
       }
       if (stoneLeft > 0) {
         const result = consume(this.state.cart.inventory, 'stone', stoneLeft);
-        this.state.cart.inventory = result.inventory; refinery.stoneDelivered += result.consumed;
+        this.state.cart.inventory = result.inventory; refinery.stoneDelivered += result.consumed; if (result.consumed > 0) this.onSound?.('stoneDeposit');
       }
     }
     if (refinery.woodDelivered >= CONFIG.refinery.buildCostWood && refinery.stoneDelivered >= CONFIG.refinery.buildCostStone) {
       refinery.woodDelivered = CONFIG.refinery.buildCostWood;
       refinery.stoneDelivered = CONFIG.refinery.buildCostStone;
       refinery.built = true;
+      this.onSound?.('buildComplete');
     }
     this.emit();
   }
@@ -295,11 +300,13 @@ export class GameEngine {
       const bag = consume(this.state.inventory, itemId, remaining);
       this.state.inventory = bag.inventory;
       building[key] += bag.consumed;
+      if (bag.consumed > 0) this.onSound?.(itemId === 'wood' ? 'woodDeposit' : itemId === 'stone' ? 'stoneDeposit' : itemId === 'cotton' ? 'cottonDeposit' : 'metalDeposit');
       remaining -= bag.consumed;
       if (cartCanDeliver && remaining > 0) {
         const cart = consume(this.state.cart.inventory, itemId, remaining);
         this.state.cart.inventory = cart.inventory;
         building[key] += cart.consumed;
+        if (cart.consumed > 0) this.onSound?.(itemId === 'wood' ? 'woodDeposit' : itemId === 'stone' ? 'stoneDeposit' : itemId === 'cotton' ? 'cottonDeposit' : 'metalDeposit');
       }
     }
     if (building.bronzeDelivered >= CONFIG.tecelaria.buildCostBronze && building.woodDelivered >= CONFIG.tecelaria.buildCostWood && building.cottonDelivered >= CONFIG.tecelaria.buildCostCotton && building.stoneDelivered >= CONFIG.tecelaria.buildCostStone) {
@@ -308,6 +315,7 @@ export class GameEngine {
       building.cottonDelivered = CONFIG.tecelaria.buildCostCotton;
       building.stoneDelivered = CONFIG.tecelaria.buildCostStone;
       building.built = true;
+      this.onSound?.('buildComplete');
     }
     this.emit();
   }
@@ -521,9 +529,11 @@ export class GameEngine {
       return left > 0 ? [{ ...stack, quantity: left }] : [];
     });
     cart.repairWood += amount;
+    this.onSound?.('woodDeposit');
     if (cart.repairWood >= CONFIG.cart.repairCost) {
       cart.repairWood = CONFIG.cart.repairCost;
       cart.repaired = true;
+      this.onSound?.('buildComplete');
     }
     this.emit();
   }
@@ -1402,15 +1412,18 @@ export class GameEngine {
         const treeBase = this.treeBase(treeTarget.tree);
         this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
         this.state.treeChopTimer = 0.2;
+        this.onSound?.('chop');
         treeTarget.tree.hits -= 1;
         if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
       } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
         this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
         this.state.rockMineTimer = 0.22;
+        this.onSound?.('mine');
         this.hitRock(rockTarget.rock.id);
       } else if (cottonTarget) {
         this.state.rockMineAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
         this.state.rockMineTimer = 0.22;
+        this.onSound?.('harvest');
         this.hitCottonPlant(cottonTarget.plant.id);
       }
       return;
