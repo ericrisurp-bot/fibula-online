@@ -1157,9 +1157,28 @@ export class GameEngine {
     }
   }
 
+  private arrowHitsSolidObstacle(from: Vec, to: Vec) {
+    if (to.x < CONFIG.map.wall || to.y < CONFIG.map.wall || to.x > this.world - CONFIG.map.wall || to.y > this.world - CONFIG.map.wall) return true;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const lengthSquared = dx * dx + dy * dy;
+    for (const obstacle of this.obstacleCircles(false)) {
+      const projection = lengthSquared === 0 ? 0 : this.clamp(((obstacle.x - from.x) * dx + (obstacle.y - from.y) * dy) / lengthSquared, 0, 1);
+      const nearestX = from.x + projection * dx;
+      const nearestY = from.y + projection * dy;
+      if (Math.hypot(obstacle.x - nearestX, obstacle.y - nearestY) <= obstacle.radius + 3) return true;
+    }
+    return false;
+  }
+
   private moveShots(dt: number) {
     for (const shot of [...this.state.shots]) {
+      const previousPosition = { x: shot.x, y: shot.y };
       shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt;
+      if (shot.kind === 'arrow' && this.arrowHitsSolidObstacle(previousPosition, shot)) {
+        this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+        continue;
+      }
       const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6 && (shot.kind !== 'arrow' || !(shot.hitEnemyIds ?? []).includes(e.id)));
       if (target && shot.kind === 'arrow') {
         const hitIds = shot.hitEnemyIds ?? (shot.hitEnemyIds = []);
