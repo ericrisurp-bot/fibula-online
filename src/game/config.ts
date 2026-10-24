@@ -13,6 +13,7 @@ export const CONFIG = {
     contactDamageIncrease: 1,
     contactDamageEveryWaves: 4,
     contactCooldown: 0.8,
+    playerContactSlack: 2,
     separation: { minDistance: 28, iterations: 2 },
     obstacleAvoidanceDistance: 75,
     obstacleAvoidanceBuffer: 12,
