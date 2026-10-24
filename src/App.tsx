@@ -8,11 +8,12 @@ const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
+  tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
-const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : '📦';
-const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId;
+const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : itemId === 'cotton' ? '☁️' : itemId === 'linen' ? '🧵' : '📦';
+const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId === 'cotton' ? 'Algodão' : itemId === 'linen' ? 'Linho' : itemId;
 
 const fmtTime = (seconds: number) => {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -47,6 +48,8 @@ export default function App() {
   const houseBuildAccessible = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const refineryDistance = Math.hypot(state.player.x - state.refinery.x, state.player.y - state.refinery.y);
   const refineryBuildAccessible = !state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
+  const tecelariaDistance = Math.hypot(state.player.x - state.tecelaria.x, state.player.y - state.tecelaria.y);
+  const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const cartBuildAccessible = !state.cart.repaired && cartDistance <= CONFIG.cart.interactRadius;
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
 
@@ -131,7 +134,30 @@ export default function App() {
       }
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
+      worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed) });
+      for (const plant of s.cottonPlants) {
+        const scale = plant.size === 'small' ? 0.72 : plant.size === 'medium' ? 1 : 1.3;
+        worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
+          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale, scale);
+          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#37683a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-3, -5); ctx.moveTo(0, 12); ctx.lineTo(8, 1); ctx.moveTo(-1, 7); ctx.lineTo(-10, 0); ctx.stroke();
+          ctx.fillStyle = plant.size === 'large' ? '#3f8c4d' : plant.size === 'medium' ? '#4b9957' : '#5ba763';
+          for (const leaf of [[-8, 0, -0.5], [8, 1, 0.45], [-2, -6, -0.2]] as const) {
+            ctx.save(); ctx.translate(leaf[0], leaf[1]); ctx.rotate(leaf[2]); ctx.beginPath(); ctx.ellipse(0, 0, 7, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+          }
+          ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#d9d2c2'; ctx.lineWidth = 1.2;
+          const bollCount = plant.size === 'small' ? 1 : plant.size === 'medium' ? 3 : 5;
+          for (let i = 0; i < bollCount; i++) {
+            const bx = bollCount === 1 ? 0 : -8 + (i % 3) * 8;
+            const by = bollCount === 1 ? -8 : -7 + Math.floor(i / 3) * 6;
+            ctx.beginPath(); ctx.arc(bx, by, 4.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(bx - 2, by - 1, 2.2, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+        }});
+      }
       for (const tree of s.trees) {
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
         worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => {
@@ -166,6 +192,23 @@ export default function App() {
           ctx.beginPath(); ctx.moveTo(-14 * scale, -8 * scale); ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale); ctx.lineTo(2 * scale, -6 * scale); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = 'rgba(55,62,67,0.6)'; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(-4 * scale, -2 * scale); ctx.lineTo(2 * scale, 3 * scale); ctx.lineTo(8 * scale, -1 * scale); ctx.stroke();
+          ctx.restore();
+        }});
+      }
+      for (const drop of s.cottonDrops) {
+        worldDrawables.push({ depth: drop.y + 5, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#c8c3b6'; ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.arc(-3, 1, 4, 0, Math.PI * 2); ctx.arc(2, -2, 4, 0, Math.PI * 2); ctx.arc(4, 2, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.restore();
+        }});
+      }
+      for (const drop of s.linenDrops) {
+        worldDrawables.push({ depth: drop.y + 5, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.fillStyle = '#e5d6b5'; ctx.strokeStyle = '#8b7857'; ctx.lineWidth = 1.3;
+          ctx.fillRect(-6, -4, 12, 8); ctx.strokeRect(-6, -4, 12, 8);
+          ctx.strokeStyle = '#b39a70'; ctx.beginPath(); ctx.moveTo(-3, -4); ctx.lineTo(-3, 4); ctx.moveTo(1, -4); ctx.lineTo(1, 4); ctx.stroke();
           ctx.restore();
         }});
       }
@@ -597,6 +640,10 @@ export default function App() {
           {!state.house.built && <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da casa" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}><span style={{ width: `${Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100)}%` }} /></div>}
         </section>
         <section className="house-construction-section refinery-construction-section">
+          <h3>Construção da tecelaria <small>{state.tecelaria.built ? `CONCLUÍDA · Algodão ${state.tecelaria.cottonStock}/${CONFIG.tecelaria.cottonCapacity} · Tentativas ${state.tecelaria.cottonProcessed} · Linho ${state.tecelaria.linenProduced}` : `Bronze ${state.tecelaria.bronzeDelivered}/${CONFIG.tecelaria.buildCostBronze} · Madeira ${state.tecelaria.woodDelivered}/${CONFIG.tecelaria.buildCostWood} · Algodão ${state.tecelaria.cottonDelivered}/${CONFIG.tecelaria.buildCostCotton} · Pedra ${state.tecelaria.stoneDelivered}/${CONFIG.tecelaria.buildCostStone}`}</small></h3>
+          {!state.tecelaria.built ? <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da tecelaria" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(Math.min(state.tecelaria.bronzeDelivered / CONFIG.tecelaria.buildCostBronze, state.tecelaria.woodDelivered / CONFIG.tecelaria.buildCostWood, state.tecelaria.cottonDelivered / CONFIG.tecelaria.buildCostCotton, state.tecelaria.stoneDelivered / CONFIG.tecelaria.buildCostStone) * 100)}><span style={{ width: `${Math.floor(Math.min(state.tecelaria.bronzeDelivered / CONFIG.tecelaria.buildCostBronze, state.tecelaria.woodDelivered / CONFIG.tecelaria.buildCostWood, state.tecelaria.cottonDelivered / CONFIG.tecelaria.buildCostCotton, state.tecelaria.stoneDelivered / CONFIG.tecelaria.buildCostStone) * 100)}%` }} /></div> : <p>Processamento automático: 1 algodão a cada {CONFIG.tecelaria.processInterval} segundos · {Math.round(CONFIG.tecelaria.linenChance * 100)}% de chance de linho por tentativa.</p>}
+        </section>
+        <section className="house-construction-section refinery-construction-section">
           <h3>Construção da refinaria <small>{state.refinery.built ? `CONCLUÍDA · Estoque ${state.refinery.stoneStock}/${CONFIG.refinery.stoneCapacity} pedras · Processadas ${state.refinery.stonesProcessed} · Bronze ${state.refinery.bronzeProduced}` : `Madeira ${state.refinery.woodDelivered}/${CONFIG.refinery.buildCostWood} · Pedra ${state.refinery.stoneDelivered}/${CONFIG.refinery.buildCostStone}`}</small></h3>
           {!state.refinery.built ? <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da refinaria" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}><span style={{ width: `${Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}%` }} /></div> : <><div className="quick-slot-grid bag" aria-label="Estoque de pedras da refinaria">{Array.from({ length: 2 }, (_, index) => { const quantity = Math.max(0, Math.min(CONFIG.refinery.stoneSlotCapacity, state.refinery.stoneStock - index * CONFIG.refinery.stoneSlotCapacity)); return <div key={index} className={quantity > 0 ? 'quick-slot filled' : 'quick-slot'} aria-label={`Slot ${index + 1}: ${quantity} de 5 pedras`}><span>{quantity > 0 ? '🪨' : '—'}</span><small>Pedra</small><b>{quantity}/5</b></div>; })}</div><p>Processamento automático: 1 pedra a cada 2 segundos · 2% de chance de bronze por tentativa.</p></>}
         </section>
@@ -632,15 +679,16 @@ export default function App() {
         </section>
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
-      {(cartAccessible || houseAccessible || houseBuildAccessible || refineryBuildAccessible || cartBuildAccessible) && <div className="desktop-nearby-storage-actions">
+      {(cartAccessible || houseAccessible || houseBuildAccessible || refineryBuildAccessible || tecelariaBuildAccessible || cartBuildAccessible) && <div className="desktop-nearby-storage-actions">
         {cartActionVisible && <button className="store-all-button" type="button" onClick={toggleCart}>{state.cart.carried ? 'Soltar carrinho' : 'Pegar carrinho'}</button>}
         {cartAccessible && <button className="store-all-button" type="button" disabled={state.inventory.length === 0} onClick={storeAllBagToCart}>Guardar tudo no carrinho</button>}
         {houseAccessible && <button className="store-all-button" type="button" disabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onClick={storeAllBagToHouse}>Guardar tudo na casa</button>}
         {houseBuildAccessible && <button className="store-all-button" type="button" onClick={buildHouse}>Construir casa</button>}
         {refineryBuildAccessible && <button className="store-all-button" type="button" onClick={buildRefinery}>Construir refinaria</button>}
+        {tecelariaBuildAccessible && <button className="store-all-button" type="button" onClick={() => engineRef.current?.buildTecelaria()}>Construir tecelaria</button>}
         {cartBuildAccessible && <button className="store-all-button" type="button" onClick={buildCart}>Construir carrinho</button>}
       </div>}
-            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
+            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
 
   </main>;
@@ -690,6 +738,25 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
     ctx.fillStyle = '#b28a59'; ctx.fillRect(-40, -49, 80 * woodProgress, 3);
     ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-40, -45, 80 * stoneProgress, 4);
     ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-40, -49, 80, 8);
+  }
+  ctx.restore();
+}
+
+function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['tecelaria']) {
+  const { x, y, built, bronzeDelivered, woodDelivered, cottonDelivered, stoneDelivered } = building;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, 20, 43, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = built ? '#6f624d' : '#51483a'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
+  ctx.fillRect(-35, -15, 70, 40); ctx.strokeRect(-35, -15, 70, 40);
+  ctx.fillStyle = '#8d7857'; ctx.beginPath(); ctx.moveTo(-42, -15); ctx.lineTo(-25, -36); ctx.lineTo(25, -36); ctx.lineTo(42, -15); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#d8c39a'; ctx.fillRect(-22, -5, 44, 22); ctx.strokeStyle = '#3b3022'; ctx.lineWidth = 2; ctx.strokeRect(-22, -5, 44, 22);
+  ctx.strokeStyle = '#e4d8bb'; ctx.lineWidth = 2;
+  for (let xLine = -16; xLine <= 16; xLine += 8) { ctx.beginPath(); ctx.moveTo(xLine, -4); ctx.lineTo(xLine, 16); ctx.stroke(); }
+  for (let yLine = 0; yLine <= 12; yLine += 6) { ctx.beginPath(); ctx.moveTo(-21, yLine); ctx.lineTo(21, yLine); ctx.stroke(); }
+  if (!built) {
+    const progress = Math.min(bronzeDelivered / CONFIG.tecelaria.buildCostBronze, woodDelivered / CONFIG.tecelaria.buildCostWood, cottonDelivered / CONFIG.tecelaria.buildCostCotton, stoneDelivered / CONFIG.tecelaria.buildCostStone);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -50, 84, 8); ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -50, 84 * progress, 8);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -50, 84, 8);
   }
   ctx.restore();
 }
