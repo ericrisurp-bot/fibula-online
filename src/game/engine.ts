@@ -12,7 +12,8 @@ type StoneDrop = Vec & { id: number };
 type BronzeDrop = Vec & { id: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
-type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number };
+type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean };
+type ExplosionEffect = Vec & { id: number; age: number; duration: number };
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = Vec & { angle: number; repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
@@ -22,7 +23,7 @@ export type GameSnapshot = {
   house: Vec & { woodDelivered: number; built: boolean; inventory: InventoryStack[] };
   refinery: RefineryState;
   cart: CartState;
-  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
+  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
@@ -43,6 +44,7 @@ export class GameEngine {
   private rockSpawnCountdown = 0;
   private nextRockClusterId = 1;
   private attackTimer = 0;
+  private mageAttackCount = 0;
   private elapsed = 0;
   private lastTime = 0;
   private animation = 0;
@@ -70,7 +72,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-      enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0,
+      enemies: [], trees: [], rocks: [], woodDrops: [], stoneDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -94,6 +96,7 @@ export class GameEngine {
   setClass(classId: ClassId) {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
+    if (changed) this.mageAttackCount = 0;
     this.state.classId = classId;
 
     // A classe selecionada define a arma; não existe troca independente de arma.
@@ -408,11 +411,11 @@ export class GameEngine {
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
-    this.stop(); this.state = this.freshState(); this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
+    this.stop(); this.state = this.freshState(); this.mageAttackCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.attackTimer = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
     this.enemyDamageTimer = 0; this.druidRegenTimer = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -436,6 +439,7 @@ export class GameEngine {
   private update(dt: number) {
     this.elapsed += dt; this.state.elapsed = this.elapsed;
     this.state.floatingDamage = this.state.floatingDamage.map(text => ({ ...text, age: text.age + dt })).filter(text => text.age < text.duration);
+    this.state.explosions = this.state.explosions.map(effect => ({ ...effect, age: effect.age + dt })).filter(effect => effect.age < effect.duration);
     this.state.dyingEnemies = this.state.dyingEnemies.map(enemy => ({ ...enemy, deathAge: enemy.deathAge + dt })).filter(enemy => enemy.deathAge < 0.48);
     this.attackTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
@@ -1104,7 +1108,9 @@ export class GameEngine {
       }
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
-      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage + this.state.player.level * 0.3, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2 });
+      const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
+      if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
+      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage + this.state.player.level * 0.3, kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive });
     }
   }
 
@@ -1113,12 +1119,29 @@ export class GameEngine {
       shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt;
       const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6);
       if (target) {
-        const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
-        target.hp -= effectiveDamage;
-        this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
-        if (this.state.classId === 'druida') this.druidRegenTimer = 3;
         this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
-        if (target.hp <= 0) this.killEnemy(target.id);
+        if (shot.explosive) {
+          const impact = { x: target.x, y: target.y };
+          this.state.explosions.push({ ...impact, id: this.nextId++, age: 0, duration: 0.24 });
+          const damage = shot.damage * CONFIG.mageExplosion.damageMultiplier * (1 + this.getDayNightState().vulnerability);
+          const hits = this.state.enemies
+            .map(enemy => ({ enemy, distance: Math.hypot(enemy.x - impact.x, enemy.y - impact.y) }))
+            .filter(({ distance }) => distance <= CONFIG.mageExplosion.radius)
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, CONFIG.mageExplosion.maxTargets)
+            .map(({ enemy }) => enemy);
+          for (const enemy of hits) {
+            enemy.hp -= damage;
+            this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+          }
+          for (const enemy of hits.filter(enemy => enemy.hp <= 0)) this.killEnemy(enemy.id);
+        } else {
+          const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
+          target.hp -= effectiveDamage;
+          this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
+          if (this.state.classId === 'druida') this.druidRegenTimer = 3;
+          if (target.hp <= 0) this.killEnemy(target.id);
+        }
       } else if (shot.life <= 0) this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
     }
   }
