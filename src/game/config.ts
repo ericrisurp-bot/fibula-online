@@ -51,6 +51,7 @@ export const CONFIG = {
     effectPerPointGained: { vida: 8, armadura: 0.4, velocidadeMovimento: 1.5, velocidadeAtaque: 0.045, esquiva: 0.008 },
   },
   mageExplosion: { everyAttack: 4, radius: 40, damageMultiplier: 1.5, maxTargets: 5 },
+  archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6, 0.5], rangeLossPerTarget: 0.1 },
   weapons: {
     espada: { label: 'Espada', range: 70, damage: 22, attackSpeed: 1.25, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
