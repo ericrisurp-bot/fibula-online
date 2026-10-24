@@ -27,6 +27,7 @@ export default function App() {
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
+  const [worldReady, setWorldReady] = useState(false);
   const zoomRef = useRef(1.6);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
@@ -59,12 +60,16 @@ export default function App() {
     const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
     engine.start();
     let frame = 0;
-    // Textura procedural em tile, criada uma única vez e reutilizada em todos os frames.
+    // O terreno estático é preparado uma vez antes de liberar o início da partida.
+    const terrainScale = 0.5;
+    const terrainCanvas = document.createElement('canvas');
+    terrainCanvas.width = Math.ceil(engine.world * terrainScale);
+    terrainCanvas.height = Math.ceil(engine.world * terrainScale);
+    const terrainCtx = terrainCanvas.getContext('2d');
     const grassTile = document.createElement('canvas');
     grassTile.width = 256; grassTile.height = 256;
     const grassCtx = grassTile.getContext('2d');
-    let grassPattern: CanvasPattern | null = null;
-    if (grassCtx) {
+    if (grassCtx && terrainCtx) {
       let seed = 173;
       const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
       grassCtx.fillStyle = '#557a43'; grassCtx.fillRect(0, 0, 256, 256);
@@ -85,8 +90,41 @@ export default function App() {
         grassCtx.fillStyle = 'rgba(105,78,48,0.18)';
         grassCtx.beginPath(); grassCtx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
       }
-      grassPattern = ctx.createPattern(grassTile, 'repeat');
+
+      terrainCtx.scale(terrainScale, terrainScale);
+      const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
+      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.4));
+      terrainCtx.fillStyle = grassPattern ?? '#557a43';
+      terrainCtx.fillRect(0, 0, engine.world, engine.world);
+
+      // Lago e caminho são desenhados na camada estática; nunca são recalculados por frame.
+      const lakeX = engine.world * (0.23 + random() * 0.54);
+      const lakeY = engine.world * (0.2 + random() * 0.48);
+      const lakeRx = 190 + random() * 70;
+      const lakeRy = 125 + random() * 55;
+      terrainCtx.save();
+      terrainCtx.fillStyle = 'rgba(35, 63, 47, 0.42)';
+      terrainCtx.beginPath(); terrainCtx.ellipse(lakeX, lakeY, lakeRx + 18, lakeRy + 18, -0.18, 0, Math.PI * 2); terrainCtx.fill();
+      terrainCtx.fillStyle = '#477f91';
+      terrainCtx.strokeStyle = '#8db9b2'; terrainCtx.lineWidth = 10;
+      terrainCtx.beginPath(); terrainCtx.ellipse(lakeX, lakeY, lakeRx, lakeRy, -0.18, 0, Math.PI * 2); terrainCtx.fill(); terrainCtx.stroke();
+      terrainCtx.fillStyle = 'rgba(177, 220, 205, 0.22)';
+      terrainCtx.beginPath(); terrainCtx.ellipse(lakeX - lakeRx * 0.22, lakeY - lakeRy * 0.25, lakeRx * 0.42, lakeRy * 0.18, -0.18, 0, Math.PI * 2); terrainCtx.fill();
+      terrainCtx.restore();
+
+      const pathY1 = engine.world * (0.38 + random() * 0.34);
+      const pathY2 = engine.world * (0.38 + random() * 0.34);
+      const pathControlY1 = engine.world * (0.2 + random() * 0.6);
+      const pathControlY2 = engine.world * (0.2 + random() * 0.6);
+      terrainCtx.lineCap = 'round'; terrainCtx.lineJoin = 'round';
+      terrainCtx.strokeStyle = 'rgba(67, 54, 39, 0.34)'; terrainCtx.lineWidth = 104;
+      terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
+      terrainCtx.strokeStyle = '#b7a078'; terrainCtx.lineWidth = 82;
+      terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
+      terrainCtx.strokeStyle = 'rgba(224, 207, 165, 0.55)'; terrainCtx.lineWidth = 3;
+      terrainCtx.beginPath(); terrainCtx.moveTo(0, pathY1); terrainCtx.bezierCurveTo(engine.world * 0.32, pathControlY1, engine.world * 0.68, pathControlY2, engine.world, pathY2); terrainCtx.stroke();
     }
+    setWorldReady(true);
     const render = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -112,7 +150,7 @@ export default function App() {
           : Math.max(0, Math.min(s.player.y - viewH / 2, engine.world - viewH));
       cameraTransformRef.current = { scale, left, top };
       ctx.save(); ctx.scale(scale, scale); ctx.translate(-left, -top);
-      ctx.fillStyle = grassPattern ?? '#557a43'; ctx.fillRect(0, 0, engine.world, engine.world);
+      ctx.drawImage(terrainCanvas, 0, 0, engine.world, engine.world);
       ctx.strokeStyle = '#91a99a'; ctx.lineWidth = CONFIG.map.wall; ctx.strokeRect(CONFIG.map.wall / 2, CONFIG.map.wall / 2, engine.world - CONFIG.map.wall, engine.world - CONFIG.map.wall);
       if (s.showRange && !s.cameraFull) {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
@@ -645,10 +683,10 @@ export default function App() {
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
         <div className="start-panel">
           <div className="start-eyebrow">FÍBULA ONLINE</div>
-          <h1>Pronto para sobreviver?</h1>
-          <p>Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.</p>
-          <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
-          <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
+          <h1>{worldReady ? 'Pronto para sobreviver?' : 'Preparando o mundo...'}</h1>
+          <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Gerando o terreno, o lago e o caminho antes de liberar a partida.'}</p>
+          <button className="start-fullscreen" type="button" disabled={!worldReady} onClick={startGame}><span aria-hidden="true">⛶</span> {worldReady ? 'INICIAR EM TELA CHEIA' : 'CARREGANDO...'}</button>
+          <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
