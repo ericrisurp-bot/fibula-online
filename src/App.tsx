@@ -27,6 +27,8 @@ export default function App() {
   const [state, setState] = useState<GameSnapshot>(initial);
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
+  const [worldReady, setWorldReady] = useState(false);
+  const gameStartedRef = useRef(false);
   const zoomRef = useRef(1.6);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
@@ -59,12 +61,16 @@ export default function App() {
     const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
     engine.start();
     let frame = 0;
-    // Textura procedural em tile, criada uma única vez e reutilizada em todos os frames.
+    // O terreno estático é preparado uma vez antes de liberar o início da partida.
+    const terrainScale = 0.5;
+    const terrainCanvas = document.createElement('canvas');
+    terrainCanvas.width = Math.ceil(engine.world * terrainScale);
+    terrainCanvas.height = Math.ceil(engine.world * terrainScale);
+    const terrainCtx = terrainCanvas.getContext('2d');
     const grassTile = document.createElement('canvas');
     grassTile.width = 256; grassTile.height = 256;
     const grassCtx = grassTile.getContext('2d');
-    let grassPattern: CanvasPattern | null = null;
-    if (grassCtx) {
+    if (grassCtx && terrainCtx) {
       let seed = 173;
       const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
       grassCtx.fillStyle = '#557a43'; grassCtx.fillRect(0, 0, 256, 256);
@@ -85,8 +91,16 @@ export default function App() {
         grassCtx.fillStyle = 'rgba(105,78,48,0.18)';
         grassCtx.beginPath(); grassCtx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
       }
-      grassPattern = ctx.createPattern(grassTile, 'repeat');
+
+      terrainCtx.scale(terrainScale, terrainScale);
+      const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
+      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.35));
+      terrainCtx.fillStyle = grassPattern ?? '#557a43';
+      terrainCtx.fillRect(0, 0, engine.world, engine.world);
+
+
     }
+    requestAnimationFrame(() => requestAnimationFrame(() => setWorldReady(true)));
     const render = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -112,7 +126,7 @@ export default function App() {
           : Math.max(0, Math.min(s.player.y - viewH / 2, engine.world - viewH));
       cameraTransformRef.current = { scale, left, top };
       ctx.save(); ctx.scale(scale, scale); ctx.translate(-left, -top);
-      ctx.fillStyle = grassPattern ?? '#557a43'; ctx.fillRect(0, 0, engine.world, engine.world);
+      ctx.drawImage(terrainCanvas, 0, 0, engine.world, engine.world);
       ctx.strokeStyle = '#91a99a'; ctx.lineWidth = CONFIG.map.wall; ctx.strokeRect(CONFIG.map.wall / 2, CONFIG.map.wall / 2, engine.world - CONFIG.map.wall, engine.world - CONFIG.map.wall);
       if (s.showRange && !s.cameraFull) {
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
@@ -372,6 +386,7 @@ export default function App() {
   useEffect(() => {
     const engine = engineRef.current; if (!engine) return;
     const down = (e: KeyboardEvent) => {
+      if (!gameStartedRef.current) return;
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagMenu();
@@ -413,7 +428,7 @@ export default function App() {
       if (k === 'r') engine.toggleRange();
       if (k === ' ' && !e.repeat) engine.toggleCart();
     };
-    const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
+    const up = (e: KeyboardEvent) => { if (gameStartedRef.current) engine.setKey(e.key, false); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
@@ -599,6 +614,8 @@ export default function App() {
   };
   const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
   const beginGame = () => {
+    if (!worldReady) return;
+    gameStartedRef.current = true;
     // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
     flagsRef.current = []; setFlags([]); setWheel(null);
     closeFlagMenu();
@@ -645,10 +662,10 @@ export default function App() {
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
         <div className="start-panel">
           <div className="start-eyebrow">FÍBULA ONLINE</div>
-          <h1>Pronto para sobreviver?</h1>
-          <p>Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.</p>
-          <button className="start-fullscreen" type="button" onClick={startGame}><span aria-hidden="true">⛶</span> INICIAR EM TELA CHEIA</button>
-          <button className="start-normal" type="button" onClick={beginGame}>Jogar sem tela cheia</button>
+          <h1>{worldReady ? 'Pronto para sobreviver?' : 'Preparando o mundo...'}</h1>
+          <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Gerando o terreno, o lago e o caminho antes de liberar a partida.'}</p>
+          <button className="start-fullscreen" type="button" disabled={!worldReady} onClick={startGame}><span aria-hidden="true">⛶</span> {worldReady ? 'INICIAR EM TELA CHEIA' : 'CARREGANDO...'}</button>
+          <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
@@ -713,7 +730,7 @@ export default function App() {
         {tecelariaBuildAccessible && <button className="store-all-button" type="button" onClick={() => engineRef.current?.buildTecelaria()}>Construir tecelaria</button>}
         {cartBuildAccessible && <button className="store-all-button" type="button" onClick={buildCart}>Construir carrinho</button>}
       </div>}
-            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
+            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
 
   </main>;
