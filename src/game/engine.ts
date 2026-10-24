@@ -56,7 +56,8 @@ export class GameEngine {
   private lastTime = 0;
   private animation = 0;
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
-  private classHp: Partial<Record<ClassId, number>> = {};
+  private healthTransitionRemaining = 0;
+  private healthTransitionRate = 0;
   private enemyDamageTimer = 0;
   private druidBasicHitCount = 0;
   private druidKillsSinceOrb = 0;
@@ -120,7 +121,6 @@ export class GameEngine {
     if (changed) {
       // Evita que projéteis da classe anterior contem como acertos básicos da nova classe.
       this.state.shots = [];
-      this.classHp[this.state.classId] = this.state.player.hp;
       this.mageAttackCount = 0;
       this.archerHealArrowCount = 0;
 
@@ -129,9 +129,20 @@ export class GameEngine {
       for (let level = 1; level <= player.level; level++) {
         classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida');
       }
-      const savedHp = this.classHp[classId];
+      const previousMaxHp = player.maxHp;
+      const pendingHealth = this.healthTransitionRemaining;
+      this.healthTransitionRemaining = 0;
+      this.healthTransitionRate = 0;
       player.maxHp = classMaxHp;
-      player.hp = savedHp === undefined ? classMaxHp : Math.min(savedHp, classMaxHp);
+      if (player.level === 0) {
+        player.hp = classMaxHp;
+      } else {
+        const healthProportion = (player.hp + pendingHealth) / previousMaxHp;
+        const initialHp = Math.min(player.hp, classMaxHp);
+        player.hp = initialHp;
+        this.healthTransitionRemaining = healthProportion * classMaxHp - initialHp;
+        this.healthTransitionRate = this.healthTransitionRemaining / CONFIG.classSwitch.healthTransitionSeconds;
+      }
     }
     this.state.classId = classId;
 
@@ -554,7 +565,7 @@ export class GameEngine {
   restart() {
     const classId = this.state.classId;
     this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0;
-    this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
+    this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 }; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
@@ -585,6 +596,17 @@ export class GameEngine {
     this.state.dyingEnemies = this.state.dyingEnemies.map(enemy => ({ ...enemy, deathAge: enemy.deathAge + dt })).filter(enemy => enemy.deathAge < 0.48);
     this.attackTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
+    if (this.healthTransitionRemaining !== 0) {
+      const transitionStep = Math.sign(this.healthTransitionRemaining) * Math.min(Math.abs(this.healthTransitionRemaining), Math.abs(this.healthTransitionRate) * dt);
+      p.hp = this.healthTransitionRemaining > 0
+        ? Math.min(p.maxHp, p.hp + transitionStep)
+        : Math.max(1, Math.min(p.maxHp, p.hp + transitionStep));
+      this.healthTransitionRemaining -= transitionStep;
+      if (Math.abs(this.healthTransitionRemaining) < 1e-9) {
+        this.healthTransitionRemaining = 0;
+        this.healthTransitionRate = 0;
+      }
+    }
     const previousPlayerPosition = { x: p.x, y: p.y };
     let dx = this.input.x, dy = this.input.y;
     if (this.keys.has('a') || this.keys.has('arrowleft')) dx -= 1;
