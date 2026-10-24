@@ -324,7 +324,7 @@ export class GameEngine {
   }
   private autoLoadCartFromInventory() {
     const cart = this.state.cart;
-    if (!cart.carried || this.state.inventory.length === 0) return;
+    if (!cart.repaired || Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) > CONFIG.cart.interactRadius || this.state.inventory.length === 0) return;
     let cartInventory = cart.inventory;
     const remainingInventory: InventoryStack[] = [];
     for (const stack of this.state.inventory) {

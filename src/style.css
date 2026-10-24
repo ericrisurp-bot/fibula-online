@@ -378,28 +378,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 }
 
 
-/* Transferência rápida: os espaços da mochila aparecem acima de Pegar/Soltar ao alcançar o carrinho. */
-.cart-nearby-inventory{
-  position:absolute;left:50%;bottom:76px;transform:translateX(-50%);z-index:17;
-  display:grid;grid-template-columns:repeat(3,minmax(44px,52px));gap:6px;
-  max-width:calc(100% - 20px);padding:6px;border:1px solid rgba(230,230,230,.32);
-  border-radius:10px;background:rgba(34,35,34,.94);box-shadow:0 4px 18px rgba(0,0,0,.36);
-  pointer-events:auto;touch-action:manipulation;
-}
-.cart-nearby-slot{
-  position:relative;display:flex;align-items:center;justify-content:center;min-width:0;aspect-ratio:1;
-  padding:0;border:1px solid rgba(215,215,215,.2);border-radius:7px;background:rgba(18,19,18,.72);
-  color:#fff;font-size:19px;touch-action:manipulation;
-}
-.cart-nearby-slot.filled{border-color:rgba(235,235,235,.55);background:rgba(72,74,72,.8);cursor:pointer}
-.cart-nearby-slot:disabled{opacity:.48}
-.cart-nearby-slot strong{position:absolute;right:2px;bottom:1px;padding:1px 3px;border-radius:4px;background:rgba(0,0,0,.78);font-size:9px;line-height:1.1}
-.cart-nearby-slot-number{font-size:10px;opacity:.55}
-@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
-  .cart-nearby-inventory{bottom:calc(202px + env(safe-area-inset-bottom));grid-template-columns:repeat(3,minmax(42px,50px));gap:5px;padding:5px}
-  .cart-nearby-slot{font-size:17px}
-}
-
 
 .inventory-quick-backdrop{position:absolute;inset:0;z-index:17;background:transparent;touch-action:manipulation}
 
@@ -507,3 +485,7 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   .inventory-quick-panel>header strong{font-size:9px}
   .inventory-quick-panel>header span{font-size:9px}
 }
+
+
+.mobile-quick-buttons .mobile-quick-cart>span{font-size:20px;line-height:1}
+.mobile-quick-buttons .mobile-quick-cart small{max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px;font-weight:900}
