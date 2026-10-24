@@ -59,8 +59,10 @@ export default function App() {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
-    engine.start();
     let frame = 0;
+    let readyTimer: number | null = null;
+    let firstFrameRendered = false;
+    const loadingStartedAt = performance.now();
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
     const terrainScale = 0.5;
     const terrainCanvas = document.createElement('canvas');
@@ -94,13 +96,12 @@ export default function App() {
 
       terrainCtx.scale(terrainScale, terrainScale);
       const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
-      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.35));
+      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.2));
       terrainCtx.fillStyle = grassPattern ?? '#557a43';
       terrainCtx.fillRect(0, 0, engine.world, engine.world);
 
 
     }
-    requestAnimationFrame(() => requestAnimationFrame(() => setWorldReady(true)));
     const render = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -375,12 +376,17 @@ export default function App() {
         ctx.fill();
         ctx.restore();
       }
+      if (!firstFrameRendered) {
+        firstFrameRendered = true;
+        const remainingLoadingMs = Math.max(0, 800 - (performance.now() - loadingStartedAt));
+        readyTimer = window.setTimeout(() => setWorldReady(true), remainingLoadingMs);
+      }
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -663,7 +669,7 @@ export default function App() {
         <div className="start-panel">
           <div className="start-eyebrow">FÍBULA ONLINE</div>
           <h1>{worldReady ? 'Pronto para sobreviver?' : 'Preparando o mundo...'}</h1>
-          <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Gerando o terreno, o lago e o caminho antes de liberar a partida.'}</p>
+          <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Preparando o terreno e renderizando o mapa antes de liberar a partida.'}</p>
           <button className="start-fullscreen" type="button" disabled={!worldReady} onClick={startGame}><span aria-hidden="true">⛶</span> {worldReady ? 'INICIAR EM TELA CHEIA' : 'CARREGANDO...'}</button>
           <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
