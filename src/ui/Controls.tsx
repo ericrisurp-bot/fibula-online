@@ -23,7 +23,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
