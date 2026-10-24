@@ -59,10 +59,22 @@ export class GameAudio {
         if (this.phase === 'day') {
           if (Math.random() < 0.62) this.birds();
           else this.noise(1.8 + Math.random() * 1.8, 'lowpass', 520, 0.009);
-        } else if (Math.random() < 0.72) this.crickets();
+        } else {
+          const nightSound = Math.random();
+          if (nightSound < 0.55) this.crickets();
+          else if (nightSound < 0.78) this.owl();
+          // O restante das vezes permanece em silêncio para manter a noite tranquila.
+        }
       }
       this.scheduleAmbient();
     }, delay);
+  }
+
+  private owl() {
+    // Duas notas baixas e arredondadas, sintetizadas; não usa arquivo de áudio.
+    const base = 360 + Math.random() * 70;
+    this.tone(base, 0.38, 0.009, 'sine', base * 0.72);
+    window.setTimeout(() => this.tone(base * 0.82, 0.46, 0.008, 'sine', base * 0.62), 420);
   }
 
   private birds() {
