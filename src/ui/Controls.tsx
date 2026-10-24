@@ -3,6 +3,9 @@ import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
   onInventoryToggle: () => void;
+  onCartToggle: () => void;
+  cartActionVisible: boolean;
+  cartCarried: boolean;
   flagWheelOpen: boolean;
   onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
