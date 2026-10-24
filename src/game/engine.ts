@@ -1,5 +1,5 @@
 import { CONFIG, type ClassId, type WeaponId } from './config';
-import { getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
+import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
@@ -55,7 +55,6 @@ export class GameEngine {
   private elapsed = 0;
   private lastTime = 0;
   private animation = 0;
-  private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
   private healthTransitionRemaining = 0;
   private healthTransitionRate = 0;
   private enemyDamageTimer = 0;
@@ -565,7 +564,7 @@ export class GameEngine {
   restart() {
     const classId = this.state.classId;
     this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0;
-    this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 }; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
+    this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
@@ -626,7 +625,7 @@ export class GameEngine {
     const loadFraction = Math.min(1, cartLoad / cartCapacity);
     const loadPenalty = CONFIG.cart.loadSlowdownMin + (CONFIG.cart.loadSlowdownMax - CONFIG.cart.loadSlowdownMin) * loadFraction;
     const loadSpeedFactor = this.state.cart.carried ? 1 - loadPenalty : 1;
-    const speed = (CONFIG.player.speed + this.levelStats.speed) * loadSpeedFactor;
+    const speed = (CONFIG.player.speed + this.getLevelStats().speed) * loadSpeedFactor;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
@@ -1189,8 +1188,19 @@ export class GameEngine {
     return { x: steerX / magnitude, y: steerY / magnitude };
   }
 
+  private getLevelStats() {
+    const { classId, player } = this.state;
+    return {
+      speed: getAttributeBonus(classId, player.level, 'velocidadeMovimento'),
+      armor: getAttributeBonus(classId, player.level, 'armadura'),
+      dodge: getAttributeBonus(classId, player.level, 'esquiva'),
+      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque'),
+    };
+  }
+
   private moveEnemies(dt: number) {
     const p = this.state.player;
+    const levelStats = this.getLevelStats();
     const obstacles = this.obstacleCircles(false);
     for (const e of this.state.enemies) {
       const dx = p.x - e.x, dy = p.y - e.y;
@@ -1201,9 +1211,9 @@ export class GameEngine {
       const contactDistance = Math.hypot(p.x - e.x, p.y - e.y);
       if (contactDistance <= CONFIG.player.radius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
-        if (Math.random() > CONFIG.player.dodge + this.levelStats.dodge) {
+        if (Math.random() > CONFIG.player.dodge + levelStats.dodge) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
-          const damage = Math.max(1, Math.round(waveDamage * (this.getDayNightState().isNight ? 1 : 1.5) - CONFIG.player.armor - this.levelStats.armor));
+          const damage = Math.max(1, Math.round(waveDamage * (this.getDayNightState().isNight ? 1 : 1.5) - CONFIG.player.armor - levelStats.armor));
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
@@ -1365,7 +1375,7 @@ export class GameEngine {
   private autoAttack() {
     if (this.state.cart.carried) return;
     const weapon = CONFIG.weapons[this.state.weapon];
-    const speedBonus = this.levelStats.attackSpeed;
+    const speedBonus = this.getLevelStats().attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
     const target = this.state.enemies.map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
@@ -1565,10 +1575,6 @@ export class GameEngine {
       p.xp -= p.nextXp; p.level += 1; p.nextXp = CONFIG.xp.levelBase + p.level * CONFIG.xp.levelGrowth;
       const healthGain = getAttributeEffectPerLevel(this.state.classId, p.level, 'vida');
       p.maxHp += healthGain; p.hp = Math.min(p.maxHp, p.hp + healthGain);
-      this.levelStats.armor += getAttributeEffectPerLevel(this.state.classId, p.level, 'armadura');
-      this.levelStats.speed += getAttributeEffectPerLevel(this.state.classId, p.level, 'velocidadeMovimento');
-      this.levelStats.attackSpeed += getAttributeEffectPerLevel(this.state.classId, p.level, 'velocidadeAtaque');
-      this.levelStats.dodge += getAttributeEffectPerLevel(this.state.classId, p.level, 'esquiva');
     }
   }
   private clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
