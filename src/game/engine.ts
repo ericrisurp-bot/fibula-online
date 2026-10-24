@@ -50,6 +50,7 @@ export class GameEngine {
   private lastTime = 0;
   private animation = 0;
   private levelStats = { speed: 0, armor: 0, dodge: 0, attackSpeed: 0 };
+  private classHp: Partial<Record<ClassId, number>> = {};
   private enemyDamageTimer = 0;
   private druidRegenTimer = 0;
   private druidOrbHealTimer = 0;
@@ -105,15 +106,20 @@ export class GameEngine {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
     if (changed) {
+      this.classHp[this.state.classId] = this.state.player.hp;
       this.mageAttackCount = 0;
       this.archerHealArrowCount = 0;
+
+      const player = this.state.player;
+      let classMaxHp = CONFIG.attributes.classStartHealth[classId];
+      for (let level = 1; level <= player.level; level++) {
+        classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida');
+      }
+      const savedHp = this.classHp[classId];
+      player.maxHp = classMaxHp;
+      player.hp = savedHp === undefined ? classMaxHp : Math.min(savedHp, classMaxHp);
     }
     this.state.classId = classId;
-    if (this.state.player.level === 0) {
-      const startingHealth = CONFIG.attributes.classStartHealth[classId];
-      this.state.player.maxHp = startingHealth;
-      this.state.player.hp = startingHealth;
-    }
 
     // A classe selecionada define a arma; não existe troca independente de arma.
     const classWeapon: Record<ClassId, WeaponId> = {
