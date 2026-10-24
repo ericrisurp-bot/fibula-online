@@ -137,14 +137,14 @@ export class GameEngine {
     // Publica classe, arma e habilidades juntas como um único estado coerente.
     this.emit();
   }
-  private deliverWoodToHouseUnderConstruction() {
+  buildHouse() {
     const house = this.state.house;
-    if (house.built) return;
+    if (this.state.dead || house.built) return;
 
     const playerNearHouse = Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) <= CONFIG.house.interactRadius;
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNearHouse : cartNearHouse;
-    if (!playerNearHouse && !cartNearHouse) return;
+    if (!playerNearHouse) return;
 
     const consumeWood = (inventory: InventoryStack[], requested: number) => {
       let toRemove = requested;
@@ -181,13 +181,13 @@ export class GameEngine {
       house.built = true;
     }
   }
-  private deliverMaterialsToRefinery() {
+  buildRefinery() {
     const refinery = this.state.refinery;
-    if (refinery.built) return;
+    if (this.state.dead || refinery.built) return;
     const playerNear = Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
-    if (!playerNear && !cartNear) return;
+    if (!playerNear) return;
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
       const nextInventory = inventory.flatMap(stack => {
@@ -383,9 +383,9 @@ export class GameEngine {
   isCartAccessible() {
     return this.state.cart.repaired && (this.state.cart.carried || Math.hypot(this.state.player.x - this.state.cart.x, this.state.player.y - this.state.cart.y) <= CONFIG.cart.interactRadius);
   }
-  private repairCartWithWood() {
+  buildCart() {
     const cart = this.state.cart;
-    if (cart.repaired || Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) > CONFIG.cart.interactRadius) return;
+    if (this.state.dead || cart.repaired || Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) > CONFIG.cart.interactRadius) return;
     const remaining = CONFIG.cart.repairCost - cart.repairWood;
     const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
     const amount = Math.min(remaining, carriedWood);
@@ -525,7 +525,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverWoodToHouseUnderConstruction(); this.deliverMaterialsToRefinery(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.repairCartWithWood();
+    this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.autoAttack(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt);
     if (this.state.classId === 'druida') {
       this.druidRegenTimer = Math.max(0, this.druidRegenTimer - dt);
       if (this.druidRegenTimer > 0 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + 1.2 * dt);
