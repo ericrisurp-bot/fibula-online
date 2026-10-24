@@ -205,7 +205,7 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
     frameNow = performance.now();
 
     const durationLimit = immortal
-      ? CONFIG.dayNight.dayDuration * 2 + CONFIG.dayNight.cycle * 9
+      ? CONFIG.dayNight.cycle * 10
       : MAX_SECONDS;
     while (
       queue.length &&
@@ -309,7 +309,7 @@ try {
       console.log(`Aviso: ${survivors.length} simulação(ões) não morreram antes do limite de ${MAX_SECONDS}s; não têm tempo/nível de morte.`);
     }
   } else {
-    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | simulação: 900s | nível/abates registrados aos 300s`);
+    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | simulação: ${CONFIG.dayNight.cycle * 10}s | nível/abates registrados aos 300s`);
     console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
     const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
     console.log(`Classe      ${nightHeaders} Nível aos 300s M/Md`);
@@ -327,7 +327,7 @@ try {
       const levels = rows.map(row => row.levelAt300);
       console.log(`${classId.padEnd(11)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
     }
-    console.log('Nota: % derrotados = slimes nascidos na noite e derrotados até 900s ÷ slimes nascidos nessa noite; noites sem nascimento são —.');
+    console.log('Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.');
   }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
