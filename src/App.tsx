@@ -979,47 +979,44 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     } else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
     ctx.restore();
   }
-  // Machado e picareta compartilham o mesmo arco de golpe; muda apenas a cabeça da ferramenta.
-  const drawGatheringTool = (targetAngle: number, timer: number, duration: number, kind: 'axe' | 'pickaxe') => {
-    const progress = Math.max(0, Math.min(1, 1 - timer / duration));
-    const swingAngle = targetAngle - 0.9 + progress * 1.05;
-    ctx.save();
-    // Cancela o espelhamento do personagem para que a ferramenta aponte para o alvo real.
-    ctx.scale(facingScaleX, 1);
-    ctx.rotate(swingAngle);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333';
-    ctx.lineWidth = 4;
+  if (treeChopTimer > 0) {
+    const progress = 1 - treeChopTimer / 0.2;
+    const targetAngle = Math.cos(treeChopAngle) >= 0 ? 0 : -Math.PI;
+    const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
+    // Cabeça curta e larga, com lâmina em cunha: machadinho para madeira.
+    ctx.fillStyle = '#c8d4d9'; ctx.strokeStyle = '#53636b'; ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(r * 0.48, r * 0.08);
-    ctx.lineTo(r * 1.48, -r * 0.24);
-    ctx.stroke();
-    ctx.fillStyle = '#c5d0d3';
-    ctx.strokeStyle = '#64747a';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    if (kind === 'pickaxe') {
-      ctx.moveTo(r * 1.12, -r * 0.48);
-      ctx.lineTo(r * 1.42, -r * 0.3);
-      ctx.lineTo(r * 1.78, -r * 0.57);
-      ctx.quadraticCurveTo(r * 1.9, -r * 0.5, r * 1.8, -r * 0.39);
-      ctx.lineTo(r * 1.48, -r * 0.12);
-      ctx.lineTo(r * 1.24, r * 0.08);
-      ctx.lineTo(r * 1.13, -r * 0.08);
-    } else {
-      ctx.moveTo(r * 1.28, -r * 0.38);
-      ctx.lineTo(r * 1.58, -r * 0.55);
-      ctx.quadraticCurveTo(r * 1.94, -r * 0.48, r * 1.9, -r * 0.16);
-      ctx.lineTo(r * 1.56, -r * 0.08);
-      ctx.lineTo(r * 1.28, -r * 0.16);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    ctx.moveTo(r * 1.16, -r * 0.35); ctx.lineTo(r * 1.2, -r * 0.72);
+    ctx.quadraticCurveTo(r * 1.48, -r * 0.82, r * 1.68, -r * 0.61);
+    ctx.lineTo(r * 1.61, -r * 0.28); ctx.lineTo(r * 1.34, -r * 0.16);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
-  };
-  if (treeChopTimer > 0) drawGatheringTool(treeChopAngle, treeChopTimer, 0.2, 'axe');
-  if (rockMineTimer > 0) drawGatheringTool(rockMineAngle, rockMineTimer, 0.22, 'pickaxe');
+  }
+  if (rockMineTimer > 0) {
+    // Golpe de picareta em arco descendente: de 12h para 3h (pedra à direita)
+    // ou de 12h para 9h (pedra à esquerda). Mantém a ferramenta original.
+    const progress = 1 - rockMineTimer / 0.22;
+    const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
+    const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
+    // Cabeça metálica de picareta: ponta estreita de um lado e lâmina oposta.
+    ctx.fillStyle = '#aebdc4'; ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(r * 1.02, -r * 0.58); ctx.lineTo(r * 1.28, -r * 0.72);
+    ctx.lineTo(r * 1.43, -r * 0.58); ctx.lineTo(r * 1.78, -r * 0.7);
+    ctx.lineTo(r * 1.63, -r * 0.48); ctx.lineTo(r * 1.43, -r * 0.47);
+    ctx.lineTo(r * 1.2, -r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#e0e7ea'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
+    ctx.restore();
+  }
+
   ctx.restore();
 }
