@@ -28,6 +28,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
+  const gameStartedRef = useRef(false);
   const zoomRef = useRef(1.6);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
@@ -93,7 +94,7 @@ export default function App() {
 
       terrainCtx.scale(terrainScale, terrainScale);
       const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
-      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.4));
+      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.25));
       terrainCtx.fillStyle = grassPattern ?? '#557a43';
       terrainCtx.fillRect(0, 0, engine.world, engine.world);
 
@@ -410,6 +411,7 @@ export default function App() {
   useEffect(() => {
     const engine = engineRef.current; if (!engine) return;
     const down = (e: KeyboardEvent) => {
+      if (!gameStartedRef.current) return;
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagMenu();
@@ -451,7 +453,7 @@ export default function App() {
       if (k === 'r') engine.toggleRange();
       if (k === ' ' && !e.repeat) engine.toggleCart();
     };
-    const up = (e: KeyboardEvent) => engine.setKey(e.key, false);
+    const up = (e: KeyboardEvent) => { if (gameStartedRef.current) engine.setKey(e.key, false); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
@@ -637,6 +639,8 @@ export default function App() {
   };
   const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
   const beginGame = () => {
+    if (!worldReady) return;
+    gameStartedRef.current = true;
     // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
     flagsRef.current = []; setFlags([]); setWheel(null);
     closeFlagMenu();
@@ -751,7 +755,7 @@ export default function App() {
         {tecelariaBuildAccessible && <button className="store-all-button" type="button" onClick={() => engineRef.current?.buildTecelaria()}>Construir tecelaria</button>}
         {cartBuildAccessible && <button className="store-all-button" type="button" onClick={buildCart}>Construir carrinho</button>}
       </div>}
-            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => engineRef.current?.setMove(x, y)} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
+            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
 
   </main>;
