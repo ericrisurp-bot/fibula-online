@@ -45,6 +45,7 @@ export class GameEngine {
   private nextRockClusterId = 1;
   private attackTimer = 0;
   private mageAttackCount = 0;
+  private archerHealArrowCount = 0;
   private elapsed = 0;
   private lastTime = 0;
   private animation = 0;
@@ -103,7 +104,10 @@ export class GameEngine {
   setClass(classId: ClassId) {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
-    if (changed) this.mageAttackCount = 0;
+    if (changed) {
+      this.mageAttackCount = 0;
+      this.archerHealArrowCount = 0;
+    }
     this.state.classId = classId;
     if (this.state.player.level === 0) {
       const startingHealth = CONFIG.attributes.classStartHealth[classId];
@@ -1164,7 +1168,15 @@ export class GameEngine {
           this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
           continue;
         }
+        const firstHit = hitIds.length === 0;
         hitIds.push(target.id);
+        if (firstHit && this.state.classId === 'arqueiro') {
+          this.archerHealArrowCount += 1;
+          if (this.archerHealArrowCount >= CONFIG.archerHeal.arrowsPerHeal) {
+            this.archerHealArrowCount = 0;
+            this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + CONFIG.archerHeal.amount);
+          }
+        }
         const damage = shot.damage * CONFIG.archerPierce.damageFactors[hitIndex] * (1 + this.getDayNightState().vulnerability);
         target.hp -= damage;
         this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
