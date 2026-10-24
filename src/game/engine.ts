@@ -61,6 +61,7 @@ export class GameEngine {
   private druidBasicHitCount = 0;
   private druidKillsSinceOrb = 0;
   private druidOrbHealTimer = 0;
+  private druidContagionTimer = 0;
   private refineryProcessTimer = 0;
   private tecelariaProcessTimer = 0;
 
@@ -1547,6 +1548,27 @@ export class GameEngine {
   }
 
   private updateDruidEffects(dt: number) {
+    if (this.state.classId === 'druida') {
+      this.druidContagionTimer -= dt;
+      while (this.druidContagionTimer <= 0) {
+        this.druidContagionTimer += CONFIG.druidContagion.checkInterval;
+        let poisonedCount = this.state.enemies.filter(enemy => (enemy.poisonRemaining ?? 0) > 0).length;
+        if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) continue;
+        const sources = this.state.enemies.filter(enemy => (enemy.poisonRemaining ?? 0) > 0 && (enemy.poisonDamage ?? 0) > 0);
+        for (const source of sources) {
+          for (const target of this.state.enemies) {
+            if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) break;
+            if (target.id === source.id || (target.poisonRemaining ?? 0) > 0) continue;
+            if (Math.hypot(target.x - source.x, target.y - source.y) > CONFIG.druidContagion.radius) continue;
+            target.poisonRemaining = source.poisonRemaining;
+            target.poisonTick = source.poisonTick;
+            target.poisonDamage = source.poisonDamage;
+            poisonedCount += 1;
+          }
+          if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) break;
+        }
+      }
+    }
     for (const enemy of [...this.state.enemies]) {
       const activeTime = Math.min(dt, enemy.poisonRemaining ?? 0);
       if (activeTime <= 0) continue;
