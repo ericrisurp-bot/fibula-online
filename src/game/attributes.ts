@@ -37,6 +37,25 @@ export function getPlayerAttributes(classId: ClassId, level: number): PlayerAttr
 }
 
 // Força, resistência mágica, inteligência, alcance e área existem na estrutura, mas ainda não afetam o jogo.
+export function getDamageMultiplier(classId: ClassId, level: number): number {
+  const { baseValue, gainPerLevel, classMultipliers, archerDamageWeights } = CONFIG.attributes;
+  const multipliers = classMultipliers[classId];
+  const gainedLevels = Math.max(0, level) * gainPerLevel;
+  let damageAttributeValue: number;
+
+  if (classId === 'guerreiro') {
+    damageAttributeValue = baseValue + gainedLevels * multipliers.forca;
+  } else if (classId === 'mago' || classId === 'druida') {
+    damageAttributeValue = baseValue + gainedLevels * multipliers.inteligencia;
+  } else {
+    const destreza = baseValue + gainedLevels * multipliers.destreza;
+    const forca = baseValue + gainedLevels * multipliers.forca;
+    damageAttributeValue = destreza * archerDamageWeights.destreza + forca * archerDamageWeights.forca;
+  }
+
+  return damageAttributeValue / baseValue;
+}
+
 export function getAttributeEffectPerLevel(classId: ClassId, level: number, attribute: EffectAttribute): number {
   const current = getPlayerAttributes(classId, level)[attribute];
   const previous = getPlayerAttributes(classId, Math.max(0, level - 1))[attribute];
