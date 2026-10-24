@@ -36,6 +36,7 @@ export const CONFIG = {
       { id: 'blue', label: 'Azul', color: '#42a5f5' },
     ],
   },
+  classSwitch: { healthTransitionSeconds: 5 },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   attributes: {
     classStartHealth: { guerreiro: 200, mago: 90, arqueiro: 100, druida: 110 },
