@@ -215,7 +215,7 @@ function playBirdPhrase(forcedPan?: number) {
     noteFilter.frequency.value = cutoff;
     const panner = context.createStereoPanner();
     panner.pan.value = pan;
-    const peak = 0.03 * (1 - distance * 0.85) * audioManager.rand(0.5, 1);
+    const peak = 0.03 * 0.35 * (1 - distance * 0.85) * audioManager.rand(0.5, 1);
     noteGain.gain.setValueAtTime(0, start);
     noteGain.gain.linearRampToValueAtTime(peak, start + duration * 0.18);
     noteGain.gain.setValueAtTime(peak * 0.8, start + duration * 0.4);
