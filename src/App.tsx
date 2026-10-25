@@ -396,16 +396,10 @@ export default function App() {
       }
       for (const drop of s.stoneDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(2.05, 2.05);
-          // Pedra low-poly maior, com silhueta angular e facetas sombreadas.
-          const facet = (points: Array<[number, number]>, color: string, stroke = '#454d53') => {
-            ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-            ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.1; ctx.stroke();
-          };
-          facet([[-7, 2], [-5, -4], [-1, -7], [4, -5], [8, -1], [6, 4], [1, 7], [-5, 5]], '#89959d');
-          facet([[-5, -4], [-1, -7], [1, -1], [-2, 2]], '#b5bec3', '#68737a');
-          facet([[-2, 2], [1, -1], [5, -3], [8, -1], [6, 4], [1, 7]], '#65727b', '#454d53');
-          facet([[-5, 5], [-2, 2], [1, 7]], '#a1abb1', '#68737a');
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          // Usa o mesmo ícone da mochila, em tamanho ligeiramente maior que o tronco.
+          ctx.font = '24px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(itemIcon('stone'), 0, 0);
           ctx.restore();
         }});
       }
@@ -420,19 +414,12 @@ export default function App() {
       }
       for (const drop of s.woodDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(1.85, 1.85);
-          // Um único tronco grosso, maior que o capulho de algodão.
-          const polygon = (points: Array<[number, number]>, fill: string, stroke = '#65452d') => {
-            ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-            ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.1; ctx.stroke();
-          };
-          polygon([[-14, -4], [-11, -8], [9, -7], [14, -3], [14, 4], [10, 8], [-11, 7], [-14, 3]], '#80502f');
-          polygon([[-11, -8], [9, -7], [5, -3], [-10, -3]], '#b17a49', '#70492f');
-          polygon([[-10, -3], [5, -3], [10, 1], [10, 6], [-11, 7], [-14, 3]], '#6f452b', '#65452d');
-          polygon([[10, -7], [14, -3], [14, 4], [10, 8], [7, 4], [7, -3]], '#d9b17a', '#65452d');
-          polygon([[10, -4], [12, -2], [12, 3], [9, 5], [8, 1]], '#f0d2a0', '#8b6039');
-          ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-          ctx.fillText(String(drop.amount), 0, -9); ctx.restore();
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          // Usa o mesmo ícone da mochila, agora como um único tronco.
+          ctx.font = '22px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(itemIcon('wood'), 0, 0);
+          ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom';
+          ctx.fillText(String(drop.amount), 0, -13); ctx.restore();
         }});
       }
       for (const enemy of s.enemies) {
