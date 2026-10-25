@@ -56,6 +56,7 @@ export default function App() {
   });
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
@@ -964,7 +965,7 @@ export default function App() {
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
-      <button className="help-button" onClick={() => audioManager.setMuted(!audioManager.isMuted())} aria-label={audioManager.isMuted() ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"} aria-pressed={!audioManager.isMuted()} title={audioManager.isMuted() ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"}>{audioManager.isMuted() ? "🔇" : "🔊"}</button>
+      <button className="help-button" onClick={() => { const nextMuted = !audioMuted; setAudioMuted(nextMuted); audioManager.setMuted(nextMuted); }} aria-label={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"} aria-pressed={!audioMuted} title={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"}>{audioMuted ? "🔇" : "🔊"}</button>
       <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
     </header>
     <section className="game-stage">

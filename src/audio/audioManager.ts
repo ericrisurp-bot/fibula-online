@@ -92,7 +92,7 @@ class AudioManager {
   }
 
   register<T extends SoundType>(type: T, fn: SoundHandler<T>) {
-    this.handlers.set(type, fn as SoundHandler<SoundType>);
+    this.handlers.set(type, fn as unknown as SoundHandler<SoundType>);
   }
 
   play(event: SoundEvent) {
