@@ -5,8 +5,10 @@ import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
 import { registerCombatSounds } from './audio/combatSounds';
+import { registerGatherSounds } from './audio/gatherSounds';
 
 registerCombatSounds();
+registerGatherSounds();
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
