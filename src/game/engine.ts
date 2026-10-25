@@ -1413,6 +1413,7 @@ export class GameEngine {
     if (weapon.kind === 'melee') {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
+      this.onSound?.({ type: 'attack', classId: this.state.classId });
       const arc = Math.PI * 0.62;
       const hits = this.state.enemies.filter(e => {
         const ex = e.x - p.x, ey = e.y - p.y;
@@ -1447,6 +1448,7 @@ export class GameEngine {
       const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
       this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
   }
 
@@ -1550,6 +1552,7 @@ export class GameEngine {
         if (shot.explosive) {
           const impact = { x: target.x, y: target.y };
           this.state.explosions.push({ ...impact, id: this.nextId++, age: 0, duration: 0.24 });
+          this.onSound?.({ type: 'explosion', kind: 'mage' });
           const vulnerability = 1 + this.getDayNightState().vulnerability;
           const basicDamage = shot.damage * vulnerability;
           target.hp -= basicDamage;
