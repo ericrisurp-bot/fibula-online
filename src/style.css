@@ -903,3 +903,113 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .menu-audio-volume label strong{font-variant-numeric:tabular-nums;color:#bfe8d2}
 .menu-audio-volume input[type=range]{width:100%;accent-color:#bfe8d2;cursor:pointer;touch-action:pan-y}
 .menu-audio-volume-labels{display:flex;justify-content:space-between;color:#c7c7c7;font-size:9px}
+
+
+/* Dia/noite, dia de sobrevivência e abates em uma única faixa logo abaixo de HP/XP. */
+.hud-left-stack .hud-center-stack{
+  position:relative;
+  top:0;
+  left:0;
+  display:flex;
+  flex-direction:row;
+  align-items:stretch;
+  justify-content:flex-start;
+  gap:4px;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  transform:none;
+  white-space:nowrap;
+}
+.hud-left-stack .hud-center-stack>.hud-chip{
+  align-self:stretch;
+  flex:0 1 auto;
+  min-width:0;
+  padding:4px 6px;
+}
+.hud-left-stack .hud-center-stack>.hud-chip.timer span{
+  font-size:7px;
+  letter-spacing:.04em;
+}
+.hud-left-stack .hud-center-stack>.hud-chip.timer strong{
+  font-size:clamp(12px,1.3vw,16px);
+}
+.hud-left-stack .hud-center-stack .hud-substats{
+  display:flex;
+  flex:1 1 auto;
+  align-items:stretch;
+  justify-content:flex-start;
+  flex-wrap:nowrap;
+  gap:4px;
+  min-width:0;
+}
+.hud-left-stack .hud-center-stack .hud-substats .hud-chip{
+  flex:1 1 0;
+  align-items:center;
+  min-width:0;
+  padding:4px 5px;
+}
+.hud-left-stack .hud-center-stack .hud-substats .hud-chip span{
+  font-size:6px;
+  letter-spacing:.02em;
+}
+.hud-left-stack .hud-center-stack .hud-substats .hud-chip strong{
+  font-size:9px;
+}
+
+
+/* Menu de PC respeita a escala escolhida e se mantém dentro da área visível. */
+@media (pointer:fine){
+  .mobile-menu-panel{
+    top:52px;
+    right:12px;
+    width:min(248px,calc((100vw - 24px) / var(--interface-scale,1.3)));
+    padding:9px;
+    max-height:calc((100dvh - 64px) / var(--interface-scale,1.3));
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    transform:scale(var(--interface-scale,1.3))!important;
+    transform-origin:top right;
+    zoom:1!important;
+    font-size:10px;
+  }
+  .mobile-menu-heading{margin-bottom:7px;font-size:9px}
+  .mobile-menu-heading button{width:23px;height:23px;font-size:16px}
+  .menu-section-label{margin:7px 0 4px;font-size:8px}
+  .menu-action-list{gap:4px}
+  .menu-action-list>button,.menu-zoom-row{gap:7px;padding:6px 8px;font-size:10px}
+  .menu-zoom-row button{width:27px;height:25px;font-size:16px}
+  .menu-interface-scale{gap:4px;padding:6px 7px}
+  .menu-interface-scale>span{font-size:9px}
+  .menu-interface-scale-options{gap:4px}
+  .menu-interface-scale-options button{min-height:25px;padding:3px 5px;font-size:9px}
+  .menu-audio-volume{gap:5px;padding:7px;margin-bottom:6px}
+  .menu-audio-volume label{font-size:10px}
+  .menu-audio-volume-labels{font-size:8px}
+  .menu-weapon{margin-top:6px;font-size:9px}
+}
+
+/* A mochila e o painel de inventário acompanham a escala escolhida pelo jogador. */
+.mobile-quick-buttons{
+  zoom:1!important;
+  transform:scale(var(--interface-scale,1.3));
+  transform-origin:bottom right;
+}
+.inventory-quick-panel{
+  position:fixed;
+  top:50dvh;
+  left:50vw;
+  zoom:1!important;
+  width:min(620px,calc(100vw - 24px));
+  max-height:calc(100dvh - 32px);
+  transform:translate(-50%,-50%) scale(var(--interface-scale,1.3));
+  transform-origin:center;
+}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .mobile-quick-buttons{transform:scale(var(--interface-scale,1.3));transform-origin:bottom right}
+  .inventory-quick-panel{
+    width:min(560px,calc(100vw - 24px));
+    max-height:calc(100dvh - 32px);
+    transform:translate(-50%,-50%) scale(var(--interface-scale,1.3));
+  }
+}
