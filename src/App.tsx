@@ -265,7 +265,7 @@ export default function App() {
             ctx.beginPath(); ctx.arc(-size * 0.1, -size * 0.42, size * 0.2, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
           };
-          const bollCount = plant.size === 'small' ? 3 : plant.size === 'medium' ? 4 : 6;
+          const bollCount = plant.size === 'small' ? 2 : plant.size === 'medium' ? 4 : 6;
           const bolls = [[-7, -14], [9, -18], [-13, -12], [14, -7], [0, -7], [-3, -21]] as const;
           for (let i = 0; i < bollCount; i++) {
             const [bx, by] = bolls[i];
