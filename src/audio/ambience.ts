@@ -237,6 +237,30 @@ function playBirdPhrase(forcedPan?: number) {
   return pan;
 }
 
+function playOwlPhrase(_forcedPan?: number, _pitchOffset = 1): number | null {
+  // O gerador da frase é adicionado no commit seguinte.
+  return null;
+}
+
+function scheduleOwls(first = false) {
+  if (!active || phase !== 'night') return;
+  const longPause = !first && Math.random() < 0.25;
+  const delay = first
+    ? audioManager.rand(8000, 20000)
+    : longPause ? audioManager.rand(45000, 80000) : audioManager.rand(12000, 40000);
+  rememberTimer(owlTimers, () => {
+    if (!active || phase !== 'night') return;
+    const pan = playOwlPhrase();
+    if (pan !== null && Math.random() < 0.2) {
+      const responsePan = pan >= 0 ? -audioManager.rand(0.35, 0.9) : audioManager.rand(0.35, 0.9);
+      rememberTimer(owlTimers, () => {
+        if (active && phase === 'night') playOwlPhrase(responsePan, audioManager.rand(0.94, 1.06));
+      }, audioManager.rand(2000, 5000));
+    }
+    scheduleOwls(false);
+  }, delay);
+}
+
 function scheduleBirds() {
   if (!active || phase !== 'day') return;
   const longPause = Math.random() < 0.2;
@@ -298,6 +322,7 @@ export const ambience = {
     } else {
       fadeNight(1, 2);
       fadeMaster(0, 4);
+      scheduleOwls(true);
     }
   },
 
@@ -317,8 +342,11 @@ export const ambience = {
     } else {
       clearTimers(birdTimers);
       clearTimers(windTimers);
+      clearTimers(owlTimers);
+      stopOwlSourcesSoon(0);
       fadeNight(1, 2);
       fadeMaster(0, 4);
+      scheduleOwls(true);
       if (windSource) rememberTimer(transitionTimers, stopWind, 4100);
     }
   },
