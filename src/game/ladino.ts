@@ -95,6 +95,11 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const scale = 4.5 * r / 135; // Ladino 1,5x maior; preserva a proporção interna.
   ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
   ctx.scale(scale * sideScale, scale);
+  // A vista lateral espelha o personagem inteiro ao olhar para a esquerda.
+  if (isSide && facingLeft) {
+    ctx.translate(100, 0);
+    ctx.scale(-1, 1);
+  }
   const P = PALETTES[classId];
 
   // Sombra mantida fixa no drawPlayer; a capa tem atraso próprio em relação ao corpo.
@@ -177,19 +182,19 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[50,52],[50,117]], '#f0f0f4', 1.5);
     poly(ctx, [[44,45],[56,45],[59,52],[50,58],[41,52]], P.trim, OUT, 1);
   } else if (isSide) {
-    // Silhueta lateral contínua: uma base opaca cobre braços, ombros e roupa frontal,
-    // evitando que camadas do desenho frontal pareçam duas metades encaixadas.
-    poly(ctx, [[31,40],[69,40],[82,51],[73,66],[65,75],[68,101],[61,127],[43,127],[36,102],[37,76],[27,65],[18,51]], P.dark);
-    poly(ctx, [[34,43],[49,45],[47,72],[44,101],[48,122],[43,123],[36,101],[37,76],[27,64]], '#d5d6df', OUT, 1.2);
-    poly(ctx, [[50,45],[66,43],[78,52],[69,65],[61,75],[63,101],[57,123],[49,122],[54,101],[53,75]], '#bfc2cd', OUT, 1.2);
-    poly(ctx, [[31,42],[42,44],[39,62],[30,62],[22,52]], P.main, OUT, 1.2);
-    line(ctx, [[34,44],[30,62],[37,76],[36,101],[43,123]], P.trim, 1.8);
-    line(ctx, [[66,44],[78,52],[69,65],[61,75],[63,101],[57,123]], P.trim, 1.8);
-    // Só a mão externa fica visível no perfil; a mão interna fica atrás do corpo/capa.
-    if (!facingLeft) {
-      poly(ctx, [[54,54],[62,57],[63,76],[58,86],[52,82]], DARK);
-      poly(ctx, [[53,79],[60,80],[59,89],[52,88]], DARK2);
-    }
+    // Perfil mais estreito: base contínua e apenas as faces laterais da túnica.
+    poly(ctx, [[42,40],[58,40],[70,50],[66,68],[60,78],[63,105],[58,127],[42,127],[37,105],[40,78],[34,68],[30,50]], P.dark, OUT, 1.2);
+    poly(ctx, [[44,43],[50,44],[48,75],[45,105],[47,124],[42,125],[37,103],[40,77],[35,67],[33,52]], '#d5d6df', OUT, 1.0);
+    poly(ctx, [[50,44],[56,43],[67,52],[63,67],[58,77],[60,103],[55,124],[48,124],[51,105],[52,75]], '#bfc2cd', OUT, 1.0);
+
+    line(ctx, [[44,44],[40,77],[42,103],[44,125]], P.trim, 1.8);
+    line(ctx, [[56,44],[67,52],[63,67],[58,77],[60,103],[55,124]], P.trim, 1.8);
+    poly(ctx, [[42,80],[58,80],[58,86],[42,86]], LEATH2);
+    poly(ctx, [[48,80],[52,80],[52,86],[48,86]], GOLD, OUT, 1);
+
+    // Uma única mão externa; o espelhamento global posiciona-a no lado correto.
+    poly(ctx, [[56,55],[63,58],[64,77],[59,87],[53,83]], DARK);
+    poly(ctx, [[55,80],[61,81],[60,90],[54,89]], DARK2);
   }
 
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
@@ -202,22 +207,25 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   ctx.translate(-50, -54);
   poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], P.main);
   poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], P.dark);
-  // Faces do capuz: topo iluminado, lateral em meia-sombra e borda interior profunda.
-  poly(ctx, [[50,2],[60,16],[50,29],[40,16]], '#f2f2f6', '', 0);
-  poly(ctx, [[50,2],[40,16],[26,20],[18,44],[32,32]], P.light, '', 0);
-  poly(ctx, [[60,16],[74,20],[82,44],[68,32]], '#3a3a46', '', 0);
-  poly(ctx, [[50,0],[60,16],[40,16]], P.light);
+  // Faces frontais do capuz não são desenhadas no perfil para evitar sobreposição.
+  if (!isSide) {
+    poly(ctx, [[50,2],[60,16],[50,29],[40,16]], '#f2f2f6', '', 0);
+    poly(ctx, [[50,2],[40,16],[26,20],[18,44],[32,32]], P.light, '', 0);
+    poly(ctx, [[60,16],[74,20],[82,44],[68,32]], '#3a3a46', '', 0);
+    poly(ctx, [[50,0],[60,16],[40,16]], P.light);
+  }
   if (isBack) {
     // Vista traseira do mesmo capuz: preserva a silhueta e os acabamentos, sem mostrar o rosto.
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], P.dark);
     poly(ctx, [[43,20],[57,20],[62,34],[56,48],[50,51],[44,48],[38,34]], P.main, P.trim, 1.5);
     line(ctx, [[50,21],[50,48]], P.light, 1.6);
   } else if (isSide) {
-    // O capuz cobre completamente o rosto no perfil: sem olho visível.
-    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
-    line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
-    line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
-    line(ctx, [[40,16],[60,16]], P.trim, 2.4);
+    // Perfil do capuz: contorno escuro e rosto estreito, sem desenhar olhos.
+    poly(ctx, [[44,14],[58,14],[66,29],[63,42],[58,51],[50,55],[42,51],[37,39],[38,27]], P.dark, OUT, 1.2);
+    poly(ctx, [[45,18],[56,18],[62,30],[58,43],[52,49],[46,46],[41,34]], SKIN, '', 0);
+    line(ctx, [[44,16],[38,30],[44,50]], P.trim, 2.2);
+    line(ctx, [[58,16],[66,30],[60,50]], P.trim, 2.2);
+    line(ctx, [[44,16],[58,16]], P.trim, 2.2);
   } else {
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
