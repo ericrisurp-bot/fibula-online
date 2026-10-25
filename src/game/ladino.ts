@@ -122,10 +122,17 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     ctx.scale(1, 1 + breath * 0.012);
     ctx.translate(-50, -70);
   }
-  poly(ctx, [[32,48],[68,48],[66,84],[34,84]], DARK);
+  // Volume do tronco: ombros em primeiro plano e faces de luz/sombra no peitoral.
+  poly(ctx, [[30,48],[70,48],[67,84],[33,84]], '#171820');
+  poly(ctx, [[31,49],[42,46],[50,53],[48,68],[37,72],[31,62]], '#41414c');
+  poly(ctx, [[70,49],[58,46],[50,53],[52,68],[63,72],[69,62]], '#252630');
   poly(ctx, [[38,50],[62,50],[60,70],[40,70]], '#e9e9ee');
-  poly(ctx, [[41,70],[59,70],[61,112],[50,118],[39,112]], '#f1f1f5');
-  poly(ctx, [[50,70],[59,70],[61,112],[50,118]], '#cfcfd8');
+  poly(ctx, [[38,51],[47,53],[47,69],[40,70]], '#ffffff');
+  poly(ctx, [[53,53],[62,51],[60,70],[53,72]], '#b9bbc6');
+  poly(ctx, [[41,70],[59,70],[64,108],[50,118],[36,108]], '#f1f1f5');
+  poly(ctx, [[41,72],[48,74],[47,112],[39,108]], '#ffffff');
+  poly(ctx, [[53,73],[59,71],[64,108],[50,118],[50,78]], '#c1c3ce');
+  poly(ctx, [[46,75],[54,75],[56,105],[50,111],[44,105]], '#e0e1e8', '', 0);
   poly(ctx, [[47,76],[53,76],[53,106],[47,106]], P.main, '', 0);
   line(ctx, [[50,78],[50,104]], P.trim, 2.2);
 
@@ -148,8 +155,12 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[48,81],[53,81],[53,90],[48,90]], GOLD, OUT, 1);
   poly(ctx, [[27,86],[39,86],[39,99],[27,99]], LEATH);
   poly(ctx, [[27,86],[39,86],[39,91],[27,91]], LEATH2);
-  poly(ctx, [[22,42],[50,38],[50,52],[28,60],[16,56]], P.light);
-  poly(ctx, [[50,38],[78,42],[84,56],[72,60],[50,52]], P.main);
+  // Ombreiras facetadas dão largura e separam o braço do peitoral.
+  poly(ctx, [[22,42],[39,39],[50,45],[44,56],[28,60],[16,56]], P.light);
+  poly(ctx, [[22,43],[30,44],[28,56],[16,56]], '#b7bac7');
+  poly(ctx, [[50,45],[61,39],[78,42],[84,56],[72,60],[56,56]], P.main);
+  poly(ctx, [[61,41],[78,43],[84,56],[72,57],[64,51]], P.light);
+  poly(ctx, [[28,58],[44,54],[50,52],[56,54],[72,58],[68,64],[50,59],[32,64]], '#20212a');
   line(ctx, [[16,56],[28,60],[50,52],[72,60],[84,56]], P.trim, 2);
   poly(ctx, [[34,42],[66,42],[62,56],[50,60],[38,56]], '#2b2b33');
   ctx.restore();
@@ -186,6 +197,10 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   ctx.translate(-50, -54);
   poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], P.main);
   poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], P.dark);
+  // Faces do capuz: topo iluminado, lateral em meia-sombra e borda interior profunda.
+  poly(ctx, [[50,2],[60,16],[50,29],[40,16]], '#f2f2f6', '', 0);
+  poly(ctx, [[50,2],[40,16],[26,20],[18,44],[32,32]], P.light, '', 0);
+  poly(ctx, [[60,16],[74,20],[82,44],[68,32]], '#3a3a46', '', 0);
   poly(ctx, [[50,0],[60,16],[40,16]], P.light);
   if (isBack) {
     // Vista traseira do mesmo capuz: preserva a silhueta e os acabamentos, sem mostrar o rosto.
