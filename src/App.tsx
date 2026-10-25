@@ -343,10 +343,10 @@ export default function App() {
         ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
-      // Neblina e vinheta são renderizadas em um overlay reutilizado a 25% da resolução.
+      // Neblina e vinheta são renderizadas em um overlay reutilizado a 12,5% da resolução para testar o custo de renderização.
       if (darkness > 0.01 && octx) {
-        const overlayWidth = Math.ceil(w * 0.25);
-        const overlayHeight = Math.ceil(h * 0.25);
+        const overlayWidth = Math.ceil(w * 0.125);
+        const overlayHeight = Math.ceil(h * 0.125);
         if (overlay.width !== overlayWidth || overlay.height !== overlayHeight) {
           overlay.width = overlayWidth;
           overlay.height = overlayHeight;
@@ -356,7 +356,7 @@ export default function App() {
 
         // Neblina no espaço do mundo, com a mesma matemática e os mesmos color stops.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
-        octx.setTransform(0.25 * scale, 0, 0, 0.25 * scale, -left * 0.25 * scale, -top * 0.25 * scale);
+        octx.setTransform(0.125 * scale, 0, 0, 0.125 * scale, -left * 0.125 * scale, -top * 0.125 * scale);
         const fog = octx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
         fog.addColorStop(0, `rgba(5, 8, 18, ${0.24 * darkness})`);
         fog.addColorStop(0.45, `rgba(5, 8, 18, ${0.5 * darkness})`);
@@ -369,7 +369,7 @@ export default function App() {
         const playerScreenX = (s.player.x - left) * scale;
         const playerScreenY = (s.player.y - top) * scale;
         const vignetteRadius = Math.hypot(w / 2, h / 2);
-        octx.setTransform(0.25, 0, 0, 0.25, 0, 0);
+        octx.setTransform(0.125, 0, 0, 0.125, 0, 0);
         const vignette = octx.createRadialGradient(
           playerScreenX, playerScreenY, Math.min(w, h) * 0.08,
           playerScreenX, playerScreenY, vignetteRadius,
