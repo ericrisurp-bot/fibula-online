@@ -361,8 +361,8 @@ export default function App() {
 
         // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
-        const fogTextureWidth = overlay.width * 3;
-        const fogTextureHeight = overlay.height * 3;
+        const fogTextureWidth = overlay.width * 2;
+        const fogTextureHeight = overlay.height * 2;
         const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
         if (fogTextureCtx && fogTextureKey !== nextFogTextureKey) {
           fogTexture.width = fogTextureWidth;
