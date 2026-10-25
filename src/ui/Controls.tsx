@@ -33,11 +33,12 @@ type Props = {
   classId: ClassId;
   showRange: boolean;
   weaponLabel: string;
+  constructionMissions: { label: string; progress: number; detail: string; completed: boolean }[];
 };
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
@@ -111,9 +112,13 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     />}
     {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
       <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
-<div className="menu-section-label">CLASSES</div>
-      <div className="menu-class-grid">
-        {(Object.keys(CLASSES) as ClassId[]).map((id, index) => <button key={id} type="button" className={classId === id ? 'selected' : ''} aria-pressed={classId === id} title={CLASSES[id].description} onClick={() => { onClass(id); setMenuOpen(false); }}>{index + 1} · {CLASSES[id].label}</button>)}
+<div className="menu-section-label">MISSÕES · CONSTRUÇÕES</div>
+      <div className="menu-missions" aria-label="Progresso das construções">
+        {constructionMissions.map(mission => <div key={mission.label} className="menu-mission-item">
+          <div className="menu-mission-heading"><strong>{mission.label}</strong><span>{mission.completed ? 'CONCLUÍDA' : `${mission.progress}%`}</span></div>
+          <div className="menu-mission-track" role="progressbar" aria-label={`Progresso: ${mission.label}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={mission.progress}><span style={{ width: `${mission.progress}%` }} /></div>
+          <small>{mission.detail}</small>
+        </div>)}
       </div>
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">

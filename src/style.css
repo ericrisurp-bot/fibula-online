@@ -539,3 +539,89 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .desktop-nearby-storage-actions{position:absolute;z-index:19;right:12px;bottom:18px;display:flex;flex-direction:column;align-items:stretch;gap:7px;max-width:180px;pointer-events:auto}
 .desktop-nearby-storage-actions .store-all-button{white-space:normal;width:100%;padding:9px 10px}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){.desktop-nearby-storage-actions{display:none}}
+
+
+/* Interface translúcida unificada: carvão #222322 com o cenário visível ao fundo. */
+.hud-left-stack .hud-meter,
+.hud-center-stack .hud-chip {
+  background: rgba(34, 35, 34, 0.56) !important;
+  border-color: rgba(235, 235, 235, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.mobile-menu-trigger {
+  background: rgba(34, 35, 34, 0.58) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.mobile-menu-panel,
+.inventory-quick-panel,
+.help-card,
+.start-panel {
+  background: rgba(34, 35, 34, 0.66) !important;
+  border-color: rgba(235, 235, 235, 0.22);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.help-backdrop {
+  background: rgba(34, 35, 34, 0.16);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+}
+.start-overlay { background: rgba(34, 35, 34, 0.24); }
+.game-over {
+  background: rgba(34, 35, 34, 0.68) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.mobile-menu-panel .menu-class-grid button,
+.mobile-menu-panel .menu-action-list > button,
+.mobile-menu-panel .menu-zoom-row {
+  background: rgba(34, 35, 34, 0.48) !important;
+  border-color: rgba(235, 235, 235, 0.2);
+}
+.mobile-menu-panel .menu-class-grid button.selected,
+.mobile-menu-panel .menu-action-list button.selected {
+  background: rgba(115, 116, 115, 0.34) !important;
+}
+.flag-wheel-option,
+.flag-wheel-center,
+.cart-action-button,
+.cart-repair-status,
+.store-all-button,
+.mobile-quick-buttons button {
+  background: rgba(34, 35, 34, 0.62) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.quick-slot {
+  background: rgba(34, 35, 34, 0.36);
+}
+.quick-slot.filled {
+  background: rgba(70, 71, 70, 0.42);
+}
+.menu-missions { display: flex; flex-direction: column; gap: 9px; }
+.menu-mission-item { padding: 8px 9px; border: 1px solid rgba(235, 235, 235, 0.16); border-radius: 9px; background: rgba(34, 35, 34, 0.34); }
+.menu-mission-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.menu-mission-heading strong { color: #f0f0f0; font-size: 11px; font-weight: 850; }
+.menu-mission-heading span { color: #d0d0d0; font-size: 8px; font-weight: 850; letter-spacing: .06em; }
+.menu-mission-item small { display: block; margin-top: 5px; color: #c7c7c7; font-size: 9px; line-height: 1.35; }
+.menu-mission-track { height: 5px; overflow: hidden; border-radius: 99px; background: rgba(230, 230, 230, 0.13); }
+.menu-mission-track span { display: block; height: 100%; border-radius: inherit; background: rgba(225, 225, 225, 0.76); transition: width .18s ease; }
+
+.mobile-menu-heading button,
+.menu-zoom-row button,
+.cart-menu-action {
+  background: rgba(34, 35, 34, 0.5) !important;
+  border-color: rgba(235, 235, 235, 0.22);
+}
+.start-fullscreen {
+  background: rgba(34, 35, 34, 0.56) !important;
+}
+.start-normal {
+  background: rgba(34, 35, 34, 0.22) !important;
+}
