@@ -121,9 +121,6 @@ export default function App() {
     const fogTexture = document.createElement('canvas');
     const fogTextureCtx = fogTexture.getContext('2d');
     let fogTextureKey = '';
-    const vignetteTexture = document.createElement('canvas');
-    const vignetteTextureCtx = vignetteTexture.getContext('2d');
-    let vignetteTextureKey = '';
     const render = () => {
       if (fpsDisplay) {
         fpsFrameCount++;
