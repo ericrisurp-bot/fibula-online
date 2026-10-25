@@ -136,8 +136,12 @@ export default function App() {
           fpsWindowStart = now;
         }
       }
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const w = canvas.clientWidth, h = canvas.clientHeight;
+      // Limita o buffer interno a Full HD conforme a orientação, sem alterar o tamanho visual.
+      const portrait = h > w;
+      const maxWidth = portrait ? 1080 : 1920;
+      const maxHeight = portrait ? 1920 : 1080;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5, maxWidth / w, maxHeight / h);
       if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
         canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
       }
