@@ -1374,10 +1374,8 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
       ctx.beginPath(); ctx.arc(-17, 8, 7, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.arc(20, 8, 7, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
-      ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
-      ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
-      ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
     }
+    ctx.restore();
   }
 
   // Barra de reparo mantida no lugar atual para não alterar a interação.
