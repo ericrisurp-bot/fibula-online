@@ -28,7 +28,7 @@ function variation(key: SoundKey): Variation | null {
   return next;
 }
 
-function envelope(context: AudioContext, gain: GainNode, start: number, peak: number, duration: number, attack = 0.006) {
+function envelope(gain: GainNode, start: number, peak: number, duration: number, attack = 0.006) {
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.linearRampToValueAtTime(peak, start + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
@@ -37,7 +37,6 @@ function envelope(context: AudioContext, gain: GainNode, start: number, peak: nu
 function startVoice(
   source: AudioScheduledSourceNode,
   chain: AudioNode[],
-  context: AudioContext,
   buses: SoundBuses,
   start: number,
   duration: number,
@@ -76,8 +75,8 @@ function noiseSource(context: AudioContext, buses: SoundBuses, start: number, du
   filter.frequency.linearRampToValueAtTime(sweepDown ? low : high, start + duration);
   filter.Q.setValueAtTime(0.7, start);
   const gain = context.createGain();
-  envelope(context, gain, start, peak, duration, Math.min(0.008, duration * 0.08));
-  return startVoice(source, [filter, gain], context, buses, start, duration);
+  envelope(gain, start, peak, duration, Math.min(0.008, duration * 0.08));
+  return startVoice(source, [filter, gain], buses, start, duration);
 }
 
 function toneSource(context: AudioContext, buses: SoundBuses, start: number, duration: number, waveform: OscillatorType, fromHz: number, toHz: number, peak: number, pitch: number, delaySwell = 0) {
@@ -92,8 +91,8 @@ function toneSource(context: AudioContext, buses: SoundBuses, start: number, dur
     source.frequency.exponentialRampToValueAtTime(Math.max(1, toHz * pitch), start + duration);
   }
   const gain = context.createGain();
-  envelope(context, gain, start, peak, duration, Math.min(0.012, duration * 0.08));
-  return startVoice(source, [gain], context, buses, start, duration);
+  envelope(gain, start, peak, duration, Math.min(0.012, duration * 0.08));
+  return startVoice(source, [gain], buses, start, duration);
 }
 
 /** Guerreiro: ruído de espada ascendente e golpe grave curto. */
@@ -135,7 +134,6 @@ export function playMageExplosion(context: AudioContext, buses: SoundBuses) {
   const v = variation('mage-explosion');
   if (!v) return;
   const start = context.currentTime + v.delay;
-  const duration = 0.48 * v.duration;
   toneSource(context, buses, start, 0.4 * v.duration, 'sine', 140 * v.pitch, 40 * v.pitch, 0.095 * v.volume, 1);
   noiseSource(context, buses, start, 0.5 * v.duration, 'lowpass', 200 * v.pitch, 2000 * v.pitch, 0.075 * v.volume, v.pitch, true);
   toneSource(context, buses, start + 0.035, 0.19 * v.duration, 'triangle', 1800 * v.pitch, 600 * v.pitch, 0.018 * v.volume, 1);
