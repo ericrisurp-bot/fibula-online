@@ -1480,15 +1480,18 @@ export class GameEngine {
       this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
       this.state.treeChopTimer = 0.2;
       treeTarget.tree.hits -= 1;
+      this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
       this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
       this.state.rockMineTimer = 0.22;
       this.hitRock(rockTarget.rock.id);
+      this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget) {
       this.state.cottonHarvestAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
       this.state.cottonHarvestTimer = 0.24;
       this.hitCottonPlant(cottonTarget.plant.id);
+      this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
     }
   }
 
