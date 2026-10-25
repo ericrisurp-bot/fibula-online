@@ -1013,26 +1013,34 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
     ctx.fillStyle = '#b6d8ce'; ctx.fillRect(-21, 0, 10, 10); ctx.fillRect(11, 0, 10, 10);
     ctx.strokeStyle = '#38271d'; ctx.lineWidth = 2; ctx.strokeRect(-21, 0, 10, 10); ctx.strokeRect(11, 0, 10, 10);
   } else {
-    // Pilha de troncos no local da futura casa: sem armação antes da conclusão.
-    const logs = [
-      { x: -20, y: 8, length: 34, angle: -0.08 },
-      { x: 1, y: 12, length: 38, angle: 0.04 },
-      { x: -4, y: 1, length: 36, angle: -0.12 },
-      { x: 15, y: 4, length: 27, angle: 0.1 },
-    ];
-    for (const log of logs) {
-      ctx.save(); ctx.translate(log.x, log.y); ctx.rotate(log.angle);
-      ctx.lineCap = 'round'; ctx.strokeStyle = '#5b3a25'; ctx.lineWidth = 8;
-      ctx.beginPath(); ctx.moveTo(-log.length / 2, 0); ctx.lineTo(log.length / 2, 0); ctx.stroke();
-      ctx.strokeStyle = '#a97949'; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(-log.length / 2 + 2, -1); ctx.lineTo(log.length / 2 - 1, -1); ctx.stroke();
-      ctx.fillStyle = '#d0a16b'; ctx.strokeStyle = '#68452b'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.ellipse(log.length / 2, 0, 3.5, 3.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-36, -30, 72, 7);
-    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-36, -30, 72 * Math.min(1, woodDelivered / CONFIG.house.buildCost), 7);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-36, -30, 72, 7);
+    // Casa inacabada como ruína low-poly: fundação quebrada e restos de paredes.
+    const stone = (points: Array<[number, number]>, fill: string) => {
+      ctx.beginPath();
+      points.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
+      ctx.closePath(); ctx.fillStyle = fill; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
+    };
+    stone([[-34, 17], [-30, 4], [-18, 2], [-11, 10], [-14, 18]], '#788188');
+    stone([[-12, 18], [-10, 8], [1, 6], [7, 15], [3, 19]], '#aab2b7');
+    stone([[12, 18], [10, 9], [22, 6], [31, 13], [27, 19]], '#68737a');
+    stone([[28, 13], [30, 4], [37, 7], [38, 16], [33, 19]], '#929ba1');
+    // Paredes parcialmente desabadas, com madeira exposta.
+    ctx.fillStyle = '#6f7779'; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-28, 7); ctx.lineTo(-27, -12); ctx.lineTo(-17, -19); ctx.lineTo(-11, -9); ctx.lineTo(-13, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(13, 8); ctx.lineTo(15, -5); ctx.lineTo(25, -13); ctx.lineTo(29, 3); ctx.lineTo(26, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8f999d';
+    ctx.beginPath(); ctx.moveTo(-27, -12); ctx.lineTo(-17, -19); ctx.lineTo(-11, -9); ctx.lineTo(-20, -7); ctx.closePath(); ctx.fill();
+    ctx.lineCap = 'round'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-24, 5); ctx.lineTo(-21, -12); ctx.lineTo(-8, -17); ctx.stroke();
+    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-23, 4); ctx.lineTo(-20, -11); ctx.stroke();
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(12, -11); ctx.stroke();
+    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-7, -4); ctx.lineTo(10, -11); ctx.stroke();
+    const progress = Math.min(1, woodDelivered / CONFIG.house.buildCost);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-24, -31, 48, 6);
+    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-24, -31, 48 * progress, 6);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -31, 48, 6);
   }
   ctx.restore();
 }
@@ -1044,31 +1052,36 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
   ctx.beginPath(); ctx.ellipse(0, 20, 42, 13, 0, 0, Math.PI * 2); ctx.fill();
   if (!built) ctx.scale(1.7, 1.7);
   if (!built) {
-    // Materiais separados no terreno: pedra agrupada e madeira ao lado, sem armação.
-    const stone = (sx: number, sy: number, w: number, h: number, shade: string) => {
-      ctx.fillStyle = shade; ctx.strokeStyle = '#4d585e'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sx - w / 2, sy); ctx.lineTo(sx - w * 0.32, sy - h); ctx.lineTo(sx + w * 0.28, sy - h * 0.92); ctx.lineTo(sx + w / 2, sy - h * 0.25); ctx.lineTo(sx + w * 0.34, sy + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = 'rgba(220,228,232,.22)'; ctx.beginPath(); ctx.moveTo(sx - w * 0.32, sy - h); ctx.lineTo(sx + w * 0.28, sy - h * 0.92); ctx.lineTo(sx, sy - h * 0.35); ctx.closePath(); ctx.fill();
+    // Refinaria inacabada como ruína industrial low-poly, com forno quebrado.
+    const stone = (points: Array<[number, number]>, fill: string) => {
+      ctx.beginPath();
+      points.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
+      ctx.closePath(); ctx.fillStyle = fill; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
     };
-    stone(-19, 17, 22, 15, '#8e989e'); stone(-3, 16, 23, 17, '#6f7b82');
-    stone(-24, 7, 21, 16, '#aab2b7'); stone(-7, 6, 23, 18, '#7f8a91');
-    stone(8, 16, 20, 14, '#69757c'); stone(8, 5, 21, 16, '#929ca2');
-    // Troncos empilhados à direita para representar a madeira exigida.
-    for (const log of [{ x: 25, y: 8, length: 24 }, { x: 27, y: 14, length: 22 }, { x: 24, y: 2, length: 19 }]) {
-      ctx.save(); ctx.translate(log.x, log.y); ctx.rotate(-0.12);
-      ctx.lineCap = 'round'; ctx.strokeStyle = '#5b3a25'; ctx.lineWidth = 6;
-      ctx.beginPath(); ctx.moveTo(-log.length / 2, 0); ctx.lineTo(log.length / 2, 0); ctx.stroke();
-      ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3.5;
-      ctx.beginPath(); ctx.moveTo(-log.length / 2 + 1, -1); ctx.lineTo(log.length / 2 - 1, -1); ctx.stroke();
-      ctx.fillStyle = '#d0a16b'; ctx.beginPath(); ctx.arc(log.length / 2, 0, 2.5, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
+    stone([[-38, 17], [-33, 5], [-22, 3], [-15, 12], [-19, 19]], '#788188');
+    stone([[-17, 18], [-14, 7], [-2, 5], [5, 14], [1, 19]], '#aab2b7');
+    stone([[10, 18], [8, 8], [19, 5], [28, 12], [25, 19]], '#68737a');
+    stone([[27, 14], [30, 4], [38, 7], [39, 16], [33, 19]], '#929ba1');
+    // Laterais quebradas do forno e abertura escura no centro.
+    stone([[-30, 8], [-29, -10], [-19, -19], [-10, -13], [-12, 8]], '#68747a');
+    stone([[12, 8], [10, -8], [19, -17], [29, -11], [29, 8]], '#899399');
+    stone([[-28, -10], [-19, -19], [-10, -13], [-19, -9]], '#aab2b7');
+    ctx.fillStyle = '#252d30'; ctx.beginPath(); ctx.moveTo(-10, 8); ctx.lineTo(-10, -5); ctx.lineTo(-3, -10); ctx.lineTo(10, -6); ctx.lineTo(11, 8); ctx.closePath(); ctx.fill();
+    // Viga caída e pequenos restos de madeira ao redor da estrutura.
+    ctx.lineCap = 'round'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(-22, -2); ctx.lineTo(2, -12); ctx.stroke();
+    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(-20, -3); ctx.lineTo(1, -12); ctx.stroke();
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(20, 12); ctx.lineTo(34, 8); ctx.stroke();
+    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(21, 11); ctx.lineTo(33, 8); ctx.stroke();
     const woodProgress = Math.min(1, woodDelivered / CONFIG.refinery.buildCostWood);
     const stoneProgress = Math.min(1, stoneDelivered / CONFIG.refinery.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-40, -34, 80, 8);
-    ctx.fillStyle = '#b28a59'; ctx.fillRect(-40, -34, 80 * woodProgress, 3);
-    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-40, -30, 80 * stoneProgress, 4);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-40, -34, 80, 8);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-24, -31, 48, 7);
+    ctx.fillStyle = '#b28a59'; ctx.fillRect(-24, -31, 48 * woodProgress, 3);
+    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-24, -28, 48 * stoneProgress, 3);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -31, 48, 7);
     ctx.restore(); return;
   }
   ctx.fillStyle = '#656d72'; ctx.strokeStyle = '#293438'; ctx.lineWidth = 3;
@@ -1128,9 +1141,9 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
       ctx.beginPath(); ctx.arc(puff.x - 2, puff.y, 3, 0, Math.PI * 2); ctx.arc(puff.x + 2, puff.y - 1, 3, 0, Math.PI * 2); ctx.arc(puff.x, puff.y + 2, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
     const progress = Math.min(bronzeDelivered / CONFIG.tecelaria.buildCostBronze, woodDelivered / CONFIG.tecelaria.buildCostWood, cottonDelivered / CONFIG.tecelaria.buildCostCotton, stoneDelivered / CONFIG.tecelaria.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -34, 84, 8);
-    ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -34, 84 * progress, 8);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -34, 84, 8);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-25, -34, 50, 6);
+    ctx.fillStyle = '#d8c39a'; ctx.fillRect(-25, -34, 50 * progress, 6);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-25, -34, 50, 6);
     ctx.restore(); return;
   }
   ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
