@@ -1254,6 +1254,9 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
 
 function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number) {
   const { x, y, angle, repairWood, repaired, carried } = cart;
+  const vertical = Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle));
+  const movingUp = Math.sin(angle) < 0;
+  const movingLeft = Math.cos(angle) < 0;
   ctx.save();
   ctx.translate(x, y);
   if (nearby) {
@@ -1263,33 +1266,76 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
     ctx.strokeStyle = `rgba(230, 200, 150, ${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5;
     ctx.stroke();
   }
-  // Gira o desenho original para acompanhar a direção do personagem em todos os eixos.
-  ctx.rotate(angle);
-  ctx.fillStyle = 'rgba(0,0,0,.3)';
-  ctx.beginPath(); ctx.ellipse(0, 14, 30, 9, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(22, -5); ctx.lineTo(30, 8); ctx.stroke();
-  if (repaired) {
-    ctx.fillStyle = '#8b6039'; ctx.fillRect(-23, -23, 42, 22);
-    ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.strokeRect(-23, -23, 42, 22);
-    ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-19, -20); ctx.lineTo(-19, -3); ctx.moveTo(-5, -20); ctx.lineTo(-5, -3); ctx.moveTo(9, -20); ctx.lineTo(9, -3); ctx.stroke();
-    for (const wheelX of [-17, 20]) {
-      ctx.beginPath(); ctx.arc(wheelX, 8, 7, 0, Math.PI * 2); ctx.fillStyle = '#282a29'; ctx.fill();
-      ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(wheelX - 4, 8); ctx.lineTo(wheelX + 4, 8); ctx.moveTo(wheelX, 4); ctx.lineTo(wheelX, 12); ctx.stroke();
+
+  // Vista superior: cada eixo tem sua própria silhueta; esquerda nunca gira o carrinho de cabeça para baixo.
+  if (vertical) {
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(0, 14, 22, 30, 0, 0, Math.PI * 2); ctx.fill();
+    if (repaired) {
+      // Caixa vista de cima, com laterais e profundidade em vez de uma lateral girada.
+      ctx.fillStyle = '#69452d';
+      ctx.beginPath(); ctx.moveTo(-23, -19); ctx.lineTo(23, -19); ctx.lineTo(19, 18); ctx.lineTo(-19, 18); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8b6039';
+      ctx.beginPath(); ctx.moveTo(-19, -18); ctx.lineTo(19, -18); ctx.lineTo(16, 12); ctx.lineTo(-16, 12); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-14, -14); ctx.lineTo(-14, 9); ctx.moveTo(0, -14); ctx.lineTo(0, 9); ctx.moveTo(14, -14); ctx.lineTo(14, 9); ctx.stroke();
+      // As duas rodas ficam visíveis na borda inferior da vista superior.
+      for (const wheelX of [-15, 15]) {
+        ctx.fillStyle = '#282a29'; ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(wheelX, 16, 5, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(wheelX, 12); ctx.lineTo(wheelX, 20); ctx.stroke();
+      }
+      // A borda superior muda de acabamento para sugerir a parte traseira (para cima)
+      // ou a frente (para baixo), sem inverter toda a ilustração.
+      ctx.strokeStyle = movingUp ? '#d0a06a' : '#4a3424'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(-17, -18); ctx.lineTo(17, -18); ctx.stroke();
+      if (!movingUp) {
+        ctx.fillStyle = '#a8794c';
+        ctx.beginPath(); ctx.moveTo(-12, -17); ctx.lineTo(12, -17); ctx.lineTo(9, -11); ctx.lineTo(-9, -11); ctx.closePath(); ctx.fill();
+      }
+    } else {
+      ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-19, 15); ctx.lineTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(19, 15); ctx.stroke();
+      ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-19, -16); ctx.lineTo(0, -29); ctx.lineTo(19, -16); ctx.stroke();
+      ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(-15, 16, 5, 8, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(15, 16, 5, 8, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
+      ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
+      ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
     }
   } else {
-    ctx.save(); ctx.rotate(-0.18);
-    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(-22, -18); ctx.lineTo(18, -3); ctx.moveTo(-18, -3); ctx.lineTo(16, -19); ctx.stroke();
-    ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(-17, 8, 7, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(20, 8, 7, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
-    ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
+    // Perfil lateral original, com espelhamento apenas no eixo horizontal.
+    ctx.scale(movingLeft ? -1 : 1, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(0, 14, 30, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-27, -5); ctx.lineTo(22, -5); ctx.lineTo(30, 8); ctx.stroke();
+    if (repaired) {
+      ctx.fillStyle = '#8b6039'; ctx.fillRect(-23, -23, 42, 22);
+      ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.strokeRect(-23, -23, 42, 22);
+      ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-19, -20); ctx.lineTo(-19, -3); ctx.moveTo(-5, -20); ctx.lineTo(-5, -3); ctx.moveTo(9, -20); ctx.lineTo(9, -3); ctx.stroke();
+      for (const wheelX of [-17, 20]) {
+        ctx.beginPath(); ctx.arc(wheelX, 8, 7, 0, Math.PI * 2); ctx.fillStyle = '#282a29'; ctx.fill();
+        ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(wheelX - 4, 8); ctx.lineTo(wheelX + 4, 8); ctx.moveTo(wheelX, 4); ctx.lineTo(wheelX, 12); ctx.stroke();
+      }
+    } else {
+      ctx.save(); ctx.rotate(-0.18);
+      ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-22, -18); ctx.lineTo(18, -3); ctx.moveTo(-18, -3); ctx.lineTo(16, -19); ctx.stroke();
+      ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(-17, 8, 7, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(20, 8, 7, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
+      ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
+      ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
+    }
   }
   if (carried) {
     ctx.strokeStyle = 'rgba(235,235,235,.65)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
