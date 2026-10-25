@@ -575,7 +575,7 @@ export class GameEngine {
   private visibleStateKey() {
     const s = this.state;
     return [
-      Math.floor(s.elapsed), s.player.hp, s.player.maxHp, s.player.level,
+      s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.cottonPlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
       Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.refinery.x, s.player.y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(s.player.x - s.tecelaria.x, s.player.y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
@@ -591,7 +591,8 @@ export class GameEngine {
     this.animation = requestAnimationFrame(this.loop);
   };
   private update(dt: number) {
-    this.elapsed += dt; this.state.elapsed = this.elapsed;
+    this.elapsed = (this.elapsed + dt) % CONFIG.dayNight.cycle;
+    this.state.elapsed = this.elapsed;
     let floatingDamageWrite = 0;
     for (let read = 0; read < this.state.floatingDamage.length; read++) {
       const text = this.state.floatingDamage[read]!;
