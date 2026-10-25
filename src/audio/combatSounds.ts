@@ -2,12 +2,12 @@ import { audioManager } from './audioManager';
 
 type SoundBuses = { sfxBus: GainNode; ambienceBus: GainNode; noiseBuffer: AudioBuffer };
 type Variation = { pitch: number; volume: number; duration: number; delay: number };
-type SoundKey = 'warrior' | 'mage' | 'mage-explosive' | 'archer' | 'druid' | 'mage-explosion';
+type SoundKey = 'warrior' | 'mage' | 'mage-explosive' | 'archer' | 'druid' | 'mage-explosion' | 'wood' | 'wood-done' | 'stone' | 'stone-done' | 'cotton';
 
 const lastVariation = new Map<SoundKey, string>();
 const lastStartedAt = new Map<SoundKey, number>();
 
-function variation(key: SoundKey): Variation | null {
+export function variation(key: SoundKey): Variation | null {
   const now = performance.now() / 1000;
   const previousStart = lastStartedAt.get(key);
   if (previousStart !== undefined && now - previousStart < 0.04) return null;
@@ -65,7 +65,7 @@ function startVoice(
   }
 }
 
-function noiseSource(context: AudioContext, buses: SoundBuses, start: number, duration: number, filterType: BiquadFilterType, low: number, high: number, peak: number, pitch: number, sweepDown = false) {
+export function noiseSource(context: AudioContext, buses: SoundBuses, start: number, duration: number, filterType: BiquadFilterType, low: number, high: number, peak: number, pitch: number, sweepDown = false) {
   const source = context.createBufferSource();
   source.buffer = buses.noiseBuffer;
   source.playbackRate.setValueAtTime(pitch, start);
@@ -79,7 +79,7 @@ function noiseSource(context: AudioContext, buses: SoundBuses, start: number, du
   return startVoice(source, [filter, gain], buses, start, duration);
 }
 
-function toneSource(context: AudioContext, buses: SoundBuses, start: number, duration: number, waveform: OscillatorType, fromHz: number, toHz: number, peak: number, pitch: number, delaySwell = 0) {
+export function toneSource(context: AudioContext, buses: SoundBuses, start: number, duration: number, waveform: OscillatorType, fromHz: number, toHz: number, peak: number, pitch: number, delaySwell = 0) {
   const source = context.createOscillator();
   source.type = waveform;
   source.frequency.setValueAtTime(fromHz * pitch, start);
