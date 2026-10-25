@@ -24,26 +24,54 @@ export function playStep(
   const pitch = v.pitch * footPitch;
   const start = context.currentTime + v.delay;
 
-  noiseSource(
-    context, buses, start, 0.06 * v.duration * durationScale, 'lowpass',
-    200 * pitch * cutoffScale, 900 * pitch * cutoffScale, (carrying ? 0.029 : 0.026) * volume, pitch,
-  );
-  toneSource(
-    context, buses, start, (carrying ? 0.085 : 0.07) * v.duration * durationScale, 'sine',
-    (carrying ? 76 : 90) * pitch, (carrying ? 54 : 70) * pitch,
-    (carrying ? 0.041 : 0.035) * volume, 1,
-  );
+  const stepNoise = (
+    at: number,
+    duration: number,
+    low: number,
+    high: number,
+    peak: number,
+    attack: number,
+  ) => {
+    const source = context.createBufferSource();
+    source.buffer = buses.noiseBuffer;
+    source.playbackRate.setValueAtTime(pitch, at);
+    const filter = context.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(low * pitch * cutoffScale, at);
+    filter.frequency.linearRampToValueAtTime(high * pitch * cutoffScale, at + duration);
+    filter.Q.setValueAtTime(0.7, at);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(peak * volume, at + Math.min(attack, duration * 0.45));
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+    if (!audioManager.createVoice(source)) return;
+    try {
+      source.disconnect();
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(buses.sfxBus);
+      source.addEventListener('ended', () => {
+        try { filter.disconnect(); gain.disconnect(); } catch { /* Nó já foi desconectado. */ }
+      }, { once: true });
+      source.start(at);
+      source.stop(at + duration);
+    } catch {
+      try { source.stop(); source.disconnect(); } catch { /* Fonte já parada. */ }
+      try { filter.disconnect(); gain.disconnect(); } catch { /* Nó já desconectado. */ }
+    }
+  };
 
   if (carrying) {
-    noiseSource(
-      context, buses, start + 0.006, 0.065 * v.duration * durationScale, 'bandpass',
-      500 * pitch, 1800 * pitch, 0.008 * volume, pitch,
-    );
+    stepNoise(start, 0.04 * v.duration * durationScale, 200, 700, 0.045, 0.008);
+    stepNoise(start + 0.006, 0.065 * v.duration * durationScale, 500, 1800, 0.008, 0.006);
   } else {
-    noiseSource(
-      context, buses, start, 0.05 * v.duration * durationScale, 'bandpass',
-      2000 * pitch, 4000 * pitch, 0.008 * volume * highRustleScale, pitch,
-    );
+    stepNoise(start, 0.04 * v.duration * durationScale, 300, 1200, 0.035, 0.008);
+    const firstGap = audioManager.rand(0.027, 0.035);
+    const secondGap = audioManager.rand(0.027, 0.035);
+    const burstDuration = () => audioManager.rand(0.01, 0.02) * v.duration * durationScale;
+    stepNoise(start + 0.004, burstDuration(), 1800, 4500, 0.017 * highRustleScale, 0.002);
+    stepNoise(start + 0.004 + firstGap, burstDuration(), 1800, 4500, 0.017 * highRustleScale, 0.002);
+    stepNoise(start + 0.004 + firstGap + secondGap, burstDuration(), 1800, 4500, 0.017 * highRustleScale, 0.002);
   }
 }
 
