@@ -53,6 +53,9 @@ export class GameEngine {
   private nextRockClusterId = 1;
   private attackTimer = 0;
   private gatheringTimer = 0;
+  private stepDistance = 0;
+  private stepFoot: 'left' | 'right' = 'left';
+  private stepTarget = 52;
   private mageAttackCount = 0;
   private archerHealArrowCount = 0;
   private elapsed = 0;
@@ -567,7 +570,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.gatheringTimer = 0;
+    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
@@ -656,6 +659,18 @@ export class GameEngine {
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
     const playerSpeed = dt > 0 ? Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y) / dt : 0;
+    if (this.state.player.moving && !this.state.dead && p.hp > 0) {
+      this.stepDistance += Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y);
+      if (this.stepDistance >= this.stepTarget) {
+        this.stepDistance -= this.stepTarget;
+        const foot = this.stepFoot;
+        this.stepFoot = foot === 'left' ? 'right' : 'left';
+        this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried });
+        this.stepTarget = 47 + Math.random() * 10;
+      }
+    } else {
+      this.stepDistance = this.stepTarget * 0.4;
+    }
     this.updateCart(dt);
 
     const dayNight = this.getDayNightState();
