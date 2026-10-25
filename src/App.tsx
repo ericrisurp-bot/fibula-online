@@ -301,7 +301,7 @@ export default function App() {
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
-      worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving) });
+      worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving && s.cart.carried) });
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
@@ -1254,7 +1254,8 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
 
 function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number, moving: boolean) {
   const { x, y, angle, repairWood, repaired, carried } = cart;
-  const showWheels = Math.abs(Math.cos(angle)) > 0.15;
+  // Rodas só ficam expostas no deslocamento praticamente horizontal; diagonais contam como cima/baixo.
+  const showWheels = Math.abs(Math.sin(angle)) < 0.15;
   const wheelRotation = moving ? time * 8 : 0;
   const vertical = Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle));
   const movingUp = Math.sin(angle) < 0;
