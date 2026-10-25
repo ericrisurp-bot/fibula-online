@@ -1355,10 +1355,10 @@ export class GameEngine {
     const maxY = maxX;
 
     for (let iteration = 0; iteration < iterations; iteration++) {
-      const grid = new Map<string, Enemy[]>();
-      const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+      const grid = new Map<number, Enemy[]>();
+      const cellKey = (cellX: number, cellY: number) => (cellX + 512) * 1024 + (cellY + 512);
       for (const enemy of this.state.enemies) {
-        const key = cellKey(enemy.x, enemy.y);
+        const key = cellKey(Math.floor(enemy.x / cellSize), Math.floor(enemy.y / cellSize));
         const cell = grid.get(key);
         if (cell) cell.push(enemy);
         else grid.set(key, [enemy]);
@@ -1370,7 +1370,7 @@ export class GameEngine {
         const cellY = Math.floor(enemy.y / cellSize);
         for (let offsetY = -cellReach; offsetY <= cellReach; offsetY++) {
           for (let offsetX = -cellReach; offsetX <= cellReach; offsetX++) {
-            const neighbors = grid.get(`${cellX + offsetX},${cellY + offsetY}`);
+            const neighbors = grid.get(cellKey(cellX + offsetX, cellY + offsetY));
             if (!neighbors) continue;
             for (const other of neighbors) {
               if (other.id <= enemy.id) continue;
