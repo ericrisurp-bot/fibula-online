@@ -279,22 +279,28 @@ export default function App() {
         }});
       }
       for (const rock of s.rocks) {
-        const scale = rock.size === 'small' ? 0.72 : rock.size === 'medium' ? 1 : 1.35;
+        const scale = rock.size === 'small' ? 0.97 : rock.size === 'medium' ? 1.25 : 1.6;
         worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => {
           ctx.save(); ctx.translate(rock.x, rock.y);
           ctx.fillStyle = 'rgba(0,0,0,0.28)';
           ctx.beginPath(); ctx.ellipse(2, 10 * scale, 19 * scale, 8 * scale, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = rock.size === 'large' ? '#777f86' : rock.size === 'medium' ? '#858d94' : '#969da2';
-          ctx.strokeStyle = '#454d53'; ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(-17 * scale, 3 * scale); ctx.lineTo(-14 * scale, -9 * scale);
-          ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale);
-          ctx.lineTo(18 * scale, -5 * scale); ctx.lineTo(16 * scale, 7 * scale);
-          ctx.lineTo(5 * scale, 12 * scale); ctx.lineTo(-9 * scale, 10 * scale);
-          ctx.closePath(); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = 'rgba(220,226,230,0.42)';
-          ctx.beginPath(); ctx.moveTo(-14 * scale, -8 * scale); ctx.lineTo(-4 * scale, -17 * scale); ctx.lineTo(9 * scale, -15 * scale); ctx.lineTo(2 * scale, -6 * scale); ctx.closePath(); ctx.fill();
-          ctx.strokeStyle = 'rgba(55,62,67,0.6)'; ctx.lineWidth = 1;
+
+          const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
+            ctx.beginPath();
+            points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x * scale, y * scale) : ctx.lineTo(x * scale, y * scale));
+            ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+            if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.35; ctx.stroke(); }
+          };
+
+          // Silhueta única com planos facetados, em vez de uma pedra lisa.
+          polygon([[-17, 3], [-14, -9], [-4, -17], [9, -15], [18, -5], [16, 7], [5, 12], [-9, 10]], '#707980', '#454d53');
+          polygon([[-17, 3], [-14, -9], [-4, -17], [0, -5], [-5, 4], [-9, 10]], '#aeb6bb');
+          polygon([[-4, -17], [9, -15], [18, -5], [6, -3], [0, -5]], '#c5cbd0');
+          polygon([[0, -5], [6, -3], [16, 7], [5, 12], [-5, 4]], '#858e95');
+          polygon([[-14, -9], [-4, -17], [0, -5], [-5, 4]], '#d2d7da');
+          polygon([[6, -3], [18, -5], [16, 7]], '#626b72');
+          polygon([[-9, 10], [-5, 4], [5, 12]], '#59636a');
+          ctx.strokeStyle = 'rgba(55,62,67,0.7)'; ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(-4 * scale, -2 * scale); ctx.lineTo(2 * scale, 3 * scale); ctx.lineTo(8 * scale, -1 * scale); ctx.stroke();
           ctx.restore();
         }});
