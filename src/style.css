@@ -895,3 +895,11 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 }
 .hud-left-stack .hud-center-stack>.hud-chip{align-self:flex-start}
 .hud-left-stack .hud-center-stack .hud-substats{justify-content:flex-start;flex-wrap:wrap}
+
+
+/* Controle único de volume para todos os sons do jogo. */
+.menu-audio-volume{display:flex;flex-direction:column;gap:7px;padding:9px;border:1px solid rgba(235,235,235,.2);border-radius:9px;background:rgba(34,35,34,.48);margin-bottom:10px}
+.menu-audio-volume label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#eee;font-size:11px;font-weight:850}
+.menu-audio-volume label strong{font-variant-numeric:tabular-nums;color:#bfe8d2}
+.menu-audio-volume input[type=range]{width:100%;accent-color:#bfe8d2;cursor:pointer;touch-action:pan-y}
+.menu-audio-volume-labels{display:flex;justify-content:space-between;color:#c7c7c7;font-size:9px}
