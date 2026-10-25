@@ -2,7 +2,7 @@ import { audioManager } from './audioManager';
 
 type SoundBuses = { sfxBus: GainNode; ambienceBus: GainNode; noiseBuffer: AudioBuffer };
 type Variation = { pitch: number; volume: number; duration: number; delay: number };
-type SoundKey = 'warrior' | 'mage' | 'mage-explosive' | 'archer' | 'druid' | 'mage-explosion' | 'wood' | 'wood-done' | 'stone' | 'stone-done' | 'cotton';
+type SoundKey = 'warrior' | 'mage' | 'mage-explosive' | 'archer' | 'druid' | 'mage-explosion' | 'wood' | 'wood-done' | 'stone' | 'stone-done' | 'cotton' | 'step' | 'step-carry';
 
 const lastVariation = new Map<SoundKey, string>();
 const lastStartedAt = new Map<SoundKey, number>();
