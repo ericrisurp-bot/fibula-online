@@ -1,5 +1,5 @@
 import { audioManager } from './audioManager';
-import { noiseSource, toneSource, variation } from './combatSounds';
+import { variation } from './combatSounds';
 
 type SoundBuses = { sfxBus: GainNode; ambienceBus: GainNode; noiseBuffer: AudioBuffer };
 
