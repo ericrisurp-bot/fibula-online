@@ -197,10 +197,19 @@ export default function App() {
         else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = s.classId === 'druida' ? '#65e65d' : '#a98cff'; ctx.fill(); if (s.classId === 'druida') { ctx.strokeStyle = '#c6ffad'; ctx.lineWidth = 2; ctx.stroke(); } }
         ctx.restore();
       }
-      const aimTarget = s.enemies
-        .map((enemy) => ({ enemy, distance: Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) }))
-        .filter(({ distance }) => distance <= CONFIG.weapons[s.weapon].range)
-        .sort((a, b) => a.distance - b.distance)[0]?.enemy;
+      const range = CONFIG.weapons[s.weapon].range;
+      const rangeSquared = range * range;
+      let aimTarget: typeof s.enemies[number] | undefined;
+      let closestDistanceSquared = rangeSquared;
+      for (const enemy of s.enemies) {
+        const dx = enemy.x - s.player.x;
+        const dy = enemy.y - s.player.y;
+        const distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared <= rangeSquared && (!aimTarget || distanceSquared < closestDistanceSquared)) {
+          aimTarget = enemy;
+          closestDistanceSquared = distanceSquared;
+        }
+      }
       const aimAngle = aimTarget
         ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
