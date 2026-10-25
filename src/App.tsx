@@ -116,6 +116,8 @@ export default function App() {
 
 
     }
+    const overlay = document.createElement('canvas');
+    const octx = overlay.getContext('2d');
     const render = () => {
       if (fpsDisplay) {
         fpsFrameCount++;
@@ -340,24 +342,35 @@ export default function App() {
       const darkness = s.dayNight === 'night'
         ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
-      if (darkness > 0.01) {
-        // A noite fica bem mais escura; a iluminação muda gradualmente nos últimos 5s de cada fase.
+      ctx.restore();
+      // Neblina e vinheta são renderizadas em um overlay reutilizado a 25% da resolução.
+      if (darkness > 0.01 && octx) {
+        const overlayWidth = Math.ceil(w * 0.25);
+        const overlayHeight = Math.ceil(h * 0.25);
+        if (overlay.width !== overlayWidth || overlay.height !== overlayHeight) {
+          overlay.width = overlayWidth;
+          overlay.height = overlayHeight;
+        }
+        octx.setTransform(1, 0, 0, 1, 0, 0);
+        octx.clearRect(0, 0, overlay.width, overlay.height);
+
+        // Neblina no espaço do mundo, com a mesma matemática e os mesmos color stops.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
-        const fog = ctx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
+        octx.setTransform(0.25 * scale, 0, 0, 0.25 * scale, -left * 0.25 * scale, -top * 0.25 * scale);
+        const fog = octx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
         fog.addColorStop(0, `rgba(5, 8, 18, ${0.24 * darkness})`);
         fog.addColorStop(0.45, `rgba(5, 8, 18, ${0.5 * darkness})`);
         fog.addColorStop(0.78, `rgba(5, 8, 18, ${0.75 * darkness})`);
         fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength) * darkness})`);
-        ctx.fillStyle = fog;
-        ctx.fillRect(0, 0, engine.world, engine.world);
-      }
-      ctx.restore();
-      // Vinheta em coordenadas da tela: centro claro ao redor do personagem e bordas progressivamente escuras.
-      if (darkness > 0.01) {
+        octx.fillStyle = fog;
+        octx.fillRect(left, top, viewW, viewH);
+
+        // Vinheta em coordenadas da tela, preservando os raios e os mesmos color stops.
         const playerScreenX = (s.player.x - left) * scale;
         const playerScreenY = (s.player.y - top) * scale;
         const vignetteRadius = Math.hypot(w / 2, h / 2);
-        const vignette = ctx.createRadialGradient(
+        octx.setTransform(0.25, 0, 0, 0.25, 0, 0);
+        const vignette = octx.createRadialGradient(
           playerScreenX, playerScreenY, Math.min(w, h) * 0.08,
           playerScreenX, playerScreenY, vignetteRadius,
         );
@@ -366,8 +379,11 @@ export default function App() {
         vignette.addColorStop(0.6, `rgba(3, 5, 13, ${0.28 * darkness})`);
         vignette.addColorStop(0.82, `rgba(3, 5, 13, ${0.58 * darkness})`);
         vignette.addColorStop(1, `rgba(3, 5, 13, ${0.78 * darkness})`);
-        ctx.fillStyle = vignette;
-        ctx.fillRect(0, 0, w, h);
+        octx.fillStyle = vignette;
+        octx.fillRect(0, 0, w, h);
+
+        // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
+        ctx.drawImage(overlay, 0, 0, w, h);
       }
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
