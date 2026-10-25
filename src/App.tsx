@@ -116,8 +116,6 @@ export default function App() {
 
 
     }
-    const overlay = document.createElement('canvas');
-    const octx = overlay.getContext('2d');
     const fogTexture = document.createElement('canvas');
     const fogTextureCtx = fogTexture.getContext('2d');
     let fogTextureKey = '';
@@ -346,58 +344,40 @@ export default function App() {
         ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
-      // Neblina e vinheta são renderizadas em um overlay reutilizado a 12,5% da resolução para testar o custo de renderização.
-      if (darkness > 0.01 && octx) {
-        const overlayWidth = Math.ceil(w * 0.125);
-        const overlayHeight = Math.ceil(h * 0.125);
-        if (overlay.width !== overlayWidth || overlay.height !== overlayHeight) {
-          overlay.width = overlayWidth;
-          overlay.height = overlayHeight;
-        }
-        octx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
+      // Renderiza a neblina apenas em uma área local ao redor do jogador.
+      if (darkness > 0.01 && fogTextureCtx) {
         const fogRadius = CONFIG.dayNight.visibilityRange * 1.2;
-        const fogTextureWidth = overlay.width * 2;
-        const fogTextureHeight = overlay.height * 2;
-        const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
-        if (fogTextureCtx && fogTextureKey !== nextFogTextureKey) {
-          fogTexture.width = fogTextureWidth;
-          fogTexture.height = fogTextureHeight;
-          const fogCenterX = fogTextureWidth / 2;
-          const fogCenterY = fogTextureHeight / 2;
-          const fog = fogTextureCtx.createRadialGradient(
-            fogCenterX, fogCenterY, 0,
-            fogCenterX, fogCenterY, fogRadius * scale * 0.125,
-          );
+        const fogDiameterPx = Math.max(2, Math.ceil(fogRadius * scale * 2 * 0.125));
+        const nextFogTextureKey = `${fogDiameterPx}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
+        if (fogTextureKey !== nextFogTextureKey) {
+          fogTexture.width = fogDiameterPx;
+          fogTexture.height = fogDiameterPx;
+          const center = fogDiameterPx / 2;
+          const fog = fogTextureCtx.createRadialGradient(center, center, 0, center, center, center);
           fog.addColorStop(0, 'rgba(5, 8, 18, 0.9)');
           fog.addColorStop(0.3, 'rgba(5, 8, 18, 0.65)');
           fog.addColorStop(0.62, 'rgba(5, 8, 18, 0.28)');
           fog.addColorStop(0.86, 'rgba(5, 8, 18, 0.06)');
           fog.addColorStop(1, 'rgba(5, 8, 18, 0)');
+          fogTextureCtx.clearRect(0, 0, fogDiameterPx, fogDiameterPx);
           fogTextureCtx.fillStyle = fog;
-          fogTextureCtx.fillRect(0, 0, fogTextureWidth, fogTextureHeight);
+          fogTextureCtx.fillRect(0, 0, fogDiameterPx, fogDiameterPx);
           fogTextureKey = nextFogTextureKey;
         }
-        if (fogTextureCtx) {
-          const playerScreenX = (s.player.x - left) * scale * 0.125;
-          const playerScreenY = (s.player.y - top) * scale * 0.125;
-          octx.globalCompositeOperation = 'copy';
-          octx.globalAlpha = darkness;
-          octx.drawImage(
-            fogTexture,
-            fogTexture.width / 2 - playerScreenX,
-            fogTexture.height / 2 - playerScreenY,
-            overlay.width,
-            overlay.height,
-            0, 0, overlay.width, overlay.height,
-          );
-          octx.globalAlpha = 1;
-          octx.globalCompositeOperation = 'source-over';
-        }
 
-        // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
-        ctx.drawImage(overlay, 0, 0, w, h);
+        const playerScreenX = (s.player.x - left) * scale;
+        const playerScreenY = (s.player.y - top) * scale;
+        const fogDiameter = fogRadius * scale * 2;
+        ctx.save();
+        ctx.globalAlpha = darkness;
+        ctx.drawImage(
+          fogTexture,
+          playerScreenX - fogDiameter / 2,
+          playerScreenY - fogDiameter / 2,
+          fogDiameter,
+          fogDiameter,
+        );
+        ctx.restore();
       }
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
