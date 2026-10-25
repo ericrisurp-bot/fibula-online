@@ -679,6 +679,7 @@ export class GameEngine {
     this.updateCart(dt);
 
     const dayNight = this.getDayNightState();
+    if (this.state.dayNight !== (dayNight.isNight ? 'night' : 'day')) this.onSound?.({ type: 'dayNight', phase: dayNight.isNight ? 'night' : 'day' });
     this.state.dayNight = dayNight.isNight ? 'night' : 'day';
     this.state.phaseElapsed = dayNight.phaseElapsed;
     this.state.nightNumber = this.nightNumber;
@@ -1151,6 +1152,7 @@ export class GameEngine {
     this.hordeScheduled = 0;
     const phase = this.getDayNightState();
     this.state.dayNight = phase.isNight ? 'night' : 'day';
+    this.onSound?.({ type: 'dayNight', phase: this.state.dayNight });
     this.state.phaseElapsed = phase.phaseElapsed;
     this.state.nightNumber = 0;
     if (phase.isNight) this.beginNight();
