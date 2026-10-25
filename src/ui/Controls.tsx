@@ -90,6 +90,7 @@ function LowPolyBackpackIcon() {
 export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen, interfaceScale, onInterfaceScaleChange }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
+  const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => { if (flagWheelOpen || inventoryPanelOpen) setMenuOpen(false); }, [flagWheelOpen, inventoryPanelOpen]);
@@ -149,7 +150,33 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
   };
 
-  return <div className="mobile-controls" ref={controlsRef} aria-label="Controles de celular">
+  const onSecondaryPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    const movement = activePointer.current;
+    if (!movement || movement.id === e.pointerId || classSwipePointer.current || menuOpen || flagWheelOpen) return;
+    classSwipePointer.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, changed: false };
+  };
+
+  const onSecondaryPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const swipe = classSwipePointer.current;
+    if (!swipe || swipe.id !== e.pointerId || swipe.changed) return;
+    const dx = e.clientX - swipe.startX;
+    const dy = e.clientY - swipe.startY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    const currentIndex = classOrder.indexOf(classId);
+    const nextIndex = (currentIndex + (dx < 0 ? -1 : 1) + classOrder.length) % classOrder.length;
+    swipe.changed = true;
+    onClass(classOrder[nextIndex]);
+  };
+
+  const onSecondaryPointerEnd = (e: PointerEvent<HTMLDivElement>) => {
+    if (classSwipePointer.current?.id === e.pointerId) classSwipePointer.current = null;
+  };
+
+  return <div className="mobile-controls" ref={controlsRef} aria-label="Controles de celular"
+    onPointerDown={onSecondaryPointerDown}
+    onPointerMove={onSecondaryPointerMove}
+    onPointerUp={onSecondaryPointerEnd}
+    onPointerCancel={onSecondaryPointerEnd}>
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
