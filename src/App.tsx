@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
@@ -44,16 +44,16 @@ const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId === 'cotton' ? 'Algodão' : itemId === 'linen' ? 'Linho' : itemId;
 
-const fmtTime = (seconds: number) => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-  return m + ':' + s;
-};
-
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
+    if (typeof window === 'undefined') return 130;
+    const saved = window.localStorage.getItem('fibula-interface-scale');
+    return saved === '100' || saved === '160' ? Number(saved) as 100 | 160 : 130;
+  });
+  const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
@@ -69,7 +69,6 @@ export default function App() {
   const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
   const inventoryPanelOpenRef = useRef(false);
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
-  const hordeStatus = `${state.dayNight === 'night' ? 'Noite' : 'Dia'} · ${Math.ceil(CONFIG.dayNight.dayDuration - state.phaseElapsed)}s`;
   // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
   const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
@@ -83,6 +82,21 @@ export default function App() {
   const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const cartBuildAccessible = !state.cart.repaired && cartDistance <= CONFIG.cart.interactRadius;
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  useEffect(() => {
+    window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
+  }, [interfaceScale]);
+
+  useEffect(() => {
+    const syncFullscreenOrientation = () => {
+      if (!document.fullscreenElement && landscapeMode) {
+        try { window.screen.orientation?.unlock(); } catch { /* API indisponível neste navegador. */ }
+        setLandscapeMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', syncFullscreenOrientation);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenOrientation);
+  }, [landscapeMode]);
+
   const constructionMissions = [
     { label: 'Casa', progress: state.house.built ? 100 : Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100), detail: state.house.built ? 'Concluída' : `${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`, completed: state.house.built },
     { label: 'Carrinho', progress: state.cart.repaired ? 100 : Math.floor(state.cart.repairWood / CONFIG.cart.repairCost * 100), detail: state.cart.repaired ? 'Reparado' : `${state.cart.repairWood}/${CONFIG.cart.repairCost} madeiras`, completed: state.cart.repaired },
@@ -890,6 +904,27 @@ export default function App() {
     engineRef.current?.restart();
     setShowStart(false);
   };
+  const toggleLandscapeMode = async () => {
+    const orientation = window.screen.orientation as typeof window.screen.orientation & {
+      lock?: (value: 'landscape') => Promise<void>;
+    };
+    if (landscapeMode) {
+      try { orientation?.unlock(); } catch { /* API indisponível neste navegador. */ }
+      setLandscapeMode(false);
+      return;
+    }
+    const stage = canvasRef.current?.parentElement;
+    try {
+      if (stage?.requestFullscreen && !document.fullscreenElement) await stage.requestFullscreen();
+      if (!orientation?.lock) return;
+      await orientation.lock('landscape');
+      setLandscapeMode(true);
+    } catch {
+      // A orientação forçada depende do suporte do navegador e normalmente exige tela cheia.
+      setLandscapeMode(false);
+    }
+  };
+
   const startGame = () => {
     const stage = canvasRef.current?.parentElement;
     if (stage?.requestFullscreen) {
@@ -900,7 +935,7 @@ export default function App() {
     beginGame();
   };
 
-  return <main className="game-shell">
+  return <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <BackgroundMusic active={!showStart && !state.dead} />
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
@@ -916,14 +951,13 @@ export default function App() {
             <div className="hud-meter health-meter"><span>HP</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.floor(state.player.hp)}/{Math.floor(state.player.maxHp)}</b></div>
             <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
           </div>
-        </div>
-        <div className="hud-center-stack">
-          <div className="hud-chip timer"><span>TEMPO</span><strong>{fmtTime(state.elapsed)}</strong></div>
-          <div className="hud-substats">
-            <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
-            <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+          <div className="hud-center-stack">
+            <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : 'DIA'}</strong></div>
+            <div className="hud-substats">
+              <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
+              <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+            </div>
           </div>
-          <div className="hud-chip compact"><span>DIA / NOITE</span><strong style={{ fontSize: '8px', whiteSpace: 'normal', textAlign: 'center' }}>{hordeStatus}</strong></div>
         </div>
       </div>
       {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
@@ -936,7 +970,7 @@ export default function App() {
         </div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
-      {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
+      {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
@@ -986,7 +1020,7 @@ export default function App() {
         {tecelariaBuildAccessible && <button className="store-all-button" type="button" onClick={() => engineRef.current?.buildTecelaria()}>Construir tecelaria</button>}
         {cartBuildAccessible && <button className="store-all-button" type="button" onClick={buildCart}>Construir carrinho</button>}
       </div>}
-            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.6 : 1.3; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} constructionMissions={constructionMissions} />
+{!showStart &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} constructionMissions={constructionMissions} inventoryPanelOpen={inventoryPanelOpen} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>;

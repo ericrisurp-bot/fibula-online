@@ -286,7 +286,7 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .hud-vitals-panel .hud-meter>b{font-size:10px;font-weight:900;white-space:nowrap;color:#fff}
 .hud-center-stack{left:calc(clamp(150px,28vw,260px) + (100% - clamp(150px,28vw,260px) - 40px)/2);}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
-  .hud-left-stack{width:clamp(132px,34vw,210px);max-width:calc(100vw - 92px)}
+  .hud-left-stack{width:calc(100% - 46px);max-width:calc(100vw - 52px)}
   .hud-vitals-panel{gap:2px;padding:5px 6px;border-radius:9px}
   .hud-vitals-panel .hud-meter{gap:5px;padding:3px 0}
   .hud-vitals-panel .health-meter{padding-bottom:4px}
@@ -294,15 +294,15 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   .hud-vitals-panel .xp-meter .bar{height:7px}
   .hud-vitals-panel .hud-meter>span{font-size:8px}
   .hud-vitals-panel .hud-meter>b{font-size:9px}
-  .hud-center-stack{left:calc(clamp(132px,34vw,210px) + (100% - clamp(132px,34vw,210px) - 40px)/2);}
+  .hud-center-stack{top:58px;left:0;transform:none;align-items:flex-start;max-width:calc(100vw - 52px)}
 }
 @media (max-width:380px){
-  .hud-left-stack{width:clamp(120px,37vw,145px);max-width:calc(100vw - 78px)}
+  .hud-left-stack{width:calc(100% - 46px);max-width:calc(100vw - 52px)}
   .hud-vitals-panel{padding:4px 4px;gap:1px}
   .hud-vitals-panel .hud-meter{gap:4px}
   .hud-vitals-panel .hud-meter>span{font-size:7px}
   .hud-vitals-panel .hud-meter>b{font-size:8px}
-  .hud-center-stack{left:calc(clamp(120px,37vw,145px) + (100% - clamp(120px,37vw,145px) - 40px)/2);}
+  .hud-center-stack{top:56px;left:0;transform:none;align-items:flex-start;max-width:calc(100vw - 52px)}
 }
 
 /* Nível do personagem sempre visível acima das barras de vida e experiência. */
@@ -542,7 +542,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 
 
 /* Interface translúcida unificada: carvão #222322 com o cenário visível ao fundo. */
-.hud-left-stack .hud-meter,
 .hud-center-stack .hud-chip {
   background: rgba(34, 35, 34, 0.56) !important;
   border-color: rgba(235, 235, 235, 0.22);
@@ -625,3 +624,274 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .start-normal {
   background: rgba(34, 35, 34, 0.22) !important;
 }
+
+
+/* Ícones low-poly da mochila e das armas de troca de classe. */
+.mobile-quick-buttons .mobile-quick-bag svg{width:32px;height:32px;fill:none;stroke:none}
+.mobile-quick-buttons .mobile-quick-class svg{width:30px;height:30px;fill:none;stroke:none;display:block;flex-shrink:0}
+@media (pointer:coarse) and (max-width:950px){
+  .mobile-quick-buttons .mobile-quick-bag svg{width:28px;height:28px}
+  .mobile-quick-buttons .mobile-quick-class svg{width:28px;height:28px}
+}
+
+
+/* Ícone de classe é apenas um atalho de troca: sem rótulo/lista de classes no botão. */
+.mobile-quick-buttons .mobile-quick-class{gap:0}
+.mobile-quick-buttons .mobile-quick-class small{display:none}
+
+
+/* Escala da interface independente do zoom do mundo. Padrão: 130%. */
+.hud-top,
+.mobile-menu-trigger,
+.mobile-menu-panel,
+.joystick-float,
+.mobile-quick-buttons,
+.inventory-quick-panel,
+.desktop-nearby-storage-actions,
+.help-card,
+.start-panel,
+.game-over {
+  zoom: var(--interface-scale, 1.3);
+}
+.menu-interface-scale{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border:1px solid rgba(235,235,235,.2);border-radius:9px;background:rgba(34,35,34,.48)}
+.menu-interface-scale>span{font-size:10px;font-weight:850;color:#eee}
+.menu-interface-scale-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.menu-interface-scale-options button{min-height:30px;padding:5px 7px;border:1px solid rgba(235,235,235,.22);border-radius:7px;background:rgba(34,35,34,.62);color:#eee;font-size:11px;font-weight:850}
+.menu-interface-scale-options button.selected{background:rgba(225,225,225,.24)!important;border-color:rgba(245,245,245,.65);box-shadow:inset 0 0 0 1px rgba(245,245,245,.18)}
+
+
+/* Correções de camadas, tela cheia e centralização da interface. */
+.game-stage{isolation:isolate}
+.mobile-controls{z-index:100!important}
+.game-stage:fullscreen .mobile-controls{
+  display:block;
+  position:absolute;
+  inset:0;
+  z-index:2147483000!important;
+  min-height:0;
+  padding:0;
+  pointer-events:none;
+}
+.mobile-controls .mobile-menu-trigger,
+.mobile-controls .mobile-menu-panel,
+.mobile-controls .mobile-quick-buttons{pointer-events:auto}
+.mobile-menu-backdrop{z-index:2147483001}
+.mobile-menu-trigger{z-index:2147483002}
+.mobile-menu-panel{
+  z-index:2147483003;
+  zoom:1;
+  transform:scale(var(--interface-scale,1.3));
+  transform-origin:top right;
+  max-height:calc(100dvh - 24px);
+}
+.mobile-quick-buttons{
+  z-index:2147483004;
+  zoom:1;
+  transform:scale(var(--interface-scale,1.3));
+  transform-origin:bottom right;
+}
+.joystick-float{
+  zoom:1;
+  transform-origin:bottom left;
+}
+.hud-top{zoom:1}
+.hud-left-stack{zoom:var(--interface-scale,1.3);transform-origin:top left}
+.hud-center-stack{
+  zoom:1;
+  left:50%;
+  transform:translateX(-50%) scale(var(--interface-scale,1.3));
+  transform-origin:top center;
+}
+.inventory-quick-backdrop{z-index:2147483645}
+.inventory-quick-panel{
+  z-index:2147483646;
+  zoom:1;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  max-height:calc(100dvh - 32px);
+}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .game-stage:fullscreen .mobile-controls{display:block;inset:0;min-height:0}
+  .mobile-menu-panel{
+    top:calc(50% - 0px);
+    right:50%;
+    transform:translate(50%,-50%) scale(var(--interface-scale,1.3));
+    transform-origin:center;
+    width:min(270px,calc(100vw - 32px));
+  }
+  .inventory-quick-panel{
+    position:fixed;
+    top:50dvh;
+    left:50vw;
+    width:min(560px,calc(100vw - 24px));
+    max-height:calc(100dvh - 32px);
+    transform:translate(-50%,-50%);
+  }
+}
+
+
+/* Correção: os atalhos não podem depender de :fullscreen, pois F11 do navegador não ativa esse seletor. */
+/* O wrapper ficava display:none no PC em F11; o fullscreen do navegador não ativa :fullscreen. */
+.mobile-controls{
+  display:block!important;
+  position:absolute;
+  inset:0;
+  z-index:2147483000!important;
+  pointer-events:none;
+  min-height:0;
+  padding:0;
+}
+.mobile-controls .mobile-menu-trigger,
+.mobile-controls .mobile-menu-panel,
+.mobile-controls .mobile-quick-buttons{pointer-events:auto}
+.joystick-touch-area{display:none;pointer-events:none}
+.mobile-quick-buttons{
+  position:absolute;
+  right:max(16px,env(safe-area-inset-right));
+  bottom:max(16px,env(safe-area-inset-bottom));
+  z-index:2147483004!important;
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.mobile-menu-trigger{z-index:2147483005!important}
+.mobile-menu-backdrop{z-index:2147483006!important}
+.mobile-menu-panel{z-index:2147483007!important}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .joystick-touch-area{
+    display:block;
+    position:absolute;
+    z-index:2147483001;
+    inset:auto 0 0;
+    height:49%;
+    pointer-events:auto;
+  }
+  .mobile-quick-buttons{
+    right:max(12px,env(safe-area-inset-right));
+    bottom:max(16px,env(safe-area-inset-bottom));
+  }
+}
+
+
+/* HUD mobile: agrupar vida, dia/noite, estatísticas e menu na faixa superior,
+   preservando o formato original dos indicadores e limitando apenas a escala do conjunto. */
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .hud-top{
+    display:flex;
+    align-items:flex-start;
+    gap:5px;
+    right:52px;
+  }
+  .hud-left-stack{
+    flex:0 1 auto;
+    width:calc(100% - 52px);
+    max-width:calc(100% - 52px);
+    min-width:0;
+    zoom:1;
+    transform-origin:top left;
+  }
+  .hud-center-stack{
+    position:relative;
+    top:0;
+    left:auto;
+    flex:1 1 0;
+    min-width:0;
+    max-width:none;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+    gap:3px;
+    zoom:1;
+    transform:none;
+    transform-origin:top center;
+    white-space:normal;
+  }
+  .hud-center-stack>.hud-chip{
+    align-self:center;
+    min-width:0;
+    max-width:100%;
+    padding:5px 8px;
+  }
+  .hud-center-stack .hud-chip span{font-size:8px;letter-spacing:.08em}
+  .hud-center-stack .hud-chip.timer strong{font-size:clamp(14px,3.6vw,18px)}
+  .hud-substats{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;min-width:0}
+  .hud-center-stack .hud-substats .hud-chip{padding:3px 5px}
+  .hud-center-stack .hud-substats .hud-chip span{font-size:6px;letter-spacing:.03em}
+  .hud-center-stack .hud-substats .hud-chip strong{font-size:9px}
+}
+
+/* No celular deitado, o painel de vida/XP ocupa um terço da largura da tela. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px){
+  .hud-left-stack{flex:0 0 33.333vw;width:33.333vw;max-width:33.333vw}
+}
+
+/* Correções para HUD e menu em celular deitado, sem cortar os indicadores nem o X. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px){
+  .hud-top{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:4px;
+    right:52px;
+  }
+  .hud-left-stack{flex:0 0 33.333vw;width:33.333vw;max-width:33.333vw}
+  .hud-center-stack{
+    position:relative;
+    top:0;
+    left:0;
+    transform:none;
+    width:33.333vw;
+    min-width:0;
+    max-width:33.333vw;
+    align-items:flex-start;
+    white-space:normal;
+  }
+  .hud-center-stack>.hud-chip{align-self:flex-start}
+  .hud-center-stack .hud-substats{justify-content:flex-start}
+  .mobile-menu-panel{
+    top:8px!important;
+    right:8px!important;
+    left:auto!important;
+    width:min(270px,calc(100vw - 16px));
+    max-height:calc(100dvh - 16px);
+    overflow-y:auto;
+    transform:none!important;
+    transform-origin:top right;
+  }
+}
+
+/* Padrão de transparência carvão para painéis e modais em PC/celular, retrato/paisagem. */
+.hud-vitals-panel,
+.mobile-menu-panel,
+.inventory-quick-panel,
+.help-card,
+.start-panel,
+.game-over{
+  background:rgba(34,35,34,.56)!important;
+  border-color:rgba(235,235,235,.22);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+/* O painel de vida/XP e suas linhas ficam translúcidos; só os preenchimentos HP/XP mantêm as cores sólidas. */
+.hud-vitals-panel .hud-meter{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+/* Mantém o contador do ciclo logo abaixo do painel vital, alinhado no canto superior esquerdo em todos os formatos. */
+.hud-left-stack .hud-center-stack{
+  position:relative;
+  top:0;
+  left:0;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  align-items:flex-start;
+  transform:none;
+  white-space:normal;
+}
+.hud-left-stack .hud-center-stack>.hud-chip{align-self:flex-start}
+.hud-left-stack .hud-center-stack .hud-substats{justify-content:flex-start;flex-wrap:wrap}

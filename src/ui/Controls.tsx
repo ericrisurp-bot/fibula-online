@@ -34,16 +34,68 @@ type Props = {
   showRange: boolean;
   weaponLabel: string;
   constructionMissions: { label: string; progress: number; detail: string; completed: boolean }[];
+  inventoryPanelOpen: boolean;
+  interfaceScale: 100 | 130 | 160;
+  onInterfaceScaleChange: (scale: 100 | 130 | 160) => void;
+  landscapeMode: boolean;
+  onToggleLandscape: () => void;
 };
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions }: Props) {
+function ClassWeaponIcon({ classId }: { classId: ClassId }) {
+  if (classId === 'guerreiro') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <polygon points="16,2 21,17 16,21 11,17" fill="#d9e2e8" stroke="#6e7b83" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="16,2 16,21 11,17" fill="#f7fafb" />
+    <polygon points="8,17 24,17 22,21 10,21" fill="#b98a48" stroke="#65472a" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="14,21 18,21 19,28 13,28" fill="#775039" stroke="#422d20" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="13,28 19,28 20,30 12,30" fill="#d4b47b" stroke="#65472a" strokeWidth="1" />
+  </svg>;
+  if (classId === 'mago') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <polygon points="22,5 25,2 29,6 26,10" fill="#c8b4ff" stroke="#6c55a8" strokeWidth="1.2" />
+    <polygon points="22,8 25,11 12,29 9,27" fill="#8b72c8" stroke="#57417f" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="22,8 25,11 18,20 15,17" fill="#b6a0f1" />
+    <polygon points="18,3 22,2 25,5 24,9 20,10 17,7" fill="#a98aff" stroke="#6245a0" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="19,4 22,4 23,6 21,8 19,6" fill="#eadfff" />
+  </svg>;
+  if (classId === 'arqueiro') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <path d="M8 3 Q27 16 8 29" fill="none" stroke="#8a5b35" strokeWidth="4" strokeLinecap="round" />
+    <path d="M8 3 Q27 16 8 29" fill="none" stroke="#d3a36d" strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M8 3 L8 29" fill="none" stroke="#e7e1cf" strokeWidth="1.2" />
+    <polygon points="7,15 18,12 18,14 25,16 18,18 18,20" fill="#d9e2e8" stroke="#6e7b83" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="5,15 9,15 9,18 5,18" fill="#8a5b35" />
+  </svg>;
+  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <polygon points="13,12 17,14 10,30 6,28" fill="#397b49" stroke="#245634" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="13,12 17,14 13,22 10,20" fill="#72b96a" />
+    <polygon points="15,2 20,5 21,10 17,13 12,11 10,7" fill="#73d66c" stroke="#2c793e" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="15,2 17,7 12,11 10,7" fill="#b4f18d" />
+    <polygon points="17,5 20,5 21,10 17,13 15,9" fill="#3ca853" />
+  </svg>;
+}
+
+function LowPolyBackpackIcon() {
+  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <polygon points="11,5 13,2 19,2 21,5 24,7 26,12 25,27 22,30 10,30 7,27 6,12 8,7" fill="#a92f3c" stroke="#571e27" strokeWidth="1.4" strokeLinejoin="round" />
+    <polygon points="11,5 16,4 16,29 10,29 7,26 8,8" fill="#e04a52" />
+    <polygon points="16,4 21,5 24,8 25,26 22,29 16,29" fill="#8e2432" />
+    <polygon points="11,6 13,3 19,3 21,6 20,10 12,10" fill="#f18b78" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="10,12 22,12 23,22 9,22" fill="#bd3441" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="10,12 16,12 16,22 9,22" fill="#ed5a5b" />
+    <polygon points="16,12 22,12 23,22 16,22" fill="#9d2635" />
+    <polygon points="13,15 19,15 20,19 12,19" fill="#f2bd8b" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="8,9 10,10 10,25 8,24" fill="#f28b79" />
+    <polygon points="22,10 24,9 24,24 22,25" fill="#6e1e2b" />
+  </svg>;
+}
+
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
+  const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => { if (flagWheelOpen) setMenuOpen(false); }, [flagWheelOpen]);
+  useEffect(() => { if (flagWheelOpen || inventoryPanelOpen) setMenuOpen(false); }, [flagWheelOpen, inventoryPanelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
@@ -100,7 +152,33 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
   };
 
-  return <div className="mobile-controls" ref={controlsRef} aria-label="Controles de celular">
+  const onSecondaryPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    const movement = activePointer.current;
+    if (!movement || movement.id === e.pointerId || classSwipePointer.current || menuOpen || flagWheelOpen) return;
+    classSwipePointer.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, changed: false };
+  };
+
+  const onSecondaryPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const swipe = classSwipePointer.current;
+    if (!swipe || swipe.id !== e.pointerId || swipe.changed) return;
+    const dx = e.clientX - swipe.startX;
+    const dy = e.clientY - swipe.startY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    const currentIndex = classOrder.indexOf(classId);
+    const nextIndex = (currentIndex + (dx < 0 ? -1 : 1) + classOrder.length) % classOrder.length;
+    swipe.changed = true;
+    onClass(classOrder[nextIndex]);
+  };
+
+  const onSecondaryPointerEnd = (e: PointerEvent<HTMLDivElement>) => {
+    if (classSwipePointer.current?.id === e.pointerId) classSwipePointer.current = null;
+  };
+
+  return <div className="mobile-controls" ref={controlsRef} aria-label="Controles de celular"
+    onPointerDown={onSecondaryPointerDown}
+    onPointerMove={onSecondaryPointerMove}
+    onPointerUp={onSecondaryPointerEnd}
+    onPointerCancel={onSecondaryPointerEnd}>
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
@@ -123,7 +201,14 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">
         <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onClick={onRange}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
-        <div className="menu-zoom-row"><span>Zoom</span><div><button type="button" aria-label="Diminuir zoom" onClick={() => onZoom(-0.15)}>−</button><button type="button" aria-label="Aumentar zoom" onClick={() => onZoom(0.15)}>+</button></div></div>
+        <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onClick={() => onZoom(-0.15)}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onClick={() => onZoom(0.15)}>+</button></div></div>
+        <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onClick={onToggleLandscape}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
+        <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
+          <span>Escala da interface</span>
+          <div className="menu-interface-scale-options">
+            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onClick={() => onInterfaceScaleChange(scale)}>{scale}%</button>)}
+          </div>
+        </div>
       </div>
       <div className="menu-weapon"><span>ARMA ATUAL</span><strong>{weaponLabel}</strong></div>
     </div>}
@@ -149,8 +234,8 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
       {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
       {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Reparar carrinho"><span aria-hidden="true">🪵</span><small>Construir</small></button>}
-      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9A7 7 0 0 1 17 5l3 2M4 17l3 2a7 7 0 0 0 11.4-4" /><circle cx="12" cy="10" r="2" /><path d="M8 17c.8-2 7.2-2 8 0" /></svg><small>{CLASSES[classId].label}</small></button>
-      <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 6V5a4 4 0 0 1 8 0v1" /><rect x="5" y="6" width="14" height="16" rx="3" /><path d="M9 6v2m6-2v2M9 13h6v5H9zM5 11h2m10 0h2" /></svg><small>Mochila</small></button>
+      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon classId={nextClass} /></button>
+      <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
     </div>
   </div>;
 }
