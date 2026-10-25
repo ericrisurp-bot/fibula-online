@@ -118,6 +118,10 @@ export default function App() {
     }
     const overlay = document.createElement('canvas');
     const octx = overlay.getContext('2d');
+    // Textura da vinheta é estática; recrie somente quando o tamanho da tela mudar.
+    const vignetteTexture = document.createElement('canvas');
+    const vignetteTextureCtx = vignetteTexture.getContext('2d');
+    let vignetteTextureSize = '';
     const render = () => {
       if (fpsDisplay) {
         fpsFrameCount++;
@@ -365,22 +369,40 @@ export default function App() {
         octx.fillStyle = fog;
         octx.fillRect(left, top, viewW, viewH);
 
-        // Vinheta em coordenadas da tela, preservando os raios e os mesmos color stops.
+        // Vinheta pré-renderizada: evita criar um gradiente radial em todos os frames.
         const playerScreenX = (s.player.x - left) * scale;
         const playerScreenY = (s.player.y - top) * scale;
         const vignetteRadius = Math.hypot(w / 2, h / 2);
-        octx.setTransform(0.25, 0, 0, 0.25, 0, 0);
-        const vignette = octx.createRadialGradient(
-          playerScreenX, playerScreenY, Math.min(w, h) * 0.08,
-          playerScreenX, playerScreenY, vignetteRadius,
-        );
-        vignette.addColorStop(0, `rgba(3, 5, 13, ${0.02 * darkness})`);
-        vignette.addColorStop(0.35, `rgba(3, 5, 13, ${0.08 * darkness})`);
-        vignette.addColorStop(0.6, `rgba(3, 5, 13, ${0.28 * darkness})`);
-        vignette.addColorStop(0.82, `rgba(3, 5, 13, ${0.58 * darkness})`);
-        vignette.addColorStop(1, `rgba(3, 5, 13, ${0.78 * darkness})`);
-        octx.fillStyle = vignette;
-        octx.fillRect(0, 0, w, h);
+        const textureSize = `${w}x${h}`;
+        if (vignetteTextureCtx && vignetteTextureSize !== textureSize) {
+          vignetteTextureSize = textureSize;
+          vignetteTexture.width = Math.max(1, Math.ceil(vignetteRadius * 0.5));
+          vignetteTexture.height = Math.max(1, Math.ceil(vignetteRadius * 0.5));
+          const textureCenterX = vignetteTexture.width / 2;
+          const textureCenterY = vignetteTexture.height / 2;
+          const vignette = vignetteTextureCtx.createRadialGradient(
+            textureCenterX, textureCenterY, Math.min(w, h) * 0.08 * 0.25,
+            textureCenterX, textureCenterY, vignetteRadius * 0.25,
+          );
+          vignette.addColorStop(0, 'rgba(3, 5, 13, 0.02)');
+          vignette.addColorStop(0.35, 'rgba(3, 5, 13, 0.08)');
+          vignette.addColorStop(0.6, 'rgba(3, 5, 13, 0.28)');
+          vignette.addColorStop(0.82, 'rgba(3, 5, 13, 0.58)');
+          vignette.addColorStop(1, 'rgba(3, 5, 13, 0.78)');
+          vignetteTextureCtx.clearRect(0, 0, vignetteTexture.width, vignetteTexture.height);
+          vignetteTextureCtx.fillStyle = vignette;
+          vignetteTextureCtx.fillRect(0, 0, vignetteTexture.width, vignetteTexture.height);
+        }
+        if (vignetteTextureCtx) {
+          octx.setTransform(1, 0, 0, 1, 0, 0);
+          octx.globalAlpha = darkness;
+          octx.drawImage(
+            vignetteTexture,
+            (playerScreenX - vignetteRadius) * 0.25,
+            (playerScreenY - vignetteRadius) * 0.25,
+          );
+          octx.globalAlpha = 1;
+        }
 
         // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
         ctx.drawImage(overlay, 0, 0, w, h);
