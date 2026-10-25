@@ -366,7 +366,7 @@ function scheduleOwls(first = false) {
     : longPause ? audioManager.rand(45000, 80000) : audioManager.rand(12000, 40000);
   rememberTimer(owlTimers, () => {
     if (!active || phase !== 'night') return;
-    const pan = playOwlPhrase();
+    playOwlPhrase();
     scheduleOwls(false);
   }, delay);
 }
