@@ -116,6 +116,8 @@ export default function App() {
 
 
     }
+    const overlay = document.createElement('canvas');
+    const octx = overlay.getContext('2d');
     const fogTexture = document.createElement('canvas');
     const fogTextureCtx = fogTexture.getContext('2d');
     let fogTextureKey = '';
@@ -347,15 +349,21 @@ export default function App() {
         ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
-      // Texturas reutilizáveis são compostas diretamente no canvas principal, sem um overlay intermediário.
-      if (darkness > 0.01) {
+      // Neblina e vinheta são renderizadas em um overlay reutilizado a 12,5% da resolução para testar o custo de renderização.
+      if (darkness > 0.01 && octx) {
         const overlayWidth = Math.ceil(w * 0.125);
         const overlayHeight = Math.ceil(h * 0.125);
+        if (overlay.width !== overlayWidth || overlay.height !== overlayHeight) {
+          overlay.width = overlayWidth;
+          overlay.height = overlayHeight;
+        }
+        octx.setTransform(1, 0, 0, 1, 0, 0);
+        octx.clearRect(0, 0, overlay.width, overlay.height);
 
         // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
-        const fogTextureWidth = overlayWidth * 3;
-        const fogTextureHeight = overlayHeight * 3;
+        const fogTextureWidth = overlay.width * 3;
+        const fogTextureHeight = overlay.height * 3;
         const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
         if (fogTextureCtx && fogTextureKey !== nextFogTextureKey) {
           fogTexture.width = fogTextureWidth;
@@ -377,23 +385,23 @@ export default function App() {
         if (fogTextureCtx) {
           const playerScreenX = (s.player.x - left) * scale * 0.125;
           const playerScreenY = (s.player.y - top) * scale * 0.125;
-          ctx.globalAlpha = darkness;
-          ctx.drawImage(
+          octx.globalAlpha = darkness;
+          octx.drawImage(
             fogTexture,
             fogTexture.width / 2 - playerScreenX,
             fogTexture.height / 2 - playerScreenY,
-            overlayWidth,
-            overlayHeight,
-            0, 0, w, h,
+            overlay.width,
+            overlay.height,
+            0, 0, overlay.width, overlay.height,
           );
-          ctx.globalAlpha = 1;
+          octx.globalAlpha = 1;
         }
 
         // A vinheta também usa uma textura reutilizável; o recorte acompanha a posição do jogador.
         const playerScreenX = (s.player.x - left) * scale;
         const playerScreenY = (s.player.y - top) * scale;
-        const vignetteWidth = overlayWidth * 3;
-        const vignetteHeight = overlayHeight * 3;
+        const vignetteWidth = overlay.width * 3;
+        const vignetteHeight = overlay.height * 3;
         const nextVignetteTextureKey = `${vignetteWidth}x${vignetteHeight}:${w}x${h}`;
         if (vignetteTextureCtx && vignetteTextureKey !== nextVignetteTextureKey) {
           vignetteTexture.width = vignetteWidth;
@@ -414,16 +422,19 @@ export default function App() {
           vignetteTextureKey = nextVignetteTextureKey;
         }
         if (vignetteTextureCtx) {
-          const sourceX = vignetteTexture.width / 2 - overlayWidth / 2 + (w / 2 - playerScreenX) * 0.125;
-          const sourceY = vignetteTexture.height / 2 - overlayHeight / 2 + (h / 2 - playerScreenY) * 0.125;
-          ctx.globalAlpha = darkness;
-          ctx.drawImage(
+          const sourceX = vignetteTexture.width / 2 - overlay.width / 2 + (w / 2 - playerScreenX) * 0.125;
+          const sourceY = vignetteTexture.height / 2 - overlay.height / 2 + (h / 2 - playerScreenY) * 0.125;
+          octx.globalAlpha = darkness;
+          octx.drawImage(
             vignetteTexture,
-            sourceX, sourceY, overlayWidth, overlayHeight,
-            0, 0, w, h,
+            sourceX, sourceY, overlay.width, overlay.height,
+            0, 0, overlay.width, overlay.height,
           );
-          ctx.globalAlpha = 1;
+          octx.globalAlpha = 1;
         }
+
+        // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
+        ctx.drawImage(overlay, 0, 0, w, h);
       }
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
