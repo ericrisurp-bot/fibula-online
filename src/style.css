@@ -905,17 +905,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .menu-audio-volume-labels{display:flex;justify-content:space-between;color:#c7c7c7;font-size:9px}
 
 
-/* Auditoria do menu: o painel respeita a altura visível mesmo quando a interface está ampliada. */
-.mobile-menu-panel{
-  max-height:calc((100dvh - 32px) / var(--interface-scale, 1.3));
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  scrollbar-gutter:stable;
-}
-@media (pointer:coarse) and (orientation:landscape) and (max-height:600px){
-  .mobile-menu-panel{max-height:calc(100dvh - 16px)}
-}
-
 /* Dia/noite, dia de sobrevivência e abates em uma única faixa logo abaixo de HP/XP. */
 .hud-left-stack .hud-center-stack{
   position:relative;
@@ -966,4 +955,32 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 }
 .hud-left-stack .hud-center-stack .hud-substats .hud-chip strong{
   font-size:9px;
+}
+
+
+/* Menu de jogo compacto no PC: sem rolagem, sem missões e com tipografia reduzida. */
+@media (pointer:fine){
+  .mobile-menu-panel{
+    width:min(248px,calc(100vw - 20px));
+    padding:9px;
+    max-height:none;
+    overflow:visible;
+    transform:scale(1)!important;
+    zoom:1!important;
+    font-size:10px;
+  }
+  .mobile-menu-heading{margin-bottom:7px;font-size:9px}
+  .mobile-menu-heading button{width:23px;height:23px;font-size:16px}
+  .menu-section-label{margin:7px 0 4px;font-size:8px}
+  .menu-action-list{gap:4px}
+  .menu-action-list>button,.menu-zoom-row{gap:7px;padding:6px 8px;font-size:10px}
+  .menu-zoom-row button{width:27px;height:25px;font-size:16px}
+  .menu-interface-scale{gap:4px;padding:6px 7px}
+  .menu-interface-scale>span{font-size:9px}
+  .menu-interface-scale-options{gap:4px}
+  .menu-interface-scale-options button{min-height:25px;padding:3px 5px;font-size:9px}
+  .menu-audio-volume{gap:5px;padding:7px;margin-bottom:6px}
+  .menu-audio-volume label{font-size:10px}
+  .menu-audio-volume-labels{font-size:8px}
+  .menu-weapon{margin-top:6px;font-size:9px}
 }
