@@ -28,7 +28,7 @@ export const CONFIG = {
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 60, interactRadius: 80, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 80, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
-  cart: { repairCost: 10, interactRadius: 50, capacitySlots: 10, maxPerSlot: 8, followDistance: 38, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
+  cart: { repairCost: 10, interactRadius: 50, capacitySlots: 10, maxPerSlot: 8, followDistance: 52, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
