@@ -248,15 +248,38 @@ export default function App() {
         const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
         worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => {
           ctx.save(); ctx.translate(tree.x, tree.y); ctx.scale(scale, scale);
-          ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(0, 29, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#805333'; ctx.fillRect(-5, -1, 10, 30);
-          ctx.fillStyle = '#a9784e'; ctx.fillRect(-2, 1, 2, 26);
-          ctx.strokeStyle = '#593820'; ctx.lineWidth = 1.5; ctx.strokeRect(-5, -1, 10, 30);
-          ctx.fillStyle = tree.size === 'large' ? '#347548' : tree.size === 'medium' ? '#2d6942' : '#285b3b';
-          ctx.strokeStyle = '#173d2a'; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(-20, 2); ctx.lineTo(20, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(-17, 10); ctx.lineTo(17, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
-          if (tree.size === 'large') { ctx.beginPath(); ctx.moveTo(0, -39); ctx.lineTo(-13, -8); ctx.lineTo(13, -8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+          const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
+            ctx.beginPath();
+            points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+            ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+            if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.1; ctx.stroke(); }
+          };
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.beginPath(); ctx.ellipse(0, 29, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
+
+          // Tronco facetado, raízes e galhos visíveis sob a copa.
+          polygon([[-5, 0], [-3, 3], [-4, 25], [-8, 29], [-3, 28], [0, 30], [3, 28], [8, 29], [4, 24], [4, 1], [0, -2]], '#805333', '#593820');
+          polygon([[-3, 4], [-1, 2], [-1, 26], [-4, 27]], '#b98451');
+          polygon([[1, 7], [3, 5], [3, 24], [1, 26]], '#694329');
+          polygon([[-3, 11], [-9, 5], [-11, 0], [-8, 7], [-2, 14]], '#805333', '#593820');
+          polygon([[3, 12], [8, 6], [10, 1], [9, 8], [2, 16]], '#805333', '#593820');
+
+          // Silhueta irregular e facetas de sombra/luz para o visual low-poly.
+          polygon([[-20, 1], [-18, -8], [-12, -12], [-13, -20], [-6, -25], [0, -34], [7, -26], [15, -24], [14, -16], [20, -10], [18, 0], [10, 7], [0, 10], [-12, 7]], '#214d34', '#173d2a');
+          polygon([[-18, -7], [-12, -12], [-13, -20], [-6, -25], [0, -34], [2, -19], [-5, -10], [-7, 2], [-15, 2]], '#397b4c');
+          polygon([[0, -34], [7, -26], [15, -24], [14, -16], [20, -10], [18, 0], [8, 4], [3, -7], [7, -17]], '#2d6942');
+          polygon([[-18, -7], [-12, -12], [-6, -8], [-10, -1], [-15, 2]], '#4a8a51');
+          polygon([[-13, -20], [-6, -25], [0, -34], [-1, -21], [-7, -14]], '#60965a');
+          polygon([[-7, -14], [-1, -21], [5, -17], [3, -8], [-5, -5]], '#4c8750');
+          polygon([[2, -19], [7, -26], [15, -24], [9, -16]], '#43804a');
+          polygon([[9, -16], [14, -16], [20, -10], [12, -7], [5, -10]], '#285b3b');
+          polygon([[-15, 2], [-7, 2], [-2, 8], [-12, 7], [-18, 1]], '#285b3b');
+          polygon([[3, -7], [8, 4], [0, 10], [-2, 1]], '#245537');
+          if (tree.size === 'large') {
+            polygon([[-13, -20], [-7, -29], [0, -39], [7, -29], [12, -24], [5, -20], [0, -23]], '#285b3b', '#173d2a');
+            polygon([[-7, -29], [0, -39], [1, -27], [-3, -23]], '#60965a');
+            polygon([[1, -27], [7, -29], [12, -24], [5, -20]], '#397b4c');
+          }
           ctx.restore();
         }});
       }
