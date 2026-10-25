@@ -24,6 +24,23 @@ const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
       <path d="M5.5 10 7.5 8 M11.5 6 13.5 5" />
     </g>
   </svg>
+) : itemId === 'stone' ? (
+  <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
+    <g stroke="#454d53" strokeWidth="0.9" strokeLinejoin="round">
+      <polygon points="2,14 3,9 7,5 11,2 15,3 19,7 22,12 20,17 16,20 10,21 5,19" fill="#788188" />
+      <polygon points="2,14 3,9 7,5 8,11 6,15 5,19" fill="#929ba1" stroke="none" />
+      <polygon points="3,9 7,5 11,2 13,8 8,11" fill="#aab2b7" stroke="none" />
+      <polygon points="11,2 15,3 16,8 13,8" fill="#c0c6ca" stroke="none" />
+      <polygon points="15,3 19,7 16,10 13,8" fill="#aeb7bd" stroke="none" />
+      <polygon points="19,7 22,12 18,13 16,10" fill="#89939a" stroke="none" />
+      <polygon points="8,11 13,8 16,10 14,14 9,15" fill="#9ca6ac" stroke="none" />
+      <polygon points="16,10 18,13 16,17 14,14" fill="#737e85" stroke="none" />
+      <polygon points="5,19 6,15 9,15 9,19" fill="#7e898f" stroke="none" />
+      <polygon points="9,15 14,14 16,17 12,20 9,19" fill="#a2abb0" stroke="none" />
+      <polygon points="16,17 18,13 20,17 16,20 12,20" fill="#68737a" stroke="none" />
+      <path d="M5 8 7 6 M14 4 15 5" fill="none" stroke="#e6ebee" strokeWidth="0.8" />
+    </g>
+  </svg>
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId === 'cotton' ? 'Algodão' : itemId === 'linen' ? 'Linho' : itemId;
 
@@ -408,10 +425,30 @@ export default function App() {
       }
       for (const drop of s.stoneDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y);
-          // Usa o mesmo ícone da mochila, em tamanho ligeiramente maior que o tronco.
-          ctx.font = '24px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(itemIcon('stone'), 0, 0);
+          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(0.72, 0.72);
+          // Pedra low-poly com a mesma paleta cinza da rocha minerável e dos slots.
+          const facet = (points: Array<[number, number]>, fill: string) => {
+            ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+            ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+          };
+          ctx.beginPath();
+          ctx.moveTo(-10, 1); ctx.lineTo(-9, -4); ctx.lineTo(-5, -8); ctx.lineTo(-2, -11);
+          ctx.lineTo(2, -10); ctx.lineTo(5, -11); ctx.lineTo(9, -6); ctx.lineTo(11, -2);
+          ctx.lineTo(9, 3); ctx.lineTo(5, 6); ctx.lineTo(0, 7); ctx.lineTo(-5, 6); ctx.closePath();
+          ctx.fillStyle = '#788188'; ctx.fill(); ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.2; ctx.stroke();
+          facet([[-10, 1], [-9, -4], [-5, -8], [-4, -2], [-6, 2], [-5, 6]], '#929ba1');
+          facet([[-9, -4], [-5, -8], [-2, -11], [0, -5], [-4, -2]], '#aab2b7');
+          facet([[-2, -11], [2, -10], [4, -6], [0, -5]], '#c0c6ca');
+          facet([[2, -10], [5, -11], [9, -6], [5, -4], [4, -6]], '#aeb7bd');
+          facet([[9, -6], [11, -2], [7, 0], [5, -4]], '#89939a');
+          facet([[-4, -2], [0, -5], [4, -6], [2, -1], [-2, 2]], '#9ca6ac');
+          facet([[4, -6], [5, -4], [7, 0], [3, 2], [2, -1]], '#737e85');
+          facet([[-6, 2], [-4, -2], [-2, 2], [-3, 5], [-5, 6]], '#7e898f');
+          facet([[-2, 2], [2, -1], [3, 2], [1, 5], [-3, 5]], '#a2abb0');
+          facet([[3, 2], [7, 0], [9, 3], [5, 6], [1, 5]], '#68737a');
+          facet([[-5, 6], [-3, 5], [1, 5], [5, 6], [0, 7]], '#657078');
+          ctx.strokeStyle = 'rgba(48,56,61,0.58)'; ctx.lineWidth = 0.65;
+          ctx.beginPath(); ctx.moveTo(-7, -5); ctx.lineTo(-6, -3); ctx.moveTo(6, 2); ctx.lineTo(5, 4); ctx.stroke();
           ctx.restore();
         }});
       }
@@ -911,7 +948,7 @@ export default function App() {
         </section>
         <section className="house-construction-section refinery-construction-section">
           <h3>Construção da refinaria <small>{state.refinery.built ? `CONCLUÍDA · Estoque ${state.refinery.stoneStock}/${CONFIG.refinery.stoneCapacity} pedras · Processadas ${state.refinery.stonesProcessed} · Bronze ${state.refinery.bronzeProduced}` : `Madeira ${state.refinery.woodDelivered}/${CONFIG.refinery.buildCostWood} · Pedra ${state.refinery.stoneDelivered}/${CONFIG.refinery.buildCostStone}`}</small></h3>
-          {!state.refinery.built ? <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da refinaria" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}><span style={{ width: `${Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}%` }} /></div> : <><div className="quick-slot-grid bag" aria-label="Estoque de pedras da refinaria">{Array.from({ length: 2 }, (_, index) => { const quantity = Math.max(0, Math.min(CONFIG.refinery.stoneSlotCapacity, state.refinery.stoneStock - index * CONFIG.refinery.stoneSlotCapacity)); return <div key={index} className={quantity > 0 ? 'quick-slot filled' : 'quick-slot'} aria-label={`Slot ${index + 1}: ${quantity} de 5 pedras`}><span>{quantity > 0 ? '🪨' : '—'}</span><small>Pedra</small><b>{quantity}/5</b></div>; })}</div><p>Processamento automático: 1 pedra a cada 2 segundos · 2% de chance de bronze por tentativa.</p></>}
+          {!state.refinery.built ? <div className="house-progress-track" role="progressbar" aria-label="Progresso da construção da refinaria" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}><span style={{ width: `${Math.floor(Math.min(state.refinery.woodDelivered / CONFIG.refinery.buildCostWood, state.refinery.stoneDelivered / CONFIG.refinery.buildCostStone) * 100)}%` }} /></div> : <><div className="quick-slot-grid bag" aria-label="Estoque de pedras da refinaria">{Array.from({ length: 2 }, (_, index) => { const quantity = Math.max(0, Math.min(CONFIG.refinery.stoneSlotCapacity, state.refinery.stoneStock - index * CONFIG.refinery.stoneSlotCapacity)); return <div key={index} className={quantity > 0 ? 'quick-slot filled' : 'quick-slot'} aria-label={`Slot ${index + 1}: ${quantity} de 5 pedras`}><span>{quantity > 0 ? inventoryItemIcon('stone') : '—'}</span><small>Pedra</small><b>{quantity}/5</b></div>; })}</div><p>Processamento automático: 1 pedra a cada 2 segundos · 2% de chance de bronze por tentativa.</p></>}
         </section>
         <section>
           <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
@@ -930,7 +967,7 @@ export default function App() {
             {Array.from({ length: CONFIG.cart.capacitySlots }, (_, index) => {
               const item = state.cart.inventory[index];
               return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <button type="button" className="inventory-transfer-slot" disabled={!cartAccessible} onClick={(event) => { event.stopPropagation(); transferCartToBag(index); }} aria-label={`Retirar ${item.itemId} x${item.quantity} do carrinho para a mochila`} title="Retirar para a mochila"><span>{itemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button> : <span className="quick-slot-empty">{index + 1}</span>}
+                {item ? <button type="button" className="inventory-transfer-slot" disabled={!cartAccessible} onClick={(event) => { event.stopPropagation(); transferCartToBag(index); }} aria-label={`Retirar ${item.itemId} x${item.quantity} do carrinho para a mochila`} title="Retirar para a mochila"><span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button> : <span className="quick-slot-empty">{index + 1}</span>}
               </div>;
             })}
           </div>
@@ -939,7 +976,7 @@ export default function App() {
           <h3>Armazém da casa <small>{state.house.built ? `${state.house.inventory.length} tipos` : 'INDISPONÍVEL ATÉ CONCLUIR'}</small></h3>
           {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
             {state.house.inventory.map(item => <button key={item.itemId} type="button" className="quick-slot filled inventory-transfer-slot" disabled={!houseAccessible} onClick={(event) => { event.stopPropagation(); transferHouseToBag(item.itemId); }} aria-label={`Retirar ${item.itemId} x${item.quantity} da casa para a mochila`} title={houseAccessible ? "Retirar para a mochila (até 5 por clique)" : "Aproxime-se da casa para retirar"}>
-              <span>{itemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+              <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
             </button>)}
           </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.' : 'Conclua a construção para usar o armazém.'}</p>}
         </section>
