@@ -69,10 +69,15 @@ function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, ro
   poly(c, eyePoints(cx, cy, 6.5, 4.8, rot), p.glow, p.glow, 0.8);
 }
 
-export type LadinoPose = { walking: boolean; phase: number; breath: number; carry: boolean };
+export type LadinoDirection = 'front' | 'back' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
+export type LadinoPose = { walking: boolean; phase: number; breath: number; carry: boolean; direction: LadinoDirection };
 
 export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number, pose: LadinoPose): void {
-  const { walking, phase, breath, carry } = pose;
+  const { walking, phase, breath, carry, direction } = pose;
+  const isBack = direction === 'back' || direction === 'up-left' || direction === 'up-right';
+  const isSide = direction === 'left' || direction === 'right' || direction === 'up-left' || direction === 'up-right' || direction === 'down-left' || direction === 'down-right';
+  const sideScale = isSide ? 0.78 : 1;
+  const diagonalLean = direction === 'up-left' || direction === 'up-right' || direction === 'down-left' || direction === 'down-right';
   const k = carry ? 0.65 : 1;
   const sL = Math.sin(phase);
   const sR = Math.sin(phase + Math.PI);
@@ -88,7 +93,12 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   ctx.save();
   const scale = 3.0 * r / 135;
   ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
-  ctx.scale(scale, scale);
+  ctx.scale(scale * sideScale, scale);
+  if (diagonalLean) {
+    ctx.translate(50, 0);
+    ctx.rotate(direction.startsWith('up-') ? -0.045 : 0.045);
+    ctx.translate(-50, 0);
+  }
   const P = PALETTES[classId];
 
   // Sombra mantida fixa no drawPlayer; a capa tem atraso próprio em relação ao corpo.
@@ -160,13 +170,27 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], P.main);
   poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], P.dark);
   poly(ctx, [[50,0],[60,16],[40,16]], P.light);
-  poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
-  line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
-  line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
-  line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-  // Halo e núcleo dos olhos continuam poligonais, sem shadowBlur.
-  eye(ctx, P, 42, 36, -0.25);
-  eye(ctx, P, 58, 36, 0.25);
+  if (isBack) {
+    // Vista traseira do mesmo capuz: preserva a silhueta e os acabamentos, sem mostrar o rosto.
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], P.dark);
+    poly(ctx, [[43,20],[57,20],[62,34],[56,48],[50,51],[44,48],[38,34]], P.main, P.trim, 1.5);
+    line(ctx, [[50,21],[50,48]], P.light, 1.6);
+  } else if (isSide) {
+    // Perfil: o capuz continua igual; só um olho aparece na lateral voltada para a frente.
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
+    line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
+    line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
+    line(ctx, [[40,16],[60,16]], P.trim, 2.4);
+    eye(ctx, P, direction === 'left' || direction === 'up-left' || direction === 'down-left' ? 42 : 55, 36, direction === 'left' || direction === 'up-left' || direction === 'down-left' ? -0.25 : 0.25);
+  } else {
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
+    line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
+    line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
+    line(ctx, [[40,16],[60,16]], P.trim, 2.4);
+    // Rosto frontal original, sem alterar o desenho-base.
+    eye(ctx, P, 42, 36, -0.25);
+    eye(ctx, P, 58, 36, 0.25);
+  }
   poly(ctx, [[46,10],[54,10],[56,18],[44,18]], null, P.trim, 1.4);
   ctx.restore();
   ctx.restore();
