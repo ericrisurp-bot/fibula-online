@@ -592,9 +592,29 @@ export class GameEngine {
   };
   private update(dt: number) {
     this.elapsed += dt; this.state.elapsed = this.elapsed;
-    this.state.floatingDamage = this.state.floatingDamage.map(text => ({ ...text, age: text.age + dt })).filter(text => text.age < text.duration);
-    this.state.explosions = this.state.explosions.map(effect => ({ ...effect, age: effect.age + dt })).filter(effect => effect.age < effect.duration);
-    this.state.dyingEnemies = this.state.dyingEnemies.map(enemy => ({ ...enemy, deathAge: enemy.deathAge + dt })).filter(enemy => enemy.deathAge < 0.48);
+    let floatingDamageWrite = 0;
+    for (let read = 0; read < this.state.floatingDamage.length; read++) {
+      const text = this.state.floatingDamage[read]!;
+      text.age += dt;
+      if (text.age < text.duration) this.state.floatingDamage[floatingDamageWrite++] = text;
+    }
+    this.state.floatingDamage.length = floatingDamageWrite;
+
+    let explosionsWrite = 0;
+    for (let read = 0; read < this.state.explosions.length; read++) {
+      const effect = this.state.explosions[read]!;
+      effect.age += dt;
+      if (effect.age < effect.duration) this.state.explosions[explosionsWrite++] = effect;
+    }
+    this.state.explosions.length = explosionsWrite;
+
+    let dyingEnemiesWrite = 0;
+    for (let read = 0; read < this.state.dyingEnemies.length; read++) {
+      const enemy = this.state.dyingEnemies[read]!;
+      enemy.deathAge += dt;
+      if (enemy.deathAge < 0.48) this.state.dyingEnemies[dyingEnemiesWrite++] = enemy;
+    }
+    this.state.dyingEnemies.length = dyingEnemiesWrite;
     this.attackTimer += dt; this.gatheringTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
     if (this.healthTransitionRemaining !== 0) {
