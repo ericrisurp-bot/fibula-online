@@ -665,7 +665,12 @@ export class GameEngine {
         this.stepDistance -= this.stepTarget;
         const foot = this.stepFoot;
         this.stepFoot = foot === 'left' ? 'right' : 'left';
-        this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried });
+        const stepPhase = this.getDayNightState();
+        const transition = CONFIG.dayNight.transitionDuration;
+        const night = Math.max(0, Math.min(1, stepPhase.isNight
+          ? (CONFIG.dayNight.dayDuration - stepPhase.phaseElapsed) / transition
+          : (stepPhase.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
+        this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried, night });
         this.stepTarget = 47 + Math.random() * 10;
       }
     } else {
