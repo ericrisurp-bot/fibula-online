@@ -223,9 +223,9 @@ export default function App() {
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed) });
       for (const plant of s.cottonPlants) {
-        const scale = plant.size === 'small' ? 0.72 : plant.size === 'medium' ? 1 : 1.3;
+        const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
-          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale, scale);
+          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale * 0.9, scale * 1.15);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
 
           // Algodoeiro baixo: galhos lenhosos e secos, não uma planta verde.
@@ -265,7 +265,7 @@ export default function App() {
             ctx.beginPath(); ctx.arc(-size * 0.1, -size * 0.42, size * 0.2, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
           };
-          const bollCount = plant.size === 'small' ? 1 : plant.size === 'medium' ? 3 : 5;
+          const bollCount = plant.size === 'small' ? 2 : plant.size === 'medium' ? 3 : 5;
           const bolls = [[-7, -14], [9, -18], [-13, -12], [14, -7], [0, -7]] as const;
           for (let i = 0; i < bollCount; i++) {
             const [bx, by] = bolls[i];
