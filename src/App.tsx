@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
@@ -48,6 +48,11 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
+    if (typeof window === 'undefined') return 130;
+    const saved = window.localStorage.getItem('fibula-interface-scale');
+    return saved === '100' || saved === '160' ? Number(saved) as 100 | 160 : 130;
+  });
   const [showHelp, setShowHelp] = useState(false);
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
@@ -76,6 +81,10 @@ export default function App() {
   const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const cartBuildAccessible = !state.cart.repaired && cartDistance <= CONFIG.cart.interactRadius;
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  useEffect(() => {
+    window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
+  }, [interfaceScale]);
+
   const constructionMissions = [
     { label: 'Casa', progress: state.house.built ? 100 : Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100), detail: state.house.built ? 'Concluída' : `${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`, completed: state.house.built },
     { label: 'Carrinho', progress: state.cart.repaired ? 100 : Math.floor(state.cart.repairWood / CONFIG.cart.repairCost * 100), detail: state.cart.repaired ? 'Reparado' : `${state.cart.repairWood}/${CONFIG.cart.repairCost} madeiras`, completed: state.cart.repaired },
@@ -893,7 +902,7 @@ export default function App() {
     beginGame();
   };
 
-  return <main className="game-shell">
+  return <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <BackgroundMusic active={!showStart && !state.dead} />
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
@@ -978,7 +987,7 @@ export default function App() {
         {tecelariaBuildAccessible && <button className="store-all-button" type="button" onClick={() => engineRef.current?.buildTecelaria()}>Construir tecelaria</button>}
         {cartBuildAccessible && <button className="store-all-button" type="button" onClick={buildCart}>Construir carrinho</button>}
       </div>}
-            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.6 : 1.3; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} constructionMissions={constructionMissions} inventoryPanelOpen={inventoryPanelOpen} />
+            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.6 : 1.3; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} constructionMissions={constructionMissions} inventoryPanelOpen={inventoryPanelOpen} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} />
     </section>
 
   </main>;
