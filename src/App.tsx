@@ -1012,13 +1012,26 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
     ctx.fillStyle = '#b6d8ce'; ctx.fillRect(-21, 0, 10, 10); ctx.fillRect(11, 0, 10, 10);
     ctx.strokeStyle = '#38271d'; ctx.lineWidth = 2; ctx.strokeRect(-21, 0, 10, 10); ctx.strokeRect(11, 0, 10, 10);
   } else {
-    ctx.strokeStyle = '#8d6b48'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-29, 19); ctx.lineTo(-29, -10); ctx.lineTo(0, -27); ctx.lineTo(29, -10); ctx.lineTo(29, 19); ctx.stroke();
-    ctx.strokeStyle = '#b28a59'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-24, 15); ctx.lineTo(24, 15); ctx.moveTo(-20, 4); ctx.lineTo(20, 4); ctx.moveTo(-15, -6); ctx.lineTo(15, -6); ctx.stroke();
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-36, -48, 72, 7);
-    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-36, -48, 72 * (woodDelivered / CONFIG.house.buildCost), 7);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-36, -48, 72, 7);
+    // Pilha de troncos no local da futura casa: sem armação antes da conclusão.
+    const logs = [
+      { x: -20, y: 8, length: 34, angle: -0.08 },
+      { x: 1, y: 12, length: 38, angle: 0.04 },
+      { x: -4, y: 1, length: 36, angle: -0.12 },
+      { x: 15, y: 4, length: 27, angle: 0.1 },
+    ];
+    for (const log of logs) {
+      ctx.save(); ctx.translate(log.x, log.y); ctx.rotate(log.angle);
+      ctx.lineCap = 'round'; ctx.strokeStyle = '#5b3a25'; ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.moveTo(-log.length / 2, 0); ctx.lineTo(log.length / 2, 0); ctx.stroke();
+      ctx.strokeStyle = '#a97949'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-log.length / 2 + 2, -1); ctx.lineTo(log.length / 2 - 1, -1); ctx.stroke();
+      ctx.fillStyle = '#d0a16b'; ctx.strokeStyle = '#68452b'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(log.length / 2, 0, 3.5, 3.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-36, -30, 72, 7);
+    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-36, -30, 72 * Math.min(1, woodDelivered / CONFIG.house.buildCost), 7);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-36, -30, 72, 7);
   }
   ctx.restore();
 }
@@ -1029,25 +1042,33 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
   ctx.fillStyle = 'rgba(0,0,0,.3)';
   ctx.beginPath(); ctx.ellipse(0, 20, 42, 13, 0, 0, Math.PI * 2); ctx.fill();
   if (!built) {
-    // Estrutura em construção: base de pedra irregular e armação de madeira low-poly.
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#454d53'; ctx.fillStyle = '#788188';
-    ctx.beginPath(); ctx.moveTo(-34, 14); ctx.lineTo(-29, 5); ctx.lineTo(-18, 8); ctx.lineTo(-13, 2); ctx.lineTo(-2, 7); ctx.lineTo(8, 1); ctx.lineTo(18, 7); ctx.lineTo(29, 4); ctx.lineTo(35, 14); ctx.lineTo(29, 21); ctx.lineTo(-27, 21); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#aab2b7'; ctx.beginPath(); ctx.moveTo(-27, 8); ctx.lineTo(-18, 8); ctx.lineTo(-13, 2); ctx.lineTo(-8, 10); ctx.lineTo(-20, 15); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#68737a'; ctx.beginPath(); ctx.moveTo(8, 1); ctx.lineTo(18, 7); ctx.lineTo(29, 4); ctx.lineTo(24, 14); ctx.lineTo(10, 12); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#50351f'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(-30, 9); ctx.lineTo(-30, -18); ctx.lineTo(26, -18); ctx.lineTo(30, 9); ctx.stroke();
-    ctx.strokeStyle = '#98683a'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-30, -18); ctx.lineTo(0, -31); ctx.lineTo(26, -18); ctx.moveTo(-30, -5); ctx.lineTo(30, -5); ctx.moveTo(-13, -18); ctx.lineTo(-13, 8); ctx.moveTo(12, -18); ctx.lineTo(12, 8); ctx.stroke();
-    ctx.fillStyle = '#59646b'; ctx.beginPath(); ctx.moveTo(-7, 21); ctx.lineTo(-7, 5); ctx.lineTo(7, 5); ctx.lineTo(7, 21); ctx.closePath(); ctx.fill();
+    // Materiais separados no terreno: pedra agrupada e madeira ao lado, sem armação.
+    const stone = (sx: number, sy: number, w: number, h: number, shade: string) => {
+      ctx.fillStyle = shade; ctx.strokeStyle = '#4d585e'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(sx - w / 2, sy); ctx.lineTo(sx - w * 0.32, sy - h); ctx.lineTo(sx + w * 0.28, sy - h * 0.92); ctx.lineTo(sx + w / 2, sy - h * 0.25); ctx.lineTo(sx + w * 0.34, sy + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(220,228,232,.22)'; ctx.beginPath(); ctx.moveTo(sx - w * 0.32, sy - h); ctx.lineTo(sx + w * 0.28, sy - h * 0.92); ctx.lineTo(sx, sy - h * 0.35); ctx.closePath(); ctx.fill();
+    };
+    stone(-19, 17, 22, 15, '#8e989e'); stone(-3, 16, 23, 17, '#6f7b82');
+    stone(-24, 7, 21, 16, '#aab2b7'); stone(-7, 6, 23, 18, '#7f8a91');
+    stone(8, 16, 20, 14, '#69757c'); stone(8, 5, 21, 16, '#929ca2');
+    // Troncos empilhados à direita para representar a madeira exigida.
+    for (const log of [{ x: 25, y: 8, length: 24 }, { x: 27, y: 14, length: 22 }, { x: 24, y: 2, length: 19 }]) {
+      ctx.save(); ctx.translate(log.x, log.y); ctx.rotate(-0.12);
+      ctx.lineCap = 'round'; ctx.strokeStyle = '#5b3a25'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(-log.length / 2, 0); ctx.lineTo(log.length / 2, 0); ctx.stroke();
+      ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(-log.length / 2 + 1, -1); ctx.lineTo(log.length / 2 - 1, -1); ctx.stroke();
+      ctx.fillStyle = '#d0a16b'; ctx.beginPath(); ctx.arc(log.length / 2, 0, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     const woodProgress = Math.min(1, woodDelivered / CONFIG.refinery.buildCostWood);
     const stoneProgress = Math.min(1, stoneDelivered / CONFIG.refinery.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-40, -49, 80, 8);
-    ctx.fillStyle = '#b28a59'; ctx.fillRect(-40, -49, 80 * woodProgress, 3);
-    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-40, -45, 80 * stoneProgress, 4);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-40, -49, 80, 8);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-40, -34, 80, 8);
+    ctx.fillStyle = '#b28a59'; ctx.fillRect(-40, -34, 80 * woodProgress, 3);
+    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-40, -30, 80 * stoneProgress, 4);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-40, -34, 80, 8);
     ctx.restore(); return;
-  }
-  ctx.fillStyle = '#656d72'; ctx.strokeStyle = '#293438'; ctx.lineWidth = 3;
+  }  ctx.fillStyle = '#656d72'; ctx.strokeStyle = '#293438'; ctx.lineWidth = 3;
   ctx.fillRect(-34, -14, 68, 39); ctx.strokeRect(-34, -14, 68, 39);
   ctx.fillStyle = '#77838a';
   ctx.beginPath(); ctx.moveTo(-40, -14); ctx.lineTo(-25, -34); ctx.lineTo(25, -34); ctx.lineTo(40, -14); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1069,24 +1090,33 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, 20, 43, 13, 0, 0, Math.PI * 2); ctx.fill();
   if (!built) {
-    // Estrutura em construção: armação de madeira, bancada de tear e materiais facetados.
-    ctx.lineWidth = 2.5; ctx.strokeStyle = '#4b3424'; ctx.fillStyle = '#98683a';
-    ctx.beginPath(); ctx.moveTo(-34, 16); ctx.lineTo(-34, -19); ctx.lineTo(-22, -34); ctx.lineTo(22, -34); ctx.lineTo(34, -19); ctx.lineTo(34, 16); ctx.closePath(); ctx.stroke();
-    ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-34, -19); ctx.lineTo(0, -37); ctx.lineTo(34, -19); ctx.moveTo(-34, -4); ctx.lineTo(34, -4); ctx.moveTo(-23, -25); ctx.lineTo(-23, 15); ctx.moveTo(23, -25); ctx.lineTo(23, 15); ctx.stroke();
-    ctx.fillStyle = '#b28a59'; ctx.beginPath(); ctx.moveTo(-30, -19); ctx.lineTo(-21, -31); ctx.lineTo(0, -34); ctx.lineTo(0, -19); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#c0c6ca'; ctx.strokeStyle = '#59646b'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-29, 15); ctx.lineTo(-24, 7); ctx.lineTo(-13, 10); ctx.lineTo(-8, 15); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#d8c39a'; ctx.strokeStyle = '#6e583b'; ctx.fillRect(-14, -2, 28, 18); ctx.strokeRect(-14, -2, 28, 18);
-    ctx.strokeStyle = '#f0dfb9'; ctx.lineWidth = 1.5;
-    for (let xLine = -9; xLine <= 9; xLine += 6) { ctx.beginPath(); ctx.moveTo(xLine, 0); ctx.lineTo(xLine, 14); ctx.stroke(); }
-    for (let yLine = 4; yLine <= 12; yLine += 4) { ctx.beginPath(); ctx.moveTo(-12, yLine); ctx.lineTo(12, yLine); ctx.stroke(); }
-    ctx.fillStyle = '#eee8d8'; ctx.beginPath(); ctx.moveTo(14, 14); ctx.lineTo(19, 5); ctx.lineTo(27, 8); ctx.lineTo(30, 15); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#a9a08d'; ctx.stroke();
+    // Materiais da tecelaria agrupados no terreno, sem desenhar a estrutura antecipadamente.
+    // Madeira: pequenos troncos no lado esquerdo.
+    for (const log of [{ x: -24, y: 12, length: 20 }, { x: -24, y: 17, length: 17 }]) {
+      ctx.save(); ctx.translate(log.x, log.y); ctx.rotate(-0.1);
+      ctx.lineCap = 'round'; ctx.strokeStyle = '#5b3a25'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(-log.length / 2, 0); ctx.lineTo(log.length / 2, 0); ctx.stroke();
+      ctx.strokeStyle = '#b18350'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(-log.length / 2 + 1, -1); ctx.lineTo(log.length / 2 - 1, -1); ctx.stroke();
+      ctx.restore();
+    }
+    // Pedra em blocos baixos.
+    ctx.fillStyle = '#8e989e'; ctx.strokeStyle = '#4d585e'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-11, 17); ctx.lineTo(-8, 8); ctx.lineTo(1, 7); ctx.lineTo(5, 16); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#69757c'; ctx.beginPath(); ctx.moveTo(0, 17); ctx.lineTo(5, 9); ctx.lineTo(14, 11); ctx.lineTo(17, 17); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Bronze como lingote e algodão como fibras brancas.
+    ctx.fillStyle = '#a86e43'; ctx.strokeStyle = '#5c3d2c'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(10, 2); ctx.lineTo(15, -3); ctx.lineTo(25, -3); ctx.lineTo(29, 2); ctx.lineTo(24, 6); ctx.lineTo(14, 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#d8d0c1'; ctx.lineWidth = 1;
+    for (const puff of [{ x: 22, y: 13 }, { x: 29, y: 15 }, { x: 25, y: 18 }]) {
+      ctx.beginPath(); ctx.arc(puff.x - 2, puff.y, 3.5, 0, Math.PI * 2); ctx.arc(puff.x + 2, puff.y - 1, 3.5, 0, Math.PI * 2); ctx.arc(puff.x, puff.y + 2, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
     const progress = Math.min(bronzeDelivered / CONFIG.tecelaria.buildCostBronze, woodDelivered / CONFIG.tecelaria.buildCostWood, cottonDelivered / CONFIG.tecelaria.buildCostCotton, stoneDelivered / CONFIG.tecelaria.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -50, 84, 8); ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -50, 84 * progress, 8);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -50, 84, 8);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -30, 84, 8);
+    ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -30, 84 * progress, 8);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -30, 84, 8);
     ctx.restore(); return;
-  }
-  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
+  }  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
   ctx.fillRect(-35, -15, 70, 40); ctx.strokeRect(-35, -15, 70, 40);
   ctx.fillStyle = '#8d7857'; ctx.beginPath(); ctx.moveTo(-42, -15); ctx.lineTo(-25, -36); ctx.lineTo(25, -36); ctx.lineTo(42, -15); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#d8c39a'; ctx.fillRect(-22, -5, 44, 22); ctx.strokeStyle = '#3b3022'; ctx.lineWidth = 2; ctx.strokeRect(-22, -5, 44, 22);
