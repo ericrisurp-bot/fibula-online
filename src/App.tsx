@@ -342,17 +342,19 @@ export default function App() {
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
         const progress = Math.min(1, damage.age / damage.duration);
-        const scale = 0.62 + Math.min(1, progress / 0.28) * 0.42;
+        const pop = progress < 0.18
+          ? 0.82 + (progress / 0.18) * 0.3
+          : 1.12 - Math.min(1, (progress - 0.18) / 0.82) * 0.12;
         ctx.save();
         ctx.globalAlpha = Math.max(0, 1 - progress);
-        ctx.translate(damage.x, damage.y - progress * 34);
-        ctx.scale(scale, scale);
-        ctx.font = '900 17px ui-sans-serif, system-ui, sans-serif';
+        ctx.translate(damage.x, damage.y - progress * 46);
+        ctx.scale(pop, pop);
+        ctx.font = '900 25px ui-sans-serif, system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 3.5;
-        ctx.strokeStyle = 'rgba(8, 12, 14, 0.88)';
+        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = 'rgba(8, 12, 14, 0.92)';
         ctx.strokeText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.fillStyle = damage.color;
         ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
