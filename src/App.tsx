@@ -223,23 +223,53 @@ export default function App() {
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed) });
       for (const plant of s.cottonPlants) {
-        const scale = plant.size === 'small' ? 0.72 : plant.size === 'medium' ? 1 : 1.3;
+        const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
-          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale, scale);
+          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale * 0.9, scale * 1.15);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#37683a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-          ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(-3, -5); ctx.moveTo(0, 12); ctx.lineTo(8, 1); ctx.moveTo(-1, 7); ctx.lineTo(-10, 0); ctx.stroke();
-          ctx.fillStyle = plant.size === 'large' ? '#3f8c4d' : plant.size === 'medium' ? '#4b9957' : '#5ba763';
-          for (const leaf of [[-8, 0, -0.5], [8, 1, 0.45], [-2, -6, -0.2]] as const) {
-            ctx.save(); ctx.translate(leaf[0], leaf[1]); ctx.rotate(leaf[2]); ctx.beginPath(); ctx.ellipse(0, 0, 7, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-          }
-          ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#d9d2c2'; ctx.lineWidth = 1.2;
-          const bollCount = plant.size === 'small' ? 1 : plant.size === 'medium' ? 3 : 5;
+
+          // Algodoeiro baixo: galhos lenhosos e secos, não uma planta verde.
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.strokeStyle = '#765038'; ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(0, 12); ctx.lineTo(0, 2); ctx.lineTo(-2, -6); ctx.lineTo(-7, -13);
+          ctx.moveTo(-2, -5); ctx.lineTo(6, -11); ctx.lineTo(9, -17);
+          ctx.moveTo(-1, 1); ctx.lineTo(-10, -5); ctx.lineTo(-13, -11);
+          ctx.moveTo(0, 3); ctx.lineTo(10, 0); ctx.lineTo(14, -6);
+          ctx.stroke();
+
+          // Folhas pequenas e queimadas, em tons de palha, ocre e marrom.
+          const dryLeaf = (x: number, y: number, angle: number, color: string) => {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.fillStyle = color; ctx.strokeStyle = '#76543a'; ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.moveTo(-1, 0); ctx.quadraticCurveTo(-5, -5, -1, -9);
+            ctx.lineTo(1, -4); ctx.lineTo(2, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.restore();
+          };
+          dryLeaf(-5, -10, -0.65, '#9b7549');
+          dryLeaf(-10, -5, -1.1, '#b18a58');
+          dryLeaf(5, -10, 0.7, '#a27a4d');
+          dryLeaf(10, -1, 0.9, '#8d6945');
+          dryLeaf(-2, -3, -0.35, '#b08a5c');
+
+          // Capulhos brancos e macios nas pontas dos galhos.
+          const boll = (x: number, y: number, size: number) => {
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#d8d0c1'; ctx.lineWidth = 0.9;
+            ctx.beginPath();
+            ctx.arc(-size * 0.42, 0, size * 0.48, 0, Math.PI * 2);
+            ctx.arc(0, -size * 0.28, size * 0.55, 0, Math.PI * 2);
+            ctx.arc(size * 0.42, 0, size * 0.46, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.beginPath(); ctx.arc(-size * 0.1, -size * 0.42, size * 0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+          };
+          const bollCount = plant.size === 'small' ? 2 : plant.size === 'medium' ? 4 : 6;
+          const bolls = [[-7, -14], [9, -18], [-13, -12], [14, -7], [0, -7], [-3, -21]] as const;
           for (let i = 0; i < bollCount; i++) {
-            const bx = bollCount === 1 ? 0 : -8 + (i % 3) * 8;
-            const by = bollCount === 1 ? -8 : -7 + Math.floor(i / 3) * 6;
-            ctx.beginPath(); ctx.arc(bx, by, 4.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.arc(bx - 2, by - 1, 2.2, 0, Math.PI * 2); ctx.fill();
+            const [bx, by] = bolls[i];
+            boll(bx, by, plant.size === 'small' ? 4.5 : plant.size === 'medium' ? 4.6 : 4.8);
           }
           ctx.restore();
         }});
