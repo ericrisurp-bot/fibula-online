@@ -4,6 +4,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
+import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
@@ -94,6 +95,11 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
+
+  useEffect(() => {
+    ambience.setActive(!showStart && !state.dead);
+    return () => ambience.setActive(false);
+  }, [showStart, state.dead]);
 
   useEffect(() => {
     const syncFullscreenOrientation = () => {
