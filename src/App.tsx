@@ -361,10 +361,10 @@ export default function App() {
         octx.setTransform(1, 0, 0, 1, 0, 0);
 
         // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
-        const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
+        const fogRadius = CONFIG.dayNight.visibilityRange * 1.5;
         const fogTextureWidth = overlay.width * 2;
         const fogTextureHeight = overlay.height * 2;
-        const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
+        const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.78, CONFIG.dayNight.nightOverlayStrength)}`;
         if (fogTextureCtx && fogTextureKey !== nextFogTextureKey) {
           fogTexture.width = fogTextureWidth;
           fogTexture.height = fogTextureHeight;
@@ -374,10 +374,10 @@ export default function App() {
             fogCenterX, fogCenterY, 0,
             fogCenterX, fogCenterY, fogRadius * scale * overlayScale,
           );
-          fog.addColorStop(0, 'rgba(5, 8, 18, 0.24)');
-          fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.5)');
-          fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.75)');
-          fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)})`);
+          fog.addColorStop(0, 'rgba(5, 8, 18, 0.14)');
+          fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.32)');
+          fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.58)');
+          fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.78, CONFIG.dayNight.nightOverlayStrength)})`);
           fogTextureCtx.fillStyle = fog;
           fogTextureCtx.fillRect(0, 0, fogTextureWidth, fogTextureHeight);
           fogTextureKey = nextFogTextureKey;
@@ -415,10 +415,10 @@ export default function App() {
             vignetteCenterX, vignetteCenterY, Math.hypot(w / 2, h / 2) * overlayScale,
           );
           vignette.addColorStop(0, 'rgba(3, 5, 13, 0.02)');
-          vignette.addColorStop(0.35, 'rgba(3, 5, 13, 0.08)');
-          vignette.addColorStop(0.6, 'rgba(3, 5, 13, 0.28)');
-          vignette.addColorStop(0.82, 'rgba(3, 5, 13, 0.58)');
-          vignette.addColorStop(1, 'rgba(3, 5, 13, 0.78)');
+          vignette.addColorStop(0.35, 'rgba(3, 5, 13, 0.05)');
+          vignette.addColorStop(0.6, 'rgba(3, 5, 13, 0.18)');
+          vignette.addColorStop(0.82, 'rgba(3, 5, 13, 0.38)');
+          vignette.addColorStop(1, 'rgba(3, 5, 13, 0.55)');
           vignetteTextureCtx.fillStyle = vignette;
           vignetteTextureCtx.fillRect(0, 0, vignetteWidth, vignetteHeight);
           vignetteTextureKey = nextVignetteTextureKey;
