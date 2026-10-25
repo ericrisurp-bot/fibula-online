@@ -91,7 +91,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const rightHandShift = walking ? (carry ? -3 : -sR * 5) : breath * 0.7;
 
   ctx.save();
-  const scale = 3.0 * r / 135;
+  const scale = 4.5 * r / 135; // Ladino 1,5x maior; preserva a proporção interna.
   ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
   ctx.scale(scale * sideScale, scale);
   const P = PALETTES[classId];
