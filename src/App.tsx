@@ -86,6 +86,17 @@ export default function App() {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
 
+  useEffect(() => {
+    const syncFullscreenOrientation = () => {
+      if (!document.fullscreenElement && landscapeMode) {
+        try { window.screen.orientation?.unlock(); } catch { /* API indisponível neste navegador. */ }
+        setLandscapeMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', syncFullscreenOrientation);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenOrientation);
+  }, [landscapeMode]);
+
   const constructionMissions = [
     { label: 'Casa', progress: state.house.built ? 100 : Math.floor(state.house.woodDelivered / CONFIG.house.buildCost * 100), detail: state.house.built ? 'Concluída' : `${state.house.woodDelivered}/${CONFIG.house.buildCost} madeiras`, completed: state.house.built },
     { label: 'Carrinho', progress: state.cart.repaired ? 100 : Math.floor(state.cart.repairWood / CONFIG.cart.repairCost * 100), detail: state.cart.repaired ? 'Reparado' : `${state.cart.repairWood}/${CONFIG.cart.repairCost} madeiras`, completed: state.cart.repaired },
