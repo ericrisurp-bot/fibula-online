@@ -9,13 +9,6 @@ type Palette = {
   glowEdge: string;
 };
 
-const PALETTES: Record<ClassId, Palette> = {
-  guerreiro: { main: '#b8463f', light: '#d9645c', dark: '#7a2a2a', trim: '#e0b85c', glow: '#ffc2a8', glowEdge: '#ff7a5c' },
-  mago: { main: '#6e4bb0', light: '#8d69d3', dark: '#432e79', trim: '#cdb8ff', glow: '#e4ccff', glowEdge: '#a97bff' },
-  arqueiro: { main: '#cfa24a', light: '#e8c36d', dark: '#8c6824', trim: '#fff1c4', glow: '#fff3b8', glowEdge: '#ffd25c' },
-  druida: { main: '#4f9a52', light: '#74bd76', dark: '#2c6333', trim: '#dfeaa5', glow: '#c8ffc0', glowEdge: '#7dff8a' },
-};
-
 const OUT = '#15151c';
 const SKIN = '#0a0c12';
 const DARK = '#23232b';
@@ -69,12 +62,12 @@ function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, ro
   poly(c, eyePoints(cx, cy, 6.5, 4.8, rot), p.glow, p.glow, 0.8);
 }
 
-export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number): void {
+export function drawLadino(ctx: CanvasRenderingContext2D, _classId: ClassId, r: number): void {
   ctx.save();
   const s = 3.0 * r / 135;
   ctx.translate(-50 * s, r * 0.9 - 133 * s);
   ctx.scale(s, s);
-  const P = PALETTES[classId];
+  const P: Palette = { main: '#e2e3e9', light: '#f5f5f8', dark: '#b8bbc5', trim: '#d9b45a', glow: '#8ffaff', glowEdge: '#00cfff' };
 
   // Capa traseira
   poly(ctx, [[27,46],[73,46],[84,96],[78,122],[66,112],[58,128],[50,114],[42,128],[34,112],[22,122],[16,96]], P.dark);
