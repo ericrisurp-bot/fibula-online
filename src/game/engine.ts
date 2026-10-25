@@ -17,7 +17,7 @@ type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean; hitEnemyIds?: number[] };
 type ExplosionEffect = Vec & { id: number; age: number; duration: number };
-type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff'; age: number; duration: number };
+type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = Vec & { angle: number; repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
 type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
@@ -1528,7 +1528,7 @@ export class GameEngine {
         }
         const damage = shot.damage * CONFIG.archerPierce.damageFactors[hitIndex] * (1 + this.getDayNightState().vulnerability);
         target.hp -= damage;
-        this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+        this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, firstHit ? '#ffffff' : '#d7b66e', firstHit ? 1 : 2 / 3);
         if (target.hp <= 0) this.killEnemy(target.id);
         if (this.state.classId === 'arqueiro') {
           const speedFactor = CONFIG.archerPierce.speedFactors[hitIndex];
@@ -1547,18 +1547,23 @@ export class GameEngine {
         if (shot.explosive) {
           const impact = { x: target.x, y: target.y };
           this.state.explosions.push({ ...impact, id: this.nextId++, age: 0, duration: 0.24 });
-          const damage = shot.damage * CONFIG.mageExplosion.damageMultiplier * (1 + this.getDayNightState().vulnerability);
+          const vulnerability = 1 + this.getDayNightState().vulnerability;
+          const basicDamage = shot.damage * vulnerability;
+          target.hp -= basicDamage;
+          this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, basicDamage, '#ffffff');
+          const damage = shot.damage * CONFIG.mageExplosion.damageMultiplier * vulnerability;
           const hits = this.state.enemies
+            .filter(enemy => enemy.id !== target.id)
             .map(enemy => ({ enemy, distance: Math.hypot(enemy.x - impact.x, enemy.y - impact.y) }))
             .filter(({ distance }) => distance <= CONFIG.mageExplosion.radius)
             .sort((a, b) => a.distance - b.distance)
-            .slice(0, CONFIG.mageExplosion.maxTargets)
+            .slice(0, Math.max(0, CONFIG.mageExplosion.maxTargets - 1))
             .map(({ enemy }) => enemy);
           for (const enemy of hits) {
             enemy.hp -= damage;
-            this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+            this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#9c8be8', 2 / 3);
           }
-          for (const enemy of hits.filter(enemy => enemy.hp <= 0)) this.killEnemy(enemy.id);
+          for (const enemy of [target, ...hits].filter(enemy => enemy.hp <= 0)) this.killEnemy(enemy.id);
         } else {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
           target.hp -= effectiveDamage;
@@ -1608,7 +1613,7 @@ export class GameEngine {
       while ((enemy.poisonTick ?? 0) <= 0) {
         const damage = enemy.poisonDamage ?? 0;
         enemy.hp -= damage;
-        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#3f8f45', 2 / 3);
         enemy.poisonTick = (enemy.poisonTick ?? 0) + CONFIG.druidPoison.tickInterval;
         if (enemy.hp <= 0) {
           this.killEnemy(enemy.id);
@@ -1641,8 +1646,8 @@ export class GameEngine {
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
   }
 
-  private addFloatingDamage(x: number, y: number, amount: number, color: FloatingDamage['color']) {
-    this.state.floatingDamage.push({ id: this.nextId++, x, y, amount, color, age: 0, duration: 0.72 });
+  private addFloatingDamage(x: number, y: number, amount: number, color: FloatingDamage['color'], scale = 1) {
+    this.state.floatingDamage.push({ id: this.nextId++, x, y, amount, color, scale, age: 0, duration: 0.72 });
   }
 
   private collectXp(dt: number, playerSpeed: number) {

@@ -495,7 +495,7 @@ export default function App() {
         ctx.save();
         ctx.globalAlpha = Math.max(0, 1 - progress);
         ctx.translate(damage.x, damage.y - progress * 46);
-        ctx.scale(pop, pop);
+        ctx.scale(pop * damage.scale, pop * damage.scale);
         ctx.font = '900 25px ui-sans-serif, system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
