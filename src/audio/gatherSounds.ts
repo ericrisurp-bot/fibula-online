@@ -72,9 +72,9 @@ export function playStoneGather(context: AudioContext, buses: GatherBuses) {
   const duration = 0.09 * v.duration;
   const fundamental = 1800 * v.pitch;
   const ratio = audioManager.rand(1.45, 1.6);
-  toneSource(context, buses, start, duration, 'sine', fundamental, fundamental * 0.985, 0.075 * v.volume, 1);
-  toneSource(context, buses, start, duration, 'sine', fundamental * ratio, fundamental * ratio * 0.97, 0.055 * v.volume, 1);
-  noiseSource(context, buses, start, duration, 'highpass', 100, 3600 * v.pitch, 0.045 * v.volume, v.pitch);
+  toneSource(context, buses, start, duration, 'sine', fundamental, fundamental * 0.985, 0.075 * 0.35 * v.volume, 1);
+  toneSource(context, buses, start, duration, 'sine', fundamental * ratio, fundamental * ratio * 0.97, 0.055 * 0.35 * v.volume, 1);
+  noiseSource(context, buses, start, duration, 'highpass', 100, 3600 * v.pitch, 0.045 * 0.35 * v.volume, v.pitch);
 }
 
 /** Pedra a quebrar: cinco pequenos grãos em sequência irregular. */
