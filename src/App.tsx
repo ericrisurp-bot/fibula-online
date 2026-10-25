@@ -1417,9 +1417,11 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
-  // A arte base olha para baixo; gira para acompanhar o vetor de direção do jogador.
-  const facingRotation = Math.atan2(facingY, facingX) - Math.PI / 2;
-  const facingScaleX = facingX < -0.35 ? -1 : 1;
+  // Mantém a cabeça para cima: limita a rotação ao semicírculo superior e espelha quando necessário.
+  let facingRotation = Math.atan2(facingY, facingX) + Math.PI / 2;
+  let facingScaleX = 1;
+  if (facingRotation > Math.PI / 2) { facingRotation -= Math.PI; facingScaleX = -1; }
+  else if (facingRotation < -Math.PI / 2) { facingRotation += Math.PI; facingScaleX = -1; }
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
@@ -1429,7 +1431,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
   };
   const appearance = classColors[classId];
-  ctx.save(); ctx.rotate(facingRotation);
+  ctx.save(); ctx.rotate(facingRotation); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving });
   ctx.restore();
   // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
