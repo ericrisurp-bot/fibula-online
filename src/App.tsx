@@ -29,7 +29,7 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
-  const zoomRef = useRef(1.6);
+  const zoomRef = useRef(0.8);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
@@ -360,7 +360,7 @@ export default function App() {
         octx.setTransform(1, 0, 0, 1, 0, 0);
 
         // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
-        const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
+        const fogRadius = CONFIG.dayNight.visibilityRange * 1.2;
         const fogTextureWidth = overlay.width * 2;
         const fogTextureHeight = overlay.height * 2;
         const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
@@ -373,10 +373,11 @@ export default function App() {
             fogCenterX, fogCenterY, 0,
             fogCenterX, fogCenterY, fogRadius * scale * 0.125,
           );
-          fog.addColorStop(0, 'rgba(5, 8, 18, 0.24)');
-          fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.5)');
-          fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.75)');
-          fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)})`);
+          fog.addColorStop(0, 'rgba(5, 8, 18, 0.9)');
+          fog.addColorStop(0.3, 'rgba(5, 8, 18, 0.65)');
+          fog.addColorStop(0.62, 'rgba(5, 8, 18, 0.28)');
+          fog.addColorStop(0.86, 'rgba(5, 8, 18, 0.06)');
+          fog.addColorStop(1, 'rgba(5, 8, 18, 0)');
           fogTextureCtx.fillStyle = fog;
           fogTextureCtx.fillRect(0, 0, fogTextureWidth, fogTextureHeight);
           fogTextureKey = nextFogTextureKey;
@@ -396,42 +397,6 @@ export default function App() {
           );
           octx.globalAlpha = 1;
           octx.globalCompositeOperation = 'source-over';
-        }
-
-        // A vinheta também usa uma textura reutilizável; o recorte acompanha a posição do jogador.
-        const playerScreenX = (s.player.x - left) * scale;
-        const playerScreenY = (s.player.y - top) * scale;
-        const vignetteWidth = overlay.width * 3;
-        const vignetteHeight = overlay.height * 3;
-        const nextVignetteTextureKey = `${vignetteWidth}x${vignetteHeight}:${w}x${h}`;
-        if (vignetteTextureCtx && vignetteTextureKey !== nextVignetteTextureKey) {
-          vignetteTexture.width = vignetteWidth;
-          vignetteTexture.height = vignetteHeight;
-          const vignetteCenterX = vignetteWidth / 2;
-          const vignetteCenterY = vignetteHeight / 2;
-          const vignette = vignetteTextureCtx.createRadialGradient(
-            vignetteCenterX, vignetteCenterY, Math.min(w, h) * 0.08 * 0.125,
-            vignetteCenterX, vignetteCenterY, Math.hypot(w / 2, h / 2) * 0.125,
-          );
-          vignette.addColorStop(0, 'rgba(3, 5, 13, 0.02)');
-          vignette.addColorStop(0.35, 'rgba(3, 5, 13, 0.08)');
-          vignette.addColorStop(0.6, 'rgba(3, 5, 13, 0.28)');
-          vignette.addColorStop(0.82, 'rgba(3, 5, 13, 0.58)');
-          vignette.addColorStop(1, 'rgba(3, 5, 13, 0.78)');
-          vignetteTextureCtx.fillStyle = vignette;
-          vignetteTextureCtx.fillRect(0, 0, vignetteWidth, vignetteHeight);
-          vignetteTextureKey = nextVignetteTextureKey;
-        }
-        if (vignetteTextureCtx) {
-          const sourceX = vignetteTexture.width / 2 - overlay.width / 2 + (w / 2 - playerScreenX) * 0.125;
-          const sourceY = vignetteTexture.height / 2 - overlay.height / 2 + (h / 2 - playerScreenY) * 0.125;
-          octx.globalAlpha = darkness;
-          octx.drawImage(
-            vignetteTexture,
-            sourceX, sourceY, overlay.width, overlay.height,
-            0, 0, overlay.width, overlay.height,
-          );
-          octx.globalAlpha = 1;
         }
 
         // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
@@ -518,7 +483,7 @@ export default function App() {
         return;
       }
       engine.setKey(k, true);
-      if (k === 'c') engine.toggleCamera();
+      
       if (k === '1') engine.setClass('guerreiro');
       if (k === '2') engine.setClass('mago');
       if (k === '3') engine.setClass('arqueiro');
@@ -766,7 +731,7 @@ export default function App() {
           <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>Jogar sem tela cheia</button>
         </div>
       </div>}
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>C</b> alterna a câmera, <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem. <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>TEMPO</span><b>{fmtTime(state.elapsed)}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
@@ -828,7 +793,7 @@ export default function App() {
         {tecelariaBuildAccessible && <button className="store-all-button" type="button" onClick={() => engineRef.current?.buildTecelaria()}>Construir tecelaria</button>}
         {cartBuildAccessible && <button className="store-all-button" type="button" onClick={buildCart}>Construir carrinho</button>}
       </div>}
-            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.65, Math.min(1.75, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
+            <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { zoomRef.current = Math.max(0.8, Math.min(1.3, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} />
     </section>
 
   </main>;
