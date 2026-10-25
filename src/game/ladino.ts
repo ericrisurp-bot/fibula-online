@@ -69,26 +69,54 @@ function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, ro
   poly(c, eyePoints(cx, cy, 6.5, 4.8, rot), p.glow, p.glow, 0.8);
 }
 
-export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number): void {
+export type LadinoPose = { walking: boolean; phase: number; breath: number; carry: boolean };
+
+export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number, pose: LadinoPose): void {
+  const { walking, phase, breath, carry } = pose;
+  const k = carry ? 0.65 : 1;
+  const sL = Math.sin(phase);
+  const sR = Math.sin(phase + Math.PI);
+  const liftL = walking ? Math.max(0, sL) * 7 * k : 0;
+  const liftR = walking ? Math.max(0, sR) * 7 * k : 0;
+  const bob = walking ? -Math.abs(Math.sin(phase)) * 2.4 * (carry ? 1.4 : 1) : -breath * 0.9;
+  const sway = walking ? Math.sin(phase) * 2.2 : breath * 0.5;
+  const leftArmAngle = walking ? (carry ? -0.30 : -sL * 0.22) : breath * 0.02;
+  const rightArmAngle = walking ? (carry ? 0.30 : -sR * 0.22) : -breath * 0.02;
+  const leftHandShift = walking ? (carry ? -3 : -sL * 5) : breath * 0.7;
+  const rightHandShift = walking ? (carry ? -3 : -sR * 5) : breath * 0.7;
+
   ctx.save();
-  const s = 3.0 * r / 135;
-  ctx.translate(-50 * s, r * 0.9 - 133 * s);
-  ctx.scale(s, s);
+  const scale = 3.0 * r / 135;
+  ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
+  ctx.scale(scale, scale);
   const P = PALETTES[classId];
 
-  // Capa traseira
-  poly(ctx, [[27,46],[73,46],[84,96],[78,122],[66,112],[58,128],[50,114],[42,128],[34,112],[22,122],[16,96]], P.dark);
-  poly(ctx, [[27,46],[50,46],[50,114],[42,128],[34,112],[22,122],[16,96]], P.main);
+  // Sombra mantida fixa no drawPlayer; a capa tem atraso próprio em relação ao corpo.
+  const cape = (points: Point[], fill: string) => poly(ctx, points.map(([x, y]) => {
+    if (y < 90) return [x, y] as Point;
+    const distance = Math.max(0, Math.min(1, (y - 46) / 82));
+    const factor = 1 + distance * 0.4;
+    return [x + sway * factor, y + bob * 0.6] as Point;
+  }), fill);
+  cape([[27,46],[73,46],[84,96],[78,122],[66,112],[58,128],[50,114],[42,128],[34,112],[22,122],[16,96]], P.dark);
+  cape([[27,46],[50,46],[50,114],[42,128],[34,112],[22,122],[16,96]], P.main);
 
-  // Pernas e botas
-  poly(ctx, [[35,82],[48,82],[47,108],[36,108]], DARK2);
-  poly(ctx, [[52,82],[65,82],[64,108],[53,108]], DARK2);
-  for (const x of [41, 58]) {
-    poly(ctx, [[x-7,106],[x+7,106],[x+8,127],[x+11,133],[x-10,133],[x-8,127]], '#2a2420');
-    poly(ctx, [[x-7,106],[x+7,106],[x+7,114],[x-7,114]], LEATH);
+  // Pernas e botas: a fase deriva da distância real percorrida pelo jogador.
+  poly(ctx, [[35,82+bob],[48,82+bob],[47,108-liftL],[36,108-liftL]], DARK2);
+  poly(ctx, [[52,82+bob],[65,82+bob],[64,108-liftR],[53,108-liftR]], DARK2);
+  for (const [x, lift] of [[41, liftL], [58, liftR]] as const) {
+    poly(ctx, [[x-7,106-lift],[x+7,106-lift],[x+8,127-lift],[x+11,133-lift],[x-10,133-lift],[x-8,127-lift]], '#2a2420');
+    poly(ctx, [[x-7,106-lift],[x+7,106-lift],[x+7,114-lift],[x-7,114-lift]], LEATH);
   }
 
-  // Tronco e túnica
+  // Tronco, túnica, faixa, bolsa, ombros e cachecol respiram em torno do centro do corpo.
+  ctx.save();
+  ctx.translate(0, bob);
+  if (!walking) {
+    ctx.translate(50, 70);
+    ctx.scale(1, 1 + breath * 0.012);
+    ctx.translate(-50, -70);
+  }
   poly(ctx, [[32,48],[68,48],[66,84],[34,84]], DARK);
   poly(ctx, [[38,50],[62,50],[60,70],[40,70]], '#e9e9ee');
   poly(ctx, [[41,70],[59,70],[61,112],[50,118],[39,112]], '#f1f1f5');
@@ -96,26 +124,39 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[47,76],[53,76],[53,106],[47,106]], P.main, '', 0);
   line(ctx, [[50,78],[50,104]], P.trim, 2.2);
 
-  // Braços e luvas
-  poly(ctx, [[24,50],[34,48],[34,80],[26,84],[21,72]], DARK);
-  poly(ctx, [[66,48],[76,50],[79,72],[74,84],[66,80]], DARK);
-  poly(ctx, [[21,78],[31,80],[30,90],[22,90]], DARK2);
-  poly(ctx, [[69,80],[79,78],[78,90],[70,90]], DARK2);
+  // Braços articulados a partir dos ombros; o deslocamento da mão afeta 40% do braço.
+  ctx.save();
+  ctx.translate(29, 50 + leftHandShift * 0.4);
+  ctx.rotate(leftArmAngle);
+  poly(ctx, [[-5,-8],[5,-10],[5,22],[-3,27],[-8,14]], DARK);
+  poly(ctx, [[-8,20],[2,22],[1,32],[-7,32]], DARK2);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(71, 50 + rightHandShift * 0.4);
+  ctx.rotate(rightArmAngle);
+  poly(ctx, [[-5,-10],[5,-8],[8,14],[3,27],[-5,22]], DARK);
+  poly(ctx, [[-2,22],[8,20],[7,32],[-1,32]], DARK2);
+  ctx.restore();
 
-  // Faixa, cinto e bolsa
   poly(ctx, [[30,56],[40,50],[70,76],[62,82]], LEATH);
   poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
   poly(ctx, [[48,81],[53,81],[53,90],[48,90]], GOLD, OUT, 1);
   poly(ctx, [[27,86],[39,86],[39,99],[27,99]], LEATH);
   poly(ctx, [[27,86],[39,86],[39,91],[27,91]], LEATH2);
-
-  // Ombros e cachecol
   poly(ctx, [[22,42],[50,38],[50,52],[28,60],[16,56]], P.light);
   poly(ctx, [[50,38],[78,42],[84,56],[72,60],[50,52]], P.main);
   line(ctx, [[16,56],[28,60],[50,52],[72,60],[84,56]], P.trim, 2);
   poly(ctx, [[34,42],[66,42],[62,56],[50,60],[38,56]], '#2b2b33');
+  ctx.restore();
 
-  // Capuz e rosto
+  // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
+  const hoodTilt = walking ? Math.sin(phase + 0.9) * 0.035 : breath * 0.008;
+  const hoodShift = walking ? Math.sin(phase * 2 + 0.6) * 0.9 : -breath * 0.7;
+  ctx.save();
+  ctx.translate(0, bob + hoodShift);
+  ctx.translate(50, 54);
+  ctx.rotate(hoodTilt);
+  ctx.translate(-50, -54);
   poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], P.main);
   poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], P.dark);
   poly(ctx, [[50,0],[60,16],[40,16]], P.light);
@@ -123,10 +164,10 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
   line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
   line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-
-  // Olhos brilhantes sem shadowBlur
+  // Halo e núcleo dos olhos continuam poligonais, sem shadowBlur.
   eye(ctx, P, 42, 36, -0.25);
   eye(ctx, P, 58, 36, 0.25);
   poly(ctx, [[46,10],[54,10],[56,18],[44,18]], null, P.trim, 1.4);
+  ctx.restore();
   ctx.restore();
 }
