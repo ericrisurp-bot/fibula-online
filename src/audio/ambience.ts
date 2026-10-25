@@ -84,14 +84,17 @@ function routeVoice(source: AudioScheduledSourceNode, nodes: AudioNode[], output
   return true;
 }
 
-function stopWind() {
+function stopWind(seconds = 0) {
   const source = windSource;
   windSource = null;
   windBandpass = null;
   windLowpass = null;
   windGain = null;
   if (!source) return;
-  try { source.stop(); } catch { /* A fonte já terminou ou está parando. */ }
+  try {
+    if (audioContext && seconds > 0) source.stop(audioContext.currentTime + seconds);
+    else source.stop();
+  } catch { /* A fonte já terminou ou está parando. */ }
 }
 
 function stopSourcesSoon(seconds: number) {
@@ -100,7 +103,7 @@ function stopSourcesSoon(seconds: number) {
   for (const source of activeSources) {
     try { source.stop(context.currentTime + seconds); } catch { /* A fonte já terminou ou está parando. */ }
   }
-  stopWind();
+  stopWind(seconds);
 }
 
 function scheduleWindGust() {
@@ -441,8 +444,8 @@ export const ambience = {
     if (!active || !audioContext || !masterGain) return;
     if (nextPhase === 'day') {
       clearTimers(owlTimers);
-      stopOwlSourcesSoon(0);
-      fadeNight(0, 2);
+      stopOwlSourcesSoon(5);
+      fadeNight(0, 5);
       clearTimers(windTimers);
       clearTimers(transitionTimers);
       if (windSource) scheduleWindGust();
@@ -453,10 +456,9 @@ export const ambience = {
       clearTimers(birdTimers);
       clearTimers(windTimers);
       clearTimers(owlTimers);
-      stopOwlSourcesSoon(0);
-      stopSourcesSoon(0.15);
-      fadeNight(1, 2);
-      fadeMaster(0, 4);
+      stopSourcesSoon(5);
+      fadeNight(1, 5);
+      fadeMaster(0, 5);
       scheduleOwls(true);
     }
   },
