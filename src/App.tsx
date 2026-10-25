@@ -905,16 +905,19 @@ export default function App() {
     setShowStart(false);
   };
   const toggleLandscapeMode = async () => {
+    const orientation = window.screen.orientation as typeof window.screen.orientation & {
+      lock?: (value: 'landscape') => Promise<void>;
+    };
     if (landscapeMode) {
-      try { window.screen.orientation?.unlock(); } catch { /* API indisponível neste navegador. */ }
+      try { orientation?.unlock(); } catch { /* API indisponível neste navegador. */ }
       setLandscapeMode(false);
       return;
     }
     const stage = canvasRef.current?.parentElement;
     try {
       if (stage?.requestFullscreen && !document.fullscreenElement) await stage.requestFullscreen();
-      if (!window.screen.orientation?.lock) return;
-      await window.screen.orientation.lock('landscape');
+      if (!orientation?.lock) return;
+      await orientation.lock('landscape');
       setLandscapeMode(true);
     } catch {
       // A orientação forçada depende do suporte do navegador e normalmente exige tela cheia.
