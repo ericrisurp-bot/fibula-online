@@ -35,6 +35,8 @@ type Props = {
   weaponLabel: string;
   constructionMissions: { label: string; progress: number; detail: string; completed: boolean }[];
   inventoryPanelOpen: boolean;
+  audioVolume: number;
+  onAudioVolumeChange: (volume: number) => void;
   interfaceScale: 100 | 130 | 160;
   onInterfaceScaleChange: (scale: 100 | 130 | 160) => void;
   landscapeMode: boolean;
@@ -89,7 +91,7 @@ function LowPolyBackpackIcon() {
   </svg>;
 }
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -197,6 +199,12 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
           <div className="menu-mission-track" role="progressbar" aria-label={`Progresso: ${mission.label}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={mission.progress}><span style={{ width: `${mission.progress}%` }} /></div>
           <small>{mission.detail}</small>
         </div>)}
+      </div>
+      <div className="menu-section-label">ÁUDIO</div>
+      <div className="menu-audio-volume">
+        <label htmlFor="game-master-volume">Volume geral <strong>{Math.round(audioVolume * 100)}%</strong></label>
+        <input id="game-master-volume" type="range" min="0" max="1" step="0.01" value={audioVolume} onChange={event => onAudioVolumeChange(Number(event.currentTarget.value))} aria-label="Volume geral do jogo" />
+        <div className="menu-audio-volume-labels"><span>Silencioso</span><span>Máximo</span></div>
       </div>
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">
