@@ -1422,7 +1422,7 @@ export class GameEngine {
         const vulnerability = this.getDayNightState().vulnerability;
         const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level) * (1 + vulnerability);
         enemy.hp -= damage;
-        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#3f8f45', 2 / 3);
+        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         this.registerDruidBasicHit();
       }
       for (const enemy of hits.filter(e => e.hp <= 0)) this.killEnemy(enemy.id);
@@ -1613,7 +1613,7 @@ export class GameEngine {
       while ((enemy.poisonTick ?? 0) <= 0) {
         const damage = enemy.poisonDamage ?? 0;
         enemy.hp -= damage;
-        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+        this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#3f8f45', 2 / 3);
         enemy.poisonTick = (enemy.poisonTick ?? 0) + CONFIG.druidPoison.tickInterval;
         if (enemy.hp <= 0) {
           this.killEnemy(enemy.id);
