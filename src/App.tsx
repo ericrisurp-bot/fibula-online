@@ -535,7 +535,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, s.player.facingY, aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
+      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1412,7 +1412,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, facingY: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
@@ -1423,121 +1423,65 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.scale(facingScaleX, 1);
   if (!moving) ctx.scale(1 + breath * 0.012, 1 - breath * 0.018);
+  ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
+  const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
+    guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
+    mago: { body: '#9c8be8', outline: '#ded4ff', hood: '#463b78', hoodOutline: '#b7a7ff' },
+    arqueiro: { body: '#d7b66e', outline: '#fff0b7', hood: '#66502c', hoodOutline: '#e8ce8a' },
+    druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
+  };
+  const appearance = classColors[classId];
+  // O corpo também muda de silhueta por classe; não depende da arma equipada.
+  ctx.beginPath();
   if (classId === 'guerreiro') {
-    // Guerreiro humano: roupa de couro, membros separados e leitura direcional em oito sentidos.
-    const backView = facingY < -0.35;
-    const sideView = Math.abs(facingX) > Math.abs(facingY) * 1.15;
-    const diagonal = Math.abs(facingX) > 0.25 && Math.abs(facingY) > 0.25;
-    const step = moving ? Math.sin(time * 11) * 3.1 : Math.sin(time * 2.6) * 0.35;
-    const legSpread = sideView ? 2.2 : 4.2;
-    const skin = '#d8a078';
-    const leather = '#9a6038';
-    const leatherLight = '#bd8050';
-    const leatherDark = '#633d2b';
-    const cloth = '#d6c4a0';
-    const boot = '#493329';
-    // Pernas e botas ficam separadas do tronco para a silhueta parecer humana.
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = leatherDark; ctx.lineWidth = 5.4;
-    ctx.beginPath();
-    ctx.moveTo(-3.6, 4); ctx.lineTo(-legSpread + step, 10.2); ctx.lineTo(-legSpread + step * 1.35, 15.2);
-    ctx.moveTo(3.6, 4); ctx.lineTo(legSpread - step, 10.2); ctx.lineTo(legSpread - step * 1.35, 15.2);
-    ctx.stroke();
-    ctx.strokeStyle = boot; ctx.lineWidth = 5.8;
-    ctx.beginPath();
-    ctx.moveTo(-legSpread + step * 1.35, 14.4); ctx.lineTo(-legSpread - 1.2 + step * 1.35, 16.2);
-    ctx.moveTo(legSpread - step * 1.35, 14.4); ctx.lineTo(legSpread + 1.2 - step * 1.35, 16.2);
-    ctx.stroke();
-    // Braços balançam em oposição às pernas; mãos e antebraços são visíveis.
-    ctx.strokeStyle = leatherDark; ctx.lineWidth = 5.2;
-    ctx.beginPath();
-    ctx.moveTo(-6.1, -5.5); ctx.lineTo(-10 + step * 0.45, -0.2); ctx.lineTo(-8.8 + step * 0.5, 3.2);
-    ctx.moveTo(6.1, -5.5); ctx.lineTo(10 - step * 0.45, -0.2); ctx.lineTo(8.8 - step * 0.5, 3.2);
-    ctx.stroke();
-    ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.arc(-8.8 + step * 0.5, 3.2, 2.1, 0, Math.PI * 2); ctx.arc(8.8 - step * 0.5, 3.2, 2.1, 0, Math.PI * 2); ctx.fill();
-    // Túnica curta sobre couro: torso largo e cintura distinta, sem placas de armadura.
-    ctx.fillStyle = cloth; ctx.strokeStyle = leatherDark; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-5.8, -8); ctx.quadraticCurveTo(-8.2, -6.4, -7.2, -1.6);
-    ctx.lineTo(-5.2, 4.8); ctx.lineTo(5.2, 4.8); ctx.lineTo(7.2, -1.6);
-    ctx.quadraticCurveTo(8.2, -6.4, 5.8, -8); ctx.quadraticCurveTo(0, -10.1, -5.8, -8);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Colete de couro e cinto criam contraste visual sem transformar o herói em tanque.
-    ctx.fillStyle = leather; ctx.beginPath();
-    ctx.moveTo(-5.3, -7.4); ctx.lineTo(-2.1, -8.4); ctx.lineTo(0, -2.1);
-    ctx.lineTo(2.1, -8.4); ctx.lineTo(5.3, -7.4); ctx.lineTo(4.1, 1.2);
-    ctx.lineTo(-4.1, 1.2); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = leatherLight; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(-2.2, -6.8); ctx.lineTo(0, -2.1); ctx.lineTo(2.2, -6.8); ctx.stroke();
-    ctx.fillStyle = leatherDark; ctx.fillRect(-4.8, 1.4, 9.6, 2.1);
-    ctx.fillStyle = '#d7b56b'; ctx.fillRect(-1.2, 1.2, 2.4, 2.5);
-    // Cabeça, orelhas e cabelo/barba mudam conforme a direção real do movimento.
-    ctx.fillStyle = skin;
-    ctx.beginPath(); ctx.ellipse(0, -11.1, sideView ? 4.2 : 4.8, 5.2, 0, 0, Math.PI * 2); ctx.fill();
-    if (sideView) {
-      ctx.fillStyle = skin; ctx.beginPath(); ctx.arc(facingX < 0 ? -4 : 4, -10.8, 1.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#5a3827'; ctx.beginPath();
-      ctx.ellipse(facingX < 0 ? 1.5 : -1.5, -14.1, 3.7, 2.2, 0, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#6b412b'; ctx.beginPath(); ctx.ellipse(facingX < 0 ? 2.2 : -2.2, -8.7, 2.2, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-    } else if (backView) {
-      ctx.fillStyle = '#5a3827'; ctx.beginPath(); ctx.ellipse(0, -14, 5, 3.3, 0, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#6b412b'; ctx.beginPath(); ctx.ellipse(0, -10, 4.5, 4.1, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = leatherDark; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(0, -6.2); ctx.lineTo(0, 0.6); ctx.stroke();
-    } else {
-      ctx.fillStyle = '#5a3827'; ctx.beginPath(); ctx.ellipse(0, -14, 5, 3, 0, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#33251e'; ctx.beginPath(); ctx.arc(-2.1, -10.5, 0.7, 0, Math.PI * 2); ctx.arc(2.1, -10.5, 0.7, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#75462f'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-1.5, -8.4); ctx.lineTo(1.5, -8.4); ctx.stroke();
-    }
-    // Alça diagonal da bolsa de viagem para dar leitura de aventureiro.
-    if (!backView && !sideView && diagonal) {
-      ctx.strokeStyle = leatherDark; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(-4.8, -6.4); ctx.lineTo(3.8, 1.1); ctx.stroke();
-    }
+    ctx.moveTo(-r, r * .2); ctx.lineTo(-r * .9, -r * .5); ctx.lineTo(-r * .35, -r * .95);
+    ctx.lineTo(r * .35, -r * .95); ctx.lineTo(r * .9, -r * .5); ctx.lineTo(r, r * .2);
+    ctx.quadraticCurveTo(0, r * .95, -r, r * .2);
+  } else if (classId === 'mago') {
+    ctx.moveTo(-r * .9, r * .25); ctx.quadraticCurveTo(-r * 1.3, -r * .8, 0, -r * .85);
+    ctx.quadraticCurveTo(r * 1.3, -r * .8, r * .9, r * .25);
+    ctx.quadraticCurveTo(r * .6, r * .95, 0, r * .68); ctx.quadraticCurveTo(-r * .6, r * .95, -r * .9, r * .25);
+  } else if (classId === 'arqueiro') {
+    ctx.moveTo(-r * .95, r * .3); ctx.quadraticCurveTo(-r * .8, -r * .95, 0, -r * .72);
+    ctx.quadraticCurveTo(r * .8, -r * .95, r * .95, r * .3);
+    ctx.lineTo(r * .55, r * .75); ctx.lineTo(-r * .55, r * .75); ctx.closePath();
   } else {
-    const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
-      guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
-      mago: { body: '#9c8be8', outline: '#ded4ff', hood: '#463b78', hoodOutline: '#b7a7ff' },
-      arqueiro: { body: '#d7b66e', outline: '#fff0b7', hood: '#66502c', hoodOutline: '#e8ce8a' },
-      druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
-    };
-    const appearance = classColors[classId];
-    ctx.beginPath();
-    if (classId === 'mago') {
-      ctx.moveTo(-r * .9, r * .25); ctx.quadraticCurveTo(-r * 1.3, -r * .8, 0, -r * .85);
-      ctx.quadraticCurveTo(r * 1.3, -r * .8, r * .9, r * .25);
-      ctx.quadraticCurveTo(r * .6, r * .95, 0, r * .68); ctx.quadraticCurveTo(-r * .6, r * .95, -r * .9, r * .25);
-    } else if (classId === 'arqueiro') {
-      ctx.moveTo(-r * .95, r * .3); ctx.quadraticCurveTo(-r * .8, -r * .95, 0, -r * .72);
-      ctx.quadraticCurveTo(r * .8, -r * .95, r * .95, r * .3);
-      ctx.lineTo(r * .55, r * .75); ctx.lineTo(-r * .55, r * .75); ctx.closePath();
-    } else {
-      ctx.moveTo(-r, r * .2); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r);
-      ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .2); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72);
-      ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .2);
-    }
-    ctx.fillStyle = appearance.body; ctx.fill(); ctx.strokeStyle = appearance.outline; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = appearance.hood; ctx.strokeStyle = appearance.hoodOutline; ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (classId === 'mago') {
-      ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .55, -r * 1.05); ctx.lineTo(r * .08, -r * 1.75);
-      ctx.lineTo(r * .48, -r * .95); ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-    } else if (classId === 'arqueiro') {
-      ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32);
-      ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#e9d39a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -r * 1.12); ctx.lineTo(0, -r * .48); ctx.stroke();
-    } else {
-      ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .78, -r * .92); ctx.lineTo(-r * .42, -r * .62);
-      ctx.lineTo(-r * .12, -r * 1.25); ctx.lineTo(r * .18, -r * .65); ctx.lineTo(r * .62, -r * 1.02);
-      ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
-    ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
-    const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
-    ctx.save(); ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45); ctx.restore();
+    ctx.moveTo(-r, r * .2); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r);
+    ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .2); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72);
+    ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .2);
   }
+  ctx.fillStyle = appearance.body; ctx.fill(); ctx.strokeStyle = appearance.outline; ctx.lineWidth = 2; ctx.stroke();
+  // Silhueta própria por classe: trocar de classe muda o personagem, não só a arma.
+  ctx.fillStyle = appearance.hood; ctx.strokeStyle = appearance.hoodOutline; ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (classId === 'guerreiro') {
+    ctx.moveTo(-r * .95, -r * .35); ctx.lineTo(-r * .82, -r * .95); ctx.lineTo(-r * .35, -r * 1.2);
+    ctx.lineTo(r * .35, -r * 1.2); ctx.lineTo(r * .82, -r * .95); ctx.lineTo(r * .95, -r * .35);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#f2d0a7'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-r * .48, -r * .48); ctx.lineTo(r * .48, -r * .48); ctx.stroke();
+  } else if (classId === 'mago') {
+    ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .55, -r * 1.05); ctx.lineTo(r * .08, -r * 1.75);
+    ctx.lineTo(r * .48, -r * .95); ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (classId === 'arqueiro') {
+    ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32);
+    ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#e9d39a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -r * 1.12); ctx.lineTo(0, -r * .48); ctx.stroke();
+  } else {
+    // Coroa de folhas exclusiva do Druida.
+    ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .78, -r * .92); ctx.lineTo(-r * .42, -r * .62);
+    ctx.lineTo(-r * .12, -r * 1.25); ctx.lineTo(r * .18, -r * .65); ctx.lineTo(r * .62, -r * 1.02);
+    ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
+  // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
+  const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
+  ctx.save(); ctx.rotate(-facingRotation);
+  ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45);
+  ctx.restore();
   if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
