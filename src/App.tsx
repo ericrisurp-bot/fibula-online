@@ -711,6 +711,31 @@ export default function App() {
         toggleInventoryPanel();
         return;
       }
+      if ((e.target instanceof HTMLElement) && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) return;
+      if (k === 'q' && !e.repeat) {
+        const current = engine.state;
+        const cartDistanceNow = Math.hypot(current.player.x - current.cart.x, current.player.y - current.cart.y);
+        const houseDistanceNow = Math.hypot(current.player.x - current.house.x, current.player.y - current.house.y);
+        const canUseCart = current.cart.repaired && (current.cart.carried || cartDistanceNow <= CONFIG.cart.interactRadius);
+        const canUseHouse = current.house.built && houseDistanceNow <= CONFIG.house.interactRadius;
+        if (canUseCart || canUseHouse) {
+          if (canUseCart && (!canUseHouse || cartDistanceNow <= houseDistanceNow)) engine.storeAllBagToCart();
+          else engine.storeAllBagToHouse();
+        }
+        return;
+      }
+      if (k === 'e' && !e.repeat) {
+        const current = engine.state;
+        const options: Array<{ distance: number; radius: number; available: boolean; build: () => void }> = [
+          { distance: Math.hypot(current.player.x - current.cart.x, current.player.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: !current.cart.repaired, build: () => engine.buildCart() },
+          { distance: Math.hypot(current.player.x - current.house.x, current.player.y - current.house.y), radius: CONFIG.house.interactRadius, available: !current.house.built, build: () => engine.buildHouse() },
+          { distance: Math.hypot(current.player.x - current.refinery.x, current.player.y - current.refinery.y), radius: CONFIG.refinery.interactRadius, available: !current.refinery.built, build: () => engine.buildRefinery() },
+          { distance: Math.hypot(current.player.x - current.tecelaria.x, current.player.y - current.tecelaria.y), radius: CONFIG.tecelaria.interactRadius, available: !current.tecelaria.built, build: () => engine.buildTecelaria() },
+        ];
+        const nearest = options.filter(option => option.available && option.distance <= option.radius).sort((a, b) => a.distance - b.distance)[0];
+        nearest?.build();
+        return;
+      }
       if (k === 't' && !e.repeat) {
         if (removeFlagAtPlayer()) {
           closeFlagMenu();
