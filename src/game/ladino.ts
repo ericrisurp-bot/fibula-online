@@ -176,15 +176,17 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[50,52],[50,117]], '#f0f0f4', 1.5);
     poly(ctx, [[44,45],[56,45],[59,52],[50,58],[41,52]], P.trim, OUT, 1);
   } else if (isSide) {
-    // Silhueta lateral: robe/capa em perfil cobre a leitura frontal do cinto e da túnica.
-    poly(ctx, [[43,45],[57,45],[61,57],[58,82],[60,106],[56,126],[43,126],[40,105],[42,82],[39,58]], '#d5d6df');
-    poly(ctx, [[43,48],[48,49],[48,119],[43,124],[42,104],[44,81],[41,59]], '#f0f0f4', OUT, 1.2);
-    poly(ctx, [[51,49],[57,48],[59,59],[56,82],[58,105],[54,124],[49,119]], '#bfc2cd', OUT, 1.2);
-    line(ctx, [[43,49],[41,59],[44,81],[42,104],[43,124]], P.trim, 1.8);
-    line(ctx, [[57,48],[59,59],[56,82],[58,105],[54,124]], P.trim, 1.8);
-    // Um único braço/luva de perfil, sem os dois braços frontais em paralelo.
-    poly(ctx, [[52,54],[59,57],[60,76],[56,86],[51,82]], DARK);
-    poly(ctx, [[52,79],[59,80],[58,89],[52,88]], DARK2);
+    // Silhueta lateral contínua: uma base opaca cobre braços, ombros e roupa frontal,
+    // evitando que camadas do desenho frontal pareçam duas metades encaixadas.
+    poly(ctx, [[31,40],[69,40],[82,51],[73,66],[65,75],[68,101],[61,127],[43,127],[36,102],[37,76],[27,65],[18,51]], P.dark);
+    poly(ctx, [[34,43],[49,45],[47,72],[44,101],[48,122],[43,123],[36,101],[37,76],[27,64]], '#d5d6df', OUT, 1.2);
+    poly(ctx, [[50,45],[66,43],[78,52],[69,65],[61,75],[63,101],[57,123],[49,122],[54,101],[53,75]], '#bfc2cd', OUT, 1.2);
+    poly(ctx, [[31,42],[42,44],[39,62],[30,62],[22,52]], P.main, OUT, 1.2);
+    line(ctx, [[34,44],[30,62],[37,76],[36,101],[43,123]], P.trim, 1.8);
+    line(ctx, [[66,44],[78,52],[69,65],[61,75],[63,101],[57,123]], P.trim, 1.8);
+    // Um único braço/luva de perfil, desenhado sobre a silhueta contínua.
+    poly(ctx, [[54,54],[62,57],[63,76],[58,86],[52,82]], DARK);
+    poly(ctx, [[53,79],[60,80],[59,89],[52,88]], DARK2);
   }
 
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
