@@ -392,8 +392,8 @@ export default function App() {
         // A vinheta também usa uma textura reutilizável; o recorte acompanha a posição do jogador.
         const playerScreenX = (s.player.x - left) * scale;
         const playerScreenY = (s.player.y - top) * scale;
-        const vignetteWidth = overlay.width * 3;
-        const vignetteHeight = overlay.height * 3;
+        const vignetteWidth = overlayWidth * 3;
+        const vignetteHeight = overlayHeight * 3;
         const nextVignetteTextureKey = `${vignetteWidth}x${vignetteHeight}:${w}x${h}`;
         if (vignetteTextureCtx && vignetteTextureKey !== nextVignetteTextureKey) {
           vignetteTexture.width = vignetteWidth;
