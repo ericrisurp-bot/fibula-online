@@ -225,8 +225,8 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[58,16],[66,30],[60,50]], P.trim, 2.2);
     line(ctx, [[44,16],[58,16]], P.trim, 2.2);
     // Os dois olhos ficam menores e próximos no perfil.
-    eye(ctx, P, 46, 33, -0.15, 0.42);
-    eye(ctx, P, 53, 33, -0.15, 0.42);
+    eye(ctx, P, 46, 33, -0.15, 0.6);
+    eye(ctx, P, 53, 33, -0.15, 0.6);
   } else {
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
