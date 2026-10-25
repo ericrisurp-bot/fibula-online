@@ -1054,6 +1054,9 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
     ctx.fillStyle = '#8fceaa'; ctx.fillRect(-24, -27, 48 * progress, 6);
     ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -27, 48, 6);
   }
+  ctx.restore();
+}
+
 function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery']) {
   const { x, y, woodDelivered, stoneDelivered, built } = refinery;
   ctx.save(); ctx.translate(x, y);
