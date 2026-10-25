@@ -74,6 +74,7 @@ function routeVoice(source: AudioScheduledSourceNode, nodes: AudioNode[], output
   activeSources.add(source);
   if (owl) owlSources.add(source);
   source.addEventListener('ended', () => {
+    try { source.disconnect(); } catch { /* A fonte já está desconectada. */ }
     activeSources.delete(source);
     owlSources.delete(source);
     for (const node of nodes) {
@@ -255,6 +256,7 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
   const peak = 0.04 * (1 - distance * 0.85);
   const gapSeconds = () => audioManager.rand(0.3, 0.8) * rhythmScale;
   const durations = Array.from({ length: noteCount }, () => audioManager.rand(0.25, 0.6) * rhythmScale);
+  const gaps = Array.from({ length: noteCount - 1 }, () => gapSeconds());
   let configuration = `${noteCount}:${Math.round(baseFrequency)}:${Math.round(rhythmScale * 100)}`;
   if (configuration === lastOwlConfiguration) {
     baseFrequency = Math.min(480, baseFrequency + 9);
@@ -264,7 +266,7 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
 
   const start = context.currentTime + 0.01;
   let cursor = start;
-  const end = start + durations.reduce((sum, duration, index) => sum + duration + (index < noteCount - 1 ? gapSeconds() : 0), 0) + 0.04;
+  const end = start + durations.reduce((sum, duration) => sum + duration, 0) + gaps.reduce((sum, gap) => sum + gap, 0) + 0.04;
 
   const oscillator = context.createOscillator();
   oscillator.type = 'sine';
@@ -340,7 +342,7 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
       noiseGain.gain.linearRampToValueAtTime(breathPeak, cursor + 0.005);
       noiseGain.gain.exponentialRampToValueAtTime(0.0001, cursor + Math.min(0.045, duration * 0.2));
     }
-    cursor = noteEnd + (i < noteCount - 1 ? gapSeconds() : 0);
+    cursor = noteEnd + (i < noteCount - 1 ? gaps[i]! : 0);
   }
 
   oscillator.start(start);
@@ -457,10 +459,10 @@ export const ambience = {
       clearTimers(windTimers);
       clearTimers(owlTimers);
       stopOwlSourcesSoon(0);
+      stopSourcesSoon(0.15);
       fadeNight(1, 2);
       fadeMaster(0, 4);
       scheduleOwls(true);
-      if (windSource) rememberTimer(transitionTimers, stopWind, 4100);
     }
   },
 };
