@@ -1003,6 +1003,7 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
   ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,.28)';
   ctx.beginPath(); ctx.ellipse(0, 20, 38, 12, 0, 0, Math.PI * 2); ctx.fill();
+  if (!built) ctx.scale(1.7, 1.7);
   if (built) {
     ctx.fillStyle = '#755038'; ctx.fillRect(-28, -10, 56, 38);
     ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.strokeRect(-28, -10, 56, 38);
@@ -1041,6 +1042,7 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,.3)';
   ctx.beginPath(); ctx.ellipse(0, 20, 42, 13, 0, 0, Math.PI * 2); ctx.fill();
+  if (!built) ctx.scale(1.7, 1.7);
   if (!built) {
     // Materiais separados no terreno: pedra agrupada e madeira ao lado, sem armação.
     const stone = (sx: number, sy: number, w: number, h: number, shade: string) => {
@@ -1090,35 +1092,47 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
   const { x, y, built, bronzeDelivered, woodDelivered, cottonDelivered, stoneDelivered } = building;
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, 20, 43, 13, 0, 0, Math.PI * 2); ctx.fill();
+  if (!built) ctx.scale(1.7, 1.7);
   if (!built) {
-    // Materiais da tecelaria agrupados no terreno, sem desenhar a estrutura antecipadamente.
-    // Madeira: pequenos troncos no lado esquerdo.
-    for (const log of [{ x: -24, y: 12, length: 20 }, { x: -24, y: 17, length: 17 }]) {
-      ctx.save(); ctx.translate(log.x, log.y); ctx.rotate(-0.1);
-      ctx.lineCap = 'round'; ctx.strokeStyle = '#5b3a25'; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(-log.length / 2, 0); ctx.lineTo(log.length / 2, 0); ctx.stroke();
-      ctx.strokeStyle = '#b18350'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(-log.length / 2 + 1, -1); ctx.lineTo(log.length / 2 - 1, -1); ctx.stroke();
-      ctx.restore();
-    }
-    // Pedra em blocos baixos.
-    ctx.fillStyle = '#8e989e'; ctx.strokeStyle = '#4d585e'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(-11, 17); ctx.lineTo(-8, 8); ctx.lineTo(1, 7); ctx.lineTo(5, 16); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#69757c'; ctx.beginPath(); ctx.moveTo(0, 17); ctx.lineTo(5, 9); ctx.lineTo(14, 11); ctx.lineTo(17, 17); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Bronze como lingote e algodão como fibras brancas.
-    ctx.fillStyle = '#a86e43'; ctx.strokeStyle = '#5c3d2c'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(10, 2); ctx.lineTo(15, -3); ctx.lineTo(25, -3); ctx.lineTo(29, 2); ctx.lineTo(24, 6); ctx.lineTo(14, 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Tecelaria inacabada como ruína low-poly: base quebrada, pedras e madeira partida.
+    const stone = (points: Array<[number, number]>, fill: string) => {
+      ctx.beginPath();
+      points.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
+      ctx.closePath(); ctx.fillStyle = fill; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.4; ctx.fill(); ctx.stroke();
+    };
+    // Fundação irregular e fragmentada, com espaços abertos para parecer quebrada.
+    stone([[-35, 15], [-30, 5], [-18, 3], [-10, 9], [-13, 17]], '#788188');
+    stone([[-14, 17], [-12, 8], [-1, 6], [5, 14], [2, 18]], '#aab2b7');
+    stone([[9, 17], [8, 9], [19, 6], [27, 12], [25, 18]], '#68737a');
+    stone([[25, 10], [27, 2], [35, 4], [37, 13], [31, 16]], '#929ba1');
+    // Pilares de madeira quebrados e inclinados, sem fechar a silhueta numa armação.
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(-27, 8); ctx.lineTo(-29, -11); ctx.lineTo(-22, -19); ctx.stroke();
+    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-27, 7); ctx.lineTo(-29, -10); ctx.stroke();
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(18, 8); ctx.lineTo(20, -8); ctx.lineTo(12, -15); ctx.stroke();
+    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(18, 7); ctx.lineTo(20, -7); ctx.stroke();
+    // Um pedaço de viga caída atravessa parte da base, como resto da obra.
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(3, -7); ctx.stroke();
+    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-18, -1); ctx.lineTo(1, -7); ctx.stroke();
+    // Materiais restantes reconhecíveis, desenhados com facetas coerentes com as pedras do mapa.
+    stone([[-5, 1], [0, -5], [7, -4], [11, 1], [6, 4]], '#8e989e');
+    stone([[3, 5], [9, 0], [15, 2], [16, 7], [8, 9]], '#69757c');
     ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#d8d0c1'; ctx.lineWidth = 1;
-    for (const puff of [{ x: 22, y: 13 }, { x: 29, y: 15 }, { x: 25, y: 18 }]) {
-      ctx.beginPath(); ctx.arc(puff.x - 2, puff.y, 3.5, 0, Math.PI * 2); ctx.arc(puff.x + 2, puff.y - 1, 3.5, 0, Math.PI * 2); ctx.arc(puff.x, puff.y + 2, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    for (const puff of [{ x: 28, y: 0 }, { x: 33, y: 2 }, { x: 29, y: 4 }]) {
+      ctx.beginPath(); ctx.arc(puff.x - 2, puff.y, 3, 0, Math.PI * 2); ctx.arc(puff.x + 2, puff.y - 1, 3, 0, Math.PI * 2); ctx.arc(puff.x, puff.y + 2, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
     const progress = Math.min(bronzeDelivered / CONFIG.tecelaria.buildCostBronze, woodDelivered / CONFIG.tecelaria.buildCostWood, cottonDelivered / CONFIG.tecelaria.buildCostCotton, stoneDelivered / CONFIG.tecelaria.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -30, 84, 8);
-    ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -30, 84 * progress, 8);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -30, 84, 8);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -34, 84, 8);
+    ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -34, 84 * progress, 8);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -34, 84, 8);
     ctx.restore(); return;
-  }
-  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
+  }  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
   ctx.fillRect(-35, -15, 70, 40); ctx.strokeRect(-35, -15, 70, 40);
   ctx.fillStyle = '#8d7857'; ctx.beginPath(); ctx.moveTo(-42, -15); ctx.lineTo(-25, -36); ctx.lineTo(25, -36); ctx.lineTo(42, -15); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#d8c39a'; ctx.fillRect(-22, -5, 44, 22); ctx.strokeStyle = '#3b3022'; ctx.lineWidth = 2; ctx.strokeRect(-22, -5, 44, 22);
