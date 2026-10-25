@@ -248,7 +248,7 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
   if (audioManager.getActiveVoices() > 8) return null;
 
   const noteCount = 2 + Math.floor(Math.random() * 3);
-  let baseFrequency = audioManager.rand(320, 480) * pitchOffset;
+  let baseFrequency = Math.max(320, Math.min(480, audioManager.rand(320, 480) * pitchOffset));
   const rhythmScale = audioManager.rand(0.85, 1.15);
   const pan = forcedPan ?? audioManager.rand(-0.9, 0.9);
   const distance = Math.random();
