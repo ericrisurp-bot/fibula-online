@@ -61,12 +61,12 @@ function eyePoints(cx: number, cy: number, w: number, h: number, rot: number): P
   return base.map(([x, y]) => [cx + x * cos - y * sin, cy + x * sin + y * cos]);
 }
 
-function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, rot: number): void {
+function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, rot: number, size = 1): void {
   c.save();
   c.globalAlpha = 0.35;
-  poly(c, eyePoints(cx, cy, 6.5 * 1.5, 4.8 * 1.5, rot), p.glowEdge, p.glowEdge, 0.8);
+  poly(c, eyePoints(cx, cy, 6.5 * size * 1.5, 4.8 * size * 1.5, rot), p.glowEdge, p.glowEdge, 0.8);
   c.restore();
-  poly(c, eyePoints(cx, cy, 6.5, 4.8, rot), p.glow, p.glow, 0.8);
+  poly(c, eyePoints(cx, cy, 6.5 * size, 4.8 * size, rot), p.glow, p.glow, 0.8);
 }
 
 export type LadinoDirection = 'front' | 'back' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
@@ -224,6 +224,8 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[44,16],[38,30],[44,50]], P.trim, 2.2);
     line(ctx, [[58,16],[66,30],[60,50]], P.trim, 2.2);
     line(ctx, [[44,16],[58,16]], P.trim, 2.2);
+    // Um único olho menor reforça o perfil sem parecer uma vista frontal.
+    eye(ctx, P, 48, 33, -0.15, 0.42);
   } else {
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
