@@ -35,6 +35,8 @@ type Props = {
   weaponLabel: string;
   constructionMissions: { label: string; progress: number; detail: string; completed: boolean }[];
   inventoryPanelOpen: boolean;
+  interfaceScale: 100 | 130 | 160;
+  onInterfaceScaleChange: (scale: 100 | 130 | 160) => void;
 };
 
 const STICK_RADIUS = 42;
@@ -85,7 +87,7 @@ function LowPolyBackpackIcon() {
   </svg>;
 }
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen, interfaceScale, onInterfaceScaleChange }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
@@ -170,7 +172,13 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">
         <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onClick={onRange}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
-        <div className="menu-zoom-row"><span>Zoom</span><div><button type="button" aria-label="Diminuir zoom" onClick={() => onZoom(-0.15)}>−</button><button type="button" aria-label="Aumentar zoom" onClick={() => onZoom(0.15)}>+</button></div></div>
+        <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onClick={() => onZoom(-0.15)}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onClick={() => onZoom(0.15)}>+</button></div></div>
+        <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
+          <span>Escala da interface</span>
+          <div className="menu-interface-scale-options">
+            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onClick={() => onInterfaceScaleChange(scale)}>{scale}%</button>)}
+          </div>
+        </div>
       </div>
       <div className="menu-weapon"><span>ARMA ATUAL</span><strong>{weaponLabel}</strong></div>
     </div>}
