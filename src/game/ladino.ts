@@ -81,8 +81,11 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const k = carry ? 0.65 : 1;
   const sL = Math.sin(phase);
   const sR = Math.sin(phase + Math.PI);
-  const liftL = walking ? Math.max(0, sL) * 7 * k : 0;
-  const liftR = walking ? Math.max(0, sR) * 7 * k : 0;
+  // Passada alternada: desloca cada perna para a frente e levanta pouco o pé.
+  const strideL = walking ? sL * 4.5 * k : 0;
+  const strideR = walking ? sR * 4.5 * k : 0;
+  const liftL = walking ? Math.max(0, sL) * 4.5 * k : 0;
+  const liftR = walking ? Math.max(0, sR) * 4.5 * k : 0;
   const bob = walking ? -Math.abs(Math.sin(phase)) * 2.4 * (carry ? 1.4 : 1) : -breath * 0.9;
   const sway = walking ? Math.sin(phase) * 2.2 : breath * 0.5;
   const leftArmAngle = walking ? (carry ? -0.30 : -sL * 0.22) : breath * 0.02;
@@ -106,12 +109,12 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   cape([[27,46],[73,46],[84,96],[78,122],[66,112],[58,128],[50,114],[42,128],[34,112],[22,122],[16,96]], P.dark);
   cape([[27,46],[50,46],[50,114],[42,128],[34,112],[22,122],[16,96]], P.main);
 
-  // Pernas e botas: a fase deriva da distância real percorrida pelo jogador.
-  poly(ctx, [[35,82+bob],[48,82+bob],[47,108-liftL],[36,108-liftL]], DARK2);
-  poly(ctx, [[52,82+bob],[65,82+bob],[64,108-liftR],[53,108-liftR]], DARK2);
-  for (const [x, lift] of [[41, liftL], [58, liftR]] as const) {
-    poly(ctx, [[x-7,106-lift],[x+7,106-lift],[x+8,127-lift],[x+11,133-lift],[x-10,133-lift],[x-8,127-lift]], '#2a2420');
-    poly(ctx, [[x-7,106-lift],[x+7,106-lift],[x+7,114-lift],[x-7,114-lift]], LEATH);
+  // Pernas e botas: passada alternada com deslocamento horizontal e elevação discreta.
+  poly(ctx, [[35+strideL,82+bob],[48+strideL,82+bob],[47+strideL,108-liftL],[36+strideL,108-liftL]], DARK2);
+  poly(ctx, [[52+strideR,82+bob],[65+strideR,82+bob],[64+strideR,108-liftR],[53+strideR,108-liftR]], DARK2);
+  for (const [x, lift, stride] of [[41, liftL, strideL], [58, liftR, strideR]] as const) {
+    poly(ctx, [[x-7+stride,106-lift],[x+7+stride,106-lift],[x+8+stride,127-lift],[x+11+stride,133-lift],[x-10+stride,133-lift],[x-8+stride,127-lift]], '#2a2420');
+    poly(ctx, [[x-7+stride,106-lift],[x+7+stride,106-lift],[x+7+stride,114-lift],[x-7+stride,114-lift]], LEATH);
   }
 
   // Tronco, túnica, faixa, bolsa, ombros e cachecol respiram em torno do centro do corpo.
