@@ -17,7 +17,6 @@ const PALETTES: Record<ClassId, Palette> = {
 };
 
 const OUT = '#15151c';
-const SKIN = '#0a0c12';
 const DARK = '#23232b';
 const DARK2 = '#32323d';
 const LEATH = '#6b4a2f';
