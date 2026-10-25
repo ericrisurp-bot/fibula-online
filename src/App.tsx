@@ -245,7 +245,7 @@ export default function App() {
         }});
       }
       for (const tree of s.trees) {
-        const scale = tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3;
+        const scale = tree.size === 'small' ? 1.75 : tree.size === 'medium' ? 2.45 : 3.25;
         worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => {
           ctx.save(); ctx.translate(tree.x, tree.y); ctx.scale(scale, scale);
           const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
@@ -275,11 +275,6 @@ export default function App() {
           polygon([[9, -16], [14, -16], [20, -10], [12, -7], [5, -10]], '#285b3b');
           polygon([[-15, 2], [-7, 2], [-2, 8], [-12, 7], [-18, 1]], '#285b3b');
           polygon([[3, -7], [8, 4], [0, 10], [-2, 1]], '#245537');
-          if (tree.size === 'large') {
-            polygon([[-13, -20], [-7, -29], [0, -39], [7, -29], [12, -24], [5, -20], [0, -23]], '#285b3b', '#173d2a');
-            polygon([[-7, -29], [0, -39], [1, -27], [-3, -23]], '#60965a');
-            polygon([[1, -27], [7, -29], [12, -24], [5, -20]], '#397b4c');
-          }
           ctx.restore();
         }});
       }
