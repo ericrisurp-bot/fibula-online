@@ -1279,7 +1279,7 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
   }
 
   // Rodas atrás da estrutura: a carroceria cobre a parte interna, criando profundidade.
-  if (repaired && showWheels) {
+  if (showWheels) {
     if (vertical) {
       for (const wheelX of [-18, 18]) {
         ctx.save(); ctx.translate(wheelX, 14); ctx.rotate(wheelRotation);
@@ -1366,7 +1366,6 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
       ctx.fillStyle = '#d1a16a'; ctx.fillRect(-24, -27, 44, 4);
       ctx.fillStyle = '#e0b77a'; ctx.fillRect(-22, -27, 40, 1.5);
       ctx.fillStyle = '#53351f'; ctx.fillRect(-23, -2, 42, 3);
-      ctx.restore();
     } else {
       ctx.save(); ctx.rotate(-0.18);
       ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
@@ -1379,7 +1378,6 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
       ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
       ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
     }
-    ctx.restore();
   }
 
   // Barra de reparo mantida no lugar atual para não alterar a interação.
