@@ -202,27 +202,28 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   ctx.translate(50, 54);
   ctx.rotate(hoodTilt);
   ctx.translate(-50, -54);
-  poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], P.main);
-  poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], P.dark);
+  poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], '#292a32', '#17181f', 1.2);
+  poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], '#1c1d24', '#17181f', 1.2);
   // Faces frontais do capuz não são desenhadas no perfil para evitar sobreposição.
   if (!isSide) {
-    poly(ctx, [[50,2],[60,16],[50,29],[40,16]], '#f2f2f6', '', 0);
-    poly(ctx, [[50,2],[40,16],[26,20],[18,44],[32,32]], P.light, '', 0);
-    poly(ctx, [[60,16],[74,20],[82,44],[68,32]], '#3a3a46', '', 0);
-    poly(ctx, [[50,0],[60,16],[40,16]], P.light);
+    // Facetas discretas do capuz, em carvão e cinza para sugerir sombra.
+    poly(ctx, [[50,2],[60,16],[50,29],[40,16]], '#34353e', '', 0);
+    poly(ctx, [[50,2],[40,16],[26,20],[18,44],[32,32]], '#30313a', '', 0);
+    poly(ctx, [[60,16],[74,20],[82,44],[68,32]], '#202129', '', 0);
+    poly(ctx, [[50,0],[60,16],[40,16]], '#3b3c46', '#24252d', 0.8);
   }
   if (isBack) {
     // Vista traseira do mesmo capuz: preserva a silhueta e os acabamentos, sem mostrar o rosto.
-    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], P.dark);
-    poly(ctx, [[43,20],[57,20],[62,34],[56,48],[50,51],[44,48],[38,34]], P.main, P.trim, 1.5);
-    line(ctx, [[50,21],[50,48]], P.light, 1.6);
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], '#1c1d24', '#111218', 1.2);
+    poly(ctx, [[43,20],[57,20],[62,34],[56,48],[50,51],[44,48],[38,34]], '#292a32', '#3c3d47', 1.2);
+    line(ctx, [[50,21],[50,48]], '#3b3c46', 1.2);
   } else if (isSide) {
     // Perfil do capuz: contorno escuro e rosto estreito, sem desenhar olhos.
-    poly(ctx, [[44,14],[58,14],[66,29],[63,42],[58,51],[50,55],[42,51],[37,39],[38,27]], P.dark, OUT, 1.2);
+    poly(ctx, [[44,14],[58,14],[66,29],[63,42],[58,51],[50,55],[42,51],[37,39],[38,27]], '#1c1d24', '#111218', 1.2);
     ctx.save();
-    ctx.shadowColor = P.glow;
-    ctx.shadowBlur = 12;
-    poly(ctx, [[45,18],[56,18],[62,30],[58,43],[52,49],[46,46],[41,34]], P.glow, P.glowEdge, 0.8);
+    ctx.shadowColor = '#090a0f';
+    ctx.shadowBlur = 8;
+    poly(ctx, [[45,18],[56,18],[62,30],[58,43],[52,49],[46,46],[41,34]], '#292a32', '#41424c', 1.0);
     ctx.restore();
     line(ctx, [[44,16],[38,30],[44,50]], P.trim, 2.2);
     line(ctx, [[58,16],[66,30],[60,50]], P.trim, 2.2);
@@ -232,9 +233,9 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     eye(ctx, P, 53, 33, -0.15, 0.6);
   } else {
     ctx.save();
-    ctx.shadowColor = P.glow;
-    ctx.shadowBlur = 12;
-    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], P.glow, P.glowEdge, 0.8);
+    ctx.shadowColor = '#090a0f';
+    ctx.shadowBlur = 8;
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], '#292a32', '#41424c', 1.0);
     ctx.restore();
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
     line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
