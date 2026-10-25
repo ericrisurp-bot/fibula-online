@@ -1,6 +1,6 @@
 export type SoundEvent =
   | { type: 'attack'; classId: 'guerreiro' | 'mago' | 'arqueiro' | 'druida'; explosive?: boolean }
-  | { type: 'gather'; kind: 'wood' | 'stone' | 'cotton' }
+  | { type: 'gather'; kind: 'wood' | 'stone' | 'cotton'; done?: boolean }
   | { type: 'dayNight'; phase: 'day' | 'night' }
   | { type: 'explosion'; kind: 'mage' };
 
