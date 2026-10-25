@@ -542,7 +542,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 
 
 /* Interface translúcida unificada: carvão #222322 com o cenário visível ao fundo. */
-.hud-left-stack .hud-meter,
 .hud-center-stack .hud-chip {
   background: rgba(34, 35, 34, 0.56) !important;
   border-color: rgba(235, 235, 235, 0.22);
@@ -864,7 +863,7 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   }
 }
 
-/* Padrão de transparência carvão para todos os painéis principais, inclusive vida/XP. */
+/* Padrão de transparência carvão para painéis e modais em PC/celular, retrato/paisagem. */
 .hud-vitals-panel,
 .mobile-menu-panel,
 .inventory-quick-panel,
@@ -875,4 +874,9 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   border-color:rgba(235,235,235,.22);
   backdrop-filter:blur(5px);
   -webkit-backdrop-filter:blur(5px);
+}
+/* O painel de vida/XP e suas linhas ficam translúcidos; só os preenchimentos HP/XP mantêm as cores sólidas. */
+.hud-vitals-panel .hud-meter{
+  background:transparent!important;
+  box-shadow:none!important;
 }
