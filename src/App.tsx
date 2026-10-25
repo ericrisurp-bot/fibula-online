@@ -118,6 +118,9 @@ export default function App() {
     }
     const overlay = document.createElement('canvas');
     const octx = overlay.getContext('2d');
+    const fogTexture = document.createElement('canvas');
+    const fogTextureCtx = fogTexture.getContext('2d');
+    let fogTextureKey = '';
     const render = () => {
       if (fpsDisplay) {
         fpsFrameCount++;
@@ -354,16 +357,42 @@ export default function App() {
         octx.setTransform(1, 0, 0, 1, 0, 0);
         octx.clearRect(0, 0, overlay.width, overlay.height);
 
-        // Neblina no espaço do mundo, com a mesma matemática e os mesmos color stops.
+        // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
-        octx.setTransform(0.125 * scale, 0, 0, 0.125 * scale, -left * 0.125 * scale, -top * 0.125 * scale);
-        const fog = octx.createRadialGradient(s.player.x, s.player.y, 0, s.player.x, s.player.y, fogRadius);
-        fog.addColorStop(0, `rgba(5, 8, 18, ${0.24 * darkness})`);
-        fog.addColorStop(0.45, `rgba(5, 8, 18, ${0.5 * darkness})`);
-        fog.addColorStop(0.78, `rgba(5, 8, 18, ${0.75 * darkness})`);
-        fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength) * darkness})`);
-        octx.fillStyle = fog;
-        octx.fillRect(left, top, viewW, viewH);
+        const fogTextureWidth = overlay.width * 3;
+        const fogTextureHeight = overlay.height * 3;
+        const nextFogTextureKey = `${fogTextureWidth}x${fogTextureHeight}:${scale}:${fogRadius}:${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)}`;
+        if (fogTextureCtx && fogTextureKey !== nextFogTextureKey) {
+          fogTexture.width = fogTextureWidth;
+          fogTexture.height = fogTextureHeight;
+          const fogCenterX = fogTextureWidth / 2;
+          const fogCenterY = fogTextureHeight / 2;
+          const fog = fogTextureCtx.createRadialGradient(
+            fogCenterX, fogCenterY, 0,
+            fogCenterX, fogCenterY, fogRadius * scale * 0.125,
+          );
+          fog.addColorStop(0, 'rgba(5, 8, 18, 0.24)');
+          fog.addColorStop(0.45, 'rgba(5, 8, 18, 0.5)');
+          fog.addColorStop(0.78, 'rgba(5, 8, 18, 0.75)');
+          fog.addColorStop(1, `rgba(5, 8, 18, ${Math.min(0.94, CONFIG.dayNight.nightOverlayStrength)})`);
+          fogTextureCtx.fillStyle = fog;
+          fogTextureCtx.fillRect(0, 0, fogTextureWidth, fogTextureHeight);
+          fogTextureKey = nextFogTextureKey;
+        }
+        if (fogTextureCtx) {
+          const playerScreenX = (s.player.x - left) * scale * 0.125;
+          const playerScreenY = (s.player.y - top) * scale * 0.125;
+          octx.globalAlpha = darkness;
+          octx.drawImage(
+            fogTexture,
+            fogTexture.width / 2 - playerScreenX,
+            fogTexture.height / 2 - playerScreenY,
+            overlay.width,
+            overlay.height,
+            0, 0, overlay.width, overlay.height,
+          );
+          octx.globalAlpha = 1;
+        }
 
         // Vinheta em coordenadas da tela, preservando os raios e os mesmos color stops.
         const playerScreenX = (s.player.x - left) * scale;
