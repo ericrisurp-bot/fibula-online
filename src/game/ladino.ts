@@ -181,7 +181,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
     line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
     line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-    eye(ctx, P, direction === 'left' || direction === 'up-left' || direction === 'down-left' ? 42 : 55, 36, direction === 'left' || direction === 'up-left' || direction === 'down-left' ? -0.25 : 0.25);
+    eye(ctx, P, direction.startsWith('left') || direction.endsWith('left') || direction === 'left' ? 42 : 55, 36, direction.startsWith('left') || direction.endsWith('left') || direction === 'left' ? -0.25 : 0.25);
   } else {
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
