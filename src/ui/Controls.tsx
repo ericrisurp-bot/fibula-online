@@ -34,6 +34,7 @@ type Props = {
   showRange: boolean;
   weaponLabel: string;
   constructionMissions: { label: string; progress: number; detail: string; completed: boolean }[];
+  inventoryPanelOpen: boolean;
 };
 
 const STICK_RADIUS = 42;
@@ -71,25 +72,25 @@ function ClassWeaponIcon({ classId }: { classId: ClassId }) {
 
 function LowPolyBackpackIcon() {
   return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="11,5 13,2 19,2 21,5 24,7 26,12 25,27 22,30 10,30 7,27 6,12 8,7" fill="#9b7047" stroke="#493522" strokeWidth="1.3" strokeLinejoin="round" />
-    <polygon points="11,5 16,4 16,29 10,29 7,26 8,8" fill="#bd915e" />
-    <polygon points="16,4 21,5 24,8 25,26 22,29 16,29" fill="#805738" />
-    <polygon points="11,6 13,3 19,3 21,6 20,10 12,10" fill="#d2b07a" stroke="#60452b" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="10,12 22,12 23,22 9,22" fill="#a77a4d" stroke="#60452b" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="10,12 16,12 16,22 9,22" fill="#c2935b" />
-    <polygon points="16,12 22,12 23,22 16,22" fill="#8d623e" />
-    <polygon points="13,15 19,15 20,19 12,19" fill="#d8b778" stroke="#60452b" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="8,9 10,10 10,25 8,24" fill="#e0c18b" />
-    <polygon points="22,10 24,9 24,24 22,25" fill="#68472f" />
+    <polygon points="11,5 13,2 19,2 21,5 24,7 26,12 25,27 22,30 10,30 7,27 6,12 8,7" fill="#a92f3c" stroke="#571e27" strokeWidth="1.4" strokeLinejoin="round" />
+    <polygon points="11,5 16,4 16,29 10,29 7,26 8,8" fill="#e04a52" />
+    <polygon points="16,4 21,5 24,8 25,26 22,29 16,29" fill="#8e2432" />
+    <polygon points="11,6 13,3 19,3 21,6 20,10 12,10" fill="#f18b78" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="10,12 22,12 23,22 9,22" fill="#bd3441" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="10,12 16,12 16,22 9,22" fill="#ed5a5b" />
+    <polygon points="16,12 22,12 23,22 16,22" fill="#9d2635" />
+    <polygon points="13,15 19,15 20,19 12,19" fill="#f2bd8b" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
+    <polygon points="8,9 10,10 10,25 8,24" fill="#f28b79" />
+    <polygon points="22,10 24,9 24,24 22,25" fill="#6e1e2b" />
   </svg>;
 }
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, constructionMissions, inventoryPanelOpen }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => { if (flagWheelOpen) setMenuOpen(false); }, [flagWheelOpen]);
+  useEffect(() => { if (flagWheelOpen || inventoryPanelOpen) setMenuOpen(false); }, [flagWheelOpen, inventoryPanelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
@@ -195,7 +196,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
       {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
       {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Reparar carrinho"><span aria-hidden="true">🪵</span><small>Construir</small></button>}
-      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon classId={nextClass} /><small>{CLASSES[nextClass].label}</small></button>
+      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon classId={nextClass} /></button>
       <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
     </div>
   </div>;
