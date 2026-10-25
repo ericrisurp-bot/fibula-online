@@ -951,12 +951,12 @@ export default function App() {
             <div className="hud-meter health-meter"><span>HP</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.floor(state.player.hp)}/{Math.floor(state.player.maxHp)}</b></div>
             <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
           </div>
-        </div>
-        <div className="hud-center-stack">
-          <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : 'DIA'}</strong></div>
-          <div className="hud-substats">
-            <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
-            <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+          <div className="hud-center-stack">
+            <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : 'DIA'}</strong></div>
+            <div className="hud-substats">
+              <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
+              <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+            </div>
           </div>
         </div>
       </div>
