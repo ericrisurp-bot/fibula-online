@@ -232,9 +232,9 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
     line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
     line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-    // Rosto frontal original, sem alterar o desenho-base.
-    eye(ctx, P, 42, 36, -0.25);
-    eye(ctx, P, 58, 36, 0.25);
+    // Olhos frontais reduzidos a 80% do tamanho original.
+    eye(ctx, P, 42, 36, -0.25, 0.8);
+    eye(ctx, P, 58, 36, 0.25, 0.8);
   }
   poly(ctx, [[46,10],[54,10],[56,18],[44,18]], null, P.trim, 1.4);
   ctx.restore();
