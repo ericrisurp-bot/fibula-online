@@ -42,6 +42,8 @@ export class GameEngine {
   private hordeTarget = 0;
   private hordeSpawned = 0;
   private hordeScheduled = 0;
+  private diagnosticsEnabled = false;
+  private lastUpdateMs = 0;
   private startAtNight = false;
   private wasNight = false;
   private nightNumber = 0;
@@ -97,6 +99,20 @@ export class GameEngine {
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
+    };
+  }
+
+  setDiagnosticsEnabled(enabled: boolean) { this.diagnosticsEnabled = enabled; }
+
+  getDiagnostics() {
+    return {
+      updateMs: this.lastUpdateMs,
+      aliveEnemies: this.state.enemies.length,
+      dyingEnemies: this.state.dyingEnemies.length,
+      target: this.hordeTarget,
+      scheduled: this.hordeScheduled,
+      spawned: this.hordeSpawned,
+      maxAlive: CONFIG.dayNight.maxAlive,
     };
   }
 
@@ -585,7 +601,9 @@ export class GameEngine {
     if (this.state.dead) return;
     const dt = Math.min((now - this.lastTime) / 1000, 0.04); this.lastTime = now;
     const previousVisibleState = this.visibleStateKey();
+    const diagnosticsStartedAt = this.diagnosticsEnabled ? performance.now() : 0;
     this.update(dt);
+    if (this.diagnosticsEnabled) this.lastUpdateMs = performance.now() - diagnosticsStartedAt;
     if (this.visibleStateKey() !== previousVisibleState) this.emit();
     if (this.state.dead) { this.stop(); return; }
     this.animation = requestAnimationFrame(this.loop);
