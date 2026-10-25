@@ -1254,9 +1254,11 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
 
 function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number, moving: boolean) {
   const { x, y, angle, repairWood, repaired, carried } = cart;
-  // Rodas só ficam expostas no deslocamento praticamente horizontal; diagonais contam como cima/baixo.
+  // Esconde as rodas ao puxar para cima/esquerda (A+W/A+S), mas mantém nas diagonais para a direita (D+W/D+S).
+  // No eixo vertical puro, as rodas ficam ocultas sob a carroceria.
   // A rotação é habilitada apenas quando o jogador está andando e puxando o carrinho.
-  const showWheels = Math.abs(Math.sin(angle)) < 0.15;
+  const hasVerticalComponent = Math.abs(Math.sin(angle)) >= 0.15;
+  const showWheels = !hasVerticalComponent || Math.cos(angle) >= 0.15;
   const wheelRotation = moving ? time * 8 : 0;
   const vertical = Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle));
   const movingUp = Math.sin(angle) < 0;
