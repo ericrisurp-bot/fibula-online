@@ -95,11 +95,6 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const scale = 4.5 * r / 135; // Ladino 1,5x maior; preserva a proporção interna.
   ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
   ctx.scale(scale * sideScale, scale);
-  // A vista lateral espelha o personagem inteiro ao olhar para a esquerda.
-  if (isSide && facingLeft) {
-    ctx.translate(100, 0);
-    ctx.scale(-1, 1);
-  }
   const P = PALETTES[classId];
 
   // Sombra mantida fixa no drawPlayer; a capa tem atraso próprio em relação ao corpo.
