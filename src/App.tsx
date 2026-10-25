@@ -29,7 +29,7 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
-  const zoomRef = useRef(0.88);
+  const zoomRef = useRef(1.3);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
