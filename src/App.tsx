@@ -292,7 +292,7 @@ export default function App() {
       }
       const aimAngle = aimTarget
         ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
-        : s.player.facingX < -0.35 ? Math.PI : 0;
+        : Math.atan2(s.player.facingY, s.player.facingX || 0.001);
       const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
       for (const flag of flagsRef.current) {
         if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color) });
@@ -535,7 +535,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
+      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.player.facingX, s.player.facingY, s.dayNight, Boolean(aimTarget), aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1412,18 +1412,27 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, facingX: number, facingY: number, dayNight: 'day' | 'night', hasTarget: boolean, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   const bob = moving ? Math.sin(time * 10) * 1.8 : breath * 0.65;
   // Mantém a cabeça sempre para cima: a arte é virada horizontalmente, nunca girada 180°.
   const facingRotation = 0;
   const facingScaleX = facingX < -0.35 ? -1 : 1;
+  const knightBackView = classId === 'guerreiro' && facingY < -0.35;
+  const knightSideView = classId === 'guerreiro' && Math.abs(facingX) > Math.abs(facingY) * 1.15;
+  const knightCombatWeaponVisible = classId !== 'guerreiro' || dayNight === 'night' || hasTarget || swordSwingTimer > 0;
+  const legSwing = moving ? Math.sin(time * 10) * r * 0.12 : 0;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.scale(facingScaleX, 1);
   if (!moving) ctx.scale(1 + breath * 0.012, 1 - breath * 0.018);
-  ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
+  ctx.strokeStyle = classId === 'guerreiro' ? '#3b4248' : '#a7c8c4'; ctx.lineWidth = classId === 'guerreiro' ? 5 : 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65 - legSwing, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65 + legSwing, r * .94); ctx.stroke();
+  if (classId === 'guerreiro') {
+    ctx.fillStyle = '#333a42'; ctx.strokeStyle = '#9aa5ad'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-r * .52, r * .38); ctx.lineTo(-r * .42, r * .72); ctx.lineTo(-r * .18, r * .76); ctx.lineTo(-r * .14, r * .42); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * .52, r * .38); ctx.lineTo(r * .42, r * .72); ctx.lineTo(r * .18, r * .76); ctx.lineTo(r * .14, r * .42); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
     guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
     mago: { body: '#9c8be8', outline: '#ded4ff', hood: '#463b78', hoodOutline: '#b7a7ff' },
@@ -1450,15 +1459,40 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .2); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72);
     ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .2);
   }
-  ctx.fillStyle = appearance.body; ctx.fill(); ctx.strokeStyle = appearance.outline; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = classId === 'guerreiro' ? '#59636d' : appearance.body; ctx.fill(); ctx.strokeStyle = classId === 'guerreiro' ? '#c4cbd0' : appearance.outline; ctx.lineWidth = 2; ctx.stroke();
+  if (classId === 'guerreiro') {
+    ctx.fillStyle = '#7e8992'; ctx.beginPath(); ctx.moveTo(-r * .55, -r * .42); ctx.lineTo(0, -r * .78); ctx.lineTo(0, r * .55); ctx.lineTo(-r * .68, r * .25); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#46515b'; ctx.beginPath(); ctx.moveTo(r * .55, -r * .42); ctx.lineTo(0, -r * .78); ctx.lineTo(0, r * .55); ctx.lineTo(r * .68, r * .25); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#3b2b24'; ctx.fillRect(-r * .58, r * .1, r * 1.16, r * .16);
+    ctx.fillStyle = '#b4bdc4'; ctx.fillRect(-r * .12, -r * .48, r * .24, r * .7);
+    ctx.fillStyle = '#d3b778'; ctx.fillRect(-r * .11, r * .03, r * .22, r * .2);
+    ctx.fillStyle = '#343c44'; ctx.strokeStyle = '#aeb7be'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-r * .95, -r * .3); ctx.lineTo(-r * .62, -r * .58); ctx.lineTo(-r * .38, -r * .3); ctx.lineTo(-r * .55, r * .02); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * .95, -r * .3); ctx.lineTo(r * .62, -r * .58); ctx.lineTo(r * .38, -r * .3); ctx.lineTo(r * .55, r * .02); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (knightBackView) {
+      ctx.strokeStyle = '#303941'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-r * .52, -r * .42); ctx.lineTo(r * .52, r * .42); ctx.moveTo(r * .52, -r * .42); ctx.lineTo(-r * .52, r * .42); ctx.stroke();
+      ctx.fillStyle = '#6f7a83'; ctx.beginPath(); ctx.moveTo(-r * .24, -r * .72); ctx.lineTo(0, -r * .84); ctx.lineTo(r * .24, -r * .72); ctx.lineTo(0, -r * .55); ctx.closePath(); ctx.fill();
+    }
+  }
   // Silhueta própria por classe: trocar de classe muda o personagem, não só a arma.
-  ctx.fillStyle = appearance.hood; ctx.strokeStyle = appearance.hoodOutline; ctx.lineWidth = 2;
+  ctx.fillStyle = classId === 'guerreiro' ? (knightBackView ? '#414a53' : '#707b84') : appearance.hood; ctx.strokeStyle = classId === 'guerreiro' ? '#c3cbd1' : appearance.hoodOutline; ctx.lineWidth = 2;
   ctx.beginPath();
   if (classId === 'guerreiro') {
-    ctx.moveTo(-r * .95, -r * .35); ctx.lineTo(-r * .82, -r * .95); ctx.lineTo(-r * .35, -r * 1.2);
-    ctx.lineTo(r * .35, -r * 1.2); ctx.lineTo(r * .82, -r * .95); ctx.lineTo(r * .95, -r * .35);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#f2d0a7'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-r * .48, -r * .48); ctx.lineTo(r * .48, -r * .48); ctx.stroke();
+    if (knightBackView) {
+      ctx.beginPath(); ctx.moveTo(-r * .9, -r * .35); ctx.lineTo(-r * .72, -r * 1.02); ctx.lineTo(0, -r * 1.28); ctx.lineTo(r * .72, -r * 1.02); ctx.lineTo(r * .9, -r * .35); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#353d45'; ctx.beginPath(); ctx.moveTo(-r * .58, -r * .42); ctx.lineTo(-r * .42, -r * .95); ctx.lineTo(0, -r * 1.1); ctx.lineTo(r * .42, -r * .95); ctx.lineTo(r * .58, -r * .42); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#9ba6af'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-r * .5, -r * .45); ctx.lineTo(r * .5, -r * .45); ctx.stroke();
+    } else if (knightSideView) {
+      ctx.beginPath(); ctx.moveTo(-r * .65, -r * .35); ctx.lineTo(-r * .62, -r * .98); ctx.lineTo(r * .18, -r * 1.22); ctx.lineTo(r * .82, -r * .72); ctx.lineTo(r * .95, -r * .28); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#303840'; ctx.beginPath(); ctx.moveTo(-r * .35, -r * .4); ctx.lineTo(r * .55, -r * .55); ctx.lineTo(r * .75, -r * .3); ctx.lineTo(-r * .25, -r * .22); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.moveTo(-r * .95, -r * .35); ctx.lineTo(-r * .82, -r * .95); ctx.lineTo(-r * .35, -r * 1.2);
+      ctx.lineTo(r * .35, -r * 1.2); ctx.lineTo(r * .82, -r * .95); ctx.lineTo(r * .95, -r * .35);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2d343b'; ctx.beginPath(); ctx.moveTo(-r * .62, -r * .52); ctx.lineTo(-r * .5, -r * .83); ctx.lineTo(r * .5, -r * .83); ctx.lineTo(r * .62, -r * .52); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#e0c17d'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-r * .48, -r * .48); ctx.lineTo(r * .48, -r * .48); ctx.stroke();
+    }
   } else if (classId === 'mago') {
     ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .55, -r * 1.05); ctx.lineTo(r * .08, -r * 1.75);
     ctx.lineTo(r * .48, -r * .95); ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
@@ -1475,14 +1509,29 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
     ctx.closePath(); ctx.fill(); ctx.stroke();
   }
-  ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
+  if (classId !== 'guerreiro' || (!knightBackView && !knightSideView)) {
+    ctx.fillStyle = classId === 'guerreiro' ? '#182128' : '#10232a';
+    if (classId === 'guerreiro') {
+      ctx.fillRect(-r * .52, -r * .48, r * 1.04, r * .18);
+      ctx.fillStyle = '#b8c4cc'; ctx.fillRect(-r * .42, -r * .47, r * .84, r * .035);
+    } else {
+      ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
   // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
   ctx.save(); ctx.rotate(-facingRotation);
   ctx.font = '900 7px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillStyle = appearance.outline; ctx.fillText(classLabels[classId], 0, -r * 2.45);
   ctx.restore();
-  if (weapon === 'espada') {
+  if (classId === 'guerreiro') {
+    const armSwing = moving ? Math.sin(time * 10) * r * 0.08 : Math.sin(time * 2.6) * r * 0.025;
+    ctx.strokeStyle = '#59636d'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-r * .68, -r * .12); ctx.lineTo(-r * .82 - armSwing, r * .28); ctx.moveTo(r * .68, -r * .12); ctx.lineTo(r * .82 + armSwing, r * .28); ctx.stroke();
+    ctx.fillStyle = '#b7c0c7'; ctx.beginPath(); ctx.moveTo(-r * .91 - armSwing, r * .19); ctx.lineTo(-r * .73 - armSwing, r * .24); ctx.lineTo(-r * .7 - armSwing, r * .43); ctx.lineTo(-r * .94 - armSwing, r * .39); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(r * .91 + armSwing, r * .19); ctx.lineTo(r * .73 + armSwing, r * .24); ctx.lineTo(r * .7 + armSwing, r * .43); ctx.lineTo(r * .94 + armSwing, r * .39); ctx.closePath(); ctx.fill();
+  }
+  if (weapon === 'espada' && knightCombatWeaponVisible) {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
     const angle = swordSwingTimer > 0 ? swordSwingAngle - facingRotation + (progress - 0.5) * 1.55 : aimAngle;
@@ -1499,7 +1548,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
       ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - facingRotation - Math.PI * 0.31, swordSwingAngle - facingRotation + Math.PI * 0.31); ctx.stroke();
       ctx.restore();
     }
-  } else {
+  } else if (weapon !== 'espada' || classId !== 'guerreiro' || knightCombatWeaponVisible) {
     // Cancela o espelhamento horizontal do personagem antes de aplicar o ângulo mundial da mira.
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(aimAngle);
     const isDruidStaff = weapon === 'bastao';
