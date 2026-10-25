@@ -255,12 +255,12 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
   const cutoff = 1200 - distance * 650;
   const peak = 0.04 * (1 - distance * 0.85);
   const gapSeconds = () => audioManager.rand(0.3, 0.8) * rhythmScale;
-  const durations = Array.from({ length: noteCount }, () => audioManager.rand(0.25, 0.6) * rhythmScale);
+  const durations = Array.from({ length: noteCount }, () => audioManager.rand(0.25, 0.6));
   const gaps = Array.from({ length: noteCount - 1 }, () => gapSeconds());
-  let configuration = `${noteCount}:${Math.round(baseFrequency)}:${Math.round(rhythmScale * 100)}`;
+  let configuration = `${noteCount}:${Math.round(baseFrequency)}`;
   if (configuration === lastOwlConfiguration) {
-    baseFrequency = Math.min(480, baseFrequency + 9);
-    configuration = `${noteCount}:${Math.round(baseFrequency)}:${Math.round(rhythmScale * 100)}`;
+    baseFrequency = baseFrequency >= 475 ? 320 * pitchOffset : baseFrequency + 9;
+    configuration = `${noteCount}:${Math.round(baseFrequency)}`;
   }
   lastOwlConfiguration = configuration;
 
@@ -321,8 +321,8 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
 
   for (let i = 0; i < noteCount; i++) {
     const duration = durations[i]!;
-    const fundamental = baseFrequency * Math.pow(0.92, i);
-    const attack = audioManager.rand(0.04, 0.08) * rhythmScale;
+    const fundamental = baseFrequency * (1 - 0.02 * i);
+    const attack = audioManager.rand(0.04, 0.08);
     const noteEnd = cursor + duration;
     oscillator.frequency.setValueAtTime(fundamental, cursor);
     noteGain.gain.setValueAtTime(0.0001, cursor);
