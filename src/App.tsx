@@ -1263,8 +1263,8 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
     ctx.strokeStyle = `rgba(230, 200, 150, ${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5;
     ctx.stroke();
   }
-  // Orientação lateral binária: espelha o desenho, sem girar na diagonal.
-  ctx.scale(angle > Math.PI / 2 ? -1 : 1, 1);
+  // Gira o desenho original para acompanhar a direção do personagem em todos os eixos.
+  ctx.rotate(angle);
   ctx.fillStyle = 'rgba(0,0,0,.3)';
   ctx.beginPath(); ctx.ellipse(0, 14, 30, 9, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 4; ctx.lineCap = 'round';
