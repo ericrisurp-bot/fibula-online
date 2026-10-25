@@ -171,6 +171,8 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
 
     line(ctx, [[44,44],[40,77],[42,105],[44,129]], P.trim, 1.8);
     line(ctx, [[56,44],[67,52],[63,67],[58,77],[60,105],[55,128]], P.trim, 1.8);
+    // A faixa central acompanha o caimento da túnica branca também no perfil.
+    line(ctx, [[50,79],[51,101],[50,127]], P.trim, 2.2);
     poly(ctx, [[42,80],[58,80],[58,86],[42,86]], LEATH2);
     poly(ctx, [[48,80],[52,80],[52,86],[48,86]], GOLD, OUT, 1);
 
