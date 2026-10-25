@@ -95,14 +95,39 @@ export function toneSource(context: AudioContext, buses: SoundBuses, start: numb
   return startVoice(source, [gain], buses, start, duration);
 }
 
-/** Guerreiro: ruído de espada ascendente e golpe grave curto. */
+/** Guerreiro: sopro cortante e brilho metálico curto. */
 export function playWarriorAttack(context: AudioContext, buses: SoundBuses) {
   const v = variation('warrior');
   if (!v) return;
   const start = context.currentTime + v.delay;
-  const duration = 0.16 * v.duration;
-  noiseSource(context, buses, start, duration, 'bandpass', 600 * v.pitch, 1800 * v.pitch, 0.075 * v.volume, v.pitch);
-  toneSource(context, buses, start, 0.12 * v.duration, 'sine', 135 * v.pitch, 90 * v.pitch, 0.065 * v.volume, v.pitch);
+  const sweepDuration = 0.09 * v.duration;
+
+  const blade = context.createBufferSource();
+  blade.buffer = buses.noiseBuffer;
+  blade.playbackRate.setValueAtTime(v.pitch, start);
+  const bladeFilter = context.createBiquadFilter();
+  bladeFilter.type = 'bandpass';
+  bladeFilter.Q.setValueAtTime(4, start);
+  bladeFilter.frequency.setValueAtTime(1800 * v.pitch, start);
+  bladeFilter.frequency.exponentialRampToValueAtTime(7000 * v.pitch, start + sweepDuration);
+  const bladeGain = context.createGain();
+  envelope(bladeGain, start, 0.075 * v.volume, 0.15 * v.duration, 0.003);
+  startVoice(blade, [bladeFilter, bladeGain], buses, start, 0.15 * v.duration);
+
+  const partials = [
+    { frequency: 2400, peak: 0.018 },
+    { frequency: 2400 * 1.54, peak: 0.016 },
+    { frequency: 2400 * 2.2, peak: 0.014 },
+  ];
+  for (const partial of partials) {
+    const source = context.createOscillator();
+    source.type = 'sine';
+    source.frequency.setValueAtTime(partial.frequency * v.pitch, start);
+    source.frequency.exponentialRampToValueAtTime(partial.frequency * v.pitch * 0.985, start + 0.035 * v.duration);
+    const gain = context.createGain();
+    envelope(gain, start + 0.004, partial.peak * v.volume, 0.16 * v.duration, 0.004);
+    startVoice(source, [gain], buses, start + 0.004, 0.16 * v.duration);
+  }
 }
 
 /** Mago: feitiço pentatónico curto, com duas vozes e brilho leve. */
