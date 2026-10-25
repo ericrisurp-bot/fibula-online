@@ -1,4 +1,5 @@
 import { CONFIG, type ClassId, type WeaponId } from './config';
+import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
 
@@ -36,6 +37,7 @@ type InputState = { x: number; y: number };
 export class GameEngine {
   readonly world = CONFIG.map.size;
   state: GameSnapshot;
+  onSound?: (event: SoundEvent) => void;
   private keys = new Set<string>();
   private input: InputState = { x: 0, y: 0 };
   private nextId = 1;

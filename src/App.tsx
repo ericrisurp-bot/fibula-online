@@ -3,6 +3,7 @@ import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
+import { audioManager } from './audio/audioManager';
 
 const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
@@ -55,6 +56,7 @@ export default function App() {
   });
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
@@ -105,9 +107,31 @@ export default function App() {
   ];
 
   useEffect(() => {
+    const unlockAudio = () => {
+      void audioManager.unlock();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio, { passive: true });
+
+    const debugEnabled = new URLSearchParams(window.location.search).get('audiodebug') === '1';
+    const debugWindow = window as Window & { __fibulaAudio?: typeof audioManager };
+    if (debugEnabled) debugWindow.__fibulaAudio = audioManager;
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      if (debugEnabled && debugWindow.__fibulaAudio === audioManager) delete debugWindow.__fibulaAudio;
+    };
+  }, []);
+
+  useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const engine = new GameEngine((next) => setState(next)); engineRef.current = engine;
+    const engine = new GameEngine((next) => setState(next)); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
     let frame = 0;
     let readyTimer: number | null = null;
     let firstFrameRendered = false;
@@ -926,6 +950,7 @@ export default function App() {
   };
 
   const startGame = () => {
+    void audioManager.unlock();
     const stage = canvasRef.current?.parentElement;
     if (stage?.requestFullscreen) {
       void stage.requestFullscreen().catch(() => {
@@ -940,6 +965,7 @@ export default function App() {
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
+      <button className="help-button" onClick={() => { const nextMuted = !audioMuted; setAudioMuted(nextMuted); audioManager.setMuted(nextMuted); }} aria-label={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"} aria-pressed={!audioMuted} title={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"}>{audioMuted ? "🔇" : "🔊"}</button>
       <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
     </header>
     <section className="game-stage">
