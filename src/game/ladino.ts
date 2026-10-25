@@ -77,6 +77,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const isBack = direction === 'back' || direction === 'up-left' || direction === 'up-right';
   // Diagonais para cima usam a vista traseira em três quartos; não empilham a silhueta lateral.
   const isSide = direction === 'left' || direction === 'right' || direction === 'down-left' || direction === 'down-right';
+  const facingLeft = direction === 'left' || direction === 'down-left' || direction === 'up-left';
   const sideScale = isSide ? 0.78 : 1;
   const k = carry ? 0.65 : 1;
   const sL = Math.sin(phase);
@@ -184,9 +185,11 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     poly(ctx, [[31,42],[42,44],[39,62],[30,62],[22,52]], P.main, OUT, 1.2);
     line(ctx, [[34,44],[30,62],[37,76],[36,101],[43,123]], P.trim, 1.8);
     line(ctx, [[66,44],[78,52],[69,65],[61,75],[63,101],[57,123]], P.trim, 1.8);
-    // Um único braço/luva de perfil, desenhado sobre a silhueta contínua.
-    poly(ctx, [[54,54],[62,57],[63,76],[58,86],[52,82]], DARK);
-    poly(ctx, [[53,79],[60,80],[59,89],[52,88]], DARK2);
+    // Só a mão externa fica visível no perfil; a mão interna fica atrás do corpo/capa.
+    if (!facingLeft) {
+      poly(ctx, [[54,54],[62,57],[63,76],[58,86],[52,82]], DARK);
+      poly(ctx, [[53,79],[60,80],[59,89],[52,88]], DARK2);
+    }
   }
 
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
@@ -210,12 +213,11 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     poly(ctx, [[43,20],[57,20],[62,34],[56,48],[50,51],[44,48],[38,34]], P.main, P.trim, 1.5);
     line(ctx, [[50,21],[50,48]], P.light, 1.6);
   } else if (isSide) {
-    // Perfil: o capuz continua igual; só um olho aparece na lateral voltada para a frente.
+    // O capuz cobre completamente o rosto no perfil: sem olho visível.
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
     line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
     line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-    eye(ctx, P, direction.startsWith('left') || direction.endsWith('left') || direction === 'left' ? 42 : 55, 36, direction.startsWith('left') || direction.endsWith('left') || direction === 'left' ? -0.25 : 0.25);
   } else {
     poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
