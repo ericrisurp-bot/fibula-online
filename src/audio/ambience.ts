@@ -6,11 +6,14 @@ type SoundBuses = { sfxBus: GainNode; ambienceBus: GainNode; noiseBuffer: AudioB
 let audioContext: AudioContext | null = null;
 let soundBuses: SoundBuses | null = null;
 let masterGain: GainNode | null = null;
+let nightGain: GainNode | null = null;
 
 const birdTimers = new Set<number>();
 const windTimers = new Set<number>();
 const transitionTimers = new Set<number>();
+const owlTimers = new Set<number>();
 const activeSources = new Set<AudioScheduledSourceNode>();
+const owlSources = new Set<AudioScheduledSourceNode>();
 let windSource: AudioBufferSourceNode | null = null;
 let windBandpass: BiquadFilterNode | null = null;
 let windLowpass: BiquadFilterNode | null = null;
@@ -48,14 +51,17 @@ function attach(context: AudioContext, buses: SoundBuses) {
     masterGain = context.createGain();
     masterGain.gain.value = 0;
     masterGain.connect(buses.ambienceBus);
+    nightGain = context.createGain();
+    nightGain.gain.value = 0;
+    nightGain.connect(buses.ambienceBus);
   } else {
     soundBuses = buses;
   }
 }
 
-function routeVoice(source: AudioScheduledSourceNode, nodes: AudioNode[]) {
+function routeVoice(source: AudioScheduledSourceNode, nodes: AudioNode[], output: GainNode | null = masterGain, owl = false) {
   const buses = soundBuses;
-  if (!audioContext || !buses || !masterGain || !audioManager.createVoice(source, 'ambience')) return false;
+  if (!audioContext || !buses || !output || !audioManager.createVoice(source, 'ambience')) return false;
 
   // createVoice contabiliza a fonte; a saída é reconectada pela cadeia de filtros.
   source.disconnect(buses.ambienceBus);
@@ -64,10 +70,12 @@ function routeVoice(source: AudioScheduledSourceNode, nodes: AudioNode[]) {
     previous.connect(node);
     previous = node;
   }
-  previous.connect(masterGain);
+  previous.connect(output);
   activeSources.add(source);
+  if (owl) owlSources.add(source);
   source.addEventListener('ended', () => {
     activeSources.delete(source);
+    owlSources.delete(source);
     for (const node of nodes) {
       try { node.disconnect(); } catch { /* Nó já desconectado. */ }
     }
@@ -250,6 +258,18 @@ function fadeMaster(target: number, seconds: number) {
   if (audioContext && masterGain) ramp(masterGain.gain, audioContext, target, seconds);
 }
 
+function fadeNight(target: number, seconds: number) {
+  if (audioContext && nightGain) ramp(nightGain.gain, audioContext, target, seconds);
+}
+
+function stopOwlSourcesSoon(seconds: number) {
+  const context = audioContext;
+  if (!context) return;
+  for (const source of owlSources) {
+    try { source.stop(context.currentTime + seconds); } catch { /* A fonte já terminou ou está parando. */ }
+  }
+}
+
 export const ambience = {
   setActive(on: boolean) {
     if (active === on) return;
@@ -258,6 +278,9 @@ export const ambience = {
       clearTimers(birdTimers);
       clearTimers(windTimers);
       clearTimers(transitionTimers);
+      clearTimers(owlTimers);
+      fadeNight(0, 2);
+      stopOwlSourcesSoon(0.16);
       fadeMaster(0, 0.15);
       stopSourcesSoon(0.16);
       return;
@@ -273,6 +296,7 @@ export const ambience = {
       scheduleBirds();
       fadeMaster(1, 5);
     } else {
+      fadeNight(1, 2);
       fadeMaster(0, 4);
     }
   },
@@ -281,6 +305,9 @@ export const ambience = {
     phase = nextPhase;
     if (!active || !audioContext || !masterGain) return;
     if (nextPhase === 'day') {
+      clearTimers(owlTimers);
+      stopOwlSourcesSoon(0);
+      fadeNight(0, 2);
       clearTimers(windTimers);
       clearTimers(transitionTimers);
       if (windSource) scheduleWindGust();
@@ -290,6 +317,7 @@ export const ambience = {
     } else {
       clearTimers(birdTimers);
       clearTimers(windTimers);
+      fadeNight(1, 2);
       fadeMaster(0, 4);
       if (windSource) rememberTimer(transitionTimers, stopWind, 4100);
     }
