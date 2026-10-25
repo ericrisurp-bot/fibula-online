@@ -64,9 +64,12 @@ export default function App() {
     let firstFrameRendered = false;
     const loadingStartedAt = performance.now();
     const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
+    engine.setDiagnosticsEnabled(fpsEnabled);
     let fpsDisplay: HTMLDivElement | null = null;
     let fpsFrameCount = 0;
     let fpsWindowStart = performance.now();
+    let renderDurationTotal = 0;
+    let renderDurationFrames = 0;
     if (fpsEnabled) {
       fpsDisplay = document.createElement('div');
       Object.assign(fpsDisplay.style, {
@@ -75,6 +78,8 @@ export default function App() {
         background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
       });
       fpsDisplay.textContent = 'FPS: --';
+      fpsDisplay.style.whiteSpace = 'pre';
+      fpsDisplay.style.lineHeight = '1.45';
       document.body.appendChild(fpsDisplay);
     }
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
@@ -119,14 +124,25 @@ export default function App() {
     const overlay = document.createElement('canvas');
     const octx = overlay.getContext('2d');
     const render = () => {
+      const renderStartedAt = fpsDisplay ? performance.now() : 0;
       if (fpsDisplay) {
         fpsFrameCount++;
         const now = performance.now();
         const elapsed = now - fpsWindowStart;
         if (elapsed >= 1000) {
-          fpsDisplay.textContent = `FPS: ${Math.round(fpsFrameCount * 1000 / elapsed)}`;
+          const diagnostics = engine.getDiagnostics();
+          const averageRenderMs = renderDurationFrames > 0 ? renderDurationTotal / renderDurationFrames : 0;
+          fpsDisplay.textContent = [
+            `FPS: ${Math.round(fpsFrameCount * 1000 / elapsed)}`,
+            `Canvas: ${averageRenderMs.toFixed(1)} ms`,
+            `Motor: ${diagnostics.updateMs.toFixed(1)} ms`,
+            `Slimes: ${diagnostics.aliveEnemies}/${diagnostics.maxAlive} (+${diagnostics.dyingEnemies} morrendo)`,
+            `Horda: ${diagnostics.spawned}/${diagnostics.target} nascidos · ${diagnostics.scheduled} agendados`,
+          ].join('\\n');
           fpsFrameCount = 0;
           fpsWindowStart = now;
+          renderDurationTotal = 0;
+          renderDurationFrames = 0;
         }
       }
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -415,6 +431,10 @@ export default function App() {
         ctx.closePath();
         ctx.fill();
         ctx.restore();
+      }
+      if (fpsDisplay) {
+        renderDurationTotal += performance.now() - renderStartedAt;
+        renderDurationFrames++;
       }
       if (!firstFrameRendered) {
         firstFrameRendered = true;
