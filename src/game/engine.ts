@@ -1054,7 +1054,7 @@ export class GameEngine {
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
-    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= CONFIG.rocks.mineRange + this.cottonFootprintRadius(plant);
+    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= 38 + this.cottonFootprintRadius(plant);
   }
 
   private collectCotton() {
