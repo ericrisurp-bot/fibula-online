@@ -324,17 +324,16 @@ export default function App() {
           facet([[-12, 9], [-5, 8], [1, 8], [5, 12], [-4, 11]], '#657078');
           facet([[12, -1], [19, -4], [16, 4]], '#59646b');
 
-          // Fissuras curtas e discretas, sem dividir a pedra ao meio.
-          ctx.strokeStyle = 'rgba(48,56,61,0.72)'; ctx.lineWidth = 1.05;
+          // Microfissuras assimétricas, integradas às facetas (sem formar um rosto).
+          ctx.strokeStyle = 'rgba(48,56,61,0.58)'; ctx.lineWidth = 0.85;
           ctx.beginPath();
-          ctx.moveTo(-8 * scale, -4 * scale); ctx.lineTo(-5 * scale, -1 * scale); ctx.lineTo(-7 * scale, 2 * scale);
-          ctx.moveTo(8 * scale, -7 * scale); ctx.lineTo(6 * scale, -3 * scale); ctx.lineTo(9 * scale, -1 * scale);
-          ctx.moveTo(-1 * scale, 5 * scale); ctx.lineTo(2 * scale, 3 * scale);
+          ctx.moveTo(-13 * scale, -7 * scale); ctx.lineTo(-11 * scale, -5 * scale); ctx.lineTo(-12 * scale, -3 * scale);
+          ctx.moveTo(10 * scale, 4 * scale); ctx.lineTo(8 * scale, 6 * scale);
           ctx.stroke();
-          ctx.strokeStyle = 'rgba(230,235,238,0.48)'; ctx.lineWidth = 0.9;
+          ctx.strokeStyle = 'rgba(230,235,238,0.34)'; ctx.lineWidth = 0.75;
           ctx.beginPath();
-          ctx.moveTo(-11 * scale, -12 * scale); ctx.lineTo(-5 * scale, -18 * scale); ctx.lineTo(-2 * scale, -9 * scale);
-          ctx.moveTo(2 * scale, -16 * scale); ctx.lineTo(7 * scale, -18 * scale);
+          ctx.moveTo(-10 * scale, -10 * scale); ctx.lineTo(-6 * scale, -15 * scale);
+          ctx.moveTo(3 * scale, -14 * scale); ctx.lineTo(5 * scale, -15 * scale);
           ctx.stroke();
           ctx.restore();
         }});
