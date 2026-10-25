@@ -1417,11 +1417,17 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
-  // Mantém a cabeça para cima: limita a rotação ao semicírculo superior e espelha quando necessário.
-  let facingRotation = Math.atan2(facingY, facingX) + Math.PI / 2;
-  let facingScaleX = 1;
-  if (facingRotation >= Math.PI / 2) { facingRotation -= Math.PI; facingScaleX = -1; }
-  else if (facingRotation < -Math.PI / 2) { facingRotation += Math.PI; facingScaleX = -1; }
+  // Seleciona a vista pela direção; o desenho-base não é girado.
+  const absX = Math.abs(facingX);
+  const absY = Math.abs(facingY);
+  const direction = absX > absY * 1.15
+    ? (facingX < 0 ? 'left' : 'right')
+    : facingY < 0
+      ? (absX > absY * 0.45 ? (facingX < 0 ? 'up-left' : 'up-right') : 'back')
+      : absX > absY * 0.45
+        ? (facingX < 0 ? 'down-left' : 'down-right')
+        : 'front';
+  const facingScaleX = direction === 'left' || direction === 'up-left' || direction === 'down-left' ? -1 : 1;
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
@@ -1431,8 +1437,8 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
   };
   const appearance = classColors[classId];
-  ctx.save(); ctx.rotate(facingRotation); ctx.scale(facingScaleX, 1);
-  drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving });
+  ctx.save(); ctx.scale(facingScaleX, 1);
+  drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
   // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
