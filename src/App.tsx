@@ -66,6 +66,18 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
+  const [nightFogEnabled, setNightFogEnabled] = useState(() => {
+    const saved = window.localStorage.getItem('fibula-night-fog-enabled');
+    return saved === null ? true : saved === 'true';
+  });
+  const [fpsEnabled, setFpsEnabled] = useState(() => {
+    const saved = window.localStorage.getItem('fibula-fps-enabled');
+    return saved === null ? new URLSearchParams(window.location.search).get('fps') === '1' : saved === 'true';
+  });
+  const nightFogEnabledRef = useRef(nightFogEnabled);
+  const fpsEnabledRef = useRef(fpsEnabled);
+  nightFogEnabledRef.current = nightFogEnabled;
+  fpsEnabledRef.current = fpsEnabled;
   const [showStart, setShowStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
@@ -96,6 +108,12 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
+  useEffect(() => {
+    window.localStorage.setItem('fibula-night-fog-enabled', String(nightFogEnabled));
+  }, [nightFogEnabled]);
+  useEffect(() => {
+    window.localStorage.setItem('fibula-fps-enabled', String(fpsEnabled));
+  }, [fpsEnabled]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -143,20 +161,17 @@ export default function App() {
     let readyTimer: number | null = null;
     let firstFrameRendered = false;
     const loadingStartedAt = performance.now();
-    const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
-    let fpsDisplay: HTMLDivElement | null = null;
+    let fpsDisplay: HTMLDivElement | null = document.createElement('div');
     let fpsFrameCount = 0;
     let fpsWindowStart = performance.now();
-    if (fpsEnabled) {
-      fpsDisplay = document.createElement('div');
-      Object.assign(fpsDisplay.style, {
-        position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
-        zIndex: '2147483647', padding: '3px 6px', color: '#fff',
-        background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
-      });
-      fpsDisplay.textContent = 'FPS: --';
-      document.body.appendChild(fpsDisplay);
-    }
+    Object.assign(fpsDisplay.style, {
+      position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
+      zIndex: '2147483647', padding: '3px 6px', color: '#fff',
+      background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
+    });
+    fpsDisplay.textContent = 'FPS: --';
+    fpsDisplay.hidden = !fpsEnabledRef.current;
+    document.body.appendChild(fpsDisplay);
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
     const terrainScale = 0.5;
     const terrainCanvas = document.createElement('canvas');
@@ -207,10 +222,11 @@ export default function App() {
     const overlayScale = 0.0625;
     const render = () => {
       if (fpsDisplay) {
-        fpsFrameCount++;
+        fpsDisplay.hidden = !fpsEnabledRef.current;
+        if (fpsEnabledRef.current) fpsFrameCount++;
         const now = performance.now();
         const elapsed = now - fpsWindowStart;
-        if (elapsed >= 1000) {
+        if (fpsEnabledRef.current && elapsed >= 1000) {
           fpsDisplay.textContent = `FPS: ${Math.round(fpsFrameCount * 1000 / elapsed)}`;
           fpsFrameCount = 0;
           fpsWindowStart = now;
@@ -573,6 +589,7 @@ export default function App() {
         }
         octx.setTransform(1, 0, 0, 1, 0, 0);
 
+        if (nightFogEnabledRef.current) {
         // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
         const fogRadius = CONFIG.dayNight.visibilityRange * 1.5;
         const fogTextureWidth = overlay.width * 2;
@@ -610,6 +627,7 @@ export default function App() {
           );
           octx.globalAlpha = 1;
           octx.globalCompositeOperation = 'source-over';
+        }
         }
 
         // A vinheta também usa uma textura reutilizável; o recorte acompanha a posição do jogador.
@@ -1070,7 +1088,7 @@ export default function App() {
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && !state.cart.repaired && <div className="cart-repair-status" role="status">CARRINHO · {state.cart.repairWood}/{CONFIG.cart.repairCost} MADEIRAS</div>}
 
-{!showStart &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} nightFogEnabled={nightFogEnabled} onNightFogEnabledChange={setNightFogEnabled} fpsEnabled={fpsEnabled} onFpsEnabledChange={setFpsEnabled} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>;
