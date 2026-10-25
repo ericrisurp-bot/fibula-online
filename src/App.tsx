@@ -358,7 +358,6 @@ export default function App() {
           overlay.height = overlayHeight;
         }
         octx.setTransform(1, 0, 0, 1, 0, 0);
-        octx.clearRect(0, 0, overlay.width, overlay.height);
 
         // Reutiliza a textura da neblina; só a recria se tamanho, escala ou configuração mudarem.
         const fogRadius = CONFIG.dayNight.visibilityRange * 2.2;
@@ -385,6 +384,7 @@ export default function App() {
         if (fogTextureCtx) {
           const playerScreenX = (s.player.x - left) * scale * 0.125;
           const playerScreenY = (s.player.y - top) * scale * 0.125;
+          octx.globalCompositeOperation = 'copy';
           octx.globalAlpha = darkness;
           octx.drawImage(
             fogTexture,
@@ -395,6 +395,7 @@ export default function App() {
             0, 0, overlay.width, overlay.height,
           );
           octx.globalAlpha = 1;
+          octx.globalCompositeOperation = 'source-over';
         }
 
         // A vinheta também usa uma textura reutilizável; o recorte acompanha a posição do jogador.
