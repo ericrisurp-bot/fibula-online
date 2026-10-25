@@ -138,6 +138,7 @@ class AudioManager {
   }
 
   getVolume() { return this.volume; }
+  getActiveVoices(): number { return this.voices; }
 
   rand(min: number, max: number) { return min + Math.random() * (max - min); }
 
