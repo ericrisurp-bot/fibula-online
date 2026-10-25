@@ -63,10 +63,18 @@ export default function App() {
     let readyTimer: number | null = null;
     let firstFrameRendered = false;
     const loadingStartedAt = performance.now();
-    const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
+    const searchParams = new URLSearchParams(window.location.search);
+    const fpsEnabled = searchParams.get('fps') === '1';
+    const perfEnabled = searchParams.get('perf') === '1';
+    const fogDisabled = perfEnabled && searchParams.get('fog') === 'off';
     let fpsDisplay: HTMLDivElement | null = null;
+    let perfDisplay: HTMLDivElement | null = null;
     let fpsFrameCount = 0;
     let fpsWindowStart = performance.now();
+    let perfFrameCount = 0;
+    let perfFrameTotalMs = 0;
+    let perfOverlayTotalMs = 0;
+    let perfWindowStart = performance.now();
     if (fpsEnabled) {
       fpsDisplay = document.createElement('div');
       Object.assign(fpsDisplay.style, {
@@ -76,6 +84,17 @@ export default function App() {
       });
       fpsDisplay.textContent = 'FPS: --';
       document.body.appendChild(fpsDisplay);
+    }
+    if (perfEnabled) {
+      perfDisplay = document.createElement('div');
+      Object.assign(perfDisplay.style, {
+        position: 'fixed', top: '8px', left: '8px', pointerEvents: 'none',
+        zIndex: '2147483647', padding: '6px 8px', color: '#fff',
+        background: 'rgba(0, 0, 0, 0.82)', font: '11px monospace',
+        whiteSpace: 'pre', lineHeight: '1.45',
+      });
+      perfDisplay.textContent = 'FPS audit: collecting…';
+      document.body.appendChild(perfDisplay);
     }
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
     const terrainScale = 0.5;
@@ -119,6 +138,8 @@ export default function App() {
     const overlay = document.createElement('canvas');
     const octx = overlay.getContext('2d');
     const render = () => {
+      const perfFrameStart = perfEnabled ? performance.now() : 0;
+      let perfOverlayMs = 0;
       if (fpsDisplay) {
         fpsFrameCount++;
         const now = performance.now();
@@ -344,7 +365,8 @@ export default function App() {
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
       // Neblina e vinheta são renderizadas em um overlay reutilizado a 25% da resolução.
-      if (darkness > 0.01 && octx) {
+      const perfOverlayStart = perfEnabled ? performance.now() : 0;
+      if (darkness > 0.01 && octx && !fogDisabled) {
         const overlayWidth = Math.ceil(w * 0.25);
         const overlayHeight = Math.ceil(h * 0.25);
         if (overlay.width !== overlayWidth || overlay.height !== overlayHeight) {
@@ -385,6 +407,7 @@ export default function App() {
         // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
         ctx.drawImage(overlay, 0, 0, w, h);
       }
+      if (perfEnabled) perfOverlayMs = performance.now() - perfOverlayStart;
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
         const flagX = flag.attachedToCart ? s.cart.x : flag.x;
@@ -416,6 +439,36 @@ export default function App() {
         ctx.fill();
         ctx.restore();
       }
+      if (perfDisplay) {
+        const now = performance.now();
+        perfFrameCount++;
+        perfFrameTotalMs += now - perfFrameStart;
+        perfOverlayTotalMs += perfOverlayMs;
+        const elapsed = now - perfWindowStart;
+        if (elapsed >= 500) {
+          const metricsWindow = window as Window & { __fibulaPerf?: { updateTotalMs: number; updateFrames: number } };
+          const updateMetrics = metricsWindow.__fibulaPerf;
+          const updateMs = updateMetrics && updateMetrics.updateFrames > 0
+            ? updateMetrics.updateTotalMs / updateMetrics.updateFrames
+            : 0;
+          if (updateMetrics) {
+            updateMetrics.updateTotalMs = 0;
+            updateMetrics.updateFrames = 0;
+          }
+          const average = (total: number) => (total / Math.max(1, perfFrameCount)).toFixed(2);
+          perfDisplay.textContent = [
+            `FPS ${Math.round(perfFrameCount * 1000 / elapsed)} | frame ${average(perfFrameTotalMs)} ms`,
+            `update ${updateMs.toFixed(2)} ms | fog ${average(perfOverlayTotalMs)} ms${fogDisabled ? ' (OFF)' : ''}`,
+            `${s.dayNight.toUpperCase()} | darkness ${darkness.toFixed(2)} | wave ${s.wave}`,
+            `enemies ${s.enemies.length} | shots ${s.shots.length} | XP ${s.xpOrbs.length} | effects ${s.explosions.length + s.floatingDamage.length + s.dyingEnemies.length}`,
+            `DPR ${dpr.toFixed(2)} | trees ${s.trees.length} | rocks ${s.rocks.length}`,
+          ].join('\n');
+          perfFrameCount = 0;
+          perfFrameTotalMs = 0;
+          perfOverlayTotalMs = 0;
+          perfWindowStart = now;
+        }
+      }
       if (!firstFrameRendered) {
         firstFrameRendered = true;
         const remainingLoadingMs = Math.max(0, 800 - (performance.now() - loadingStartedAt));
@@ -426,7 +479,7 @@ export default function App() {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); fpsDisplay?.remove(); perfDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
   }, []);
 
   useEffect(() => {

@@ -56,6 +56,7 @@ export class GameEngine {
   private elapsed = 0;
   private lastTime = 0;
   private animation = 0;
+  private perfEnabled = new URLSearchParams(window.location.search).get('perf') === '1';
   private healthTransitionRemaining = 0;
   private healthTransitionRate = 0;
   private enemyDamageTimer = 0;
@@ -585,7 +586,15 @@ export class GameEngine {
     if (this.state.dead) return;
     const dt = Math.min((now - this.lastTime) / 1000, 0.04); this.lastTime = now;
     const previousVisibleState = this.visibleStateKey();
+    const perfStart = this.perfEnabled ? performance.now() : 0;
     this.update(dt);
+    if (this.perfEnabled) {
+      const perfWindow = window as Window & { __fibulaPerf?: { updateTotalMs: number; updateFrames: number } };
+      const metrics = perfWindow.__fibulaPerf ?? { updateTotalMs: 0, updateFrames: 0 };
+      metrics.updateTotalMs += performance.now() - perfStart;
+      metrics.updateFrames++;
+      perfWindow.__fibulaPerf = metrics;
+    }
     if (this.visibleStateKey() !== previousVisibleState) this.emit();
     if (this.state.dead) { this.stop(); return; }
     this.animation = requestAnimationFrame(this.loop);
