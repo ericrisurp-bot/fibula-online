@@ -1013,38 +1013,47 @@ function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) 
     ctx.fillStyle = '#b6d8ce'; ctx.fillRect(-21, 0, 10, 10); ctx.fillRect(11, 0, 10, 10);
     ctx.strokeStyle = '#38271d'; ctx.lineWidth = 2; ctx.strokeRect(-21, 0, 10, 10); ctx.strokeRect(11, 0, 10, 10);
   } else {
-    // Casa inacabada como ruína low-poly: fundação quebrada e restos de paredes.
-    const stone = (points: Array<[number, number]>, fill: string) => {
-      ctx.beginPath();
-      points.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
-      ctx.closePath(); ctx.fillStyle = fill; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
-    };
-    stone([[-34, 17], [-30, 4], [-18, 2], [-11, 10], [-14, 18]], '#788188');
-    stone([[-12, 18], [-10, 8], [1, 6], [7, 15], [3, 19]], '#aab2b7');
-    stone([[12, 18], [10, 9], [22, 6], [31, 13], [27, 19]], '#68737a');
-    stone([[28, 13], [30, 4], [37, 7], [38, 16], [33, 19]], '#929ba1');
-    // Paredes parcialmente desabadas, com madeira exposta.
-    ctx.fillStyle = '#6f7779'; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(-28, 7); ctx.lineTo(-27, -12); ctx.lineTo(-17, -19); ctx.lineTo(-11, -9); ctx.lineTo(-13, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(13, 8); ctx.lineTo(15, -5); ctx.lineTo(25, -13); ctx.lineTo(29, 3); ctx.lineTo(26, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#8f999d';
-    ctx.beginPath(); ctx.moveTo(-27, -12); ctx.lineTo(-17, -19); ctx.lineTo(-11, -9); ctx.lineTo(-20, -7); ctx.closePath(); ctx.fill();
-    ctx.lineCap = 'round'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(-24, 5); ctx.lineTo(-21, -12); ctx.lineTo(-8, -17); ctx.stroke();
-    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-23, 4); ctx.lineTo(-20, -11); ctx.stroke();
+    // Casa inacabada como ruína exclusivamente de madeira: vigas tombadas e paredes de tábuas partidas.
+    // Silhueta baixa e assimétrica para não confundir com as ruínas de pedra das oficinas.
+    ctx.lineCap = 'round';
+    // Poucas tábuas restantes numa parede lateral, com lacunas grandes.
+    ctx.fillStyle = '#795337'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-29, 10); ctx.lineTo(-27, -8); ctx.lineTo(-20, -13); ctx.lineTo(-17, 7); ctx.lineTo(-22, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#a97949';
+    ctx.beginPath(); ctx.moveTo(-26, -7); ctx.lineTo(-20, -12); ctx.lineTo(-19, -3); ctx.lineTo(-25, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6a472e'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(20, 8); ctx.lineTo(23, -3); ctx.lineTo(30, 1); ctx.lineTo(28, 13); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Vigas expostas e quebradas, sem telhado completo.
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(-25, 8); ctx.lineTo(-22, -14); ctx.stroke();
+    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(-24, 7); ctx.lineTo(-21, -13); ctx.stroke();
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(24, 9); ctx.lineTo(27, -2); ctx.stroke();
+    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(24, 8); ctx.lineTo(27, -1); ctx.stroke();
+    // Restos de caibros caídos cruzados no chão.
+    ctx.save(); ctx.translate(-1, 9); ctx.rotate(-0.24);
+    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(19, 0); ctx.stroke();
+    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-19, -1); ctx.lineTo(16, -1); ctx.stroke();
+    ctx.restore();
+    ctx.save(); ctx.translate(8, 15); ctx.rotate(0.18);
     ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(12, -11); ctx.stroke();
-    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-7, -4); ctx.lineTo(10, -11); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.stroke();
+    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-12, -1); ctx.lineTo(12, -1); ctx.stroke();
+    ctx.restore();
+    // Pequenos pedaços de tábua espalhados; nenhuma pedra ou alvenaria.
+    ctx.fillStyle = '#a97949'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-34, 15); ctx.lineTo(-25, 12); ctx.lineTo(-22, 15); ctx.lineTo(-31, 18); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(17, 16); ctx.lineTo(27, 13); ctx.lineTo(30, 16); ctx.lineTo(20, 19); ctx.closePath(); ctx.fill(); ctx.stroke();
     const progress = Math.min(1, woodDelivered / CONFIG.house.buildCost);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-24, -31, 48, 6);
-    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-24, -31, 48 * progress, 6);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -31, 48, 6);
+    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-24, -27, 48, 6);
+    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-24, -27, 48 * progress, 6);
+    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -27, 48, 6);
   }
-  ctx.restore();
-}
-
 function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery']) {
   const { x, y, woodDelivered, stoneDelivered, built } = refinery;
   ctx.save(); ctx.translate(x, y);
