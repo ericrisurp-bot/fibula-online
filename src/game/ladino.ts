@@ -159,6 +159,28 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[34,42],[66,42],[62,56],[50,60],[38,56]], '#2b2b33');
   ctx.restore();
 
+  // A vista define a roupa visível, não apenas a abertura do rosto.
+  if (isBack) {
+    // Capa traseira contínua: oculta túnica, faixa e bolsa frontais.
+    cape([[27,44],[73,44],[80,60],[76,94],[72,116],[61,130],[50,119],[39,130],[28,116],[24,94],[20,60]], P.dark);
+    cape([[31,48],[50,51],[50,117],[39,125],[30,113],[28,88]], '#d7d8e0');
+    cape([[50,51],[69,48],[72,88],[70,113],[61,125],[50,117]], '#bfc2cd');
+    line(ctx, [[31,49],[28,88],[30,113],[39,125]], P.trim, 2.2);
+    line(ctx, [[69,49],[72,88],[70,113],[61,125]], P.trim, 2.2);
+    line(ctx, [[50,52],[50,117]], '#f0f0f4', 1.5);
+    poly(ctx, [[44,45],[56,45],[59,52],[50,58],[41,52]], P.trim, OUT, 1);
+  } else if (isSide) {
+    // Silhueta lateral: robe/capa em perfil cobre a leitura frontal do cinto e da túnica.
+    poly(ctx, [[43,45],[57,45],[61,57],[58,82],[60,106],[56,126],[43,126],[40,105],[42,82],[39,58]], '#d5d6df');
+    poly(ctx, [[43,48],[48,49],[48,119],[43,124],[42,104],[44,81],[41,59]], '#f0f0f4', OUT, 1.2);
+    poly(ctx, [[51,49],[57,48],[59,59],[56,82],[58,105],[54,124],[49,119]], '#bfc2cd', OUT, 1.2);
+    line(ctx, [[43,49],[41,59],[44,81],[42,104],[43,124]], P.trim, 1.8);
+    line(ctx, [[57,48],[59,59],[56,82],[58,105],[54,124]], P.trim, 1.8);
+    // Um único braço/luva de perfil, sem os dois braços frontais em paralelo.
+    poly(ctx, [[52,54],[59,57],[60,76],[56,86],[51,82]], DARK);
+    poly(ctx, [[52,79],[59,80],[58,89],[52,88]], DARK2);
+  }
+
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
   const hoodTilt = walking ? Math.sin(phase + 0.9) * 0.035 : breath * 0.008;
   const hoodShift = walking ? Math.sin(phase * 2 + 0.6) * 0.9 : -breath * 0.7;
