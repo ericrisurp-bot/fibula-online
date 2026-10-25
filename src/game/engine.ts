@@ -1226,7 +1226,7 @@ export class GameEngine {
     }
     this.separateEnemies();
     for (const enemy of this.state.enemies) {
-      this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false);
+      this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false, obstacles);
       this.resolveRockBoxCollisions(enemy);
     }
 
@@ -1295,9 +1295,10 @@ export class GameEngine {
     }
   }
 
-  private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false) {
+  private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false, cached?: Array<Vec & { radius: number }>) {
+    const obstacleList = cached ?? this.obstacleCircles(ignoreCart);
     for (let pass = 0; pass < 3; pass++) {
-      for (const obstacle of this.obstacleCircles(ignoreCart)) {
+      for (const obstacle of obstacleList) {
         let dx = entity.x - obstacle.x;
         let dy = entity.y - obstacle.y;
         let distance = Math.hypot(dx, dy);
