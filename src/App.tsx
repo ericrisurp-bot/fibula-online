@@ -279,29 +279,63 @@ export default function App() {
         }});
       }
       for (const rock of s.rocks) {
-        const scale = rock.size === 'small' ? 0.97 : rock.size === 'medium' ? 1.25 : 1.6;
+        const scale = rock.size === 'small' ? 1.22 : rock.size === 'medium' ? 1.5 : 1.85;
         worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => {
           ctx.save(); ctx.translate(rock.x, rock.y);
-          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
           ctx.beginPath(); ctx.ellipse(2, 10 * scale, 19 * scale, 8 * scale, 0, 0, Math.PI * 2); ctx.fill();
 
-          const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
+          const facet = (points: Array<[number, number]>, fill: string) => {
             ctx.beginPath();
             points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x * scale, y * scale) : ctx.lineTo(x * scale, y * scale));
             ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
-            if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.35; ctx.stroke(); }
           };
 
-          // Silhueta única com planos facetados, em vez de uma pedra lisa.
-          polygon([[-17, 3], [-14, -9], [-4, -17], [9, -15], [18, -5], [16, 7], [5, 12], [-9, 10]], '#707980', '#454d53');
-          polygon([[-17, 3], [-14, -9], [-4, -17], [0, -5], [-5, 4], [-9, 10]], '#aeb6bb');
-          polygon([[-4, -17], [9, -15], [18, -5], [6, -3], [0, -5]], '#c5cbd0');
-          polygon([[0, -5], [6, -3], [16, 7], [5, 12], [-5, 4]], '#858e95');
-          polygon([[-14, -9], [-4, -17], [0, -5], [-5, 4]], '#d2d7da');
-          polygon([[6, -3], [18, -5], [16, 7]], '#626b72');
-          polygon([[-9, 10], [-5, 4], [5, 12]], '#59636a');
-          ctx.strokeStyle = 'rgba(55,62,67,0.7)'; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.moveTo(-4 * scale, -2 * scale); ctx.lineTo(2 * scale, 3 * scale); ctx.lineTo(8 * scale, -1 * scale); ctx.stroke();
+          // Contorno irregular e planos pequenos, distribuídos pela forma da rocha.
+          ctx.beginPath();
+          ctx.moveTo(-18 * scale, 2 * scale);
+          ctx.lineTo(-16 * scale, -6 * scale);
+          ctx.lineTo(-11 * scale, -12 * scale);
+          ctx.lineTo(-5 * scale, -18 * scale);
+          ctx.lineTo(2 * scale, -16 * scale);
+          ctx.lineTo(7 * scale, -18 * scale);
+          ctx.lineTo(14 * scale, -11 * scale);
+          ctx.lineTo(19 * scale, -4 * scale);
+          ctx.lineTo(16 * scale, 4 * scale);
+          ctx.lineTo(13 * scale, 9 * scale);
+          ctx.lineTo(5 * scale, 12 * scale);
+          ctx.lineTo(-4 * scale, 11 * scale);
+          ctx.lineTo(-12 * scale, 9 * scale);
+          ctx.closePath();
+          ctx.fillStyle = '#788188'; ctx.fill();
+          ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5; ctx.stroke();
+
+          // Facetas quebradas e assimétricas: evitam uma faixa clara atravessando o centro.
+          facet([[-18, 2], [-16, -6], [-11, -12], [-8, -4], [-10, 3], [-12, 9]], '#929ba1');
+          facet([[-16, -6], [-11, -12], [-5, -18], [-2, -9], [-8, -4]], '#aab2b7');
+          facet([[-5, -18], [2, -16], [5, -10], [-2, -9]], '#c0c6ca');
+          facet([[2, -16], [7, -18], [14, -11], [8, -7], [5, -10]], '#aeb7bd');
+          facet([[14, -11], [19, -4], [12, -1], [8, -7]], '#89939a');
+          facet([[-8, -4], [-2, -9], [5, -10], [2, -2], [-4, 3]], '#9ca6ac');
+          facet([[5, -10], [8, -7], [12, -1], [5, 3], [2, -2]], '#737e85');
+          facet([[-10, 3], [-8, -4], [-4, 3], [-5, 8], [-12, 9]], '#7e898f');
+          facet([[-4, 3], [2, -2], [5, 3], [1, 8], [-5, 8]], '#a2abb0');
+          facet([[5, 3], [12, -1], [16, 4], [13, 9], [5, 12], [1, 8]], '#68737a');
+          facet([[-12, 9], [-5, 8], [1, 8], [5, 12], [-4, 11]], '#657078');
+          facet([[12, -1], [19, -4], [16, 4]], '#59646b');
+
+          // Fissuras curtas e discretas, sem dividir a pedra ao meio.
+          ctx.strokeStyle = 'rgba(48,56,61,0.72)'; ctx.lineWidth = 1.05;
+          ctx.beginPath();
+          ctx.moveTo(-8 * scale, -4 * scale); ctx.lineTo(-5 * scale, -1 * scale); ctx.lineTo(-7 * scale, 2 * scale);
+          ctx.moveTo(8 * scale, -7 * scale); ctx.lineTo(6 * scale, -3 * scale); ctx.lineTo(9 * scale, -1 * scale);
+          ctx.moveTo(-1 * scale, 5 * scale); ctx.lineTo(2 * scale, 3 * scale);
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(230,235,238,0.48)'; ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(-11 * scale, -12 * scale); ctx.lineTo(-5 * scale, -18 * scale); ctx.lineTo(-2 * scale, -9 * scale);
+          ctx.moveTo(2 * scale, -16 * scale); ctx.lineTo(7 * scale, -18 * scale);
+          ctx.stroke();
           ctx.restore();
         }});
       }
