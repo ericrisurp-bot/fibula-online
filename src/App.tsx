@@ -1132,7 +1132,8 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
     ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -34, 84 * progress, 8);
     ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -34, 84, 8);
     ctx.restore(); return;
-  }  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
+  }
+  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
   ctx.fillRect(-35, -15, 70, 40); ctx.strokeRect(-35, -15, 70, 40);
   ctx.fillStyle = '#8d7857'; ctx.beginPath(); ctx.moveTo(-42, -15); ctx.lineTo(-25, -36); ctx.lineTo(25, -36); ctx.lineTo(42, -15); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#d8c39a'; ctx.fillRect(-22, -5, 44, 22); ctx.strokeStyle = '#3b3022'; ctx.lineWidth = 2; ctx.strokeRect(-22, -5, 44, 22);
