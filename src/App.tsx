@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
+import { drawLadino } from './game/ladino';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
@@ -1423,7 +1424,6 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.scale(facingScaleX, 1);
   if (!moving) ctx.scale(1 + breath * 0.012, 1 - breath * 0.018);
-  ctx.strokeStyle = '#a7c8c4'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-r * .45, r * .48); ctx.lineTo(-r * .65, r * .94); ctx.moveTo(r * .45, r * .48); ctx.lineTo(r * .65, r * .94); ctx.stroke();
   const classColors: Record<ClassId, { body: string; outline: string; hood: string; hoodOutline: string }> = {
     guerreiro: { body: '#d98b76', outline: '#ffd0b9', hood: '#68413d', hoodOutline: '#e5a18d' },
     mago: { body: '#9c8be8', outline: '#ded4ff', hood: '#463b78', hoodOutline: '#b7a7ff' },
@@ -1431,51 +1431,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     druida: { body: '#82df83', outline: '#c9ffc2', hood: '#315e3d', hoodOutline: '#a9ed9e' },
   };
   const appearance = classColors[classId];
-  // O corpo também muda de silhueta por classe; não depende da arma equipada.
-  ctx.beginPath();
-  if (classId === 'guerreiro') {
-    ctx.moveTo(-r, r * .2); ctx.lineTo(-r * .9, -r * .5); ctx.lineTo(-r * .35, -r * .95);
-    ctx.lineTo(r * .35, -r * .95); ctx.lineTo(r * .9, -r * .5); ctx.lineTo(r, r * .2);
-    ctx.quadraticCurveTo(0, r * .95, -r, r * .2);
-  } else if (classId === 'mago') {
-    ctx.moveTo(-r * .9, r * .25); ctx.quadraticCurveTo(-r * 1.3, -r * .8, 0, -r * .85);
-    ctx.quadraticCurveTo(r * 1.3, -r * .8, r * .9, r * .25);
-    ctx.quadraticCurveTo(r * .6, r * .95, 0, r * .68); ctx.quadraticCurveTo(-r * .6, r * .95, -r * .9, r * .25);
-  } else if (classId === 'arqueiro') {
-    ctx.moveTo(-r * .95, r * .3); ctx.quadraticCurveTo(-r * .8, -r * .95, 0, -r * .72);
-    ctx.quadraticCurveTo(r * .8, -r * .95, r * .95, r * .3);
-    ctx.lineTo(r * .55, r * .75); ctx.lineTo(-r * .55, r * .75); ctx.closePath();
-  } else {
-    ctx.moveTo(-r, r * .2); ctx.quadraticCurveTo(-r * 1.2, -r * .75, 0, -r);
-    ctx.quadraticCurveTo(r * 1.2, -r * .75, r, r * .2); ctx.quadraticCurveTo(r * .8, r * .82, 0, r * .72);
-    ctx.quadraticCurveTo(-r * .8, r * .82, -r, r * .2);
-  }
-  ctx.fillStyle = appearance.body; ctx.fill(); ctx.strokeStyle = appearance.outline; ctx.lineWidth = 2; ctx.stroke();
-  // Silhueta própria por classe: trocar de classe muda o personagem, não só a arma.
-  ctx.fillStyle = appearance.hood; ctx.strokeStyle = appearance.hoodOutline; ctx.lineWidth = 2;
-  ctx.beginPath();
-  if (classId === 'guerreiro') {
-    ctx.moveTo(-r * .95, -r * .35); ctx.lineTo(-r * .82, -r * .95); ctx.lineTo(-r * .35, -r * 1.2);
-    ctx.lineTo(r * .35, -r * 1.2); ctx.lineTo(r * .82, -r * .95); ctx.lineTo(r * .95, -r * .35);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#f2d0a7'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-r * .48, -r * .48); ctx.lineTo(r * .48, -r * .48); ctx.stroke();
-  } else if (classId === 'mago') {
-    ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .55, -r * 1.05); ctx.lineTo(r * .08, -r * 1.75);
-    ctx.lineTo(r * .48, -r * .95); ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  } else if (classId === 'arqueiro') {
-    ctx.moveTo(-r * 1.12, -r * .35); ctx.lineTo(-r * .72, -r * 1.18); ctx.lineTo(r * .22, -r * 1.32);
-    ctx.lineTo(r * 1.08, -r * .38); ctx.quadraticCurveTo(0, -r * .75, -r * 1.12, -r * .35);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#e9d39a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -r * 1.12); ctx.lineTo(0, -r * .48); ctx.stroke();
-  } else {
-    // Coroa de folhas exclusiva do Druida.
-    ctx.moveTo(-r * 1.05, -r * .35); ctx.lineTo(-r * .78, -r * .92); ctx.lineTo(-r * .42, -r * .62);
-    ctx.lineTo(-r * .12, -r * 1.25); ctx.lineTo(r * .18, -r * .65); ctx.lineTo(r * .62, -r * 1.02);
-    ctx.lineTo(r * 1.05, -r * .35); ctx.quadraticCurveTo(0, -r * .72, -r * 1.05, -r * .35);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
-  ctx.fillStyle = '#10232a'; ctx.beginPath(); ctx.ellipse(-r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.ellipse(r * .3, -r * .03, r * .1, r * .17, 0, 0, Math.PI * 2); ctx.fill();
+  drawLadino(ctx, classId, r);
   // Identificador de classe visível durante o jogo para confirmar imediatamente a troca.
   const classLabels: Record<ClassId, string> = { guerreiro: 'GUERREIRO', mago: 'MAGO', arqueiro: 'ARQUEIRO', druida: 'DRUIDA' };
   ctx.save(); ctx.rotate(-facingRotation);
