@@ -350,7 +350,7 @@ export default function App() {
         ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
-      // Neblina e vinheta são renderizadas em um overlay reutilizado a 12,5% da resolução para testar o custo de renderização.
+      // Neblina e vinheta são renderizadas em um overlay reutilizado a 6,25% da resolução para reduzir o custo de renderização.
       if (darkness > 0.01 && octx) {
         const overlayWidth = Math.ceil(w * overlayScale);
         const overlayHeight = Math.ceil(h * overlayScale);
