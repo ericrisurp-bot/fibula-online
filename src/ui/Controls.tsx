@@ -36,6 +36,10 @@ type Props = {
   inventoryPanelOpen: boolean;
   audioVolume: number;
   onAudioVolumeChange: (volume: number) => void;
+  nightFogEnabled: boolean;
+  onNightFogEnabledChange: (enabled: boolean) => void;
+  fpsEnabled: boolean;
+  onFpsEnabledChange: (enabled: boolean) => void;
   interfaceScale: 100 | 130 | 160;
   onInterfaceScaleChange: (scale: 100 | 130 | 160) => void;
   landscapeMode: boolean;
@@ -90,7 +94,7 @@ function LowPolyBackpackIcon() {
   </svg>;
 }
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartCarried, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, nightFogEnabled, onNightFogEnabledChange, fpsEnabled, onFpsEnabledChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -199,6 +203,8 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       </div>
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">
+        <button type="button" className={nightFogEnabled ? 'selected' : ''} aria-pressed={nightFogEnabled} onClick={() => onNightFogEnabledChange(!nightFogEnabled)}><span>🌫️ Neblina noturna</span><b>{nightFogEnabled ? 'ATIVA' : 'OFF'}</b></button>
+        <button type="button" className={fpsEnabled ? 'selected' : ''} aria-pressed={fpsEnabled} onClick={() => onFpsEnabledChange(!fpsEnabled)}><span>FPS na tela</span><b>{fpsEnabled ? 'ATIVO' : 'OFF'}</b></button>
         <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onClick={onRange}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
         <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onClick={() => onZoom(-0.15)}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onClick={() => onZoom(0.15)}>+</button></div></div>
         <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onClick={onToggleLandscape}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
