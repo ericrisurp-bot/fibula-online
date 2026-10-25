@@ -63,6 +63,20 @@ export default function App() {
     let readyTimer: number | null = null;
     let firstFrameRendered = false;
     const loadingStartedAt = performance.now();
+    const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
+    let fpsDisplay: HTMLDivElement | null = null;
+    let fpsFrameCount = 0;
+    let fpsWindowStart = performance.now();
+    if (fpsEnabled) {
+      fpsDisplay = document.createElement('div');
+      Object.assign(fpsDisplay.style, {
+        position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
+        zIndex: '2147483647', padding: '3px 6px', color: '#fff',
+        background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
+      });
+      fpsDisplay.textContent = 'FPS: --';
+      document.body.appendChild(fpsDisplay);
+    }
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
     const terrainScale = 0.5;
     const terrainCanvas = document.createElement('canvas');
@@ -103,6 +117,16 @@ export default function App() {
 
     }
     const render = () => {
+      if (fpsDisplay) {
+        fpsFrameCount++;
+        const now = performance.now();
+        const elapsed = now - fpsWindowStart;
+        if (elapsed >= 1000) {
+          fpsDisplay.textContent = `FPS: ${Math.round(fpsFrameCount * 1000 / elapsed)}`;
+          fpsFrameCount = 0;
+          fpsWindowStart = now;
+        }
+      }
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = canvas.clientWidth, h = canvas.clientHeight;
       if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
@@ -386,7 +410,7 @@ export default function App() {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
   }, []);
 
   useEffect(() => {
