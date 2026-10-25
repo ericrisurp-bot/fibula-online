@@ -369,10 +369,19 @@ export default function App() {
         }});
       }
       for (const drop of s.cottonDrops) {
-        worldDrawables.push({ depth: drop.y + 5, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y);
-          ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#c8c3b6'; ctx.lineWidth = 1.2;
-          ctx.beginPath(); ctx.arc(-3, 1, 4, 0, Math.PI * 2); ctx.arc(2, -2, 4, 0, Math.PI * 2); ctx.arc(4, 2, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(1.12, 1.12);
+          // Capulho de algodão em lóbulos facetados, mantendo o aspecto macio.
+          ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#c8c3b6'; ctx.lineWidth = 1;
+          const lobe = (points: Array<[number, number]>) => {
+            ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+          };
+          lobe([[-7, 0], [-5, -4], [-2, -5], [1, -2], [0, 3], [-4, 4]]);
+          lobe([[-2, -2], [-1, -6], [3, -7], [6, -4], [5, 1], [1, 3]]);
+          lobe([[2, 1], [5, -1], [8, 1], [7, 5], [3, 5], [1, 3]]);
+          ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-4, -2); ctx.lineTo(-2, -4); ctx.moveTo(2, -4); ctx.lineTo(4, -5); ctx.stroke();
           ctx.restore();
         }});
       }
@@ -386,10 +395,17 @@ export default function App() {
         }});
       }
       for (const drop of s.stoneDrops) {
-        worldDrawables.push({ depth: drop.y + 5, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y);
-          ctx.fillStyle = '#9ba4aa'; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.moveTo(-5, 2); ctx.lineTo(-3, -4); ctx.lineTo(2, -5); ctx.lineTo(6, -1); ctx.lineTo(4, 4); ctx.lineTo(-2, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+        worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(1.15, 1.15);
+          // Lasca angular de pedra: silhueta irregular e facetas bem definidas.
+          const facet = (points: Array<[number, number]>, color: string, stroke = '#454d53') => {
+            ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+            ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.1; ctx.stroke();
+          };
+          facet([[-7, 2], [-5, -4], [-1, -7], [4, -5], [8, -1], [6, 4], [1, 7], [-5, 5]], '#89959d');
+          facet([[-5, -4], [-1, -7], [1, -1], [-2, 2]], '#b5bec3', '#68737a');
+          facet([[-2, 2], [1, -1], [5, -3], [8, -1], [6, 4], [1, 7]], '#65727b', '#454d53');
+          facet([[-5, 5], [-2, 2], [1, 7]], '#a1abb1', '#68737a');
           ctx.restore();
         }});
       }
@@ -403,12 +419,21 @@ export default function App() {
         }});
       }
       for (const drop of s.woodDrops) {
-        worldDrawables.push({ depth: drop.y + 4, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y);
-          ctx.strokeStyle = '#d9b17a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-          ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(8, 3); ctx.moveTo(-8, 4); ctx.lineTo(8, -2); ctx.stroke();
+        worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(1.22, 1.22);
+          // Dois pedaços de madeira low-poly, com casca e pontas cortadas.
+          const polygon = (points: Array<[number, number]>, fill: string, stroke = '#65452d') => {
+            ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+            ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke();
+          };
+          polygon([[-9, -4], [-6, -7], [5, -2], [7, 1], [4, 4], [-7, 0]], '#8b5a35');
+          polygon([[-9, -4], [-6, -7], [5, -2], [2, 0], [-6, -3]], '#b17a49', '#70492f');
+          polygon([[4, -2], [7, 1], [4, 4], [1, 2]], '#e1bd86', '#70492f');
+          polygon([[-7, 3], [-4, 0], [8, 4], [9, 7], [6, 9], [-5, 6]], '#765033');
+          polygon([[-7, 3], [-4, 0], [8, 4], [4, 5], [-5, 4]], '#a87343', '#65452d');
+          polygon([[6, 4], [9, 7], [6, 9], [3, 7]], '#d9b17a', '#65452d');
           ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-          ctx.fillText(String(drop.amount), 0, -8); ctx.restore();
+          ctx.fillText(String(drop.amount), 0, -9); ctx.restore();
         }});
       }
       for (const enemy of s.enemies) {
