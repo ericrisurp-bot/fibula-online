@@ -424,7 +424,7 @@ export class GameEngine {
       this.resolveObstacleCollisions(cart, 30, true);
     } else if (Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) <= CONFIG.cart.interactRadius) {
       cart.carried = true;
-      cart.angle = this.state.player.facingX < -0.15 ? Math.PI : 0;
+      cart.angle = Math.atan2(this.state.player.facingY, this.state.player.facingX);
       this.updateCart(0);
     } else return;
     this.emit();
@@ -537,9 +537,8 @@ export class GameEngine {
     const cart = this.state.cart;
     if (!cart.carried) return;
     const p = this.state.player;
-    // O carrinho só espelha na horizontal; movimentos para cima/baixo mantêm o último lado.
-    if (p.facingX < -0.15) cart.angle = Math.PI;
-    else if (p.facingX > 0.15) cart.angle = 0;
+    // A orientação acompanha os oito sentidos de movimento, preservando a última direção ao parar.
+    if (Math.hypot(p.facingX, p.facingY) > 0.15) cart.angle = Math.atan2(p.facingY, p.facingX);
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const targetX = this.clamp(p.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
     const targetY = this.clamp(p.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
