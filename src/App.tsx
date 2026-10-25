@@ -138,7 +138,7 @@ export default function App() {
             `Motor: ${diagnostics.updateMs.toFixed(1)} ms`,
             `Slimes: ${diagnostics.aliveEnemies}/${diagnostics.maxAlive} (+${diagnostics.dyingEnemies} morrendo)`,
             `Horda: ${diagnostics.spawned}/${diagnostics.target} nascidos · ${diagnostics.scheduled} agendados`,
-          ].join('\\n');
+          ].join('\n');
           fpsFrameCount = 0;
           fpsWindowStart = now;
           renderDurationTotal = 0;
