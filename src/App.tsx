@@ -425,7 +425,7 @@ export default function App() {
       }
       for (const drop of s.stoneDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
-          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(0.72, 0.72);
+          ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(0.84, 0.84);
           // Pedra low-poly com a mesma paleta cinza da rocha minerável e dos slots.
           const facet = (points: Array<[number, number]>, fill: string) => {
             ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
