@@ -220,19 +220,27 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   } else if (isSide) {
     // Perfil do capuz: contorno escuro e rosto estreito, sem desenhar olhos.
     poly(ctx, [[44,14],[58,14],[66,29],[63,42],[58,51],[50,55],[42,51],[37,39],[38,27]], P.dark, OUT, 1.2);
-    poly(ctx, [[45,18],[56,18],[62,30],[58,43],[52,49],[46,46],[41,34]], SKIN, '', 0);
+    ctx.save();
+    ctx.shadowColor = P.glow;
+    ctx.shadowBlur = 12;
+    poly(ctx, [[45,18],[56,18],[62,30],[58,43],[52,49],[46,46],[41,34]], P.glow, P.glowEdge, 0.8);
+    ctx.restore();
     line(ctx, [[44,16],[38,30],[44,50]], P.trim, 2.2);
     line(ctx, [[58,16],[66,30],[60,50]], P.trim, 2.2);
     line(ctx, [[44,16],[58,16]], P.trim, 2.2);
-    // Os dois olhos ficam menores e próximos no perfil.
+    // O rosto e os olhos laterais brilham na mesma cor.
     eye(ctx, P, 46, 33, -0.15, 0.6);
     eye(ctx, P, 53, 33, -0.15, 0.6);
   } else {
-    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
+    ctx.save();
+    ctx.shadowColor = P.glow;
+    ctx.shadowBlur = 12;
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], P.glow, P.glowEdge, 0.8);
+    ctx.restore();
     line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
     line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
     line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-    // Olhos frontais reduzidos a 80% do tamanho original.
+    // Olhos frontais mantidos em 60% do tamanho original.
     eye(ctx, P, 42, 36, -0.25, 0.6);
     eye(ctx, P, 58, 36, 0.25, 0.6);
   }
