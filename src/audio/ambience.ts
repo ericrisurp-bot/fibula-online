@@ -247,7 +247,8 @@ function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
   if (!active || phase !== 'night' || !context || !buses || !output) return null;
   if (audioManager.getActiveVoices() > 8) return null;
 
-  const noteCount = 2 + Math.floor(Math.random() * 3);
+  // Cada chamada da coruja contém de 1 a 3 notas, nunca mais.
+  const noteCount = 1 + Math.floor(Math.random() * 3);
   let baseFrequency = Math.max(320, Math.min(480, audioManager.rand(320, 480) * pitchOffset));
   const rhythmScale = audioManager.rand(0.85, 1.15);
   const pan = forcedPan ?? audioManager.rand(-0.9, 0.9);
@@ -366,12 +367,6 @@ function scheduleOwls(first = false) {
   rememberTimer(owlTimers, () => {
     if (!active || phase !== 'night') return;
     const pan = playOwlPhrase();
-    if (pan !== null && Math.random() < 0.2) {
-      const responsePan = pan >= 0 ? -audioManager.rand(0.35, 0.9) : audioManager.rand(0.35, 0.9);
-      rememberTimer(owlTimers, () => {
-        if (active && phase === 'night') playOwlPhrase(responsePan, audioManager.rand(0.94, 1.06));
-      }, audioManager.rand(2000, 5000));
-    }
     scheduleOwls(false);
   }, delay);
 }
