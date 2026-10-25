@@ -354,10 +354,10 @@ export default function App() {
           fogTexture.height = fogDiameterPx;
           const center = fogDiameterPx / 2;
           const fog = fogTextureCtx.createRadialGradient(center, center, 0, center, center, center);
-          fog.addColorStop(0, 'rgba(5, 8, 18, 0.9)');
-          fog.addColorStop(0.3, 'rgba(5, 8, 18, 0.65)');
-          fog.addColorStop(0.62, 'rgba(5, 8, 18, 0.28)');
-          fog.addColorStop(0.86, 'rgba(5, 8, 18, 0.06)');
+          fog.addColorStop(0, 'rgba(5, 8, 18, 0.72)');
+          fog.addColorStop(0.3, 'rgba(5, 8, 18, 0.48)');
+          fog.addColorStop(0.62, 'rgba(5, 8, 18, 0.2)');
+          fog.addColorStop(0.86, 'rgba(5, 8, 18, 0.04)');
           fog.addColorStop(1, 'rgba(5, 8, 18, 0)');
           fogTextureCtx.clearRect(0, 0, fogDiameterPx, fogDiameterPx);
           fogTextureCtx.fillStyle = fog;
