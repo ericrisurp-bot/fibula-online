@@ -301,7 +301,7 @@ export default function App() {
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
-      worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed) });
+      worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving) });
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
@@ -1252,8 +1252,10 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
   ctx.restore();
 }
 
-function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number) {
+function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number, moving: boolean) {
   const { x, y, angle, repairWood, repaired, carried } = cart;
+  const showWheels = Math.abs(Math.cos(angle)) > 0.15;
+  const wheelRotation = moving ? time * 8 : 0;
   const vertical = Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle));
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
@@ -1280,12 +1282,14 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
       ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.stroke();
       ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(-14, -14); ctx.lineTo(-14, 9); ctx.moveTo(0, -14); ctx.lineTo(0, 9); ctx.moveTo(14, -14); ctx.lineTo(14, 9); ctx.stroke();
-      // As duas rodas ficam visíveis na borda inferior da vista superior.
-      for (const wheelX of [-15, 15]) {
+      // Rodas aparecem apenas quando a direção permite vê-las; em cima/baixo ficam sob a carroceria.
+      if (showWheels) for (const wheelX of [-15, 15]) {
         ctx.fillStyle = '#282a29'; ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.ellipse(wheelX, 16, 5, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.save(); ctx.translate(wheelX, 16); ctx.rotate(wheelRotation);
         ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(wheelX, 12); ctx.lineTo(wheelX, 20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.moveTo(-2.5, 0); ctx.lineTo(2.5, 0); ctx.stroke();
+        ctx.restore();
       }
       // A borda superior muda de acabamento para sugerir a parte traseira (para cima)
       // ou a frente (para baixo), sem inverter toda a ilustração.
@@ -1300,9 +1304,14 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
       ctx.beginPath(); ctx.moveTo(-19, 15); ctx.lineTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(19, 15); ctx.stroke();
       ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 5;
       ctx.beginPath(); ctx.moveTo(-19, -16); ctx.lineTo(0, -29); ctx.lineTo(19, -16); ctx.stroke();
-      ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(-15, 16, 5, 8, 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(15, 16, 5, 8, 0, 0, Math.PI * 2); ctx.stroke();
+      if (showWheels) {
+        for (const wheelX of [-15, 15]) {
+          ctx.save(); ctx.translate(wheelX, 16); ctx.rotate(wheelRotation);
+          ctx.strokeStyle = '#60432b'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.ellipse(0, 0, 5, 8, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
+      }
       ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-26, -38, 52, 6);
       ctx.fillStyle = '#d7b17b'; ctx.fillRect(-26, -38, 52 * (repairWood / CONFIG.cart.repairCost), 6);
       ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-26, -38, 52, 6);
@@ -1319,10 +1328,12 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
       ctx.strokeStyle = '#d0a06a'; ctx.lineWidth = 2; ctx.strokeRect(-23, -23, 42, 22);
       ctx.strokeStyle = '#4a3424'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(-19, -20); ctx.lineTo(-19, -3); ctx.moveTo(-5, -20); ctx.lineTo(-5, -3); ctx.moveTo(9, -20); ctx.lineTo(9, -3); ctx.stroke();
-      for (const wheelX of [-17, 20]) {
+      if (showWheels) for (const wheelX of [-17, 20]) {
         ctx.beginPath(); ctx.arc(wheelX, 8, 7, 0, Math.PI * 2); ctx.fillStyle = '#282a29'; ctx.fill();
         ctx.strokeStyle = '#b6b8b4'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(wheelX - 4, 8); ctx.lineTo(wheelX + 4, 8); ctx.moveTo(wheelX, 4); ctx.lineTo(wheelX, 12); ctx.stroke();
+        ctx.save(); ctx.translate(wheelX, 8); ctx.rotate(wheelRotation);
+        ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke();
+        ctx.restore();
       }
     } else {
       ctx.save(); ctx.rotate(-0.18);
