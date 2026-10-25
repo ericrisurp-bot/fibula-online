@@ -75,9 +75,9 @@ export type LadinoPose = { walking: boolean; phase: number; breath: number; carr
 export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number, pose: LadinoPose): void {
   const { walking, phase, breath, carry, direction } = pose;
   const isBack = direction === 'back' || direction === 'up-left' || direction === 'up-right';
-  const isSide = direction === 'left' || direction === 'right' || direction === 'up-left' || direction === 'up-right' || direction === 'down-left' || direction === 'down-right';
+  // Diagonais para cima usam a vista traseira em três quartos; não empilham a silhueta lateral.
+  const isSide = direction === 'left' || direction === 'right' || direction === 'down-left' || direction === 'down-right';
   const sideScale = isSide ? 0.78 : 1;
-  const diagonalLean = direction === 'up-left' || direction === 'up-right' || direction === 'down-left' || direction === 'down-right';
   const k = carry ? 0.65 : 1;
   const sL = Math.sin(phase);
   const sR = Math.sin(phase + Math.PI);
@@ -94,11 +94,6 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const scale = 3.0 * r / 135;
   ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
   ctx.scale(scale * sideScale, scale);
-  if (diagonalLean) {
-    ctx.translate(50, 0);
-    ctx.rotate(direction.startsWith('up-') ? -0.045 : 0.045);
-    ctx.translate(-50, 0);
-  }
   const P = PALETTES[classId];
 
   // Sombra mantida fixa no drawPlayer; a capa tem atraso próprio em relação ao corpo.
