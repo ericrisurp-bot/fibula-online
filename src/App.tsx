@@ -292,7 +292,9 @@ export default function App() {
       }
       const aimAngle = aimTarget
         ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
-        : Math.atan2(s.player.facingY, s.player.facingX || 0.001);
+        : s.classId === 'guerreiro'
+          ? Math.atan2(s.player.facingY, s.player.facingX || 0.001)
+          : s.player.facingX < -0.35 ? Math.PI : 0;
       const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
       for (const flag of flagsRef.current) {
         if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color) });
@@ -1422,7 +1424,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   const knightBackView = classId === 'guerreiro' && facingY < -0.35;
   const knightSideView = classId === 'guerreiro' && Math.abs(facingX) > Math.abs(facingY) * 1.15;
   const knightCombatWeaponVisible = classId !== 'guerreiro' || dayNight === 'night' || hasTarget || swordSwingTimer > 0;
-  const legSwing = moving ? Math.sin(time * 10) * r * 0.12 : 0;
+  const legSwing = classId === 'guerreiro' && moving ? Math.sin(time * 10) * r * 0.12 : 0;
   ctx.save(); ctx.translate(x, y + bob);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.scale(facingScaleX, 1);
