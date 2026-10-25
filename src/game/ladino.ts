@@ -53,21 +53,6 @@ function line(c: CanvasRenderingContext2D, pts: Point[], color: string, lw: numb
   c.stroke();
 }
 
-function eyePoints(cx: number, cy: number, w: number, h: number, rot: number): Point[] {
-  const base: Point[] = [[-w, 0], [-w * 0.2, -h], [w * 0.9, -h * 0.35], [w, h * 0.25], [-w * 0.1, h]];
-  const cos = Math.cos(rot);
-  const sin = Math.sin(rot);
-  return base.map(([x, y]) => [cx + x * cos - y * sin, cy + x * sin + y * cos]);
-}
-
-function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, rot: number, size = 1): void {
-  c.save();
-  c.globalAlpha = 0.35;
-  poly(c, eyePoints(cx, cy, 6.5 * size * 1.5, 4.8 * size * 1.5, rot), p.glowEdge, p.glowEdge, 0.8);
-  c.restore();
-  poly(c, eyePoints(cx, cy, 6.5 * size, 4.8 * size, rot), p.glow, p.glow, 0.8);
-}
-
 export type LadinoDirection = 'front' | 'back' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
 export type LadinoPose = { walking: boolean; phase: number; breath: number; carry: boolean; direction: LadinoDirection };
 
