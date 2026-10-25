@@ -237,9 +237,122 @@ function playBirdPhrase(forcedPan?: number) {
   return pan;
 }
 
-function playOwlPhrase(_forcedPan?: number, _pitchOffset = 1): number | null {
-  // O gerador da frase é adicionado no commit seguinte.
-  return null;
+let lastOwlConfiguration = '';
+
+function playOwlPhrase(forcedPan?: number, pitchOffset = 1): number | null {
+  const context = audioContext;
+  const buses = soundBuses;
+  const output = nightGain;
+  if (!active || phase !== 'night' || !context || !buses || !output) return null;
+  if (audioManager.getActiveVoices() > 8) return null;
+
+  const noteCount = 2 + Math.floor(Math.random() * 3);
+  let baseFrequency = audioManager.rand(320, 480) * pitchOffset;
+  const rhythmScale = audioManager.rand(0.85, 1.15);
+  const pan = forcedPan ?? audioManager.rand(-0.9, 0.9);
+  const distance = Math.random();
+  const cutoff = 1200 - distance * 650;
+  const peak = 0.04 * (1 - distance * 0.85);
+  const gapSeconds = () => audioManager.rand(0.3, 0.8) * rhythmScale;
+  const durations = Array.from({ length: noteCount }, () => audioManager.rand(0.25, 0.6) * rhythmScale);
+  let configuration = `${noteCount}:${Math.round(baseFrequency)}:${Math.round(rhythmScale * 100)}`;
+  if (configuration === lastOwlConfiguration) {
+    baseFrequency = Math.min(480, baseFrequency + 9);
+    configuration = `${noteCount}:${Math.round(baseFrequency)}:${Math.round(rhythmScale * 100)}`;
+  }
+  lastOwlConfiguration = configuration;
+
+  const start = context.currentTime + 0.01;
+  let cursor = start;
+  const end = start + durations.reduce((sum, duration, index) => sum + duration + (index < noteCount - 1 ? gapSeconds() : 0), 0) + 0.04;
+
+  const oscillator = context.createOscillator();
+  oscillator.type = 'sine';
+  const partialReal = new Float32Array([0, 0, 0]);
+  const partialImag = new Float32Array([0, 1, 0.2]);
+  oscillator.setPeriodicWave(context.createPeriodicWave(partialReal, partialImag));
+  const noteGain = context.createGain();
+  noteGain.gain.setValueAtTime(0, start);
+  const lowpass = context.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = cutoff;
+  const panner = context.createStereoPanner();
+  panner.pan.value = pan;
+  const nodes: AudioNode[] = [noteGain, lowpass, panner];
+  let delay: DelayNode | null = null;
+  let feedback: GainNode | null = null;
+  if (distance > 0.48) {
+    delay = context.createDelay(0.25);
+    delay.delayTime.value = audioManager.rand(0.12, 0.2);
+    feedback = context.createGain();
+    feedback.gain.value = audioManager.rand(0.12, 0.3);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    nodes.push(delay);
+  }
+
+  let noiseSource: AudioBufferSourceNode | null = null;
+  const noiseGain = context.createGain();
+  const breathBandpass = context.createBiquadFilter();
+  breathBandpass.type = 'bandpass';
+  breathBandpass.frequency.value = audioManager.rand(650, 1000);
+  breathBandpass.Q.value = 0.8;
+  const breathLowpass = context.createBiquadFilter();
+  breathLowpass.type = 'lowpass';
+  breathLowpass.frequency.value = cutoff;
+  const breathPanner = context.createStereoPanner();
+  breathPanner.pan.value = pan;
+  noiseGain.gain.setValueAtTime(0, start);
+  noiseSource = context.createBufferSource();
+  noiseSource.buffer = buses.noiseBuffer;
+  noiseSource.loop = true;
+
+  if (!routeVoice(oscillator, nodes, output, true)) {
+    try { for (const node of nodes) node.disconnect(); feedback?.disconnect(); } catch { /* Nó já desconectado. */ }
+    return null;
+  }
+  const breathNodes: AudioNode[] = [noiseGain, breathBandpass, breathLowpass, breathPanner];
+  const hasBreath = routeVoice(noiseSource, breathNodes, output, true);
+  if (!hasBreath) {
+    try { for (const node of breathNodes) node.disconnect(); } catch { /* Nó já desconectado. */ }
+  }
+
+  for (let i = 0; i < noteCount; i++) {
+    const duration = durations[i]!;
+    const fundamental = baseFrequency * Math.pow(0.92, i);
+    const attack = audioManager.rand(0.04, 0.08) * rhythmScale;
+    const noteEnd = cursor + duration;
+    oscillator.frequency.setValueAtTime(fundamental, cursor);
+    noteGain.gain.setValueAtTime(0.0001, cursor);
+    noteGain.gain.linearRampToValueAtTime(peak, cursor + Math.min(attack, duration * 0.45));
+    noteGain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+
+    for (let step = 1; step <= 5; step++) {
+      const at = cursor + duration * step / 6;
+      const progress = step / 6;
+      const vibrato = 1 + Math.sin(step * Math.PI * 0.8) * 0.003;
+      oscillator.frequency.setValueAtTime(fundamental * (1 - 0.08 * progress) * vibrato, at);
+    }
+
+    if (hasBreath) {
+      const breathPeak = Math.min(0.006, 0.005 * (1 - distance * 0.7));
+      noiseGain.gain.setValueAtTime(0, cursor);
+      noiseGain.gain.linearRampToValueAtTime(breathPeak, cursor + 0.005);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, cursor + Math.min(0.045, duration * 0.2));
+    }
+    cursor = noteEnd + (i < noteCount - 1 ? gapSeconds() : 0);
+  }
+
+  oscillator.start(start);
+  oscillator.stop(end);
+  if (noiseSource && hasBreath) {
+    noiseSource.start(start);
+    noiseSource.stop(end);
+  }
+  oscillator.addEventListener('ended', () => {
+    try { feedback?.disconnect(); delay?.disconnect(); } catch { /* Nó já desconectado. */ }
+  }, { once: true });
+  return pan;
 }
 
 function scheduleOwls(first = false) {
