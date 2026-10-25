@@ -77,7 +77,8 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const isBack = direction === 'back' || direction === 'up-left' || direction === 'up-right';
   // Diagonais para cima usam a vista traseira em três quartos; não empilham a silhueta lateral.
   const isSide = direction === 'left' || direction === 'right' || direction === 'down-left' || direction === 'down-right';
-  const sideScale = isSide ? 0.78 : 1;
+  // Preserva mais volume corporal na vista lateral sem alargar as demais direções.
+  const sideScale = isSide ? 0.92 : 1;
   const k = carry ? 0.65 : 1;
   const sL = Math.sin(phase);
   const sR = Math.sin(phase + Math.PI);
