@@ -1420,7 +1420,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   // Mantém a cabeça para cima: limita a rotação ao semicírculo superior e espelha quando necessário.
   let facingRotation = Math.atan2(facingY, facingX) + Math.PI / 2;
   let facingScaleX = 1;
-  if (facingRotation > Math.PI / 2) { facingRotation -= Math.PI; facingScaleX = -1; }
+  if (facingRotation >= Math.PI / 2) { facingRotation -= Math.PI; facingScaleX = -1; }
   else if (facingRotation < -Math.PI / 2) { facingRotation += Math.PI; facingScaleX = -1; }
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
