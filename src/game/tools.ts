@@ -145,25 +145,31 @@ export function drawFloatingTool(
 
   const headLength = tool === 'machadinho' ? r * 1.92 : tool === 'picareta' ? r * 2.05 : r * 2.27;
   const aura = CONFIG.player.toolAuraRadius;
-  const impactReach = Math.max(6, reach - headLength);
-  const distance = progress <= 0.6
-    ? aura + (impactReach - aura) * smooth(progress / 0.6)
-    : impactReach + (aura - impactReach) * smooth((progress - 0.6) / 0.4);
   const swing = tool === 'foice'
     ? -0.8 + 1.6 * smooth(progress)
     : -1.1 + 1.25 * smooth(progress / 0.6);
   const rotation = angle + swing;
   const headDx = headLength * Math.cos(swing);
   const headDy = headLength * Math.sin(swing);
-  const handleX = distance * Math.cos(angle);
-  const handleY = distance * Math.sin(angle);
-  // Compensate the small swing offset so the head tip is centered on the target ray.
-  const tipErrorX = handleX + headDx - reach * Math.cos(angle);
-  const tipErrorY = handleY + headDy - reach * Math.sin(angle);
-  const correction = progress <= 0.6 ? smooth(progress / 0.6) : 1 - smooth((progress - 0.6) / 0.4);
+  const startX = aura * Math.cos(angle);
+  const startY = aura * Math.sin(angle);
+  const targetX = reach >= 6 + headLength
+    ? reach * Math.cos(angle) - headDx
+    : 6 * Math.cos(angle);
+  const targetY = reach >= 6 + headLength
+    ? reach * Math.sin(angle) - headDy
+    : 6 * Math.sin(angle);
+  const impactEase = smooth(progress / 0.6);
+  const returnEase = smooth((progress - 0.6) / 0.4);
+  const handleX = progress <= 0.6
+    ? startX + (targetX - startX) * impactEase
+    : targetX + (startX - targetX) * returnEase;
+  const handleY = progress <= 0.6
+    ? startY + (targetY - startY) * impactEase
+    : targetY + (startY - targetY) * returnEase;
   ctx.save();
   ctx.globalAlpha *= alpha;
-  ctx.translate(handleX - tipErrorX * correction, handleY - tipErrorY * correction);
+  ctx.translate(handleX, handleY);
   ctx.rotate(rotation);
   // A very subtle idle bob is suppressed at the impact point.
   const bob = Math.sin(time * 8 + (tool === 'machadinho' ? 0 : tool === 'picareta' ? 1.8 : 3.2)) * 0.6 * (1 - Math.abs(progress - 0.6) / 0.6);
