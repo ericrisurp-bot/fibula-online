@@ -155,6 +155,76 @@ function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx,r,[[2.69,-0.35],[2.61,-0.19],[2.69,-0.08],[2.81,-0.2]],'#2d7d3e','#214c2c',0.9);
   facet(ctx,r,[[2.61,-0.19],[2.69,-0.08],[2.81,-0.2]],'#a6e780','');
 }
+
+type FloatingWeaponOptions = {
+  time: number;
+  facingX: number;
+  facingY: number;
+  moving: boolean;
+  hasTarget: boolean;
+  aimAngle: number;
+  swingTimer?: number;
+  swingAngle?: number;
+};
+
+const hover = { side: 1, sideT: 1, combatT: 0, angle: -Math.PI / 2, lastTime: 0 };
+
+function angleDelta(from: number, to: number): number {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
+export function drawFloatingWeapon(
+  ctx: CanvasRenderingContext2D,
+  weapon: WeaponId,
+  r: number,
+  opts: FloatingWeaponOptions,
+): void {
+  if (opts.time < hover.lastTime) {
+    hover.side = 1;
+    hover.sideT = 1;
+    hover.combatT = 0;
+    hover.angle = -Math.PI / 2;
+    hover.lastTime = opts.time;
+  }
+  const dt = Math.min(0.05, Math.max(0, opts.time - hover.lastTime));
+  hover.lastTime = opts.time;
+
+  if (opts.facingX < -0.35) hover.side = 1;
+  else if (opts.facingX > 0.35) hover.side = -1;
+
+  const sideAlpha = 1 - Math.exp(-dt / 0.15);
+  hover.sideT += (hover.side - hover.sideT) * sideAlpha;
+  const combatTarget = opts.hasTarget || (weapon === 'espada' && (opts.swingTimer ?? 0) > 0) ? 1 : 0;
+  const combatAlpha = 1 - Math.exp(-dt / 0.12);
+  hover.combatT += (combatTarget - hover.combatT) * combatAlpha;
+  if (weapon === 'espada' && (opts.swingTimer ?? 0) > 0) hover.combatT = 1;
+
+  const bob = Math.sin(opts.time * 2.2) * 1.6;
+  const restX = hover.sideT * r * 1.9;
+  const restY = -r * 1.3 + bob;
+  const restLean = Math.sin(opts.time * 1.7) * 0.04
+    - (opts.moving ? hover.sideT * 0.10 : 0);
+  const restAngle = (weapon === 'arco' ? 0 : -Math.PI / 2) + restLean;
+
+  const swingTimer = opts.swingTimer ?? 0;
+  const swingProgress = swingTimer > 0 ? 1 - swingTimer / 0.24 : 0;
+  const combatAngle = weapon === 'espada' && swingTimer > 0
+    ? (opts.swingAngle ?? opts.aimAngle) + (swingProgress - 0.5) * 1.55
+    : opts.aimAngle;
+  const x = restX * (1 - hover.combatT);
+  const y = restY * (1 - hover.combatT);
+  const desiredAngle = restAngle + angleDelta(restAngle, combatAngle) * hover.combatT;
+  const angleAlpha = 1 - Math.exp(-dt / 0.12);
+  hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
+  if (hover.combatT === 1 && swingTimer > 0) hover.angle = combatAngle;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(hover.angle);
+  drawWeapon(ctx, weapon, r);
+  ctx.restore();
+}
+
 export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: number): void {
   switch (weapon) {
     case 'espada':
