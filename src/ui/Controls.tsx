@@ -45,7 +45,18 @@ type Props = {
 const STICK_RADIUS = 42;
 
 function ClassWeaponIcon() {
-  return <span className="class-switch-icon" aria-hidden="true">🔄</span>;
+  return <svg className="class-switch-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <polygon points="11,3 17,3 22,6 25,11 22,12 19,8 15,7 11,8 8,11 5,8" fill="#91b6bd" />
+    <polygon points="11,3 15,7 11,8 8,11 5,8" fill="#d0e0df" />
+    <polygon points="17,3 22,6 25,11 22,12 19,8 15,7" fill="#547d87" />
+    <polygon points="25,11 29,9 28,17 22,14" fill="#7199a1" />
+    <polygon points="29,9 28,17 25,14" fill="#3e6670" />
+    <polygon points="21,29 15,29 10,26 7,21 10,20 13,24 17,25 21,24 24,21 27,24" fill="#91b6bd" />
+    <polygon points="21,29 17,25 21,24 24,21 27,24" fill="#547d87" />
+    <polygon points="15,29 10,26 7,21 10,20 13,24 17,25" fill="#d0e0df" />
+    <polygon points="7,21 3,23 4,15 10,18" fill="#7199a1" />
+    <polygon points="3,23 4,15 7,18" fill="#3e6670" />
+  </svg>;
 }
 
 function LowPolyBackpackIcon() {
