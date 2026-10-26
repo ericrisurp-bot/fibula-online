@@ -1463,16 +1463,44 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
     const axeScale = 50 / (1.43 * r);
     ctx.translate(1.12 * r, -0.385 * r); ctx.scale(axeScale, axeScale); ctx.translate(-1.12 * r, 0.385 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
-    // Cabeça curta e larga, com lâmina em cunha: machadinho para madeira.
-    ctx.fillStyle = '#c8d4d9'; ctx.strokeStyle = '#53636b'; ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(r * 1.16, -r * 0.35); ctx.lineTo(r * 1.2, -r * 0.72);
-    ctx.quadraticCurveTo(r * 1.48, -r * 0.82, r * 1.68, -r * 0.61);
-    ctx.lineTo(r * 1.61, -r * 0.28); ctx.lineTo(r * 1.34, -r * 0.16);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    const axeFacet = (points: readonly (readonly [number, number])[], fill: string, stroke = '#29221c', lineWidth = 0.045) => {
+      ctx.beginPath();
+      ctx.moveTo(points[0][0] * r, points[0][1] * r);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0] * r, points[i][1] * r);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = Math.max(0.65, r * lineWidth); ctx.stroke(); }
+    };
+
+    // Cabo: núcleo escuro e faces separadas para sugerir madeira talhada em volume.
+    axeFacet([[0.48,0.10],[0.56,-0.005],[1.53,-0.40],[1.59,-0.28],[0.64,0.15]], '#35251b');
+    axeFacet([[0.52,0.055],[0.59,0.005],[1.51,-0.365],[1.54,-0.31],[0.62,0.105]], '#815633', '');
+    axeFacet([[0.59,0.005],[1.51,-0.365],[1.54,-0.31],[0.62,0.105]], '#b98651', '');
+    axeFacet([[0.57,0.07],[0.64,0.045],[1.46,-0.285],[1.48,-0.25],[0.65,0.10]], '#d7aa70', '');
+    axeFacet([[0.65,0.105],[0.79,0.045],[0.84,0.14],[0.69,0.20]], '#4b3020');
+    axeFacet([[0.67,0.11],[0.72,0.085],[0.77,0.16],[0.71,0.18]], '#a97545', '');
+    // Veios curtos e escuros na madeira, seguindo a direção do cabo.
+    axeFacet([[0.88,-0.055],[1.08,-0.135],[1.11,-0.115],[0.91,-0.03]], '#694329', '');
+    axeFacet([[1.17,-0.17],[1.31,-0.225],[1.34,-0.205],[1.20,-0.145]], '#694329', '');
+    // Cabeça: sombra deslocada para baixo, dando espessura ao metal.
+    axeFacet([[1.08,-0.31],[1.12,-0.62],[1.31,-0.73],[1.55,-0.69],[1.76,-0.54],[1.78,-0.43],[1.64,-0.25],[1.39,-0.16],[1.19,-0.20]], '#202a30');
+    axeFacet([[1.06,-0.34],[1.12,-0.65],[1.32,-0.76],[1.56,-0.71],[1.76,-0.55],[1.72,-0.48],[1.53,-0.57],[1.32,-0.54],[1.20,-0.40],[1.25,-0.24],[1.17,-0.22]], '#53636c');
+    // Face principal fria e ampla; o brilho fica concentrado junto ao gume.
+    axeFacet([[1.12,-0.65],[1.32,-0.76],[1.56,-0.71],[1.76,-0.55],[1.61,-0.53],[1.44,-0.57],[1.29,-0.52]], '#dce6e9', '');
+    axeFacet([[1.29,-0.52],[1.44,-0.57],[1.61,-0.53],[1.76,-0.55],[1.68,-0.39],[1.51,-0.34],[1.37,-0.39]], '#aebec5', '');
+    axeFacet([[1.06,-0.34],[1.12,-0.65],[1.29,-0.52],[1.28,-0.37],[1.37,-0.22],[1.19,-0.20]], '#778992', '');
+    // Bisel escuro da borda e gume polido com reflexo fino.
+    axeFacet([[1.61,-0.53],[1.76,-0.55],[1.68,-0.39],[1.51,-0.34],[1.56,-0.43]], '#697b84', '');
+    axeFacet([[1.14,-0.61],[1.23,-0.58],[1.29,-0.43],[1.25,-0.36]], '#f8fbfc', '');
+    axeFacet([[1.32,-0.50],[1.44,-0.53],[1.57,-0.50],[1.68,-0.45],[1.64,-0.40],[1.49,-0.45],[1.37,-0.44]], '#f1f6f7', '');
+    // Olho reforçado em torno do cabo, com cunha de madeira visível no encaixe.
+    axeFacet([[1.18,-0.40],[1.28,-0.47],[1.39,-0.42],[1.43,-0.32],[1.34,-0.25],[1.24,-0.29]], '#27333a');
+    axeFacet([[1.23,-0.39],[1.29,-0.43],[1.35,-0.40],[1.37,-0.33],[1.32,-0.29],[1.26,-0.32]], '#9baab0', '');
+    axeFacet([[1.27,-0.38],[1.32,-0.40],[1.35,-0.36],[1.32,-0.32]], '#b98a56', '');
+    // Anéis de metal apertando o cabo junto à cabeça.
+    axeFacet([[1.36,-0.335],[1.42,-0.36],[1.46,-0.29],[1.40,-0.265]], '#344149');
+    axeFacet([[1.37,-0.33],[1.40,-0.345],[1.43,-0.30],[1.40,-0.285]], '#d5dfe3', '');
     ctx.restore();
   }
   if (rockMineTimer > 0) {
