@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { drawLadino } from './game/ladino';
+import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
@@ -538,7 +538,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.length > 0, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.length > 0, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1430,7 +1430,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
         : 'front';
   const facingScaleX = direction === 'left' || direction === 'up-left' || direction === 'down-left' ? -1 : 1;
   ctx.save(); ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, r * .8, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, ladinoFeetY(r) - r * 0.1, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.save(); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();

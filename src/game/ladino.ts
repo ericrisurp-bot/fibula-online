@@ -52,6 +52,14 @@ function line(c: CanvasRenderingContext2D, pts: Point[], color: string, lw: numb
   c.stroke();
 }
 
+export function ladinoFeetY(r: number): number {
+  return 67 * 4.5 * r / 135;
+}
+
+export function ladinoTopY(r: number): number {
+  return -66 * 4.5 * r / 135;
+}
+
 export type LadinoDirection = 'front' | 'back' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
 export type LadinoPose = { walking: boolean; phase: number; breath: number; carry: boolean; direction: LadinoDirection };
 
@@ -75,7 +83,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
 
   ctx.save();
   const scale = 4.5 * r / 135; // Ladino 1,5x maior; preserva a proporção interna.
-  ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
+  ctx.translate(-50 * scale, -66 * scale);
   ctx.scale(scale * sideScale, scale);
   const P = PALETTES[classId];
 
