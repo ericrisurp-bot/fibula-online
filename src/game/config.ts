@@ -1,7 +1,10 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
+const AURA_RADIUS = 40;
+const SWORD_BLADE_LENGTH = 66;
+
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
-  player: { radius: 18, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
+  player: { radius: 18, auraRadius: AURA_RADIUS, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   enemy: {
     radius: 16,
     speed: 138,
@@ -62,7 +65,7 @@ export const CONFIG = {
   archerHeal: { arrowsPerHeal: 15, amount: 1 },
   druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
   weapons: {
-    espada: { label: 'Espada', range: 70, damage: 16, attackSpeed: 1.25, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
+    espada: { label: 'Espada', range: AURA_RADIUS + SWORD_BLADE_LENGTH, damage: 16, attackSpeed: 1.25, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 420, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
     bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
