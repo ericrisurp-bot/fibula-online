@@ -1462,7 +1462,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
     const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : aimAngle;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(angle); ctx.scale(1.6, 1.6);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(angle); ctx.scale(2.4, 2.4);
     // Espada low-poly: pomo, empunhadura, guarda facetada e lâmina com fio de luz.
     weaponPoly(ctx, [[r*.55,r*.12],[r*.7,r*.1],[r*.76,-r*.04],[r*.61,-r*.08]], '#d5b36a', '#302a25', 0.8);
     weaponPoly(ctx, [[r*.64,r*.08],[r*1.05,-r*.1],[r*1.12,-r*.02],[r*.71,r*.16]], '#6d4930', '#302a25', 0.8);
