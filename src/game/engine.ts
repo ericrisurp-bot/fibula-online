@@ -1469,9 +1469,28 @@ export class GameEngine {
       }
     } else {
       const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
+      const aimAngle = Math.atan2(dy, dx);
       const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
-      this.state.shots.push({ id: this.nextId++, x: p.x, y: p.y, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: weapon.range / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+
+      // Orbes mágicos nascem na extremidade dianteira do cajado em sua pose de ataque.
+      // Os pontos locais acompanham o desenho de drawMageStaff/drawDruidStaff.
+      const isStaffOrb = weapon.kind === 'orb';
+      const staffTip = this.state.classId === 'mago'
+        ? { x: 3.49, y: -0.66 }
+        : { x: 3.19, y: -0.34 };
+      const staffCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68;
+      const shotX = isStaffOrb
+        ? p.x + (staffCenterDistance + staffTip.x * CONFIG.player.radius) * Math.cos(aimAngle) - staffTip.y * CONFIG.player.radius * Math.sin(aimAngle)
+        : p.x;
+      const shotY = isStaffOrb
+        ? p.y + (staffCenterDistance + staffTip.x * CONFIG.player.radius) * Math.sin(aimAngle) + staffTip.y * CONFIG.player.radius * Math.cos(aimAngle)
+        : p.y;
+      // Compensa o deslocamento inicial para preservar o alcance efetivo anterior.
+      const originDistance = Math.hypot(shotX - p.x, shotY - p.y);
+      const remainingRange = isStaffOrb ? Math.max(0, weapon.range - originDistance) : weapon.range;
+
+      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
   }
