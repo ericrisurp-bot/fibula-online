@@ -129,7 +129,6 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
 
   // Braços temporariamente ocultos em todas as direções para inspecionar a silhueta da roupa.
 
-  poly(ctx, [[30,56],[40,50],[70,76],[62,82]], LEATH);
   poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
   poly(ctx, [[48,81],[53,81],[53,90],[48,90]], GOLD, OUT, 1);
   poly(ctx, [[27,86],[39,86],[39,99],[27,99]], LEATH);
