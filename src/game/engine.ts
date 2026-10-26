@@ -407,7 +407,7 @@ export class GameEngine {
 
   private collectBronze() {
     for (const drop of [...this.state.bronzeDrops]) {
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange) continue;
       const result = addToInventory(this.state.inventory, 'bronze', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1060,7 +1060,7 @@ export class GameEngine {
 
   private isPlayerAtRock(rock: Rock) {
     return Math.hypot(rock.x - this.state.player.x, rock.y - this.state.player.y)
-      <= CONFIG.rocks.mineRange + this.rockFootprintRadius(rock);
+      <= CONFIG.rocks.mineRange + CONFIG.gathering.extraRange + this.rockFootprintRadius(rock);
   }
 
   private hitRock(id: number) {
@@ -1089,7 +1089,7 @@ export class GameEngine {
 
   private collectStone() {
     for (const drop of [...this.state.stoneDrops]) {
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange) continue;
       const result = addToInventory(this.state.inventory, 'stone', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1100,12 +1100,12 @@ export class GameEngine {
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
-    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= 38 + this.cottonFootprintRadius(plant);
+    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= 38 + CONFIG.gathering.extraRange + this.cottonFootprintRadius(plant);
   }
 
   private collectCotton() {
     for (const drop of [...this.state.cottonDrops]) {
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange) continue;
       const result = addToInventory(this.state.inventory, 'cotton', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1115,7 +1115,7 @@ export class GameEngine {
 
   private collectLinen() {
     for (const drop of [...this.state.linenDrops]) {
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange) continue;
       const result = addToInventory(this.state.inventory, 'linen', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1135,7 +1135,7 @@ export class GameEngine {
 
   private collectWood() {
     for (const drop of [...this.state.woodDrops]) {
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange) continue;
       const result = addToInventory(this.state.inventory, 'wood', drop.amount, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1368,8 +1368,8 @@ export class GameEngine {
     const shadow = this.treeBase(tree);
     const dx = this.state.player.x - shadow.x;
     const dy = this.state.player.y - shadow.y;
-    const rx = 19 * scale + CONFIG.player.radius;
-    const ry = 8 * scale + CONFIG.player.radius;
+    const rx = 19 * scale + CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange;
+    const ry = 8 * scale + CONFIG.gathering.playerVisualRadius + CONFIG.gathering.extraRange;
     return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
   }
 
