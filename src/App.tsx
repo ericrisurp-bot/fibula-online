@@ -305,8 +305,8 @@ export default function App() {
         });
       }
       for (const flag of flagsRef.current) {
-        if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color) });
-        else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color) });
+        if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color, s.elapsed) });
+        else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color, s.elapsed) });
       }
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
@@ -1400,11 +1400,26 @@ function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nea
   }
   ctx.restore();
 }
-function drawFlag(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+function drawFlag(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, time: number) {
   ctx.save(); ctx.translate(x, y);
   ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(0, -18); ctx.stroke();
   ctx.strokeStyle = '#d7d7d7'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-1, 15); ctx.lineTo(-1, -18); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(1, -17); ctx.lineTo(18, -12); ctx.lineTo(1, -5); ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = 'rgba(20,20,20,.7)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // O tecido ondula suavemente com o vento, mantendo a ponta presa à haste.
+  const wave = Math.sin(time * 4.2) * 2.2;
+  const waveBack = Math.sin(time * 4.2 - 0.9) * 1.6;
+  ctx.beginPath();
+  ctx.moveTo(1, -17);
+  ctx.quadraticCurveTo(8, -18 + waveBack * 0.25, 18 + wave, -12);
+  ctx.quadraticCurveTo(12 + wave * 0.65, -9 + waveBack * 0.25, 1, -5);
+  ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = 'rgba(20,20,20,.7)'; ctx.lineWidth = 1; ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(3, -15);
+  ctx.quadraticCurveTo(8, -14 + waveBack * 0.2, 14 + wave * 0.55, -12);
+  ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 0.8; ctx.stroke();
   ctx.restore();
 }
 
