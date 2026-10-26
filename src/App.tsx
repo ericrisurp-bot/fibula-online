@@ -1464,22 +1464,22 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
-    // Cabeça curta e larga, com lâmina em cunha: machadinho para madeira.
+    // Lâmina facetada e larga, com fio voltado para fora do cabo.
     ctx.fillStyle = '#c8d4d9'; ctx.strokeStyle = '#53636b'; ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(r * 1.16, -r * 0.35); ctx.lineTo(r * 1.2, -r * 0.72);
-    ctx.quadraticCurveTo(r * 1.48, -r * 0.82, r * 1.68, -r * 0.61);
-    ctx.lineTo(r * 1.61, -r * 0.28); ctx.lineTo(r * 1.34, -r * 0.16);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.moveTo(r * 1.17, -r * 0.36); ctx.lineTo(r * 1.18, -r * 0.68);
+    ctx.lineTo(r * 1.38, -r * 0.82); ctx.lineTo(r * 1.68, -r * 0.67);
+    ctx.lineTo(r * 1.72, -r * 0.43); ctx.lineTo(r * 1.58, -r * 0.23);
+    ctx.lineTo(r * 1.34, -r * 0.19); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#eef3f5'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(r * 1.39, -r * 0.75); ctx.lineTo(r * 1.62, -r * 0.64); ctx.stroke();
     ctx.restore();
   }
   if (rockMineTimer > 0) {
-    // Golpe de picareta em arco descendente: de 12h para 3h (pedra à direita)
-    // ou de 12h para 9h (pedra à esquerda). Mantém a ferramenta original.
+    // O arco parte da direção real da pedra, inclusive quando ela está acima/abaixo.
     const progress = 1 - rockMineTimer / 0.22;
-    const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
-    const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
+    const swing = (progress - 0.5) * (Math.PI / 2.8);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(rockMineAngle * facingScaleX + swing);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
@@ -1497,7 +1497,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (cottonHarvestTimer > 0) {
     // Foice de mão: cabo curto e lâmina fina em curva para colher algodão.
     const progress = 1 - cottonHarvestTimer / 0.24;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle * facingScaleX + (progress - 0.5) * 0.45);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(r * 0.58, r * 0.05); ctx.lineTo(r * 1.15, -r * 0.18); ctx.stroke();
