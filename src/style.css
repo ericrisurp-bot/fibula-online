@@ -1083,3 +1083,16 @@ button, button * {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Tela de derrota: manter a transparência, alinhada ao fundo #222322 do jogo. */
+.game-over {
+  background: rgba(34, 35, 34, 0.91);
+}
+
+.game-over .restart-button {
+  background: #83d8a5;
+  color: #17251b;
+}
+.game-over .restart-button:active {
+  background: #6fc792;
+}
