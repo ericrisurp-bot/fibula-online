@@ -3,6 +3,7 @@ import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
+import { drawFloatingTool } from './game/tools';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
@@ -22,7 +23,7 @@ const initial: GameSnapshot = {
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherReach: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : itemId === 'cotton' ? '☁️' : itemId === 'linen' ? '🧵' : '📦';
 const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
@@ -544,7 +545,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.length > 0, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.length > 0, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1421,7 +1422,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1457,59 +1458,8 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   } else {
     drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
   }
-  if (treeChopTimer > 0) {
-    const progress = 1 - treeChopTimer / 0.2;
-    const swing = (progress - 0.5) * (Math.PI / 2.25);
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
-    const axeScale = 50 / (1.43 * r);
-    ctx.translate(1.12 * r, -0.385 * r); ctx.scale(axeScale, axeScale); ctx.translate(-1.12 * r, 0.385 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
-    // Cabeça curta e larga, com lâmina em cunha: machadinho para madeira.
-    ctx.fillStyle = '#c8d4d9'; ctx.strokeStyle = '#53636b'; ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(r * 1.16, -r * 0.35); ctx.lineTo(r * 1.2, -r * 0.72);
-    ctx.quadraticCurveTo(r * 1.48, -r * 0.82, r * 1.68, -r * 0.61);
-    ctx.lineTo(r * 1.61, -r * 0.28); ctx.lineTo(r * 1.34, -r * 0.16);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  }
-  if (rockMineTimer > 0) {
-    // Golpe de picareta em arco descendente: de 12h para 3h (pedra à direita)
-    // ou de 12h para 9h (pedra à esquerda). Mantém a ferramenta original.
-    const progress = 1 - rockMineTimer / 0.22;
-    const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
-    const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
-    const pickaxeScale = 50 / (1.44 * r);
-    ctx.translate(1.165 * r, -0.335 * r); ctx.scale(pickaxeScale, pickaxeScale); ctx.translate(-1.165 * r, 0.335 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
-    // Cabeça metálica de picareta: ponta estreita de um lado e lâmina oposta.
-    ctx.fillStyle = '#aebdc4'; ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(r * 1.02, -r * 0.58); ctx.lineTo(r * 1.28, -r * 0.72);
-    ctx.lineTo(r * 1.43, -r * 0.58); ctx.lineTo(r * 1.78, -r * 0.7);
-    ctx.lineTo(r * 1.63, -r * 0.48); ctx.lineTo(r * 1.43, -r * 0.47);
-    ctx.lineTo(r * 1.2, -r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#e0e7ea'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
-    ctx.restore();
-  }
-  if (cottonHarvestTimer > 0) {
-    // Foice de mão: cabo curto e lâmina fina em curva para colher algodão.
-    const progress = 1 - cottonHarvestTimer / 0.24;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
-    const sickleScale = 50 / (1.29 * r);
-    ctx.translate(1.12 * r, -0.3 * r); ctx.scale(sickleScale, sickleScale); ctx.translate(-1.12 * r, 0.3 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(r * 0.58, r * 0.05); ctx.lineTo(r * 1.15, -r * 0.18); ctx.stroke();
-    ctx.strokeStyle = '#d5dde0'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(r * 1.02, -r * 0.22); ctx.quadraticCurveTo(r * 1.5, -r * 0.65, r * 1.66, -r * 0.3); ctx.stroke();
-    ctx.restore();
-  }
+  drawFloatingTool(ctx, 'machadinho', r, { time, angle: treeChopAngle, timer: treeChopTimer, duration: 0.2, reach: gatherReach });
+  drawFloatingTool(ctx, 'picareta', r, { time, angle: rockMineAngle, timer: rockMineTimer, duration: 0.22, reach: gatherReach });
+  drawFloatingTool(ctx, 'foice', r, { time, angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: 0.24, reach: gatherReach });
   ctx.restore();
 }
