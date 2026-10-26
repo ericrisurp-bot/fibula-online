@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { CLASSES, type ClassId, type WeaponId } from '../game/config';
-import { drawWeapon } from '../game/weapons';
+import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
   onInventoryToggle: () => void;
@@ -45,32 +44,8 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-const CLASS_WEAPONS: Record<ClassId, WeaponId> = {
-  guerreiro: 'espada',
-  mago: 'cajado',
-  arqueiro: 'arco',
-  druida: 'bastao',
-};
-
-function ClassWeaponIcon({ classId }: { classId: ClassId }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const weapon = CLASS_WEAPONS[classId];
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(32, 32);
-    if (weapon !== 'arco') ctx.rotate(Math.PI / 2);
-    ctx.scale(1.5, 1.5);
-    ctx.translate(-25, 0);
-    drawWeapon(ctx, weapon, 10);
-    ctx.restore();
-  }, [weapon]);
-
-  return <canvas ref={canvasRef} width={64} height={64} className="mobile-class-weapon-icon" aria-hidden="true" />;
+function ClassWeaponIcon() {
+  return <span className="class-switch-icon" aria-hidden="true">🔄</span>;
 }
 
 function LowPolyBackpackIcon() {
@@ -231,7 +206,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
       {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
       {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Reparar carrinho"><span aria-hidden="true">🪵</span><small>Construir</small></button>}
-      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon classId={nextClass} /></button>
+      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
       <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
     </div>
   </div>;
