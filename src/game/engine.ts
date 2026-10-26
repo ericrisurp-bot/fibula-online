@@ -1462,7 +1462,10 @@ export class GameEngine {
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
     const isStaffClass = this.state.classId === 'mago' || this.state.classId === 'druida';
-    const minStaffDistance = isStaffClass ? 40 : 0;
+    const minStaffDistance = isStaffClass
+      ? CONFIG.player.auraRadius - CONFIG.player.radius * 0.68
+        + (this.state.classId === 'mago' ? 3.7 * 50 / 3.07 : 4.38 * 50 / 2.57)
+      : 0;
     const targets = this.state.enemies
       .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
       .filter(v => v.d <= weapon.range)
