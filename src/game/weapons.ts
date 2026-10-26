@@ -156,17 +156,21 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx, r, [[1.105,-0.075],[1.255,-0.045],[1.255,0.015],[1.105,-0.015]], '#b98248', '#5d432a', 0.7);
   facet(ctx, r, [[1.105,0.04],[1.255,0.07],[1.255,0.13],[1.105,0.10]], '#e7d5a0', '#5d432a', 0.7);
 
-  // Corda reta e fina entre as pontas.
+  // Corda puxada para trás: dois segmentos finos formam um V simétrico.
+  const nockPointX = 0.15;
   ctx.beginPath();
   ctx.moveTo(centerAt(-halfHeight) * r, -halfHeight * r);
+  ctx.lineTo(nockPointX * r, 0);
   ctx.lineTo(centerAt(halfHeight) * r, halfHeight * r);
   ctx.strokeStyle = '#f2eadb';
   ctx.lineWidth = Math.max(0.7, r * 0.018);
   ctx.stroke();
 
   // Flecha decorativa encaixada na corda; não participa da mecânica de projéteis.
-  // A corda cruza o eixo em centerAt(0)=1.18; o nock toca exatamente esse ponto.
+  // Desloca a flecha inteira para que o nock coincida com o vértice do V.
   const nockX = centerAt(0);
+  ctx.save();
+  ctx.translate((nockPointX - nockX) * r, 0);
   // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta.
   facet(ctx, r, [[nockX,-0.035],[3.94,-0.035],[3.94,0.035],[nockX,0.035]], '#b98a50', '#4c3a2b', 0.8);
   facet(ctx, r, [[nockX,-0.027],[3.91,-0.027],[3.91,-0.006],[nockX,-0.006]], '#f0d5a0', '');
@@ -218,6 +222,7 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx, r, [[3.94,-0.035],[4.12,-0.11],[4.38,0],[4.13,-0.012]], '#edf4f1', '');
   facet(ctx, r, [[4.13,-0.012],[4.38,0],[4.27,0.065],[4.12,0.11]], '#687780', '');
   facet(ctx, r, [[3.94,0.035],[4.13,-0.012],[4.27,0.065],[4.12,0.11]], '#b7c3c7', '');
+  ctx.restore();
 }
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
   // Haste torcida: segmentos deslocados e nós de madeira facetados.
