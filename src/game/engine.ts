@@ -1574,7 +1574,7 @@ export class GameEngine {
     this.gatheringTimer = 0;
     if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d)) {
       const treeBase = this.treeBase(treeTarget.tree);
-      this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
+      this.state.treeChopAngle = p.y < treeBase.y ? Math.PI / 2 : -Math.PI / 2;
       this.state.treeChopTimer = 0.2;
       this.state.gatherReach = Math.max(12, treeTarget.d - 0.6 * this.treeFootprintRadius(treeTarget.tree));
       treeTarget.tree.hits -= 1;
