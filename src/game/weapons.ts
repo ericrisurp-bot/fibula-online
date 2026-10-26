@@ -350,10 +350,10 @@ export function drawFloatingWeapon(
   const restAngle = (weapon === 'arco' ? 0 : -Math.PI / 2) + restLean;
 
   const swingProgress = opts.swingTimer > 0 ? 1 - opts.swingTimer / 0.24 : 0;
-  const combatAngle = weapon === 'espada' && opts.swingTimer > 0
+  const combatAngle = opts.swingTimer > 0
     ? opts.swingAngle + (swingProgress - 0.5) * 1.55
     : opts.aimAngle;
-  const combatDirection = weapon === 'espada' && opts.swingTimer > 0
+  const combatDirection = opts.swingTimer > 0
     ? opts.swingAngle
     : opts.aimAngle;
   const combatDistance = weapon === 'espada'
