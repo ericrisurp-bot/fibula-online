@@ -1441,7 +1441,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
-  if (isNight) {
+  if (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao'))) {
     if (weapon === 'espada') {
       const duration = 0.24;
       const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;

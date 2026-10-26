@@ -1461,14 +1461,31 @@ export class GameEngine {
     const speedBonus = this.getLevelStats().attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
-    const minStaffDistance = this.state.classId === 'mago' || this.state.classId === 'druida' ? 40 : 0;
-    const target = this.state.enemies
+    const isStaffClass = this.state.classId === 'mago' || this.state.classId === 'druida';
+    const minStaffDistance = isStaffClass
+      ? CONFIG.player.auraRadius - CONFIG.player.radius * 0.68
+        + (this.state.classId === 'mago' ? 3.7 * 50 / 3.07 : 4.38 * 50 / 2.57)
+      : 0;
+    const targets = this.state.enemies
       .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
-      .filter(v => v.d <= weapon.range && v.d > minStaffDistance)
-      .sort((a, b) => a.d - b.d)[0];
+      .filter(v => v.d <= weapon.range)
+      .sort((a, b) => a.d - b.d);
+    const target = targets[0];
     if (!target) return;
+    const isCloseStaffAttack = isStaffClass && target.d <= minStaffDistance;
     this.attackTimer = 0;
     this.combatLockTimer = 0.24;
+    if (isCloseStaffAttack) {
+      this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      this.state.swordSwingTimer = 0.24;
+      this.onSound?.({ type: 'attack', classId: this.state.classId });
+      const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level)
+        * 0.4 * (1 + this.getDayNightState().vulnerability);
+      target.e.hp -= damage;
+      this.addFloatingDamage(target.e.x, target.e.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+      if (target.e.hp <= 0) this.killEnemy(target.e.id, false);
+      return;
+    }
     if (weapon.kind === 'melee') {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
@@ -1512,14 +1529,16 @@ export class GameEngine {
       // Os pontos locais acompanham o desenho de drawMageStaff/drawDruidStaff.
       const isStaffOrb = weapon.kind === 'orb';
       const staffTip = this.state.classId === 'mago'
-        ? { x: 3.49, y: -0.66 }
-        : { x: 3.19, y: -0.34 };
+        ? { x: 3.7, y: 0, visualLength: 3.07 }
+        : { x: 4.38, y: 0, visualLength: 2.57 };
       const staffCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68;
+      const staffTipX = staffTip.x * 50 / staffTip.visualLength;
+      const staffTipY = staffTip.y * 50 / staffTip.visualLength;
       const shotX = isStaffOrb
-        ? p.x + (staffCenterDistance + staffTip.x * CONFIG.player.radius) * Math.cos(aimAngle) - staffTip.y * CONFIG.player.radius * Math.sin(aimAngle)
+        ? p.x + (staffCenterDistance + staffTipX) * Math.cos(aimAngle) - staffTipY * Math.sin(aimAngle)
         : p.x;
       const shotY = isStaffOrb
-        ? p.y + (staffCenterDistance + staffTip.x * CONFIG.player.radius) * Math.sin(aimAngle) + staffTip.y * CONFIG.player.radius * Math.cos(aimAngle)
+        ? p.y + (staffCenterDistance + staffTipX) * Math.sin(aimAngle) + staffTipY * Math.cos(aimAngle)
         : p.y;
       // Compensa o deslocamento inicial para preservar o alcance efetivo anterior.
       const originDistance = Math.hypot(shotX - p.x, shotY - p.y);
@@ -1722,11 +1741,11 @@ export class GameEngine {
     }
   }
 
-  private killEnemy(id: number) {
+  private killEnemy(id: number, countForDruidHealingOrb = true) {
     const e = this.state.enemies.find(v => v.id === id); if (!e) return;
     this.state.dyingEnemies.push({ ...e, deathAge: 0 });
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
-    if (this.state.classId === 'druida' && this.state.healingOrbs.length < CONFIG.druidHeal.maxOrbs) {
+    if (countForDruidHealingOrb && this.state.classId === 'druida' && this.state.healingOrbs.length < CONFIG.druidHeal.maxOrbs) {
       this.druidKillsSinceOrb += 1;
       if (this.druidKillsSinceOrb >= CONFIG.druidHeal.killsPerOrb) {
         this.druidKillsSinceOrb = 0;
