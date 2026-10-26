@@ -1013,3 +1013,100 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
     transform:translate(-50%,-50%) scale(var(--interface-scale,1.3));
   }
 }
+
+/* HUD de ciclo compacto para telas touch: painel único, Dia/Noite no topo e dia/abates abaixo.
+   Mantém o layout atual de mouse/PC fora deste breakpoint. */
+@media (pointer: coarse) {
+  .hud-left-stack .hud-center-stack {
+    position: relative;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 3px;
+    width: fit-content;
+    min-width: 112px;
+    max-width: 100%;
+    padding: 6px 8px;
+    border: 1px solid rgba(235,235,235,.24);
+    border-radius: 9px;
+    background: rgba(34,35,34,.78);
+    box-shadow: 0 2px 10px rgba(0,0,0,.18);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    transform: none;
+    white-space: nowrap;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    align-self: flex-start;
+    gap: 1px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer span {
+    font-size: 7px;
+    line-height: 1.1;
+    letter-spacing: .06em;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer strong {
+    font-size: 15px;
+    line-height: 1.1;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip span {
+    font-size: 7px;
+    line-height: 1.1;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip strong {
+    font-size: 10px;
+    line-height: 1.1;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 380px) {
+  .hud-left-stack .hud-center-stack {
+    min-width: 104px;
+    padding: 5px 6px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats {
+    gap: 7px;
+  }
+}
+
