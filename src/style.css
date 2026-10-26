@@ -1096,3 +1096,9 @@ button, button * {
 .game-over .restart-button:active {
   background: #6fc792;
 }
+
+
+/* A derrota deve cobrir HUD, menu e controles, bloqueando toques atrás do modal. */
+.game-over {
+  z-index: 100 !important;
+}
