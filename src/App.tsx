@@ -1044,7 +1044,7 @@ export default function App() {
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
       {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho">
-        <header><strong>INVENTÁRIO</strong><span>B ou Esc fecha</span></header>
+        <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onClick={closeInventoryPanel} aria-label="Fechar mochila" title="Fechar">×</button></header>
 
         <section>
           <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
