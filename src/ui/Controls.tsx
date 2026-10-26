@@ -44,34 +44,18 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-function ClassWeaponIcon({ classId }: { classId: ClassId }) {
-  if (classId === 'guerreiro') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="16,2 21,17 16,21 11,17" fill="#d9e2e8" stroke="#6e7b83" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="16,2 16,21 11,17" fill="#f7fafb" />
-    <polygon points="8,17 24,17 22,21 10,21" fill="#b98a48" stroke="#65472a" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="14,21 18,21 19,28 13,28" fill="#775039" stroke="#422d20" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="13,28 19,28 20,30 12,30" fill="#d4b47b" stroke="#65472a" strokeWidth="1" />
-  </svg>;
-  if (classId === 'mago') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="22,5 25,2 29,6 26,10" fill="#c8b4ff" stroke="#6c55a8" strokeWidth="1.2" />
-    <polygon points="22,8 25,11 12,29 9,27" fill="#8b72c8" stroke="#57417f" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="22,8 25,11 18,20 15,17" fill="#b6a0f1" />
-    <polygon points="18,3 22,2 25,5 24,9 20,10 17,7" fill="#a98aff" stroke="#6245a0" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="19,4 22,4 23,6 21,8 19,6" fill="#eadfff" />
-  </svg>;
-  if (classId === 'arqueiro') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <path d="M8 3 Q27 16 8 29" fill="none" stroke="#8a5b35" strokeWidth="4" strokeLinecap="round" />
-    <path d="M8 3 Q27 16 8 29" fill="none" stroke="#d3a36d" strokeWidth="1.4" strokeLinecap="round" />
-    <path d="M8 3 L8 29" fill="none" stroke="#e7e1cf" strokeWidth="1.2" />
-    <polygon points="7,15 18,12 18,14 25,16 18,18 18,20" fill="#d9e2e8" stroke="#6e7b83" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="5,15 9,15 9,18 5,18" fill="#8a5b35" />
-  </svg>;
-  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="13,12 17,14 10,30 6,28" fill="#397b49" stroke="#245634" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="13,12 17,14 13,22 10,20" fill="#72b96a" />
-    <polygon points="15,2 20,5 21,10 17,13 12,11 10,7" fill="#73d66c" stroke="#2c793e" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="15,2 17,7 12,11 10,7" fill="#b4f18d" />
-    <polygon points="17,5 20,5 21,10 17,13 15,9" fill="#3ca853" />
+function ClassWeaponIcon() {
+  return <svg className="class-switch-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <polygon points="11,3 17,3 22,6 25,11 22,12 19,8 15,7 11,8 8,11 5,8" fill="#91b6bd" />
+    <polygon points="11,3 15,7 11,8 8,11 5,8" fill="#d0e0df" />
+    <polygon points="17,3 22,6 25,11 22,12 19,8 15,7" fill="#547d87" />
+    <polygon points="25,11 29,9 28,17 22,14" fill="#7199a1" />
+    <polygon points="29,9 28,17 25,14" fill="#3e6670" />
+    <polygon points="21,29 15,29 10,26 7,21 10,20 13,24 17,25 21,24 24,21 27,24" fill="#91b6bd" />
+    <polygon points="21,29 17,25 21,24 24,21 27,24" fill="#547d87" />
+    <polygon points="15,29 10,26 7,21 10,20 13,24 17,25" fill="#d0e0df" />
+    <polygon points="7,21 3,23 4,15 10,18" fill="#7199a1" />
+    <polygon points="3,23 4,15 7,18" fill="#3e6670" />
   </svg>;
 }
 
@@ -233,7 +217,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
       {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
       {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Reparar carrinho"><span aria-hidden="true">🪵</span><small>Construir</small></button>}
-      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon classId={nextClass} /></button>
+      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
       <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
     </div>
   </div>;
