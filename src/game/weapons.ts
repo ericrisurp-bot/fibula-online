@@ -165,10 +165,59 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   ctx.stroke();
 
   // Flecha decorativa encaixada na corda; não participa da mecânica de projéteis.
-  facet(ctx, r, [[1.19,-0.055],[2.27,-0.055],[2.27,-0.015],[1.19,-0.015]], '#5b4b3c', '');
-  facet(ctx, r, [[2.27,-0.095],[2.5,-0.035],[2.27,0.025]], '#d4dbe0', '#58636a', 0.8);
-  facet(ctx, r, [[1.32,-0.035],[1.51,-0.15],[1.48,-0.035]], '#d6e1e4', '#4b5960', 0.8);
-  facet(ctx, r, [[1.32,-0.015],[1.51,0.10],[1.48,-0.015]], '#9caeb5', '#4b5960', 0.8);
+  // A corda cruza o eixo em centerAt(0)=1.18; o nock toca exatamente esse ponto.
+  const nockX = centerAt(0);
+  // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta.
+  facet(ctx, r, [[nockX,-0.035],[3.94,-0.035],[3.94,0.035],[nockX,0.035]], '#b98a50', '#4c3a2b', 0.8);
+  facet(ctx, r, [[nockX,-0.027],[3.91,-0.027],[3.91,-0.006],[nockX,-0.006]], '#f0d5a0', '');
+  facet(ctx, r, [[1.24,0.006],[3.94,0.006],[3.94,0.035],[1.24,0.035]], '#8c623c', '');
+  // Nock traseiro com entalhe voltado para a corda.
+  facet(ctx, r, [[nockX,-0.055],[nockX+0.075,-0.035],[nockX+0.075,0.035],[nockX,0.055],[nockX+0.025,0],[nockX,0]], '#e7e5dc', '#50535a', 0.8);
+
+  // Três vanes traseiros; os dois principais são facetas espelhadas vermelho e creme.
+  facet(ctx, r, [[1.23,-0.028],[1.34,-0.095],[1.58,-0.17],[1.78,-0.16],[1.66,-0.09],[1.48,-0.035]], '#c93442', '#522b31', 0.8);
+  facet(ctx, r, [[1.23,0.028],[1.34,0.095],[1.58,0.17],[1.78,0.16],[1.66,0.09],[1.48,0.035]], '#f2e5c9', '#66584a', 0.8);
+  facet(ctx, r, [[1.22,-0.012],[1.35,0],[1.65,0.012],[1.77,0]], '#8c2939', '');
+  // Quatro barbas diagonais finas em cada vane.
+  ctx.save();
+  ctx.lineWidth = 0.65;
+  ctx.strokeStyle = '#f08a8c';
+  for (const [x, y] of [[1.37,-0.06],[1.44,-0.08],[1.51,-0.105],[1.58,-0.125]]) {
+    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y-0.045)*r); ctx.stroke();
+  }
+  ctx.strokeStyle = '#b3a28b';
+  for (const [x, y] of [[1.37,0.06],[1.44,0.08],[1.51,0.105],[1.58,0.125]]) {
+    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y+0.045)*r); ctx.stroke();
+  }
+  // Terceiro vane estreito visível junto ao eixo.
+  ctx.strokeStyle = '#dfcba8';
+  ctx.beginPath(); ctx.moveTo(1.28*r, 0); ctx.lineTo(1.63*r, 0); ctx.stroke();
+  ctx.restore();
+
+  // Três marcas curtas de veio na haste.
+  ctx.save();
+  ctx.strokeStyle = '#6f4c32';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(2.02*r, -0.018*r); ctx.lineTo(2.11*r, -0.006*r);
+  ctx.moveTo(2.72*r, 0.012*r); ctx.lineTo(2.82*r, 0.002*r);
+  ctx.moveTo(3.35*r, -0.016*r); ctx.lineTo(3.44*r, -0.004*r);
+  ctx.stroke();
+  ctx.restore();
+
+  // Amarração colorida na junção dos vanes com a haste.
+  facet(ctx, r, [[1.19,-0.045],[1.23,-0.045],[1.23,0.045],[1.19,0.045]], '#b52c3c', '#5c2830', 0.7);
+  facet(ctx, r, [[1.195,-0.04],[1.215,-0.04],[1.215,0.04],[1.195,0.04]], '#f1c76a', '');
+
+  // Soquete metálico curto, amarração e ponta de aço em forma de folha.
+  facet(ctx, r, [[3.82,-0.045],[3.96,-0.045],[3.96,0.045],[3.82,0.045]], '#7c8990', '#414950', 0.8);
+  facet(ctx, r, [[3.83,-0.028],[3.95,-0.028],[3.95,-0.008],[3.83,-0.008]], '#dfe8e8', '');
+  facet(ctx, r, [[3.78,-0.048],[3.81,-0.048],[3.81,0.048],[3.78,0.048]], '#c13a46', '#4b2b31', 0.7);
+  facet(ctx, r, [[3.93,-0.04],[4.12,-0.11],[4.27,-0.065],[4.38,0],[4.27,0.065],[4.12,0.11],[3.93,0.04]], '#9ba8ad', '#3e4b53', 1.0);
+  // Três facetas da ponta: clara, média e escura.
+  facet(ctx, r, [[3.94,-0.035],[4.12,-0.11],[4.38,0],[4.13,-0.012]], '#edf4f1', '');
+  facet(ctx, r, [[4.13,-0.012],[4.38,0],[4.27,0.065],[4.12,0.11]], '#687780', '');
+  facet(ctx, r, [[3.94,0.035],[4.13,-0.012],[4.27,0.065],[4.12,0.11]], '#b7c3c7', '');
 }
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
   // Haste torcida: segmentos deslocados e nós de madeira facetados.
