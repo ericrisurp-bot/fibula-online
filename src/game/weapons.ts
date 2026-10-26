@@ -23,18 +23,45 @@ function polygon(
   }
 }
 
-function drawSword(ctx: CanvasRenderingContext2D, r: number) {
-  // Cabo curto, guarda facetada e lâmina de aço com filete vermelho.
-  polygon(ctx, [[r * 0.66, r * 0.13], [r * 0.91, r * 0.04], [r * 1.02, r * 0.18], [r * 0.77, r * 0.27]], '#49352f', '#211f25');
-  polygon(ctx, [[r * 0.69, r * 0.12], [r * 0.88, r * 0.05], [r * 0.91, r * 0.1], [r * 0.73, r * 0.18]], '#8e6650', '');
-  polygon(ctx, [[r * 0.94, -r * 0.06], [r * 1.03, -r * 0.01], [r * 0.91, r * 0.31], [r * 0.82, r * 0.25]], '#b68b4d', '#29232a');
-  polygon(ctx, [[r * 0.92, -r * 0.02], [r * 0.98, r * 0.02], [r * 0.9, r * 0.23], [r * 0.85, r * 0.22]], '#e3c47b', '');
-  polygon(ctx, [[r * 0.98, -r * 0.08], [r * 1.12, -r * 0.13], [r * 2.05, -r * 0.01], [r * 1.98, r * 0.09], [r * 1.08, r * 0.13], [r * 0.98, r * 0.04]], '#667983', '#26323a', 1);
-  polygon(ctx, [[r * 1.04, -r * 0.07], [r * 1.12, -r * 0.13], [r * 2.05, -r * 0.01], [r * 1.08, r * 0.01]], '#dce7e9', '');
-  polygon(ctx, [[r * 1.08, r * 0.01], [r * 2.05, -r * 0.01], [r * 1.98, r * 0.09], [r * 1.08, r * 0.13]], '#52636d', '');
-  polygon(ctx, [[r * 1.13, r * 0.035], [r * 1.91, r * 0.015], [r * 1.89, r * 0.045], [r * 1.13, r * 0.065]], '#b93d45', '');
+
+function facet(ctx: CanvasRenderingContext2D, r: number, points: readonly Point[], fill: string, stroke = '#25232a', lineWidth = 1.1) {
+  ctx.beginPath();
+  ctx.moveTo(points[0][0] * r, points[0][1] * r);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0] * r, points[i][1] * r);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
 }
 
+function drawSword(ctx: CanvasRenderingContext2D, r: number) {
+  // Empunhadura curta com faixas de couro, pomo facetado e guarda em cruz.
+  facet(ctx, r, [[0.62,0.12],[0.82,0.02],[0.91,0.11],[0.72,0.23]], '#35272a', '#201d23');
+  facet(ctx, r, [[0.65,0.12],[0.77,0.06],[0.81,0.1],[0.69,0.17]], '#b17a50', '');
+  facet(ctx, r, [[0.69,0.16],[0.82,0.1],[0.85,0.14],[0.73,0.21]], '#714631', '');
+  facet(ctx, r, [[0.73,0.2],[0.85,0.14],[0.88,0.18],[0.77,0.24]], '#c08b5b', '');
+  facet(ctx, r, [[0.82,0.02],[0.91,-0.04],[1.02,0.02],[1.03,0.12],[0.93,0.18],[0.85,0.11]], '#7e8990', '#263039');
+  facet(ctx, r, [[0.82,0.02],[0.91,-0.04],[0.95,0.05],[0.88,0.1]], '#d5e0e3', '');
+  facet(ctx, r, [[0.95,0.05],[1.02,0.02],[1.03,0.12],[0.93,0.18]], '#4b5963', '');
+  // Guarda larga, com extremidades ligeiramente recurvadas.
+  facet(ctx, r, [[0.94,-0.16],[1.05,-0.12],[1.12,-0.02],[1.08,0.04],[1.01,-0.03],[0.92,0.16],[0.85,0.12],[0.96,-0.07]], '#b48a4b', '#4b3828');
+  facet(ctx, r, [[0.94,-0.16],[1.05,-0.12],[1.02,-0.04],[0.96,-0.07]], '#f0d58b', '');
+  facet(ctx, r, [[1.08,0.04],[1.01,-0.03],[0.96,0.08],[0.92,0.16]], '#77512f', '');
+  // Lâmina comprida, larga na base, chanfrada na ponta e com fuller central.
+  facet(ctx, r, [[1.02,-0.08],[1.13,-0.13],[3.55,-0.035],[3.7,0.0],[3.55,0.045],[1.13,0.13],[1.02,0.06]], '#71838d', '#26333b', 1.2);
+  facet(ctx, r, [[1.04,-0.075],[1.13,-0.13],[3.7,0.0],[1.2,-0.015]], '#e4eef0', '');
+  facet(ctx, r, [[1.2,-0.015],[3.7,0.0],[3.55,0.045],[1.13,0.13]], '#52636e', '');
+  facet(ctx, r, [[1.2,-0.015],[3.52,0.0],[1.3,0.025],[1.12,0.02]], '#93a6ae', '');
+  facet(ctx, r, [[1.12,0.02],[3.52,0.0],[3.55,0.045],[1.13,0.13]], '#3e515b', '');
+  facet(ctx, r, [[1.17,0.045],[3.48,0.012],[3.43,0.023],[1.17,0.065]], '#b93643', '');
+  facet(ctx, r, [[1.1,-0.075],[1.18,-0.095],[3.48,-0.018],[3.53,-0.005],[1.2,-0.035]], '#f2f7f6', '');
+  facet(ctx, r, [[1.12,-0.025],[2.7,-0.018],[2.86,-0.004],[1.16,0.012]], '#c1d1d5', '');
+}
 function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
   const tip: Point = [r * 1.4, -r * 0.35];
   // Halo simples e translúcido; não usa shadowBlur.
