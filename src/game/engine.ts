@@ -1431,7 +1431,11 @@ export class GameEngine {
     const speedBonus = this.getLevelStats().attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
-    const target = this.state.enemies.map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
+    const minStaffDistance = this.state.classId === 'mago' || this.state.classId === 'druida' ? 40 : 0;
+    const target = this.state.enemies
+      .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
+      .filter(v => v.d <= weapon.range && v.d > minStaffDistance)
+      .sort((a, b) => a.d - b.d)[0];
     if (!target) return;
     this.attackTimer = 0;
     if (weapon.kind === 'melee') {
