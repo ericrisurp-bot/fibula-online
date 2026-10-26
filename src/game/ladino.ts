@@ -17,8 +17,6 @@ const PALETTES: Record<ClassId, Palette> = {
 };
 
 const OUT = '#15151c';
-const SKIN = '#0a0c12';
-const DARK = '#23232b';
 const DARK2 = '#32323d';
 const LEATH = '#6b4a2f';
 const LEATH2 = '#8a6340';
@@ -54,79 +52,169 @@ function line(c: CanvasRenderingContext2D, pts: Point[], color: string, lw: numb
   c.stroke();
 }
 
-function eyePoints(cx: number, cy: number, w: number, h: number, rot: number): Point[] {
-  const base: Point[] = [[-w, 0], [-w * 0.2, -h], [w * 0.9, -h * 0.35], [w, h * 0.25], [-w * 0.1, h]];
-  const cos = Math.cos(rot);
-  const sin = Math.sin(rot);
-  return base.map(([x, y]) => [cx + x * cos - y * sin, cy + x * sin + y * cos]);
-}
+export type LadinoDirection = 'front' | 'back' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
+export type LadinoPose = { walking: boolean; phase: number; breath: number; carry: boolean; direction: LadinoDirection };
 
-function eye(c: CanvasRenderingContext2D, p: Palette, cx: number, cy: number, rot: number): void {
-  c.save();
-  c.globalAlpha = 0.35;
-  poly(c, eyePoints(cx, cy, 6.5 * 1.5, 4.8 * 1.5, rot), p.glowEdge, p.glowEdge, 0.8);
-  c.restore();
-  poly(c, eyePoints(cx, cy, 6.5, 4.8, rot), p.glow, p.glow, 0.8);
-}
+export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number, pose: LadinoPose): void {
+  const { walking, phase, breath, carry, direction } = pose;
+  const isBack = direction === 'back' || direction === 'up-left' || direction === 'up-right';
+  // Diagonais para cima usam a vista traseira em três quartos; não empilham a silhueta lateral.
+  const isSide = direction === 'left' || direction === 'right' || direction === 'down-left' || direction === 'down-right';
+  // Preserva mais volume corporal na vista lateral sem alargar as demais direções.
+  const sideScale = 1;
+  const k = carry ? 0.65 : 1;
+  const sL = Math.sin(phase);
+  const sR = Math.sin(phase + Math.PI);
+  // Passada alternada: desloca cada perna para a frente e levanta pouco o pé.
+  const strideL = walking ? sL * 4.5 * k : 0;
+  const strideR = walking ? sR * 4.5 * k : 0;
+  const liftL = walking ? Math.max(0, sL) * 4.5 * k : 0;
+  const liftR = walking ? Math.max(0, sR) * 4.5 * k : 0;
+  const bob = walking ? -Math.abs(Math.sin(phase)) * 2.4 * (carry ? 1.4 : 1) : -breath * 0.9;
+  const sway = walking ? Math.sin(phase) * 2.2 : breath * 0.5;
 
-export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: number): void {
   ctx.save();
-  const s = 3.0 * r / 135;
-  ctx.translate(-50 * s, r * 0.9 - 133 * s);
-  ctx.scale(s, s);
+  const scale = 4.5 * r / 135; // Ladino 1,5x maior; preserva a proporção interna.
+  ctx.translate(-50 * scale, r * 0.9 - 133 * scale);
+  ctx.scale(scale * sideScale, scale);
   const P = PALETTES[classId];
 
-  // Capa traseira
-  poly(ctx, [[27,46],[73,46],[84,96],[78,122],[66,112],[58,128],[50,114],[42,128],[34,112],[22,122],[16,96]], P.dark);
-  poly(ctx, [[27,46],[50,46],[50,114],[42,128],[34,112],[22,122],[16,96]], P.main);
+  // Sombra mantida fixa no drawPlayer; a capa tem atraso próprio em relação ao corpo.
+  const cape = (points: Point[], fill: string) => poly(ctx, points.map(([x, y]) => {
+    if (y < 90) return [x, y] as Point;
+    const distance = Math.max(0, Math.min(1, (y - 46) / 82));
+    const factor = 1 + distance * 0.4;
+    return [x + sway * factor, y + bob * 0.6] as Point;
+  }), fill);
+  cape([[27,46],[73,46],[84,96],[78,122],[66,112],[58,128],[50,114],[42,128],[34,112],[22,122],[16,96]], P.dark);
+  cape([[27,46],[50,46],[50,114],[42,128],[34,112],[22,122],[16,96]], P.main);
 
-  // Pernas e botas
-  poly(ctx, [[35,82],[48,82],[47,108],[36,108]], DARK2);
-  poly(ctx, [[52,82],[65,82],[64,108],[53,108]], DARK2);
-  for (const x of [41, 58]) {
-    poly(ctx, [[x-7,106],[x+7,106],[x+8,127],[x+11,133],[x-10,133],[x-8,127]], '#2a2420');
-    poly(ctx, [[x-7,106],[x+7,106],[x+7,114],[x-7,114]], LEATH);
+  // Pernas e botas: passada alternada com deslocamento horizontal e elevação discreta.
+  poly(ctx, [[35+strideL,82+bob],[48+strideL,82+bob],[47+strideL,108-liftL],[36+strideL,108-liftL]], DARK2);
+  poly(ctx, [[52+strideR,82+bob],[65+strideR,82+bob],[64+strideR,108-liftR],[53+strideR,108-liftR]], DARK2);
+  for (const [x, lift, stride] of [[41, liftL, strideL], [58, liftR, strideR]] as const) {
+    poly(ctx, [[x-7+stride,106-lift],[x+7+stride,106-lift],[x+8+stride,127-lift],[x+11+stride,133-lift],[x-10+stride,133-lift],[x-8+stride,127-lift]], '#2a2420');
+    poly(ctx, [[x-7+stride,106-lift],[x+7+stride,106-lift],[x+7+stride,114-lift],[x-7+stride,114-lift]], LEATH);
   }
 
-  // Tronco e túnica
-  poly(ctx, [[32,48],[68,48],[66,84],[34,84]], DARK);
+  // Tronco, túnica, faixa, bolsa, ombros e cachecol respiram em torno do centro do corpo.
+  ctx.save();
+  ctx.translate(0, bob);
+  if (!walking) {
+    ctx.translate(50, 70);
+    ctx.scale(1, 1 + breath * 0.012);
+    ctx.translate(-50, -70);
+  }
+  // Volume do tronco: ombros em primeiro plano e faces de luz/sombra no peitoral.
+  poly(ctx, [[30,48],[70,48],[67,84],[33,84]], '#171820');
+  poly(ctx, [[31,49],[42,46],[50,53],[48,68],[37,72],[31,62]], '#41414c');
+  poly(ctx, [[70,49],[58,46],[50,53],[52,68],[63,72],[69,62]], '#252630');
   poly(ctx, [[38,50],[62,50],[60,70],[40,70]], '#e9e9ee');
-  poly(ctx, [[41,70],[59,70],[61,112],[50,118],[39,112]], '#f1f1f5');
-  poly(ctx, [[50,70],[59,70],[61,112],[50,118]], '#cfcfd8');
-  poly(ctx, [[47,76],[53,76],[53,106],[47,106]], P.main, '', 0);
-  line(ctx, [[50,78],[50,104]], P.trim, 2.2);
+  poly(ctx, [[38,51],[47,53],[47,69],[40,70]], '#ffffff');
+  poly(ctx, [[53,53],[62,51],[60,70],[53,72]], '#b9bbc6');
+  poly(ctx, [[41,70],[59,70],[65,119],[59,130],[50,133],[41,130],[35,119]], '#f1f1f5');
+  poly(ctx, [[41,72],[48,74],[47,125],[41,129],[37,119]], '#ffffff');
+  poly(ctx, [[53,73],[59,71],[65,119],[59,130],[50,133],[50,78]], '#c1c3ce');
+  poly(ctx, [[46,75],[54,75],[56,122],[50,128],[44,122]], '#e0e1e8', '', 0);
+  poly(ctx, [[47,76],[53,76],[53,125],[47,125]], P.main, '', 0);
+  line(ctx, [[50,78],[50,125]], P.trim, 2.2);
 
-  // Braços e luvas
-  poly(ctx, [[24,50],[34,48],[34,80],[26,84],[21,72]], DARK);
-  poly(ctx, [[66,48],[76,50],[79,72],[74,84],[66,80]], DARK);
-  poly(ctx, [[21,78],[31,80],[30,90],[22,90]], DARK2);
-  poly(ctx, [[69,80],[79,78],[78,90],[70,90]], DARK2);
+  // Braços temporariamente ocultos em todas as direções para inspecionar a silhueta da roupa.
 
-  // Faixa, cinto e bolsa
   poly(ctx, [[30,56],[40,50],[70,76],[62,82]], LEATH);
   poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
   poly(ctx, [[48,81],[53,81],[53,90],[48,90]], GOLD, OUT, 1);
   poly(ctx, [[27,86],[39,86],[39,99],[27,99]], LEATH);
   poly(ctx, [[27,86],[39,86],[39,91],[27,91]], LEATH2);
-
-  // Ombros e cachecol
-  poly(ctx, [[22,42],[50,38],[50,52],[28,60],[16,56]], P.light);
-  poly(ctx, [[50,38],[78,42],[84,56],[72,60],[50,52]], P.main);
+  // Ombreiras facetadas dão largura e separam o braço do peitoral.
+  poly(ctx, [[22,42],[39,39],[50,45],[44,56],[28,60],[16,56]], P.light);
+  poly(ctx, [[22,43],[30,44],[28,56],[16,56]], '#b7bac7');
+  poly(ctx, [[50,45],[61,39],[78,42],[84,56],[72,60],[56,56]], P.main);
+  poly(ctx, [[61,41],[78,43],[84,56],[72,57],[64,51]], P.light);
+  poly(ctx, [[28,58],[44,54],[50,52],[56,54],[72,58],[68,64],[50,59],[32,64]], '#20212a');
   line(ctx, [[16,56],[28,60],[50,52],[72,60],[84,56]], P.trim, 2);
   poly(ctx, [[34,42],[66,42],[62,56],[50,60],[38,56]], '#2b2b33');
+  ctx.restore();
 
-  // Capuz e rosto
+  // A vista define a roupa visível, não apenas a abertura do rosto.
+  if (isBack) {
+    // Capa traseira contínua: oculta túnica, faixa e bolsa frontais.
+    cape([[27,44],[73,44],[80,60],[76,94],[72,116],[61,130],[50,119],[39,130],[28,116],[24,94],[20,60]], P.dark);
+    cape([[31,48],[50,51],[50,117],[39,125],[30,113],[28,88]], '#d7d8e0');
+    cape([[50,51],[69,48],[72,88],[70,113],[61,125],[50,117]], '#bfc2cd');
+    line(ctx, [[31,49],[28,88],[30,113],[39,125]], P.trim, 2.2);
+    line(ctx, [[69,49],[72,88],[70,113],[61,125]], P.trim, 2.2);
+    line(ctx, [[50,52],[50,117]], '#f0f0f4', 1.5);
+    poly(ctx, [[44,45],[56,45],[59,52],[50,58],[41,52]], P.trim, OUT, 1);
+  } else if (isSide) {
+    // Perfil mais estreito: base contínua e apenas as faces laterais da túnica.
+    poly(ctx, [[42,40],[58,40],[70,50],[66,68],[60,78],[63,106],[59,130],[50,132],[41,130],[37,106],[40,78],[34,68],[30,50]], P.dark, OUT, 1.2);
+    poly(ctx, [[44,43],[50,44],[48,75],[45,107],[47,128],[42,129],[37,105],[40,77],[35,67],[33,52]], '#f1f1f5', OUT, 1.0);
+    poly(ctx, [[50,44],[56,43],[67,52],[63,67],[58,77],[60,105],[55,128],[48,128],[51,107],[52,75]], '#c1c3ce', OUT, 1.0);
+
+    line(ctx, [[44,44],[40,77],[42,105],[44,129]], P.trim, 1.8);
+    line(ctx, [[56,44],[67,52],[63,67],[58,77],[60,105],[55,128]], P.trim, 1.8);
+    // A faixa central acompanha o caimento da túnica branca também no perfil.
+    line(ctx, [[50,79],[51,101],[50,127]], P.trim, 2.2);
+    poly(ctx, [[42,80],[58,80],[58,86],[42,86]], LEATH2);
+    poly(ctx, [[48,80],[52,80],[52,86],[48,86]], GOLD, OUT, 1);
+
+    // Braço lateral temporariamente oculto para inspecionar a túnica sem membros sobrepostos.
+  }
+
+  // Manto fechado sobre os ombros: deixa apenas a faixa central da túnica à mostra.
+  if (!isBack) {
+    poly(ctx, [[23,42],[38,42],[43,54],[41,76],[43,91],[34,94],[26,79],[21,59]], P.dark, OUT, 1.2);
+    poly(ctx, [[23,44],[35,45],[39,57],[37,76],[39,87],[33,87],[27,76],[24,59]], P.main, '', 0);
+    poly(ctx, [[77,42],[62,42],[57,54],[59,76],[57,91],[66,94],[74,79],[79,59]], P.dark, OUT, 1.2);
+    poly(ctx, [[77,44],[65,45],[61,57],[63,76],[61,87],[67,87],[73,76],[76,59]], P.main, '', 0);
+  }
+
+  // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
+  const hoodTilt = walking ? Math.sin(phase + 0.9) * 0.035 : breath * 0.008;
+  const hoodShift = walking ? Math.sin(phase * 2 + 0.6) * 0.9 : -breath * 0.7;
+  ctx.save();
+  ctx.translate(0, bob + hoodShift);
+  ctx.translate(50, 54);
+  ctx.rotate(hoodTilt);
+  ctx.translate(-50, -54);
   poly(ctx, [[50,0],[26,16],[18,44],[28,58],[40,52],[32,32],[40,16]], P.main);
   poly(ctx, [[50,0],[74,16],[82,44],[72,58],[60,52],[68,32],[60,16]], P.dark);
-  poly(ctx, [[50,0],[60,16],[40,16]], P.light);
-  poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], SKIN);
-  line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
-  line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
-  line(ctx, [[40,16],[60,16]], P.trim, 2.4);
-
-  // Olhos brilhantes sem shadowBlur
-  eye(ctx, P, 42, 36, -0.25);
-  eye(ctx, P, 58, 36, 0.25);
+  // Faces frontais do capuz não são desenhadas no perfil para evitar sobreposição.
+  if (!isSide) {
+    // Facetas do capuz mantêm a cor da classe, com luz e sombra próprias.
+    poly(ctx, [[50,2],[60,16],[50,29],[40,16]], P.dark, '', 0);
+    poly(ctx, [[50,2],[40,16],[26,20],[18,44],[32,32]], P.light, '', 0);
+    poly(ctx, [[60,16],[74,20],[82,44],[68,32]], P.dark, '', 0);
+    poly(ctx, [[50,0],[60,16],[40,16]], P.light);
+  }
+  if (isBack) {
+    // Vista traseira do mesmo capuz: preserva a silhueta e os acabamentos, sem mostrar o rosto.
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], P.dark);
+    poly(ctx, [[43,20],[57,20],[62,34],[56,48],[50,51],[44,48],[38,34]], P.main, P.trim, 1.5);
+    line(ctx, [[50,21],[50,48]], P.light, 1.6);
+  } else if (isSide) {
+    // Silhueta do rosto em sombra, sem traços nem olhos.
+    poly(ctx, [[44,14],[58,14],[66,29],[63,42],[58,51],[50,55],[42,51],[37,39],[38,27]], '#1c1d24', '#111218', 1.2);
+    ctx.save();
+    ctx.shadowColor = '#090a0f';
+    ctx.shadowBlur = 8;
+    poly(ctx, [[45,18],[56,18],[62,30],[58,43],[52,49],[46,46],[41,34]], '#292a32', '#41424c', 1.0);
+    ctx.restore();
+    line(ctx, [[44,16],[38,30],[44,50]], P.trim, 2.2);
+    line(ctx, [[58,16],[66,30],[60,50]], P.trim, 2.2);
+    line(ctx, [[44,16],[58,16]], P.trim, 2.2);
+  } else {
+    ctx.save();
+    ctx.shadowColor = '#090a0f';
+    ctx.shadowBlur = 8;
+    poly(ctx, [[40,16],[60,16],[68,32],[60,52],[50,56],[40,52],[32,32]], '#292a32', '#41424c', 1.0);
+    ctx.restore();
+    line(ctx, [[40,16],[32,32],[40,52]], P.trim, 2.4);
+    line(ctx, [[60,16],[68,32],[60,52]], P.trim, 2.4);
+    line(ctx, [[40,16],[60,16]], P.trim, 2.4);
+  }
   poly(ctx, [[46,10],[54,10],[56,18],[44,18]], null, P.trim, 1.4);
+  ctx.restore();
   ctx.restore();
 }
