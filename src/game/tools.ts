@@ -136,19 +136,17 @@ export function drawFloatingTool(
   const { time, angle, timer, duration } = opts;
   if (timer <= 0 || duration <= 0) return;
 
-  // The resource direction selects the side of the overhead chop, but the
-  // tool's grip stays close to the character instead of thrusting outward.
+  // A ferramenta acompanha a direção real do recurso: cima, baixo ou lados.
+  // O golpe faz um pequeno arco em torno dessa direção, como um movimento de abanar.
   const progress = Math.max(0, Math.min(1, 1 - timer / duration));
-  const side = Math.cos(angle) >= 0 ? 1 : -1;
   const arcProgress = smooth(progress);
-  const rotation = side > 0
-    ? -Math.PI / 2 + arcProgress * (Math.PI / 2)
-    : -Math.PI / 2 - arcProgress * (Math.PI / 2);
+  const swingWidth = Math.PI * 0.38;
+  const rotation = angle - swingWidth / 2 + arcProgress * swingWidth;
 
-  // Keep the pivot near the hand for the entire swing. The tool head itself
-  // travels through the arc: from 12 o'clock down to 3 or 9 o'clock.
-  const handleX = side * r * (tool === 'machadinho' ? 1.8 : 1.5);
-  const handleY = -r * 0.12;
+  // Mantém a empunhadura perto da mão e desloca a ferramenta na direção do alvo.
+  const handleDistance = r * (tool === 'machadinho' ? 1.35 : 1.15);
+  const handleX = Math.cos(angle) * handleDistance;
+  const handleY = Math.sin(angle) * handleDistance;
   const fadeOut = Math.min(1, (1 - progress) / 0.08);
 
   ctx.save();
