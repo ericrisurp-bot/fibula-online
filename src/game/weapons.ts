@@ -178,18 +178,32 @@ function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
 type FloatingWeaponOptions = {
   time: number;
   facingX: number;
-  facingY: number;
   moving: boolean;
+  hasEnemies: boolean;
   hasTarget: boolean;
   aimAngle: number;
-  swingTimer?: number;
-  swingAngle?: number;
+  carried: boolean;
+  swingTimer: number;
+  swingAngle: number;
 };
 
-const hover = { side: 1, sideT: 1, combatT: 0, angle: -Math.PI / 2, lastTime: 0 };
+const hover = {
+  side: 1,
+  sideT: 1,
+  combatT: 0,
+  presence: 0,
+  angle: -Math.PI / 2,
+  moveT: 0,
+  lastTime: 0,
+  lastEnemyTime: -999,
+};
 
 function angleDelta(from: number, to: number): number {
   return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
+export function isFloatingWeaponVisible(): boolean {
+  return hover.presence >= 0.02;
 }
 
 export function drawFloatingWeapon(
@@ -202,43 +216,58 @@ export function drawFloatingWeapon(
     hover.side = 1;
     hover.sideT = 1;
     hover.combatT = 0;
+    hover.presence = 0;
     hover.angle = -Math.PI / 2;
-    hover.lastTime = opts.time;
+    hover.moveT = 0;
+    hover.lastEnemyTime = -999;
   }
   const dt = Math.min(0.05, Math.max(0, opts.time - hover.lastTime));
   hover.lastTime = opts.time;
+
+  if (opts.hasEnemies && !opts.carried) hover.lastEnemyTime = opts.time;
+  const presenceTarget = opts.time - hover.lastEnemyTime < 0.8 ? 1 : 0;
+  const presenceAlpha = 1 - Math.exp(-dt / 0.12);
+  hover.presence += (presenceTarget - hover.presence) * presenceAlpha;
+  if (hover.presence < 0.02) return;
 
   if (opts.facingX < -0.35) hover.side = 1;
   else if (opts.facingX > 0.35) hover.side = -1;
 
   const sideAlpha = 1 - Math.exp(-dt / 0.15);
   hover.sideT += (hover.side - hover.sideT) * sideAlpha;
-  const combatTarget = opts.hasTarget || (weapon === 'espada' && (opts.swingTimer ?? 0) > 0) ? 1 : 0;
+  const movingTarget = opts.moving ? 1 : 0;
+  hover.moveT += (movingTarget - hover.moveT) * sideAlpha;
+
+  const combatTarget = opts.hasTarget ? 1 : 0;
   const combatAlpha = 1 - Math.exp(-dt / 0.12);
   hover.combatT += (combatTarget - hover.combatT) * combatAlpha;
-  if (weapon === 'espada' && (opts.swingTimer ?? 0) > 0) hover.combatT = 1;
+  if (opts.swingTimer > 0) hover.combatT = 1;
 
   const bob = Math.sin(opts.time * 2.2) * 1.6;
   const restX = hover.sideT * r * 1.9;
   const restY = -r * 1.3 + bob;
   const restLean = Math.sin(opts.time * 1.7) * 0.04
-    - (opts.moving ? hover.sideT * 0.10 : 0);
+    - hover.sideT * 0.10 * hover.moveT;
   const restAngle = (weapon === 'arco' ? 0 : -Math.PI / 2) + restLean;
 
-  const swingTimer = opts.swingTimer ?? 0;
-  const swingProgress = swingTimer > 0 ? 1 - swingTimer / 0.24 : 0;
-  const combatAngle = weapon === 'espada' && swingTimer > 0
-    ? (opts.swingAngle ?? opts.aimAngle) + (swingProgress - 0.5) * 1.55
+  const swingProgress = opts.swingTimer > 0 ? 1 - opts.swingTimer / 0.24 : 0;
+  const combatAngle = weapon === 'espada' && opts.swingTimer > 0
+    ? opts.swingAngle + (swingProgress - 0.5) * 1.55
     : opts.aimAngle;
-  const x = restX * (1 - hover.combatT);
-  const y = restY * (1 - hover.combatT);
+  const combatX = r * 0.68 * Math.cos(opts.aimAngle);
+  const combatY = r * 0.68 * Math.sin(opts.aimAngle) + r * 0.1;
+  const x = restX + (combatX - restX) * hover.combatT;
+  const y = restY + (combatY - restY) * hover.combatT;
   const desiredAngle = restAngle + angleDelta(restAngle, combatAngle) * hover.combatT;
   const angleAlpha = 1 - Math.exp(-dt / 0.12);
   hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
-  if (hover.combatT === 1 && swingTimer > 0) hover.angle = combatAngle;
+  if (hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
 
   ctx.save();
+  ctx.globalAlpha = hover.presence;
   ctx.translate(x, y);
+  const entryScale = 0.85 + 0.15 * hover.presence;
+  ctx.scale(entryScale, entryScale);
   ctx.rotate(hover.angle);
   drawWeapon(ctx, weapon, r);
   ctx.restore();
