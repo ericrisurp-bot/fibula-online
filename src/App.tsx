@@ -1480,19 +1480,77 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     axeFacet([[0.60,0.015],[0.69,-0.02],[1.44,-0.315],[1.47,-0.28],[0.65,0.09]], '#c18c56', '');
     axeFacet([[0.63,0.12],[0.78,0.06],[0.83,0.145],[0.68,0.20]], '#57351f');
     axeFacet([[0.67,0.12],[0.72,0.10],[0.77,0.155],[0.71,0.18]], '#c18c56', '');
-    // Cabeça clássica: lâmina larga e curva de um lado, dorso curto do outro.
-    // A sombra externa indica a espessura sem quebrar a silhueta em muitas manchas.
-    axeFacet([[1.08,-0.29],[1.12,-0.55],[1.24,-0.65],[1.43,-0.68],[1.53,-0.63],[1.49,-0.54],[1.38,-0.47],[1.27,-0.39],[1.25,-0.25],[1.17,-0.21]], '#252c30');
-    // Face principal contínua de aço.
-    axeFacet([[1.045,-0.325],[1.095,-0.565],[1.23,-0.675],[1.43,-0.70],[1.55,-0.64],[1.50,-0.55],[1.39,-0.49],[1.29,-0.41],[1.27,-0.29],[1.18,-0.235]], '#71818a');
-    // Plano de luz superior e face central, amplas para que a cabeça leia como metal.
-    axeFacet([[1.095,-0.565],[1.23,-0.675],[1.43,-0.70],[1.55,-0.64],[1.48,-0.59],[1.36,-0.59],[1.23,-0.52]], '#dce5e8', '');
-    axeFacet([[1.23,-0.52],[1.36,-0.59],[1.48,-0.59],[1.50,-0.55],[1.39,-0.49],[1.29,-0.41],[1.20,-0.40]], '#b7c4ca', '');
-    axeFacet([[1.20,-0.40],[1.29,-0.41],[1.39,-0.49],[1.50,-0.55],[1.46,-0.46],[1.35,-0.34],[1.27,-0.29]], '#8b9ba3', '');
-    // Gume largo e curvo: uma borda polida contínua, bem separada da face de aço.
-    axeFacet([[1.55,-0.64],[1.66,-0.57],[1.79,-0.47],[1.76,-0.39],[1.66,-0.29],[1.55,-0.24],[1.46,-0.30],[1.52,-0.39],[1.57,-0.49]], '#343f45');
-    axeFacet([[1.53,-0.625],[1.65,-0.56],[1.77,-0.47],[1.73,-0.395],[1.64,-0.305],[1.55,-0.265],[1.49,-0.305],[1.55,-0.40],[1.59,-0.49]], '#c6d2d7', '');
-    axeFacet([[1.66,-0.55],[1.77,-0.47],[1.73,-0.395],[1.64,-0.305],[1.59,-0.34],[1.68,-0.43]], '#eef3f5', '');
+    // Cabeça redesenhada a partir de uma silhueta curva única, não de polígonos soltos.
+    // A curva exterior define primeiro o formato clássico de lâmina de lenhador.
+    ctx.beginPath();
+    ctx.moveTo(1.075 * r, -0.285 * r);
+    ctx.quadraticCurveTo(1.055 * r, -0.39 * r, 1.105 * r, -0.535 * r);
+    ctx.quadraticCurveTo(1.13 * r, -0.625 * r, 1.255 * r, -0.672 * r);
+    ctx.quadraticCurveTo(1.39 * r, -0.72 * r, 1.535 * r, -0.655 * r);
+    ctx.quadraticCurveTo(1.665 * r, -0.60 * r, 1.805 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.78 * r, -0.385 * r, 1.685 * r, -0.315 * r);
+    ctx.quadraticCurveTo(1.59 * r, -0.245 * r, 1.475 * r, -0.235 * r);
+    ctx.quadraticCurveTo(1.365 * r, -0.245 * r, 1.295 * r, -0.31 * r);
+    ctx.quadraticCurveTo(1.22 * r, -0.365 * r, 1.16 * r, -0.335 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#273139';
+    ctx.fill();
+    ctx.strokeStyle = '#273139';
+    ctx.lineWidth = Math.max(0.8, r * 0.035);
+    ctx.stroke();
+
+    // Face de aço contínua: dorso curto e espesso, lâmina que abre suavemente até o gume.
+    ctx.beginPath();
+    ctx.moveTo(1.09 * r, -0.30 * r);
+    ctx.quadraticCurveTo(1.075 * r, -0.405 * r, 1.125 * r, -0.535 * r);
+    ctx.quadraticCurveTo(1.15 * r, -0.60 * r, 1.265 * r, -0.642 * r);
+    ctx.quadraticCurveTo(1.385 * r, -0.682 * r, 1.515 * r, -0.625 * r);
+    ctx.quadraticCurveTo(1.655 * r, -0.565 * r, 1.775 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.745 * r, -0.395 * r, 1.655 * r, -0.33 * r);
+    ctx.quadraticCurveTo(1.56 * r, -0.265 * r, 1.475 * r, -0.26 * r);
+    ctx.quadraticCurveTo(1.365 * r, -0.275 * r, 1.30 * r, -0.335 * r);
+    ctx.quadraticCurveTo(1.22 * r, -0.385 * r, 1.17 * r, -0.35 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#9aaab2';
+    ctx.fill();
+    ctx.strokeStyle = '#53636b';
+    ctx.lineWidth = Math.max(0.65, r * 0.018);
+    ctx.stroke();
+
+    // Dois planos largos acompanham a curvatura da lâmina; evitam o efeito de pedra facetada.
+    ctx.beginPath();
+    ctx.moveTo(1.13 * r, -0.535 * r);
+    ctx.quadraticCurveTo(1.15 * r, -0.60 * r, 1.265 * r, -0.642 * r);
+    ctx.quadraticCurveTo(1.385 * r, -0.682 * r, 1.515 * r, -0.625 * r);
+    ctx.quadraticCurveTo(1.43 * r, -0.59 * r, 1.335 * r, -0.56 * r);
+    ctx.quadraticCurveTo(1.235 * r, -0.525 * r, 1.16 * r, -0.465 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#d0dbe0';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(1.16 * r, -0.465 * r);
+    ctx.quadraticCurveTo(1.235 * r, -0.525 * r, 1.335 * r, -0.56 * r);
+    ctx.quadraticCurveTo(1.43 * r, -0.59 * r, 1.515 * r, -0.625 * r);
+    ctx.quadraticCurveTo(1.655 * r, -0.565 * r, 1.775 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.69 * r, -0.465 * r, 1.60 * r, -0.425 * r);
+    ctx.quadraticCurveTo(1.47 * r, -0.375 * r, 1.385 * r, -0.365 * r);
+    ctx.quadraticCurveTo(1.27 * r, -0.36 * r, 1.16 * r, -0.40 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#8799a2';
+    ctx.fill();
+
+    // Fio: faixa estreita e contínua na curva externa da lâmina.
+    ctx.beginPath();
+    ctx.moveTo(1.775 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.745 * r, -0.395 * r, 1.655 * r, -0.33 * r);
+    ctx.quadraticCurveTo(1.56 * r, -0.265 * r, 1.475 * r, -0.26 * r);
+    ctx.quadraticCurveTo(1.52 * r, -0.305 * r, 1.61 * r, -0.36 * r);
+    ctx.quadraticCurveTo(1.70 * r, -0.415 * r, 1.775 * r, -0.475 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#e5ecef';
+    ctx.fill();
+
     // Pequeno dorso metálico e olho de encaixe: detalhes contidos, sem aparência de pedra.
     axeFacet([[1.08,-0.325],[1.14,-0.405],[1.25,-0.435],[1.34,-0.40],[1.35,-0.32],[1.28,-0.255],[1.17,-0.25]], '#303a40');
     axeFacet([[1.13,-0.335],[1.18,-0.395],[1.25,-0.412],[1.30,-0.385],[1.30,-0.33],[1.25,-0.29],[1.18,-0.285]], '#a6b4bb', '');
