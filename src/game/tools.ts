@@ -135,52 +135,30 @@ export function drawFloatingTool(
   r: number,
   opts: FloatingToolOptions,
 ): void {
-  const { time, angle, timer, duration, reach } = opts;
+  const { time, angle, timer, duration } = opts;
   if (timer <= 0 || duration <= 0) return;
-  const progress = Math.max(0, Math.min(1, 1 - timer / duration));
-  const fadeIn = Math.min(1, progress / 0.2);
-  const fadeOut = Math.min(1, (1 - progress) / 0.2);
-  const alpha = Math.max(0, Math.min(fadeIn, fadeOut));
-  if (alpha <= 0) return;
 
-  const tipLocalX = r * (tool === 'machadinho' ? 1.92 : tool === 'picareta' ? 2.05 : 2.27);
-  const tipLocalY = r * (tool === 'machadinho' ? -0.34 : tool === 'picareta' ? -0.42 : -0.43);
-  const headLength = Math.hypot(tipLocalX, tipLocalY);
-  const aura = CONFIG.player.toolAuraRadius;
-  const swing = tool === 'foice'
-    ? progress <= 0.6
-      ? -0.8 + 1.6 * smooth(progress / 0.6)
-      : 0.8 - 1.6 * smooth((progress - 0.6) / 0.4)
-    : progress <= 0.6
-      ? -1.1 + 1.25 * smooth(progress / 0.6)
-      : 0.15 - 0.45 * smooth((progress - 0.6) / 0.4);
-  const rotation = angle + swing;
-  const headDx = tipLocalX * Math.cos(swing) - tipLocalY * Math.sin(swing);
-  const headDy = tipLocalX * Math.sin(swing) + tipLocalY * Math.cos(swing);
-  const startX = aura * Math.cos(angle);
-  const startY = aura * Math.sin(angle);
-  const targetX = reach >= 6 + headLength
-    ? reach * Math.cos(angle) - headDx
-    : 6 * Math.cos(angle);
-  const targetY = reach >= 6 + headLength
-    ? reach * Math.sin(angle) - headDy
-    : 6 * Math.sin(angle);
-  const impactEase = smooth(progress / 0.6);
-  const returnEase = smooth((progress - 0.6) / 0.4);
-  const handleX = progress <= 0.6
-    ? startX + (targetX - startX) * impactEase
-    : targetX + (startX - targetX) * returnEase;
-  const handleY = progress <= 0.6
-    ? startY + (targetY - startY) * impactEase
-    : targetY + (startY - targetY) * returnEase;
+  // The resource direction selects the side of the overhead chop, but the
+  // tool's grip stays close to the character instead of thrusting outward.
+  const progress = Math.max(0, Math.min(1, 1 - timer / duration));
+  const side = Math.cos(angle) >= 0 ? 1 : -1;
+  const arcProgress = smooth(progress);
+  const rotation = side > 0
+    ? -Math.PI / 2 + arcProgress * (Math.PI / 2)
+    : -Math.PI / 2 - arcProgress * (Math.PI / 2);
+
+  // Keep the pivot near the hand for the entire swing. The tool head itself
+  // travels through the arc: from 12 o'clock down to 3 or 9 o'clock.
+  const handleX = side * r * 0.35;
+  const handleY = -r * 0.12;
+  const fadeOut = Math.min(1, (1 - progress) / 0.08);
+
   ctx.save();
-  ctx.globalAlpha *= alpha;
+  ctx.globalAlpha *= fadeOut;
   ctx.translate(handleX, handleY);
   ctx.rotate(rotation);
-  // A very subtle idle bob is suppressed at the impact point.
-  const bob = Math.sin(time * 8 + (tool === 'machadinho' ? 0 : tool === 'picareta' ? 1.8 : 3.2)) * 0.6 * (1 - Math.abs(progress - 0.6) / 0.6);
+  const bob = Math.sin(time * 8 + (tool === 'machadinho' ? 0 : tool === 'picareta' ? 1.8 : 3.2)) * 0.25 * (1 - progress);
   ctx.translate(0, bob);
   drawTool(ctx, tool, r);
   ctx.restore();
 }
-
