@@ -124,19 +124,21 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[47,76],[53,76],[53,125],[47,125]], P.main, '', 0);
   line(ctx, [[50,78],[50,125]], P.trim, 2.2);
 
-  // Braços articulados a partir dos ombros; o deslocamento da mão afeta 40% do braço.
-  ctx.save();
-  ctx.translate(29, 50 + leftHandShift * 0.4);
-  ctx.rotate(leftArmAngle);
-  poly(ctx, [[-5,-8],[5,-10],[5,22],[-3,27],[-8,14]], DARK);
-  poly(ctx, [[-8,20],[2,22],[2,39],[-7,39]], '#292a32');
-  ctx.restore();
-  ctx.save();
-  ctx.translate(71, 50 + rightHandShift * 0.4);
-  ctx.rotate(rightArmAngle);
-  poly(ctx, [[-5,-10],[5,-8],[8,14],[3,27],[-5,22]], DARK);
-  poly(ctx, [[-2,22],[8,20],[8,39],[-1,39]], '#292a32');
-  ctx.restore();
+  // Os braços frontais não são desenhados no perfil: ali existe um único braço lateral próprio.
+  if (!isSide) {
+    ctx.save();
+    ctx.translate(29, 50 + leftHandShift * 0.4);
+    ctx.rotate(leftArmAngle);
+    poly(ctx, [[-5,-8],[5,-10],[5,22],[-3,27],[-8,14]], DARK);
+    poly(ctx, [[-8,20],[2,22],[2,39],[-7,39]], '#292a32');
+    ctx.restore();
+    ctx.save();
+    ctx.translate(71, 50 + rightHandShift * 0.4);
+    ctx.rotate(rightArmAngle);
+    poly(ctx, [[-5,-10],[5,-8],[8,14],[3,27],[-5,22]], DARK);
+    poly(ctx, [[-2,22],[8,20],[8,39],[-1,39]], '#292a32');
+    ctx.restore();
+  }
 
   poly(ctx, [[30,56],[40,50],[70,76],[62,82]], LEATH);
   poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
