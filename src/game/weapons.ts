@@ -1,4 +1,4 @@
-import type { WeaponId } from './config';
+import { CONFIG, type WeaponId } from './config';
 
 type Point = readonly [number, number];
 
@@ -244,7 +244,7 @@ export function drawFloatingWeapon(
   if (opts.swingTimer > 0) hover.combatT = 1;
 
   const bob = Math.sin(opts.time * 2.2) * 1.6;
-  const restX = hover.sideT * r * 1.9;
+  const restX = hover.sideT * CONFIG.player.auraRadius;
   const restY = (weapon === 'arco' ? -r * 0.1 : r * 0.35) + bob;
   const restLean = Math.sin(opts.time * 1.7) * 0.04
     - hover.sideT * 0.10 * hover.moveT;
@@ -254,8 +254,14 @@ export function drawFloatingWeapon(
   const combatAngle = weapon === 'espada' && opts.swingTimer > 0
     ? opts.swingAngle + (swingProgress - 0.5) * 1.55
     : opts.aimAngle;
-  const combatX = r * 0.68 * Math.cos(opts.aimAngle);
-  const combatY = r * 0.68 * Math.sin(opts.aimAngle) + r * 0.1;
+  const combatDirection = weapon === 'espada' && opts.swingTimer > 0
+    ? opts.swingAngle
+    : opts.aimAngle;
+  const combatDistance = weapon === 'espada'
+    ? CONFIG.weapons.espada.range - 3.7 * r
+    : CONFIG.player.auraRadius - r * 0.68;
+  const combatX = combatDistance * Math.cos(combatDirection);
+  const combatY = combatDistance * Math.sin(combatDirection);
   const x = restX + (combatX - restX) * hover.combatT;
   const y = restY + (combatY - restY) * hover.combatT;
   const desiredAngle = restAngle + angleDelta(restAngle, combatAngle) * hover.combatT;
