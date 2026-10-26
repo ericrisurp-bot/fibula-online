@@ -145,8 +145,12 @@ export function drawFloatingTool(
   const rotation = angle - Math.atan2(impactY, impactX) + swingOffset;
   const rotatedImpactX = impactX * Math.cos(rotation) - impactY * Math.sin(rotation);
   const rotatedImpactY = impactX * Math.sin(rotation) + impactY * Math.cos(rotation);
-  const targetX = Math.cos(angle) * reach;
-  const targetY = Math.sin(angle) * reach;
+  const strikeProgress = progress <= impactProgress
+    ? progress / impactProgress
+    : (1 - progress) / (1 - impactProgress);
+  const impactDistance = reach * Math.max(0, Math.min(1, strikeProgress));
+  const targetX = Math.cos(angle) * impactDistance;
+  const targetY = Math.sin(angle) * impactDistance;
   const originX = targetX - rotatedImpactX;
   const originY = targetY - rotatedImpactY;
   const fadeOut = Math.min(1, (1 - progress) / 0.08);
