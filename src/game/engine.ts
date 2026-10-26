@@ -1431,7 +1431,13 @@ export class GameEngine {
     const speedBonus = this.getLevelStats().attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
-    const target = this.state.enemies.map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) })).filter(v => v.d <= weapon.range).sort((a, b) => a.d - b.d)[0];
+    const isStaffWeapon = weapon.kind === 'orb';
+    // Mago e Druida precisam manter distância: não disparam se o alvo já está colado.
+    const minimumStaffDistance = CONFIG.player.auraRadius + CONFIG.player.radius * 3;
+    const target = this.state.enemies
+      .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
+      .filter(v => v.d <= weapon.range && (!isStaffWeapon || v.d >= minimumStaffDistance))
+      .sort((a, b) => a.d - b.d)[0];
     if (!target) return;
     this.attackTimer = 0;
     if (weapon.kind === 'melee') {
