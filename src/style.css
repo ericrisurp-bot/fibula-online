@@ -1237,3 +1237,37 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
     margin-top: 0;
   }
 }
+
+
+/* Celular em pé: manter Dia/Noite e os contadores agrupados no alto à esquerda. */
+@media (pointer: coarse) and (orientation: portrait) {
+  .game-stage .hud-top {
+    display: block;
+  }
+  .game-stage .hud-left-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    min-height: 0;
+    gap: 0;
+  }
+  .game-stage .hud-left-stack .hud-center-stack {
+    position: relative;
+    top: 0 !important;
+    left: 0 !important;
+    align-self: flex-start;
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: 0;
+    max-width: calc(100vw - 52px);
+    margin: 0;
+    padding: 0;
+    gap: 1px;
+    transform: none;
+  }
+  .game-stage .hud-left-stack .hud-center-stack .hud-substats {
+    margin-top: 0;
+    gap: 2px;
+  }
+}
