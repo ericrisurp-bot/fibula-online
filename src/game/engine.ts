@@ -542,8 +542,16 @@ export class GameEngine {
     const cart = this.state.cart;
     if (!cart.carried) return;
     const p = this.state.player;
-    // A orientação acompanha os oito sentidos de movimento, preservando a última direção ao parar.
-    if (Math.hypot(p.facingX, p.facingY) > 0.15) cart.angle = Math.atan2(p.facingY, p.facingX);
+    // Diagonais favorecem o eixo mais forte; em empate no teclado, o eixo vertical prevalece.
+    if (Math.hypot(p.facingX, p.facingY) > 0.15) {
+      let facingX = p.facingX;
+      let facingY = p.facingY;
+      const absX = Math.abs(facingX);
+      const absY = Math.abs(facingY);
+      if (absX > absY) facingX *= 1.5;
+      else facingY *= 1.5;
+      cart.angle = Math.atan2(facingY, facingX);
+    }
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const targetX = this.clamp(p.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
     const targetY = this.clamp(p.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
