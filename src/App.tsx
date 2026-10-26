@@ -1421,6 +1421,123 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
+function drawPickaxe(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  rotation: number,
+  scale: number,
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Cabo curvo de madeira, com brilho vindo de cima e da esquerda.
+  ctx.beginPath();
+  ctx.moveTo(-0.76, 0.66);
+  ctx.quadraticCurveTo(-0.72, 0.57, -0.63, 0.54);
+  ctx.lineTo(0.43, -0.36);
+  ctx.quadraticCurveTo(0.49, -0.40, 0.53, -0.33);
+  ctx.lineTo(-0.53, 0.60);
+  ctx.quadraticCurveTo(-0.65, 0.70, -0.76, 0.66);
+  ctx.closePath();
+  ctx.fillStyle = '#d48f3a';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(-0.72, 0.63);
+  ctx.quadraticCurveTo(-0.67, 0.57, -0.61, 0.55);
+  ctx.lineTo(0.43, -0.36);
+  ctx.lineTo(0.45, -0.30);
+  ctx.lineTo(-0.56, 0.62);
+  ctx.quadraticCurveTo(-0.65, 0.68, -0.72, 0.63);
+  ctx.closePath();
+  ctx.fillStyle = '#f2b04e';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(-0.64, 0.61);
+  ctx.lineTo(0.36, -0.29);
+  ctx.lineTo(0.40, -0.28);
+  ctx.lineTo(-0.54, 0.58);
+  ctx.closePath();
+  ctx.fillStyle = '#f9c878';
+  ctx.fill();
+
+  // Cabeça metálica curva em “)”, com ponta afilada em cada extremidade.
+  ctx.beginPath();
+  ctx.moveTo(-0.29, -0.68);
+  ctx.quadraticCurveTo(0.18, -0.81, 0.48, -0.57);
+  ctx.quadraticCurveTo(0.66, -0.43, 0.50, -0.25);
+  ctx.quadraticCurveTo(0.22, -0.06, -0.30, -0.23);
+  ctx.lineTo(-0.18, -0.34);
+  ctx.quadraticCurveTo(0.17, -0.23, 0.37, -0.36);
+  ctx.quadraticCurveTo(0.49, -0.44, 0.36, -0.53);
+  ctx.quadraticCurveTo(0.17, -0.65, -0.22, -0.57);
+  ctx.closePath();
+  ctx.fillStyle = '#444448';
+  ctx.fill();
+
+  // Face principal sem contorno pesado: o contraste das cores define o volume.
+  ctx.beginPath();
+  ctx.moveTo(-0.26, -0.66);
+  ctx.quadraticCurveTo(0.17, -0.75, 0.44, -0.55);
+  ctx.quadraticCurveTo(0.58, -0.43, 0.45, -0.28);
+  ctx.quadraticCurveTo(0.20, -0.11, -0.25, -0.25);
+  ctx.lineTo(-0.14, -0.35);
+  ctx.quadraticCurveTo(0.16, -0.26, 0.35, -0.37);
+  ctx.quadraticCurveTo(0.45, -0.44, 0.34, -0.52);
+  ctx.quadraticCurveTo(0.16, -0.62, -0.19, -0.56);
+  ctx.closePath();
+  ctx.fillStyle = '#5a5a5f';
+  ctx.fill();
+
+  // Ponta superior esquerda iluminada pela luz suave.
+  ctx.beginPath();
+  ctx.moveTo(-0.29, -0.68);
+  ctx.quadraticCurveTo(-0.20, -0.66, -0.13, -0.60);
+  ctx.lineTo(-0.19, -0.56);
+  ctx.quadraticCurveTo(-0.25, -0.62, -0.29, -0.68);
+  ctx.closePath();
+  ctx.fillStyle = '#e0e0e2';
+  ctx.fill();
+
+  // Face clara no arco superior; a parte inferior permanece sombreada.
+  ctx.beginPath();
+  ctx.moveTo(-0.23, -0.65);
+  ctx.quadraticCurveTo(0.15, -0.73, 0.42, -0.54);
+  ctx.quadraticCurveTo(0.20, -0.62, 0.02, -0.60);
+  ctx.quadraticCurveTo(-0.12, -0.60, -0.23, -0.56);
+  ctx.closePath();
+  ctx.fillStyle = '#707075';
+  ctx.fill();
+
+  // Ponta oposta sombreada para separar os dois planos de metal.
+  ctx.beginPath();
+  ctx.moveTo(-0.30, -0.23);
+  ctx.quadraticCurveTo(-0.22, -0.25, -0.14, -0.31);
+  ctx.lineTo(-0.17, -0.35);
+  ctx.quadraticCurveTo(-0.24, -0.28, -0.30, -0.23);
+  ctx.closePath();
+  ctx.fillStyle = '#444448';
+  ctx.fill();
+
+  // Encaixe discreto entre a cabeça e o cabo.
+  ctx.beginPath();
+  ctx.ellipse(0.02, -0.44, 0.12, 0.065, -0.72, 0, Math.PI * 2);
+  ctx.fillStyle = '#444448';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(0.02, -0.44, 0.065, 0.032, -0.72, 0, Math.PI * 2);
+  ctx.fillStyle = '#d48f3a';
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
@@ -1566,114 +1683,13 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const progress = 1 - rockMineTimer / 0.22;
     const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
     const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
-    const pickaxeScale = 40 / (1.44 * r);
-    ctx.translate(1.165 * r, -0.335 * r); ctx.scale(pickaxeScale, pickaxeScale); ctx.translate(-1.165 * r, 0.335 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-
-    // Cabo de madeira: longo, afilado e com faces de volume.
-    ctx.beginPath();
-    ctx.moveTo(0.51 * r, 0.055 * r);
-    ctx.lineTo(0.57 * r, -0.055 * r);
-    ctx.lineTo(1.50 * r, -0.405 * r);
-    ctx.lineTo(1.56 * r, -0.30 * r);
-    ctx.lineTo(0.62 * r, 0.105 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#291b13'; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(0.54 * r, 0.045 * r);
-    ctx.lineTo(0.59 * r, -0.035 * r);
-    ctx.lineTo(1.49 * r, -0.375 * r);
-    ctx.lineTo(1.52 * r, -0.315 * r);
-    ctx.lineTo(0.61 * r, 0.075 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#805333'; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(0.62 * r, 0.035 * r);
-    ctx.lineTo(1.43 * r, -0.335 * r);
-    ctx.lineTo(1.48 * r, -0.33 * r);
-    ctx.lineTo(0.65 * r, 0.055 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#c18b52'; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(0.76 * r, 0.025 * r);
-    ctx.lineTo(1.30 * r, -0.205 * r);
-    ctx.strokeStyle = '#e0b477'; ctx.lineWidth = Math.max(0.7, r * 0.018); ctx.stroke();
-
-    // Cabeça curva em formato de “)”: arco metálico que envolve o encaixe do cabo.
-    // A curva externa cria a silhueta; as duas pontas ficam voltadas para a esquerda.
-    ctx.beginPath();
-    ctx.moveTo(1.075 * r, -0.69 * r);
-    ctx.quadraticCurveTo(1.52 * r, -0.79 * r, 1.77 * r, -0.57 * r);
-    ctx.quadraticCurveTo(1.91 * r, -0.45 * r, 1.78 * r, -0.32 * r);
-    ctx.quadraticCurveTo(1.55 * r, -0.13 * r, 1.10 * r, -0.28 * r);
-    ctx.lineTo(1.20 * r, -0.37 * r);
-    ctx.quadraticCurveTo(1.49 * r, -0.29 * r, 1.65 * r, -0.40 * r);
-    ctx.quadraticCurveTo(1.75 * r, -0.47 * r, 1.64 * r, -0.55 * r);
-    ctx.quadraticCurveTo(1.48 * r, -0.66 * r, 1.17 * r, -0.59 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#263137'; ctx.fill();
-    ctx.strokeStyle = '#182126'; ctx.lineWidth = Math.max(0.9, r * 0.035); ctx.stroke();
-
-    // Face de aço e planos de luz/sombra acompanham o mesmo arco curvo.
-    ctx.beginPath();
-    ctx.moveTo(1.09 * r, -0.675 * r);
-    ctx.quadraticCurveTo(1.51 * r, -0.75 * r, 1.73 * r, -0.555 * r);
-    ctx.quadraticCurveTo(1.84 * r, -0.455 * r, 1.74 * r, -0.34 * r);
-    ctx.quadraticCurveTo(1.52 * r, -0.19 * r, 1.13 * r, -0.30 * r);
-    ctx.lineTo(1.22 * r, -0.385 * r);
-    ctx.quadraticCurveTo(1.49 * r, -0.315 * r, 1.63 * r, -0.415 * r);
-    ctx.quadraticCurveTo(1.72 * r, -0.475 * r, 1.62 * r, -0.535 * r);
-    ctx.quadraticCurveTo(1.46 * r, -0.635 * r, 1.18 * r, -0.585 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#9eafb8'; ctx.fill();
-    ctx.strokeStyle = '#53656e'; ctx.lineWidth = Math.max(0.65, r * 0.018); ctx.stroke();
-
-    // Reflexo na borda superior do arco.
-    ctx.beginPath();
-    ctx.moveTo(1.10 * r, -0.675 * r);
-    ctx.quadraticCurveTo(1.51 * r, -0.75 * r, 1.73 * r, -0.555 * r);
-    ctx.quadraticCurveTo(1.58 * r, -0.61 * r, 1.43 * r, -0.615 * r);
-    ctx.quadraticCurveTo(1.28 * r, -0.615 * r, 1.18 * r, -0.59 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#e0e8ec'; ctx.fill();
-
-    // Plano escuro interno para dar espessura e leitura de metal curvo.
-    ctx.beginPath();
-    ctx.moveTo(1.22 * r, -0.385 * r);
-    ctx.quadraticCurveTo(1.49 * r, -0.315 * r, 1.63 * r, -0.415 * r);
-    ctx.quadraticCurveTo(1.72 * r, -0.475 * r, 1.62 * r, -0.535 * r);
-    ctx.quadraticCurveTo(1.52 * r, -0.49 * r, 1.48 * r, -0.455 * r);
-    ctx.quadraticCurveTo(1.39 * r, -0.405 * r, 1.22 * r, -0.385 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#71858e'; ctx.fill();
-
-    // Pontas metálicas claras, voltadas para a esquerda, como uma picareta curva.
-    ctx.beginPath();
-    ctx.moveTo(1.075 * r, -0.69 * r);
-    ctx.quadraticCurveTo(1.16 * r, -0.665 * r, 1.20 * r, -0.62 * r);
-    ctx.lineTo(1.17 * r, -0.59 * r);
-    ctx.quadraticCurveTo(1.12 * r, -0.63 * r, 1.075 * r, -0.69 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#f0f4f6'; ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(1.10 * r, -0.28 * r);
-    ctx.quadraticCurveTo(1.17 * r, -0.30 * r, 1.22 * r, -0.34 * r);
-    ctx.lineTo(1.20 * r, -0.37 * r);
-    ctx.quadraticCurveTo(1.14 * r, -0.32 * r, 1.10 * r, -0.28 * r);
-    ctx.closePath();
-    ctx.fillStyle = '#e1eaee'; ctx.fill();
-
-    // Olho/encaixe no centro do arco, alinhado ao cabo.
-    ctx.beginPath();
-    ctx.ellipse(1.39 * r, -0.49 * r, 0.13 * r, 0.073 * r, -0.38, 0, Math.PI * 2);
-    ctx.fillStyle = '#273238'; ctx.fill();
-    ctx.strokeStyle = '#d5dfe3'; ctx.lineWidth = Math.max(0.8, r * 0.025); ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(1.39 * r, -0.49 * r, 0.073 * r, 0.038 * r, -0.38, 0, Math.PI * 2);
-    ctx.fillStyle = '#805333'; ctx.fill();
-    ctx.strokeStyle = '#4c3424'; ctx.lineWidth = Math.max(0.6, r * 0.014); ctx.stroke();
+    drawPickaxe(
+      ctx,
+      1.165 * r,
+      -0.335 * r,
+      swingAngle,
+      pickaxeScale * r,
+    );
     ctx.restore();
   }
   if (cottonHarvestTimer > 0) {
