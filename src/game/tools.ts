@@ -1,7 +1,6 @@
 export type ToolId = 'machadinho' | 'picareta' | 'foice';
 
 type FloatingToolOptions = {
-  time: number;
   angle: number;
   timer: number;
   duration: number;
@@ -133,28 +132,34 @@ export function drawFloatingTool(
   r: number,
   opts: FloatingToolOptions,
 ): void {
-  const { time, angle, timer, duration } = opts;
+  const { angle, timer, duration, reach } = opts;
   if (timer <= 0 || duration <= 0) return;
 
-  // A ferramenta acompanha a direção real do recurso: cima, baixo ou lados.
-  // O golpe faz um pequeno arco em torno dessa direção, como um movimento de abanar.
   const progress = Math.max(0, Math.min(1, 1 - timer / duration));
-  const arcProgress = smooth(progress);
-  const swingWidth = Math.PI * 0.38;
-  const rotation = angle - swingWidth / 2 + arcProgress * swingWidth;
-
-  // Mantém a empunhadura perto da mão e desloca a ferramenta na direção do alvo.
-  const handleDistance = r * (tool === 'machadinho' ? 1.35 : 1.15);
-  const handleX = Math.cos(angle) * handleDistance;
-  const handleY = Math.sin(angle) * handleDistance;
+  const impactPoints: Record<ToolId, Point> = {
+    machadinho: [1.9 * r, 1.1 * r],
+    picareta: [1.85 * r, 1.25 * r],
+    foice: [1.65 * r, 1.0 * r],
+  };
+  const [impactX, impactY] = impactPoints[tool];
+  // O impacto ocorre em 36% da animação. Nesse ponto, a ponta fica exatamente
+  // a gatherReach do centro do jogador, na direção do recurso.
+  const impactProgress = 0.36;
+  const swingWidth = Math.PI * 0.32;
+  const swingOffset = (progress - impactProgress) * swingWidth;
+  const rotation = angle - Math.atan2(impactY, impactX) + swingOffset;
+  const rotatedImpactX = impactX * Math.cos(rotation) - impactY * Math.sin(rotation);
+  const rotatedImpactY = impactX * Math.sin(rotation) + impactY * Math.cos(rotation);
+  const targetX = Math.cos(angle) * reach;
+  const targetY = Math.sin(angle) * reach;
+  const originX = targetX - rotatedImpactX;
+  const originY = targetY - rotatedImpactY;
   const fadeOut = Math.min(1, (1 - progress) / 0.08);
 
   ctx.save();
   ctx.globalAlpha *= fadeOut;
-  ctx.translate(handleX, handleY);
+  ctx.translate(originX, originY);
   ctx.rotate(rotation);
-  const bob = Math.sin(time * 8 + (tool === 'machadinho' ? 0 : tool === 'picareta' ? 1.8 : 3.2)) * 0.25 * (1 - progress);
-  ctx.translate(0, bob);
   drawTool(ctx, tool, r);
   ctx.restore();
 }
