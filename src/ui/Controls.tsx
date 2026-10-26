@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { CLASSES, type ClassId } from '../game/config';
+import { CLASSES, type ClassId, type WeaponId } from '../game/config';
+import { drawWeapon } from '../game/weapons';
 
 type Props = {
   onInventoryToggle: () => void;
@@ -44,35 +45,30 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
+const CLASS_WEAPONS: Record<ClassId, WeaponId> = {
+  guerreiro: 'espada',
+  mago: 'cajado',
+  arqueiro: 'arco',
+  druida: 'bastao',
+};
+
 function ClassWeaponIcon({ classId }: { classId: ClassId }) {
-  if (classId === 'guerreiro') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="16,2 21,17 16,21 11,17" fill="#d9e2e8" stroke="#6e7b83" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="16,2 16,21 11,17" fill="#f7fafb" />
-    <polygon points="8,17 24,17 22,21 10,21" fill="#b98a48" stroke="#65472a" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="14,21 18,21 19,28 13,28" fill="#775039" stroke="#422d20" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="13,28 19,28 20,30 12,30" fill="#d4b47b" stroke="#65472a" strokeWidth="1" />
-  </svg>;
-  if (classId === 'mago') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="22,5 25,2 29,6 26,10" fill="#c8b4ff" stroke="#6c55a8" strokeWidth="1.2" />
-    <polygon points="22,8 25,11 12,29 9,27" fill="#8b72c8" stroke="#57417f" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="22,8 25,11 18,20 15,17" fill="#b6a0f1" />
-    <polygon points="18,3 22,2 25,5 24,9 20,10 17,7" fill="#a98aff" stroke="#6245a0" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="19,4 22,4 23,6 21,8 19,6" fill="#eadfff" />
-  </svg>;
-  if (classId === 'arqueiro') return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <path d="M8 3 Q27 16 8 29" fill="none" stroke="#8a5b35" strokeWidth="4" strokeLinecap="round" />
-    <path d="M8 3 Q27 16 8 29" fill="none" stroke="#d3a36d" strokeWidth="1.4" strokeLinecap="round" />
-    <path d="M8 3 L8 29" fill="none" stroke="#e7e1cf" strokeWidth="1.2" />
-    <polygon points="7,15 18,12 18,14 25,16 18,18 18,20" fill="#d9e2e8" stroke="#6e7b83" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="5,15 9,15 9,18 5,18" fill="#8a5b35" />
-  </svg>;
-  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="13,12 17,14 10,30 6,28" fill="#397b49" stroke="#245634" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="13,12 17,14 13,22 10,20" fill="#72b96a" />
-    <polygon points="15,2 20,5 21,10 17,13 12,11 10,7" fill="#73d66c" stroke="#2c793e" strokeWidth="1.2" strokeLinejoin="round" />
-    <polygon points="15,2 17,7 12,11 10,7" fill="#b4f18d" />
-    <polygon points="17,5 20,5 21,10 17,13 15,9" fill="#3ca853" />
-  </svg>;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const weapon = CLASS_WEAPONS[classId];
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(3, 32);
+    ctx.scale(0.75, 0.75);
+    drawWeapon(ctx, weapon, 10);
+    ctx.restore();
+  }, [weapon]);
+
+  return <canvas ref={canvasRef} width={64} height={64} className="mobile-class-weapon-icon" aria-hidden="true" />;
 }
 
 function LowPolyBackpackIcon() {
