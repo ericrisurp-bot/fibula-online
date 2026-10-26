@@ -1102,3 +1102,101 @@ button, button * {
 .game-over {
   z-index: 100 !important;
 }
+
+
+/* Limites visuais dos modais: compensam a escala antes do transform e respeitam a viewport. */
+@media (pointer:coarse) and (max-width:950px), (pointer:coarse) and (max-height:600px) {
+  .mobile-menu-panel {
+    box-sizing: border-box;
+    top: calc(8px + env(safe-area-inset-top)) !important;
+    right: calc(8px + env(safe-area-inset-right)) !important;
+    left: auto !important;
+    width: min(270px, calc((100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)) / var(--interface-scale, 1.3)));
+    max-width: calc((100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)) / var(--interface-scale, 1.3));
+    max-height: calc((100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / var(--interface-scale, 1.3));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: scale(var(--interface-scale, 1.3)) !important;
+    transform-origin: top right;
+    zoom: 1 !important;
+  }
+}
+.inventory-quick-panel {
+  box-sizing: border-box;
+  width: min(620px, calc((100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)) / var(--interface-scale, 1.3)));
+  max-width: calc((100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)) / var(--interface-scale, 1.3));
+  max-height: calc((100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / var(--interface-scale, 1.3));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translate(-50%, -50%) scale(var(--interface-scale, 1.3)) !important;
+  transform-origin: center;
+}
+@media (pointer:coarse) and (max-width:950px), (pointer:coarse) and (max-height:600px) {
+  .inventory-quick-panel {
+    width: min(560px, calc((100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)) / var(--interface-scale, 1.3)));
+  }
+}
+
+
+/* Em paisagem no celular, os modais precisam caber inteiros sem rolagem interna. */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+  .mobile-menu-panel {
+    max-height: none !important;
+    overflow: hidden !important;
+    width: min(270px, calc(100vw - 24px)) !important;
+    transform: scale(min(var(--interface-scale, 1.3), calc((100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 440px))) !important;
+    transform-origin: top right !important;
+  }
+  .inventory-quick-panel {
+    width: min(560px, calc(100vw - 24px)) !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    transform: translate(-50%, -50%) scale(min(var(--interface-scale, 1.3), calc((100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 500px))) !important;
+    transform-origin: center !important;
+  }
+  .inventory-quick-panel > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .inventory-close-button {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid rgba(235,235,235,.35);
+    border-radius: 7px;
+    background: rgba(34,35,34,.9);
+    color: #fff;
+    font-size: 23px;
+    line-height: 1;
+  }
+}
+.inventory-quick-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.inventory-close-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(235,235,235,.35);
+  border-radius: 7px;
+  background: rgba(34,35,34,.9);
+  color: #fff;
+  font-size: 23px;
+  line-height: 1;
+}
