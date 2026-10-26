@@ -258,15 +258,6 @@ export default function App() {
         ctx.beginPath(); ctx.arc(orb.x, orb.y, CONFIG.xp.radius, 0, Math.PI * 2); ctx.fillStyle = '#77e6c0'; ctx.fill();
         ctx.strokeStyle = '#d4fff0'; ctx.lineWidth = 2; ctx.stroke();
       }
-      if (s.classId === 'druida') {
-        s.healingOrbs.forEach((_, index) => {
-          const angle = s.elapsed * 1.4 + index * (Math.PI * 2 / Math.max(1, s.healingOrbs.length));
-          const ox = s.player.x + Math.cos(angle) * 30, oy = s.player.y + Math.sin(angle) * 30;
-          ctx.save(); ctx.shadowColor = '#8dff9c'; ctx.shadowBlur = 12;
-          ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI * 2); ctx.fillStyle = '#9bff9b'; ctx.fill();
-          ctx.strokeStyle = '#e3ffe0'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
-        });
-      }
       for (const effect of s.explosions) {
         const progress = effect.age / effect.duration;
         ctx.save(); ctx.globalAlpha = Math.max(0, 1 - progress);
@@ -297,6 +288,21 @@ export default function App() {
         ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
       const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
+      if (s.classId === 'druida') {
+        s.healingOrbs.forEach((_, index) => {
+          const angle = s.elapsed * 1.4 + index * (Math.PI * 2 / Math.max(1, s.healingOrbs.length));
+          const orbitRadius = CONFIG.player.radius * (30 / 18);
+          const ox = s.player.x + Math.cos(angle) * orbitRadius;
+          const oy = s.player.y + Math.sin(angle) * orbitRadius;
+          const playerDepth = s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1;
+          const orbDepth = Math.sin(angle) >= 0 ? playerDepth + 1 : s.player.y - CONFIG.player.radius;
+          worldDrawables.push({ depth: orbDepth, draw: () => {
+            ctx.save(); ctx.shadowColor = '#8dff9c'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI * 2); ctx.fillStyle = '#9bff9b'; ctx.fill();
+            ctx.strokeStyle = '#e3ffe0'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+          }});
+        });
+      }
       for (const flag of flagsRef.current) {
         if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color) });
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color) });
