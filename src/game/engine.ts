@@ -1105,7 +1105,7 @@ export class GameEngine {
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
-    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= 38 + this.cottonFootprintRadius(plant);
+    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= 46 + this.cottonFootprintRadius(plant);
   }
 
   private collectCotton() {
@@ -1346,7 +1346,7 @@ export class GameEngine {
   private obstacleCircles(ignoreCart = false) {
     const circles: Array<Vec & { radius: number }> = this.state.trees.map(tree => ({
       ...this.treeBase(tree),
-      radius: 8 * this.treeScale(tree),
+      radius: 9.6 * this.treeScale(tree),
     }));
     circles.push(...this.state.rocks.map(rock => ({ x: rock.x, y: rock.y, radius: this.rockFootprintRadius(rock) })));
     circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
@@ -1398,8 +1398,8 @@ export class GameEngine {
     const shadow = this.treeBase(tree);
     const dx = this.state.player.x - shadow.x;
     const dy = this.state.player.y - shadow.y;
-    const rx = 19 * scale + CONFIG.player.radius;
-    const ry = 8 * scale + CONFIG.player.radius;
+    const rx = (19 * scale + CONFIG.player.radius) * 1.2;
+    const ry = (8 * scale + CONFIG.player.radius) * 1.2;
     return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
   }
 
