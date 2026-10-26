@@ -175,7 +175,11 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   // Desloca a flecha inteira para que o nock coincida com o vértice do V.
   const nockX = centerAt(0);
   ctx.save();
-  // Reduz a flecha para 50%, mantendo o nock fixo no vértice da corda.
+  // Inverte a flecha horizontalmente: ponta e penas trocam de extremidade.
+  // Mantém o conjunto dentro da mesma área visual antes da redução para 50%.
+  ctx.translate((2 * nockPointX + 0.5 * (4.38 - nockX)) * r, 0);
+  ctx.scale(-1, 1);
+  // Reduz a flecha para 50%, mantendo o conjunto alinhado à corda.
   ctx.translate(nockPointX * r, 0);
   ctx.scale(0.5, 0.5);
   ctx.translate(-nockX * r, 0);
