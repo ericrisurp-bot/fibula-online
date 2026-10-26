@@ -1086,7 +1086,7 @@ button, button * {
 
 /* Tela de derrota: manter a transparência, alinhada ao fundo #222322 do jogo. */
 .game-over {
-  background: rgba(34, 35, 34, 0.91);
+  background: rgba(34, 35, 34, 0.91) !important;
 }
 
 .game-over .restart-button {
