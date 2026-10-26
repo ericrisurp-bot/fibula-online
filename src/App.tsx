@@ -1600,79 +1600,72 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.lineTo(1.30 * r, -0.205 * r);
     ctx.strokeStyle = '#e0b477'; ctx.lineWidth = Math.max(0.7, r * 0.018); ctx.stroke();
 
-    // Silhueta legível de picareta: ponta estreita para quebrar rocha e talhadeira larga oposta.
-    // Sombra exterior para separar o metal do fundo.
+    // Cabeça curva em formato de “)”: arco metálico que envolve o encaixe do cabo.
+    // A curva externa cria a silhueta; as duas pontas ficam voltadas para a esquerda.
     ctx.beginPath();
-    ctx.moveTo(0.91 * r, -0.665 * r);
-    ctx.quadraticCurveTo(0.99 * r, -0.70 * r, 1.10 * r, -0.625 * r);
-    ctx.lineTo(1.29 * r, -0.515 * r);
-    ctx.lineTo(1.48 * r, -0.435 * r);
-    ctx.quadraticCurveTo(1.57 * r, -0.405 * r, 1.65 * r, -0.345 * r);
-    ctx.lineTo(1.82 * r, -0.265 * r);
-    ctx.quadraticCurveTo(1.87 * r, -0.245 * r, 1.83 * r, -0.305 * r);
-    ctx.lineTo(1.72 * r, -0.465 * r);
-    ctx.quadraticCurveTo(1.67 * r, -0.535 * r, 1.57 * r, -0.555 * r);
-    ctx.lineTo(1.36 * r, -0.57 * r);
-    ctx.lineTo(1.15 * r, -0.675 * r);
-    ctx.quadraticCurveTo(1.00 * r, -0.745 * r, 0.91 * r, -0.665 * r);
+    ctx.moveTo(1.075 * r, -0.69 * r);
+    ctx.quadraticCurveTo(1.52 * r, -0.79 * r, 1.77 * r, -0.57 * r);
+    ctx.quadraticCurveTo(1.91 * r, -0.45 * r, 1.78 * r, -0.32 * r);
+    ctx.quadraticCurveTo(1.55 * r, -0.13 * r, 1.10 * r, -0.28 * r);
+    ctx.lineTo(1.20 * r, -0.37 * r);
+    ctx.quadraticCurveTo(1.49 * r, -0.29 * r, 1.65 * r, -0.40 * r);
+    ctx.quadraticCurveTo(1.75 * r, -0.47 * r, 1.64 * r, -0.55 * r);
+    ctx.quadraticCurveTo(1.48 * r, -0.66 * r, 1.17 * r, -0.59 * r);
     ctx.closePath();
     ctx.fillStyle = '#263137'; ctx.fill();
     ctx.strokeStyle = '#182126'; ctx.lineWidth = Math.max(0.9, r * 0.035); ctx.stroke();
 
-    // Face principal de aço: ponta cônica à esquerda e lâmina de corte alargada à direita.
+    // Face de aço e planos de luz/sombra acompanham o mesmo arco curvo.
     ctx.beginPath();
-    ctx.moveTo(0.935 * r, -0.66 * r);
-    ctx.quadraticCurveTo(1.005 * r, -0.69 * r, 1.105 * r, -0.61 * r);
-    ctx.lineTo(1.305 * r, -0.505 * r);
-    ctx.lineTo(1.475 * r, -0.445 * r);
-    ctx.quadraticCurveTo(1.56 * r, -0.415 * r, 1.625 * r, -0.365 * r);
-    ctx.lineTo(1.79 * r, -0.285 * r);
-    ctx.lineTo(1.69 * r, -0.465 * r);
-    ctx.quadraticCurveTo(1.65 * r, -0.515 * r, 1.56 * r, -0.525 * r);
-    ctx.lineTo(1.35 * r, -0.54 * r);
-    ctx.lineTo(1.13 * r, -0.645 * r);
-    ctx.quadraticCurveTo(1.015 * r, -0.705 * r, 0.935 * r, -0.66 * r);
+    ctx.moveTo(1.09 * r, -0.675 * r);
+    ctx.quadraticCurveTo(1.51 * r, -0.75 * r, 1.73 * r, -0.555 * r);
+    ctx.quadraticCurveTo(1.84 * r, -0.455 * r, 1.74 * r, -0.34 * r);
+    ctx.quadraticCurveTo(1.52 * r, -0.19 * r, 1.13 * r, -0.30 * r);
+    ctx.lineTo(1.22 * r, -0.385 * r);
+    ctx.quadraticCurveTo(1.49 * r, -0.315 * r, 1.63 * r, -0.415 * r);
+    ctx.quadraticCurveTo(1.72 * r, -0.475 * r, 1.62 * r, -0.535 * r);
+    ctx.quadraticCurveTo(1.46 * r, -0.635 * r, 1.18 * r, -0.585 * r);
     ctx.closePath();
     ctx.fillStyle = '#9eafb8'; ctx.fill();
     ctx.strokeStyle = '#53656e'; ctx.lineWidth = Math.max(0.65, r * 0.018); ctx.stroke();
 
-    // Faceta clara acompanha a crista da ponta; a face escura dá espessura à cabeça.
+    // Reflexo na borda superior do arco.
     ctx.beginPath();
-    ctx.moveTo(0.945 * r, -0.66 * r);
-    ctx.quadraticCurveTo(1.015 * r, -0.69 * r, 1.105 * r, -0.61 * r);
-    ctx.lineTo(1.30 * r, -0.505 * r);
-    ctx.lineTo(1.20 * r, -0.515 * r);
-    ctx.lineTo(1.035 * r, -0.605 * r);
+    ctx.moveTo(1.10 * r, -0.675 * r);
+    ctx.quadraticCurveTo(1.51 * r, -0.75 * r, 1.73 * r, -0.555 * r);
+    ctx.quadraticCurveTo(1.58 * r, -0.61 * r, 1.43 * r, -0.615 * r);
+    ctx.quadraticCurveTo(1.28 * r, -0.615 * r, 1.18 * r, -0.59 * r);
     ctx.closePath();
     ctx.fillStyle = '#e0e8ec'; ctx.fill();
+
+    // Plano escuro interno para dar espessura e leitura de metal curvo.
     ctx.beginPath();
-    ctx.moveTo(1.30 * r, -0.505 * r);
-    ctx.lineTo(1.475 * r, -0.445 * r);
-    ctx.quadraticCurveTo(1.56 * r, -0.415 * r, 1.625 * r, -0.365 * r);
-    ctx.lineTo(1.79 * r, -0.285 * r);
-    ctx.lineTo(1.69 * r, -0.465 * r);
-    ctx.quadraticCurveTo(1.65 * r, -0.515 * r, 1.56 * r, -0.525 * r);
-    ctx.lineTo(1.42 * r, -0.525 * r);
+    ctx.moveTo(1.22 * r, -0.385 * r);
+    ctx.quadraticCurveTo(1.49 * r, -0.315 * r, 1.63 * r, -0.415 * r);
+    ctx.quadraticCurveTo(1.72 * r, -0.475 * r, 1.62 * r, -0.535 * r);
+    ctx.quadraticCurveTo(1.52 * r, -0.49 * r, 1.48 * r, -0.455 * r);
+    ctx.quadraticCurveTo(1.39 * r, -0.405 * r, 1.22 * r, -0.385 * r);
     ctx.closePath();
     ctx.fillStyle = '#71858e'; ctx.fill();
 
-    // Gume claros, separados da face, reforçam a ponta e a lâmina oposta.
+    // Pontas metálicas claras, voltadas para a esquerda, como uma picareta curva.
     ctx.beginPath();
-    ctx.moveTo(0.91 * r, -0.665 * r);
-    ctx.quadraticCurveTo(0.99 * r, -0.70 * r, 1.10 * r, -0.625 * r);
-    ctx.lineTo(1.035 * r, -0.605 * r);
-    ctx.quadraticCurveTo(0.965 * r, -0.655 * r, 0.91 * r, -0.665 * r);
+    ctx.moveTo(1.075 * r, -0.69 * r);
+    ctx.quadraticCurveTo(1.16 * r, -0.665 * r, 1.20 * r, -0.62 * r);
+    ctx.lineTo(1.17 * r, -0.59 * r);
+    ctx.quadraticCurveTo(1.12 * r, -0.63 * r, 1.075 * r, -0.69 * r);
     ctx.closePath();
     ctx.fillStyle = '#f0f4f6'; ctx.fill();
+
     ctx.beginPath();
-    ctx.moveTo(1.625 * r, -0.365 * r);
-    ctx.lineTo(1.79 * r, -0.285 * r);
-    ctx.lineTo(1.69 * r, -0.465 * r);
-    ctx.lineTo(1.715 * r, -0.375 * r);
+    ctx.moveTo(1.10 * r, -0.28 * r);
+    ctx.quadraticCurveTo(1.17 * r, -0.30 * r, 1.22 * r, -0.34 * r);
+    ctx.lineTo(1.20 * r, -0.37 * r);
+    ctx.quadraticCurveTo(1.14 * r, -0.32 * r, 1.10 * r, -0.28 * r);
     ctx.closePath();
     ctx.fillStyle = '#e1eaee'; ctx.fill();
 
-    // Olho e aro metálico no centro, onde a cabeça abraça o cabo.
+    // Olho/encaixe no centro do arco, alinhado ao cabo.
     ctx.beginPath();
     ctx.ellipse(1.39 * r, -0.49 * r, 0.13 * r, 0.073 * r, -0.38, 0, Math.PI * 2);
     ctx.fillStyle = '#273238'; ctx.fill();
