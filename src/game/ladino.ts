@@ -124,21 +124,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[47,76],[53,76],[53,125],[47,125]], P.main, '', 0);
   line(ctx, [[50,78],[50,125]], P.trim, 2.2);
 
-  // Os braços frontais não são desenhados no perfil: ali existe um único braço lateral próprio.
-  if (!isSide) {
-    ctx.save();
-    ctx.translate(29, 50 + leftHandShift * 0.4);
-    ctx.rotate(leftArmAngle);
-    poly(ctx, [[-5,-8],[5,-10],[5,22],[-3,27],[-8,14]], DARK);
-    poly(ctx, [[-8,20],[2,22],[2,39],[-7,39]], '#292a32');
-    ctx.restore();
-    ctx.save();
-    ctx.translate(71, 50 + rightHandShift * 0.4);
-    ctx.rotate(rightArmAngle);
-    poly(ctx, [[-5,-10],[5,-8],[8,14],[3,27],[-5,22]], DARK);
-    poly(ctx, [[-2,22],[8,20],[8,39],[-1,39]], '#292a32');
-    ctx.restore();
-  }
+  // Braços temporariamente ocultos em todas as direções para inspecionar a silhueta da roupa.
 
   poly(ctx, [[30,56],[40,50],[70,76],[62,82]], LEATH);
   poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
@@ -178,9 +164,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     poly(ctx, [[42,80],[58,80],[58,86],[42,86]], LEATH2);
     poly(ctx, [[48,80],[52,80],[52,86],[48,86]], GOLD, OUT, 1);
 
-    // Mão lateral original; mantém apenas o braço e a mão já existentes.
-    poly(ctx, [[56,55],[63,58],[64,77],[59,87],[53,83]], DARK);
-    poly(ctx, [[55,80],[62,81],[62,96],[54,95]], '#292a32');
+    // Braço lateral temporariamente oculto para inspecionar a túnica sem membros sobrepostos.
   }
 
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
