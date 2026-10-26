@@ -1,3 +1,5 @@
+import { CONFIG } from './config';
+
 export type ToolId = 'machadinho' | 'picareta' | 'foice';
 
 type FloatingToolOptions = {
@@ -142,7 +144,7 @@ export function drawFloatingTool(
   if (alpha <= 0) return;
 
   const headLength = tool === 'machadinho' ? r * 1.92 : tool === 'picareta' ? r * 2.05 : r * 2.27;
-  const aura = CONFIG_TOOL_AURA;
+  const aura = CONFIG.player.toolAuraRadius;
   const impactReach = Math.max(6, reach - headLength);
   const distance = progress <= 0.6
     ? aura + (impactReach - aura) * smooth(progress / 0.6)
@@ -170,4 +172,3 @@ export function drawFloatingTool(
   ctx.restore();
 }
 
-const CONFIG_TOOL_AURA = 30;
