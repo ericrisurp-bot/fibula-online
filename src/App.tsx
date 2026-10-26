@@ -1476,13 +1476,13 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   }
   // À noite, cada ferramenta aparece durante sua própria animação de coleta, mesmo com arma de combate exposta.
   if ((!isNight && !hasEnemies) || treeChopTimer > 0) {
-    drawFloatingTool(ctx, 'machadinho', r, { time, angle: treeChopAngle, timer: treeChopTimer, duration: 0.2, reach: gatherReach });
+    drawFloatingTool(ctx, 'machadinho', r, { angle: treeChopAngle, timer: treeChopTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach });
   }
   if ((!isNight && !hasEnemies) || rockMineTimer > 0) {
-    drawFloatingTool(ctx, 'picareta', r, { time, angle: rockMineAngle, timer: rockMineTimer, duration: 0.22, reach: gatherReach });
+    drawFloatingTool(ctx, 'picareta', r, { angle: rockMineAngle, timer: rockMineTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach });
   }
   if ((!isNight && !hasEnemies) || cottonHarvestTimer > 0) {
-    drawFloatingTool(ctx, 'foice', r, { time, angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: 0.24, reach: gatherReach });
+    drawFloatingTool(ctx, 'foice', r, { angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach });
   }
   ctx.restore();
 }
