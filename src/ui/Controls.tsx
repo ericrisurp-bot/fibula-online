@@ -64,7 +64,7 @@ function ClassWeaponIcon({ classId }: { classId: ClassId }) {
     ctx.save();
     ctx.translate(32, 32);
     if (weapon !== 'arco') ctx.rotate(Math.PI / 2);
-    ctx.scale(0.75, 0.75);
+    ctx.scale(1.5, 1.5);
     ctx.translate(-25, 0);
     drawWeapon(ctx, weapon, 10);
     ctx.restore();
