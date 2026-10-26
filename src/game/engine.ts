@@ -6,15 +6,16 @@ import { addToInventory, type InventoryStack } from './inventory';
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
 const MATERIAL_ATTRACTION_RADIUS = 80;
+const MATERIAL_ATTRACTION_DELAY = 1.5;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
-type WoodDrop = Vec & { id: number; amount: number };
-type StoneDrop = Vec & { id: number };
-type CottonDrop = Vec & { id: number };
-type LinenDrop = Vec & { id: number };
-type BronzeDrop = Vec & { id: number };
+type WoodDrop = Vec & { id: number; amount: number; age: number };
+type StoneDrop = Vec & { id: number; age: number };
+type CottonDrop = Vec & { id: number; age: number };
+type LinenDrop = Vec & { id: number; age: number };
+type BronzeDrop = Vec & { id: number; age: number };
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean; hitEnemyIds?: number[] };
@@ -354,7 +355,7 @@ export class GameEngine {
     if (Math.random() < CONFIG.tecelaria.linenChance) {
       const angle = Math.random() * Math.PI * 2;
       const distance = 42 + Math.random() * 12;
-      this.state.linenDrops.push({ id: this.nextId++, x: building.x + Math.cos(angle) * distance, y: building.y + Math.sin(angle) * distance });
+      this.state.linenDrops.push({ id: this.nextId++, x: building.x + Math.cos(angle) * distance, y: building.y + Math.sin(angle) * distance, age: 0 });
       building.linenProduced += 1;
     }
     if (building.cottonStock <= 0) this.tecelariaProcessTimer = 0;
@@ -400,7 +401,7 @@ export class GameEngine {
     if (Math.random() < CONFIG.refinery.bronzeChance) {
       const angle = Math.random() * Math.PI * 2;
       const distance = 42 + Math.random() * 12;
-      this.state.bronzeDrops.push({ id: this.nextId++, x: refinery.x + Math.cos(angle) * distance, y: refinery.y + Math.sin(angle) * distance });
+      this.state.bronzeDrops.push({ id: this.nextId++, x: refinery.x + Math.cos(angle) * distance, y: refinery.y + Math.sin(angle) * distance, age: 0 });
       refinery.bronzeProduced += 1;
     }
     if (refinery.stoneStock <= 0) this.refineryProcessTimer = 0;
@@ -408,6 +409,7 @@ export class GameEngine {
 
   private collectBronze() {
     for (const drop of [...this.state.bronzeDrops]) {
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
       const result = addToInventory(this.state.inventory, 'bronze', 1, CONFIG.inventory);
       if (result.added === 0) continue;
@@ -1071,7 +1073,7 @@ export class GameEngine {
     if (Math.random() < CONFIG.rocks.dropChance) {
       const angle = Math.random() * Math.PI * 2;
       const distance = this.rockFootprintRadius(rock) + 5;
-      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance });
+      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, age: 0 });
     }
     if (rock.hits <= 0) this.state.rocks = this.state.rocks.filter(value => value.id !== id);
   }
@@ -1083,13 +1085,14 @@ export class GameEngine {
     if (Math.random() < CONFIG.cotton.dropChance) {
       const angle = Math.random() * Math.PI * 2;
       const distance = this.cottonFootprintRadius(plant) + 5;
-      this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance });
+      this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance, age: 0 });
     }
     if (plant.hits <= 0) this.state.cottonPlants = this.state.cottonPlants.filter(value => value.id !== id);
   }
 
   private collectStone() {
     for (const drop of [...this.state.stoneDrops]) {
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
       const result = addToInventory(this.state.inventory, 'stone', 1, CONFIG.inventory);
       if (result.added === 0) continue;
@@ -1106,6 +1109,7 @@ export class GameEngine {
 
   private collectCotton() {
     for (const drop of [...this.state.cottonDrops]) {
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
       const result = addToInventory(this.state.inventory, 'cotton', 1, CONFIG.inventory);
       if (result.added === 0) continue;
@@ -1116,6 +1120,7 @@ export class GameEngine {
 
   private collectLinen() {
     for (const drop of [...this.state.linenDrops]) {
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
       const result = addToInventory(this.state.inventory, 'linen', 1, CONFIG.inventory);
       if (result.added === 0) continue;
@@ -1131,7 +1136,7 @@ export class GameEngine {
     const roll = Math.random();
     const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
     const base = this.treeBase(tree);
-    this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount });
+    this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount, age: 0 });
   }
 
   private attractMaterials(dt: number, playerSpeed: number) {
@@ -1144,6 +1149,8 @@ export class GameEngine {
       ...this.state.bronzeDrops,
     ];
     for (const drop of drops) {
+      drop.age += dt;
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const dx = player.x - drop.x;
       const dy = player.y - drop.y;
       const distance = Math.hypot(dx, dy) || 1;
@@ -1156,6 +1163,7 @@ export class GameEngine {
 
   private collectWood() {
     for (const drop of [...this.state.woodDrops]) {
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
       const result = addToInventory(this.state.inventory, 'wood', drop.amount, CONFIG.inventory);
       if (result.added === 0) continue;
