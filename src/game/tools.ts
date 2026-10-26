@@ -1,5 +1,3 @@
-import { CONFIG } from './config';
-
 export type ToolId = 'machadinho' | 'picareta' | 'foice';
 
 type FloatingToolOptions = {
