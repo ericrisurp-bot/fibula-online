@@ -1,164 +1,101 @@
 export type ToolId = 'machadinho' | 'picareta' | 'foice';
+type Pt = readonly [number, number];
 
-type FloatingToolOptions = {
-  angle: number;
-  timer: number;
-  duration: number;
-  reach: number;
-};
-
-type Point = readonly [number, number];
-
-const OUTLINE = '#382f2b';
-const WOOD_DARK = '#68452f';
-const WOOD_MID = '#9a6940';
-const WOOD_LIGHT = '#c18a55';
-const STEEL_DARK = '#52616a';
-const STEEL_MID = '#9aaab2';
-const STEEL_LIGHT = '#dbe5e9';
-const LEATHER_DARK = '#4b3028';
-const LEATHER_MID = '#82513a';
-const LEATHER_LIGHT = '#b77b50';
-
-function polygon(ctx: CanvasRenderingContext2D, points: Point[], fill: string, lineWidth = 1.2) {
-  ctx.beginPath();
-  ctx.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = lineWidth;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
+function P(ctx: CanvasRenderingContext2D, r: number, pts: readonly Pt[], fill: string, stroke = '#2a2320', lw = 1.1) {
+  ctx.beginPath(); ctx.moveTo(pts[0][0]*r, pts[0][1]*r);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0]*r, pts[i][1]*r);
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.stroke(); }
 }
-
-function line(ctx: CanvasRenderingContext2D, points: Point[], color: string, width: number) {
-  ctx.beginPath();
-  ctx.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.stroke();
+const W1='#9b6a3f', W2='#74492a', W3='#b98a58', L1='#5a3a24', L2='#7c5232';
+const S1='#e6eef0', S2='#a9b9c0', S3='#6d808a', S4='#43535c', SO='#27323a';
+function handle(ctx: CanvasRenderingContext2D, r: number, len: number, wrapFrom: number, wrapTo: number) {
+  P(ctx, r, [[0,-0.12],[len,-0.10],[len,0.10],[0,0.12]], W2);
+  P(ctx, r, [[0,-0.12],[len,-0.10],[len,-0.01],[0,-0.01]], W3, '');
+  P(ctx, r, [[0,-0.01],[len,-0.01],[len,0.10],[0,0.12]], W1, '');
+  for (const [a, b] of [[0.5, 0.9], [0.85, 1.3], [1.2, 1.6]] as const) { if (b < len) P(ctx, r, [[a,-0.05],[b,-0.045],[b,-0.025],[a,-0.03]], W2, ''); }
+  P(ctx, r, [[-0.1,-0.15],[0.06,-0.17],[0.06,0.17],[-0.1,0.15],[-0.16,0]], '#7d8c94', SO);
+  const n = 4, w = (wrapTo - wrapFrom) / n;
+  for (let i = 0; i < n; i++) P(ctx, r, [[wrapFrom + i*w, -0.15],[wrapFrom + (i+0.8)*w, -0.15],[wrapFrom + (i+0.8)*w, 0.15],[wrapFrom + i*w, 0.15]], i % 2 ? L2 : L1, '#2a1a10', 0.8);
 }
-
-function drawHandle(ctx: CanvasRenderingContext2D, length: number, r: number) {
-  polygon(ctx, [[0,-r*.09],[length*.83,-r*.055],[length,r*.015],[length*.96,r*.13],[length*.12,r*.15],[0,r*.07]], WOOD_DARK);
-  polygon(ctx, [[r*.1,-r*.065],[length*.78,-r*.025],[length*.91,r*.035],[length*.13,r*.105]], WOOD_MID, 1);
-  polygon(ctx, [[r*.18,-r*.07],[length*.7,-r*.035],[length*.74,-r*.005],[r*.2,-r*.035]], WOOD_LIGHT, .8);
-  line(ctx, [[r*.45,r*.11],[length*.43,r*.09]], '#6d472e', .8);
-  line(ctx, [[length*.48,-r*.025],[length*.68,-r*.01]], '#d0a06b', .8);
-  line(ctx, [[length*.72,r*.075],[length*.86,r*.08]], '#6d472e', .8);
-  polygon(ctx, [[0,-r*.1],[r*.16,-r*.1],[r*.16,r*.12],[0,r*.1]], LEATHER_DARK, 1);
-  polygon(ctx, [[r*.025,-r*.08],[r*.12,-r*.08],[r*.12,r*.08],[r*.025,r*.07]], LEATHER_MID, .8);
-  line(ctx, [[r*.04,-r*.045],[r*.12,-r*.045]], LEATHER_LIGHT, .65);
-  polygon(ctx, [[-r*.055,-r*.12],[r*.08,-r*.12],[r*.13,-r*.04],[r*.13,r*.1],[r*.04,r*.15],[-r*.055,r*.08]], STEEL_DARK, 1);
-  polygon(ctx, [[-r*.035,-r*.09],[r*.045,-r*.09],[r*.075,-r*.025],[r*.075,r*.065],[r*.02,r*.1],[-r*.035,r*.055]], STEEL_MID, .8);
-}
-
 function drawAxe(ctx: CanvasRenderingContext2D, r: number) {
-  const handleLength = 2 * r;
-  drawHandle(ctx, handleLength, r);
-  polygon(ctx, [[r*1.18,-r*.16],[r*1.38,-r*.31],[r*1.52,-r*.26],[r*1.52,r*.08],[r*1.32,r*.17],[r*1.18,r*.08]], STEEL_DARK);
-  polygon(ctx, [[r*1.25,-r*.13],[r*1.38,-r*.24],[r*1.47,-r*.19],[r*1.46,r*.045],[r*1.32,r*.1]], STEEL_MID, 1);
-  polygon(ctx, [[r*1.42,-r*.19],[r*1.55,-r*.43],[r*1.8,-r*.48],[r*1.92,-r*.34],[r*1.88,r*.22],[r*1.68,r*.43],[r*1.51,r*.28]], STEEL_DARK);
-  polygon(ctx, [[r*1.51,-r*.25],[r*1.62,-r*.39],[r*1.79,-r*.42],[r*1.84,-r*.3],[r*1.76,r*.05],[r*1.61,r*.22]], STEEL_MID);
-  polygon(ctx, [[r*1.62,-r*.36],[r*1.78,-r*.4],[r*1.84,-r*.29],[r*1.76,r*.05],[r*1.68,r*.11]], STEEL_LIGHT, .9);
-  line(ctx, [[r*1.77,-r*.35],[r*1.72,r*.07]], '#f4fbff', 1.3);
-  polygon(ctx, [[r*1.48,-r*.2],[r*1.58,-r*.31],[r*1.63,-r*.26],[r*1.58,-r*.1]], '#b9c8ce', .9);
-  polygon(ctx, [[r*1.36,-r*.16],[r*1.46,-r*.18],[r*1.48,-r*.1],[r*1.39,-r*.06]], STEEL_LIGHT, .8);
-  polygon(ctx, [[r*1.32,r*.13],[r*1.4,r*.15],[r*1.43,r*.21],[r*1.35,r*.2]], '#7d8d95', .8);
-  polygon(ctx, [[r*1.28,-r*.03],[r*1.36,-r*.05],[r*1.38,r*.02],[r*1.3,r*.04]], '#7d8d95', .8);
+  handle(ctx, r, 2.15, 0.15, 0.85);
+  P(ctx, r, [[1.62,-0.20],[2.02,-0.22],[2.04,0.22],[1.60,0.22]], S3, SO);
+  P(ctx, r, [[1.62,-0.20],[2.02,-0.22],[2.02,-0.08],[1.62,-0.08]], S2, '');
+  P(ctx, r, [[1.68,-0.20],[2.00,-0.22],[2.00,-0.08],[1.67,-0.08]], S4, SO);
+  P(ctx, r, [[1.68,-0.20],[2.00,-0.22],[2.01,-0.29],[1.67,-0.28]], S3, '');
+  P(ctx, r, [[1.60,0.20],[2.04,0.22],[2.40,0.60],[2.58,1.02],[2.30,1.14],[1.70,1.14],[1.24,1.02],[1.34,0.62]], S3, SO, 1.2);
+  P(ctx, r, [[1.60,0.20],[2.04,0.22],[2.40,0.60],[2.00,0.56],[1.66,0.58],[1.34,0.62]], S2, '');
+  P(ctx, r, [[1.34,0.62],[1.66,0.58],[2.00,0.56],[2.40,0.60],[2.58,1.02],[2.30,1.14],[1.70,1.14],[1.24,1.02]], S3, '');
+  P(ctx, r, [[1.24,1.02],[1.70,1.14],[2.30,1.14],[2.58,1.02],[2.55,0.92],[2.28,1.03],[1.72,1.03],[1.28,0.92]], S1, '');
+  P(ctx, r, [[1.34,0.62],[1.66,0.58],[1.72,1.00],[1.28,0.92]], S4, '');
+  P(ctx, r, [[1.50,-0.16],[1.60,-0.18],[1.60,0.18],[1.50,0.16]], '#c9a45a', '#4a3a1c', 0.9);
+  P(ctx, r, [[1.78,-0.03],[1.86,-0.03],[1.86,0.05],[1.78,0.05]], S1, SO, 0.6);
 }
-
 function drawPick(ctx: CanvasRenderingContext2D, r: number) {
-  const handleLength = 2.2 * r;
-  drawHandle(ctx, handleLength, r);
-  polygon(ctx, [[r*1.44,-r*.13],[r*1.5,-r*.31],[r*1.68,-r*.38],[r*1.91,-r*.47],[r*2.05,-r*.42],[r*1.91,-r*.3],[r*1.72,-r*.2],[r*1.65,-r*.05],[r*1.52,r*.08]], STEEL_DARK);
-  polygon(ctx, [[r*1.52,-r*.16],[r*1.57,-r*.27],[r*1.69,-r*.31],[r*1.9,-r*.4],[r*1.97,-r*.4],[r*1.85,-r*.32],[r*1.67,-r*.13],[r*1.61,r*.01]], STEEL_MID, 1);
-  polygon(ctx, [[r*1.7,-r*.31],[r*1.9,-r*.4],[r*1.97,-r*.4],[r*1.85,-r*.32],[r*1.74,-r*.23]], STEEL_LIGHT, .8);
-  polygon(ctx, [[r*1.46,-r*.15],[r*1.37,-r*.3],[r*1.22,-r*.39],[r*1.05,-r*.37],[r*1.16,-r*.25],[r*1.29,-r*.16],[r*1.36,r*.01],[r*1.51,r*.1]], STEEL_DARK);
-  polygon(ctx, [[r*1.44,-r*.13],[r*1.35,-r*.25],[r*1.23,-r*.33],[r*1.14,-r*.33],[r*1.24,-r*.24],[r*1.34,-r*.12],[r*1.4,r*.025]], STEEL_MID, 1);
-  polygon(ctx, [[r*1.14,-r*.33],[r*1.24,-r*.24],[r*1.34,-r*.12],[r*1.28,-r*.17]], STEEL_LIGHT, .8);
-  polygon(ctx, [[r*1.4,-r*.2],[r*1.57,-r*.24],[r*1.65,-r*.13],[r*1.59,r*.03],[r*1.43,r*.1],[r*1.34,-r*.02]], STEEL_DARK);
-  polygon(ctx, [[r*1.42,-r*.15],[r*1.54,-r*.19],[r*1.59,-r*.12],[r*1.55,r*.005],[r*1.44,r*.05],[r*1.39,-r*.02]], STEEL_MID, .9);
-  polygon(ctx, [[r*1.38,-r*.12],[r*1.46,-r*.18],[r*1.49,-r*.12],[r*1.45,-r*.05]], STEEL_LIGHT, .8);
-  polygon(ctx, [[r*1.39,-r*.2],[r*1.52,-r*.25],[r*1.58,-r*.17],[r*1.56,-r*.06],[r*1.42,r*.01],[r*1.35,-r*.07]], '#a6b6be', .9);
-  polygon(ctx, [[r*1.39,-r*.19],[r*1.46,-r*.22],[r*1.49,-r*.16],[r*1.44,-r*.11]], STEEL_LIGHT, .8);
-  polygon(ctx, [[r*1.34,-r*.16],[r*1.4,-r*.18],[r*1.43,-r*.1],[r*1.37,-r*.07]], '#8798a1', .8);
-  polygon(ctx, [[r*1.36,-r*.18],[r*1.4,-r*.19],[r*1.42,-r*.14],[r*1.38,-r*.12]], '#d5e1e6', .7);
-  // Socket and its two visible rivets.
-  polygon(ctx, [[r*1.35,-r*.18],[r*1.57,-r*.23],[r*1.62,-r*.12],[r*1.57,r*.02],[r*1.37,r*.08],[r*1.29,-r*.04]], STEEL_DARK);
-  polygon(ctx, [[r*1.38,-r*.15],[r*1.54,-r*.19],[r*1.58,-r*.11],[r*1.53,-r*.015],[r*1.39,r*.035],[r*1.34,-r*.04]], STEEL_MID, .9);
-  polygon(ctx, [[r*1.4,-r*.105],[r*1.45,-r*.12],[r*1.47,-r*.07],[r*1.42,-r*.05]], STEEL_LIGHT, .7);
-  polygon(ctx, [[r*1.51,-r*.14],[r*1.55,-r*.15],[r*1.57,-r*.1],[r*1.52,-r*.085]], '#dce7eb', .7);
+  handle(ctx, r, 2.30, 0.15, 0.85);
+  const N = 7; const top: Pt[] = [], bot: Pt[] = [];
+  for (let i = 0; i <= N; i++) { const y = -1.25 + 2.5*i/N, th = 0.20*(1 - Math.abs(y)/1.25) + 0.03; const cx = 2.20 - 0.38*Math.pow(y/1.25, 2); top.push([cx + th, y]); bot.push([cx - th, y]); }
+  const outline: Pt[] = [...top, ...bot.slice().reverse()];
+  P(ctx, r, outline, S3, SO, 1.2);
+  P(ctx, r, [...top, ...top.slice().reverse().map((p): Pt => [p[0] - 0.12 * (1 - Math.abs(p[1]) / 1.25) - 0.03, p[1]])], S2, '');
+  P(ctx, r, [[top[N-1][0], top[N-1][1]],[top[N][0]-0.01, top[N][1]],[bot[0][0]-0.0, 1.25],[2.02, 1.0]], S1, '');
+  P(ctx, r, [[1.78,-1.28],[1.96,-1.30],[2.04,-1.06],[1.86,-1.04]], S1, SO, 0.9);
+  P(ctx, r, [[2.00,-0.26],[2.40,-0.26],[2.42,0.26],[2.00,0.26]], S4, SO);
+  P(ctx, r, [[2.00,-0.26],[2.40,-0.26],[2.41,-0.08],[2.00,-0.08]], S3, '');
+  P(ctx, r, [[2.08,-0.12],[2.16,-0.12],[2.16,-0.04],[2.08,-0.04]], S1, SO, 0.5);
+  P(ctx, r, [[2.08,0.08],[2.16,0.08],[2.16,0.16],[2.08,0.16]], S1, SO, 0.5);
+  P(ctx, r, [[1.88,-0.16],[1.98,-0.18],[1.98,0.18],[1.88,0.16]], '#c9a45a', '#4a3a1c', 0.9);
 }
-
 function drawSickle(ctx: CanvasRenderingContext2D, r: number) {
-  const handleLength = 1.3 * r;
-  drawHandle(ctx, handleLength, r);
-  polygon(ctx, [[r*1.02,-r*.11],[r*1.18,-r*.2],[r*1.28,-r*.12],[r*1.23,r*.07],[r*1.08,r*.12],[r*.98,r*.035]], STEEL_DARK);
-  polygon(ctx, [[r*1.05,-r*.08],[r*1.17,-r*.15],[r*1.23,-r*.1],[r*1.19,r*.035],[r*1.09,r*.075]], STEEL_MID, .9);
-  polygon(ctx, [[r*1.08,-r*.12],[r*1.17,-r*.15],[r*1.2,-r*.1],[r*1.15,-r*.06]], STEEL_LIGHT, .8);
-  // Faceted crescent strip, segmented into short polygons rather than a raster curve.
-  const outer: Point[] = [[r*1.16,-r*.16],[r*1.43,-r*.38],[r*1.7,-r*.57],[r*1.98,-r*.65],[r*2.18,-r*.58],[r*2.27,-r*.43],[r*2.21,-r*.29],[r*2.08,-r*.21]];
-  const inner: Point[] = [[r*1.29,-r*.11],[r*1.48,-r*.28],[r*1.72,-r*.43],[r*1.95,-r*.49],[r*2.1,-r*.45],[r*2.15,-r*.39],[r*2.07,-r*.34],[r*1.99,-r*.33]];
-  for (let i=0;i<outer.length-1;i++) {
-    const tone = i < 3 ? STEEL_DARK : i < 6 ? STEEL_MID : STEEL_LIGHT;
-    polygon(ctx, [outer[i],outer[i+1],inner[i+1],inner[i]], tone, .8);
+  handle(ctx, r, 1.30, 0.10, 0.90);
+  P(ctx, r, [[1.18,-0.17],[1.32,-0.19],[1.32,0.19],[1.18,0.17]], '#c9a45a', '#4a3a1c', 0.9);
+  const R = 0.66, cx = 1.30, cy = R, N = 12; const outer: Pt[] = [], inner: Pt[] = [], mid: Pt[] = [];
+  const a0 = -Math.PI/2, a1 = Math.PI * 0.42;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, a = a0 + (a1 - a0) * t, wdt = 0.30 * (1 - Math.pow(t, 1.5)) + 0.02;
+    outer.push([cx + R*Math.cos(a), cy + R*Math.sin(a)]);
+    inner.push([cx + (R - wdt)*Math.cos(a), cy + (R - wdt)*Math.sin(a)]);
+    mid.push([cx + (R - wdt*0.5)*Math.cos(a), cy + (R - wdt*0.5)*Math.sin(a)]);
   }
-  line(ctx, [[r*1.3,-r*.105],[r*1.49,-r*.27],[r*1.73,-r*.42],[r*1.96,-r*.48],[r*2.1,-r*.44],[r*2.14,-r*.39]], '#f1f8fb', 1.2);
-  line(ctx, [[r*1.4,-r*.34],[r*1.68,-r*.53],[r*1.96,-r*.61]], '#657780', .9);
+  P(ctx, r, [...outer, ...inner.slice().reverse()], S3, SO, 1.2);
+  P(ctx, r, [...outer, ...mid.slice().reverse()], S4, '');
+  P(ctx, r, [...mid, ...inner.slice().reverse()], S2, '');
+  P(ctx, r, [...inner, ...inner.slice().reverse().map((_p, i, arr) => { const k = arr.length - 1 - i; const t = k / N, a = a0 + (a1 - a0) * t, wdt = 0.30 * (1 - Math.pow(t, 1.5)) + 0.02; return [cx + (R - wdt - 0.04)*Math.cos(a), cy + (R - wdt - 0.04)*Math.sin(a)] as Pt; })], S1, '');
+  P(ctx, r, [[1.26,-0.07],[1.34,-0.07],[1.34,0.10],[1.26,0.10]], S3, SO, 0.8);
 }
 
-export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number): void {
-  ctx.save();
-  if (tool === 'machadinho') drawAxe(ctx, r);
-  else if (tool === 'picareta') drawPick(ctx, r);
-  else drawSickle(ctx, r);
-  ctx.restore();
+const DRAW: Record<ToolId, (ctx: CanvasRenderingContext2D, r: number) => void> = { machadinho: drawAxe, picareta: drawPick, foice: drawSickle };
+
+/** Arte: origem na ponta do cabo, ferramenta aponta para +x, gume/ponta lidera no lado +y. */
+export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number): void { DRAW[tool](ctx, r); }
+
+// Animação de relógio: 12h -> alvo. Ponto de impacto local de cada ferramenta (unidades de r).
+const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0] };
+const ease = { out: (t: number) => 1 - Math.pow(1 - t, 3), in: (t: number) => t * t * t };
+function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: number) {
+  const side = Math.cos(angle) >= 0 ? 1 : -1;
+  const start = angle - side * Math.PI / 2;
+  let rot = angle, alpha = 1, yOff = 0;
+  if (p < 0.18) { const e = ease.out(p / 0.18); alpha = e; yOff = -22 * (1 - e); rot = start - side * 0.30 * (1 - e); }
+  else if (p < 0.36) { const s = ease.in((p - 0.18) / 0.18); rot = start + (angle - start) * s; }
+  else if (p < 0.46) { rot = angle + side * 0.10 * Math.sin(Math.PI * (p - 0.36) / 0.10); }
+  else if (p < 0.82) { rot = angle; }
+  else { const t = (p - 0.82) / 0.18; alpha = 1 - t; yOff = -6 * t; }
+  // posição do cabo: a cabeça (ponto de impacto) cai em 'reach' quando rot == angle
+  const I = IMP[tool], ix = I[0] * r, iy = I[1] * r * side, c = Math.cos(angle), sn = Math.sin(angle);
+  let gx = reach * c - (ix * c - iy * sn), gy = reach * sn - (ix * sn + iy * c);
+  const along = gx * c + gy * sn; if (along < 6) { gx += c * (6 - along); gy += sn * (6 - along); }
+  return { side, gx, gy: gy + yOff, rot, alpha };
 }
+export type FloatingToolOptions = { angle: number; reach: number; timer: number; duration: number };
 
-export function drawFloatingTool(
-  ctx: CanvasRenderingContext2D,
-  tool: ToolId,
-  r: number,
-  opts: FloatingToolOptions,
-): void {
-  const { angle, timer, duration, reach } = opts;
-  if (timer <= 0 || duration <= 0) return;
-
-  const progress = Math.max(0, Math.min(1, 1 - timer / duration));
-  const impactPoints: Record<ToolId, Point> = {
-    machadinho: [1.9 * r, 1.1 * r],
-    picareta: [1.85 * r, 1.25 * r],
-    foice: [1.65 * r, 1.0 * r],
-  };
-  const [impactX, impactY] = impactPoints[tool];
-  // O impacto ocorre em 36% da animação. Nesse ponto, a ponta fica exatamente
-  // a gatherReach do centro do jogador, na direção do recurso.
-  const impactProgress = 0.36;
-  const swingWidth = Math.PI * 0.32;
-  const swingOffset = (progress - impactProgress) * swingWidth;
-  const rotation = angle - Math.atan2(impactY, impactX) + swingOffset;
-  const rotatedImpactX = impactX * Math.cos(rotation) - impactY * Math.sin(rotation);
-  const rotatedImpactY = impactX * Math.sin(rotation) + impactY * Math.cos(rotation);
-  const strikeProgress = progress <= impactProgress
-    ? progress / impactProgress
-    : (1 - progress) / (1 - impactProgress);
-  const impactDistance = reach * Math.max(0, Math.min(1, strikeProgress));
-  const targetX = Math.cos(angle) * impactDistance;
-  const targetY = Math.sin(angle) * impactDistance;
-  const originX = targetX - rotatedImpactX;
-  const originY = targetY - rotatedImpactY;
-  const fadeOut = Math.min(1, (1 - progress) / 0.08);
-
-  ctx.save();
-  ctx.globalAlpha *= fadeOut;
-  ctx.translate(originX, originY);
-  ctx.rotate(rotation);
-  drawTool(ctx, tool, r);
-  ctx.restore();
+/** Chamar com o contexto transladado para o centro do jogador, SEM espelhamento. */
+export function drawFloatingTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number, opts: FloatingToolOptions): void {
+  if (opts.timer <= 0) return;
+  const p = Math.min(1, Math.max(0, 1 - opts.timer / opts.duration));
+  const q = toolPose(tool, r, opts.angle, opts.reach, p);
+  if (q.alpha <= 0.01) return;
+  ctx.save(); ctx.globalAlpha = q.alpha; ctx.translate(q.gx, q.gy); ctx.rotate(q.rot); ctx.scale(1, q.side);
+  drawTool(ctx, tool, r); ctx.restore();
 }
