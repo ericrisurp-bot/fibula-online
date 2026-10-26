@@ -176,9 +176,15 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     poly(ctx, [[42,80],[58,80],[58,86],[42,86]], LEATH2);
     poly(ctx, [[48,80],[52,80],[52,86],[48,86]], GOLD, OUT, 1);
 
-    // Uma única mão externa; o espelhamento global posiciona-a no lado correto.
-    poly(ctx, [[56,55],[63,58],[64,77],[59,87],[53,83]], DARK);
-    poly(ctx, [[55,80],[62,81],[62,96],[54,95]], '#292a32');
+    // Braço e mão acompanham a passada como um pêndulo; a mão mantém o punho fechado.
+    const sideArmSwing = walking ? Math.sin(phase + Math.PI) * 0.22 : breath * 0.01;
+    const sideArmShift = walking ? Math.sin(phase + Math.PI) * 2.2 : 0;
+    ctx.save();
+    ctx.translate(58 + sideArmShift, 56);
+    ctx.rotate(sideArmSwing);
+    poly(ctx, [[-2,-1],[5,2],[6,21],[1,31],[-5,27]], DARK);
+    poly(ctx, [[-3,24],[4,25],[4,40],[-4,39]], '#292a32');
+    ctx.restore();
   }
 
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
