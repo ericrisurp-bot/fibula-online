@@ -1463,16 +1463,29 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
     const axeScale = 50 / (1.43 * r);
     ctx.translate(1.12 * r, -0.385 * r); ctx.scale(axeScale, axeScale); ctx.translate(-1.12 * r, 0.385 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
-    // Cabeça curta e larga, com lâmina em cunha: machadinho para madeira.
-    ctx.fillStyle = '#c8d4d9'; ctx.strokeStyle = '#53636b'; ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(r * 1.16, -r * 0.35); ctx.lineTo(r * 1.2, -r * 0.72);
-    ctx.quadraticCurveTo(r * 1.48, -r * 0.82, r * 1.68, -r * 0.61);
-    ctx.lineTo(r * 1.61, -r * 0.28); ctx.lineTo(r * 1.34, -r * 0.16);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    const facet = (points: readonly (readonly [number, number])[], fill: string, stroke = '#293036') => {
+      ctx.beginPath(); ctx.moveTo(points[0][0] * r, points[0][1] * r);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0] * r, points[i][1] * r);
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = Math.max(0.65, r * 0.035); ctx.stroke(); }
+    };
+    // Cabo facetado de madeira, com veio, empunhadura e anéis de fixação.
+    facet([[0.52,0.035],[0.62,-0.015],[1.49,-0.37],[1.54,-0.27],[0.67,0.105]], '#68452e');
+    facet([[0.62,-0.015],[1.49,-0.37],[1.51,-0.31],[0.67,0.105]], '#a8794a', '');
+    facet([[0.66,0.02],[1.42,-0.29],[1.44,-0.25],[0.69,0.06]], '#d2a16a', '');
+    facet([[0.72,-0.005],[0.88,-0.07],[0.96,0.12],[0.80,0.18]], '#4a3026');
+    facet([[0.75,0.015],[0.81,-0.01],[0.88,0.12],[0.82,0.145]], '#bd8a58', '');
+    facet([[0.87,-0.045],[0.92,-0.065],[0.99,0.08],[0.94,0.105]], '#b6bdc1');
+    facet([[1.34,-0.285],[1.40,-0.31],[1.47,-0.17],[1.41,-0.145]], '#b6bdc1');
+    // Cabeça do machado com faces metálicas, bisel claro e cunha escura.
+    facet([[1.10,-0.36],[1.19,-0.66],[1.43,-0.78],[1.69,-0.66],[1.76,-0.49],[1.60,-0.28],[1.34,-0.17],[1.18,-0.23]], '#53616a');
+    facet([[1.19,-0.66],[1.43,-0.78],[1.69,-0.66],[1.51,-0.59],[1.31,-0.53]], '#dfe8eb', '');
+    facet([[1.31,-0.53],[1.51,-0.59],[1.76,-0.49],[1.60,-0.28],[1.43,-0.39]], '#a8b8c0', '');
+    facet([[1.10,-0.36],[1.19,-0.66],[1.31,-0.53],[1.28,-0.36],[1.34,-0.17],[1.18,-0.23]], '#7d8d96', '');
+    facet([[1.43,-0.39],[1.60,-0.28],[1.76,-0.49],[1.51,-0.59]], '#667680', '');
+    facet([[1.20,-0.61],[1.27,-0.57],[1.30,-0.39],[1.24,-0.34]], '#f5f8f8', '');
+    facet([[1.37,-0.38],[1.43,-0.41],[1.48,-0.35],[1.42,-0.31]], '#303b42');
+    facet([[1.39,-0.37],[1.43,-0.39],[1.45,-0.35],[1.42,-0.34]], '#d9e2e5', '');
     ctx.restore();
   }
   if (rockMineTimer > 0) {
@@ -1484,18 +1497,29 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
     const pickaxeScale = 50 / (1.44 * r);
     ctx.translate(1.165 * r, -0.335 * r); ctx.scale(pickaxeScale, pickaxeScale); ctx.translate(-1.165 * r, 0.335 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
-    // Cabeça metálica de picareta: ponta estreita de um lado e lâmina oposta.
-    ctx.fillStyle = '#aebdc4'; ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(r * 1.02, -r * 0.58); ctx.lineTo(r * 1.28, -r * 0.72);
-    ctx.lineTo(r * 1.43, -r * 0.58); ctx.lineTo(r * 1.78, -r * 0.7);
-    ctx.lineTo(r * 1.63, -r * 0.48); ctx.lineTo(r * 1.43, -r * 0.47);
-    ctx.lineTo(r * 1.2, -r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#e0e7ea'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
+    const facet = (points: readonly (readonly [number, number])[], fill: string, stroke = '#293036') => {
+      ctx.beginPath(); ctx.moveTo(points[0][0] * r, points[0][1] * r);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0] * r, points[i][1] * r);
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = Math.max(0.65, r * 0.035); ctx.stroke(); }
+    };
+    // Cabo de madeira com faces de luz/sombra, couro enrolado e reforços metálicos.
+    facet([[0.51,0.07],[0.61,-0.02],[1.57,-0.40],[1.62,-0.29],[0.66,0.11]], '#5a3d2a');
+    facet([[0.61,-0.02],[1.57,-0.40],[1.59,-0.33],[0.66,0.11]], '#b18455', '');
+    facet([[0.70,0.02],[1.47,-0.29],[1.49,-0.25],[0.72,0.06]], '#d4a36a', '');
+    facet([[0.74,0.005],[0.87,-0.05],[0.95,0.13],[0.82,0.18]], '#493027');
+    facet([[0.77,0.02],[0.82,0.0],[0.89,0.12],[0.84,0.145]], '#c08c59', '');
+    facet([[0.89,-0.055],[0.96,-0.08],[1.03,0.07],[0.96,0.10]], '#b9c3c8');
+    facet([[1.37,-0.30],[1.43,-0.33],[1.50,-0.19],[1.44,-0.16]], '#b9c3c8');
+    // Cabeça de aço: olho central, lâmina larga e ponta oposta alongada.
+    facet([[1.00,-0.55],[1.20,-0.70],[1.43,-0.60],[1.53,-0.49],[1.83,-0.70],[1.72,-0.48],[1.54,-0.40],[1.43,-0.43],[1.26,-0.25],[1.13,-0.34]], '#46555f');
+    facet([[1.00,-0.55],[1.20,-0.70],[1.31,-0.61],[1.21,-0.48],[1.13,-0.34]], '#dbe5e9', '');
+    facet([[1.20,-0.70],[1.43,-0.60],[1.53,-0.49],[1.31,-0.48],[1.21,-0.48]], '#9eafb8', '');
+    facet([[1.31,-0.48],[1.53,-0.49],[1.83,-0.70],[1.72,-0.48],[1.54,-0.40],[1.43,-0.43]], '#71818a', '');
+    facet([[1.43,-0.60],[1.53,-0.49],[1.43,-0.43],[1.31,-0.48]], '#34434b', '');
+    facet([[1.07,-0.53],[1.20,-0.63],[1.26,-0.58],[1.17,-0.49]], '#f7fbfc', '');
+    facet([[1.39,-0.51],[1.46,-0.53],[1.50,-0.48],[1.44,-0.45]], '#303a40');
+    facet([[1.41,-0.50],[1.45,-0.51],[1.47,-0.48],[1.44,-0.47]], '#d9e4e8', '');
     ctx.restore();
   }
   if (cottonHarvestTimer > 0) {
@@ -1504,11 +1528,26 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
     const sickleScale = 50 / (1.29 * r);
     ctx.translate(1.12 * r, -0.3 * r); ctx.scale(sickleScale, sickleScale); ctx.translate(-1.12 * r, 0.3 * r);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(r * 0.58, r * 0.05); ctx.lineTo(r * 1.15, -r * 0.18); ctx.stroke();
-    ctx.strokeStyle = '#d5dde0'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(r * 1.02, -r * 0.22); ctx.quadraticCurveTo(r * 1.5, -r * 0.65, r * 1.66, -r * 0.3); ctx.stroke();
+    const facet = (points: readonly (readonly [number, number])[], fill: string, stroke = '#293036') => {
+      ctx.beginPath(); ctx.moveTo(points[0][0] * r, points[0][1] * r);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0] * r, points[i][1] * r);
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = Math.max(0.6, r * 0.03); ctx.stroke(); }
+    };
+    // Cabo curto de madeira com pomo, couro trançado e anel de metal.
+    facet([[0.54,0.08],[0.62,-0.02],[1.17,-0.25],[1.23,-0.16],[0.68,0.11]], '#5c3d2a');
+    facet([[0.62,-0.02],[1.17,-0.25],[1.20,-0.19],[0.68,0.11]], '#b98958', '');
+    facet([[0.67,0.025],[1.12,-0.16],[1.14,-0.12],[0.70,0.06]], '#d8ad78', '');
+    facet([[0.72,-0.005],[0.79,-0.035],[0.84,0.09],[0.77,0.12]], '#442c24');
+    facet([[0.74,0.005],[0.78,-0.01],[0.82,0.08],[0.78,0.10]], '#c28e5a', '');
+    facet([[1.07,-0.20],[1.13,-0.225],[1.18,-0.13],[1.12,-0.105]], '#c3ccd0');
+    // Lâmina curva de foice: contorno de aço, dorso escuro e gume brilhante.
+    facet([[1.02,-0.22],[1.16,-0.30],[1.34,-0.43],[1.52,-0.55],[1.70,-0.55],[1.82,-0.45],[1.80,-0.30],[1.70,-0.18],[1.57,-0.12],[1.65,-0.27],[1.69,-0.39],[1.56,-0.43],[1.43,-0.35],[1.29,-0.24],[1.14,-0.17]], '#46555e');
+    facet([[1.16,-0.30],[1.34,-0.43],[1.52,-0.55],[1.70,-0.55],[1.82,-0.45],[1.70,-0.42],[1.54,-0.43],[1.40,-0.35],[1.27,-0.24]], '#dfe8eb', '');
+    facet([[1.70,-0.55],[1.82,-0.45],[1.80,-0.30],[1.70,-0.18],[1.57,-0.12],[1.65,-0.27],[1.69,-0.39]], '#72838c', '');
+    facet([[1.27,-0.24],[1.40,-0.35],[1.54,-0.43],[1.69,-0.39],[1.65,-0.35],[1.50,-0.37],[1.38,-0.29]], '#f8ffff', '');
+    facet([[1.70,-0.42],[1.80,-0.30],[1.70,-0.18],[1.65,-0.27]], '#34434b', '');
+    facet([[1.29,-0.24],[1.14,-0.17],[1.02,-0.22],[1.16,-0.30]], '#a8b8c0', '');
     ctx.restore();
   }
   ctx.restore();
