@@ -120,25 +120,21 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   poly(ctx, [[38,50],[62,50],[60,70],[40,70]], '#e9e9ee');
   poly(ctx, [[38,51],[47,53],[47,69],[40,70]], '#ffffff');
   poly(ctx, [[53,53],[62,51],[60,70],[53,72]], '#b9bbc6');
-  // A túnica frontal e seus acessórios só são desenhados na vista frontal;
-  // a vista lateral tem uma silhueta própria abaixo, sem empilhar as duas roupas.
-  if (!isSide) {
-    poly(ctx, [[41,70],[59,70],[65,119],[59,130],[50,133],[41,130],[35,119]], '#f1f1f5');
-    poly(ctx, [[41,72],[48,74],[47,125],[41,129],[37,119]], '#ffffff');
-    poly(ctx, [[53,73],[59,71],[65,119],[59,130],[50,133],[50,78]], '#c1c3ce');
-    poly(ctx, [[46,75],[54,75],[56,122],[50,128],[44,122]], '#e0e1e8', '', 0);
-    poly(ctx, [[47,76],[53,76],[53,125],[47,125]], P.main, '', 0);
-    line(ctx, [[50,78],[50,125]], P.trim, 2.2);
-  }
+  // A mesma túnica, divisão central e cores são mantidas em todas as vistas.
+  poly(ctx, [[41,70],[59,70],[65,119],[59,130],[50,133],[41,130],[35,119]], '#f1f1f5');
+  poly(ctx, [[41,72],[48,74],[47,125],[41,129],[37,119]], '#ffffff');
+  poly(ctx, [[53,73],[59,71],[65,119],[59,130],[50,133],[50,78]], '#c1c3ce');
+  poly(ctx, [[46,75],[54,75],[56,122],[50,128],[44,122]], '#e0e1e8', '', 0);
+  poly(ctx, [[47,76],[53,76],[53,125],[47,125]], P.main, '', 0);
+  line(ctx, [[50,78],[50,125]], P.trim, 2.2);
 
   // Braços temporariamente ocultos em todas as direções para inspecionar a silhueta da roupa.
 
-  if (!isSide) {
-    poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
-    poly(ctx, [[48,81],[53,81],[53,90],[48,90]], GOLD, OUT, 1);
-    poly(ctx, [[27,86],[39,86],[39,99],[27,99]], LEATH);
-    poly(ctx, [[27,86],[39,86],[39,91],[27,91]], LEATH2);
-  }
+  // O cintinho e a bolsa frontal também permanecem iguais em todas as vistas.
+  poly(ctx, [[33,82],[67,82],[67,89],[33,89]], LEATH2);
+  poly(ctx, [[48,81],[53,81],[53,90],[48,90]], GOLD, OUT, 1);
+  poly(ctx, [[27,86],[39,86],[39,99],[27,99]], LEATH);
+  poly(ctx, [[27,86],[39,86],[39,91],[27,91]], LEATH2);
   // Ombreiras facetadas dão largura e separam o braço do peitoral.
   poly(ctx, [[22,42],[39,39],[50,45],[44,56],[28,60],[16,56]], P.light);
   poly(ctx, [[22,43],[30,44],[28,56],[16,56]], '#b7bac7');
@@ -160,17 +156,8 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     line(ctx, [[50,52],[50,117]], '#f0f0f4', 1.5);
     poly(ctx, [[44,45],[56,45],[59,52],[50,58],[41,52]], P.trim, OUT, 1);
   } else if (isSide) {
-    // Perfil mais estreito: base contínua e apenas as faces laterais da túnica.
-    poly(ctx, [[42,40],[58,40],[70,50],[66,68],[60,78],[63,106],[59,130],[50,132],[41,130],[37,106],[40,78],[34,68],[30,50]], P.dark, OUT, 1.2);
-    poly(ctx, [[44,43],[50,44],[48,75],[45,107],[47,128],[42,129],[37,105],[40,77],[35,67],[33,52]], '#f1f1f5', OUT, 1.0);
-    poly(ctx, [[50,44],[56,43],[67,52],[63,67],[58,77],[60,105],[55,128],[48,128],[51,107],[52,75]], '#c1c3ce', OUT, 1.0);
-
-    // A túnica lateral é desenhada uma única vez, sem camadas da vista frontal por baixo.
-    line(ctx, [[50,79],[51,101],[50,127]], P.trim, 2.2);
-    poly(ctx, [[42,80],[58,80],[58,86],[42,86]], LEATH2);
-    poly(ctx, [[48,80],[52,80],[52,86],[48,86]], GOLD, OUT, 1);
-
-    // Braço lateral temporariamente oculto para inspecionar a túnica sem membros sobrepostos.
+    // Mantém a mesma túnica e o mesmo cintinho desenhados antes; aqui só varia o capuz/rosto.
+    // Braço lateral temporariamente oculto para inspecionar a roupa sem membros sobrepostos.
   }
 
   // Manto fechado sobre os ombros: deixa apenas a faixa central da túnica à mostra.
