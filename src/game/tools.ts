@@ -146,8 +146,12 @@ export function drawFloatingTool(
   const headLength = tool === 'machadinho' ? r * 1.92 : tool === 'picareta' ? r * 2.05 : r * 2.27;
   const aura = CONFIG.player.toolAuraRadius;
   const swing = tool === 'foice'
-    ? -0.8 + 1.6 * smooth(progress)
-    : -1.1 + 1.25 * smooth(progress / 0.6);
+    ? progress <= 0.6
+      ? -0.8 + 1.6 * smooth(progress / 0.6)
+      : 0.8 - 1.6 * smooth((progress - 0.6) / 0.4)
+    : progress <= 0.6
+      ? -1.1 + 1.25 * smooth(progress / 0.6)
+      : 0.15 - 0.45 * smooth((progress - 0.6) / 0.4);
   const rotation = angle + swing;
   const headDx = headLength * Math.cos(swing);
   const headDy = headLength * Math.sin(swing);
