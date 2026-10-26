@@ -170,8 +170,11 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   // Desloca a flecha inteira para que o nock coincida com o vértice do V.
   const nockX = centerAt(0);
   ctx.save();
-  ctx.translate((nockPointX - nockX) * r, 0);
-  // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta.
+  // Reduz a flecha para 50%, mantendo o nock fixo no vértice da corda.
+  ctx.translate(nockPointX * r, 0);
+  ctx.scale(0.5, 0.5);
+  ctx.translate(-nockX * r, 0);
+  // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta antes da escala.
   facet(ctx, r, [[nockX,-0.035],[3.94,-0.035],[3.94,0.035],[nockX,0.035]], '#b98a50', '#4c3a2b', 0.8);
   facet(ctx, r, [[nockX,-0.027],[3.91,-0.027],[3.91,-0.006],[nockX,-0.006]], '#f0d5a0', '');
   facet(ctx, r, [[1.24,0.006],[3.94,0.006],[3.94,0.035],[1.24,0.035]], '#8c623c', '');
