@@ -2,26 +2,6 @@ import type { WeaponId } from './config';
 
 type Point = readonly [number, number];
 
-function polygon(
-  ctx: CanvasRenderingContext2D,
-  points: readonly Point[],
-  fill: string,
-  stroke = '#25232a',
-  lineWidth = 0.8,
-) {
-  ctx.beginPath();
-  ctx.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-  if (stroke) {
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = lineWidth;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-  }
-}
 
 
 function facet(ctx: CanvasRenderingContext2D, r: number, points: readonly Point[], fill: string, stroke = '#25232a', lineWidth = 1.1) {
