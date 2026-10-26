@@ -1490,7 +1490,10 @@ export class GameEngine {
       const originDistance = Math.hypot(shotX - p.x, shotY - p.y);
       const remainingRange = isStaffOrb ? Math.max(0, weapon.range - originDistance) : weapon.range;
 
-      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      const projectileDx = target.e.x - shotX;
+      const projectileDy = target.e.y - shotY;
+      const projectileDistance = Math.hypot(projectileDx, projectileDy) || 1;
+      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: projectileDx / projectileDistance * weapon.projectileSpeed, vy: projectileDy / projectileDistance * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
   }
