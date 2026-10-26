@@ -121,11 +121,6 @@ export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number)
   ctx.restore();
 }
 
-const smooth = (value: number) => {
-  const t = Math.max(0, Math.min(1, value));
-  return t * t * (3 - 2 * t);
-};
-
 export function drawFloatingTool(
   ctx: CanvasRenderingContext2D,
   tool: ToolId,
