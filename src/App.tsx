@@ -1479,7 +1479,8 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     // O arco parte da direção real da pedra, inclusive quando ela está acima/abaixo.
     const progress = 1 - rockMineTimer / 0.22;
     const swing = (progress - 0.5) * (Math.PI / 2.8);
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(rockMineAngle * facingScaleX + swing);
+    const targetAngle = facingScaleX === 1 ? rockMineAngle : Math.PI - rockMineAngle;
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(targetAngle + swing * facingScaleX);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
@@ -1497,7 +1498,9 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (cottonHarvestTimer > 0) {
     // Foice de mão: cabo curto e lâmina fina em curva para colher algodão.
     const progress = 1 - cottonHarvestTimer / 0.24;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle * facingScaleX + (progress - 0.5) * 0.45);
+    const swing = (progress - 0.5) * 0.45;
+    const targetAngle = facingScaleX === 1 ? cottonHarvestAngle : Math.PI - cottonHarvestAngle;
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(targetAngle + swing * facingScaleX);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(r * 0.58, r * 0.05); ctx.lineTo(r * 1.15, -r * 0.18); ctx.stroke();
