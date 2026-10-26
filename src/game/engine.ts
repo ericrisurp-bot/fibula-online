@@ -55,6 +55,7 @@ export class GameEngine {
   private cottonSpawnCountdown = 0;
   private nextRockClusterId = 1;
   private attackTimer = 0;
+  private combatLockTimer = 0;
   private gatheringTimer = 0;
   private stepDistance = 0;
   private stepFoot: 'left' | 'right' = 'left';
@@ -573,7 +574,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
+    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
@@ -624,7 +625,7 @@ export class GameEngine {
       if (enemy.deathAge < 0.48) this.state.dyingEnemies[dyingEnemiesWrite++] = enemy;
     }
     this.state.dyingEnemies.length = dyingEnemiesWrite;
-    this.attackTimer += dt; this.gatheringTimer += dt; this.enemyDamageTimer -= dt;
+    this.attackTimer += dt; this.combatLockTimer = Math.max(0, this.combatLockTimer - dt); this.gatheringTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
     if (this.healthTransitionRemaining !== 0) {
       const transitionStep = Math.sign(this.healthTransitionRemaining) * Math.min(Math.abs(this.healthTransitionRemaining), Math.abs(this.healthTransitionRate) * dt);
@@ -1467,6 +1468,7 @@ export class GameEngine {
       .sort((a, b) => a.d - b.d)[0];
     if (!target) return;
     this.attackTimer = 0;
+    this.combatLockTimer = 0.24;
     if (weapon.kind === 'melee') {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
@@ -1529,7 +1531,7 @@ export class GameEngine {
   }
 
   private autoGather() {
-    if (this.state.cart.carried) return;
+    if (this.state.cart.carried || this.combatLockTimer > 0) return;
     const weapon = CONFIG.weapons[this.state.weapon];
     const p = this.state.player;
     // Combate tem prioridade, mas sua velocidade não determina a cadência de coleta.
