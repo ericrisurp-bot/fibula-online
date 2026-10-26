@@ -1460,7 +1460,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (treeChopTimer > 0) {
     const progress = 1 - treeChopTimer / 0.2;
     const swing = (progress - 0.5) * (Math.PI / 2.25);
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing); ctx.scale(0.82, 0.82);
     ctx.lineJoin = 'round';
     // Machado de madeira low-poly: cabo facetado e cabeça larga, com cerca de 2/3 do comprimento da espada.
     ctx.beginPath();
@@ -1492,7 +1492,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const progress = 1 - rockMineTimer / 0.22;
     const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
     const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle); ctx.scale(0.82, 0.82);
     ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(r * 0.48, r * 0.14); ctx.lineTo(r * 2.42, -r * 0.43);
@@ -1527,7 +1527,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (cottonHarvestTimer > 0) {
     // Foice de mão low-poly: lâmina curva feita com planos triangulares, sem curva rasterizada.
     const progress = 1 - cottonHarvestTimer / 0.24;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
+    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45); ctx.scale(0.82, 0.82);
     ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(r * 0.50, r * 0.12); ctx.lineTo(r * 1.78, -r * 0.30);
