@@ -33,7 +33,7 @@ export type GameSnapshot = {
   tecelaria: TecelariaState;
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; cottonPlants: CottonPlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
-  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherReach: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 
@@ -55,6 +55,7 @@ export class GameEngine {
   private cottonSpawnCountdown = 0;
   private nextRockClusterId = 1;
   private attackTimer = 0;
+  private combatLockTimer = 0;
   private gatheringTimer = 0;
   private stepDistance = 0;
   private stepFoot: 'left' | 'right' = 'left';
@@ -103,7 +104,7 @@ export class GameEngine {
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0,
+      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherReach: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -573,7 +574,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
+    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
@@ -624,7 +625,7 @@ export class GameEngine {
       if (enemy.deathAge < 0.48) this.state.dyingEnemies[dyingEnemiesWrite++] = enemy;
     }
     this.state.dyingEnemies.length = dyingEnemiesWrite;
-    this.attackTimer += dt; this.gatheringTimer += dt; this.enemyDamageTimer -= dt;
+    this.attackTimer += dt; this.combatLockTimer = Math.max(0, this.combatLockTimer - dt); this.gatheringTimer += dt; this.enemyDamageTimer -= dt;
     const p = this.state.player;
     if (this.healthTransitionRemaining !== 0) {
       const transitionStep = Math.sign(this.healthTransitionRemaining) * Math.min(Math.abs(this.healthTransitionRemaining), Math.abs(this.healthTransitionRate) * dt);
@@ -1467,6 +1468,7 @@ export class GameEngine {
       .sort((a, b) => a.d - b.d)[0];
     if (!target) return;
     this.attackTimer = 0;
+    this.combatLockTimer = 0.24;
     if (weapon.kind === 'melee') {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
@@ -1529,7 +1531,7 @@ export class GameEngine {
   }
 
   private autoGather() {
-    if (this.state.cart.carried) return;
+    if (this.state.cart.carried || this.combatLockTimer > 0) return;
     const weapon = CONFIG.weapons[this.state.weapon];
     const p = this.state.player;
     // Combate tem prioridade, mas sua velocidade não determina a cadência de coleta.
@@ -1555,17 +1557,20 @@ export class GameEngine {
       const treeBase = this.treeBase(treeTarget.tree);
       this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
       this.state.treeChopTimer = 0.2;
+      this.state.gatherReach = Math.max(12, treeTarget.d - 0.6 * this.treeFootprintRadius(treeTarget.tree));
       treeTarget.tree.hits -= 1;
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
       this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
       this.state.rockMineTimer = 0.22;
+      this.state.gatherReach = Math.max(12, rockTarget.d - 0.6 * this.rockFootprintRadius(rockTarget.rock));
       this.hitRock(rockTarget.rock.id);
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget) {
       this.state.cottonHarvestAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
       this.state.cottonHarvestTimer = 0.24;
+      this.state.gatherReach = Math.max(12, cottonTarget.d - 0.6 * this.cottonFootprintRadius(cottonTarget.plant));
       this.hitCottonPlant(cottonTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
     }

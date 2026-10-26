@@ -4,7 +4,7 @@ const SWORD_REACH_BEYOND_AURA = 32;
 
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
-  player: { radius: 18, auraRadius: AURA_RADIUS, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
+  player: { radius: 18, auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   enemy: {
     radius: 16,
     speed: 138,
