@@ -1683,6 +1683,9 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const progress = 1 - rockMineTimer / 0.22;
     const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
     const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
+    const pickaxeScale = 40 / (1.44 * r);
+    ctx.save();
+    ctx.scale(facingScaleX, 1);
     drawPickaxe(
       ctx,
       1.165 * r,
