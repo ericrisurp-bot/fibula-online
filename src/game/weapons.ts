@@ -118,6 +118,11 @@ function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx,r,[[3.24,-1.06],[3.31,-1.16],[3.39,-1.07],[3.34,-0.98]],'#e1c7ff','#55327b',0.9);
 }
 function drawBow(ctx: CanvasRenderingContext2D, r: number) {
+  // Aumenta o arco inteiro em 40%, mantendo o centro visual no mesmo lugar.
+  ctx.save();
+  ctx.translate(1.4 * r, 0);
+  ctx.scale(1.4, 1.4);
+  ctx.translate(-1.4 * r, 0);
   // Uma única curva contínua, convexa para +x, da ponta superior à inferior.
   const halfHeight = 1.7;
   const baseX = 0.62;
@@ -225,6 +230,7 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx, r, [[3.94,-0.035],[4.12,-0.11],[4.38,0],[4.13,-0.012]], '#edf4f1', '');
   facet(ctx, r, [[4.13,-0.012],[4.38,0],[4.27,0.065],[4.12,0.11]], '#687780', '');
   facet(ctx, r, [[3.94,0.035],[4.13,-0.012],[4.27,0.065],[4.12,0.11]], '#b7c3c7', '');
+  ctx.restore();
   ctx.restore();
 }
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
