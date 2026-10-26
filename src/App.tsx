@@ -1414,6 +1414,31 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
+function weaponPoly(ctx: CanvasRenderingContext2D, points: Array<[number, number]>, fill: string, stroke = '', lineWidth = 1): void {
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+}
+
+function weaponLine(ctx: CanvasRenderingContext2D, points: Array<[number, number]>, color: string, lineWidth: number): void {
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
 function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, weaponVisible: boolean, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
@@ -1439,14 +1464,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : aimAngle;
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(angle);
     // Espada low-poly: pomo, empunhadura, guarda facetada e lâmina com fio de luz.
-    poly(ctx, [[r*.55,r*.12],[r*.7,r*.1],[r*.76,-r*.04],[r*.61,-r*.08]], '#d5b36a', '#302a25', 0.8);
-    poly(ctx, [[r*.64,r*.08],[r*1.05,-r*.1],[r*1.12,-r*.02],[r*.71,r*.16]], '#6d4930', '#302a25', 0.8);
-    line(ctx, [[r*.72,r*.02],[r*1.04,-r*.12]], '#c69b61', 1.2);
-    poly(ctx, [[r*.98,-r*.18],[r*1.1,-r*.02],[r*1.04,r*.1],[r*.92,-r*.06]], '#d9b45a', '#302a25', 0.9);
-    poly(ctx, [[r*1.04,-r*.09],[r*1.28,-r*.28],[r*2.18,-r*.48],[r*1.48,-r*.02],[r*1.13,r*.02]], '#bfcbd2', '#303b44', 1.1);
-    poly(ctx, [[r*1.13,-r*.03],[r*1.48,-r*.02],[r*2.18,-r*.48],[r*1.38,-r*.13]], '#eef5f7', '', 0);
-    poly(ctx, [[r*1.13,-r*.03],[r*1.48,-r*.02],[r*2.18,-r*.48],[r*1.32,-r*.18]], '#91a6b2', '', 0);
-    line(ctx, [[r*1.14,-r*.06],[r*2.12,-r*.45]], '#f6ffff', 1.1);
+    weaponPoly(ctx, [[r*.55,r*.12],[r*.7,r*.1],[r*.76,-r*.04],[r*.61,-r*.08]], '#d5b36a', '#302a25', 0.8);
+    weaponPoly(ctx, [[r*.64,r*.08],[r*1.05,-r*.1],[r*1.12,-r*.02],[r*.71,r*.16]], '#6d4930', '#302a25', 0.8);
+    weaponLine(ctx, [[r*.72,r*.02],[r*1.04,-r*.12]], '#c69b61', 1.2);
+    weaponPoly(ctx, [[r*.98,-r*.18],[r*1.1,-r*.02],[r*1.04,r*.1],[r*.92,-r*.06]], '#d9b45a', '#302a25', 0.9);
+    weaponPoly(ctx, [[r*1.04,-r*.09],[r*1.28,-r*.28],[r*2.18,-r*.48],[r*1.48,-r*.02],[r*1.13,r*.02]], '#bfcbd2', '#303b44', 1.1);
+    weaponPoly(ctx, [[r*1.13,-r*.03],[r*1.48,-r*.02],[r*2.18,-r*.48],[r*1.38,-r*.13]], '#eef5f7', '', 0);
+    weaponPoly(ctx, [[r*1.13,-r*.03],[r*1.48,-r*.02],[r*2.18,-r*.48],[r*1.32,-r*.18]], '#91a6b2', '', 0);
+    weaponLine(ctx, [[r*1.14,-r*.06],[r*2.12,-r*.45]], '#f6ffff', 1.1);
     ctx.restore();
     if (swordSwingTimer > 0) {
       ctx.save();
