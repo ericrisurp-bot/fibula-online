@@ -1461,12 +1461,14 @@ export class GameEngine {
     const speedBonus = this.getLevelStats().attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
-    const minStaffDistance = this.state.classId === 'mago' || this.state.classId === 'druida' ? 40 : 0;
-    const target = this.state.enemies
+    const isStaffClass = this.state.classId === 'mago' || this.state.classId === 'druida';
+    const minStaffDistance = isStaffClass ? 40 : 0;
+    const targets = this.state.enemies
       .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
-      .filter(v => v.d <= weapon.range && v.d > minStaffDistance)
-      .sort((a, b) => a.d - b.d)[0];
-    if (!target) return;
+      .filter(v => v.d <= weapon.range)
+      .sort((a, b) => a.d - b.d);
+    const target = targets[0];
+    if (!target || (isStaffClass && target.d <= minStaffDistance)) return;
     this.attackTimer = 0;
     this.combatLockTimer = 0.24;
     if (weapon.kind === 'melee') {
@@ -1512,14 +1514,16 @@ export class GameEngine {
       // Os pontos locais acompanham o desenho de drawMageStaff/drawDruidStaff.
       const isStaffOrb = weapon.kind === 'orb';
       const staffTip = this.state.classId === 'mago'
-        ? { x: 3.49, y: -0.66 }
-        : { x: 3.19, y: -0.34 };
+        ? { x: 3.7, y: 0, visualLength: 3.07 }
+        : { x: 4.38, y: 0, visualLength: 2.57 };
       const staffCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68;
+      const staffTipX = staffTip.x * 50 / staffTip.visualLength;
+      const staffTipY = staffTip.y * 50 / staffTip.visualLength;
       const shotX = isStaffOrb
-        ? p.x + (staffCenterDistance + staffTip.x * CONFIG.player.radius) * Math.cos(aimAngle) - staffTip.y * CONFIG.player.radius * Math.sin(aimAngle)
+        ? p.x + (staffCenterDistance + staffTipX) * Math.cos(aimAngle) - staffTipY * Math.sin(aimAngle)
         : p.x;
       const shotY = isStaffOrb
-        ? p.y + (staffCenterDistance + staffTip.x * CONFIG.player.radius) * Math.sin(aimAngle) + staffTip.y * CONFIG.player.radius * Math.cos(aimAngle)
+        ? p.y + (staffCenterDistance + staffTipX) * Math.sin(aimAngle) + staffTipY * Math.cos(aimAngle)
         : p.y;
       // Compensa o deslocamento inicial para preservar o alcance efetivo anterior.
       const originDistance = Math.hypot(shotX - p.x, shotY - p.y);
