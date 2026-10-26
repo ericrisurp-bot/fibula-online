@@ -1534,15 +1534,23 @@ export class GameEngine {
       const staffCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68;
       const staffTipX = staffTip.x * 50 / staffTip.visualLength;
       const staffTipY = staffTip.y * 50 / staffTip.visualLength;
+      const isBowArrow = this.state.classId === 'arqueiro' && weapon.kind === 'arrow';
+      // O centro da corda do arco fica à frente do personagem, conforme o desenho normalizado de drawBow.
+      const bowStringCenter = 1.092 * 50 / 3.4;
+      const bowCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68 + bowStringCenter;
       const shotX = isStaffOrb
         ? p.x + (staffCenterDistance + staffTipX) * Math.cos(aimAngle) - staffTipY * Math.sin(aimAngle)
-        : p.x;
+        : isBowArrow
+          ? p.x + bowCenterDistance * Math.cos(aimAngle)
+          : p.x;
       const shotY = isStaffOrb
         ? p.y + (staffCenterDistance + staffTipX) * Math.sin(aimAngle) + staffTipY * Math.cos(aimAngle)
-        : p.y;
+        : isBowArrow
+          ? p.y + bowCenterDistance * Math.sin(aimAngle)
+          : p.y;
       // Compensa o deslocamento inicial para preservar o alcance efetivo anterior.
       const originDistance = Math.hypot(shotX - p.x, shotY - p.y);
-      const remainingRange = isStaffOrb ? Math.max(0, weapon.range - originDistance) : weapon.range;
+      const remainingRange = isStaffOrb || isBowArrow ? Math.max(0, weapon.range - originDistance) : weapon.range;
 
       this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
