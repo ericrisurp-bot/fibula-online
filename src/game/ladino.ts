@@ -129,13 +129,13 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   ctx.translate(29, 50 + leftHandShift * 0.4);
   ctx.rotate(leftArmAngle);
   poly(ctx, [[-5,-8],[5,-10],[5,22],[-3,27],[-8,14]], DARK);
-  poly(ctx, [[-8,20],[2,22],[1,32],[-7,32]], DARK2);
+  poly(ctx, [[-8,20],[2,22],[2,39],[-7,39]], '#292a32');
   ctx.restore();
   ctx.save();
   ctx.translate(71, 50 + rightHandShift * 0.4);
   ctx.rotate(rightArmAngle);
   poly(ctx, [[-5,-10],[5,-8],[8,14],[3,27],[-5,22]], DARK);
-  poly(ctx, [[-2,22],[8,20],[7,32],[-1,32]], DARK2);
+  poly(ctx, [[-2,22],[8,20],[8,39],[-1,39]], '#292a32');
   ctx.restore();
 
   poly(ctx, [[30,56],[40,50],[70,76],[62,82]], LEATH);
@@ -178,7 +178,7 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
 
     // Uma única mão externa; o espelhamento global posiciona-a no lado correto.
     poly(ctx, [[56,55],[63,58],[64,77],[59,87],[53,83]], DARK);
-    poly(ctx, [[55,80],[61,81],[60,90],[54,89]], DARK2);
+    poly(ctx, [[55,80],[62,81],[62,96],[54,95]], '#292a32');
   }
 
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
