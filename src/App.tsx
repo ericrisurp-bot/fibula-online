@@ -545,7 +545,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.length > 0, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1441,25 +1441,30 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
-  if (weapon === 'espada') {
-    const duration = 0.24;
-    const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
-    drawFloatingWeapon(ctx, 'espada', r, {
-      time, facingX, moving, hasEnemies, hasTarget, aimAngle,
-      carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle,
-    });
-    if (swordSwingTimer > 0 && isFloatingWeaponVisible()) {
-      ctx.save();
-      ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
-      ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - Math.PI * 0.31, swordSwingAngle + Math.PI * 0.31); ctx.stroke();
-      ctx.restore();
+  const gathering = treeChopTimer > 0 || rockMineTimer > 0 || cottonHarvestTimer > 0;
+  if (hasEnemies || !gathering) {
+    if (weapon === 'espada') {
+      const duration = 0.24;
+      const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
+      drawFloatingWeapon(ctx, 'espada', r, {
+        time, facingX, moving, hasEnemies, hasTarget, aimAngle,
+        carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle,
+      });
+      if (swordSwingTimer > 0 && isFloatingWeaponVisible()) {
+        ctx.save();
+        ctx.globalAlpha = Math.sin(progress * Math.PI) * 0.9;
+        ctx.strokeStyle = '#d8f5ff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, CONFIG.weapons.espada.range, swordSwingAngle - Math.PI * 0.31, swordSwingAngle + Math.PI * 0.31); ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
     }
-  } else {
-    drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
   }
-  drawFloatingTool(ctx, 'machadinho', r, { time, angle: treeChopAngle, timer: treeChopTimer, duration: 0.2, reach: gatherReach });
-  drawFloatingTool(ctx, 'picareta', r, { time, angle: rockMineAngle, timer: rockMineTimer, duration: 0.22, reach: gatherReach });
-  drawFloatingTool(ctx, 'foice', r, { time, angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: 0.24, reach: gatherReach });
+  if (!hasEnemies) {
+    drawFloatingTool(ctx, 'machadinho', r, { time, angle: treeChopAngle, timer: treeChopTimer, duration: 0.2, reach: gatherReach });
+    drawFloatingTool(ctx, 'picareta', r, { time, angle: rockMineAngle, timer: rockMineTimer, duration: 0.22, reach: gatherReach });
+    drawFloatingTool(ctx, 'foice', r, { time, angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: 0.24, reach: gatherReach });
+  }
   ctx.restore();
 }
