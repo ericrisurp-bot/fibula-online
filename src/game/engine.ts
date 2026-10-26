@@ -1471,9 +1471,21 @@ export class GameEngine {
       .filter(v => v.d <= weapon.range)
       .sort((a, b) => a.d - b.d);
     const target = targets[0];
-    if (!target || (isStaffClass && target.d <= minStaffDistance)) return;
+    if (!target) return;
+    const isCloseStaffAttack = isStaffClass && target.d <= minStaffDistance;
     this.attackTimer = 0;
     this.combatLockTimer = 0.24;
+    if (isCloseStaffAttack) {
+      this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      this.state.swordSwingTimer = 0.24;
+      this.onSound?.({ type: 'attack', classId: this.state.classId });
+      const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level)
+        * 0.4 * (1 + this.getDayNightState().vulnerability);
+      target.e.hp -= damage;
+      this.addFloatingDamage(target.e.x, target.e.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
+      if (target.e.hp <= 0) this.killEnemy(target.e.id, false);
+      return;
+    }
     if (weapon.kind === 'melee') {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
@@ -1729,11 +1741,11 @@ export class GameEngine {
     }
   }
 
-  private killEnemy(id: number) {
+  private killEnemy(id: number, countForDruidHealingOrb = true) {
     const e = this.state.enemies.find(v => v.id === id); if (!e) return;
     this.state.dyingEnemies.push({ ...e, deathAge: 0 });
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
-    if (this.state.classId === 'druida' && this.state.healingOrbs.length < CONFIG.druidHeal.maxOrbs) {
+    if (countForDruidHealingOrb && this.state.classId === 'druida' && this.state.healingOrbs.length < CONFIG.druidHeal.maxOrbs) {
       this.druidKillsSinceOrb += 1;
       if (this.druidKillsSinceOrb >= CONFIG.druidHeal.killsPerOrb) {
         this.druidKillsSinceOrb = 0;
