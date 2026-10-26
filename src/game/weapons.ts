@@ -245,7 +245,7 @@ export function drawFloatingWeapon(
 
   const bob = Math.sin(opts.time * 2.2) * 1.6;
   const restX = hover.sideT * r * 1.9;
-  const restY = -r * 1.3 + bob;
+  const restY = -(weapon === 'arco' ? r * 1.3 : r * 0.85) + bob;
   const restLean = Math.sin(opts.time * 1.7) * 0.04
     - hover.sideT * 0.10 * hover.moveT;
   const restAngle = (weapon === 'arco' ? 0 : -Math.PI / 2) + restLean;
