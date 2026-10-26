@@ -4,7 +4,7 @@ const SWORD_BLADE_LENGTH = 66;
 
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
-  player: { radius: 18, auraRadius: AURA_RADIUS, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 44 },
+  player: { radius: 18, auraRadius: AURA_RADIUS, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 25 },
   enemy: {
     radius: 16,
     speed: 138,
@@ -26,7 +26,7 @@ export const CONFIG = {
   trees: { max: 70, startCount: 15, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 600, attractionRadius: 300, attractionMaxNearby: 20, attractionMaxChance: 0.8, rareHouseSpawnChance: 0.009, rareHouseRadius: 220, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   rocks: { max: 30, startCount: 12, spawnBase: 35, spawnReductionPerRock: 0.4, spawnMin: 22, noSpawnRadius: 600, mineRange: 50, dropChance: 0.07, attractionRadius: 300, attractionMaxNearby: 15, attractionMaxChance: 0.8, northEastSpawnChance: 0.7, northEastMinX: 0.55, northEastMaxY: 0.45, hitsToBreak: { small: 7, medium: 12, large: 22 }, sizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   cotton: { max: 20, startCount: 20, minSpacing: 600, dropChance: 0.07, plantPlayerClearRadius: 220, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
-  gathering: { baseInterval: 0.9, playerVisualRadius: 24, extraRange: 20 },
+  gathering: { baseInterval: 0.9, playerVisualRadius: 24, extraRange: 1 },
   tecelaria: { buildCostBronze: 2, buildCostWood: 50, buildCostCotton: 10, buildCostStone: 10, interactRadius: 85, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03 },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 60, interactRadius: 80, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
