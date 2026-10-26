@@ -1467,71 +1467,66 @@ function drawPickaxe(
   ctx.fillStyle = '#f9c878';
   ctx.fill();
 
-  // Cabeça metálica curva em “)”, com ponta afilada em cada extremidade.
+  // Cabeça de picareta aberta: duas pontas nítidas, sem formar um aro fechado.
   ctx.beginPath();
-  ctx.moveTo(-0.29, -0.68);
-  ctx.quadraticCurveTo(0.18, -0.81, 0.48, -0.57);
-  ctx.quadraticCurveTo(0.66, -0.43, 0.50, -0.25);
-  ctx.quadraticCurveTo(0.22, -0.06, -0.30, -0.23);
-  ctx.lineTo(-0.18, -0.34);
-  ctx.quadraticCurveTo(0.17, -0.23, 0.37, -0.36);
-  ctx.quadraticCurveTo(0.49, -0.44, 0.36, -0.53);
-  ctx.quadraticCurveTo(0.17, -0.65, -0.22, -0.57);
+  ctx.moveTo(-0.48, -0.56);
+  ctx.quadraticCurveTo(-0.24, -0.62, -0.04, -0.49);
+  ctx.quadraticCurveTo(0.22, -0.37, 0.61, -0.43);
+  ctx.lineTo(0.48, -0.31);
+  ctx.quadraticCurveTo(0.20, -0.30, -0.08, -0.41);
+  ctx.quadraticCurveTo(-0.27, -0.33, -0.43, -0.28);
+  ctx.lineTo(-0.48, -0.56);
   ctx.closePath();
   ctx.fillStyle = '#444448';
   ctx.fill();
 
-  // Face principal sem contorno pesado: o contraste das cores define o volume.
+  // Face metálica principal; as pontas permanecem finas e bem separadas.
   ctx.beginPath();
-  ctx.moveTo(-0.26, -0.66);
-  ctx.quadraticCurveTo(0.17, -0.75, 0.44, -0.55);
-  ctx.quadraticCurveTo(0.58, -0.43, 0.45, -0.28);
-  ctx.quadraticCurveTo(0.20, -0.11, -0.25, -0.25);
-  ctx.lineTo(-0.14, -0.35);
-  ctx.quadraticCurveTo(0.16, -0.26, 0.35, -0.37);
-  ctx.quadraticCurveTo(0.45, -0.44, 0.34, -0.52);
-  ctx.quadraticCurveTo(0.16, -0.62, -0.19, -0.56);
+  ctx.moveTo(-0.44, -0.53);
+  ctx.quadraticCurveTo(-0.23, -0.58, -0.04, -0.47);
+  ctx.quadraticCurveTo(0.22, -0.35, 0.57, -0.41);
+  ctx.lineTo(0.46, -0.33);
+  ctx.quadraticCurveTo(0.19, -0.32, -0.08, -0.43);
+  ctx.quadraticCurveTo(-0.25, -0.36, -0.40, -0.31);
   ctx.closePath();
   ctx.fillStyle = '#5a5a5f';
   ctx.fill();
 
-  // Ponta superior esquerda iluminada pela luz suave.
+  // Reflexo suave na parte superior esquerda.
   ctx.beginPath();
-  ctx.moveTo(-0.29, -0.68);
-  ctx.quadraticCurveTo(-0.20, -0.66, -0.13, -0.60);
-  ctx.lineTo(-0.19, -0.56);
-  ctx.quadraticCurveTo(-0.25, -0.62, -0.29, -0.68);
-  ctx.closePath();
-  ctx.fillStyle = '#e0e0e2';
-  ctx.fill();
-
-  // Face clara no arco superior; a parte inferior permanece sombreada.
-  ctx.beginPath();
-  ctx.moveTo(-0.23, -0.65);
-  ctx.quadraticCurveTo(0.15, -0.73, 0.42, -0.54);
-  ctx.quadraticCurveTo(0.20, -0.62, 0.02, -0.60);
-  ctx.quadraticCurveTo(-0.12, -0.60, -0.23, -0.56);
+  ctx.moveTo(-0.44, -0.53);
+  ctx.quadraticCurveTo(-0.23, -0.58, -0.04, -0.47);
+  ctx.quadraticCurveTo(0.12, -0.40, 0.29, -0.39);
+  ctx.quadraticCurveTo(0.04, -0.42, -0.08, -0.47);
+  ctx.quadraticCurveTo(-0.25, -0.54, -0.44, -0.53);
   ctx.closePath();
   ctx.fillStyle = '#707075';
   ctx.fill();
 
-  // Ponta oposta sombreada para separar os dois planos de metal.
+  // Fio claro na ponta direita e sombra discreta na ponta oposta.
   ctx.beginPath();
-  ctx.moveTo(-0.30, -0.23);
-  ctx.quadraticCurveTo(-0.22, -0.25, -0.14, -0.31);
-  ctx.lineTo(-0.17, -0.35);
-  ctx.quadraticCurveTo(-0.24, -0.28, -0.30, -0.23);
+  ctx.moveTo(0.61, -0.43);
+  ctx.lineTo(0.48, -0.31);
+  ctx.lineTo(0.52, -0.40);
+  ctx.closePath();
+  ctx.fillStyle = '#e0e0e2';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(-0.48, -0.56);
+  ctx.lineTo(-0.43, -0.28);
+  ctx.lineTo(-0.40, -0.31);
   ctx.closePath();
   ctx.fillStyle = '#444448';
   ctx.fill();
 
-  // Encaixe discreto entre a cabeça e o cabo.
+  // Encaixe compacto da cabeça no cabo, sem aro metálico grande.
   ctx.beginPath();
-  ctx.ellipse(0.02, -0.44, 0.12, 0.065, -0.72, 0, Math.PI * 2);
+  ctx.ellipse(0.03, -0.43, 0.075, 0.045, -0.72, 0, Math.PI * 2);
   ctx.fillStyle = '#444448';
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(0.02, -0.44, 0.065, 0.032, -0.72, 0, Math.PI * 2);
+  ctx.ellipse(0.03, -0.43, 0.04, 0.022, -0.72, 0, Math.PI * 2);
   ctx.fillStyle = '#d48f3a';
   ctx.fill();
 
