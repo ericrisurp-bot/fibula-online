@@ -143,7 +143,9 @@ export function drawFloatingTool(
   const alpha = Math.max(0, Math.min(fadeIn, fadeOut));
   if (alpha <= 0) return;
 
-  const headLength = tool === 'machadinho' ? r * 1.92 : tool === 'picareta' ? r * 2.05 : r * 2.27;
+  const tipLocalX = r * (tool === 'machadinho' ? 1.92 : tool === 'picareta' ? 2.05 : 2.27);
+  const tipLocalY = r * (tool === 'machadinho' ? -0.34 : tool === 'picareta' ? -0.42 : -0.43);
+  const headLength = Math.hypot(tipLocalX, tipLocalY);
   const aura = CONFIG.player.toolAuraRadius;
   const swing = tool === 'foice'
     ? progress <= 0.6
@@ -153,8 +155,8 @@ export function drawFloatingTool(
       ? -1.1 + 1.25 * smooth(progress / 0.6)
       : 0.15 - 0.45 * smooth((progress - 0.6) / 0.4);
   const rotation = angle + swing;
-  const headDx = headLength * Math.cos(swing);
-  const headDy = headLength * Math.sin(swing);
+  const headDx = tipLocalX * Math.cos(swing) - tipLocalY * Math.sin(swing);
+  const headDy = tipLocalX * Math.sin(swing) + tipLocalY * Math.cos(swing);
   const startX = aura * Math.cos(angle);
   const startY = aura * Math.sin(angle);
   const targetX = reach >= 6 + headLength
