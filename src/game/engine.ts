@@ -5,7 +5,7 @@ import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
-const MATERIAL_ATTRACTION_RADIUS = 35;
+const MATERIAL_ATTRACTION_RADIUS = 80;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
