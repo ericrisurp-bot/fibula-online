@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino } from './game/ladino';
+import { drawWeapon } from './game/weapons';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
@@ -1438,9 +1439,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
     const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : aimAngle;
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(angle);
-    ctx.strokeStyle = '#dce8ed'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.25, -r * .08); ctx.stroke();
-    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(r * 1.18, -r * .12); ctx.lineTo(r * 2.05, -r * .38); ctx.stroke();
+    drawWeapon(ctx, 'espada', r);
     ctx.restore();
     if (swordSwingTimer > 0) {
       ctx.save();
@@ -1453,16 +1452,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   } else {
     // Cancela o espelhamento horizontal do personagem antes de aplicar o ângulo mundial da mira.
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(aimAngle);
-    const isDruidStaff = weapon === 'bastao';
-    ctx.strokeStyle = isDruidStaff ? '#8b623d' : weapon === 'cajado' ? '#c0a4ff' : '#e8c68e'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .68, r * .1); ctx.lineTo(r * 1.35, -r * .25); ctx.stroke();
-    if (weapon === 'cajado' || isDruidStaff) {
-      ctx.beginPath(); ctx.arc(r * 1.4, -r * .35, 5, 0, Math.PI * 2); ctx.fillStyle = isDruidStaff ? '#7ee66e' : '#bba0ff'; ctx.fill();
-      if (isDruidStaff) {
-        ctx.strokeStyle = '#4a9b48'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(r * 1.36, -r * .36); ctx.lineTo(r * 1.15, -r * .65); ctx.moveTo(r * 1.42, -r * .36); ctx.lineTo(r * 1.66, -r * .61); ctx.stroke();
-        ctx.fillStyle = '#a5f58d'; ctx.beginPath(); ctx.ellipse(r * 1.13, -r * .67, 3, 5, -.5, 0, Math.PI * 2); ctx.ellipse(r * 1.68, -r * .63, 3, 5, .5, 0, Math.PI * 2); ctx.fill();
-      }
-    } else { ctx.beginPath(); ctx.arc(r * 1.25, -r * .3, 7, -Math.PI / 2, Math.PI / 2); ctx.stroke(); }
+    drawWeapon(ctx, weapon, r);
     ctx.restore();
   }
   if (treeChopTimer > 0) {
