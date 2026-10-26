@@ -1195,3 +1195,34 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   }
 }
 
+
+
+/* Ajuste fino: aproximar os três cartões do ciclo no HUD touch, sem juntá-los. */
+@media (pointer: coarse) {
+  .hud-left-stack .hud-center-stack {
+    gap: 1px;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer {
+    padding: 2px 5px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats {
+    gap: 2px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip {
+    padding: 2px 3px;
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+  .hud-left-stack .hud-center-stack {
+    gap: 0;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer {
+    padding: 1px 4px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats {
+    gap: 1px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip {
+    padding: 1px 3px;
+  }
+}
