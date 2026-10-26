@@ -96,40 +96,39 @@ function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx,r,[[3.24,-1.06],[3.31,-1.16],[3.39,-1.07],[3.34,-0.98]],'#e1c7ff','#55327b',0.9);
 }
 function drawBow(ctx: CanvasRenderingContext2D, r: number) {
-  // Arco segmentado em facetas, com corda reta e fina.
-  const cx = r * 1.18;
-  const cy = -r * 0.08;
-  const rx = r * 0.37;
-  const ry = r * 0.37;
-  const outer: Point[] = [
-    [cx, cy - ry],
-    [cx + rx * 0.58, cy - ry * 0.78],
-    [cx + rx, cy - ry * 0.28],
-    [cx + rx, cy + ry * 0.28],
-    [cx + rx * 0.58, cy + ry * 0.78],
-    [cx, cy + ry],
-  ];
-  const inner: Point[] = [
-    [cx + r * 0.07, cy - ry * 0.78],
-    [cx + rx * 0.39, cy - ry * 0.62],
-    [cx + rx * 0.68, cy - ry * 0.22],
-    [cx + rx * 0.68, cy + ry * 0.22],
-    [cx + rx * 0.39, cy + ry * 0.62],
-    [cx + r * 0.07, cy + ry * 0.78],
-  ];
-  for (let i = 0; i < outer.length - 1; i++) {
-    polygon(ctx, [outer[i], outer[i + 1], inner[i + 1], inner[i]], i < 2 ? '#e7c16a' : '#a97532', '#4d3927', 0.8);
-  }
-  ctx.strokeStyle = '#e9e2d1';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - ry);
-  ctx.lineTo(cx, cy + ry);
-  ctx.stroke();
-  // Pequeno encaixe junto à empunhadura.
-  polygon(ctx, [[r * 0.68, r * 0.13], [r * 0.79, r * 0.03], [r * 0.86, r * 0.12], [r * 0.75, r * 0.22]], '#79502d', '#3d3028', 0.7);
+  // Arco alto: oito facetas em cada braço, com corda e flecha apenas decorativa.
+  // Braço superior: borda exterior e interior em segmentos sucessivos.
+  facet(ctx,r,[[1.16,-1.7],[1.42,-1.55],[1.38,-1.38],[1.17,-1.49]],'#e7c66e','#624522',1.1);
+  facet(ctx,r,[[1.42,-1.55],[1.62,-1.28],[1.55,-1.16],[1.38,-1.38]],'#b98339','#624522',1.1);
+  facet(ctx,r,[[1.62,-1.28],[1.76,-0.96],[1.66,-0.88],[1.55,-1.16]],'#f0d47d','#624522',1.1);
+  facet(ctx,r,[[1.76,-0.96],[1.82,-0.63],[1.71,-0.59],[1.66,-0.88]],'#bc873e','#624522',1.1);
+  facet(ctx,r,[[1.82,-0.63],[1.8,-0.35],[1.69,-0.35],[1.71,-0.59]],'#e4bd60','#624522',1.1);
+  facet(ctx,r,[[1.8,-0.35],[1.7,-0.15],[1.6,-0.2],[1.69,-0.35]],'#b77c34','#624522',1.1);
+  facet(ctx,r,[[1.7,-0.15],[1.57,-0.02],[1.49,-0.11],[1.6,-0.2]],'#e9c96e','#624522',1.1);
+  facet(ctx,r,[[1.57,-0.02],[1.4,0.08],[1.36,-0.04],[1.49,-0.11]],'#b98339','#624522',1.1);
+  // Braço inferior, refletido com pequenas variações de faceta.
+  facet(ctx,r,[[1.4,0.08],[1.57,0.18],[1.49,0.27],[1.36,0.2]],'#e7c66e','#624522',1.1);
+  facet(ctx,r,[[1.57,0.18],[1.7,0.34],[1.6,0.42],[1.49,0.27]],'#b98339','#624522',1.1);
+  facet(ctx,r,[[1.7,0.34],[1.8,0.56],[1.69,0.62],[1.6,0.42]],'#f0d47d','#624522',1.1);
+  facet(ctx,r,[[1.8,0.56],[1.82,0.82],[1.71,0.85],[1.69,0.62]],'#bc873e','#624522',1.1);
+  facet(ctx,r,[[1.82,0.82],[1.76,1.08],[1.66,1.03],[1.71,0.85]],'#e4bd60','#624522',1.1);
+  facet(ctx,r,[[1.76,1.08],[1.62,1.37],[1.55,1.28],[1.66,1.03]],'#b77c34','#624522',1.1);
+  facet(ctx,r,[[1.62,1.37],[1.42,1.61],[1.38,1.48],[1.55,1.28]],'#e9c96e','#624522',1.1);
+  facet(ctx,r,[[1.42,1.61],[1.16,1.7],[1.17,1.52],[1.38,1.48]],'#b98339','#624522',1.1);
+  // Reforço central, empunhadura enrolada e acabamentos das pontas (nocks).
+  facet(ctx,r,[[1.16,-0.22],[1.31,-0.18],[1.32,0.2],[1.16,0.22]],'#79502f','#4b3024',1.1);
+  facet(ctx,r,[[1.16,-0.2],[1.25,-0.18],[1.26,0.19],[1.16,0.2]],'#c08a4a','');
+  facet(ctx,r,[[1.13,-0.14],[1.32,-0.1],[1.32,-0.03],[1.13,-0.07]],'#e7d5a0','#5d432a',0.9);
+  facet(ctx,r,[[1.13,0.04],[1.32,0.0],[1.32,0.07],[1.13,0.11]],'#e7d5a0','#5d432a',0.9);
+  facet(ctx,r,[[1.16,-1.7],[1.24,-1.61],[1.17,-1.49]],'#7b4c28','#4b3024',0.9);
+  facet(ctx,r,[[1.16,1.7],[1.24,1.61],[1.17,1.52]],'#7b4c28','#4b3024',0.9);
+  // Corda reta fina e flecha encaixada apenas como detalhe visual.
+  facet(ctx,r,[[1.16,-1.7],[1.185,-1.7],[1.185,1.7],[1.16,1.7]],'#f2eadb','',0.8);
+  facet(ctx,r,[[1.16,-0.03],[2.3,-0.03],[2.3,0.015],[1.16,0.015]],'#5b4b3c','');
+  facet(ctx,r,[[2.3,-0.075],[2.52,-0.008],[2.3,0.06]],'#d4dbe0','#58636a',0.9);
+  facet(ctx,r,[[1.32,-0.03],[1.52,-0.16],[1.48,-0.03]],'#d6e1e4','#4b5960',0.8);
+  facet(ctx,r,[[1.32,0.015],[1.52,0.14],[1.48,0.015]],'#9caeb5','#4b5960',0.8);
 }
-
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
   polygon(ctx, [[r * 0.66, r * 0.13], [r * 0.75, r * 0.02], [r * 1.43, -r * 0.42], [r * 1.48, -r * 0.3], [r * 0.82, r * 0.15]], '#68462e', '#332a25');
   polygon(ctx, [[r * 0.75, r * 0.02], [r * 1.43, -r * 0.42], [r * 1.39, -r * 0.32], [r * 0.82, r * 0.15]], '#a87545', '');
