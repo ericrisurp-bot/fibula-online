@@ -1461,7 +1461,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const progress = 1 - treeChopTimer / 0.2;
     const swing = (progress - 0.5) * (Math.PI / 2.25);
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
-    const axeScale = 50 / (1.43 * r);
+    const axeScale = 30 / (1.43 * r);
     ctx.translate(1.12 * r, -0.385 * r); ctx.scale(axeScale, axeScale); ctx.translate(-1.12 * r, 0.385 * r);
     const axeFacet = (points: readonly (readonly [number, number])[], fill: string, stroke = '#29221c', lineWidth = 0.045) => {
       ctx.beginPath();
@@ -1567,7 +1567,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
     const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
-    const pickaxeScale = 50 / (1.44 * r);
+    const pickaxeScale = 30 / (1.44 * r);
     ctx.translate(1.165 * r, -0.335 * r); ctx.scale(pickaxeScale, pickaxeScale); ctx.translate(-1.165 * r, 0.335 * r);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
@@ -1587,7 +1587,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     // Foice de mão: cabo curto e lâmina fina em curva para colher algodão.
     const progress = 1 - cottonHarvestTimer / 0.24;
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
-    const sickleScale = 50 / (1.29 * r);
+    const sickleScale = 30 / (1.29 * r);
     ctx.translate(1.12 * r, -0.3 * r); ctx.scale(sickleScale, sickleScale); ctx.translate(-1.12 * r, 0.3 * r);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
