@@ -78,10 +78,10 @@ function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
 function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   // Uma única curva contínua, convexa para +x, da ponta superior à inferior.
   const halfHeight = 1.7;
-  const centerX = 1.18;
+  const baseX = 0.62;
   const bulge = 0.56;
   const segments = 20; // dez segmentos em cada braço
-  const centerAt = (y: number) => centerX - bulge * (1 - (y / halfHeight) ** 2);
+  const centerAt = (y: number) => baseX + bulge * (1 - (y / halfHeight) ** 2);
   const widthAt = (y: number) => 0.045 + 0.105 * (1 - Math.abs(y) / halfHeight);
 
   // Cada trecho forma duas facetas contíguas; a faixa afina progressivamente nas pontas.
