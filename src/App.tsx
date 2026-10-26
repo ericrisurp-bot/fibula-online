@@ -294,7 +294,9 @@ export default function App() {
           const orbitRadius = CONFIG.player.radius * (30 / 18);
           const ox = s.player.x + Math.cos(angle) * orbitRadius;
           const oy = s.player.y + Math.sin(angle) * orbitRadius;
-          worldDrawables.push({ depth: oy + 5, draw: () => {
+          const playerDepth = s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1;
+          const orbDepth = Math.sin(angle) >= 0 ? playerDepth + 1 : s.player.y - CONFIG.player.radius;
+          worldDrawables.push({ depth: orbDepth, draw: () => {
             ctx.save(); ctx.shadowColor = '#8dff9c'; ctx.shadowBlur = 12;
             ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI * 2); ctx.fillStyle = '#9bff9b'; ctx.fill();
             ctx.strokeStyle = '#e3ffe0'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
