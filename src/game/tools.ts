@@ -147,7 +147,7 @@ export function drawFloatingTool(
 
   // Keep the pivot near the hand for the entire swing. The tool head itself
   // travels through the arc: from 12 o'clock down to 3 or 9 o'clock.
-  const handleX = side * r * 1.5;
+  const handleX = side * r * (tool === 'machadinho' ? 1.8 : 1.5);
   const handleY = -r * 0.12;
   const fadeOut = Math.min(1, (1 - progress) / 0.08);
 
