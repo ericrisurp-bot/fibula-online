@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino } from './game/ladino';
-import { drawWeapon } from './game/weapons';
+import { drawFloatingWeapon } from './game/weapons';
 import Controls from './ui/Controls';
 import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
@@ -538,7 +538,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
+      worldDrawables.push({ depth: s.player.y + CONFIG.player.radius * 0.8, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1415,7 +1415,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1437,10 +1437,10 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (weapon === 'espada') {
     const duration = 0.24;
     const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
-    const angle = swordSwingTimer > 0 ? swordSwingAngle + (progress - 0.5) * 1.55 : aimAngle;
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(angle);
-    drawWeapon(ctx, 'espada', r);
-    ctx.restore();
+    drawFloatingWeapon(ctx, 'espada', r, {
+      time, facingX, facingY, moving, hasTarget, aimAngle,
+      swingTimer: swordSwingTimer, swingAngle: swordSwingAngle,
+    });
     if (swordSwingTimer > 0) {
       ctx.save();
       ctx.scale(facingScaleX, 1);
@@ -1450,10 +1450,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
       ctx.restore();
     }
   } else {
-    // Cancela o espelhamento horizontal do personagem antes de aplicar o ângulo mundial da mira.
-    ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(aimAngle);
-    drawWeapon(ctx, weapon, r);
-    ctx.restore();
+    drawFloatingWeapon(ctx, weapon, r, { time, facingX, facingY, moving, hasTarget, aimAngle });
   }
   if (treeChopTimer > 0) {
     const progress = 1 - treeChopTimer / 0.2;
