@@ -17,7 +17,6 @@ const PALETTES: Record<ClassId, Palette> = {
 };
 
 const OUT = '#15151c';
-const DARK = '#23232b';
 const DARK2 = '#32323d';
 const LEATH = '#6b4a2f';
 const LEATH2 = '#8a6340';
@@ -73,10 +72,6 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
   const liftR = walking ? Math.max(0, sR) * 4.5 * k : 0;
   const bob = walking ? -Math.abs(Math.sin(phase)) * 2.4 * (carry ? 1.4 : 1) : -breath * 0.9;
   const sway = walking ? Math.sin(phase) * 2.2 : breath * 0.5;
-  const leftArmAngle = walking ? (carry ? -0.30 : -sL * 0.22) : breath * 0.02;
-  const rightArmAngle = walking ? (carry ? 0.30 : -sR * 0.22) : -breath * 0.02;
-  const leftHandShift = walking ? (carry ? -3 : -sL * 5) : breath * 0.7;
-  const rightHandShift = walking ? (carry ? -3 : -sR * 5) : breath * 0.7;
 
   ctx.save();
   const scale = 4.5 * r / 135; // Ladino 1,5x maior; preserva a proporção interna.
