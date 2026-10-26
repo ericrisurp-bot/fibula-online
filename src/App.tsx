@@ -1570,17 +1570,113 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const pickaxeScale = 30 / (1.44 * r);
     ctx.translate(1.165 * r, -0.335 * r); ctx.scale(pickaxeScale, pickaxeScale); ctx.translate(-1.165 * r, 0.335 * r);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
-    // Cabeça metálica de picareta: ponta estreita de um lado e lâmina oposta.
-    ctx.fillStyle = '#aebdc4'; ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 1.4;
+
+    // Cabo de madeira com silhueta definida, faces de luz/sombra e veio discreto.
     ctx.beginPath();
-    ctx.moveTo(r * 1.02, -r * 0.58); ctx.lineTo(r * 1.28, -r * 0.72);
-    ctx.lineTo(r * 1.43, -r * 0.58); ctx.lineTo(r * 1.78, -r * 0.7);
-    ctx.lineTo(r * 1.63, -r * 0.48); ctx.lineTo(r * 1.43, -r * 0.47);
-    ctx.lineTo(r * 1.2, -r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#e0e7ea'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
+    ctx.moveTo(0.53 * r, 0.015 * r);
+    ctx.lineTo(0.60 * r, -0.075 * r);
+    ctx.lineTo(1.49 * r, -0.405 * r);
+    ctx.lineTo(1.55 * r, -0.30 * r);
+    ctx.lineTo(0.64 * r, 0.055 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#302016'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0.56 * r, 0.005 * r);
+    ctx.lineTo(0.615 * r, -0.055 * r);
+    ctx.lineTo(1.48 * r, -0.375 * r);
+    ctx.lineTo(1.50 * r, -0.315 * r);
+    ctx.lineTo(0.63 * r, 0.035 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#805333'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0.66 * r, -0.005 * r);
+    ctx.lineTo(1.43 * r, -0.325 * r);
+    ctx.lineTo(1.47 * r, -0.315 * r);
+    ctx.lineTo(0.68 * r, 0.018 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#bd8953'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0.78 * r, 0.005 * r);
+    ctx.lineTo(1.27 * r, -0.205 * r);
+    ctx.strokeStyle = '#d3a16b'; ctx.lineWidth = Math.max(0.6, r * 0.018); ctx.stroke();
+
+    // Cabeça clássica de picareta: ponta de perfuração de um lado e talhadeira larga do outro.
+    ctx.beginPath();
+    ctx.moveTo(1.015 * r, -0.555 * r);
+    ctx.quadraticCurveTo(1.08 * r, -0.625 * r, 1.205 * r, -0.655 * r);
+    ctx.lineTo(1.39 * r, -0.625 * r);
+    ctx.quadraticCurveTo(1.47 * r, -0.61 * r, 1.52 * r, -0.555 * r);
+    ctx.lineTo(1.79 * r, -0.705 * r);
+    ctx.quadraticCurveTo(1.835 * r, -0.725 * r, 1.815 * r, -0.675 * r);
+    ctx.lineTo(1.655 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.61 * r, -0.425 * r, 1.53 * r, -0.43 * r);
+    ctx.lineTo(1.385 * r, -0.455 * r);
+    ctx.lineTo(1.19 * r, -0.285 * r);
+    ctx.quadraticCurveTo(1.145 * r, -0.245 * r, 1.105 * r, -0.28 * r);
+    ctx.lineTo(1.16 * r, -0.435 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#344047'; ctx.fill();
+    ctx.strokeStyle = '#20292e'; ctx.lineWidth = Math.max(0.8, r * 0.035); ctx.stroke();
+
+    // Face principal de aço, com planos longos que seguem o formato da ferramenta.
+    ctx.beginPath();
+    ctx.moveTo(1.045 * r, -0.55 * r);
+    ctx.quadraticCurveTo(1.105 * r, -0.605 * r, 1.21 * r, -0.625 * r);
+    ctx.lineTo(1.385 * r, -0.595 * r);
+    ctx.quadraticCurveTo(1.445 * r, -0.585 * r, 1.49 * r, -0.545 * r);
+    ctx.lineTo(1.635 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.595 * r, -0.455 * r, 1.53 * r, -0.46 * r);
+    ctx.lineTo(1.38 * r, -0.485 * r);
+    ctx.lineTo(1.205 * r, -0.315 * r);
+    ctx.lineTo(1.17 * r, -0.34 * r);
+    ctx.lineTo(1.225 * r, -0.47 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#a9b8bf'; ctx.fill();
+    ctx.strokeStyle = '#586970'; ctx.lineWidth = Math.max(0.6, r * 0.018); ctx.stroke();
+
+    // Reflexo na crista superior e sombra fria na parte inferior da cabeça.
+    ctx.beginPath();
+    ctx.moveTo(1.055 * r, -0.545 * r);
+    ctx.quadraticCurveTo(1.12 * r, -0.595 * r, 1.215 * r, -0.615 * r);
+    ctx.lineTo(1.38 * r, -0.585 * r);
+    ctx.lineTo(1.29 * r, -0.55 * r);
+    ctx.lineTo(1.16 * r, -0.515 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#dce5e9'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(1.29 * r, -0.55 * r);
+    ctx.lineTo(1.38 * r, -0.585 * r);
+    ctx.lineTo(1.49 * r, -0.545 * r);
+    ctx.lineTo(1.635 * r, -0.475 * r);
+    ctx.quadraticCurveTo(1.595 * r, -0.455 * r, 1.53 * r, -0.46 * r);
+    ctx.lineTo(1.38 * r, -0.485 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#71858e'; ctx.fill();
+
+    // Gume polido da ponta e da talhadeira, sem serrilhado.
+    ctx.beginPath();
+    ctx.moveTo(1.79 * r, -0.705 * r);
+    ctx.quadraticCurveTo(1.835 * r, -0.725 * r, 1.815 * r, -0.675 * r);
+    ctx.lineTo(1.655 * r, -0.475 * r);
+    ctx.lineTo(1.69 * r, -0.54 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#e3ecef'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(1.17 * r, -0.34 * r);
+    ctx.lineTo(1.225 * r, -0.47 * r);
+    ctx.lineTo(1.205 * r, -0.315 * r);
+    ctx.quadraticCurveTo(1.145 * r, -0.245 * r, 1.105 * r, -0.28 * r);
+    ctx.closePath();
+    ctx.fillStyle = '#d7e1e5'; ctx.fill();
+
+    // Olho reforçado e anel de encaixe prendem visualmente a cabeça ao cabo.
+    ctx.beginPath();
+    ctx.ellipse(1.285 * r, -0.49 * r, 0.105 * r, 0.052 * r, -0.38, 0, Math.PI * 2);
+    ctx.fillStyle = '#29343a'; ctx.fill();
+    ctx.strokeStyle = '#d2dce0'; ctx.lineWidth = Math.max(0.7, r * 0.025); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(1.285 * r, -0.49 * r, 0.055 * r, 0.026 * r, -0.38, 0, Math.PI * 2);
+    ctx.fillStyle = '#805333'; ctx.fill();
     ctx.restore();
   }
   if (cottonHarvestTimer > 0) {
