@@ -379,6 +379,15 @@ export function drawFloatingWeapon(
 }
 
 export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: number): void {
+  // Normaliza o maior eixo visual de cada arma para cerca de 50 unidades.
+  const lengthByWeapon: Record<WeaponId, number> = {
+    espada: 3.14,
+    cajado: 3.07,
+    arco: 3.4,
+    bastao: 2.57,
+  };
+  ctx.save();
+  ctx.scale(50 / (lengthByWeapon[weapon] * r), 50 / (lengthByWeapon[weapon] * r));
   switch (weapon) {
     case 'espada':
       drawSword(ctx, r);
@@ -393,4 +402,5 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
       drawDruidStaff(ctx, r);
       break;
   }
+  ctx.restore();
 }
