@@ -1110,3 +1110,88 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   }
 }
 
+/* Correção do HUD touch: três cartões separados, sem um modal envolvendo todo o ciclo. */
+@media (pointer: coarse) {
+  .hud-left-stack .hud-center-stack {
+    width: max-content;
+    min-width: 0;
+    padding: 0;
+    gap: 3px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer {
+    align-items: center;
+    padding: 3px 7px;
+    border: 1px solid rgba(235,235,235,.24);
+    border-radius: 7px;
+    background: rgba(34,35,34,.78);
+    box-shadow: 0 2px 8px rgba(0,0,0,.16);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer span {
+    font-size: 7px;
+    line-height: 1;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer strong {
+    font-size: 13px;
+    line-height: 1.05;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats {
+    gap: 4px;
+    width: max-content;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip {
+    padding: 3px 5px;
+    border: 1px solid rgba(235,235,235,.2);
+    border-radius: 6px;
+    background: rgba(34,35,34,.72);
+    box-shadow: 0 1px 6px rgba(0,0,0,.14);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip span {
+    font-size: 6px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip strong {
+    font-size: 9px;
+  }
+}
+
+/* Em celular deitado, reduzir os três cartões e preservar a composição:
+   (Dia/Noite), DIA, depois (N dias) (N mortos). */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+  .hud-left-stack .hud-center-stack {
+    gap: 2px;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer {
+    padding: 2px 5px;
+    border-radius: 5px;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer span {
+    font-size: 6px;
+  }
+  .hud-left-stack .hud-center-stack > .hud-chip.timer strong {
+    font-size: 11px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats {
+    gap: 3px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip {
+    gap: 3px;
+    padding: 2px 4px;
+    border-radius: 5px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip span {
+    font-size: 5px;
+  }
+  .hud-left-stack .hud-center-stack .hud-substats .hud-chip strong {
+    font-size: 8px;
+  }
+}
+
