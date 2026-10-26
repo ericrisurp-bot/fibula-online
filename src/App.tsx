@@ -1461,48 +1461,99 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const progress = 1 - treeChopTimer / 0.2;
     const swing = (progress - 0.5) * (Math.PI / 2.25);
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(treeChopAngle * facingScaleX + swing);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.45, -r * 0.3); ctx.stroke();
-    // Cabeça curta e larga, com lâmina em cunha: machadinho para madeira.
-    ctx.fillStyle = '#c8d4d9'; ctx.strokeStyle = '#53636b'; ctx.lineWidth = 1.4;
+    ctx.lineJoin = 'round';
+    // Machado de madeira low-poly: cabo facetado e cabeça larga, com cerca de 2/3 do comprimento da espada.
     ctx.beginPath();
-    ctx.moveTo(r * 1.16, -r * 0.35); ctx.lineTo(r * 1.2, -r * 0.72);
-    ctx.quadraticCurveTo(r * 1.48, -r * 0.82, r * 1.68, -r * 0.61);
-    ctx.lineTo(r * 1.61, -r * 0.28); ctx.lineTo(r * 1.34, -r * 0.16);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.moveTo(r * 0.48, r * 0.14); ctx.lineTo(r * 2.42, -r * 0.43);
+    ctx.lineTo(r * 2.55, -r * 0.20); ctx.lineTo(r * 0.62, r * 0.27);
+    ctx.closePath(); ctx.fillStyle = '#684329'; ctx.fill(); ctx.strokeStyle = '#30251f'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 0.55, r * 0.15); ctx.lineTo(r * 2.43, -r * 0.40);
+    ctx.lineTo(r * 2.47, -r * 0.31); ctx.lineTo(r * 0.61, r * 0.21);
+    ctx.closePath(); ctx.fillStyle = '#b27b49'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.08, -r * 0.36); ctx.lineTo(r * 2.24, -r * 0.69);
+    ctx.lineTo(r * 2.58, -r * 0.91); ctx.lineTo(r * 2.94, -r * 0.83);
+    ctx.lineTo(r * 2.87, -r * 0.55); ctx.lineTo(r * 2.58, -r * 0.34);
+    ctx.lineTo(r * 2.35, -r * 0.28); ctx.closePath();
+    ctx.fillStyle = '#8799a2'; ctx.fill(); ctx.strokeStyle = '#34434b'; ctx.lineWidth = 1.3; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.58, -r * 0.91); ctx.lineTo(r * 2.94, -r * 0.83);
+    ctx.lineTo(r * 2.87, -r * 0.55); ctx.lineTo(r * 2.69, -r * 0.62);
+    ctx.closePath(); ctx.fillStyle = '#dce6e9'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.24, -r * 0.69); ctx.lineTo(r * 2.58, -r * 0.91);
+    ctx.lineTo(r * 2.61, -r * 0.68); ctx.lineTo(r * 2.43, -r * 0.49);
+    ctx.closePath(); ctx.fillStyle = '#aebdc4'; ctx.fill();
     ctx.restore();
   }
   if (rockMineTimer > 0) {
-    // Golpe de picareta em arco descendente: de 12h para 3h (pedra à direita)
-    // ou de 12h para 9h (pedra à esquerda). Mantém a ferramenta original.
+    // Picareta low-poly: cabeça de duas pontas, planos metálicos e cabo alongado.
     const progress = 1 - rockMineTimer / 0.22;
     const targetAngle = Math.cos(rockMineAngle) >= 0 ? 0 : -Math.PI;
     const swingAngle = -Math.PI / 2 + (targetAngle + Math.PI / 2) * progress;
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(swingAngle);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(r * 0.55, r * 0.05); ctx.lineTo(r * 1.48, -r * 0.32); ctx.stroke();
-    // Cabeça metálica de picareta: ponta estreita de um lado e lâmina oposta.
-    ctx.fillStyle = '#aebdc4'; ctx.strokeStyle = '#4d5b62'; ctx.lineWidth = 1.4;
+    ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(r * 1.02, -r * 0.58); ctx.lineTo(r * 1.28, -r * 0.72);
-    ctx.lineTo(r * 1.43, -r * 0.58); ctx.lineTo(r * 1.78, -r * 0.7);
-    ctx.lineTo(r * 1.63, -r * 0.48); ctx.lineTo(r * 1.43, -r * 0.47);
-    ctx.lineTo(r * 1.2, -r * 0.28); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#e0e7ea'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.57); ctx.lineTo(r * 1.29, -r * 0.66); ctx.stroke();
+    ctx.moveTo(r * 0.48, r * 0.14); ctx.lineTo(r * 2.42, -r * 0.43);
+    ctx.lineTo(r * 2.55, -r * 0.20); ctx.lineTo(r * 0.62, r * 0.27);
+    ctx.closePath(); ctx.fillStyle = '#684329'; ctx.fill(); ctx.strokeStyle = '#30251f'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 0.55, r * 0.15); ctx.lineTo(r * 2.43, -r * 0.40);
+    ctx.lineTo(r * 2.47, -r * 0.31); ctx.lineTo(r * 0.61, r * 0.21);
+    ctx.closePath(); ctx.fillStyle = '#b27b49'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 1.96, -r * 0.69); ctx.lineTo(r * 2.23, -r * 0.82);
+    ctx.lineTo(r * 2.47, -r * 0.61); ctx.lineTo(r * 2.76, -r * 0.83);
+    ctx.lineTo(r * 3.02, -r * 0.80); ctx.lineTo(r * 2.88, -r * 0.57);
+    ctx.lineTo(r * 2.59, -r * 0.45); ctx.lineTo(r * 2.40, -r * 0.48);
+    ctx.lineTo(r * 2.22, -r * 0.30); ctx.lineTo(r * 1.99, -r * 0.36);
+    ctx.lineTo(r * 2.15, -r * 0.54); ctx.closePath();
+    ctx.fillStyle = '#8497a0'; ctx.fill(); ctx.strokeStyle = '#34434b'; ctx.lineWidth = 1.3; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 1.96, -r * 0.69); ctx.lineTo(r * 2.23, -r * 0.82);
+    ctx.lineTo(r * 2.18, -r * 0.59); ctx.lineTo(r * 2.15, -r * 0.54);
+    ctx.closePath(); ctx.fillStyle = '#dce6e9'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.76, -r * 0.83); ctx.lineTo(r * 3.02, -r * 0.80);
+    ctx.lineTo(r * 2.88, -r * 0.57); ctx.lineTo(r * 2.72, -r * 0.61);
+    ctx.closePath(); ctx.fillStyle = '#c5d2d8'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.23, -r * 0.82); ctx.lineTo(r * 2.47, -r * 0.61);
+    ctx.lineTo(r * 2.59, -r * 0.45); ctx.lineTo(r * 2.40, -r * 0.48);
+    ctx.lineTo(r * 2.18, -r * 0.59); ctx.closePath(); ctx.fillStyle = '#5b6d76'; ctx.fill();
     ctx.restore();
   }
   if (cottonHarvestTimer > 0) {
-    // Foice de mão: cabo curto e lâmina fina em curva para colher algodão.
+    // Foice de mão low-poly: lâmina curva feita com planos triangulares, sem curva rasterizada.
     const progress = 1 - cottonHarvestTimer / 0.24;
     ctx.save(); ctx.scale(facingScaleX, 1); ctx.rotate(cottonHarvestAngle + (progress - 0.5) * 0.45);
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#805333'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(r * 0.58, r * 0.05); ctx.lineTo(r * 1.15, -r * 0.18); ctx.stroke();
-    ctx.strokeStyle = '#d5dde0'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(r * 1.02, -r * 0.22); ctx.quadraticCurveTo(r * 1.5, -r * 0.65, r * 1.66, -r * 0.3); ctx.stroke();
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r * 0.50, r * 0.12); ctx.lineTo(r * 1.78, -r * 0.30);
+    ctx.lineTo(r * 2.43, -r * 0.52); ctx.lineTo(r * 2.55, -r * 0.29);
+    ctx.lineTo(r * 0.61, r * 0.25); ctx.closePath();
+    ctx.fillStyle = '#684329'; ctx.fill(); ctx.strokeStyle = '#30251f'; ctx.lineWidth = 1.1; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 0.56, r * 0.13); ctx.lineTo(r * 1.80, -r * 0.29);
+    ctx.lineTo(r * 2.44, -r * 0.48); ctx.lineTo(r * 2.47, -r * 0.39);
+    ctx.lineTo(r * 0.60, r * 0.20); ctx.closePath(); ctx.fillStyle = '#b27b49'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 1.93, -r * 0.39); ctx.lineTo(r * 2.15, -r * 0.76);
+    ctx.lineTo(r * 2.48, -r * 1.02); ctx.lineTo(r * 2.82, -r * 0.98);
+    ctx.lineTo(r * 2.97, -r * 0.76); ctx.lineTo(r * 2.84, -r * 0.58);
+    ctx.lineTo(r * 2.68, -r * 0.69); ctx.lineTo(r * 2.73, -r * 0.83);
+    ctx.lineTo(r * 2.51, -r * 0.83); ctx.lineTo(r * 2.32, -r * 0.62);
+    ctx.lineTo(r * 2.16, -r * 0.51); ctx.closePath();
+    ctx.fillStyle = '#8799a2'; ctx.fill(); ctx.strokeStyle = '#34434b'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.15, -r * 0.76); ctx.lineTo(r * 2.48, -r * 1.02);
+    ctx.lineTo(r * 2.82, -r * 0.98); ctx.lineTo(r * 2.63, -r * 0.84);
+    ctx.lineTo(r * 2.37, -r * 0.79); ctx.closePath(); ctx.fillStyle = '#e1e9eb'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(r * 2.82, -r * 0.98); ctx.lineTo(r * 2.97, -r * 0.76);
+    ctx.lineTo(r * 2.84, -r * 0.58); ctx.lineTo(r * 2.68, -r * 0.69);
+    ctx.closePath(); ctx.fillStyle = '#596d77'; ctx.fill();
     ctx.restore();
   }
   ctx.restore();
