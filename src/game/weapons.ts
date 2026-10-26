@@ -20,27 +20,69 @@ function facet(ctx: CanvasRenderingContext2D, r: number, points: readonly Point[
 }
 
 function drawSword(ctx: CanvasRenderingContext2D, r: number) {
-  // Empunhadura curta com faixas de couro, pomo facetado e guarda em cruz.
-  facet(ctx, r, [[0.62,0.12],[0.82,0.02],[0.91,0.11],[0.72,0.23]], '#35272a', '#201d23');
-  facet(ctx, r, [[0.65,0.12],[0.77,0.06],[0.81,0.1],[0.69,0.17]], '#b17a50', '');
-  facet(ctx, r, [[0.69,0.16],[0.82,0.1],[0.85,0.14],[0.73,0.21]], '#714631', '');
-  facet(ctx, r, [[0.73,0.2],[0.85,0.14],[0.88,0.18],[0.77,0.24]], '#c08b5b', '');
-  facet(ctx, r, [[0.82,0.02],[0.91,-0.04],[1.02,0.02],[1.03,0.12],[0.93,0.18],[0.85,0.11]], '#7e8990', '#263039');
-  facet(ctx, r, [[0.82,0.02],[0.91,-0.04],[0.95,0.05],[0.88,0.1]], '#d5e0e3', '');
-  facet(ctx, r, [[0.95,0.05],[1.02,0.02],[1.03,0.12],[0.93,0.18]], '#4b5963', '');
-  // Guarda larga, com extremidades ligeiramente recurvadas.
-  facet(ctx, r, [[0.94,-0.16],[1.05,-0.12],[1.12,-0.02],[1.08,0.04],[1.01,-0.03],[0.92,0.16],[0.85,0.12],[0.96,-0.07]], '#b48a4b', '#4b3828');
-  facet(ctx, r, [[0.94,-0.16],[1.05,-0.12],[1.02,-0.04],[0.96,-0.07]], '#f0d58b', '');
-  facet(ctx, r, [[1.08,0.04],[1.01,-0.03],[0.96,0.08],[0.92,0.16]], '#77512f', '');
-  // Lâmina comprida, larga na base, chanfrada na ponta e com fuller central.
-  facet(ctx, r, [[1.02,-0.08],[1.13,-0.13],[3.55,-0.035],[3.7,0.0],[3.55,0.045],[1.13,0.13],[1.02,0.06]], '#71838d', '#26333b', 1.2);
-  facet(ctx, r, [[1.04,-0.075],[1.13,-0.13],[3.7,0.0],[1.2,-0.015]], '#e4eef0', '');
-  facet(ctx, r, [[1.2,-0.015],[3.7,0.0],[3.55,0.045],[1.13,0.13]], '#52636e', '');
-  facet(ctx, r, [[1.2,-0.015],[3.52,0.0],[1.3,0.025],[1.12,0.02]], '#93a6ae', '');
-  facet(ctx, r, [[1.12,0.02],[3.52,0.0],[3.55,0.045],[1.13,0.13]], '#3e515b', '');
-  facet(ctx, r, [[1.17,0.045],[3.48,0.012],[3.43,0.023],[1.17,0.065]], '#b93643', '');
-  facet(ctx, r, [[1.1,-0.075],[1.18,-0.095],[3.48,-0.018],[3.53,-0.005],[1.2,-0.035]], '#f2f7f6', '');
-  facet(ctx, r, [[1.12,-0.025],[2.7,-0.018],[2.86,-0.004],[1.16,0.012]], '#c1d1d5', '');
+  // Todas as peças ficam alinhadas ao eixo +x; a geometria é simétrica em y.
+  // Pomo facetado dourado, de x=0.56 a 0.74.
+  facet(ctx, r, [[0.56,0],[0.59,-0.10],[0.66,-0.14],[0.72,-0.09],[0.74,0],[0.72,0.09],[0.66,0.14],[0.59,0.10]], '#9b7135', '#29252a', 1.2);
+  facet(ctx, r, [[0.59,-0.10],[0.66,-0.14],[0.68,0],[0.59,0]], '#f3d887', '');
+  facet(ctx, r, [[0.68,0],[0.72,-0.09],[0.74,0],[0.72,0.09],[0.68,0]], '#75502d', '');
+  facet(ctx, r, [[0.59,0],[0.68,0],[0.66,0.14],[0.59,0.10]], '#c69a4c', '');
+
+  // Empunhadura reta de couro, com quatro faixas alternadas e costura clara.
+  facet(ctx, r, [[0.74,-0.10],[1.06,-0.10],[1.06,0.10],[0.74,0.10]], '#4b3025', '#292329', 1.2);
+  facet(ctx, r, [[0.75,-0.085],[0.82,-0.085],[0.82,0.085],[0.75,0.085]], '#b77b45', '');
+  facet(ctx, r, [[0.82,-0.085],[0.89,-0.085],[0.89,0.085],[0.82,0.085]], '#65402d', '');
+  facet(ctx, r, [[0.89,-0.085],[0.96,-0.085],[0.96,0.085],[0.89,0.085]], '#c18b52', '');
+  facet(ctx, r, [[0.96,-0.085],[1.03,-0.085],[1.03,0.085],[0.96,0.085]], '#70452d', '');
+  ctx.save();
+  ctx.strokeStyle = '#e8c995';
+  ctx.lineWidth = 0.8;
+  for (const x of [0.80, 0.87, 0.94, 1.01]) {
+    ctx.beginPath();
+    ctx.moveTo(x * r, -0.062 * r);
+    ctx.lineTo(x * r, -0.035 * r);
+    ctx.moveTo(x * r, 0.035 * r);
+    ctx.lineTo(x * r, 0.062 * r);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Pequena faixa de pano vermelho logo abaixo da guarda.
+  facet(ctx, r, [[1.00,-0.105],[1.06,-0.105],[1.06,0.105],[1.00,0.105]], '#8e2535', '#33232a', 1.0);
+  facet(ctx, r, [[1.00,-0.105],[1.025,-0.105],[1.025,0.105],[1.00,0.105]], '#e34a50', '');
+
+  // Guarda em cruz: pontas recurvadas para a frente, dentro de x=1.06..1.22.
+  facet(ctx, r, [[1.06,-0.09],[1.075,-0.29],[1.13,-0.47],[1.19,-0.52],[1.22,-0.47],[1.19,-0.34],[1.15,-0.14],[1.15,0.14],[1.19,0.34],[1.22,0.47],[1.19,0.52],[1.13,0.47],[1.075,0.29],[1.06,0.09]], '#9b7138', '#30272a', 1.2);
+  facet(ctx, r, [[1.075,-0.29],[1.13,-0.47],[1.16,-0.36],[1.12,-0.13],[1.12,0.13],[1.16,0.36],[1.13,0.47],[1.075,0.29],[1.10,0]], '#f0d184', '');
+  facet(ctx, r, [[1.16,-0.36],[1.22,-0.47],[1.19,-0.34],[1.15,-0.14],[1.15,0.14],[1.19,0.34],[1.22,0.47],[1.16,0.36],[1.12,0]], '#68462e', '');
+  facet(ctx, r, [[1.06,-0.09],[1.15,-0.14],[1.15,0.14],[1.06,0.09]], '#c49a50', '');
+
+  // Gema vermelha central em três facetas.
+  facet(ctx, r, [[1.105,-0.075],[1.145,-0.09],[1.18,-0.035],[1.18,0.035],[1.145,0.09],[1.105,0.075],[1.09,0]], '#a62436', '#3b2529', 1.0);
+  facet(ctx, r, [[1.105,-0.075],[1.145,-0.09],[1.145,0],[1.09,0]], '#ff7772', '');
+  facet(ctx, r, [[1.145,-0.09],[1.18,-0.035],[1.18,0.035],[1.145,0]], '#c92d42', '');
+  facet(ctx, r, [[1.09,0],[1.145,0],[1.105,0.075],[1.09,0]], '#6f1e32', '');
+
+  // Ricasso curto entre a guarda e a lâmina.
+  facet(ctx, r, [[1.22,-0.24],[1.39,-0.23],[1.39,0.23],[1.22,0.24]], '#64727a', '#283139', 1.2);
+  facet(ctx, r, [[1.23,-0.22],[1.31,-0.21],[1.31,0.21],[1.23,0.22]], '#d5e1e3', '');
+  facet(ctx, r, [[1.31,-0.21],[1.39,-0.23],[1.39,0.23],[1.31,0.21]], '#45535d', '');
+
+  // Lâmina: meia largura 0.24 na base, 0.13 em x=3.2 e ponta exata em x=3.70.
+  facet(ctx, r, [[1.22,-0.24],[3.20,-0.13],[3.70,0],[3.20,0.13],[1.22,0.24]], '#72838b', '#263139', 1.2);
+  // Plano superior claro e plano inferior escuro, ao longo da lâmina.
+  facet(ctx, r, [[1.24,-0.225],[3.20,-0.13],[3.70,0],[2.98,0],[1.30,-0.035]], '#e7f0ef', '');
+  facet(ctx, r, [[1.30,-0.035],[2.98,0],[3.70,0],[3.20,0.13],[1.24,0.225]], '#465761', '');
+  // Facetas adicionais do bisel, sem quebrar a simetria.
+  facet(ctx, r, [[1.28,-0.16],[3.20,-0.105],[3.20,-0.035],[1.34,-0.075]], '#b9cbd0', '');
+  facet(ctx, r, [[1.28,0.16],[3.20,0.105],[3.20,0.035],[1.34,0.075]], '#354750', '');
+  // Canaleta central de x=1.5 a 3.2, com fio vermelho fino.
+  facet(ctx, r, [[1.50,-0.025],[3.20,-0.012],[3.20,0.012],[1.50,0.025]], '#33444d', '');
+  facet(ctx, r, [[1.55,-0.006],[3.12,-0.004],[3.12,0.004],[1.55,0.006]], '#d13a45', '');
+  // Filete de brilho no gume superior.
+  facet(ctx, r, [[1.27,-0.205],[3.18,-0.122],[3.48,-0.058],[3.20,-0.112],[1.30,-0.19]], '#fbffff', '');
+  // Ponta chanfrada em duas facetas; vértice em x=3.70*r.
+  facet(ctx, r, [[3.20,-0.13],[3.70,0],[3.20,0]], '#f5fbf9', '');
+  facet(ctx, r, [[3.20,0],[3.70,0],[3.20,0.13]], '#394a54', '');
 }
 function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
   // Halo facetado translúcido, sem filtros nem sombras caras.
@@ -114,19 +156,76 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx, r, [[1.105,-0.075],[1.255,-0.045],[1.255,0.015],[1.105,-0.015]], '#b98248', '#5d432a', 0.7);
   facet(ctx, r, [[1.105,0.04],[1.255,0.07],[1.255,0.13],[1.105,0.10]], '#e7d5a0', '#5d432a', 0.7);
 
-  // Corda reta e fina entre as pontas.
+  // Corda puxada para trás: dois segmentos finos formam um V simétrico.
+  const nockPointX = 0.15;
   ctx.beginPath();
   ctx.moveTo(centerAt(-halfHeight) * r, -halfHeight * r);
+  ctx.lineTo(nockPointX * r, 0);
   ctx.lineTo(centerAt(halfHeight) * r, halfHeight * r);
   ctx.strokeStyle = '#f2eadb';
   ctx.lineWidth = Math.max(0.7, r * 0.018);
   ctx.stroke();
 
   // Flecha decorativa encaixada na corda; não participa da mecânica de projéteis.
-  facet(ctx, r, [[1.19,-0.055],[2.27,-0.055],[2.27,-0.015],[1.19,-0.015]], '#5b4b3c', '');
-  facet(ctx, r, [[2.27,-0.095],[2.5,-0.035],[2.27,0.025]], '#d4dbe0', '#58636a', 0.8);
-  facet(ctx, r, [[1.32,-0.035],[1.51,-0.15],[1.48,-0.035]], '#d6e1e4', '#4b5960', 0.8);
-  facet(ctx, r, [[1.32,-0.015],[1.51,0.10],[1.48,-0.015]], '#9caeb5', '#4b5960', 0.8);
+  // Desloca a flecha inteira para que o nock coincida com o vértice do V.
+  const nockX = centerAt(0);
+  ctx.save();
+  // Reduz a flecha para 50%, mantendo o nock fixo no vértice da corda.
+  ctx.translate(nockPointX * r, 0);
+  ctx.scale(0.5, 0.5);
+  ctx.translate(-nockX * r, 0);
+  // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta antes da escala.
+  facet(ctx, r, [[nockX,-0.035],[3.94,-0.035],[3.94,0.035],[nockX,0.035]], '#b98a50', '#4c3a2b', 0.8);
+  facet(ctx, r, [[nockX,-0.027],[3.91,-0.027],[3.91,-0.006],[nockX,-0.006]], '#f0d5a0', '');
+  facet(ctx, r, [[1.24,0.006],[3.94,0.006],[3.94,0.035],[1.24,0.035]], '#8c623c', '');
+  // Nock traseiro com entalhe voltado para a corda.
+  facet(ctx, r, [[nockX,-0.055],[nockX+0.075,-0.035],[nockX+0.075,0.035],[nockX,0.055],[nockX+0.025,0],[nockX,0]], '#e7e5dc', '#50535a', 0.8);
+
+  // Três vanes traseiros; os dois principais são facetas espelhadas vermelho e creme.
+  facet(ctx, r, [[1.23,-0.028],[1.34,-0.095],[1.58,-0.17],[1.78,-0.16],[1.66,-0.09],[1.48,-0.035]], '#c93442', '#522b31', 0.8);
+  facet(ctx, r, [[1.23,0.028],[1.34,0.095],[1.58,0.17],[1.78,0.16],[1.66,0.09],[1.48,0.035]], '#f2e5c9', '#66584a', 0.8);
+  facet(ctx, r, [[1.22,-0.012],[1.35,0],[1.65,0.012],[1.77,0]], '#8c2939', '');
+  // Quatro barbas diagonais finas em cada vane.
+  ctx.save();
+  ctx.lineWidth = 0.65;
+  ctx.strokeStyle = '#f08a8c';
+  for (const [x, y] of [[1.37,-0.06],[1.44,-0.08],[1.51,-0.105],[1.58,-0.125]]) {
+    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y-0.045)*r); ctx.stroke();
+  }
+  ctx.strokeStyle = '#b3a28b';
+  for (const [x, y] of [[1.37,0.06],[1.44,0.08],[1.51,0.105],[1.58,0.125]]) {
+    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y+0.045)*r); ctx.stroke();
+  }
+  // Terceiro vane estreito visível junto ao eixo.
+  ctx.strokeStyle = '#dfcba8';
+  ctx.beginPath(); ctx.moveTo(1.28*r, 0); ctx.lineTo(1.63*r, 0); ctx.stroke();
+  ctx.restore();
+
+  // Três marcas curtas de veio na haste.
+  ctx.save();
+  ctx.strokeStyle = '#6f4c32';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(2.02*r, -0.018*r); ctx.lineTo(2.11*r, -0.006*r);
+  ctx.moveTo(2.72*r, 0.012*r); ctx.lineTo(2.82*r, 0.002*r);
+  ctx.moveTo(3.35*r, -0.016*r); ctx.lineTo(3.44*r, -0.004*r);
+  ctx.stroke();
+  ctx.restore();
+
+  // Amarração colorida na junção dos vanes com a haste.
+  facet(ctx, r, [[1.19,-0.045],[1.23,-0.045],[1.23,0.045],[1.19,0.045]], '#b52c3c', '#5c2830', 0.7);
+  facet(ctx, r, [[1.195,-0.04],[1.215,-0.04],[1.215,0.04],[1.195,0.04]], '#f1c76a', '');
+
+  // Soquete metálico curto, amarração e ponta de aço em forma de folha.
+  facet(ctx, r, [[3.82,-0.045],[3.96,-0.045],[3.96,0.045],[3.82,0.045]], '#7c8990', '#414950', 0.8);
+  facet(ctx, r, [[3.83,-0.028],[3.95,-0.028],[3.95,-0.008],[3.83,-0.008]], '#dfe8e8', '');
+  facet(ctx, r, [[3.78,-0.048],[3.81,-0.048],[3.81,0.048],[3.78,0.048]], '#c13a46', '#4b2b31', 0.7);
+  facet(ctx, r, [[3.93,-0.04],[4.12,-0.11],[4.27,-0.065],[4.38,0],[4.27,0.065],[4.12,0.11],[3.93,0.04]], '#9ba8ad', '#3e4b53', 1.0);
+  // Três facetas da ponta: clara, média e escura.
+  facet(ctx, r, [[3.94,-0.035],[4.12,-0.11],[4.38,0],[4.13,-0.012]], '#edf4f1', '');
+  facet(ctx, r, [[4.13,-0.012],[4.38,0],[4.27,0.065],[4.12,0.11]], '#687780', '');
+  facet(ctx, r, [[3.94,0.035],[4.13,-0.012],[4.27,0.065],[4.12,0.11]], '#b7c3c7', '');
+  ctx.restore();
 }
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
   // Haste torcida: segmentos deslocados e nós de madeira facetados.
