@@ -162,6 +162,14 @@ export function drawLadino(ctx: CanvasRenderingContext2D, classId: ClassId, r: n
     // Braço lateral temporariamente oculto para inspecionar a túnica sem membros sobrepostos.
   }
 
+  // Manto fechado sobre os ombros: deixa apenas a faixa central da túnica à mostra.
+  if (!isBack) {
+    poly(ctx, [[23,42],[38,42],[43,54],[41,76],[43,91],[34,94],[26,79],[21,59]], P.dark, OUT, 1.2);
+    poly(ctx, [[23,44],[35,45],[39,57],[37,76],[39,87],[33,87],[27,76],[24,59]], P.main, '', 0);
+    poly(ctx, [[77,42],[62,42],[57,54],[59,76],[57,91],[66,94],[74,79],[79,59]], P.dark, OUT, 1.2);
+    poly(ctx, [[77,44],[65,45],[61,57],[63,76],[61,87],[67,87],[73,76],[76,59]], P.main, '', 0);
+  }
+
   // Capuz com atraso e inclinação próprios, sem rodar o personagem inteiro.
   const hoodTilt = walking ? Math.sin(phase + 0.9) * 0.035 : breath * 0.008;
   const hoodShift = walking ? Math.sin(phase * 2 + 0.6) * 0.9 : -breath * 0.7;
