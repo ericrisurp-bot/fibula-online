@@ -76,38 +76,57 @@ function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx,r,[[3.24,-1.06],[3.31,-1.16],[3.39,-1.07],[3.34,-0.98]],'#e1c7ff','#55327b',0.9);
 }
 function drawBow(ctx: CanvasRenderingContext2D, r: number) {
-  // Arco alto: oito facetas em cada braço, com corda e flecha apenas decorativa.
-  // Braço superior: borda exterior e interior em segmentos sucessivos.
-  facet(ctx,r,[[1.16,-1.7],[1.42,-1.55],[1.38,-1.38],[1.17,-1.49]],'#e7c66e','#624522',1.1);
-  facet(ctx,r,[[1.42,-1.55],[1.62,-1.28],[1.55,-1.16],[1.38,-1.38]],'#b98339','#624522',1.1);
-  facet(ctx,r,[[1.62,-1.28],[1.76,-0.96],[1.66,-0.88],[1.55,-1.16]],'#f0d47d','#624522',1.1);
-  facet(ctx,r,[[1.76,-0.96],[1.82,-0.63],[1.71,-0.59],[1.66,-0.88]],'#bc873e','#624522',1.1);
-  facet(ctx,r,[[1.82,-0.63],[1.8,-0.35],[1.69,-0.35],[1.71,-0.59]],'#e4bd60','#624522',1.1);
-  facet(ctx,r,[[1.8,-0.35],[1.7,-0.15],[1.6,-0.2],[1.69,-0.35]],'#b77c34','#624522',1.1);
-  facet(ctx,r,[[1.7,-0.15],[1.57,-0.02],[1.49,-0.11],[1.6,-0.2]],'#e9c96e','#624522',1.1);
-  facet(ctx,r,[[1.57,-0.02],[1.4,0.08],[1.36,-0.04],[1.49,-0.11]],'#b98339','#624522',1.1);
-  // Braço inferior, refletido com pequenas variações de faceta.
-  facet(ctx,r,[[1.4,0.08],[1.57,0.18],[1.49,0.27],[1.36,0.2]],'#e7c66e','#624522',1.1);
-  facet(ctx,r,[[1.57,0.18],[1.7,0.34],[1.6,0.42],[1.49,0.27]],'#b98339','#624522',1.1);
-  facet(ctx,r,[[1.7,0.34],[1.8,0.56],[1.69,0.62],[1.6,0.42]],'#f0d47d','#624522',1.1);
-  facet(ctx,r,[[1.8,0.56],[1.82,0.82],[1.71,0.85],[1.69,0.62]],'#bc873e','#624522',1.1);
-  facet(ctx,r,[[1.82,0.82],[1.76,1.08],[1.66,1.03],[1.71,0.85]],'#e4bd60','#624522',1.1);
-  facet(ctx,r,[[1.76,1.08],[1.62,1.37],[1.55,1.28],[1.66,1.03]],'#b77c34','#624522',1.1);
-  facet(ctx,r,[[1.62,1.37],[1.42,1.61],[1.38,1.48],[1.55,1.28]],'#e9c96e','#624522',1.1);
-  facet(ctx,r,[[1.42,1.61],[1.16,1.7],[1.17,1.52],[1.38,1.48]],'#b98339','#624522',1.1);
-  // Reforço central, empunhadura enrolada e acabamentos das pontas (nocks).
-  facet(ctx,r,[[1.16,-0.22],[1.31,-0.18],[1.32,0.2],[1.16,0.22]],'#79502f','#4b3024',1.1);
-  facet(ctx,r,[[1.16,-0.2],[1.25,-0.18],[1.26,0.19],[1.16,0.2]],'#c08a4a','');
-  facet(ctx,r,[[1.13,-0.14],[1.32,-0.1],[1.32,-0.03],[1.13,-0.07]],'#e7d5a0','#5d432a',0.9);
-  facet(ctx,r,[[1.13,0.04],[1.32,0.0],[1.32,0.07],[1.13,0.11]],'#e7d5a0','#5d432a',0.9);
-  facet(ctx,r,[[1.16,-1.7],[1.24,-1.61],[1.17,-1.49]],'#7b4c28','#4b3024',0.9);
-  facet(ctx,r,[[1.16,1.7],[1.24,1.61],[1.17,1.52]],'#7b4c28','#4b3024',0.9);
-  // Corda reta fina e flecha encaixada apenas como detalhe visual.
-  facet(ctx,r,[[1.16,-1.7],[1.185,-1.7],[1.185,1.7],[1.16,1.7]],'#f2eadb','',0.8);
-  facet(ctx,r,[[1.16,-0.03],[2.3,-0.03],[2.3,0.015],[1.16,0.015]],'#5b4b3c','');
-  facet(ctx,r,[[2.3,-0.075],[2.52,-0.008],[2.3,0.06]],'#d4dbe0','#58636a',0.9);
-  facet(ctx,r,[[1.32,-0.03],[1.52,-0.16],[1.48,-0.03]],'#d6e1e4','#4b5960',0.8);
-  facet(ctx,r,[[1.32,0.015],[1.52,0.14],[1.48,0.015]],'#9caeb5','#4b5960',0.8);
+  // Uma única curva contínua, convexa para +x, da ponta superior à inferior.
+  const halfHeight = 1.7;
+  const centerX = 1.18;
+  const bulge = 0.56;
+  const segments = 20; // dez segmentos em cada braço
+  const centerAt = (y: number) => centerX - bulge * (1 - (y / halfHeight) ** 2);
+  const widthAt = (y: number) => 0.045 + 0.105 * (1 - Math.abs(y) / halfHeight);
+
+  // Cada trecho forma duas facetas contíguas; a faixa afina progressivamente nas pontas.
+  for (let i = 0; i < segments; i++) {
+    const y0 = -halfHeight + (2 * halfHeight * i) / segments;
+    const y1 = -halfHeight + (2 * halfHeight * (i + 1)) / segments;
+    const x0 = centerAt(y0);
+    const x1 = centerAt(y1);
+    const w0 = widthAt(y0);
+    const w1 = widthAt(y1);
+    const left0 = x0 - w0 / 2;
+    const right0 = x0 + w0 / 2;
+    const left1 = x1 - w1 / 2;
+    const right1 = x1 + w1 / 2;
+    const tones = i < segments / 2
+      ? ['#e4c36b', '#b9823b', '#76502e']
+      : ['#f0d47c', '#c08a42', '#80542f'];
+    facet(ctx, r, [[left0,y0],[x0,y0],[x1,y1],[left1,y1]], tones[0], '#624522', 0.8);
+    facet(ctx, r, [[x0,y0],[right0,y0],[right1,y1],[x1,y1]], tones[1], '#624522', 0.8);
+  }
+
+  // Nocks dourados nas duas pontas, sem interromper a curva principal.
+  facet(ctx, r, [[centerAt(-halfHeight)-0.04,-halfHeight-0.015],[centerAt(-halfHeight)+0.045,-halfHeight+0.035],[centerAt(-halfHeight)+0.01,-halfHeight+0.12],[centerAt(-halfHeight)-0.035,-halfHeight+0.045]], '#f0d47d', '#624522', 0.9);
+  facet(ctx, r, [[centerAt(halfHeight)-0.035,halfHeight-0.045],[centerAt(halfHeight)+0.01,halfHeight-0.12],[centerAt(halfHeight)+0.045,halfHeight-0.035],[centerAt(halfHeight)-0.04,halfHeight+0.015]], '#b98339', '#624522', 0.9);
+
+  // Empunhadura de couro centralizada perto de (r*1.18, -r*0.08), com três voltas.
+  facet(ctx, r, [[1.105,-0.27],[1.255,-0.27],[1.255,0.11],[1.105,0.11]], '#79502f', '#4b3024', 1);
+  facet(ctx, r, [[1.115,-0.24],[1.19,-0.24],[1.19,0.08],[1.115,0.08]], '#c08a4a', '');
+  facet(ctx, r, [[1.105,-0.19],[1.255,-0.16],[1.255,-0.10],[1.105,-0.13]], '#e7d5a0', '#5d432a', 0.7);
+  facet(ctx, r, [[1.105,-0.075],[1.255,-0.045],[1.255,0.015],[1.105,-0.015]], '#b98248', '#5d432a', 0.7);
+  facet(ctx, r, [[1.105,0.04],[1.255,0.07],[1.255,0.13],[1.105,0.10]], '#e7d5a0', '#5d432a', 0.7);
+
+  // Corda reta e fina entre as pontas.
+  ctx.beginPath();
+  ctx.moveTo(centerAt(-halfHeight) * r, -halfHeight * r);
+  ctx.lineTo(centerAt(halfHeight) * r, halfHeight * r);
+  ctx.strokeStyle = '#f2eadb';
+  ctx.lineWidth = Math.max(0.7, r * 0.018);
+  ctx.stroke();
+
+  // Flecha decorativa encaixada na corda; não participa da mecânica de projéteis.
+  facet(ctx, r, [[1.19,-0.055],[2.27,-0.055],[2.27,-0.015],[1.19,-0.015]], '#5b4b3c', '');
+  facet(ctx, r, [[2.27,-0.095],[2.5,-0.035],[2.27,0.025]], '#d4dbe0', '#58636a', 0.8);
+  facet(ctx, r, [[1.32,-0.035],[1.51,-0.15],[1.48,-0.035]], '#d6e1e4', '#4b5960', 0.8);
+  facet(ctx, r, [[1.32,-0.015],[1.51,0.10],[1.48,-0.015]], '#9caeb5', '#4b5960', 0.8);
 }
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
   // Haste torcida: segmentos deslocados e nós de madeira facetados.
