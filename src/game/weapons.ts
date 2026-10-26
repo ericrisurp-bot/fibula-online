@@ -358,7 +358,7 @@ export function drawFloatingWeapon(
   const restLean = Math.sin(opts.time * 1.7) * 0.04
     - hover.sideT * 0.10 * hover.moveT;
   // Sem alvo, o arco aponta contra o movimento horizontal: esquerda -> direita, direita -> esquerda.
-  const bowRestAngle = opts.facingX < -0.35 ? 0 : opts.facingX > 0.35 ? Math.PI : 0;
+  const bowRestAngle = hover.side < 0 ? Math.PI : 0;
   const restAngle = (weapon === 'arco' ? bowRestAngle : -Math.PI / 2) + restLean;
 
   const swingProgress = opts.swingTimer > 0 ? 1 - opts.swingTimer / 0.24 : 0;
