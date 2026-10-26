@@ -5,6 +5,7 @@ import { addToInventory, type InventoryStack } from './inventory';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
+const MATERIAL_ATTRACTION_RADIUS = 35;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
@@ -706,7 +707,7 @@ export class GameEngine {
         if (this.state.enemies.length < CONFIG.dayNight.maxAlive) this.spawnHordeEnemy();
       }
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.autoGather(); this.collectXp(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
     if (this.state.classId === 'druida') {
       this.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.druidOrbHealTimer <= 0) {
@@ -1131,6 +1132,26 @@ export class GameEngine {
     const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
     const base = this.treeBase(tree);
     this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount });
+  }
+
+  private attractMaterials(dt: number, playerSpeed: number) {
+    const player = this.state.player;
+    const drops = [
+      ...this.state.woodDrops,
+      ...this.state.stoneDrops,
+      ...this.state.cottonDrops,
+      ...this.state.linenDrops,
+      ...this.state.bronzeDrops,
+    ];
+    for (const drop of drops) {
+      const dx = player.x - drop.x;
+      const dy = player.y - drop.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      if (distance > MATERIAL_ATTRACTION_RADIUS) continue;
+      const step = Math.min(distance, (CONFIG.xp.attractionSpeed + playerSpeed) * dt);
+      drop.x += (dx / distance) * step;
+      drop.y += (dy / distance) * step;
+    }
   }
 
   private collectWood() {
