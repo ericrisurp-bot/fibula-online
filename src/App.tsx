@@ -545,7 +545,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night', s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1422,7 +1422,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1441,13 +1441,12 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
-  const gathering = treeChopTimer > 0 || rockMineTimer > 0 || cottonHarvestTimer > 0;
-  if (hasEnemies || !gathering) {
+  if (isNight) {
     if (weapon === 'espada') {
       const duration = 0.24;
       const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;
       drawFloatingWeapon(ctx, 'espada', r, {
-        time, facingX, moving, hasEnemies, hasTarget, aimAngle,
+        time, facingX, moving, hasEnemies: true, hasTarget, aimAngle,
         carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle,
       });
       if (swordSwingTimer > 0 && isFloatingWeaponVisible()) {
@@ -1458,7 +1457,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
         ctx.restore();
       }
     } else {
-      drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
+      drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies: true, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
     }
   }
   if (!hasEnemies) {
