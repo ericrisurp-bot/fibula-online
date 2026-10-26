@@ -542,8 +542,14 @@ export class GameEngine {
     const cart = this.state.cart;
     if (!cart.carried) return;
     const p = this.state.player;
-    // A orientação acompanha os oito sentidos de movimento, preservando a última direção ao parar.
-    if (Math.hypot(p.facingX, p.facingY) > 0.15) cart.angle = Math.atan2(p.facingY, p.facingX);
+    // Em diagonais, o carrinho aponta para a direção vertical: W ou S.
+    if (Math.hypot(p.facingX, p.facingY) > 0.15) {
+      const hasHorizontal = Math.abs(p.facingX) > 0.15;
+      const hasVertical = Math.abs(p.facingY) > 0.15;
+      cart.angle = hasHorizontal && hasVertical
+        ? Math.atan2(Math.sign(p.facingY), 0)
+        : Math.atan2(p.facingY, p.facingX);
+    }
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const targetX = this.clamp(p.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
     const targetY = this.clamp(p.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);

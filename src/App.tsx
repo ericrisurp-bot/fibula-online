@@ -1264,11 +1264,10 @@ function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['te
 
 function drawCart(ctx: CanvasRenderingContext2D, cart: GameSnapshot['cart'], nearby: boolean, time: number, moving: boolean) {
   const { x, y, angle, repairWood, repaired, carried } = cart;
-  // Mantém a regra direcional validada: rodas ocultas à esquerda e no eixo vertical.
-  const hasVerticalComponent = Math.abs(Math.sin(angle)) >= 0.15;
-  const showWheels = !hasVerticalComponent || Math.cos(angle) >= 0.15;
+  // Diagonais usam a direção horizontal; rodas aparecem em A/D e somem em W/S.
+  const vertical = Math.abs(Math.cos(angle)) < 0.15;
+  const showWheels = !vertical;
   const wheelRotation = moving ? time * 8 : 0;
-  const vertical = Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle));
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
   ctx.save();
