@@ -83,7 +83,7 @@ export class GameEngine {
     this.placeRefinery();
     this.placeTecelaria();
     this.spawnInitialTrees();
-    this.treeSpawnCountdown = this.treeSpawnDuration();
+    this.treeSpawnCountdown = CONFIG.trees.spawnInterval;
     this.spawnInitialRocks();
     this.rockSpawnCountdown = this.rockSpawnDuration();
     this.spawnInitialCottonPlants();
@@ -582,7 +582,7 @@ export class GameEngine {
     const classId = this.state.classId;
     this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
-    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = this.treeSpawnDuration(); this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
@@ -861,8 +861,10 @@ export class GameEngine {
   private updateTreeSpawner(dt: number) {
     this.treeSpawnCountdown -= dt;
     if (this.treeSpawnCountdown > 0) return;
-    if (this.state.trees.length < CONFIG.trees.max) this.spawnTree();
-    this.treeSpawnCountdown = this.treeSpawnDuration();
+    for (let i = 0; i < CONFIG.trees.spawnBatch && this.state.trees.length < CONFIG.trees.max; i++) {
+      this.spawnTree();
+    }
+    this.treeSpawnCountdown = CONFIG.trees.spawnInterval;
   }
 
   private validTreePosition(x: number, y: number, minSpacing = 0, size: Tree['size'] = 'large', allowNearHouse = false) {
@@ -910,40 +912,44 @@ export class GameEngine {
       }
     }
 
-    // A densidade local pesa a escolha do núcleo; a influência probabilística satura em 20 árvores.
+    // Bosques mais densos têm maior peso, mas núcleos com 25 árvores próximas deixam de atrair novos nascimentos.
     if (!initial && !position && this.state.trees.length > 0) {
       const nearbyCount = (tree: Tree) => this.state.trees.filter(other =>
         Math.hypot(other.x - tree.x, other.y - tree.y) <= CONFIG.trees.attractionRadius
       ).length;
       const weightedAnchors = this.state.trees.map(tree => {
-        const count = Math.min(CONFIG.trees.attractionMaxNearby, nearbyCount(tree));
+        const nearby = nearbyCount(tree);
+        const count = Math.min(CONFIG.trees.attractionMaxNearby, nearby);
         return { tree, count, weight: 1 + count * count };
-      });
-      const totalWeight = weightedAnchors.reduce((sum, item) => sum + item.weight, 0);
-      let ticket = Math.random() * totalWeight;
-      let selected = weightedAnchors[weightedAnchors.length - 1];
-      for (const item of weightedAnchors) {
-        ticket -= item.weight;
-        if (ticket <= 0) { selected = item; break; }
-      }
+      }).filter(item => item.count < CONFIG.trees.attractionMaxNearby);
 
-      const count = Math.max(1, Math.min(CONFIG.trees.attractionMaxNearby, selected.count));
-      const attractionChance = count <= 5
-        ? 0.1 + (count - 1) * 0.05
-        : count <= 10
-          ? 0.3 + (count - 5) * 0.05
-          : count <= 15
-            ? 0.55 + (count - 10) * 0.03
-            : Math.min(CONFIG.trees.attractionMaxChance, 0.7 + (count - 15) * 0.02);
-      if (Math.random() < attractionChance) {
-        const anchor = selected.tree;
-        const anchorNearHouse = Math.hypot(anchor.x - this.state.house.x, anchor.y - this.state.house.y) <= CONFIG.trees.rareHouseRadius;
-        for (let attempt = 0; attempt < 120 && !position; attempt++) {
-          const angle = Math.random() * Math.PI * 2;
-          const distance = 90 + Math.random() * 80;
-          const x = anchor.x + Math.cos(angle) * distance;
-          const y = anchor.y + Math.sin(angle) * distance;
-          if (this.validTreePosition(x, y, minSpacing, size, anchorNearHouse)) position = { x, y };
+      if (weightedAnchors.length > 0) {
+        const totalWeight = weightedAnchors.reduce((sum, item) => sum + item.weight, 0);
+        let ticket = Math.random() * totalWeight;
+        let selected = weightedAnchors[weightedAnchors.length - 1]!;
+        for (const item of weightedAnchors) {
+          ticket -= item.weight;
+          if (ticket <= 0) { selected = item; break; }
+        }
+
+        const count = Math.max(1, selected.count);
+        const attractionChance = count <= 5
+          ? 0.1 + (count - 1) * 0.05
+          : count <= 10
+            ? 0.3 + (count - 5) * 0.05
+            : count <= 15
+              ? 0.55 + (count - 10) * 0.03
+              : Math.min(CONFIG.trees.attractionMaxChance, 0.7 + (count - 15) * 0.02);
+        if (Math.random() < attractionChance) {
+          const anchor = selected.tree;
+          const anchorNearHouse = Math.hypot(anchor.x - this.state.house.x, anchor.y - this.state.house.y) <= CONFIG.trees.rareHouseRadius;
+          for (let attempt = 0; attempt < 120 && !position; attempt++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 90 + Math.random() * 80;
+            const x = anchor.x + Math.cos(angle) * distance;
+            const y = anchor.y + Math.sin(angle) * distance;
+            if (this.validTreePosition(x, y, minSpacing, size, anchorNearHouse)) position = { x, y };
+          }
         }
       }
     }
