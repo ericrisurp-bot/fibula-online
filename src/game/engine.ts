@@ -3,6 +3,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
+import { rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -59,6 +60,7 @@ export class GameEngine {
   private nextRockClusterId = 1;
   private attackTimer = 0;
   private combatLockTimer = 0;
+  private weaponSide: 1 | -1 = 1;
   private gatheringTimer = 0;
   private stepDistance = 0;
   private stepFoot: 'left' | 'right' = 'left';
@@ -664,6 +666,8 @@ export class GameEngine {
       this.state.player.facingX = dx / directionLength;
       this.state.player.facingY = dy / directionLength;
     }
+    if (p.facingX < -0.35) this.weaponSide = 1;
+    else if (p.facingX > 0.35) this.weaponSide = -1;
     const cartLoad = this.state.cart.inventory.reduce((total, stack) => total + stack.quantity, 0);
     const cartCapacity = CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot;
     const loadFraction = Math.min(1, cartLoad / cartCapacity);
@@ -1503,31 +1507,14 @@ export class GameEngine {
     const speedBonus = this.getLevelStats().attackSpeed;
     if (this.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
     const p = this.state.player;
-    const isStaffClass = this.state.classId === 'mago' || this.state.classId === 'druida';
-    const minStaffDistance = isStaffClass
-      ? CONFIG.player.auraRadius - CONFIG.player.radius * 0.68
-        + (this.state.classId === 'mago' ? 3.7 * 50 / 3.07 : 4.38 * 50 / 2.57)
-      : 0;
     const targets = this.state.enemies
       .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
       .filter(v => v.d <= weapon.range)
       .sort((a, b) => a.d - b.d);
     const target = targets[0];
     if (!target) return;
-    const isCloseStaffAttack = isStaffClass && target.d <= minStaffDistance;
     this.attackTimer = 0;
     this.combatLockTimer = 0.24;
-    if (isCloseStaffAttack) {
-      this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
-      this.state.swordSwingTimer = 0.24;
-      this.onSound?.({ type: 'attack', classId: this.state.classId });
-      const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level)
-        * 0.4 * (1 + this.getDayNightState().vulnerability);
-      target.e.hp -= damage;
-      this.addFloatingDamage(target.e.x, target.e.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
-      if (target.e.hp <= 0) this.killEnemy(target.e.id, false);
-      return;
-    }
     if (weapon.kind === 'melee') {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
@@ -1562,37 +1549,15 @@ export class GameEngine {
         enemy.y = destination.y;
       }
     } else {
-      const dx = target.e.x - p.x, dy = target.e.y - p.y, dist = Math.hypot(dx, dy) || 1;
-      const aimAngle = Math.atan2(dy, dx);
+      const aimAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
+      const rangedId = this.state.weapon as 'cajado' | 'bastao' | 'arco';
+      const muzzle = rangedMuzzle(rangedId, this.weaponSide, aimAngle, CONFIG.player.radius);
+      const shotX = p.x + muzzle.x;
+      const shotY = p.y + muzzle.y;
+      const dx = target.e.x - shotX, dy = target.e.y - shotY, dist = Math.hypot(dx, dy) || 1;
       const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
-
-      // Orbes mágicos nascem na extremidade dianteira do cajado em sua pose de ataque.
-      // Os pontos locais acompanham o desenho de drawMageStaff/drawDruidStaff.
-      const isStaffOrb = weapon.kind === 'orb';
-      const staffTip = this.state.classId === 'mago'
-        ? { x: 3.7, y: 0, visualLength: 3.07 }
-        : { x: 4.38, y: 0, visualLength: 2.57 };
-      const staffCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68;
-      const staffTipX = staffTip.x * 50 / staffTip.visualLength;
-      const staffTipY = staffTip.y * 50 / staffTip.visualLength;
-      const isBowArrow = this.state.classId === 'arqueiro' && weapon.kind === 'arrow';
-      // O centro da corda do arco fica à frente do personagem, conforme o desenho normalizado de drawBow.
-      const bowStringCenter = 1.092 * 50 / 3.4;
-      const bowCenterDistance = CONFIG.player.auraRadius - CONFIG.player.radius * 0.68 + bowStringCenter;
-      const shotX = isStaffOrb
-        ? p.x + (staffCenterDistance + staffTipX) * Math.cos(aimAngle) - staffTipY * Math.sin(aimAngle)
-        : isBowArrow
-          ? p.x + bowCenterDistance * Math.cos(aimAngle)
-          : p.x;
-      const shotY = isStaffOrb
-        ? p.y + (staffCenterDistance + staffTipX) * Math.sin(aimAngle) + staffTipY * Math.cos(aimAngle)
-        : isBowArrow
-          ? p.y + bowCenterDistance * Math.sin(aimAngle)
-          : p.y;
-      // Compensa o deslocamento inicial para preservar o alcance efetivo anterior.
-      const originDistance = Math.hypot(shotX - p.x, shotY - p.y);
-      const remainingRange = isStaffOrb || isBowArrow ? Math.max(0, weapon.range - originDistance) : weapon.range;
+      const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
       this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
