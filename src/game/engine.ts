@@ -426,8 +426,9 @@ export class GameEngine {
     const cart = this.state.cart;
     if (cart.carried) {
       cart.carried = false;
-      cart.x = this.clamp(this.state.player.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
-      cart.y = this.clamp(this.state.player.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+      const feet = playerFeet(this.state.player);
+      cart.x = this.clamp(feet.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+      cart.y = this.clamp(feet.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       this.resolveObstacleCollisions(cart, 30, true);
     } else if (Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) <= CONFIG.cart.interactRadius) {
       cart.carried = true;
@@ -553,8 +554,9 @@ export class GameEngine {
         : Math.atan2(p.facingY, p.facingX);
     }
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
-    const targetX = this.clamp(p.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
-    const targetY = this.clamp(p.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
+    const feet = playerFeet(p);
+    const targetX = this.clamp(feet.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
+    const targetY = this.clamp(feet.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
     const dx = targetX - cart.x;
     const dy = targetY - cart.y;
     const distance = Math.hypot(dx, dy);
@@ -1168,8 +1170,8 @@ export class GameEngine {
     for (const drop of drops) {
       drop.age += dt;
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      const dx = player.x - drop.x;
-      const dy = player.y - drop.y;
+      const dx = feet.x - drop.x;
+      const dy = feet.y - drop.y;
       const distance = Math.hypot(dx, dy) || 1;
       if (distance > MATERIAL_ATTRACTION_RADIUS) continue;
       const step = Math.min(distance, (CONFIG.xp.attractionSpeed + playerSpeed) * dt);
@@ -1595,15 +1597,15 @@ export class GameEngine {
 
     const treeTarget = this.state.trees
       .filter(tree => this.isPlayerAtTreeShadow(tree))
-      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
+      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - playerFeet(p).x, this.treeBase(tree).y - playerFeet(p).y) }))
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
       .filter(rock => this.isPlayerAtRock(rock))
-      .map(rock => ({ rock, d: Math.hypot(rock.x - p.x, rock.y - p.y) }))
+      .map(rock => ({ rock, d: Math.hypot(rock.x - playerFeet(p).x, rock.y - playerFeet(p).y) }))
       .sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
-      .map(plant => ({ plant, d: Math.hypot(plant.x - p.x, plant.y - p.y) }))
+      .map(plant => ({ plant, d: Math.hypot(plant.x - playerFeet(p).x, plant.y - playerFeet(p).y) }))
       .sort((a, b) => a.d - b.d)[0];
     if (!treeTarget && !rockTarget && !cottonTarget) return;
 
