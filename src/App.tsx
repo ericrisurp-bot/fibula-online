@@ -5,7 +5,6 @@ import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 import { drawFloatingTool } from './game/tools';
 import Controls from './ui/Controls';
-import BackgroundMusic from './ui/BackgroundMusic';
 import { audioManager } from './audio/audioManager';
 import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
@@ -1003,7 +1002,6 @@ export default function App() {
   };
 
   return <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
-    <BackgroundMusic active={!showStart && !state.dead} />
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
