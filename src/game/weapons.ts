@@ -339,8 +339,11 @@ export function drawFloatingWeapon(
   hover.presence += (presenceTarget - hover.presence) * presenceAlpha;
   if (hover.presence < 0.02) return;
 
-  if (opts.facingX < -0.35) hover.side = 1;
-  else if (opts.facingX > 0.35) hover.side = -1;
+  // Enquanto houver alvo, mantém a arma no lado em que já está; só reposiciona após perdê-lo.
+  if (!opts.hasTarget) {
+    if (opts.facingX < -0.35) hover.side = 1;
+    else if (opts.facingX > 0.35) hover.side = -1;
+  }
 
   const sideAlpha = 1 - Math.exp(-dt / 0.15);
   hover.sideT += (hover.side - hover.sideT) * sideAlpha;
@@ -373,9 +376,13 @@ export function drawFloatingWeapon(
     : CONFIG.player.auraRadius - r * 0.68;
   const combatX = combatDistance * Math.cos(combatDirection);
   const combatY = combatDistance * Math.sin(combatDirection);
-  const x = restX + (combatX - restX) * hover.combatT;
-  const y = restY + (combatY - restY) * hover.combatT;
-  const desiredAngle = restAngle + angleDelta(restAngle, combatAngle) * hover.combatT;
+  const x = weapon === 'espada' ? restX + (combatX - restX) * hover.combatT : restX;
+  const y = weapon === 'espada' ? restY + (combatY - restY) * hover.combatT : restY;
+  const desiredAngle = weapon === 'espada' || weapon === 'arco'
+    ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
+    : weapon === 'cajado' || weapon === 'bastao'
+      ? restAngle + angleDelta(restAngle, combatDirection) * hover.combatT
+      : restAngle;
   const angleAlpha = 1 - Math.exp(-dt / 0.12);
   hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
   if (hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
