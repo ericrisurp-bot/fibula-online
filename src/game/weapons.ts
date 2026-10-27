@@ -363,7 +363,11 @@ export function drawFloatingWeapon(
     - hover.sideT * 0.10 * hover.moveT;
   // Sem alvo, o arco aponta contra o movimento horizontal: esquerda -> direita, direita -> esquerda.
   const bowRestAngle = hover.side < 0 ? Math.PI : 0;
-  const restAngle = (weapon === 'arco' ? bowRestAngle : -Math.PI / 2) + restLean;
+  // Em descanso, a cabeça do cajado/bastão aponta para a frente do personagem.
+  const staffRestAngle = hover.side < 0 ? 0 : Math.PI;
+  const restAngle = (weapon === 'arco' ? bowRestAngle
+    : weapon === 'cajado' || weapon === 'bastao' ? staffRestAngle
+    : -Math.PI / 2) + restLean;
 
   const swingProgress = opts.swingTimer > 0 ? 1 - opts.swingTimer / 0.24 : 0;
   const combatAngle = opts.swingTimer > 0
@@ -383,7 +387,9 @@ export function drawFloatingWeapon(
     ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
     : weapon === 'arco'
       ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
-      : -Math.PI / 2 + restLean + (weapon === 'cajado' || weapon === 'bastao' ? staffLean(opts.aimAngle) * hover.combatT : 0);
+      : weapon === 'cajado' || weapon === 'bastao'
+        ? restAngle + angleDelta(restAngle, -Math.PI / 2 + restLean + staffLean(opts.aimAngle)) * hover.combatT
+        : -Math.PI / 2 + restLean;
   const angleAlpha = 1 - Math.exp(-dt / 0.12);
   hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
   if (hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
