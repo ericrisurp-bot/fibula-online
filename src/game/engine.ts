@@ -8,6 +8,7 @@ type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
 const MATERIAL_ATTRACTION_RADIUS = 80;
 const MATERIAL_ATTRACTION_DELAY = 0.5;
+const MATERIAL_DROP_LIFETIME = 15;
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
@@ -17,6 +18,7 @@ type StoneDrop = Vec & { id: number; age: number };
 type CottonDrop = Vec & { id: number; age: number };
 type LinenDrop = Vec & { id: number; age: number };
 type BronzeDrop = Vec & { id: number; age: number };
+type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | LinenDrop | BronzeDrop;
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean; hitEnemyIds?: number[] };
@@ -1160,24 +1162,34 @@ export class GameEngine {
   private attractMaterials(dt: number, playerSpeed: number) {
     const player = this.state.player;
     const feet = playerFeet(player);
-    const drops = [
-      ...this.state.woodDrops,
-      ...this.state.stoneDrops,
-      ...this.state.cottonDrops,
-      ...this.state.linenDrops,
-      ...this.state.bronzeDrops,
+    const drops: { drop: MaterialDrop; itemId: string; amount: number }[] = [
+      ...this.state.woodDrops.map(drop => ({ drop, itemId: 'wood', amount: drop.amount })),
+      ...this.state.stoneDrops.map(drop => ({ drop, itemId: 'stone', amount: 1 })),
+      ...this.state.cottonDrops.map(drop => ({ drop, itemId: 'cotton', amount: 1 })),
+      ...this.state.linenDrops.map(drop => ({ drop, itemId: 'linen', amount: 1 })),
+      ...this.state.bronzeDrops.map(drop => ({ drop, itemId: 'bronze', amount: 1 })),
     ];
-    for (const drop of drops) {
+    let availableInventory = this.state.inventory;
+    for (const { drop, itemId, amount } of drops) {
       drop.age += dt;
+      if (drop.age >= MATERIAL_DROP_LIFETIME) continue;
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const dx = feet.x - drop.x;
       const dy = feet.y - drop.y;
       const distance = Math.hypot(dx, dy) || 1;
       if (distance > MATERIAL_ATTRACTION_RADIUS) continue;
+      const result = addToInventory(availableInventory, itemId, amount, CONFIG.inventory);
+      if (result.added === 0) continue;
+      availableInventory = result.inventory;
       const step = Math.min(distance, (CONFIG.xp.attractionSpeed + playerSpeed) * dt);
       drop.x += (dx / distance) * step;
       drop.y += (dy / distance) * step;
     }
+    this.state.woodDrops = this.state.woodDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
+    this.state.stoneDrops = this.state.stoneDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
+    this.state.cottonDrops = this.state.cottonDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
+    this.state.linenDrops = this.state.linenDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
+    this.state.bronzeDrops = this.state.bronzeDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
   }
 
   private collectWood() {
