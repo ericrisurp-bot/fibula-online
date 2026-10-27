@@ -411,7 +411,7 @@ export class GameEngine {
   private collectBronze() {
     for (const drop of [...this.state.bronzeDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'bronze', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1102,7 +1102,7 @@ export class GameEngine {
   private collectStone() {
     for (const drop of [...this.state.stoneDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'stone', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1119,7 +1119,7 @@ export class GameEngine {
   private collectCotton() {
     for (const drop of [...this.state.cottonDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'cotton', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1130,7 +1130,7 @@ export class GameEngine {
   private collectLinen() {
     for (const drop of [...this.state.linenDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'linen', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1173,7 +1173,7 @@ export class GameEngine {
   private collectWood() {
     for (const drop of [...this.state.woodDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'wood', drop.amount, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1406,8 +1406,10 @@ export class GameEngine {
     const shadow = this.treeBase(tree);
     const dx = this.state.player.x - shadow.x;
     const dy = this.state.player.y - shadow.y;
-    const rx = (19 * scale + CONFIG.player.radius) * 1.2;
-    const ry = (8 * scale + CONFIG.player.radius) * 1.2;
+    const collisionR = 9.6 * scale + CONFIG.player.radius;
+    const oldRx = (19 * scale + CONFIG.player.radius) * 1.2;
+    const rx = Math.max(oldRx, collisionR + CONFIG.interaction.margin);
+    const ry = collisionR + CONFIG.interaction.margin;
     return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
   }
 
