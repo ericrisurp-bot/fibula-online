@@ -312,7 +312,10 @@ export default function App() {
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
-      worldDrawables.push({ depth: s.cart.y + 14, draw: () => drawCart(ctx, s.cart, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving && s.cart.carried) });
+      worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
+        const playerGround = playerFeet(s.player);
+        drawCart(ctx, s.cart, Math.hypot(playerGround.x - s.cart.x, playerGround.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving && s.cart.carried);
+      }});
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
@@ -726,7 +729,7 @@ export default function App() {
       if (k === 'q' && !e.repeat) {
         const current = engine.state;
         const currentFeet = playerFeet(current.player);
-         const cartDistanceNow = Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y);
+        const cartDistanceNow = Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y);
         const houseDistanceNow = Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y);
         const canUseCart = current.cart.repaired && (current.cart.carried || cartDistanceNow <= CONFIG.cart.interactRadius);
         const canUseHouse = current.house.built && houseDistanceNow <= CONFIG.house.interactRadius;
@@ -738,6 +741,7 @@ export default function App() {
       }
       if (k === 'e' && !e.repeat) {
         const current = engine.state;
+        const currentFeet = playerFeet(current.player);
         const options: Array<{ distance: number; radius: number; available: boolean; build: () => void }> = [
           { distance: Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: !current.cart.repaired, build: () => engine.buildCart() },
           { distance: Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y), radius: CONFIG.house.interactRadius, available: !current.house.built, build: () => engine.buildHouse() },
