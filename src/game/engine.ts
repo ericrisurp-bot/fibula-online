@@ -1597,15 +1597,15 @@ export class GameEngine {
 
     const treeTarget = this.state.trees
       .filter(tree => this.isPlayerAtTreeShadow(tree))
-      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - playerFeet(p).x, this.treeBase(tree).y - playerFeet(p).y) }))
+      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - playerFeet(p).x, this.treeBase(tree).y - playerFeet(p).y), centerD: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
       .filter(rock => this.isPlayerAtRock(rock))
-      .map(rock => ({ rock, d: Math.hypot(rock.x - playerFeet(p).x, rock.y - playerFeet(p).y) }))
+      .map(rock => ({ rock, d: Math.hypot(rock.x - playerFeet(p).x, rock.y - playerFeet(p).y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
-      .map(plant => ({ plant, d: Math.hypot(plant.x - playerFeet(p).x, plant.y - playerFeet(p).y) }))
+      .map(plant => ({ plant, d: Math.hypot(plant.x - playerFeet(p).x, plant.y - playerFeet(p).y), centerD: Math.hypot(plant.x - p.x, plant.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     if (!treeTarget && !rockTarget && !cottonTarget) return;
 
@@ -1614,20 +1614,20 @@ export class GameEngine {
       const treeBase = this.treeBase(treeTarget.tree);
       this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
-      this.state.gatherReach = Math.max(12, treeTarget.d - 0.6 * this.treeFootprintRadius(treeTarget.tree));
+      this.state.gatherReach = Math.max(12, treeTarget.centerD - 0.6 * this.treeFootprintRadius(treeTarget.tree));
       treeTarget.tree.hits -= 1;
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
       this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
       this.state.rockMineTimer = CONFIG.gathering.toolAnimationDuration;
-      this.state.gatherReach = Math.max(12, rockTarget.d - 0.6 * this.rockFootprintRadius(rockTarget.rock));
+      this.state.gatherReach = Math.max(12, rockTarget.centerD - 0.6 * this.rockFootprintRadius(rockTarget.rock));
       this.hitRock(rockTarget.rock.id);
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget) {
       this.state.cottonHarvestAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
-      this.state.gatherReach = Math.max(12, cottonTarget.d - 0.6 * this.cottonFootprintRadius(cottonTarget.plant));
+      this.state.gatherReach = Math.max(12, cottonTarget.centerD - 0.6 * this.cottonFootprintRadius(cottonTarget.plant));
       this.hitCottonPlant(cottonTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
     }
