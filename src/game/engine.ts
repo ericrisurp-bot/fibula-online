@@ -1,4 +1,5 @@
 import { CONFIG, type ClassId, type WeaponId } from './config';
+import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
@@ -184,7 +185,7 @@ export class GameEngine {
     const house = this.state.house;
     if (this.state.dead || house.built) return;
 
-    const playerNearHouse = Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) <= CONFIG.house.interactRadius;
+    const playerNearHouse = Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) <= CONFIG.house.interactRadius;
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNearHouse : cartNearHouse;
     if (!playerNearHouse) return;
@@ -228,7 +229,7 @@ export class GameEngine {
   buildRefinery() {
     const refinery = this.state.refinery;
     if (this.state.dead || refinery.built) return;
-    const playerNear = Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const playerNear = Math.hypot(playerFeet(this.state.player).x - refinery.x, playerFeet(this.state.player).y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     if (!playerNear) return;
@@ -278,7 +279,7 @@ export class GameEngine {
   buildTecelaria() {
     const building = this.state.tecelaria;
     if (this.state.dead || building.built) return;
-    const playerNear = Math.hypot(this.state.player.x - building.x, this.state.player.y - building.y) <= CONFIG.tecelaria.interactRadius;
+    const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     if (!playerNear) return;
@@ -325,7 +326,7 @@ export class GameEngine {
   private deliverCottonToTecelaria() {
     const building = this.state.tecelaria;
     if (!building.built || building.cottonStock >= CONFIG.tecelaria.cottonCapacity) return;
-    const playerNear = Math.hypot(this.state.player.x - building.x, this.state.player.y - building.y) <= CONFIG.tecelaria.interactRadius;
+    const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     const transfer = (inventory: InventoryStack[]) => {
@@ -365,7 +366,7 @@ export class GameEngine {
   private deliverStonesToRefinery() {
     const refinery = this.state.refinery;
     if (!refinery.built || refinery.stoneStock >= CONFIG.refinery.stoneCapacity) return;
-    const playerNear = Math.hypot(this.state.player.x - refinery.x, this.state.player.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const playerNear = Math.hypot(playerFeet(this.state.player).x - refinery.x, playerFeet(this.state.player).y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     const transferStones = (inventory: InventoryStack[]) => {
@@ -411,7 +412,8 @@ export class GameEngine {
   private collectBronze() {
     for (const drop of [...this.state.bronzeDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const feet = playerFeet(this.state.player);
+       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'bronze', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -427,7 +429,7 @@ export class GameEngine {
       cart.x = this.clamp(this.state.player.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       cart.y = this.clamp(this.state.player.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       this.resolveObstacleCollisions(cart, 30, true);
-    } else if (Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) <= CONFIG.cart.interactRadius) {
+    } else if (Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) <= CONFIG.cart.interactRadius) {
       cart.carried = true;
       cart.angle = Math.atan2(this.state.player.facingY, this.state.player.facingX);
       this.updateCart(0);
@@ -472,7 +474,7 @@ export class GameEngine {
   storeAllBagToHouse() {
     if (this.state.dead || !this.state.house.built) return;
     const house = this.state.house;
-    if (Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
+    if (Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) > CONFIG.house.interactRadius) return;
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
     const store = (items: InventoryStack[]) => {
       for (const stack of items) {
@@ -492,7 +494,7 @@ export class GameEngine {
   transferHouseToBag(itemId: string) {
     if (this.state.dead || !this.state.house.built) return;
     const house = this.state.house;
-    if (Math.hypot(this.state.player.x - house.x, this.state.player.y - house.y) > CONFIG.house.interactRadius) return;
+    if (Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) > CONFIG.house.interactRadius) return;
     const stack = house.inventory.find(item => item.itemId === itemId);
     if (!stack) return;
     const result = addToInventory(this.state.inventory, itemId, Math.min(stack.quantity, CONFIG.inventory.maxPerSlot), CONFIG.inventory);
@@ -514,11 +516,11 @@ export class GameEngine {
     this.emit();
   }
   isCartAccessible() {
-    return this.state.cart.repaired && (this.state.cart.carried || Math.hypot(this.state.player.x - this.state.cart.x, this.state.player.y - this.state.cart.y) <= CONFIG.cart.interactRadius);
+    return this.state.cart.repaired && (this.state.cart.carried || Math.hypot(playerFeet(this.state.player).x - this.state.cart.x, playerFeet(this.state.player).y - this.state.cart.y) <= CONFIG.cart.interactRadius);
   }
   buildCart() {
     const cart = this.state.cart;
-    if (this.state.dead || cart.repaired || Math.hypot(this.state.player.x - cart.x, this.state.player.y - cart.y) > CONFIG.cart.interactRadius) return;
+    if (this.state.dead || cart.repaired || Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) > CONFIG.cart.interactRadius) return;
     const remaining = CONFIG.cart.repairCost - cart.repairWood;
     const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
     const amount = Math.min(remaining, carriedWood);
@@ -592,7 +594,7 @@ export class GameEngine {
     return [
       s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.cottonPlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      Math.hypot(s.player.x - s.house.x, s.player.y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(s.player.x - s.refinery.x, s.player.y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(s.player.x - s.tecelaria.x, s.player.y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(s.player.x - s.cart.x, s.player.y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.repairWood, s.cart.repaired, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
@@ -665,9 +667,9 @@ export class GameEngine {
     const loadSpeedFactor = this.state.cart.carried ? 1 - loadPenalty : 1;
     const speed = (CONFIG.player.speed + this.getLevelStats().speed) * loadSpeedFactor;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
-    this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
-    p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
-    this.resolveObstacleCollisions(p, CONFIG.player.radius, this.state.cart.carried);
+    this.resolvePlayerObstacles(p, this.state.cart.carried);
+    p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
+    this.resolvePlayerObstacles(p, this.state.cart.carried);
     const playerSpeed = dt > 0 ? Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y) / dt : 0;
     if (this.state.player.moving && !this.state.dead && p.hp > 0) {
       const traveledDistance = Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y);
@@ -1071,7 +1073,8 @@ export class GameEngine {
   }
 
   private isPlayerAtRock(rock: Rock) {
-    return Math.hypot(rock.x - this.state.player.x, rock.y - this.state.player.y)
+    const feet = playerFeet(this.state.player);
+    return Math.hypot(rock.x - feet.x, rock.y - feet.y)
       <= CONFIG.rocks.mineRange + this.rockFootprintRadius(rock);
   }
 
@@ -1102,7 +1105,8 @@ export class GameEngine {
   private collectStone() {
     for (const drop of [...this.state.stoneDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const feet = playerFeet(this.state.player);
+       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'stone', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1113,13 +1117,15 @@ export class GameEngine {
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
-    return Math.hypot(plant.x - this.state.player.x, plant.y - this.state.player.y) <= 46 + this.cottonFootprintRadius(plant);
+    const feet = playerFeet(this.state.player);
+    return Math.hypot(plant.x - feet.x, plant.y - feet.y) <= 46 + this.cottonFootprintRadius(plant);
   }
 
   private collectCotton() {
     for (const drop of [...this.state.cottonDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const feet = playerFeet(this.state.player);
+       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'cotton', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1130,7 +1136,8 @@ export class GameEngine {
   private collectLinen() {
     for (const drop of [...this.state.linenDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const feet = playerFeet(this.state.player);
+       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'linen', 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1150,6 +1157,7 @@ export class GameEngine {
 
   private attractMaterials(dt: number, playerSpeed: number) {
     const player = this.state.player;
+    const feet = playerFeet(player);
     const drops = [
       ...this.state.woodDrops,
       ...this.state.stoneDrops,
@@ -1173,7 +1181,8 @@ export class GameEngine {
   private collectWood() {
     for (const drop of [...this.state.woodDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
-      if (Math.hypot(drop.x - this.state.player.x, drop.y - this.state.player.y) > CONFIG.player.radius + 10) continue;
+      const feet = playerFeet(this.state.player);
+       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
       const result = addToInventory(this.state.inventory, 'wood', drop.amount, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
@@ -1380,7 +1389,15 @@ export class GameEngine {
     }
   }
 
-  private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false, cached?: Array<Vec & { radius: number }>) {
+  private resolvePlayerObstacles(p: Vec, ignoreCart: boolean) {
+    const off = CONFIG.player.footOffset;
+    const feet = { x: p.x, y: p.y + off };
+    this.resolveObstacleCollisions(feet, CONFIG.player.footRadius, ignoreCart);
+    p.x = this.clamp(feet.x, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
+    p.y = this.clamp(feet.y - off, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - off);
+  }
+
+  private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false, cached?: Array<Vec & { radius: number }>)
     const obstacleList = cached ?? this.obstacleCircles(ignoreCart);
     for (let pass = 0; pass < 3; pass++) {
       for (const obstacle of obstacleList) {
@@ -1404,10 +1421,13 @@ export class GameEngine {
   private isPlayerAtTreeShadow(tree: Tree) {
     const scale = this.treeScale(tree);
     const shadow = this.treeBase(tree);
-    const dx = this.state.player.x - shadow.x;
-    const dy = this.state.player.y - shadow.y;
-    const rx = (19 * scale + CONFIG.player.radius) * 1.2;
-    const ry = (8 * scale + CONFIG.player.radius) * 1.2;
+    const feet = playerFeet(this.state.player);
+    const dx = feet.x - shadow.x;
+    const dy = feet.y - shadow.y;
+    const collisionR = 9.6 * scale + CONFIG.player.footRadius;
+    const oldRx = (19 * scale + CONFIG.player.footRadius) * 1.2;
+    const rx = Math.max(oldRx, collisionR + CONFIG.interaction.margin);
+    const ry = collisionR + CONFIG.interaction.margin;
     return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
   }
 
