@@ -172,23 +172,44 @@ export default function App() {
     if (grassCtx && terrainCtx) {
       let seed = 173;
       const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      grassCtx.fillStyle = '#557a43'; grassCtx.fillRect(0, 0, 256, 256);
-      for (let i = 0; i < 46; i++) {
-        const x = random() * 256, y = random() * 256;
-        const radius = 8 + random() * 25;
-        grassCtx.fillStyle = ['rgba(105,139,69,0.24)', 'rgba(38,91,48,0.18)', 'rgba(133,145,76,0.12)'][Math.floor(random() * 3)];
-        grassCtx.beginPath(); grassCtx.ellipse(x, y, radius, radius * (0.45 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
+      // Piso low-poly: facetas geométricas discretas em vez de manchas e fios de grama.
+      grassCtx.fillStyle = '#557a43';
+      grassCtx.fillRect(0, 0, 256, 256);
+      const facetColors = ['#5f8549', '#64894c', '#527941', '#4b713d', '#6b8d50', '#587e45', '#729252'];
+      const gridSize = 32;
+      const gridPoints: Array<Array<{ x: number; y: number }>> = [];
+      for (let row = 0; row <= 8; row++) {
+        gridPoints[row] = [];
+        for (let col = 0; col <= 8; col++) {
+          const edge = row === 0 || row === 8 || col === 0 || col === 8;
+          gridPoints[row][col] = {
+            x: col * gridSize + (edge ? 0 : (random() - 0.5) * 9),
+            y: row * gridSize + (edge ? 0 : (random() - 0.5) * 9),
+          };
+        }
       }
-      for (let i = 0; i < 420; i++) {
-        const x = random() * 256, y = random() * 256;
-        grassCtx.strokeStyle = random() > 0.5 ? 'rgba(158,180,104,0.32)' : 'rgba(31,75,39,0.28)';
-        grassCtx.lineWidth = 0.7 + random() * 0.8;
-        grassCtx.beginPath(); grassCtx.moveTo(x, y); grassCtx.lineTo(x + (random() - 0.5) * 4, y - 1 - random() * 4); grassCtx.stroke();
-      }
-      for (let i = 0; i < 12; i++) {
-        const x = random() * 256, y = random() * 256;
-        grassCtx.fillStyle = 'rgba(105,78,48,0.18)';
-        grassCtx.beginPath(); grassCtx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
+      const drawFacet = (points: Array<{ x: number; y: number }>) => {
+        grassCtx.fillStyle = facetColors[Math.floor(random() * facetColors.length)];
+        grassCtx.beginPath();
+        grassCtx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) grassCtx.lineTo(points[i].x, points[i].y);
+        grassCtx.closePath();
+        grassCtx.fill();
+      };
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const topLeft = gridPoints[row][col];
+          const topRight = gridPoints[row][col + 1];
+          const bottomLeft = gridPoints[row + 1][col];
+          const bottomRight = gridPoints[row + 1][col + 1];
+          if (random() > 0.5) {
+            drawFacet([topLeft, topRight, bottomRight]);
+            drawFacet([topLeft, bottomRight, bottomLeft]);
+          } else {
+            drawFacet([topLeft, topRight, bottomLeft]);
+            drawFacet([topRight, bottomRight, bottomLeft]);
+          }
+        }
       }
 
       terrainCtx.scale(terrainScale, terrainScale);
