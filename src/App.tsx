@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
+import { playerFeet } from './game/ground';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -85,14 +86,15 @@ export default function App() {
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
   // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
   const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
-  const cartDistance = Math.hypot(state.player.x - state.cart.x, state.player.y - state.cart.y);
+  const feet = playerFeet(state.player);
+  const cartDistance = Math.hypot(feet.x - state.cart.x, feet.y - state.cart.y);
   const cartAccessible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
-  const houseDistance = Math.hypot(state.player.x - state.house.x, state.player.y - state.house.y);
+  const houseDistance = Math.hypot(feet.x - state.house.x, feet.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const houseBuildAccessible = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
-  const refineryDistance = Math.hypot(state.player.x - state.refinery.x, state.player.y - state.refinery.y);
+  const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
   const refineryBuildAccessible = !state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
-  const tecelariaDistance = Math.hypot(state.player.x - state.tecelaria.x, state.player.y - state.tecelaria.y);
+  const tecelariaDistance = Math.hypot(feet.x - state.tecelaria.x, feet.y - state.tecelaria.y);
   const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const cartBuildAccessible = !state.cart.repaired && cartDistance <= CONFIG.cart.interactRadius;
   const cartActionVisible = state.cart.repaired && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
@@ -723,8 +725,9 @@ export default function App() {
       if ((e.target instanceof HTMLElement) && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) return;
       if (k === 'q' && !e.repeat) {
         const current = engine.state;
-        const cartDistanceNow = Math.hypot(current.player.x - current.cart.x, current.player.y - current.cart.y);
-        const houseDistanceNow = Math.hypot(current.player.x - current.house.x, current.player.y - current.house.y);
+        const currentFeet = playerFeet(current.player);
+         const cartDistanceNow = Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y);
+        const houseDistanceNow = Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y);
         const canUseCart = current.cart.repaired && (current.cart.carried || cartDistanceNow <= CONFIG.cart.interactRadius);
         const canUseHouse = current.house.built && houseDistanceNow <= CONFIG.house.interactRadius;
         if (canUseCart || canUseHouse) {
@@ -736,10 +739,10 @@ export default function App() {
       if (k === 'e' && !e.repeat) {
         const current = engine.state;
         const options: Array<{ distance: number; radius: number; available: boolean; build: () => void }> = [
-          { distance: Math.hypot(current.player.x - current.cart.x, current.player.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: !current.cart.repaired, build: () => engine.buildCart() },
-          { distance: Math.hypot(current.player.x - current.house.x, current.player.y - current.house.y), radius: CONFIG.house.interactRadius, available: !current.house.built, build: () => engine.buildHouse() },
-          { distance: Math.hypot(current.player.x - current.refinery.x, current.player.y - current.refinery.y), radius: CONFIG.refinery.interactRadius, available: !current.refinery.built, build: () => engine.buildRefinery() },
-          { distance: Math.hypot(current.player.x - current.tecelaria.x, current.player.y - current.tecelaria.y), radius: CONFIG.tecelaria.interactRadius, available: !current.tecelaria.built, build: () => engine.buildTecelaria() },
+          { distance: Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: !current.cart.repaired, build: () => engine.buildCart() },
+          { distance: Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y), radius: CONFIG.house.interactRadius, available: !current.house.built, build: () => engine.buildHouse() },
+          { distance: Math.hypot(currentFeet.x - current.refinery.x, currentFeet.y - current.refinery.y), radius: CONFIG.refinery.interactRadius, available: !current.refinery.built, build: () => engine.buildRefinery() },
+          { distance: Math.hypot(currentFeet.x - current.tecelaria.x, currentFeet.y - current.tecelaria.y), radius: CONFIG.tecelaria.interactRadius, available: !current.tecelaria.built, build: () => engine.buildTecelaria() },
         ];
         const nearest = options.filter(option => option.available && option.distance <= option.radius).sort((a, b) => a.distance - b.distance)[0];
         nearest?.build();
@@ -838,7 +841,7 @@ export default function App() {
     const player = engineRef.current?.state.player;
     const cart = engineRef.current?.state.cart;
     if (!color || !player) return;
-    const attachToCart = !!cart && Math.hypot(player.x - cart.x, player.y - cart.y) <= CONFIG.cart.interactRadius;
+    const attachToCart = !!cart && Math.hypot(playerFeet(player).x - cart.x, playerFeet(player).y - cart.y) <= CONFIG.cart.interactRadius;
     const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), {
       colorId: color.id,
       color: color.color,
@@ -912,7 +915,7 @@ export default function App() {
     const player = engineRef.current?.state.player;
     const cart = engineRef.current?.state.cart;
     if (color && player) {
-      const attachToCart = !!cart && Math.hypot(player.x - cart.x, player.y - cart.y) <= CONFIG.cart.interactRadius;
+      const attachToCart = !!cart && Math.hypot(playerFeet(player).x - cart.x, playerFeet(player).y - cart.y) <= CONFIG.cart.interactRadius;
       const next = [...flagsRef.current.filter(flag => flag.colorId !== color.id), {
         colorId: color.id, color: color.color,
         x: attachToCart && cart ? cart.x : player.x,
