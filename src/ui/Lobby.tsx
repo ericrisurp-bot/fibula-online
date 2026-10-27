@@ -16,7 +16,7 @@ const OBJECTS: LobbyObject[] = [
   { id: 'wardrobe', label: 'Armário', x: 752, y: 430, radius: 40, description: 'A troca de outfit será adicionada em uma etapa futura.' },
   { id: 'chest', label: 'Baú', x: 150, y: 425, radius: 38, description: 'O baú dará acesso aos itens e materiais guardados pelo jogador na casa.' },
   { id: 'door', label: 'Porta', x: 450, y: 545, radius: 62, description: 'Quando estiver pronto, use a porta para iniciar a partida de mineração.' },
-  { id: 'window', label: 'Janela', x: 748, y: 130, radius: 38, description: 'A janela será o ponto para convidar um amigo para sua sessão e trazê-lo para esta casa.' },
+  { id: 'window', label: 'Janela', x: 748, y: 48, radius: 48, description: 'A janela será o ponto para convidar um amigo para sua sessão e trazê-lo para esta casa.' },
 ];
 
 type Props = { ready: boolean; onStart: () => void; onStartFullscreen: () => void };
