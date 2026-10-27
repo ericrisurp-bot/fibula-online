@@ -340,8 +340,11 @@ export function drawFloatingWeapon(
   hover.presence += (presenceTarget - hover.presence) * presenceAlpha;
   if (hover.presence < 0.02) return;
 
-  if (opts.facingX < -0.35) hover.side = 1;
-  else if (opts.facingX > 0.35) hover.side = -1;
+  // Enquanto houver alvo, mantém a arma no lado em que já está; só reposiciona após perdê-lo.
+  if (!opts.hasTarget) {
+    if (opts.facingX < -0.35) hover.side = 1;
+    else if (opts.facingX > 0.35) hover.side = -1;
+  }
 
   const sideAlpha = 1 - Math.exp(-dt / 0.15);
   hover.sideT += (hover.side - hover.sideT) * sideAlpha;
