@@ -1,5 +1,4 @@
 import { CONFIG, type WeaponId } from './config';
-import { staffLean } from './rangedWeapons';
 
 type Point = readonly [number, number];
 
@@ -379,11 +378,11 @@ export function drawFloatingWeapon(
   const combatY = combatDistance * Math.sin(combatDirection);
   const x = weapon === 'espada' ? restX + (combatX - restX) * hover.combatT : restX;
   const y = weapon === 'espada' ? restY + (combatY - restY) * hover.combatT : restY;
-  const desiredAngle = weapon === 'espada'
+  const desiredAngle = weapon === 'espada' || weapon === 'arco'
     ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
-    : weapon === 'arco'
-      ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
-      : -Math.PI / 2 + restLean + (weapon === 'cajado' || weapon === 'bastao' ? staffLean(opts.aimAngle) * hover.combatT : 0);
+    : weapon === 'cajado' || weapon === 'bastao'
+      ? restAngle + angleDelta(restAngle, combatDirection) * hover.combatT
+      : restAngle;
   const angleAlpha = 1 - Math.exp(-dt / 0.12);
   hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
   if (hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
