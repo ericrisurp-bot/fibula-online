@@ -275,8 +275,9 @@ export default function Lobby({ ready, onStart, onStartFullscreen }: Props) {
         <p>{openObject.description}</p>
         {openObject.id === 'door' ? <>
           <div className="lobby-modal-note">{ready ? 'A casa está pronta para a primeira sessão.' : 'Aguarde o carregamento do mundo antes de iniciar.'}</div>
-          <button className="lobby-primary" type="button" disabled={!ready} onClick={onStartFullscreen}>Iniciar partida em tela cheia</button>
-          <button className="lobby-secondary" type="button" disabled={!ready} onClick={onStart}>Iniciar partida</button>
+          <button className="lobby-primary" type="button" disabled={!ready} onClick={onStart}>Iniciar sessão</button>
+          <button className="lobby-secondary" type="button" disabled={!ready} onClick={onStartFullscreen}>Iniciar sessão em tela cheia</button>
+          <button className="lobby-secondary" type="button" disabled aria-disabled="true">Sair da casa · em breve</button>
         </> : <div className="lobby-modal-note">{isDecor ? 'Objeto decorativo · sem função de jogo' : 'Protótipo visual · sistema funcional será implementado em uma etapa própria'}</div>}
       </section>
     </div>}
