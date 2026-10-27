@@ -25,5 +25,12 @@ Abra o endereço local informado pelo Vite.
 - A atração entre árvores favorece a formação de bosques; quanto maior a concentração local, maior a chance de novos nascimentos perto dela.
 - Um núcleo com 25 árvores próximas deixa de atrair novas árvores. Outros locais válidos do mapa continuam podendo crescer.
 
+## Sistema de pedras
+- A partida começa com 15 pedras espalhadas pelo mapa.
+- O limite é de 75 pedras vivas no mapa.
+- Quando houver espaço no limite, novas pedras são geradas em intervalo fixo de 20 segundos.
+- A atração existente foi mantida: raio de agrupamento de 300, preferência por concentrações com até 20 pedras próximas, chance máxima de atração de 80% e preferência de nascimento no nordeste de 70%.
+- As regras de mineração, resistência por tamanho e chance de queda de pedra permanecem inalteradas.
+
 ## Como rodar
 O jogo pode ser executado localmente com Node.js 20 ou superior e npm. Use `npm install` e depois `npm run dev`.
