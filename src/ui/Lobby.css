@@ -1,0 +1,30 @@
+.lobby-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;gap:12px;padding:clamp(10px,2vw,24px);background:radial-gradient(ellipse at 50% 0%,#3b4a3b 0%,#1b2520 64%,#111814 100%);color:#f2ead9}
+.lobby-topbar,.lobby-footer{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.lobby-topbar{min-height:42px}
+.lobby-brand{font-weight:950;font-size:clamp(18px,2.4vw,27px);letter-spacing:.08em;color:#f1e5c9}
+.lobby-brand span{font-size:.56em;letter-spacing:.18em;color:#a9c99a;margin-left:8px}
+.lobby-hint{font-size:10px;letter-spacing:.17em;font-weight:800;color:#aeb9a6}
+.lobby-ready{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid #536b52;border-radius:999px;padding:7px 11px;font-size:9px;letter-spacing:.12em;font-weight:850;color:#c5d7b9;background:#19241dcc}
+.lobby-ready i{width:7px;height:7px;border-radius:50%;background:#a4d58b;box-shadow:0 0 10px #a4d58b77}
+.lobby-stage{position:relative;flex:1;min-height:0;overflow:hidden;border:1px solid #7b7857;border-radius:16px;background:#795638;box-shadow:0 22px 70px #0005}
+.lobby-canvas{display:block;width:100%;height:100%;touch-action:none}
+.lobby-interact{position:absolute;left:50%;bottom:clamp(16px,4vh,42px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;border:1px solid #e4c58d;border-radius:9px;padding:11px 17px;background:#1b251ef2;color:#f4e8ce;box-shadow:0 8px 26px #0006;font-weight:800;white-space:nowrap}
+.lobby-interact span{display:grid;place-items:center;min-width:24px;height:24px;border-radius:5px;background:#d6b778;color:#2a2419;font-size:12px}
+.lobby-movement-hint{position:absolute;left:16px;bottom:14px;border:1px solid #ffffff22;border-radius:7px;padding:8px 11px;background:#1b251edb;color:#e2d5b9;font-size:11px}
+.lobby-mobile-controls{display:none;position:absolute;right:14px;bottom:12px;gap:5px;flex-direction:column;align-items:center;touch-action:none}
+.lobby-mobile-controls>div{display:flex;gap:5px}
+.lobby-mobile-controls button{width:38px;height:38px;border:1px solid #d3bd8d88;border-radius:9px;background:#17241de8;color:#f4e8ce;font-weight:900;touch-action:none;user-select:none;-webkit-user-select:none}
+.lobby-footer{justify-content:space-between;min-height:17px;font-size:9px;letter-spacing:.15em;font-weight:850;color:#899986}
+.lobby-modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:18px;background:#0b100dd9;backdrop-filter:blur(5px)}
+.lobby-modal{position:relative;width:min(420px,100%);padding:26px;border:1px solid #6d795d;border-radius:15px;background:linear-gradient(145deg,#2b3529,#19231d);box-shadow:0 24px 80px #0008}
+.lobby-modal-close{position:absolute;top:10px;right:12px;width:34px;height:34px;border:1px solid #ffffff20;border-radius:8px;background:#ffffff0a;color:#e8e2d2;font-size:24px}
+.lobby-modal-kicker{font-size:9px;font-weight:900;letter-spacing:.2em;color:#b6c89e}
+.lobby-modal h2{margin:8px 40px 10px 0;font-size:clamp(25px,4vw,32px);letter-spacing:-.04em;color:#f4e8ce}
+.lobby-modal p{margin:0;color:#c4cbbb;font-size:14px;line-height:1.65}
+.lobby-modal-note{margin:18px 0 14px;border:1px solid #ffffff18;border-radius:8px;padding:11px 12px;background:#0e17114f;color:#aebda8;font-size:12px;line-height:1.5}
+.lobby-primary,.lobby-secondary{width:100%;border-radius:8px;padding:12px 14px;font-weight:850}
+.lobby-primary{border:1px solid #d3c08d;background:#d6c18c;color:#26281e}
+.lobby-secondary{margin-top:8px;border:1px solid #71836c;background:#243329;color:#e7e9d9}
+.lobby-primary:disabled,.lobby-secondary:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:700px){.lobby-screen{gap:8px;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}.lobby-topbar{min-height:34px;gap:8px}.lobby-brand{font-size:17px}.lobby-brand span{font-size:8px;margin-left:4px}.lobby-hint{display:none}.lobby-ready{font-size:8px;padding:6px 8px}.lobby-stage{border-radius:10px}.lobby-footer{font-size:7px;letter-spacing:.09em}.lobby-movement-hint{left:8px;bottom:8px;font-size:9px;max-width:calc(100% - 160px)}.lobby-mobile-controls{display:flex;right:8px;bottom:8px}.lobby-mobile-controls button{width:34px;height:34px}.lobby-interact{bottom:clamp(12px,3vh,28px);font-size:12px;padding:9px 12px}.lobby-modal{padding:23px 20px}.lobby-modal p{font-size:13px}}
+@media(hover:none){.lobby-mobile-controls{display:flex}}
