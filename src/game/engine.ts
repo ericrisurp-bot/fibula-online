@@ -87,7 +87,7 @@ export class GameEngine {
     this.spawnInitialRocks();
     this.rockSpawnCountdown = this.rockSpawnDuration();
     this.spawnInitialCottonPlants();
-    this.cottonSpawnCountdown = this.treeSpawnDuration();
+    this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval;
   }
 
   private freshState(classId: ClassId = 'guerreiro'): GameSnapshot {
@@ -582,7 +582,7 @@ export class GameEngine {
     const classId = this.state.classId;
     this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
-    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = this.treeSpawnDuration(); this.start(); this.emit();
+    this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
@@ -800,7 +800,7 @@ export class GameEngine {
     this.cottonSpawnCountdown -= dt;
     if (this.cottonSpawnCountdown > 0) return;
     if (this.state.cottonPlants.length < CONFIG.cotton.max) this.spawnCottonPlant();
-    this.cottonSpawnCountdown = this.treeSpawnDuration();
+    this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval;
   }
 
   private validCottonPosition(x: number, y: number, size: CottonPlant['size'], minSpacing: number) {
@@ -848,10 +848,6 @@ export class GameEngine {
     if (!position) return false;
     this.state.cottonPlants.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size });
     return true;
-  }
-
-  private treeSpawnDuration() {
-    return Math.max(CONFIG.trees.spawnMin, CONFIG.trees.spawnBase - CONFIG.trees.spawnReductionPerTree * this.state.trees.length);
   }
 
   private spawnInitialTrees() {
