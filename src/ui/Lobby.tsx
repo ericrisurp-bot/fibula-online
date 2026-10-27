@@ -15,7 +15,7 @@ const OBJECTS: LobbyObject[] = [
   { id: 'sewing', label: 'Máquina de costura', x: 645, y: 330, radius: 42, description: 'Estação planejada para fabricar luvas, botas e equipamentos de couro ou tecido.' },
   { id: 'wardrobe', label: 'Armário', x: 752, y: 430, radius: 40, description: 'A troca de outfit será adicionada em uma etapa futura.' },
   { id: 'chest', label: 'Baú', x: 150, y: 425, radius: 38, description: 'O baú dará acesso aos itens e materiais guardados pelo jogador na casa.' },
-  { id: 'door', label: 'Porta', x: 450, y: 92, radius: 48, description: 'Quando estiver pronto, use a porta para iniciar a partida de mineração.' },
+  { id: 'door', label: 'Porta', x: 450, y: 545, radius: 62, description: 'Quando estiver pronto, use a porta para iniciar a partida de mineração.' },
   { id: 'window', label: 'Janela', x: 748, y: 130, radius: 38, description: 'A janela será o ponto para convidar um amigo para sua sessão e trazê-lo para esta casa.' },
 ];
 
