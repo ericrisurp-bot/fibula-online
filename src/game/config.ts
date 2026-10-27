@@ -25,7 +25,7 @@ export const CONFIG = {
   dayNight: { cycle: 90, dayDuration: 45, transitionDuration: 5, dayDamageVulnerability: 1, spawnStopBeforeDawn: 5, spawnMinDistance: 800, spawnMaxDistance: 1000, visibilityRange: 420, nightOverlayStrength: 0.9, maxAlive: 250, firstNightSpawnCount: 5, addedPerNight: 5, spawnWaveDistribution: [0.3, 0.2, 0.25, 0.15, 0.1] },
   trees: { max: 150, startCount: 20, spawnInterval: 15, spawnBatch: 3, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 600, attractionRadius: 300, attractionMaxNearby: 25, attractionMaxChance: 0.8, rareHouseSpawnChance: 0.009, rareHouseRadius: 220, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   rocks: { max: 75, startCount: 15, spawnBase: 20, spawnReductionPerRock: 0, spawnMin: 20, noSpawnRadius: 600, mineRange: 60, dropChance: 0.07, attractionRadius: 300, attractionMaxNearby: 20, attractionMaxChance: 0.8, northEastSpawnChance: 0.7, northEastMinX: 0.55, northEastMaxY: 0.45, hitsToBreak: { small: 7, medium: 12, large: 22 }, sizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
-  cotton: { max: 38, startCount: 10, minSpacing: 600, dropChance: 0.07, plantPlayerClearRadius: 220, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
+  cotton: { max: 38, startCount: 10, spawnInterval: 20, minSpacing: 600, dropChance: 0.07, plantPlayerClearRadius: 220, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   gathering: { baseInterval: 0.9, toolAnimationDuration: 0.55 },
   tecelaria: { buildCostBronze: 2, buildCostWood: 50, buildCostCotton: 10, buildCostStone: 10, interactRadius: 85, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03 },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
