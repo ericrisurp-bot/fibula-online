@@ -29,7 +29,6 @@ export default function Lobby({ ready, onStart, onStartFullscreen }: Props) {
   const [openObjectId, setOpenObjectId] = useState<LobbyObjectId | null>(null);
   const [mobileDirection, setMobileDirection] = useState({ x: 0, y: 0 });
   const nearbyRef = useRef<LobbyObjectId | null>(null);
-  const lastNearbyUpdate = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
