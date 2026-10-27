@@ -666,8 +666,15 @@ export class GameEngine {
       this.state.player.facingX = dx / directionLength;
       this.state.player.facingY = dy / directionLength;
     }
-    if (p.facingX < -0.35) this.weaponSide = 1;
-    else if (p.facingX > 0.35) this.weaponSide = -1;
+    // A arma e o ponto de saída ficam no mesmo lado enquanto houver um alvo ao alcance.
+    const rangedWeapon = CONFIG.weapons[this.state.weapon];
+    const hasRangedTarget = this.state.enemies.some(enemy =>
+      Math.hypot(enemy.x - p.x, enemy.y - p.y) <= rangedWeapon.range
+    );
+    if (!hasRangedTarget) {
+      if (p.facingX < -0.35) this.weaponSide = 1;
+      else if (p.facingX > 0.35) this.weaponSide = -1;
+    }
     const cartLoad = this.state.cart.inventory.reduce((total, stack) => total + stack.quantity, 0);
     const cartCapacity = CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot;
     const loadFraction = Math.min(1, cartLoad / cartCapacity);
