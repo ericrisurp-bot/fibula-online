@@ -850,10 +850,6 @@ export class GameEngine {
     return true;
   }
 
-  private treeSpawnDuration() {
-    return Math.max(CONFIG.trees.spawnMin, CONFIG.trees.spawnBase - CONFIG.trees.spawnReductionPerTree * this.state.trees.length);
-  }
-
   private spawnInitialTrees() {
     for (let i = 0; i < CONFIG.trees.startCount; i++) this.spawnTree(true);
   }
