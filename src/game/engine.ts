@@ -549,18 +549,20 @@ export class GameEngine {
     const cart = this.state.cart;
     if (!cart.carried) return;
     const p = this.state.player;
-    // Em diagonais, o carrinho aponta para a direção vertical: W ou S.
+    // O carrinho se orienta pelo eixo dominante do movimento e fica atrás do jogador NESSE eixo,
+    // para a alça sempre ficar nas mãos do personagem. Em diagonais quase exatas mantém o eixo atual.
     if (Math.hypot(p.facingX, p.facingY) > 0.15) {
-      const hasHorizontal = Math.abs(p.facingX) > 0.15;
-      const hasVertical = Math.abs(p.facingY) > 0.15;
-      cart.angle = hasHorizontal && hasVertical
-        ? Math.atan2(Math.sign(p.facingY), 0)
-        : Math.atan2(p.facingY, p.facingX);
+      const ax = Math.abs(p.facingX), ay = Math.abs(p.facingY);
+      const currentlyVertical = Math.abs(Math.cos(cart.angle)) < 0.15;
+      const vertical = ay > ax * 1.2 ? true : ax > ay * 1.2 ? false : currentlyVertical;
+      cart.angle = vertical
+        ? Math.atan2(Math.sign(p.facingY) || 1, 0)
+        : Math.atan2(0, Math.sign(p.facingX) || 1);
     }
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const feet = playerFeet(p);
-    const targetX = this.clamp(feet.x - p.facingX * CONFIG.cart.followDistance, margin, this.world - margin);
-    const targetY = this.clamp(feet.y - p.facingY * CONFIG.cart.followDistance, margin, this.world - margin);
+    const targetX = this.clamp(feet.x - Math.cos(cart.angle) * CONFIG.cart.followDistance, margin, this.world - margin);
+    const targetY = this.clamp(feet.y - Math.sin(cart.angle) * CONFIG.cart.followDistance, margin, this.world - margin);
     const dx = targetX - cart.x;
     const dy = targetY - cart.y;
     const distance = Math.hypot(dx, dy);
