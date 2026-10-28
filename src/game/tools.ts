@@ -73,7 +73,7 @@ export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number)
 // Animação de relógio: 12h -> alvo. Ponto de impacto local de cada ferramenta (unidades de r).
 const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0] };
 const ease = { out: (t: number) => 1 - Math.pow(1 - t, 3), in: (t: number) => t * t * t };
-function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: number) {
+function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: number, minGrip: number) {
   const side = Math.cos(angle) >= 0 ? 1 : -1;
   const start = angle - side * Math.PI / 2;
   let rot = angle, alpha = 1, yOff = 0;
@@ -85,16 +85,16 @@ function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: numb
   // posição do cabo: a cabeça (ponto de impacto) cai em 'reach' quando rot == angle
   const I = IMP[tool], ix = I[0] * r, iy = I[1] * r * side, c = Math.cos(angle), sn = Math.sin(angle);
   let gx = reach * c - (ix * c - iy * sn), gy = reach * sn - (ix * sn + iy * c);
-  const along = gx * c + gy * sn; if (along < 6) { gx += c * (6 - along); gy += sn * (6 - along); }
+  const along = gx * c + gy * sn; if (along < minGrip) { gx += c * (minGrip - along); gy += sn * (minGrip - along); }
   return { side, gx, gy: gy + yOff, rot, alpha };
 }
-export type FloatingToolOptions = { angle: number; reach: number; timer: number; duration: number };
+export type FloatingToolOptions = { angle: number; reach: number; timer: number; duration: number; minGrip: number };
 
 /** Chamar com o contexto transladado para o centro do jogador, SEM espelhamento. */
 export function drawFloatingTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number, opts: FloatingToolOptions): void {
   if (opts.timer <= 0) return;
   const p = Math.min(1, Math.max(0, 1 - opts.timer / opts.duration));
-  const q = toolPose(tool, r, opts.angle, opts.reach, p);
+  const q = toolPose(tool, r, opts.angle, opts.reach, p, opts.minGrip);
   if (q.alpha <= 0.01) return;
   ctx.save(); ctx.globalAlpha = q.alpha; ctx.translate(q.gx, q.gy); ctx.rotate(q.rot); ctx.scale(1, q.side);
   drawTool(ctx, tool, r); ctx.restore();
