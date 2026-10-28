@@ -15,7 +15,7 @@ export type CartDrawState = {
 type Pt = readonly [number, number];
 
 /** Fator de escala de todo o desenho (arte autorada em px a 1,0). */
-export const CART_SCALE = 1.25;
+export const CART_SCALE = 1.05;
 
 const W = {
   d0: '#3b2416', d1: '#5a3a22', d2: '#7a4f2d', d3: '#94653a', d4: '#ad7a45', d5: '#c8935a', d6: '#e0b077',
@@ -69,10 +69,12 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   const planksOn = c.repaired ? 4 : Math.floor(f * 4 + 0.001);
   const xl = (y: number) => -40 + (y + 30) * (4 / 26);
   const xr = (y: number) => 30 - (y + 30) * (4 / 26);
+  ctx.save();
+  ctx.translate(0, 3); // assenta a carroceria mais perto do chão
 
-  // pé de apoio traseiro
-  poly(ctx, [[-35, -4], [-31, -4], [-31, 19], [-36, 19]], W.d1, W.line, 0.9);
-  poly(ctx, [[-38, 17], [-29, 17], [-29, 20], [-38, 20]], W.d0, W.line, 0.9);
+  // pé de apoio traseiro (curto e fino; a carroceria fica assentada mais perto do chão)
+  poly(ctx, [[-34.5, -4], [-31.5, -4], [-31.5, 16], [-34.5, 16]], W.d1, W.line, 0.9);
+  poly(ctx, [[-37, 14.5], [-29, 14.5], [-29, 17], [-37, 17]], W.d0, W.line, 0.9);
 
   // varal distante (mais escuro)
   poly(ctx, [[-30, -12], [50, -8], [50, -5], [-30, -8]], W.d0, W.line, 0.8);
@@ -132,7 +134,7 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   }
 
   // roda (frente da parede), sempre visível
-  wheel(ctx, -2, 3, 17, rot);
+  wheel(ctx, -2, 0, 17, rot);
 
   // varal próximo (à frente da roda) e punho
   poly(ctx, [[-32, -9], [51, -4], [51, 0], [-32, -5]], W.d3, W.line, 0.9);
@@ -141,6 +143,7 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   poly(ctx, [[47, -9], [53, -9], [53, 3], [47, 3]], W.d4, W.line, 0.7);              // barra do punho
   poly(ctx, [[47, -9], [53, -9], [53, -7], [47, -7]], W.d6, null);
   rivet(ctx, 50, -4.5, 1);
+  ctx.restore();
 }
 
 // ---------- vista de cima (alça para cima se movingUp, para baixo caso contrário) ----------
