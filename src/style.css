@@ -1753,3 +1753,67 @@ button, button * {
 .profile-ability>span{color:#286fa9}
 .profile-ability p{color:#34465c}
 .profile-save-note{color:#718096}
+
+
+/* Refinamento final do perfil: cores corretas, tipografia mais amigável e leitura maior. */
+.lobby-profile-modal{
+  font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
+}
+.lobby-profile-tabs .profile-class-tab.class-guerreiro.active{
+  border-color:#d94b4b;background:#fff0f0;box-shadow:inset 0 -3px #d94b4b;
+}
+.lobby-profile-tabs .profile-class-tab.class-mago.active{
+  border-color:#8b5cf6;background:#f3edff;box-shadow:inset 0 -3px #8b5cf6;
+}
+.lobby-profile-tabs .profile-class-tab.class-arqueiro.active{
+  border-color:#d49a16;background:#fff8e6;box-shadow:inset 0 -3px #d49a16;
+}
+.lobby-profile-tabs .profile-class-tab.class-druida.active{
+  border-color:#269b58;background:#eaf8ef;box-shadow:inset 0 -3px #269b58;
+}
+.profile-class-details.class-guerreiro .profile-section-heading h3{color:#c83f3f}
+.profile-class-details.class-mago .profile-section-heading h3{color:#7541c8}
+.profile-class-details.class-arqueiro .profile-section-heading h3{color:#a87508}
+.profile-class-details.class-druida .profile-section-heading h3{color:#21834b}
+.profile-class-details.class-guerreiro .profile-ability{border-color:#efc5c5;background:#fff3f3}
+.profile-class-details.class-mago .profile-ability{border-color:#d9c9fb;background:#f6f1ff}
+.profile-class-details.class-arqueiro .profile-ability{border-color:#f0dba8;background:#fff9eb}
+.profile-class-details.class-druida .profile-ability{border-color:#bfe4cb;background:#effaf3}
+.profile-class-details.class-guerreiro .profile-ability>span{color:#b83d3d}
+.profile-class-details.class-mago .profile-ability>span{color:#7541c8}
+.profile-class-details.class-arqueiro .profile-ability>span{color:#a87508}
+.profile-class-details.class-druida .profile-ability>span{color:#21834b}
+
+.lobby-profile-header h2{font-size:clamp(23px,4.2vw,30px)}
+.lobby-profile-tabs .profile-class-tab strong{font-size:clamp(12px,2vw,15px)}
+.profile-class-details .profile-section-heading h3{font-size:clamp(22px,3.5vw,25px)}
+.profile-class-description{font-size:13px;line-height:1.55}
+.profile-priority-controls>span{font-size:9px}
+.profile-priority-controls button{font-size:12px}
+.profile-priority-controls>small{font-size:10px;line-height:1.4}
+.profile-weapon-note{font-size:9px}
+.profile-weapon-note strong{font-size:13px}
+.profile-stat-summary span,.profile-ability>span{font-size:10px}
+.profile-stat-summary strong{font-size:clamp(20px,3.2vw,25px)}
+.profile-stat-summary small{font-size:11px;line-height:1.35}
+.profile-stat-section h4{font-size:14px;letter-spacing:0}
+.profile-stat-list span,.profile-attribute-list span{font-size:12px}
+.profile-stat-list strong,.profile-attribute-list strong{font-size:12px}
+.profile-stat-list small,.profile-attribute-list small{font-size:11px}
+.profile-stat-note{font-size:11px;line-height:1.5}
+.profile-ability p{font-size:13px;line-height:1.55}
+.profile-save-note{font-size:9px;line-height:1.45}
+
+@media(max-width:650px){
+  .profile-class-description{font-size:12px}
+  .profile-stat-section h4{font-size:13px}
+  .profile-stat-list span,.profile-attribute-list span{font-size:11px}
+  .profile-stat-list strong,.profile-attribute-list strong{font-size:11px}
+  .profile-stat-list small,.profile-attribute-list small{font-size:10px}
+  .profile-ability p{font-size:12px}
+  .profile-stat-note{font-size:10px}
+}
+@media(max-width:360px){
+  .profile-stat-list span,.profile-attribute-list span{font-size:10px}
+  .profile-stat-list strong,.profile-attribute-list strong{font-size:10px}
+}
