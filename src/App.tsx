@@ -1349,13 +1349,15 @@ export default function App() {
                  <div className="arsenal-section-heading"><strong>{arsenalCharacterTab === 'principal' ? 'PERSONAGEM PRINCIPAL' : 'PERSONAGEM SECUNDÁRIO'}</strong><span>Selecione um espaço para equipar</span></div>
                  <div className="arsenal-equipment-stage">
                    {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
-                   {ARSENAL_SLOT_LAYOUT.map(({ slot, position }) => {
-                     const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                     const info = ARSENAL_SLOT_INFO[slot];
-                     return <button type="button" key={slot} className={`arsenal-equipment-slot slot-${position} ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
-                       <span className="arsenal-equipment-icon" aria-hidden="true">{equipped?.icon ?? info.icon}</span><strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
-                     </button>;
-                   })}
+                   <div className="arsenal-equipment-grid">
+                     {ARSENAL_SLOT_LAYOUT.map(({ slot }) => {
+                       const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                       const info = ARSENAL_SLOT_INFO[slot];
+                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
+                         <span className="arsenal-equipment-icon" aria-hidden="true">{equipped?.icon ?? info.icon}</span><strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
+                       </button>;
+                     })}
+                   </div>
                  </div>
                </section>
                <section className="arsenal-inventory-section">
