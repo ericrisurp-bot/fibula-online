@@ -378,7 +378,6 @@ export function drawFloatingWeapon(
   const combatY = combatDistance * Math.sin(combatDirection);
   const x = weapon === 'espada' ? restX + (combatX - restX) * hover.combatT : restX;
   const y = weapon === 'espada' ? restY + (combatY - restY) * hover.combatT : restY;
-  // O arco acompanha a mira sem atraso para manter a pose alinhada ao disparo.
   const desiredAngle = weapon === 'espada'
     ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
     : weapon === 'arco' && opts.hasTarget
