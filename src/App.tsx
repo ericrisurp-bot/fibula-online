@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
 import { CONFIG, type ClassId, type WeaponId } from './game/config';
+import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
@@ -29,6 +30,72 @@ const initial: GameSnapshot = {
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherReach: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
+const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
+const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
+  guerreiro: 'espada',
+  mago: 'cajado',
+  arqueiro: 'arco',
+  druida: 'bastao',
+};
+const isProfileClassId = (value: unknown): value is ClassId =>
+  typeof value === 'string' && PROFILE_CLASS_IDS.includes(value as ClassId);
+
+function ProfileClassStats({ classId }: { classId: ClassId }) {
+  const attributes = getPlayerAttributes(classId, 0);
+  const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
+  const hpPerLevel = getAttributeEffectPerLevel(classId, 1, 'vida');
+  const damagePerLevel = (getDamageMultiplier(classId, 1) - 1) * 100;
+  const movementPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeMovimento');
+  const armorPerLevel = getAttributeEffectPerLevel(classId, 1, 'armadura');
+  const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque') * 100;
+  const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva') * 100;
+  const multipliers = CONFIG.attributes.classMultipliers[classId];
+  const attributeRows = [
+    ['Força', attributes.forca, multipliers.forca],
+    ['Inteligência', attributes.inteligencia, multipliers.inteligencia],
+    ['Destreza', attributes.destreza, multipliers.destreza],
+    ['Armadura', attributes.armadura, multipliers.armadura],
+    ['Resistência mágica', attributes.resistenciaMagica, multipliers.resistenciaMagica],
+    ['Velocidade de movimento', attributes.velocidadeMovimento, multipliers.velocidadeMovimento],
+    ['Velocidade de ataque', attributes.velocidadeAtaque, multipliers.velocidadeAtaque],
+    ['Alcance de ataque', attributes.alcanceAtaque, multipliers.alcanceAtaque],
+    ['Esquiva', attributes.esquiva, multipliers.esquiva],
+    ['Área de ataque', attributes.areaAtaque, multipliers.areaAtaque],
+  ] as const;
+  const ability = {
+    guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
+    mago: `A cada 4º ataque, cria uma explosão de raio ${CONFIG.mageExplosion.radius} com dano multiplicado por ${CONFIG.mageExplosion.damageMultiplier.toFixed(1)}.`,
+    arqueiro: `Flechas perfurantes; a cada ${CONFIG.archerHeal.arrowsPerHeal} flechas disparadas, recupera ${CONFIG.archerHeal.amount} de vida.`,
+    druida: `Envenena e reduz a velocidade dos inimigos; a cada ${CONFIG.druidHeal.basicHitsPerHeal} acertos básicos recupera ${CONFIG.druidHeal.basicHitAmount} de vida e gera orbes ao eliminar inimigos.`,
+  }[classId];
+
+  return <div className="profile-stats-content">
+    <div className="profile-stat-summary">
+      <div><span>VIDA INICIAL</span><strong>{CONFIG.attributes.classStartHealth[classId]}</strong><small>+{hpPerLevel.toFixed(1)} por nível</small></div>
+      <div><span>DANO DA ARMA</span><strong>{weapon.damage}</strong><small>+{damagePerLevel.toFixed(2)}% de dano por nível</small></div>
+      <div><span>ALCANCE</span><strong>{weapon.range}</strong><small>unidades do jogo</small></div>
+      <div><span>ATAQUES / SEGUNDO</span><strong>{weapon.attackSpeed.toFixed(2)}</strong><small>+{attackSpeedPerLevel.toFixed(2)}% de velocidade por nível</small></div>
+    </div>
+    <section className="profile-stat-section">
+      <h4>Sobrevivência e mobilidade</h4>
+      <div className="profile-stat-list">
+        <div><span>Velocidade de movimento</span><strong>{CONFIG.player.speed} <small>+{movementPerLevel.toFixed(2)} / nível</small></strong></div>
+        <div><span>Armadura inicial</span><strong>{CONFIG.player.armor} <small>+{armorPerLevel.toFixed(2)} / nível</small></strong></div>
+        <div><span>Esquiva inicial</span><strong>{(CONFIG.player.dodge * 100).toFixed(1)}% <small>+{dodgePerLevel.toFixed(2)} p.p. / nível</small></strong></div>
+      </div>
+    </section>
+    <section className="profile-stat-section">
+      <h4>Atributos da classe</h4>
+      <p className="profile-stat-note">Todos começam em 100. O ganho por nível é aplicado conforme o multiplicador da classe.</p>
+      <div className="profile-attribute-list">
+        {attributeRows.map(([label, value, gain]) => <div key={label}><span>{label}</span><strong>{value} <small>+{gain.toFixed(2)} / nível</small></strong></div>)}
+      </div>
+      <p className="profile-stat-note">Força, inteligência e destreza participam do cálculo de dano conforme a classe. Armadura, velocidade, velocidade de ataque, esquiva e vida já têm efeitos no jogo. Resistência mágica, alcance e área de ataque ainda estão reservados para sistemas futuros.</p>
+    </section>
+    <section className="profile-ability"><span>HABILIDADE / ESTILO</span><p>{ability}</p></section>
+  </div>;
+}
+
 const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : itemId === 'cotton' ? '☁️' : itemId === 'linen' ? '🧵' : '📦';
 const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
@@ -104,6 +171,19 @@ export default function App() {
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [characterPreferences, setCharacterPreferences] = useState<[ClassId, ClassId]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem('fibula-character-preferences') ?? 'null');
+        if (Array.isArray(saved) && saved.length === 2 && isProfileClassId(saved[0]) && isProfileClassId(saved[1]) && saved[0] !== saved[1]) {
+          return [saved[0], saved[1]];
+        }
+      } catch { /* Preferências inválidas são substituídas pelos padrões. */ }
+    }
+    return ['guerreiro', 'druida'];
+  });
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileTab, setProfileTab] = useState<0 | 1>(0);
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
     const saved = window.localStorage.getItem('fibula-interface-scale');
@@ -143,6 +223,19 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
+
+  useEffect(() => {
+    window.localStorage.setItem('fibula-character-preferences', JSON.stringify(characterPreferences));
+  }, [characterPreferences]);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [profileOpen]);
 
   useEffect(() => {
     if (!showStart) return;
@@ -188,14 +281,16 @@ export default function App() {
       ctx.save();
       ctx.translate(width / 2, height * 0.82);
       ctx.scale(scale, scale);
-      drawPlayer(ctx, 0, 0, 'espada', 'guerreiro', now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, true, false, 0, 0, 0, 0, 0, 0, 0);
-      drawFloatingWeapon(ctx, 'espada', CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
+      const lobbyClass = characterPreferences[0];
+      const lobbyWeapon = PROFILE_CLASS_WEAPONS[lobbyClass];
+      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, true, false, 0, 0, 0, 0, 0, 0, 0);
+      drawFloatingWeapon(ctx, lobbyWeapon, CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
       ctx.restore();
       frame = window.requestAnimationFrame(renderCharacter);
     };
     frame = window.requestAnimationFrame(renderCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [showStart]);
+  }, [showStart, characterPreferences]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -1091,7 +1186,7 @@ export default function App() {
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
-        <div className="lobby-coordinate-grid" aria-hidden="true">
+        <div className="lobby-coordinate-grid" aria-label="Grade de coordenadas do lobby">
           <span className="lobby-coordinate-corner"/>
           {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-heading" key={column}>{column}</span>)}
           {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(row => (
@@ -1100,7 +1195,53 @@ export default function App() {
               {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-cell" key={`${column}${row}`}>{column}{row}</span>)}
             </div>
           ))}
+          <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
+            </svg>
+            <span>F6</span>
+          </button>
         </div>
+        {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
+          <section className="lobby-profile-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-profile-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-profile-header">
+              <div><span>CONFIGURAÇÃO DOS PERSONAGENS</span><h2 id="lobby-profile-title">Perfil</h2></div>
+              <button type="button" className="lobby-profile-close" aria-label="Fechar perfil" onClick={() => setProfileOpen(false)}>×</button>
+            </header>
+            <div className="lobby-profile-tabs" role="tablist" aria-label="Selecionar personagem">
+              {([0, 1] as const).map(slot => <button type="button" role="tab" aria-selected={profileTab === slot} className={profileTab === slot ? 'active' : ''} key={slot} onClick={() => setProfileTab(slot)}>
+                <span>PERSONAGEM {slot + 1}</span><strong>{CLASSES[characterPreferences[slot]].label}</strong>
+              </button>)}
+            </div>
+            <div className="lobby-profile-content">
+              <section className="profile-class-picker">
+                <div className="profile-section-heading"><div><span>PREFERÊNCIA {profileTab + 1} DE 2</span><h3>Escolha uma classe</h3></div><small>{characterPreferences.filter(Boolean).length}/2 selecionadas</small></div>
+                <div className="profile-class-options">
+                  {PROFILE_CLASS_IDS.map(classId => {
+                    const selected = characterPreferences[profileTab] === classId;
+                    const usedByOtherSlot = characterPreferences[1 - profileTab] === classId;
+                    return <button type="button" key={classId} className={`profile-class-option ${selected ? 'selected' : ''}`} disabled={usedByOtherSlot} onClick={() => setCharacterPreferences(current => {
+                      if (current[1 - profileTab] === classId) return current;
+                      const next: [ClassId, ClassId] = [...current];
+                      next[profileTab] = classId;
+                      return next;
+                    })}>
+                      <strong>{CLASSES[classId].label}</strong><span>{CLASSES[classId].description}</span>
+                      {selected && <small>SELECIONADO</small>}
+                      {usedByOtherSlot && <small>NO PERSONAGEM {2 - profileTab}</small>}
+                    </button>;
+                  })}
+                </div>
+              </section>
+              <section className="profile-class-details">
+                <div className="profile-section-heading"><div><span>FICHA DO PERSONAGEM {profileTab + 1}</span><h3>{CLASSES[characterPreferences[profileTab]].label}</h3></div><small>nível 0 · início da partida</small></div>
+                <p className="profile-class-description">{CLASSES[characterPreferences[profileTab]].description}</p>
+                <ProfileClassStats classId={characterPreferences[profileTab]} />
+              </section>
+              <p className="profile-save-note">As duas preferências ficam salvas neste navegador. A sincronização com uma conta online ainda não está conectada.</p>
+            </div>
+          </section>
+        </div>}
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
