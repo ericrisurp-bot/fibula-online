@@ -1244,7 +1244,7 @@ export default function App() {
                   })}><b>1</b> Principal</button>
                   <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences(current => {
                     if (current[1] === profileClassTab) return current;
-                    return [current[1], profileClassTab];
+                    return current[0] === profileClassTab ? [current[1], profileClassTab] : [current[0], profileClassTab];
                   })}><b>2</b> Secundário</button>
                   {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Escolha 1 ou 2 para adicionar esta classe às suas preferências.</small>}
                 </div>
