@@ -1336,7 +1336,7 @@ button, button * {
   position:absolute;
   z-index:5;
   left:calc(50% + 2vw);
-  top:calc(50% - 5vh);
+  top:calc(50% + 3vh);
   display:grid;
   place-items:center;
   width:48px;
@@ -1360,7 +1360,7 @@ button, button * {
 @media(max-width:650px){
   .lobby-duo-invite{
     left:calc(50% + 3vw);
-    top:calc(50% - 5vh);
+    top:calc(50% + 3vh);
     width:42px;
     height:42px;
     font-size:27px;
@@ -1369,7 +1369,7 @@ button, button * {
 @media(orientation:landscape) and (max-height:520px){
   .lobby-duo-invite{
     left:calc(50% + 4vw);
-    top:calc(50% - 7vh);
+    top:calc(50% + 1vh);
     width:42px;
     height:42px;
   }
