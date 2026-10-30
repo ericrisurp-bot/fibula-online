@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import InstallPrompt from './ui/InstallPrompt';
 import './style.css';
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
@@ -12,5 +13,8 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 
 createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><App /></React.StrictMode>,
+  <React.StrictMode>
+    <App />
+    <InstallPrompt />
+  </React.StrictMode>,
 );
