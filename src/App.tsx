@@ -1346,11 +1346,11 @@ export default function App() {
                  </div>
                  <div className="arsenal-section-heading"><strong>{arsenalCharacterTab === 'principal' ? 'PERSONAGEM PRINCIPAL' : 'PERSONAGEM SECUNDÁRIO'}</strong><span>Selecione um espaço para equipar</span></div>
                  <div className="arsenal-equipment-stage">
-                   {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].name} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
+                   {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                    {ARSENAL_SLOT_LAYOUT.map(({ slot, position }) => {
                      const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
                      const info = ARSENAL_SLOT_INFO[slot];
-                     return <button type="button" key={slot} className={`arsenal-equipment-slot slot-${position} ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
+                     return <button type="button" key={slot} className={`arsenal-equipment-slot slot-${position} ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
                        <strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
                      </button>;
                    })}
@@ -1369,11 +1369,11 @@ export default function App() {
                 </div>
                 <div className="arsenal-actions">
                   <div className="arsenal-selection-label">{arsenalItems.find(item => item.id === selectedArsenalItemId)?.name ?? 'Selecione um equipamento'}</div>
-                  <button type="button" disabled={!arsenalItems.some(item => item.id === selectedArsenalItemId) || arsenalItems.find(item => item.id === selectedArsenalItemId)?.slot !== selectedEquipmentSlot} onClick={() => {
+                  <button type="button" disabled={!activeArsenalClassId || !arsenalItems.some(item => item.id === selectedArsenalItemId) || arsenalItems.find(item => item.id === selectedArsenalItemId)?.slot !== selectedEquipmentSlot} onClick={() => {
                     const selected = arsenalItems.find(item => item.id === selectedArsenalItemId);
                     if (selected && selected.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selected) }));
                   }}>Equipar</button>
-                  <button type="button" className="arsenal-unequip" disabled={!equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
+                  <button type="button" className="arsenal-unequip" disabled={!activeArsenalClassId || !equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
                     if (activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, selectedEquipmentSlot) }));
                     setSelectedArsenalItemId(null);
                   }}>Desequipar</button>
