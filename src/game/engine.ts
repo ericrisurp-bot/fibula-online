@@ -1598,15 +1598,15 @@ export class GameEngine {
 
     const treeTarget = this.state.trees
       .filter(tree => this.isPlayerAtTreeShadow(tree))
-      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - playerFeet(p).x, this.treeBase(tree).y - playerFeet(p).y), centerD: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
+      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - playerFeet(p).x, this.treeBase(tree).y - playerFeet(p).y) }))
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
       .filter(rock => this.isPlayerAtRock(rock))
-      .map(rock => ({ rock, d: Math.hypot(rock.x - playerFeet(p).x, rock.y - playerFeet(p).y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
+      .map(rock => ({ rock, d: Math.hypot(rock.x - playerFeet(p).x, rock.y - playerFeet(p).y) }))
       .sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
-      .map(plant => ({ plant, d: Math.hypot(plant.x - playerFeet(p).x, plant.y - playerFeet(p).y), centerD: Math.hypot(plant.x - p.x, plant.y - p.y) }))
+      .map(plant => ({ plant, d: Math.hypot(plant.x - playerFeet(p).x, plant.y - playerFeet(p).y) }))
       .sort((a, b) => a.d - b.d)[0];
     if (!treeTarget && !rockTarget && !cottonTarget) return;
 
