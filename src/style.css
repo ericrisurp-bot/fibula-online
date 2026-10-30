@@ -1687,3 +1687,69 @@ button, button * {
   .profile-stat-list,.profile-attribute-list{grid-template-columns:1fr}
   .profile-stat-list>div,.profile-attribute-list>div{align-items:center;flex-direction:row}
 }
+
+
+/* Tema claro do modal de perfil: fundo branco e contraste confortável. */
+.lobby-profile-modal{
+  background:linear-gradient(145deg,#fff 0%,#f5f7fb 100%);
+  color:#202633;
+  border:1px solid rgba(25,38,58,.16);
+  box-shadow:0 22px 70px rgba(0,0,0,.28);
+}
+.lobby-profile-header{border-bottom-color:rgba(25,38,58,.12)}
+.lobby-profile-header>div>span,.profile-section-heading>div>span{color:#657286}
+.lobby-profile-header h2{color:#202633}
+.lobby-profile-close{border-color:#d8dee8;background:#f2f4f8;color:#263246}
+.lobby-profile-tabs{background:#edf1f6;border-bottom-color:#dfe5ed}
+.lobby-profile-tabs .profile-class-tab{
+  border-color:#dce2eb;background:#fff;color:#283447;
+  box-shadow:0 1px 2px rgba(18,35,58,.05);
+}
+.profile-class-tab small{color:#718096}
+.profile-class-tab.class-guerreiro.active{border-color:#e05252;background:#fff0f0;box-shadow:inset 0 -3px #e05252}
+.profile-class-tab.class-mago.active{border-color:#378bd2;background:#eef7ff;box-shadow:inset 0 -3px #378bd2}
+.profile-class-tab.class-arqueiro.active{border-color:#39965d;background:#eef9f1;box-shadow:inset 0 -3px #39965d}
+.profile-class-tab.class-druida.active{border-color:#9650b4;background:#f8effb;box-shadow:inset 0 -3px #9650b4}
+.profile-class-details .profile-section-heading h3{color:#202633}
+.profile-class-details.class-guerreiro .profile-section-heading h3{color:#c83f3f}
+.profile-class-details.class-mago .profile-section-heading h3{color:#236fae}
+.profile-class-details.class-arqueiro .profile-section-heading h3{color:#287b48}
+.profile-class-details.class-druida .profile-section-heading h3{color:#82439c}
+.profile-class-description{color:#566477}
+.profile-priority-controls{border-color:#dfe5ed;background:#f6f8fb}
+.profile-priority-controls>span{color:#657286}
+.profile-priority-controls button{border-color:#d7dee8;background:#fff;color:#344258}
+.profile-priority-controls button b{background:#edf1f6;color:#263246}
+.profile-priority-controls button.chosen.primary{border-color:#df5555;background:#fff0f0;color:#a62f2f}
+.profile-priority-controls button.chosen.primary b{background:#df5555;color:#fff}
+.profile-priority-controls button.chosen.secondary{border-color:#378bd2;background:#eef7ff;color:#205f96}
+.profile-priority-controls button.chosen.secondary b{background:#378bd2;color:#fff}
+.profile-priority-controls>small{color:#68778b}
+.profile-weapon-note{border-color:#dfe5ed;background:#f6f8fb;color:#68778b}
+.profile-weapon-note strong{color:#263246}
+.profile-stat-summary>div{
+  border-color:#e0e5ed;
+  background:linear-gradient(145deg,#fff,#f7f9fc);
+  box-shadow:0 1px 3px rgba(18,35,58,.045);
+}
+.profile-stat-summary span,.profile-ability>span{color:#58677b}
+.profile-stat-summary strong{color:#1f2937}
+.profile-stat-summary small{color:#68778b}
+.profile-stat-summary .stat-health{border-color:#efbcbc}
+.profile-stat-summary .stat-health span{color:#c43e46}
+.profile-stat-summary .stat-damage{border-color:#f0d1a4}
+.profile-stat-summary .stat-damage span{color:#a96717}
+.profile-stat-summary .stat-range{border-color:#b9d8f1}
+.profile-stat-summary .stat-range span{color:#286fa9}
+.profile-stat-summary .stat-speed{border-color:#d9c2e7}
+.profile-stat-summary .stat-speed span{color:#80499c}
+.profile-stat-section h4{color:#263246}
+.profile-stat-list>div,.profile-attribute-list>div{border-bottom-color:#e5e9ef}
+.profile-stat-list span,.profile-attribute-list span{color:#4e5d70}
+.profile-stat-list strong,.profile-attribute-list strong{color:#202b3a}
+.profile-stat-list small,.profile-attribute-list small{color:#718096}
+.profile-stat-note{color:#68778b}
+.profile-ability{border-color:#c8def1;background:#eef6fd}
+.profile-ability>span{color:#286fa9}
+.profile-ability p{color:#34465c}
+.profile-save-note{color:#718096}
