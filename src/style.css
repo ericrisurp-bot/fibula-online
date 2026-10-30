@@ -1202,31 +1202,49 @@ button, button * {
 }
 
 
-/* Lobby inicial: tela própria, sem deixar o mapa da partida aparecer por trás. */
-.lobby-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:clamp(14px,3vw,34px);overflow:auto;background:radial-gradient(ellipse at 50% 42%,#34483e 0%,#1a2825 42%,#101614 100%);backdrop-filter:none;-webkit-backdrop-filter:none}
-.lobby-header,.lobby-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:2}
-.lobby-status{font-size:10px;letter-spacing:.14em;color:#9be4bd;font-weight:900}
-.lobby-rail{position:absolute;left:clamp(12px,2vw,28px);top:50%;transform:translateY(-50%);display:grid;gap:10px;z-index:3}
-.lobby-rail button,.lobby-shortcuts button,.lobby-invite,.lobby-equipment{border:1px solid #70877888;background:#17231fdd;color:#edf5ef;border-radius:12px}
-.lobby-rail button{width:58px;height:58px;font-size:21px;display:grid;place-content:center;gap:2px}
-.lobby-rail small{font-size:9px;letter-spacing:.06em}
-.lobby-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(12px,4vw,64px);padding:12px 74px}
-.lobby-character-card{position:relative;min-width:min(42vw,340px);min-height:min(48vh,430px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;overflow:hidden;border:1px solid #b2c9b044;border-radius:24px;background:linear-gradient(160deg,#ffffff0d,#0b1511a8);box-shadow:0 22px 70px #0005}
-.lobby-character-aura{position:absolute;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#b1d9a52b,transparent 68%);animation:lobby-breathe 4s ease-in-out infinite}
-.lobby-avatar{position:relative;font-size:clamp(90px,18vw,190px);filter:drop-shadow(0 16px 20px #0008);animation:lobby-breathe 4s ease-in-out infinite}
-.lobby-character-name{font-weight:950;letter-spacing:.18em;color:#eaf4e9}
-.lobby-character-card>small{font-size:9px;letter-spacing:.16em;color:#a8b9ac}
-.lobby-equipment{margin-top:8px;padding:11px 16px;font-size:10px;font-weight:900;letter-spacing:.08em}
-.lobby-shortcuts{display:grid;gap:12px;width:min(220px,28vw)}
-.lobby-shortcuts button{min-height:92px;display:grid;grid-template-columns:44px 1fr;grid-template-rows:1fr 1fr;align-items:center;text-align:left;padding:12px}
-.lobby-shortcuts b{grid-row:span 2;font-size:27px;text-align:center}
-.lobby-shortcuts span{font-size:11px;font-weight:950;letter-spacing:.1em}
-.lobby-shortcuts small{font-size:9px;color:#a9b9ad}
-.lobby-footer{justify-content:center;flex-wrap:wrap}
-.lobby-invite{padding:15px 20px;font-size:11px;font-weight:900;letter-spacing:.1em}
-.lobby-portal{min-width:min(330px,70vw);min-height:58px;border:1px solid #d6e6c7;border-radius:14px;background:linear-gradient(110deg,#a7c58a,#5d936e);color:#102018;font-weight:1000;letter-spacing:.12em;box-shadow:0 8px 32px #0005}
-.lobby-portal span{font-size:20px;margin-right:10px}
-.lobby-portal:disabled{opacity:.55}
-@keyframes lobby-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.025)}}
-@media(max-width:650px){.lobby-screen{padding:12px}.lobby-rail{left:8px;top:46%;gap:7px}.lobby-rail button{width:43px;height:48px;font-size:17px}.lobby-stage{padding:8px 48px;flex-direction:column;gap:12px}.lobby-character-card{min-width:0;width:min(100%,300px);min-height:0;flex:1}.lobby-avatar{font-size:clamp(72px,22vw,130px)}.lobby-shortcuts{width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.lobby-shortcuts button{min-height:68px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:6px}.lobby-shortcuts b{font-size:19px}.lobby-shortcuts span{font-size:8px}.lobby-shortcuts small{font-size:7px}.lobby-footer{gap:8px}.lobby-invite{padding:13px}.lobby-portal{min-width:0;flex:1;font-size:10px}}
-@media(orientation:landscape) and (max-height:520px){.lobby-screen{padding:8px 18px}.lobby-header .start-eyebrow{font-size:9px}.lobby-stage{padding:4px 68px}.lobby-character-card{min-height:0;height:100%;min-width:220px}.lobby-avatar{font-size:clamp(60px,20vh,100px)}.lobby-shortcuts{width:180px}.lobby-shortcuts button{min-height:65px}.lobby-footer{gap:8px}.lobby-portal{min-height:44px}}
+/* Lobby imersivo Fíbula Online — carvão #222322, cenário noturno e personagem real. */
+.lobby-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;justify-content:space-between;gap:clamp(8px,1.5vh,18px);padding:clamp(14px,2.5vw,30px);overflow:hidden;color:#f2f0e7;background:#222322}
+.lobby-sky{position:absolute;inset:0;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 50% 78%,rgba(118,143,76,.42),transparent 46%),radial-gradient(ellipse at 75% 38%,rgba(68,91,70,.38),transparent 38%),linear-gradient(180deg,#171d1b 0%,#222322 50%,#303a2c 78%,#20271f 100%)}
+.lobby-sky:before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 12% 16%,#d9d6a9 0 1px,transparent 2px),radial-gradient(circle at 34% 9%,#b9c6b3 0 1px,transparent 2px),radial-gradient(circle at 69% 13%,#d9d6a9 0 1px,transparent 2px),radial-gradient(circle at 86% 23%,#b9c6b3 0 1px,transparent 2px);opacity:.5}
+.lobby-moon{position:absolute;right:16%;top:13%;width:clamp(24px,4vw,48px);aspect-ratio:1;border-radius:50%;background:#d9c98b;box-shadow:0 0 28px 10px #d9c98b44}
+.lobby-trees{position:absolute;left:-5%;right:-5%;height:54%;bottom:22%;background-repeat:repeat-x}
+.lobby-trees-back{opacity:.65;background:linear-gradient(135deg,transparent 42%,#17221e 43% 57%,transparent 58%) 0 0/130px 180px,linear-gradient(45deg,transparent 42%,#1a2720 43% 57%,transparent 58%) 45px 20px/155px 190px}
+.lobby-trees-front{height:42%;bottom:17%;opacity:.95;background:linear-gradient(135deg,transparent 42%,#141b18 43% 57%,transparent 58%) 0 0/100px 155px,linear-gradient(45deg,transparent 42%,#1a241d 43% 57%,transparent 58%) 35px 12px/125px 165px}
+.lobby-hut{position:absolute;right:5%;bottom:28%;width:clamp(86px,15vw,180px);height:clamp(58px,10vh,105px);border:3px solid #151b18;border-top:0;background:linear-gradient(90deg,#3c4034,#242b25);box-shadow:0 0 30px #0008}
+.lobby-hut:before{content:"";position:absolute;left:-12%;right:-12%;top:-42%;height:48%;background:#343b31;clip-path:polygon(50% 0,100% 100%,0 100%);border-top:3px solid #121714}
+.lobby-hut:after{content:"";position:absolute;bottom:0;left:42%;width:22%;height:70%;background:#171c19;border:2px solid #5a5b43}
+.lobby-lantern{position:absolute;bottom:36%;width:13px;height:18px;border:2px solid #7c7048;background:#f3ce71;box-shadow:0 0 14px 7px #f0c65b77}
+.lantern-one{left:16%}.lantern-two{right:23%;bottom:43%;transform:scale(.8)}
+.lobby-ground{position:absolute;left:-10%;right:-10%;bottom:-14%;height:43%;border-radius:50% 50% 0 0;background:repeating-linear-gradient(168deg,transparent 0 23px,#a4ad6a16 24px 26px,transparent 27px 44px),radial-gradient(ellipse at 50% 0%,#687b43 0%,#34432e 46%,#222322 78%)}
+.lobby-header,.lobby-scene,.lobby-footer{position:relative;z-index:1}
+.lobby-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px}
+.lobby-back{width:42px;height:42px;border:0;background:transparent;color:#f2f0e7;font-size:42px;line-height:1}
+.lobby-brand{font-size:clamp(15px,2vw,22px);font-weight:1000;letter-spacing:.1em}.lobby-brand span{font-weight:600;color:#a9ad9d}
+.lobby-profile{display:flex;align-items:center;gap:14px;padding:9px 13px;border:1px solid #d2d1b344;border-radius:12px;background:#222322b8;font-size:10px;letter-spacing:.08em}
+.lobby-profile b{color:#b7d39b;font-size:9px}
+.lobby-scene{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,230px);align-items:center;gap:clamp(12px,3vw,38px);padding:0 clamp(10px,4vw,56px)}
+.lobby-character-wrap{position:relative;align-self:stretch;display:flex;align-items:center;justify-content:center;min-width:0}
+.lobby-character-glow{position:absolute;left:50%;top:54%;width:min(62%,360px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#d5c27a28 0%,#9cb27a15 42%,transparent 72%);filter:blur(8px)}
+.lobby-character-canvas{position:relative;width:min(100%,430px);height:min(100%,520px);min-height:210px;filter:drop-shadow(0 18px 18px #080b09aa)}
+.lobby-character-caption{position:absolute;bottom:1%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;white-space:nowrap;text-shadow:0 2px 8px #000}
+.lobby-character-caption strong{font-size:clamp(14px,2vw,20px);letter-spacing:.16em}.lobby-character-caption span{font-size:8px;letter-spacing:.14em;color:#d2d1c2}
+.lobby-character-caption button{margin-top:5px;padding:8px 13px;border:1px solid #b8b59a66;border-radius:9px;background:#222322c9;color:#e9e5d1;font-size:9px;font-weight:900;letter-spacing:.08em}
+.lobby-side{display:flex;flex-direction:column;gap:14px;align-self:center}
+.lobby-invite-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 12px;border:1px solid #aaa88a66;border-radius:15px;background:rgba(34,35,34,.78);box-shadow:0 12px 30px #0005;backdrop-filter:blur(8px)}
+.lobby-card-kicker{font-size:8px;letter-spacing:.13em;color:#c4c3ae}.lobby-friend-icon{display:grid;place-items:center;width:76px;height:76px;border:1px solid #b8a96e;border-radius:14px;background:linear-gradient(145deg,#414237,#242622);color:#e6c77b;font-size:42px}
+.lobby-invite-card strong{font-size:11px;letter-spacing:.06em}.lobby-invite-card small{font-size:9px;color:#c1c1b4;text-align:center}
+.lobby-invite-card button{width:100%;padding:11px 8px;border:1px solid #e0c47c;border-radius:9px;background:#c6a85f;color:#29271f;font-size:10px;font-weight:950}
+.lobby-side-actions{display:grid;gap:8px}
+.lobby-side-actions button{display:flex;align-items:center;gap:10px;min-height:48px;padding:9px 12px;border:1px solid #aaa99a55;border-radius:10px;background:#222322c9;color:#e8e6d9;text-align:left;font-size:18px}
+.lobby-side-actions span{font-size:10px;font-weight:900;letter-spacing:.08em}
+.lobby-footer{display:flex;flex-direction:column;gap:10px}
+.lobby-main-actions{display:flex;justify-content:center;gap:10px}
+.lobby-main-actions button,.lobby-bottom-nav button{min-height:52px;padding:10px 20px;border:1px solid #b3b5a077;border-radius:12px;background:#222322df;color:#efeee5;font-size:clamp(12px,1.6vw,17px);font-weight:950;letter-spacing:.06em}
+.lobby-main-actions .lobby-play{min-width:min(220px,42vw);background:linear-gradient(145deg,#555c50,#343a34);border-color:#d0d1b6;color:#fff}
+.lobby-main-actions .lobby-armor{min-width:min(220px,42vw);color:#d8bd70}
+.lobby-main-actions button:disabled{opacity:.55}
+.lobby-bottom-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(760px,100%);align-self:center}
+.lobby-bottom-nav button{min-height:44px;padding:8px 6px;background:#222322c9;color:#c9c9bd;font-size:clamp(10px,1.3vw,14px)}
+@media(max-width:650px){.lobby-screen{padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))}.lobby-header{min-height:34px}.lobby-back{width:32px;height:34px;font-size:34px}.lobby-profile{gap:7px;padding:7px 8px;font-size:8px}.lobby-profile b{font-size:7px}.lobby-scene{grid-template-columns:minmax(0,1fr) 112px;gap:8px;padding:0}.lobby-character-canvas{width:100%;height:78%;min-height:180px}.lobby-character-caption{bottom:4%}.lobby-character-caption strong{font-size:13px}.lobby-character-caption button{font-size:8px;padding:7px 8px}.lobby-side{gap:9px}.lobby-invite-card{padding:10px 7px;gap:6px}.lobby-friend-icon{width:54px;height:54px;font-size:30px}.lobby-invite-card strong{font-size:9px}.lobby-invite-card small{font-size:7px}.lobby-invite-card button{font-size:8px;padding:9px 4px}.lobby-side-actions{gap:6px}.lobby-side-actions button{min-height:40px;padding:7px;font-size:15px;gap:6px}.lobby-side-actions span{font-size:8px}.lobby-main-actions button{min-height:48px}.lobby-bottom-nav button{min-height:40px}}
+@media(max-width:390px){.lobby-scene{grid-template-columns:minmax(0,1fr) 98px}.lobby-profile span{display:none}.lobby-side-actions span{font-size:7px}.lobby-character-caption button{font-size:7px}}
+@media(orientation:landscape) and (max-height:520px){.lobby-screen{padding:6px 16px}.lobby-header{min-height:30px}.lobby-back{height:30px;font-size:30px}.lobby-scene{grid-template-columns:minmax(0,1fr) 150px;padding:0 24px}.lobby-character-canvas{height:85%;min-height:150px}.lobby-character-caption{bottom:0}.lobby-side{gap:6px}.lobby-invite-card{padding:7px}.lobby-friend-icon{width:42px;height:42px;font-size:24px}.lobby-side-actions button{min-height:34px}.lobby-main-actions button{min-height:36px;padding:5px 14px}.lobby-bottom-nav button{min-height:32px;padding:5px}.lobby-footer{gap:6px}}
