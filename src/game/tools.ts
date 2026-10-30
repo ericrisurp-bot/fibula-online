@@ -88,8 +88,6 @@ function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: numb
   const along = gx * c + gy * sn; if (along < minGrip) { gx += c * (minGrip - along); gy += sn * (minGrip - along); }
   return { side, gx, gy: gy + yOff, rot, alpha };
 }
-export type FloatingToolOptions = { angle: number; reach: number; timer: number; duration: number; minGrip: number };
-
 /** Desenha a ferramenta ancorada no próprio material, sem depender da posição do jogador. */
 export function drawFloatingToolAt(ctx: CanvasRenderingContext2D, tool: ToolId, r: number, opts: { angle: number; timer: number; duration: number }): void {
   if (opts.timer <= 0) return;
