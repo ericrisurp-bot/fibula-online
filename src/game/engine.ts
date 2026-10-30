@@ -1658,8 +1658,9 @@ export class GameEngine {
 
       // Magias (orbes) são teleguiadas ao alvo escolhido no disparo.
       // Se ele morrer/desaparecer, a magia mantém a última direção e não troca de alvo.
+      let guidedTarget: Enemy | undefined;
       if (shot.kind === 'orb') {
-        const guidedTarget = this.state.enemies.find(enemy => enemy.id === shot.targetId);
+        guidedTarget = this.state.enemies.find(enemy => enemy.id === shot.targetId);
         if (guidedTarget) {
           const speed = Math.hypot(shot.vx, shot.vy) || CONFIG.weapons.cajado.projectileSpeed;
           const dx = guidedTarget.x - shot.x;
@@ -1672,7 +1673,9 @@ export class GameEngine {
 
       shot.x += shot.vx * dt;
       shot.y += shot.vy * dt;
-      shot.life -= dt;
+      // Enquanto o alvo original existir, a magia não expira antes de alcançá-lo.
+      // Flechas e magias cujo alvo desapareceu continuam usando o tempo de vida normal.
+      if (shot.kind === 'arrow' || !guidedTarget) shot.life -= dt;
 
       if (shot.kind === 'arrow' && this.arrowHitsSolidObstacle(previousPosition, shot)) {
         this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
