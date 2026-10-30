@@ -2,12 +2,12 @@ export const ARSENAL_CAPACITY = 30;
 
 export const EQUIPMENT_SLOTS = [
   'capacete',
-  'armadura',
-  'calca',
+  'peitoral',
+  'leggings',
   'bota',
   'luva',
-  'arma1',
-  'arma2',
+  'arma',
+  'bolsa',
   'colar',
   'pulseira',
 ] as const;
