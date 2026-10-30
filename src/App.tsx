@@ -38,10 +38,12 @@ const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   arqueiro: 'arco',
   druida: 'bastao',
 };
-const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
-  capacete: { label: 'capacete' }, peitoral: { label: 'peitoral' }, leggings: { label: 'leggings' },
-  bota: { label: 'bota' }, arma: { label: 'arma' }, luva: { label: 'luva' },
-  colar: { label: 'colar' }, bolsa: { label: 'bolsa' }, pulseira: { label: 'pulseira' },
+const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string; icon: string }> = {
+  capacete: { label: 'capacete', icon: '🪖' }, peitoral: { label: 'peitoral', icon: '🛡️' },
+  leggings: { label: 'leggings', icon: '👖' }, bota: { label: 'bota', icon: '🥾' },
+  arma: { label: 'arma', icon: '⚔️' }, luva: { label: 'luva', icon: '🧤' },
+  colar: { label: 'colar', icon: '📿' }, bolsa: { label: 'bolsa', icon: '🎒' },
+  pulseira: { label: 'pulseira', icon: '💍' },
 };
 const ARSENAL_SLOT_LAYOUT: { slot: EquipmentSlotId; position: string }[] = [
   { slot: 'capacete', position: 'helmet' }, { slot: 'peitoral', position: 'chest' },
@@ -1351,7 +1353,7 @@ export default function App() {
                      const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
                      const info = ARSENAL_SLOT_INFO[slot];
                      return <button type="button" key={slot} className={`arsenal-equipment-slot slot-${position} ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
-                       <strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
+                       <span className="arsenal-equipment-icon" aria-hidden="true">{equipped?.icon ?? info.icon}</span><strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
                      </button>;
                    })}
                  </div>
