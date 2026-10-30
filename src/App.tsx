@@ -1088,6 +1088,7 @@ export default function App() {
           <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
+        <i className="lobby-ground-light" aria-hidden="true"/>
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/></div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
