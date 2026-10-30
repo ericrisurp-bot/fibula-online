@@ -63,6 +63,7 @@ const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId ===
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
@@ -105,6 +106,34 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
+
+  useEffect(() => {
+    if (!showStart) return;
+    const canvas = lobbyCharacterCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    let frame = 0;
+    const renderCharacter = (now: number) => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const scale = Math.min(width / 220, height / 310);
+      ctx.save();
+      ctx.translate(width / 2, height * 0.82);
+      ctx.scale(scale, scale);
+      drawPlayer(ctx, 0, 0, 'espada', 'guerreiro', now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false, true, 0, 0, 0, 0, 0, 0, 0);
+      ctx.restore();
+      frame = window.requestAnimationFrame(renderCharacter);
+    };
+    frame = window.requestAnimationFrame(renderCharacter);
+    return () => window.cancelAnimationFrame(frame);
+  }, [showStart]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -1032,14 +1061,17 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showStart && <div className="start-overlay lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
-        <header className="lobby-header"><div className="start-eyebrow">FÍBULA ONLINE</div><span className="lobby-status">● {worldReady ? 'PRONTO' : 'PREPARANDO'}</span></header>
-        <nav className="lobby-rail" aria-label="Menu do lobby"><button type="button" onClick={() => setShowHelp(true)}>☰<small>Menu</small></button><button type="button" onClick={() => setShowHelp(true)}>⚙<small>Opções</small></button></nav>
-        <section className="lobby-stage">
-          <div className="lobby-character-card"><div className="lobby-character-aura"></div><div className="lobby-avatar" aria-hidden="true">🧙</div><div className="lobby-character-name">AVENTUREIRO</div><small>PERSONAGEM PRINCIPAL</small><button type="button" className="lobby-equipment" onClick={() => setShowHelp(true)}>EQUIPAMENTO · 2 ESPAÇOS</button></div>
-          <div className="lobby-shortcuts"><button type="button" onClick={() => setShowHelp(true)}><b>⚒</b><span>BIGORNA</span><small>Em breve</small></button><button type="button" onClick={() => setShowHelp(true)}><b>🧵</b><span>COSTURA</span><small>Em breve</small></button><button type="button" onClick={() => setShowHelp(true)}><b>♨</b><span>FOGÃO</span><small>Em breve</small></button></div>
+      {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
+        <div className="lobby-sky" aria-hidden="true"><i className="lobby-moon"/><i className="lobby-trees lobby-trees-back"/><i className="lobby-trees lobby-trees-front"/><i className="lobby-hut"/><i className="lobby-lantern lantern-one"/><i className="lobby-lantern lantern-two"/><i className="lobby-ground"/></div>
+        <header className="lobby-header"><button className="lobby-back" type="button" aria-label="Menu" onClick={() => setShowHelp(true)}>‹</button><div className="lobby-brand">FÍBULA <span>ONLINE</span></div><div className="lobby-profile"><span>✦ GUERREIRO</span><b>● {worldReady ? 'PRONTO' : 'PREPARANDO'}</b></div></header>
+        <section className="lobby-scene">
+          <div className="lobby-character-wrap"><div className="lobby-character-glow"/><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><div className="lobby-character-caption"><strong>GUERREIRO</strong><span>PERSONAGEM PRINCIPAL</span><button type="button" onClick={() => setShowHelp(true)}>ARMADURA · 2 ESPAÇOS</button></div></div>
+          <aside className="lobby-side">
+            <div className="lobby-invite-card"><span className="lobby-card-kicker">JOGUE COM AMIGOS</span><div className="lobby-friend-icon">♟</div><strong>CONVIDAR AMIGO</strong><small>Entre na aventura em grupo</small><button type="button" onClick={() => setShowHelp(true)}>＋ CONVIDAR</button></div>
+            <div className="lobby-side-actions"><button type="button" onClick={() => setShowHelp(true)}>✦ <span>LOJA</span></button><button type="button" onClick={() => setShowHelp(true)}>▤ <span>PASSAPORTE</span></button><button type="button" onClick={() => setShowHelp(true)}>⚙ <span>CONFIGURAÇÕES</span></button></div>
+          </aside>
         </section>
-        <footer className="lobby-footer"><button type="button" className="lobby-invite" onClick={() => setShowHelp(true)}>＋ CONVIDAR</button><button className="lobby-portal" type="button" disabled={!worldReady} onClick={beginGame}><span>◈</span>{worldReady ? 'ENTRAR NO PORTAL' : 'PREPARANDO MUNDO...'}</button></footer>
+        <footer className="lobby-footer"><div className="lobby-main-actions"><button className="lobby-play" type="button" disabled={!worldReady} onClick={beginGame}>{worldReady ? 'JOGAR' : 'PREPARANDO...'}</button><button className="lobby-armor" type="button" onClick={() => setShowHelp(true)}>ARMADURA</button></div><nav className="lobby-bottom-nav" aria-label="Navegação do lobby"><button type="button" onClick={beginGame}>JOGAR</button><button type="button" onClick={() => setShowHelp(true)}>ESTATÍSTICAS</button><button type="button" onClick={() => setShowHelp(true)}>MOCHILA</button></nav></footer>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
