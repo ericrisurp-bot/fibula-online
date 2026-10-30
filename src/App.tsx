@@ -1319,7 +1319,7 @@ export default function App() {
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><span className="lobby-power-label" aria-label="Poder do personagem">PD</span><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
             <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1349,6 +1349,7 @@ export default function App() {
                  </div>
                  <div className="arsenal-section-heading"><strong>{arsenalCharacterTab === 'principal' ? 'PERSONAGEM PRINCIPAL' : 'PERSONAGEM SECUNDÁRIO'}</strong><span>Selecione um espaço para equipar</span></div>
                  <div className="arsenal-equipment-stage">
+                    <span className="arsenal-power-label" aria-label="Poder do personagem">PD</span>
                    {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                    <div className="arsenal-equipment-grid">
                      {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
