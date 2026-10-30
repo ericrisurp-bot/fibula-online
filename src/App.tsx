@@ -24,7 +24,7 @@ const initial: GameSnapshot = {
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherToolTarget: null, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : itemId === 'cotton' ? '☁️' : itemId === 'linen' ? '🧵' : '📦';
 const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
@@ -558,7 +558,7 @@ export default function App() {
         const playerDepth = s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1;
         worldDrawables.push({ depth: Math.max(target.depth, playerDepth) + 1, draw: () => drawFloatingToolAt(ctx, tool, CONFIG.player.radius, { angle, timer, duration: CONFIG.gathering.toolAnimationDuration }) });
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night') });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.dayNight === 'night') });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1313,7 +1313,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, isNight: boolean) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
