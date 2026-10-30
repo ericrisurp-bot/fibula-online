@@ -1817,3 +1817,175 @@ button, button * {
   .profile-stat-list span,.profile-attribute-list span{font-size:10px}
   .profile-stat-list strong,.profile-attribute-list strong{font-size:10px}
 }
+
+
+/* Arsenal do lobby: acesso em E5, slots de equipamento e inventário separado. */
+.lobby-arsenal-trigger{
+  grid-column:6;
+  grid-row:7;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:1px;
+  min-width:0;
+  min-height:0;
+  padding:2px;
+  border:1px solid rgba(194,170,122,.72);
+  border-radius:5px;
+  background:rgba(34,35,34,.82);
+  color:#f1dfbd;
+  pointer-events:auto;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.08),0 2px 8px rgba(0,0,0,.25);
+  -webkit-tap-highlight-color:transparent;
+}
+.lobby-arsenal-trigger svg{width:clamp(16px,4.5vw,25px);height:clamp(16px,4.5vw,25px)}
+.lobby-arsenal-trigger span{font-size:clamp(7px,1.8vw,10px);font-weight:900;line-height:1;letter-spacing:.04em}
+.lobby-arsenal-trigger:active{background:rgba(91,72,43,.95);transform:scale(.96)}
+.lobby-arsenal-trigger:focus-visible{outline:2px solid #ead5ac;outline-offset:2px}
+
+.lobby-arsenal-backdrop{
+  position:absolute;
+  z-index:62;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:clamp(8px,2vw,22px);
+  background:rgba(3,7,8,.78);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.lobby-arsenal-modal{
+  display:flex;
+  flex-direction:column;
+  width:min(940px,100%);
+  max-height:min(94dvh,920px);
+  overflow:hidden;
+  border:1px solid #d7dfe9;
+  border-radius:16px;
+  background:linear-gradient(145deg,#fff 0%,#f3f6fa 100%);
+  color:#202b3a;
+  box-shadow:0 24px 80px rgba(0,0,0,.55);
+  font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
+}
+.lobby-arsenal-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 18px;
+  border-bottom:1px solid #dfe5ed;
+}
+.lobby-arsenal-header>div:first-child{min-width:0;margin-right:auto}
+.lobby-arsenal-header>div:first-child>span{color:#718096;font-size:9px;font-weight:900;letter-spacing:.13em}
+.lobby-arsenal-header h2{margin:3px 0 0;color:#202b3a;font-size:clamp(22px,4vw,29px)}
+.lobby-arsenal-count{padding:7px 10px;border:1px solid #d8e0e9;border-radius:8px;background:#f5f7fa;color:#526174;font-size:11px;font-weight:800;white-space:nowrap}
+.lobby-arsenal-header .lobby-profile-close{border-color:#d8dee8;background:#f2f4f8;color:#263246}
+.lobby-arsenal-content{overflow:auto;overscroll-behavior:contain;padding:14px 16px 16px}
+.arsenal-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.arsenal-section-heading strong{color:#344256;font-size:11px;font-weight:950;letter-spacing:.08em}
+.arsenal-section-heading>span{color:#718096;font-size:10px;text-align:right}
+.arsenal-equipment-section{padding:12px;border:1px solid #e0e6ee;border-radius:12px;background:linear-gradient(145deg,#fff,#f7f9fc)}
+.arsenal-equipment-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(160px,.9fr) minmax(0,1fr);
+  align-items:center;
+  gap:12px;
+}
+.arsenal-slot-column{display:flex;flex-direction:column;gap:7px}
+.arsenal-equipment-slot{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+  min-height:58px;
+  padding:7px 9px;
+  border:1px solid #dce3eb;
+  border-radius:9px;
+  background:#f8fafc;
+  color:#263246;
+  text-align:left;
+  transition:border-color .15s ease,background .15s ease;
+}
+.arsenal-equipment-slot.selected{border-color:#b38b4c;background:#fff8eb;box-shadow:0 0 0 2px #d4b47725}
+.arsenal-equipment-slot.equipped{border-color:#8eb69a;background:#f0f8f2}
+.arsenal-slot-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #dce3eb;border-radius:8px;background:#fff;font-size:20px}
+.arsenal-slot-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.arsenal-slot-copy strong{font-size:11px}
+.arsenal-slot-copy small{overflow:hidden;color:#718096;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.arsenal-slot-copy em,.arsenal-inventory-slot em{color:#27804a;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.07em}
+.arsenal-avatar{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:250px;padding:8px;border:1px dashed #d5dde7;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#e9eef4 0%,#f7f9fc 65%,#fff 100%)}
+.arsenal-avatar svg{width:min(100%,170px);height:240px;filter:drop-shadow(0 7px 6px rgba(31,45,61,.12))}
+.arsenal-avatar>span{color:#8793a3;font-size:8px;font-weight:900;letter-spacing:.1em;text-align:center}
+.arsenal-inventory-section{margin-top:13px;padding:12px;border:1px solid #e0e6ee;border-radius:12px;background:#fff}
+.arsenal-inventory-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
+.arsenal-inventory-slot{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  min-width:0;
+  min-height:70px;
+  padding:5px;
+  border:1px solid #dce3eb;
+  border-radius:8px;
+  background:linear-gradient(145deg,#f9fafc,#f0f3f7);
+  color:#526174;
+}
+.arsenal-inventory-slot:disabled{opacity:.75;cursor:default}
+.arsenal-inventory-slot.filled{border-color:#cbd5e1;background:#fff;color:#263246;cursor:pointer}
+.arsenal-inventory-slot.selected{border-color:#b38b4c;background:#fff8eb;box-shadow:0 0 0 2px #d4b47735}
+.arsenal-inventory-slot.is-equipped{border-color:#8eb69a}
+.arsenal-inventory-slot>span:first-child{font-size:22px;line-height:1.1}
+.arsenal-inventory-slot small{max-width:100%;overflow:hidden;font-size:9px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+.arsenal-inventory-slot em{font-size:7px}
+.arsenal-empty-number{color:#aab4c1;font-size:11px;font-weight:800}
+.arsenal-actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.arsenal-selection-label{min-width:0;margin-right:auto;overflow:hidden;color:#526174;font-size:11px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+.arsenal-actions button{min-height:34px;padding:7px 14px;border:1px solid #a7b5c6;border-radius:8px;background:#283747;color:#fff;font-size:11px;font-weight:900}
+.arsenal-actions button.arsenal-unequip{border-color:#d5dce5;background:#f3f5f8;color:#46566a}
+.arsenal-actions button:disabled{opacity:.38;cursor:not-allowed}
+.arsenal-footnote{margin:9px 0 0;color:#718096;font-size:10px;line-height:1.45}
+
+@media(max-width:650px){
+  .lobby-arsenal-trigger{border-radius:4px}
+  .lobby-arsenal-backdrop{padding:calc(6px + env(safe-area-inset-top)) 7px calc(6px + env(safe-area-inset-bottom))}
+  .lobby-arsenal-modal{max-height:calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:12px}
+  .lobby-arsenal-header{padding:10px 11px}
+  .lobby-arsenal-header>div:first-child>span{font-size:8px}
+  .lobby-arsenal-count{padding:6px 7px;font-size:9px}
+  .lobby-arsenal-content{padding:9px}
+  .arsenal-equipment-section,.arsenal-inventory-section{padding:9px}
+  .arsenal-equipment-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .arsenal-avatar{grid-column:1/-1;grid-row:1;min-height:145px;max-height:155px}
+  .arsenal-avatar svg{height:125px;width:95px}
+  .arsenal-avatar>span{font-size:7px}
+  .arsenal-slot-column{gap:5px}
+  .arsenal-equipment-slot{min-height:48px;padding:5px;gap:6px}
+  .arsenal-slot-icon{flex-basis:29px;width:29px;height:29px;font-size:17px}
+  .arsenal-slot-copy strong{font-size:10px}
+  .arsenal-slot-copy small{font-size:9px}
+  .arsenal-inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .arsenal-inventory-slot{min-height:58px;padding:4px}
+  .arsenal-inventory-slot>span:first-child{font-size:19px}
+  .arsenal-inventory-slot small{font-size:8px}
+  .arsenal-actions{gap:5px}
+  .arsenal-actions button{padding:6px 9px;font-size:10px}
+  .arsenal-footnote{font-size:9px}
+}
+@media(max-width:360px){
+  .arsenal-section-heading strong{font-size:9px}
+  .arsenal-section-heading>span{font-size:8px}
+  .arsenal-equipment-slot{min-height:44px}
+  .arsenal-slot-icon{flex-basis:25px;width:25px;height:25px;font-size:15px}
+  .arsenal-slot-copy strong{font-size:9px}
+  .arsenal-slot-copy small{font-size:8px}
+  .arsenal-inventory-grid{gap:4px}
+  .arsenal-inventory-slot{min-height:52px}
+  .arsenal-inventory-slot small{font-size:7px}
+  .arsenal-selection-label{font-size:9px}
+  .arsenal-actions button{padding:5px 7px;font-size:9px}
+}
