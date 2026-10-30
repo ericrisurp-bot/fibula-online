@@ -1569,3 +1569,121 @@ button, button * {
   .profile-stat-list span,.profile-attribute-list span{font-size:8px}
   .profile-stat-list strong,.profile-attribute-list strong{font-size:9px}
 }
+
+
+/* Perfil do lobby: seleção de classe em abas e ficha visual compacta. */
+.lobby-profile-modal{
+  width:min(760px,100%);
+  border:1px solid rgba(225,232,245,.24);
+  background:linear-gradient(145deg,rgba(34,35,34,.985),rgba(18,21,25,.99));
+  color:#f5f7fb;
+}
+.lobby-profile-header{border-bottom-color:rgba(255,255,255,.12)}
+.lobby-profile-header>div>span,.profile-section-heading>div>span{color:#b9c5d6}
+.lobby-profile-header h2{color:#fff}
+.lobby-profile-close{border-color:#ffffff35;background:#ffffff0b;color:#fff}
+.lobby-profile-tabs{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;padding:10px 14px;
+  background:rgba(0,0,0,.13);
+  border-bottom-color:#ffffff18;
+}
+.lobby-profile-tabs .profile-class-tab{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;
+  min-width:0;min-height:78px;padding:8px 4px;
+  border:1px solid #ffffff20;border-radius:10px;
+  background:rgba(255,255,255,.035);color:#dce3ed;text-align:center;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.profile-class-tab .profile-class-emoji{font-size:23px;line-height:1.2}
+.profile-class-tab strong{font-size:clamp(10px,1.7vw,13px)}
+.profile-class-tab small{font-size:7px;font-weight:900;letter-spacing:.06em;color:#aab5c4}
+.profile-class-tab.class-guerreiro.active{border-color:#ef5350;background:rgba(239,83,80,.17);box-shadow:inset 0 -2px #ef5350}
+.profile-class-tab.class-mago.active{border-color:#64b5f6;background:rgba(100,181,246,.17);box-shadow:inset 0 -2px #64b5f6}
+.profile-class-tab.class-arqueiro.active{border-color:#81c784;background:rgba(129,199,132,.15);box-shadow:inset 0 -2px #81c784}
+.profile-class-tab.class-druida.active{border-color:#ba68c8;background:rgba(186,104,200,.17);box-shadow:inset 0 -2px #ba68c8}
+.lobby-profile-content{padding:14px 16px 12px}
+.profile-class-details{margin:0;padding:0;border:0}
+.profile-class-details .profile-section-heading{align-items:center;margin-bottom:6px}
+.profile-class-details .profile-section-heading h3{display:flex;align-items:center;gap:8px;font-size:21px;color:#fff}
+.profile-class-details.class-guerreiro .profile-section-heading h3{color:#ff8a80}
+.profile-class-details.class-mago .profile-section-heading h3{color:#90caf9}
+.profile-class-details.class-arqueiro .profile-section-heading h3{color:#a5d6a7}
+.profile-class-details.class-druida .profile-section-heading h3{color:#ce93d8}
+.profile-class-description{margin:0 0 10px;color:#c5ced9;font-size:11px}
+.profile-priority-controls{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  margin:0 0 12px;padding:8px 9px;
+  border:1px solid #ffffff19;border-radius:10px;background:rgba(255,255,255,.035);
+}
+.profile-priority-controls>span{margin-right:auto;color:#aeb9c8;font-size:8px;font-weight:950;letter-spacing:.12em}
+.profile-priority-controls button{
+  display:flex;align-items:center;gap:6px;min-height:32px;padding:5px 10px;
+  border:1px solid #ffffff28;border-radius:8px;background:#ffffff08;color:#dce4ef;
+  font-size:10px;font-weight:800;
+}
+.profile-priority-controls button b{
+  display:grid;place-items:center;width:19px;height:19px;border-radius:50%;
+  background:#ffffff18;color:#fff;font-size:10px;
+}
+.profile-priority-controls button.chosen.primary{border-color:#ef5350;background:#ef535020;color:#fff}
+.profile-priority-controls button.chosen.primary b{background:#ef5350}
+.profile-priority-controls button.chosen.secondary{border-color:#64b5f6;background:#64b5f620;color:#fff}
+.profile-priority-controls button.chosen.secondary b{background:#1976d2}
+.profile-priority-controls>small{flex-basis:100%;color:#9da9b8;font-size:8px}
+.profile-weapon-note{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 8px;padding:8px 10px;border:1px solid #ffffff1a;border-radius:8px;
+  background:rgba(255,255,255,.035);color:#aeb9c8;font-size:8px;font-weight:900;letter-spacing:.1em;
+}
+.profile-weapon-note strong{color:#fff;font-size:11px;letter-spacing:0}
+.profile-stat-summary{gap:7px}
+.profile-stat-summary>div{
+  padding:9px 10px;border:1px solid #ffffff20;border-radius:9px;
+  background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));
+}
+.profile-stat-summary span,.profile-ability>span{color:#b9c5d6;font-size:8px}
+.profile-stat-summary strong{color:#fff;font-size:clamp(19px,3vw,24px)}
+.profile-stat-summary small{color:#aeb9c8;font-size:8px}
+.profile-stat-summary .stat-health{border-color:#ef535055}
+.profile-stat-summary .stat-health span{color:#ff8a80}
+.profile-stat-summary .stat-damage{border-color:#ffb74d55}
+.profile-stat-summary .stat-damage span{color:#ffcc80}
+.profile-stat-summary .stat-range{border-color:#64b5f655}
+.profile-stat-summary .stat-range span{color:#90caf9}
+.profile-stat-summary .stat-speed{border-color:#ba68c855}
+.profile-stat-summary .stat-speed span{color:#ce93d8}
+.profile-stat-section{margin-top:12px}
+.profile-stat-section h4{margin-bottom:6px;color:#f1f4f8;font-size:10px}
+.profile-stat-list,.profile-attribute-list{gap:3px 12px}
+.profile-stat-list>div,.profile-attribute-list>div{padding:6px 8px;border-bottom-color:#ffffff14}
+.profile-stat-list span,.profile-attribute-list span{color:#c4cedb;font-size:9px}
+.profile-stat-list strong,.profile-attribute-list strong{color:#fff;font-size:10px}
+.profile-stat-list small,.profile-attribute-list small{color:#9eacbd}
+.profile-attribute-list i{display:inline-block;width:22px;font-style:normal;font-size:12px}
+.profile-stat-note{color:#9eacbd;font-size:8px;line-height:1.4}
+.profile-ability{margin-top:10px;padding:9px 11px;border-color:#64b5f64a;background:rgba(100,181,246,.09)}
+.profile-ability>span{color:#90caf9}
+.profile-ability p{margin-top:4px;color:#e1e9f3;font-size:9px}
+.profile-save-note{margin:9px 0 0;color:#8794a5;font-size:8px}
+@media(max-width:650px){
+  .lobby-profile-tabs{gap:5px;padding:8px 9px}
+  .lobby-profile-tabs .profile-class-tab{min-height:67px;padding:6px 2px}
+  .profile-class-tab .profile-class-emoji{font-size:19px}
+  .profile-class-tab small{font-size:6px}
+  .lobby-profile-content{padding:10px}
+  .profile-priority-controls{gap:5px;padding:7px}
+  .profile-priority-controls>span{flex-basis:100%}
+  .profile-priority-controls button{flex:1;justify-content:center;padding:5px 6px;font-size:9px}
+  .profile-stat-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .profile-stat-list,.profile-attribute-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 7px}
+  .profile-stat-list>div,.profile-attribute-list>div{align-items:flex-start;flex-direction:column;gap:2px;padding:6px 5px}
+  .profile-stat-list strong,.profile-attribute-list strong{white-space:normal}
+}
+@media(max-width:360px){
+  .profile-class-tab .profile-class-emoji{font-size:17px}
+  .profile-class-tab strong{font-size:9px}
+  .profile-class-tab small{font-size:5px}
+  .profile-stat-list,.profile-attribute-list{grid-template-columns:1fr}
+  .profile-stat-list>div,.profile-attribute-list>div{align-items:center;flex-direction:row}
+}
