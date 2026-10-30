@@ -75,7 +75,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
-  const [showStart, setShowStart] = useState(true);
+  const [showStart] = useState(true);
   const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
   const zoomRef = useRef(window.matchMedia('(pointer: coarse)').matches ? 1.55 : 1.3);
