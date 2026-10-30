@@ -1200,3 +1200,33 @@ button, button * {
   font-size: 23px;
   line-height: 1;
 }
+
+
+/* Lobby inicial: tela própria, sem deixar o mapa da partida aparecer por trás. */
+.lobby-screen{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:clamp(14px,3vw,34px);overflow:auto;background:radial-gradient(ellipse at 50% 42%,#34483e 0%,#1a2825 42%,#101614 100%);backdrop-filter:none;-webkit-backdrop-filter:none}
+.lobby-header,.lobby-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:2}
+.lobby-status{font-size:10px;letter-spacing:.14em;color:#9be4bd;font-weight:900}
+.lobby-rail{position:absolute;left:clamp(12px,2vw,28px);top:50%;transform:translateY(-50%);display:grid;gap:10px;z-index:3}
+.lobby-rail button,.lobby-shortcuts button,.lobby-invite,.lobby-equipment{border:1px solid #70877888;background:#17231fdd;color:#edf5ef;border-radius:12px}
+.lobby-rail button{width:58px;height:58px;font-size:21px;display:grid;place-content:center;gap:2px}
+.lobby-rail small{font-size:9px;letter-spacing:.06em}
+.lobby-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:clamp(12px,4vw,64px);padding:12px 74px}
+.lobby-character-card{position:relative;min-width:min(42vw,340px);min-height:min(48vh,430px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;overflow:hidden;border:1px solid #b2c9b044;border-radius:24px;background:linear-gradient(160deg,#ffffff0d,#0b1511a8);box-shadow:0 22px 70px #0005}
+.lobby-character-aura{position:absolute;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#b1d9a52b,transparent 68%);animation:lobby-breathe 4s ease-in-out infinite}
+.lobby-avatar{position:relative;font-size:clamp(90px,18vw,190px);filter:drop-shadow(0 16px 20px #0008);animation:lobby-breathe 4s ease-in-out infinite}
+.lobby-character-name{font-weight:950;letter-spacing:.18em;color:#eaf4e9}
+.lobby-character-card>small{font-size:9px;letter-spacing:.16em;color:#a8b9ac}
+.lobby-equipment{margin-top:8px;padding:11px 16px;font-size:10px;font-weight:900;letter-spacing:.08em}
+.lobby-shortcuts{display:grid;gap:12px;width:min(220px,28vw)}
+.lobby-shortcuts button{min-height:92px;display:grid;grid-template-columns:44px 1fr;grid-template-rows:1fr 1fr;align-items:center;text-align:left;padding:12px}
+.lobby-shortcuts b{grid-row:span 2;font-size:27px;text-align:center}
+.lobby-shortcuts span{font-size:11px;font-weight:950;letter-spacing:.1em}
+.lobby-shortcuts small{font-size:9px;color:#a9b9ad}
+.lobby-footer{justify-content:center;flex-wrap:wrap}
+.lobby-invite{padding:15px 20px;font-size:11px;font-weight:900;letter-spacing:.1em}
+.lobby-portal{min-width:min(330px,70vw);min-height:58px;border:1px solid #d6e6c7;border-radius:14px;background:linear-gradient(110deg,#a7c58a,#5d936e);color:#102018;font-weight:1000;letter-spacing:.12em;box-shadow:0 8px 32px #0005}
+.lobby-portal span{font-size:20px;margin-right:10px}
+.lobby-portal:disabled{opacity:.55}
+@keyframes lobby-breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.025)}}
+@media(max-width:650px){.lobby-screen{padding:12px}.lobby-rail{left:8px;top:46%;gap:7px}.lobby-rail button{width:43px;height:48px;font-size:17px}.lobby-stage{padding:8px 48px;flex-direction:column;gap:12px}.lobby-character-card{min-width:0;width:min(100%,300px);min-height:0;flex:1}.lobby-avatar{font-size:clamp(72px,22vw,130px)}.lobby-shortcuts{width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.lobby-shortcuts button{min-height:68px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:6px}.lobby-shortcuts b{font-size:19px}.lobby-shortcuts span{font-size:8px}.lobby-shortcuts small{font-size:7px}.lobby-footer{gap:8px}.lobby-invite{padding:13px}.lobby-portal{min-width:0;flex:1;font-size:10px}}
+@media(orientation:landscape) and (max-height:520px){.lobby-screen{padding:8px 18px}.lobby-header .start-eyebrow{font-size:9px}.lobby-stage{padding:4px 68px}.lobby-character-card{min-height:0;height:100%;min-width:220px}.lobby-avatar{font-size:clamp(60px,20vh,100px)}.lobby-shortcuts{width:180px}.lobby-shortcuts button{min-height:65px}.lobby-footer{gap:8px}.lobby-portal{min-height:44px}}
