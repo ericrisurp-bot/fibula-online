@@ -169,7 +169,7 @@ function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: bool
     poly(ctx, [[cx - 4.5, -10], [cx + 4.5, -10], [cx + 4.5, 20], [cx - 4.5, 20]], W.m0, W.line, 1);
     poly(ctx, [[cx - 3, -9], [cx + 3, -9], [cx + 3, 19], [cx - 3, 19]], W.d1, null);
     ctx.save(); ctx.beginPath(); ctx.rect(cx - 3, -9, 6, 28); ctx.clip();
-    const phase = ((rot * 2.2) % 7 + 7) % 7;
+    const phase = ((rot * 17) % 7 + 7) % 7;
     ctx.strokeStyle = W.d4; ctx.lineWidth = 1.5;
     for (let y = -9 + phase - 7; y < 19; y += 7) { ctx.beginPath(); ctx.moveTo(cx - 3, y); ctx.lineTo(cx + 3, y); ctx.stroke(); }
     ctx.restore();
@@ -220,12 +220,12 @@ function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: bool
   if (!movingUp) handle();
 }
 
-export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean) {
+export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, repairWood, repaired, carried } = cart;
   const vertical = Math.abs(Math.cos(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
-  const rot = moving ? time * 8 : 0;
+  const rot = wheelPhase !== undefined ? wheelPhase : moving ? time * 8 : 0;
   ctx.save();
   ctx.translate(x, y);
   ctx.save();
