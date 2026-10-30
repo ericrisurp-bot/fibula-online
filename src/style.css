@@ -1898,15 +1898,6 @@ button, button * {
 .arsenal-equipment-slot.selected{border-color:#b38b4c;background:#fff8eb;box-shadow:0 0 0 2px #d4b47735}
 .arsenal-equipment-slot.equipped{border-color:#8eb69a;background:#f0f8f2}
 .arsenal-equipped-item{position:absolute;right:-7px;top:-11px;max-width:calc(100% - 4px);overflow:hidden;padding:3px 7px;border:1px solid #78a789;border-radius:999px;background:#dff2e4;color:#21663a;font-size:9px;font-weight:950;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 2px 5px rgba(31,45,61,.15)}
-.slot-helmet{top:7px;left:55%;transform:translateX(-50%)}
-.slot-chest{top:30%;left:55%;transform:translateX(-50%)}
-.slot-leggings{top:55%;left:55%;transform:translateX(-50%)}
-.slot-boots{bottom:7px;left:55%;transform:translateX(-50%)}
-.slot-necklace{top:17%;left:28%}
-.slot-weapon{top:42%;left:28%}
-.slot-bag{top:17%;right:3%}
-.slot-glove{top:42%;right:3%}
-.slot-bracelet{top:67%;right:3%}
 .arsenal-inventory-section{margin-top:13px;padding:12px;border:1px solid #e0e6ee;border-radius:12px;background:#fff}
 .arsenal-inventory-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
 .arsenal-inventory-slot{
