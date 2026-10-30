@@ -1005,16 +1005,6 @@ export default function App() {
     flagHoldRef.current = null;
   };
   const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
-  const beginGame = () => {
-    if (!worldReady) return;
-    gameStartedRef.current = true;
-    // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
-    flagsRef.current = []; setFlags([]); setWheel(null);
-    closeFlagMenu();
-    closeInventoryPanel();
-    engineRef.current?.restart();
-    setShowStart(false);
-  };
   const toggleLandscapeMode = async () => {
     const orientation = window.screen.orientation as typeof window.screen.orientation & {
       lock?: (value: 'landscape') => Promise<void>;
