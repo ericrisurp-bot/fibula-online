@@ -2062,3 +2062,44 @@ button, button * {
 @media(orientation:landscape) and (max-height:520px){
   .lobby-play-trigger{left:61%;top:88%;width:136px;min-height:58px}
 }
+
+
+/* Acessos do Perfil e Arsenal sempre visíveis no lobby livre. */
+.lobby-profile-trigger,
+.lobby-arsenal-trigger{
+  position:absolute;
+  right:clamp(14px,4vw,42px);
+  z-index:26;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:clamp(54px,6vw,68px);
+  height:clamp(54px,6vw,68px);
+  min-width:54px;
+  min-height:54px;
+  border-radius:10px;
+  background:rgba(34,35,34,.82);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+.lobby-profile-trigger{top:42%}
+.lobby-arsenal-trigger{top:calc(42% + 76px)}
+.lobby-profile-trigger span,
+.lobby-arsenal-trigger span{font-size:10px}
+@media(max-width:650px){
+  .lobby-profile-trigger,
+  .lobby-arsenal-trigger{
+    right:12px;
+    width:52px;
+    height:52px;
+    min-width:52px;
+    min-height:52px;
+    border-radius:9px;
+  }
+  .lobby-profile-trigger{top:38%}
+  .lobby-arsenal-trigger{top:calc(38% + 62px)}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-profile-trigger{top:30%}
+  .lobby-arsenal-trigger{top:calc(30% + 58px)}
+}
