@@ -1,4 +1,5 @@
 import { CONFIG, type WeaponId } from './config';
+import { rangedGrip, staffLean, type RangedWeaponId } from './rangedWeapons';
 
 type Point = readonly [number, number];
 
@@ -357,7 +358,7 @@ export function drawFloatingWeapon(
 
   const bob = Math.sin(opts.time * 2.2) * 1.6;
   const restX = hover.sideT * CONFIG.player.auraRadius;
-  const restY = (weapon === 'arco' ? -r * 0.1 : r * 0.35) + bob;
+  const restY = (weapon === 'espada' ? r * 0.35 : rangedGrip(weapon as RangedWeaponId, 1, r).y) + bob;
   const restLean = Math.sin(opts.time * 1.7) * 0.04
     - hover.sideT * 0.10 * hover.moveT;
   // Sem alvo, o arco aponta contra o movimento horizontal: esquerda -> direita, direita -> esquerda.
@@ -378,13 +379,17 @@ export function drawFloatingWeapon(
   const combatY = combatDistance * Math.sin(combatDirection);
   const x = weapon === 'espada' ? restX + (combatX - restX) * hover.combatT : restX;
   const y = weapon === 'espada' ? restY + (combatY - restY) * hover.combatT : restY;
-  const desiredAngle = weapon === 'espada' || weapon === 'arco'
+  const isRanged = weapon !== 'espada';
+  // Armas à distância acompanham a velocidade de ataque: com alvo, a pose é exatamente a da mira
+  // (sem suavização), igual à usada pelo motor para a saída do projétil.
+  const desiredAngle = !isRanged
     ? restAngle + angleDelta(restAngle, combatAngle) * hover.combatT
-    : weapon === 'cajado' || weapon === 'bastao'
-      ? restAngle + angleDelta(restAngle, combatDirection) * hover.combatT
+    : opts.hasTarget
+      ? (weapon === 'arco' ? opts.aimAngle : -Math.PI / 2 + staffLean(opts.aimAngle))
       : restAngle;
   const angleAlpha = 1 - Math.exp(-dt / 0.12);
-  hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
+  if (isRanged && opts.hasTarget) hover.angle = desiredAngle;
+  else hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
   if (hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
 
   ctx.save();
