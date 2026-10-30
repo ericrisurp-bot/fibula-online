@@ -69,31 +69,37 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
     druida: `Cajado natural à distância; aplica lentidão de ${Math.round((1 - CONFIG.druidSlow.speedMultiplier) * 100)}% por ${CONFIG.druidSlow.duration}s e veneno por ${CONFIG.druidPoison.duration}s. Cura ${CONFIG.druidHeal.basicHitAmount} de vida a cada ${CONFIG.druidHeal.basicHitsPerHeal} acertos e gera 1 orbe a cada ${CONFIG.druidHeal.killsPerOrb} eliminações (máx. ${CONFIG.druidHeal.maxOrbs}).`,
   }[classId];
 
+  const statIcons: Record<string, string> = {
+    'Força': '💪', 'Inteligência': '🧠', 'Destreza': '🎯', 'Armadura': '🛡️',
+    'Resistência mágica': '✨', 'Velocidade de movimento': '👢',
+    'Velocidade de ataque': '⚔️', 'Alcance de ataque': '🏹',
+    'Esquiva': '💨', 'Área de ataque': '💥',
+  };
   return <div className="profile-stats-content">
-    <p className="profile-weapon-note">Arma inicial: <strong>{weapon.label}</strong></p>
+    <div className="profile-weapon-note"><span>ARMA INICIAL</span><strong>⚔️ {weapon.label}</strong></div>
     <div className="profile-stat-summary">
-      <div><span>VIDA INICIAL</span><strong>{CONFIG.attributes.classStartHealth[classId]}</strong><small>+{hpPerLevel.toFixed(1)} por nível</small></div>
-      <div><span>DANO DA ARMA</span><strong>{weapon.damage}</strong><small>+{damagePerLevel.toFixed(2)}% de dano por nível</small></div>
-      <div><span>ALCANCE</span><strong>{weapon.range}</strong><small>unidades do jogo</small></div>
-      <div><span>ATAQUES / SEGUNDO</span><strong>{weapon.attackSpeed.toFixed(2)}</strong><small>+{attackSpeedPerLevel.toFixed(2)}% de velocidade por nível</small></div>
+      <div className="stat-health"><span>❤️ VIDA / HP</span><strong>{CONFIG.attributes.classStartHealth[classId]}</strong><small>+{hpPerLevel.toFixed(1)} por nível</small></div>
+      <div className="stat-damage"><span>💥 DANO</span><strong>{weapon.damage}</strong><small>+{damagePerLevel.toFixed(2)}% por nível</small></div>
+      <div className="stat-range"><span>🎯 ALCANCE</span><strong>{weapon.range}</strong><small>unidades do jogo</small></div>
+      <div className="stat-speed"><span>⚔️ ATAQUES / SEG</span><strong>{weapon.attackSpeed.toFixed(2)}</strong><small>+{attackSpeedPerLevel.toFixed(2)}% por nível</small></div>
     </div>
     <section className="profile-stat-section">
-      <h4>Sobrevivência e mobilidade</h4>
+      <h4>🧭 Sobrevivência e mobilidade</h4>
       <div className="profile-stat-list">
-        <div><span>Velocidade de movimento</span><strong>{CONFIG.player.speed} <small>+{movementPerLevel.toFixed(2)} / nível</small></strong></div>
-        <div><span>Armadura inicial</span><strong>{CONFIG.player.armor} <small>+{armorPerLevel.toFixed(2)} / nível</small></strong></div>
-        <div><span>Esquiva inicial</span><strong>{(CONFIG.player.dodge * 100).toFixed(1)}% <small>+{dodgePerLevel.toFixed(2)} p.p. / nível</small></strong></div>
+        <div><span>👢 Velocidade de movimento</span><strong>{CONFIG.player.speed} <small>+{movementPerLevel.toFixed(2)} / nível</small></strong></div>
+        <div><span>🛡️ Armadura inicial</span><strong>{CONFIG.player.armor} <small>+{armorPerLevel.toFixed(2)} / nível</small></strong></div>
+        <div><span>💨 Esquiva inicial</span><strong>{(CONFIG.player.dodge * 100).toFixed(1)}% <small>+{dodgePerLevel.toFixed(2)} p.p. / nível</small></strong></div>
       </div>
     </section>
     <section className="profile-stat-section">
-      <h4>Atributos da classe</h4>
-      <p className="profile-stat-note">Todos começam em 100. O ganho por nível é aplicado conforme o multiplicador da classe.</p>
+      <h4>📊 Atributos da classe</h4>
+      <p className="profile-stat-note">Atributos iniciais e ganho por nível, aplicados conforme o multiplicador desta classe.</p>
       <div className="profile-attribute-list">
-        {attributeRows.map(([label, value, gain]) => <div key={label}><span>{label}</span><strong>{value} <small>+{gain.toFixed(2)} / nível</small></strong></div>)}
+        {attributeRows.map(([label, value, gain]) => <div key={label}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>{value} <small>+{gain.toFixed(2)} / nível</small></strong></div>)}
       </div>
       <p className="profile-stat-note">Força, inteligência e destreza participam do cálculo de dano conforme a classe. Armadura, velocidade, velocidade de ataque, esquiva e vida já têm efeitos no jogo. Resistência mágica, alcance e área de ataque ainda estão reservados para sistemas futuros.</p>
     </section>
-    <section className="profile-ability"><span>HABILIDADE / ESTILO</span><p>{ability}</p></section>
+    <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
   </div>;
 }
 
@@ -184,7 +190,7 @@ export default function App() {
     return ['guerreiro', 'druida'];
   });
   const [profileOpen, setProfileOpen] = useState(false);
-  const [profileTab, setProfileTab] = useState<0 | 1>(0);
+  const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
     const saved = window.localStorage.getItem('fibula-interface-scale');
@@ -1209,37 +1215,42 @@ export default function App() {
               <div><span>CONFIGURAÇÃO DOS PERSONAGENS</span><h2 id="lobby-profile-title">Perfil</h2></div>
               <button type="button" className="lobby-profile-close" aria-label="Fechar perfil" onClick={() => setProfileOpen(false)}>×</button>
             </header>
-            <div className="lobby-profile-tabs" role="tablist" aria-label="Selecionar personagem">
-              {([0, 1] as const).map(slot => <button type="button" role="tab" aria-selected={profileTab === slot} className={profileTab === slot ? 'active' : ''} key={slot} onClick={() => setProfileTab(slot)}>
-                <span>PERSONAGEM {slot + 1}</span><strong>{CLASSES[characterPreferences[slot]].label}</strong>
+            <nav className="lobby-profile-tabs" role="tablist" aria-label="Classes disponíveis">
+              {PROFILE_CLASS_IDS.map(classId => <button
+                type="button"
+                role="tab"
+                aria-selected={profileClassTab === classId}
+                className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
+                key={classId}
+                onClick={() => setProfileClassTab(classId)}
+              >
+                <span className="profile-class-emoji" aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[classId]}</span>
+                <strong>{CLASSES[classId].label}</strong>
+                <small>{characterPreferences[0] === classId ? '★ PRINCIPAL' : characterPreferences[1] === classId ? '② SECUNDÁRIO' : 'NÃO SELECIONADO'}</small>
               </button>)}
-            </div>
+            </nav>
             <div className="lobby-profile-content">
-              <section className="profile-class-picker">
-                <div className="profile-section-heading"><div><span>PREFERÊNCIA {profileTab + 1} DE 2</span><h3>Escolha uma classe</h3></div><small>{characterPreferences.filter(Boolean).length}/2 selecionadas</small></div>
-                <div className="profile-class-options">
-                  {PROFILE_CLASS_IDS.map(classId => {
-                    const selected = characterPreferences[profileTab] === classId;
-                    const usedByOtherSlot = characterPreferences[1 - profileTab] === classId;
-                    return <button type="button" key={classId} className={`profile-class-option ${selected ? 'selected' : ''}`} disabled={usedByOtherSlot} onClick={() => setCharacterPreferences(current => {
-                      if (current[1 - profileTab] === classId) return current;
-                      const next: [ClassId, ClassId] = [...current];
-                      next[profileTab] = classId;
-                      return next;
-                    })}>
-                      <strong>{CLASSES[classId].label}</strong><span>{CLASSES[classId].description}</span>
-                      {selected && <small>SELECIONADO</small>}
-                      {usedByOtherSlot && <small>NO PERSONAGEM {2 - profileTab}</small>}
-                    </button>;
-                  })}
+              <section className={`profile-class-details class-${profileClassTab}`}>
+                <div className="profile-section-heading">
+                  <div><span>FICHA DO PERSONAGEM · NÍVEL 0</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[profileClassTab]}</span> {CLASSES[profileClassTab].label}</h3></div>
+                  <small>Início da partida</small>
                 </div>
+                <p className="profile-class-description">{CLASSES[profileClassTab].description}</p>
+                <div className="profile-priority-controls" aria-label="Prioridade da classe">
+                  <span>MINHAS PREFERÊNCIAS</span>
+                  <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences(current => {
+                    if (current[0] === profileClassTab) return current;
+                    return [profileClassTab, current[0]];
+                  })}><b>1</b> Principal</button>
+                  <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences(current => {
+                    if (current[1] === profileClassTab) return current;
+                    return [current[1], profileClassTab];
+                  })}><b>2</b> Secundário</button>
+                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Escolha 1 ou 2 para adicionar esta classe às suas preferências.</small>}
+                </div>
+                <ProfileClassStats classId={profileClassTab} />
               </section>
-              <section className="profile-class-details">
-                <div className="profile-section-heading"><div><span>FICHA DO PERSONAGEM {profileTab + 1}</span><h3>{CLASSES[characterPreferences[profileTab]].label}</h3></div><small>nível 0 · início da partida</small></div>
-                <p className="profile-class-description">{CLASSES[characterPreferences[profileTab]].description}</p>
-                <ProfileClassStats classId={characterPreferences[profileTab]} />
-              </section>
-              <p className="profile-save-note">As duas preferências ficam salvas neste navegador. A sincronização com uma conta online ainda não está conectada.</p>
+              <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
             </div>
           </section>
         </div>}
