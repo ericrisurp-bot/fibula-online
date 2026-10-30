@@ -189,6 +189,7 @@ export default function App() {
       ctx.translate(width / 2, height * 0.82);
       ctx.scale(scale, scale);
       drawPlayer(ctx, 0, 0, 'espada', 'guerreiro', now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false, true, 0, 0, 0, 0, 0, 0, 0);
+      drawFloatingWeapon(ctx, 'espada', CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
       ctx.restore();
       frame = window.requestAnimationFrame(renderCharacter);
     };
