@@ -45,12 +45,12 @@ const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string; icon: string }
   colar: { label: 'colar', icon: '📿' }, bolsa: { label: 'bolsa', icon: '🎒' },
   pulseira: { label: 'pulseira', icon: '💍' },
 };
-const ARSENAL_SLOT_LAYOUT: { slot: EquipmentSlotId; position: string }[] = [
-  { slot: 'capacete', position: 'helmet' }, { slot: 'peitoral', position: 'chest' },
-  { slot: 'leggings', position: 'leggings' }, { slot: 'bota', position: 'boots' },
-  { slot: 'colar', position: 'necklace' }, { slot: 'arma', position: 'weapon' },
-  { slot: 'bolsa', position: 'bag' }, { slot: 'luva', position: 'glove' },
-  { slot: 'pulseira', position: 'bracelet' },
+const ARSENAL_SLOT_LAYOUT: { slot: EquipmentSlotId; row: number; column: number }[] = [
+  { slot: 'colar', row: 1, column: 1 }, { slot: 'capacete', row: 1, column: 2 },
+  { slot: 'bolsa', row: 1, column: 3 }, { slot: 'arma', row: 2, column: 1 },
+  { slot: 'peitoral', row: 2, column: 2 }, { slot: 'luva', row: 2, column: 3 },
+  { slot: 'leggings', row: 3, column: 2 }, { slot: 'pulseira', row: 3, column: 3 },
+  { slot: 'bota', row: 4, column: 2 },
 ];
 
 function readSavedArsenal(): ArsenalEquipment[] {
@@ -1350,10 +1350,10 @@ export default function App() {
                  <div className="arsenal-equipment-stage">
                    {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                    <div className="arsenal-equipment-grid">
-                     {ARSENAL_SLOT_LAYOUT.map(({ slot }) => {
+                     {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
                        const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
                        const info = ARSENAL_SLOT_INFO[slot];
-                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
+                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
                          <span className="arsenal-equipment-icon" aria-hidden="true">{equipped?.icon ?? info.icon}</span><strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
                        </button>;
                      })}
