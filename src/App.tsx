@@ -178,11 +178,14 @@ export default function App() {
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
-  const [characterPreferences, setCharacterPreferences] = useState<[ClassId, ClassId]>(() => {
+  const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = JSON.parse(window.localStorage.getItem('fibula-character-preferences') ?? 'null');
-        if (Array.isArray(saved) && saved.length === 2 && isProfileClassId(saved[0]) && isProfileClassId(saved[1]) && saved[0] !== saved[1]) {
+        if (Array.isArray(saved) && saved.length === 2 &&
+          (saved[0] === null || isProfileClassId(saved[0])) &&
+          (saved[1] === null || isProfileClassId(saved[1])) &&
+          saved[0] !== saved[1]) {
           return [saved[0], saved[1]];
         }
       } catch { /* Preferências inválidas são substituídas pelos padrões. */ }
@@ -288,7 +291,7 @@ export default function App() {
       ctx.save();
       ctx.translate(width / 2, height * 0.82);
       ctx.scale(scale, scale);
-      const lobbyClass = characterPreferences[0];
+      const lobbyClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       const lobbyWeapon = PROFILE_CLASS_WEAPONS[lobbyClass];
       drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, true, false, 0, 0, 0, 0, 0, 0, 0);
       drawFloatingWeapon(ctx, lobbyWeapon, CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
@@ -1239,14 +1242,16 @@ export default function App() {
                 <div className="profile-priority-controls" aria-label="Prioridade da classe">
                   <span>MINHAS PREFERÊNCIAS</span>
                   <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences(current => {
-                    if (current[0] === profileClassTab) return current;
-                    return [profileClassTab, current[0]];
+                    if (current[0] === profileClassTab) return [null, current[1]];
+                    if (current[1] === profileClassTab) return [profileClassTab, current[0]];
+                    return [profileClassTab, current[1]];
                   })}><b>1</b> Principal</button>
                   <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences(current => {
-                    if (current[1] === profileClassTab) return current;
-                    return current[0] === profileClassTab ? [current[1], profileClassTab] : [current[0], profileClassTab];
+                    if (current[1] === profileClassTab) return [current[0], null];
+                    if (current[0] === profileClassTab) return [current[1], profileClassTab];
+                    return [current[0], profileClassTab];
                   })}><b>2</b> Secundário</button>
-                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Escolha 1 ou 2 para adicionar esta classe às suas preferências.</small>}
+                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Escolha 1 ou 2 para adicionar esta classe às suas preferências. Os controles também desligam uma preferência já ativa.</small>}
                 </div>
                 <ProfileClassStats classId={profileClassTab} />
               </section>
