@@ -1320,15 +1320,7 @@ export default function App() {
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><span className="lobby-power-label" aria-label="Poder do personagem">PD</span><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
-        <div className="lobby-coordinate-grid" aria-label="Grade de coordenadas do lobby">
-          <span className="lobby-coordinate-corner"/>
-          {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-heading" key={column}>{column}</span>)}
-          {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(row => (
-            <div className="lobby-coordinate-row" key={row}>
-              <span className="lobby-coordinate-number">{row}</span>
-              {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-cell" key={`${column}${row}`}>{column}{row}</span>)}
-            </div>
-          ))}
+        
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
             <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/>
@@ -1341,7 +1333,6 @@ export default function App() {
             </svg>
             <span>F6</span>
           </button>
-        </div>
         <button className="lobby-play-trigger" type="button" onClick={startGame}>JOGAR</button>
         {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
