@@ -1999,3 +1999,65 @@ button, button * {
 
 /* O estado sem personagem ocupa apenas a coluna reservada ao avatar. */
 .arsenal-no-character{position:relative;inset:auto;grid-column:1;grid-row:1;display:grid;place-items:center;min-width:0;min-height:0;padding:10px;text-align:center}
+
+
+/* PD permanece como identificador visual; o valor e a fórmula serão definidos depois. */
+.lobby-power-label{
+  position:absolute;
+  z-index:24;
+  left:39%;
+  top:27%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:48px;
+  min-height:30px;
+  padding:5px 12px;
+  border:1px solid rgba(190,211,169,.68);
+  border-radius:8px;
+  background:rgba(24,34,27,.78);
+  color:#e3edcf;
+  font:900 15px/1 system-ui,sans-serif;
+  letter-spacing:.12em;
+  text-shadow:0 1px 5px rgba(0,0,0,.8);
+  box-shadow:0 3px 12px rgba(0,0,0,.25),inset 0 1px 2px rgba(255,255,255,.1);
+  pointer-events:none;
+}
+
+/* Ação principal do lobby posicionada sobre a área D2-D3 da grade de referência. */
+.lobby-play-trigger{
+  position:absolute;
+  z-index:25;
+  left:61%;
+  top:90%;
+  transform:translate(-50%,-50%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:clamp(116px,16vw,176px);
+  min-height:clamp(70px,14vh,108px);
+  padding:12px;
+  border:2px solid rgba(203,224,178,.9);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(88,128,75,.98),rgba(43,77,49,.98));
+  color:#f5f6eb;
+  font:1000 clamp(15px,2.1vw,22px)/1 system-ui,sans-serif;
+  letter-spacing:.1em;
+  text-shadow:0 2px 5px rgba(0,0,0,.55);
+  box-shadow:0 7px 20px rgba(0,0,0,.4),inset 0 1px 2px rgba(255,255,255,.2);
+  cursor:pointer;
+  pointer-events:auto;
+  -webkit-tap-highlight-color:transparent;
+  transition:filter .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+.lobby-play-trigger:hover{filter:brightness(1.12);box-shadow:0 9px 24px rgba(0,0,0,.48),inset 0 1px 2px rgba(255,255,255,.24)}
+.lobby-play-trigger:active{transform:translate(-50%,-50%) scale(.96)}
+.lobby-play-trigger:focus-visible{outline:3px solid #e4edce;outline-offset:4px}
+@media(max-width:650px){
+  .lobby-power-label{left:36%;top:26%;min-width:42px;min-height:27px;font-size:13px}
+  .lobby-play-trigger{left:61%;top:90%;width:clamp(112px,31vw,144px);min-height:clamp(68px,12vh,88px);border-radius:12px;font-size:16px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-power-label{left:37%;top:18%;min-height:24px;font-size:12px}
+  .lobby-play-trigger{left:61%;top:88%;width:136px;min-height:58px}
+}
