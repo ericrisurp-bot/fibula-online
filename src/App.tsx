@@ -555,7 +555,8 @@ export default function App() {
         const tool = target.kind === 'tree' ? 'machadinho' : target.kind === 'rock' ? 'picareta' : 'foice';
         const angle = target.kind === 'tree' ? s.treeChopAngle : target.kind === 'rock' ? s.rockMineAngle : s.cottonHarvestAngle;
         const timer = target.kind === 'tree' ? s.treeChopTimer : target.kind === 'rock' ? s.rockMineTimer : s.cottonHarvestTimer;
-        worldDrawables.push({ depth: target.depth, draw: () => drawFloatingToolAt(ctx, tool, CONFIG.player.radius, { angle, timer, duration: CONFIG.gathering.toolAnimationDuration }) });
+        const playerDepth = s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1;
+        worldDrawables.push({ depth: Math.max(target.depth, playerDepth) + 1, draw: () => drawFloatingToolAt(ctx, tool, CONFIG.player.radius, { angle, timer, duration: CONFIG.gathering.toolAnimationDuration }) });
       }
       worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night') });
       worldDrawables.sort((a, b) => a.depth - b.depth);
