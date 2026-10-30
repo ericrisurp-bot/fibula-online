@@ -552,19 +552,19 @@ export default function App() {
       }
       if (s.gatherToolTarget) {
         const target = s.gatherToolTarget;
-        const isTree = target.kind === 'tree';
-        const isRock = target.kind === 'rock';
-        const tool = isTree ? 'machadinho' : isRock ? 'picareta' : 'foice';
-        const angle = isTree ? s.treeChopAngle : isRock ? s.rockMineAngle : s.cottonHarvestAngle;
-        const timer = isTree ? s.treeChopTimer : isRock ? s.rockMineTimer : s.cottonHarvestTimer;
-        const depthOffset = isTree
-          ? (s.trees.find(tree => Math.abs(tree.x - target.x) < 0.001 && Math.abs(tree.y + 29 * (tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3) - target.y) < 0.001)?.size === 'small' ? 1.5 : s.trees.find(tree => Math.abs(tree.x - target.x) < 0.001 && Math.abs(tree.y + 29 * (tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3) - target.y) < 0.001)?.size === 'medium' ? 2.2 : 3) + 1
-          : isRock
-            ? 12 * (s.rocks.find(rock => rock.x === target.x && rock.y === target.y)?.size === 'small' ? 1.22 : s.rocks.find(rock => rock.x === target.x && rock.y === target.y)?.size === 'medium' ? 1.5 : 1.85) + 1
+        const tree = target.kind === 'tree' ? s.trees.find(value => Math.abs(value.x - target.x) < 0.001 && Math.abs(value.y + 29 * (value.size === 'small' ? 1.5 : value.size === 'medium' ? 2.2 : 3) - target.y) < 0.001) : undefined;
+        const rock = target.kind === 'rock' ? s.rocks.find(value => value.x === target.x && value.y === target.y) : undefined;
+        const tool = target.kind === 'tree' ? 'machadinho' : target.kind === 'rock' ? 'picareta' : 'foice';
+        const angle = target.kind === 'tree' ? s.treeChopAngle : target.kind === 'rock' ? s.rockMineAngle : s.cottonHarvestAngle;
+        const timer = target.kind === 'tree' ? s.treeChopTimer : target.kind === 'rock' ? s.rockMineTimer : s.cottonHarvestTimer;
+        const depthOffset = target.kind === 'tree'
+          ? 29 * (tree?.size === 'small' ? 1.5 : tree?.size === 'medium' ? 2.2 : 3) + 1
+          : target.kind === 'rock'
+            ? 12 * (rock?.size === 'small' ? 1.22 : rock?.size === 'medium' ? 1.5 : 1.85) + 1
             : 13 * 1.2 + 1;
         worldDrawables.push({ depth: target.y + depthOffset, draw: () => drawFloatingToolAt(ctx, tool, CONFIG.player.radius, { angle, timer, duration: CONFIG.gathering.toolAnimationDuration }) });
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night', s.player.facingY) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night') });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
