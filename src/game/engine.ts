@@ -1336,10 +1336,11 @@ export class GameEngine {
 
   private moveEnemies(dt: number) {
     const p = this.state.player;
+    const feet = playerFeet(p);
     const levelStats = this.getLevelStats();
     const obstacles = this.obstacleCircles(false);
     for (const e of this.state.enemies) {
-      const dx = p.x - e.x, dy = p.y - e.y;
+      const dx = feet.x - e.x, dy = feet.y - e.y;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
       const slowRemaining = e.slowRemaining ?? 0;
       const speedMultiplier = slowRemaining > 0 ? CONFIG.druidSlow.speedMultiplier : 1;
@@ -1347,8 +1348,8 @@ export class GameEngine {
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
       e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
-      const contactDistance = Math.hypot(p.x - e.x, p.y - e.y);
-      if (contactDistance <= CONFIG.player.radius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
+      const contactDistance = Math.hypot(feet.x - e.x, feet.y - e.y);
+      if (contactDistance <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (Math.random() > CONFIG.player.dodge + levelStats.dodge) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
@@ -1364,22 +1365,22 @@ export class GameEngine {
       this.resolveRockBoxCollisions(enemy);
     }
 
-    const minimumDistance = CONFIG.player.radius + CONFIG.enemy.radius;
+    const minimumDistance = CONFIG.player.footRadius + CONFIG.enemy.radius;
     const minX = CONFIG.map.wall + CONFIG.enemy.radius;
     const maxX = this.world - CONFIG.map.wall - CONFIG.enemy.radius;
     const minY = minX;
     const maxY = maxX;
     for (const enemy of this.state.enemies) {
-      let dx = enemy.x - p.x;
-      let dy = enemy.y - p.y;
+      let dx = enemy.x - feet.x;
+      let dy = enemy.y - feet.y;
       let distance = Math.hypot(dx, dy);
       if (distance >= minimumDistance) continue;
       if (distance === 0) {
         const angle = ((enemy.id * 137.508) % 360) * Math.PI / 180;
         dx = Math.cos(angle);
         dy = Math.sin(angle);
-        enemy.x = this.clamp(p.x + dx * minimumDistance, minX, maxX);
-        enemy.y = this.clamp(p.y + dy * minimumDistance, minY, maxY);
+        enemy.x = this.clamp(feet.x + dx * minimumDistance, minX, maxX);
+        enemy.y = this.clamp(feet.y + dy * minimumDistance, minY, maxY);
         continue;
       }
       const push = minimumDistance - distance;
