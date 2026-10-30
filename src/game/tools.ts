@@ -90,11 +90,11 @@ function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: numb
 }
 export type FloatingToolOptions = { angle: number; reach: number; timer: number; duration: number; minGrip: number };
 
-/** Chamar com o contexto transladado para o centro do jogador, SEM espelhamento. */
-export function drawFloatingTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number, opts: FloatingToolOptions): void {
+/** Desenha a ferramenta ancorada no próprio material, sem depender da posição do jogador. */
+export function drawFloatingToolAt(ctx: CanvasRenderingContext2D, tool: ToolId, r: number, opts: { angle: number; timer: number; duration: number }): void {
   if (opts.timer <= 0) return;
   const p = Math.min(1, Math.max(0, 1 - opts.timer / opts.duration));
-  const q = toolPose(tool, r, opts.angle, opts.reach, p, opts.minGrip);
+  const q = toolPose(tool, r, opts.angle, 0, p, 0);
   if (q.alpha <= 0.01) return;
   ctx.save(); ctx.globalAlpha = q.alpha; ctx.translate(q.gx, q.gy); ctx.rotate(q.rot); ctx.scale(1, q.side);
   drawTool(ctx, tool, r); ctx.restore();
