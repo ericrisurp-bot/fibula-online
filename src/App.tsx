@@ -1032,13 +1032,14 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
-        <div className="start-panel">
-          <div className="start-eyebrow">FÍBULA ONLINE</div>
-          <h1>{worldReady ? 'Pronto para sobreviver?' : 'Preparando o mundo...'}</h1>
-          <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Preparando o terreno e renderizando o mapa antes de liberar a partida.'}</p>
-          <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>{worldReady ? 'INICIAR JOGO' : 'CARREGANDO...'}</button>
-        </div>
+      {showStart && <div className="start-overlay lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
+        <header className="lobby-header"><div className="start-eyebrow">FÍBULA ONLINE</div><span className="lobby-status">● {worldReady ? 'PRONTO' : 'PREPARANDO'}</span></header>
+        <nav className="lobby-rail" aria-label="Menu do lobby"><button type="button" onClick={() => setShowHelp(true)}>☰<small>Menu</small></button><button type="button" onClick={() => setShowHelp(true)}>⚙<small>Opções</small></button></nav>
+        <section className="lobby-stage">
+          <div className="lobby-character-card"><div className="lobby-character-aura"></div><div className="lobby-avatar" aria-hidden="true">🧙</div><div className="lobby-character-name">AVENTUREIRO</div><small>PERSONAGEM PRINCIPAL</small><button type="button" className="lobby-equipment" onClick={() => setShowHelp(true)}>EQUIPAMENTO · 2 ESPAÇOS</button></div>
+          <div className="lobby-shortcuts"><button type="button" onClick={() => setShowHelp(true)}><b>⚒</b><span>BIGORNA</span><small>Em breve</small></button><button type="button" onClick={() => setShowHelp(true)}><b>🧵</b><span>COSTURA</span><small>Em breve</small></button><button type="button" onClick={() => setShowHelp(true)}><b>♨</b><span>FOGÃO</span><small>Em breve</small></button></div>
+        </section>
+        <footer className="lobby-footer"><button type="button" className="lobby-invite" onClick={() => setShowHelp(true)}>＋ CONVIDAR</button><button className="lobby-portal" type="button" disabled={!worldReady} onClick={beginGame}><span>◈</span>{worldReady ? 'ENTRAR NO PORTAL' : 'PREPARANDO MUNDO...'}</button></footer>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
