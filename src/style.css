@@ -2004,3 +2004,6 @@ button, button * {
  .arsenal-equipment-grid .arsenal-equipment-icon{font-size:17px}
  .arsenal-equipment-grid .arsenal-equipment-slot strong{font-size:6px}
 }
+
+/* O estado sem personagem ocupa apenas a coluna reservada ao avatar. */
+.arsenal-no-character{position:relative;inset:auto;grid-column:1;grid-row:1;display:grid;place-items:center;min-width:0;min-height:0;padding:10px;text-align:center}
