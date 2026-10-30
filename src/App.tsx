@@ -295,7 +295,7 @@ export default function App() {
       const bowGripX = s.player.x + floatingWeaponSide * CONFIG.player.auraRadius;
       const bowGripY = s.player.y - CONFIG.player.radius * 0.1;
       const aimAngle = aimTarget
-        ? weapon === 'arco'
+        ? s.weapon === 'arco'
           ? Math.atan2(aimTarget.y - bowGripY, aimTarget.x - bowGripX)
           : Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
