@@ -5,7 +5,6 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
-let floatingWeaponSide: 1 | -1 = 1;
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import Controls from './ui/Controls';
@@ -14,6 +13,8 @@ import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
+
+let floatingWeaponSide: 1 | -1 = 1;
 
 registerCombatSounds();
 registerGatherSounds();
