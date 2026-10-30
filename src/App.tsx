@@ -1095,10 +1095,10 @@ export default function App() {
           <span className="lobby-coordinate-corner"/>
           {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-heading" key={column}>{column}</span>)}
           {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(row => (
-            <>
-              <span className="lobby-coordinate-number" key={`row-${row}`}>{row}</span>
+            <div className="lobby-coordinate-row" key={row}>
+              <span className="lobby-coordinate-number">{row}</span>
               {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-cell" key={`${column}${row}`}>{column}{row}</span>)}
-            </>
+            </div>
           ))}
         </div>
       </div>}
