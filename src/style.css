@@ -1329,3 +1329,44 @@ button, button * {
   background:radial-gradient(ellipse at 52% 12%,rgba(174,190,139,.19) 0%,rgba(132,153,113,.10) 32%,rgba(96,119,91,.035) 58%,transparent 76%);
   filter:blur(8px);
 }
+
+
+/* Primeiro controle do lobby: convite de duo, discreto e sem fundo. */
+.lobby-duo-invite{
+  position:absolute;
+  z-index:4;
+  left:calc(50% + 7vw);
+  top:calc(50% - 12vh);
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#222322;
+  font:500 38px/1 system-ui,sans-serif;
+  text-shadow:0 1px 4px rgba(225,232,220,.72),0 0 9px rgba(225,232,220,.28);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.lobby-duo-invite:focus-visible{
+  outline:1px solid rgba(34,35,34,.72);
+  outline-offset:2px;
+}
+@media(max-width:650px){
+  .lobby-duo-invite{
+    left:calc(50% + 8vw);
+    top:calc(50% - 12vh);
+    width:38px;
+    height:38px;
+    font-size:34px;
+  }
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-duo-invite{
+    left:calc(50% + 9vw);
+    top:calc(50% - 14vh);
+  }
+}
