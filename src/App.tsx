@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
+import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, addEquipmentToArsenal, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
 import { GameEngine, type GameSnapshot } from './game/engine';
@@ -37,6 +38,45 @@ const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   arqueiro: 'arco',
   druida: 'bastao',
 };
+const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string; icon: string }> = {
+  capacete: { label: 'Capacete', icon: '🪖' },
+  armadura: { label: 'Armadura', icon: '🦺' },
+  calca: { label: 'Calça', icon: '👖' },
+  bota: { label: 'Bota', icon: '🥾' },
+  luva: { label: 'Luva', icon: '🧤' },
+  arma1: { label: 'Arma 1', icon: '⚔️' },
+  arma2: { label: 'Arma 2', icon: '🗡️' },
+  colar: { label: 'Colar', icon: '📿' },
+  pulseira: { label: 'Pulseira', icon: '🔗' },
+};
+const ARSENAL_LEFT_SLOTS: EquipmentSlotId[] = ['capacete', 'armadura', 'calca', 'bota', 'luva'];
+const ARSENAL_RIGHT_SLOTS: EquipmentSlotId[] = ['arma1', 'arma2', 'colar', 'pulseira'];
+
+function readSavedArsenal(): ArsenalEquipment[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-items') ?? '[]');
+    if (!Array.isArray(saved)) return [];
+    return saved.filter((item): item is ArsenalEquipment =>
+      !!item && typeof item.id === 'string' && typeof item.name === 'string' &&
+      typeof item.icon === 'string' && EQUIPMENT_SLOTS.includes(item.slot),
+    ).slice(0, ARSENAL_CAPACITY);
+  } catch { return []; }
+}
+
+function readSavedLoadout(): EquipmentLoadout {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-equipped') ?? '{}');
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+    return Object.fromEntries(
+      Object.entries(saved).filter(([slot, id]) =>
+        EQUIPMENT_SLOTS.includes(slot as EquipmentSlotId) && typeof id === 'string',
+      ),
+    ) as EquipmentLoadout;
+  } catch { return {}; }
+}
+
 const isProfileClassId = (value: unknown): value is ClassId =>
   typeof value === 'string' && PROFILE_CLASS_IDS.includes(value as ClassId);
 
@@ -191,6 +231,11 @@ export default function App() {
     }
     return ['guerreiro', 'druida'];
   });
+  const [arsenalOpen, setArsenalOpen] = useState(false);
+  const [arsenalItems, setArsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
+  const [equipmentLoadout, setEquipmentLoadout] = useState<EquipmentLoadout>(readSavedLoadout);
+  const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
+  const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
@@ -238,6 +283,14 @@ export default function App() {
   }, [characterPreferences]);
 
   useEffect(() => {
+    window.localStorage.setItem('fibula-arsenal-items', JSON.stringify(arsenalItems));
+  }, [arsenalItems]);
+
+  useEffect(() => {
+    window.localStorage.setItem('fibula-arsenal-equipped', JSON.stringify(equipmentLoadout));
+  }, [equipmentLoadout]);
+
+  useEffect(() => {
     if (!profileOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setProfileOpen(false);
@@ -245,6 +298,15 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (!arsenalOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setArsenalOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [arsenalOpen]);
 
   useEffect(() => {
     if (!showStart) return;
@@ -1204,6 +1266,12 @@ export default function App() {
               {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-cell" key={`${column}${row}`}>{column}{row}</span>)}
             </div>
           ))}
+          <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/>
+            </svg>
+            <span>E5</span>
+          </button>
           <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
             <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
@@ -1211,6 +1279,80 @@ export default function App() {
             <span>F6</span>
           </button>
         </div>
+        {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
+          <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-arsenal-header">
+              <div><span>EQUIPAMENTOS DO PERSONAGEM</span><h2 id="lobby-arsenal-title">Arsenal</h2></div>
+              <div className="lobby-arsenal-count">{arsenalItems.length}/{ARSENAL_CAPACITY} espaços</div>
+              <button type="button" className="lobby-profile-close" aria-label="Fechar Arsenal" onClick={() => setArsenalOpen(false)}>×</button>
+            </header>
+            <div className="lobby-arsenal-content">
+              <section className="arsenal-equipment-section" aria-label="Equipamentos equipados">
+                <div className="arsenal-section-heading"><strong>PERSONAGEM</strong><span>Escolha um espaço para equipar</span></div>
+                <div className="arsenal-equipment-layout">
+                  <div className="arsenal-slot-column">
+                    {ARSENAL_LEFT_SLOTS.map(slot => {
+                      const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                      const info = ARSENAL_SLOT_INFO[slot];
+                      return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
+                        <span className="arsenal-slot-icon">{equipped?.icon ?? info.icon}</span><span className="arsenal-slot-copy"><strong>{info.label}</strong><small>{equipped ? equipped.name : 'Vazio'}</small>{equipped && <em>EQUIPADO</em>}</span>
+                      </button>;
+                    })}
+                  </div>
+                  <div className="arsenal-avatar" aria-label="Silhueta do personagem">
+                    <svg viewBox="0 0 180 300" role="img" aria-label="Personagem visto de frente">
+                      <defs><linearGradient id="arsenal-armor" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#d7e0e8"/><stop offset=".55" stopColor="#788899"/><stop offset="1" stopColor="#354454"/></linearGradient></defs>
+                      <ellipse cx="90" cy="286" rx="56" ry="8" fill="#15202b" opacity=".15"/>
+                      <path d="M68 27Q90 8 112 27L119 57Q112 75 90 75Q68 75 61 57Z" fill="#c9956c" stroke="#72523d" strokeWidth="2"/>
+                      <path d="M62 29Q90 -1 118 29L116 47Q90 35 64 47Z" fill="#4b3a32"/>
+                      <path d="M58 79Q90 65 122 79L145 158L126 174L119 128L116 202H64L61 128L54 174L35 158Z" fill="url(#arsenal-armor)" stroke="#354454" strokeWidth="3" strokeLinejoin="round"/>
+                      <path d="M64 91L90 111L116 91L108 151H72Z" fill="#9eafbd" opacity=".8"/>
+                      <path d="M67 202H88L82 267H53L58 224Z" fill="#526174" stroke="#354454" strokeWidth="3"/>
+                      <path d="M92 202H113L122 224L127 267H98Z" fill="#526174" stroke="#354454" strokeWidth="3"/>
+                      <path d="M51 267H83L87 281H42Q37 275 51 267ZM99 267H129L139 281H93Z" fill="#283747"/>
+                      <path d="M42 151L29 211L42 217L60 162M138 151L151 211L138 217L120 162" fill="none" stroke="#9babb8" strokeWidth="13" strokeLinecap="round"/>
+                      <path d="M90 111V194" stroke="#e1c58b" strokeWidth="4" opacity=".75"/>
+                    </svg>
+                    <span>VISUALIZAÇÃO DO EQUIPAMENTO</span>
+                  </div>
+                  <div className="arsenal-slot-column">
+                    {ARSENAL_RIGHT_SLOTS.map(slot => {
+                      const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                      const info = ARSENAL_SLOT_INFO[slot];
+                      return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
+                        <span className="arsenal-slot-icon">{equipped?.icon ?? info.icon}</span><span className="arsenal-slot-copy"><strong>{info.label}</strong><small>{equipped ? equipped.name : 'Vazio'}</small>{equipped && <em>EQUIPADO</em>}</span>
+                      </button>;
+                    })}
+                  </div>
+                </div>
+              </section>
+              <section className="arsenal-inventory-section">
+                <div className="arsenal-section-heading"><strong>INVENTÁRIO DE EQUIPAMENTOS</strong><span>Itens obtidos e fabricados ficam aqui</span></div>
+                <div className="arsenal-inventory-grid">
+                  {Array.from({ length: ARSENAL_CAPACITY }, (_, index) => {
+                    const item = arsenalItems[index];
+                    const isEquipped = !!item && Object.values(equipmentLoadout).includes(item.id);
+                    return <button type="button" key={index} className={`arsenal-inventory-slot ${item ? 'filled' : ''} ${item?.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} disabled={!item} onClick={() => { if (item) { setSelectedArsenalItemId(item.id); setSelectedEquipmentSlot(item.slot); } }} aria-label={item ? `Selecionar ${item.name}${isEquipped ? ', equipado' : ''}` : `Espaço ${index + 1} vazio`}>
+                      {item ? <><span>{item.icon}</span><small>{item.name}</small>{isEquipped && <em>EQUIPADO</em>}</> : <span className="arsenal-empty-number">{index + 1}</span>}
+                    </button>;
+                  })}
+                </div>
+                <div className="arsenal-actions">
+                  <div className="arsenal-selection-label">{arsenalItems.find(item => item.id === selectedArsenalItemId)?.name ?? 'Selecione um equipamento'}</div>
+                  <button type="button" disabled={!arsenalItems.some(item => item.id === selectedArsenalItemId) || arsenalItems.find(item => item.id === selectedArsenalItemId)?.slot !== selectedEquipmentSlot} onClick={() => {
+                    const selected = arsenalItems.find(item => item.id === selectedArsenalItemId);
+                    if (selected && selected.slot === selectedEquipmentSlot) setEquipmentLoadout(current => equipArsenalItem(current, selected));
+                  }}>Equipar</button>
+                  <button type="button" className="arsenal-unequip" disabled={!equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
+                    setEquipmentLoadout(current => unequipArsenalSlot(current, selectedEquipmentSlot));
+                    setSelectedArsenalItemId(null);
+                  }}>Desequipar</button>
+                </div>
+                <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
+              </section>
+            </div>
+          </section>
+        </div>}
         {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
           <section className="lobby-profile-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-profile-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-profile-header">
