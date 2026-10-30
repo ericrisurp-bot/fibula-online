@@ -177,9 +177,6 @@ export default function App() {
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const engine = new GameEngine((next) => setState(next)); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
     let frame = 0;
-    let readyTimer: number | null = null;
-    let firstFrameRendered = false;
-    const loadingStartedAt = performance.now();
     const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
     let fpsDisplay: HTMLDivElement | null = null;
     let fpsFrameCount = 0;
@@ -734,17 +731,12 @@ export default function App() {
         ctx.fill();
         ctx.restore();
       }
-      if (!firstFrameRendered) {
-        firstFrameRendered = true;
-        const remainingLoadingMs = Math.max(0, 800 - (performance.now() - loadingStartedAt));
-        readyTimer = window.setTimeout(() => setWorldReady(true), remainingLoadingMs);
-      }
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
   }, []);
 
   useEffect(() => {
