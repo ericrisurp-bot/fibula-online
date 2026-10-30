@@ -1268,3 +1268,40 @@ button, button * {
   pointer-events:none;
 }
 .lobby-character-wrap{z-index:2}
+
+
+/* Céu vazio e profundo: somente lua e sete estrelas discretas. */
+.lobby-sky{
+  background:radial-gradient(ellipse at 82% 18%,rgba(53,66,79,.16),transparent 28%),linear-gradient(180deg,#080d13 0%,#0b1118 58%,#101820 100%);
+}
+.lobby-sky:before{display:none}
+.lobby-moon{
+  right:16%;
+  top:10%;
+  width:clamp(42px,8vw,76px);
+  background:radial-gradient(circle at 35% 32%,#f5f0d9 0%,#d8d2b9 56%,#a9a48f 100%);
+  box-shadow:0 0 22px 7px rgba(218,213,187,.12),0 0 64px 18px rgba(193,199,194,.07);
+}
+.lobby-star{
+  position:absolute;
+  width:2px;
+  height:2px;
+  border-radius:50%;
+  background:#dce5ed;
+  box-shadow:0 0 4px 1px rgba(215,229,241,.28);
+  opacity:.18;
+  animation:lobby-star-twinkle 5.8s ease-in-out infinite;
+}
+.star-one{left:13%;top:17%;animation-delay:-1.2s}
+.star-two{left:31%;top:11%;animation-delay:-3.8s}
+.star-three{left:48%;top:26%;animation-delay:-2.4s}
+.star-four{left:69%;top:16%;animation-delay:-4.6s}
+.star-five{left:82%;top:38%;animation-delay:-.8s}
+.star-six{left:23%;top:43%;animation-delay:-5.1s}
+.star-seven{left:58%;top:52%;animation-delay:-3.1s}
+@keyframes lobby-star-twinkle{
+  0%,100%{opacity:.10;transform:scale(.8)}
+  42%{opacity:.48;transform:scale(1.25)}
+  56%{opacity:.16;transform:scale(.9)}
+}
+.lobby-grass-floor{filter:brightness(.43) saturate(.78) contrast(1.08)}
