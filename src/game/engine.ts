@@ -433,7 +433,7 @@ export class GameEngine {
       const feet = playerFeet(this.state.player);
       cart.x = this.clamp(feet.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       cart.y = this.clamp(feet.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
-      this.resolveObstacleCollisions(cart, 30, true);
+      this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
     } else if (Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) <= CONFIG.cart.interactRadius) {
       cart.carried = true;
       cart.angle = Math.atan2(this.state.player.facingY, this.state.player.facingX);
@@ -570,7 +570,7 @@ export class GameEngine {
     if (distance > 0) {
       cart.x = this.clamp(cart.x + dx / distance * step, margin, this.world - margin);
       cart.y = this.clamp(cart.y + dy / distance * step, margin, this.world - margin);
-      this.resolveObstacleCollisions(cart, 30, true);
+      this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
     }
   }
   private placeCart() {
@@ -1397,7 +1397,7 @@ export class GameEngine {
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
     circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
-    if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: 30 });
+    if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius });
     return circles;
   }
 
