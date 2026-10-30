@@ -29,7 +29,7 @@ type DyingEnemy = Enemy & { deathAge: number };
 type CartState = Vec & { angle: number; repairWood: number; repaired: boolean; carried: boolean; inventory: InventoryStack[] };
 type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
 type TecelariaState = Vec & { bronzeDelivered: number; woodDelivered: number; cottonDelivered: number; stoneDelivered: number; built: boolean; cottonStock: number; cottonProcessed: number; linenProduced: number };
-type GatherToolTarget = Vec & { kind: 'tree' | 'rock' | 'cotton' };
+type GatherToolTarget = Vec & { kind: 'tree' | 'rock' | 'cotton'; depth: number };
 export type GameSnapshot = {
   walkPhase: number;
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
@@ -1614,7 +1614,7 @@ export class GameEngine {
     if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d)) {
       const treeBase = this.treeBase(treeTarget.tree);
       this.state.treeChopAngle = Math.atan2(treeBase.y - p.y, treeBase.x - p.x);
-      this.state.gatherToolTarget = { ...treeBase, kind: 'tree' };
+      this.state.gatherToolTarget = { ...treeBase, kind: 'tree', depth: treeBase.y + this.treeScale(treeTarget.tree) + 1 };
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
       this.state.gatherReach = Math.max(12, treeTarget.centerD - 0.6 * this.treeFootprintRadius(treeTarget.tree));
       treeTarget.tree.hits -= 1;
@@ -1622,14 +1622,14 @@ export class GameEngine {
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
       this.state.rockMineAngle = Math.atan2(rockTarget.rock.y - p.y, rockTarget.rock.x - p.x);
-      this.state.gatherToolTarget = { x: rockTarget.rock.x, y: rockTarget.rock.y, kind: 'rock' };
+      this.state.gatherToolTarget = { x: rockTarget.rock.x, y: rockTarget.rock.y, kind: 'rock', depth: rockTarget.rock.y + 12 * (rockTarget.rock.size === 'small' ? 1.22 : rockTarget.rock.size === 'medium' ? 1.5 : 1.85) + 1 };
       this.state.rockMineTimer = CONFIG.gathering.toolAnimationDuration;
       this.state.gatherReach = Math.max(12, rockTarget.centerD - 0.6 * this.rockFootprintRadius(rockTarget.rock));
       this.hitRock(rockTarget.rock.id);
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget) {
       this.state.cottonHarvestAngle = Math.atan2(cottonTarget.plant.y - p.y, cottonTarget.plant.x - p.x);
-      this.state.gatherToolTarget = { x: cottonTarget.plant.x, y: cottonTarget.plant.y, kind: 'cotton' };
+      this.state.gatherToolTarget = { x: cottonTarget.plant.x, y: cottonTarget.plant.y, kind: 'cotton', depth: cottonTarget.plant.y + 13 * 1.2 + 1 };
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
       this.state.gatherReach = Math.max(12, cottonTarget.centerD - 0.6 * this.cottonFootprintRadius(cottonTarget.plant));
       this.hitCottonPlant(cottonTarget.plant.id);
