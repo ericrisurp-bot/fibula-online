@@ -1374,3 +1374,44 @@ button, button * {
     height:42px;
   }
 }
+
+
+/* Grade de coordenadas temporária do lobby: referência A-F / 1-10 para posicionar os botões. */
+.lobby-coordinate-grid{
+  position:absolute;
+  z-index:20;
+  inset:0;
+  display:grid;
+  grid-template-columns:clamp(22px,6vw,30px) repeat(6,minmax(0,1fr));
+  grid-template-rows:clamp(22px,4vh,30px) repeat(10,minmax(0,1fr));
+  pointer-events:none;
+  color:rgba(239,242,230,.78);
+  font:600 clamp(8px,2vw,11px)/1 system-ui,sans-serif;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+}
+.lobby-coordinate-corner,
+.lobby-coordinate-heading,
+.lobby-coordinate-number,
+.lobby-coordinate-cell{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  min-height:0;
+  box-sizing:border-box;
+  border:1px solid rgba(225,235,219,.24);
+  background:rgba(9,14,16,.12);
+}
+.lobby-coordinate-heading,
+.lobby-coordinate-number{
+  background:rgba(9,14,16,.48);
+  color:rgba(245,245,231,.94);
+  font-weight:800;
+}
+.lobby-coordinate-cell{
+  background:rgba(9,14,16,.055);
+  font-weight:500;
+}
+@media(min-width:651px){
+  .lobby-coordinate-grid{display:none}
+}
