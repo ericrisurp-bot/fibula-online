@@ -68,9 +68,9 @@ export const CONFIG = {
   druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
   weapons: {
     espada: { label: 'Espada', range: AURA_RADIUS + SWORD_REACH_BEYOND_AURA, damage: 16, attackSpeed: 2.1, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
-    cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
+    cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.92, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 420, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
-    bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.85, kind: 'orb' as const, projectileSpeed: 390 },
+    bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.92, kind: 'orb' as const, projectileSpeed: 390 },
   },
 } as const;
 
