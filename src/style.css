@@ -1977,23 +1977,24 @@ button, button * {
 @media(max-width:700px){.arsenal-equipment-slot{width:48px;height:48px;min-height:48px;padding:3px;gap:2px}.arsenal-equipment-icon{font-size:19px}.arsenal-equipment-slot strong{font-size:7px}.arsenal-equipped-item{font-size:6px;padding:2px 3px}}
 
 
-/* Formação anatômica do Arsenal: personagem à esquerda e slots distribuídos em quatro linhas. */
-.arsenal-equipment-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.45fr);align-items:stretch;gap:12px;padding:12px}
+/* Formação anatômica do Arsenal: slots maiores ocupam toda a área ao lado do personagem. */
+.arsenal-equipment-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.45fr);align-items:stretch;gap:12px;padding:10px}
 .arsenal-character-canvas{position:relative;left:auto;top:auto;display:block;width:100%;height:100%;min-width:0;min-height:0;grid-column:1;grid-row:1}
-.arsenal-equipment-grid{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(4,56px);justify-content:center;align-content:center;gap:12px;min-width:0;min-height:0}
-.arsenal-equipment-grid .arsenal-equipment-slot{position:relative;inset:auto;width:56px;height:56px;min-height:56px;margin:0;padding:4px;transform:none;justify-self:center;align-self:center}
+.arsenal-equipment-grid{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(3,76px);grid-template-rows:repeat(4,76px);justify-content:center;align-content:center;gap:8px;min-width:0;min-height:0}
+.arsenal-equipment-grid .arsenal-equipment-slot{position:relative;inset:auto;width:76px;height:76px;min-height:76px;margin:0;padding:7px;transform:none;justify-self:center;align-self:center;flex-direction:column;gap:4px}
+.arsenal-equipment-grid .arsenal-equipment-slot strong{font-size:11px;line-height:1.15;text-transform:capitalize}
 .arsenal-equipment-grid .arsenal-equipped-item{right:-4px;top:-8px}
 @media(max-width:700px){
  .arsenal-equipment-stage{grid-template-columns:minmax(0,.85fr) minmax(0,1.4fr);gap:6px;padding:7px}
- .arsenal-equipment-grid{grid-template-columns:repeat(3,48px);grid-template-rows:repeat(4,48px);gap:7px}
- .arsenal-equipment-grid .arsenal-equipment-slot{width:48px;height:48px;min-height:48px}
+ .arsenal-equipment-grid{grid-template-columns:repeat(3,58px);grid-template-rows:repeat(4,58px);gap:6px}
+ .arsenal-equipment-grid .arsenal-equipment-slot{width:58px;height:58px;min-height:58px;padding:4px}
+ .arsenal-equipment-grid .arsenal-equipment-slot strong{font-size:9px}
 }
 @media(max-width:360px){
  .arsenal-equipment-stage{grid-template-columns:minmax(0,.72fr) minmax(0,1.5fr);gap:4px;padding:5px}
- .arsenal-equipment-grid{grid-template-columns:repeat(3,44px);grid-template-rows:repeat(4,44px);gap:5px}
- .arsenal-equipment-grid .arsenal-equipment-slot{width:44px;height:44px;min-height:44px}
- .arsenal-equipment-grid .arsenal-equipment-icon{font-size:17px}
- .arsenal-equipment-grid .arsenal-equipment-slot strong{font-size:6px}
+ .arsenal-equipment-grid{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(4,52px);gap:4px}
+ .arsenal-equipment-grid .arsenal-equipment-slot{width:52px;height:52px;min-height:52px;padding:3px}
+ .arsenal-equipment-grid .arsenal-equipment-slot strong{font-size:8px}
 }
 
 /* O estado sem personagem ocupa apenas a coluna reservada ao avatar. */
