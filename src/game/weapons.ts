@@ -378,7 +378,6 @@ export function drawFloatingWeapon(
   const combatY = combatDistance * Math.sin(combatDirection);
   const x = weapon === 'espada' ? restX + (combatX - restX) * hover.combatT : restX;
   const y = weapon === 'espada' ? restY + (combatY - restY) * hover.combatT : restY;
-  const isRanged = weapon !== 'espada';
   // Armas à distância acompanham a velocidade de ataque: com alvo, a pose é exatamente a da mira
   // (sem suavização), igual à usada pelo motor para a saída do projétil.
   const desiredAngle = weapon === 'espada'
