@@ -1082,7 +1082,11 @@ export default function App() {
         </div>
       </div>
       {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
-        <div className="lobby-sky" aria-hidden="true"><i className="lobby-moon"/><i className="lobby-trees lobby-trees-back"/><i className="lobby-trees lobby-trees-front"/><i className="lobby-lantern lantern-one"/><i className="lobby-lantern lantern-two"/><i className="lobby-ground"/></div>
+        <div className="lobby-sky" aria-hidden="true">
+          <i className="lobby-moon"/>
+          <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
+          <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
+        </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/></div>
       </div>}
