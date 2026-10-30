@@ -1377,6 +1377,7 @@ button, button * {
 
 
 /* Grade de coordenadas temporária do lobby: referência A-F / 1-10 para posicionar os botões. */
+.lobby-coordinate-row{display:contents}
 .lobby-coordinate-grid{
   position:absolute;
   z-index:20;
