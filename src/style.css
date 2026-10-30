@@ -1819,9 +1819,9 @@ button, button * {
 }
 
 
-/* Arsenal do lobby: acesso em E5, slots de equipamento e inventário separado. */
+/* Arsenal do lobby: acesso em D5, slots de equipamento e inventário separado. */
 .lobby-arsenal-trigger{
-  grid-column:6;
+  grid-column:5;
   grid-row:7;
   z-index:2;
   display:flex;
@@ -1887,37 +1887,26 @@ button, button * {
 .arsenal-section-heading strong{color:#344256;font-size:11px;font-weight:950;letter-spacing:.08em}
 .arsenal-section-heading>span{color:#718096;font-size:10px;text-align:right}
 .arsenal-equipment-section{padding:12px;border:1px solid #e0e6ee;border-radius:12px;background:linear-gradient(145deg,#fff,#f7f9fc)}
-.arsenal-equipment-layout{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(160px,.9fr) minmax(0,1fr);
-  align-items:center;
-  gap:12px;
-}
-.arsenal-slot-column{display:flex;flex-direction:column;gap:7px}
-.arsenal-equipment-slot{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  min-width:0;
-  min-height:58px;
-  padding:7px 9px;
-  border:1px solid #dce3eb;
-  border-radius:9px;
-  background:#f8fafc;
-  color:#263246;
-  text-align:left;
-  transition:border-color .15s ease,background .15s ease;
-}
-.arsenal-equipment-slot.selected{border-color:#b38b4c;background:#fff8eb;box-shadow:0 0 0 2px #d4b47725}
+.arsenal-character-tabs{display:flex;gap:7px;margin:0 0 12px}
+.arsenal-character-tabs button{flex:1;min-height:36px;border:1px solid #d7dfe9;border-radius:8px;background:#f4f6f9;color:#526174;font-size:12px;font-weight:900}
+.arsenal-character-tabs button.active{border-color:#8296ad;background:#eaf0f7;color:#243449;box-shadow:inset 0 -2px #526d8a}
+.arsenal-equipment-stage{position:relative;width:min(100%,680px);height:370px;margin:0 auto;overflow:hidden;border:1px dashed #d5dde7;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#e9eef4 0%,#f7f9fc 65%,#fff 100%)}
+.arsenal-character-canvas{position:absolute;inset:0;width:100%;height:100%}
+.arsenal-no-character{position:absolute;inset:0;display:grid;place-items:center;padding:20px;color:#718096;font-size:12px;text-align:center}
+.arsenal-equipment-slot{position:absolute;z-index:2;display:flex;align-items:center;justify-content:center;min-width:0;width:132px;min-height:48px;padding:7px 9px;border:1px solid #dce3eb;border-radius:9px;background:rgba(255,255,255,.94);color:#263246;text-align:center;box-shadow:0 3px 10px rgba(31,45,61,.12);transition:border-color .15s ease,background .15s ease}
+.arsenal-equipment-slot strong{font-size:11px;font-weight:900;text-transform:lowercase}
+.arsenal-equipment-slot.selected{border-color:#b38b4c;background:#fff8eb;box-shadow:0 0 0 2px #d4b47735}
 .arsenal-equipment-slot.equipped{border-color:#8eb69a;background:#f0f8f2}
-.arsenal-slot-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #dce3eb;border-radius:8px;background:#fff;font-size:20px}
-.arsenal-slot-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
-.arsenal-slot-copy strong{font-size:11px}
-.arsenal-slot-copy small{overflow:hidden;color:#718096;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
-.arsenal-slot-copy em,.arsenal-inventory-slot em{color:#27804a;font-size:8px;font-style:normal;font-weight:950;letter-spacing:.07em}
-.arsenal-avatar{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:250px;padding:8px;border:1px dashed #d5dde7;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#e9eef4 0%,#f7f9fc 65%,#fff 100%)}
-.arsenal-avatar svg{width:min(100%,170px);height:240px;filter:drop-shadow(0 7px 6px rgba(31,45,61,.12))}
-.arsenal-avatar>span{color:#8793a3;font-size:8px;font-weight:900;letter-spacing:.1em;text-align:center}
+.arsenal-equipped-item{position:absolute;right:-7px;top:-11px;max-width:calc(100% - 4px);overflow:hidden;padding:3px 7px;border:1px solid #78a789;border-radius:999px;background:#dff2e4;color:#21663a;font-size:9px;font-weight:950;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 2px 5px rgba(31,45,61,.15)}
+.slot-helmet{top:7px;left:50%;transform:translateX(-50%)}
+.slot-chest{top:30%;left:50%;transform:translateX(-50%)}
+.slot-leggings{top:55%;left:50%;transform:translateX(-50%)}
+.slot-boots{bottom:7px;left:50%;transform:translateX(-50%)}
+.slot-necklace{top:17%;left:3%}
+.slot-weapon{top:42%;left:3%}
+.slot-bag{top:17%;right:3%}
+.slot-glove{top:42%;right:3%}
+.slot-bracelet{top:67%;right:3%}
 .arsenal-inventory-section{margin-top:13px;padding:12px;border:1px solid #e0e6ee;border-radius:12px;background:#fff}
 .arsenal-inventory-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
 .arsenal-inventory-slot{
@@ -1959,16 +1948,13 @@ button, button * {
   .lobby-arsenal-count{padding:6px 7px;font-size:9px}
   .lobby-arsenal-content{padding:9px}
   .arsenal-equipment-section,.arsenal-inventory-section{padding:9px}
-  .arsenal-equipment-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .arsenal-avatar{grid-column:1/-1;grid-row:1;min-height:145px;max-height:155px}
-  .arsenal-avatar svg{height:125px;width:95px}
-  .arsenal-avatar>span{font-size:7px}
-  .arsenal-slot-column{gap:5px}
-  .arsenal-equipment-slot{min-height:48px;padding:5px;gap:6px}
-  .arsenal-slot-icon{flex-basis:29px;width:29px;height:29px;font-size:17px}
-  .arsenal-slot-copy strong{font-size:10px}
-  .arsenal-slot-copy small{font-size:9px}
-  .arsenal-inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .arsenal-equipment-stage{height:330px}
+   .arsenal-equipment-slot{width:104px;min-height:42px;padding:5px 6px}
+   .arsenal-equipment-slot strong{font-size:9px}
+   .arsenal-equipped-item{font-size:8px}
+   .slot-necklace,.slot-weapon{left:2%}
+   .slot-bag,.slot-glove,.slot-bracelet{right:2%}
+   .arsenal-inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
   .arsenal-inventory-slot{min-height:58px;padding:4px}
   .arsenal-inventory-slot>span:first-child{font-size:19px}
   .arsenal-inventory-slot small{font-size:8px}
@@ -1979,11 +1965,11 @@ button, button * {
 @media(max-width:360px){
   .arsenal-section-heading strong{font-size:9px}
   .arsenal-section-heading>span{font-size:8px}
-  .arsenal-equipment-slot{min-height:44px}
-  .arsenal-slot-icon{flex-basis:25px;width:25px;height:25px;font-size:15px}
-  .arsenal-slot-copy strong{font-size:9px}
-  .arsenal-slot-copy small{font-size:8px}
-  .arsenal-inventory-grid{gap:4px}
+  .arsenal-equipment-stage{height:300px}
+   .arsenal-equipment-slot{width:88px;min-height:38px;padding:4px}
+   .arsenal-equipment-slot strong{font-size:8px}
+   .arsenal-equipped-item{font-size:7px;padding:2px 5px}
+   .arsenal-inventory-grid{gap:4px}
   .arsenal-inventory-slot{min-height:52px}
   .arsenal-inventory-slot small{font-size:7px}
   .arsenal-selection-label{font-size:9px}
