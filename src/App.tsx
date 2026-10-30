@@ -49,18 +49,18 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   const armorPerLevel = getAttributeEffectPerLevel(classId, 1, 'armadura');
   const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque') * 100;
   const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva') * 100;
-  const multipliers = CONFIG.attributes.classMultipliers[classId];
+  const nextLevelAttributes = getPlayerAttributes(classId, 1);
   const attributeRows = [
-    ['Força', attributes.forca, multipliers.forca],
-    ['Inteligência', attributes.inteligencia, multipliers.inteligencia],
-    ['Destreza', attributes.destreza, multipliers.destreza],
-    ['Armadura', attributes.armadura, multipliers.armadura],
-    ['Resistência mágica', attributes.resistenciaMagica, multipliers.resistenciaMagica],
-    ['Velocidade de movimento', attributes.velocidadeMovimento, multipliers.velocidadeMovimento],
-    ['Velocidade de ataque', attributes.velocidadeAtaque, multipliers.velocidadeAtaque],
-    ['Alcance de ataque', attributes.alcanceAtaque, multipliers.alcanceAtaque],
-    ['Esquiva', attributes.esquiva, multipliers.esquiva],
-    ['Área de ataque', attributes.areaAtaque, multipliers.areaAtaque],
+    ['Força', nextLevelAttributes.forca - attributes.forca],
+    ['Inteligência', nextLevelAttributes.inteligencia - attributes.inteligencia],
+    ['Destreza', nextLevelAttributes.destreza - attributes.destreza],
+    ['Armadura', nextLevelAttributes.armadura - attributes.armadura],
+    ['Resistência mágica', nextLevelAttributes.resistenciaMagica - attributes.resistenciaMagica],
+    ['Velocidade de movimento', nextLevelAttributes.velocidadeMovimento - attributes.velocidadeMovimento],
+    ['Velocidade de ataque', nextLevelAttributes.velocidadeAtaque - attributes.velocidadeAtaque],
+    ['Alcance de ataque', nextLevelAttributes.alcanceAtaque - attributes.alcanceAtaque],
+    ['Esquiva', nextLevelAttributes.esquiva - attributes.esquiva],
+    ['Área de ataque', nextLevelAttributes.areaAtaque - attributes.areaAtaque],
   ] as const;
   const ability = {
     guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
@@ -93,11 +93,10 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
     </section>
     <section className="profile-stat-section">
       <h4>📊 Atributos da classe</h4>
-      <p className="profile-stat-note">Atributos iniciais e ganho por nível, aplicados conforme o multiplicador desta classe.</p>
+      <p className="profile-stat-note">Quanto cada atributo aumenta a cada nível.</p>
       <div className="profile-attribute-list">
-        {attributeRows.map(([label, value, gain]) => <div key={label}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>{value} <small>+{gain.toFixed(2)} / nível</small></strong></div>)}
+        {attributeRows.map(([label, gain]) => <div key={label}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>+{gain.toFixed(2)} <small>/ nível</small></strong></div>)}
       </div>
-      <p className="profile-stat-note">Força, inteligência e destreza participam do cálculo de dano conforme a classe. Armadura, velocidade, velocidade de ataque, esquiva e vida já têm efeitos no jogo. Resistência mágica, alcance e área de ataque ainda estão reservados para sistemas futuros.</p>
     </section>
     <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
   </div>;
