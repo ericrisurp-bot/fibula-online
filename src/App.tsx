@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
-import { CONFIG, type ClassId, type WeaponId } from './game/config';
+import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
