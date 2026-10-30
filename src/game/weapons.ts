@@ -372,7 +372,7 @@ export function drawFloatingWeapon(
     ? opts.swingAngle
     : opts.aimAngle;
   const combatDistance = weapon === 'espada'
-    ? CONFIG.weapons.espada.range - 3.7 * r
+    ? Math.max(0, CONFIG.weapons.espada.range - SWORD_TIP_LENGTH)
     : CONFIG.player.auraRadius - r * 0.68;
   const combatX = combatDistance * Math.cos(combatDirection);
   const combatY = combatDistance * Math.sin(combatDirection);
@@ -397,6 +397,12 @@ export function drawFloatingWeapon(
   ctx.restore();
 }
 
+/** Espada mais larga e longa que a arte base, para ler melhor em jogo. */
+const SWORD_SCALE_X = 1.25;
+const SWORD_SCALE_Y = 1.7;
+/** Distância da empunhadura à ponta da lâmina, em px (a razão r cancela na normalização visual). */
+const SWORD_TIP_LENGTH = (3.7 * 50 / 3.14) * SWORD_SCALE_X;
+
 const WEAPON_VISUAL_LENGTH: Record<WeaponId, number> = {
   espada: 3.14,
   cajado: 3.07,
@@ -409,6 +415,7 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
   const visualScale = 50 / (WEAPON_VISUAL_LENGTH[weapon] * r);
   ctx.save();
   ctx.scale(visualScale, visualScale);
+  if (weapon === 'espada') ctx.scale(SWORD_SCALE_X, SWORD_SCALE_Y);
   switch (weapon) {
     case 'espada':
       drawSword(ctx, r);
