@@ -232,7 +232,7 @@ export default function App() {
     return ['guerreiro', 'druida'];
   });
   const [arsenalOpen, setArsenalOpen] = useState(false);
-  const [arsenalItems, setArsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
+  const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadout, setEquipmentLoadout] = useState<EquipmentLoadout>(readSavedLoadout);
   const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
   const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
