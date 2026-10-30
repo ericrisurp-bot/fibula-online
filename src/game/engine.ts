@@ -1106,7 +1106,7 @@ export class GameEngine {
   private isPlayerAtRock(rock: Rock) {
     const feet = playerFeet(this.state.player);
     return Math.hypot(rock.x - feet.x, rock.y - feet.y)
-      <= CONFIG.rocks.mineRange * CONFIG.gathering.rangeMultiplier + this.rockFootprintRadius(rock);
+      <= (CONFIG.rocks.mineRange + this.rockFootprintRadius(rock)) * CONFIG.gathering.rangeMultiplier;
   }
 
   private hitRock(id: number) {
@@ -1149,7 +1149,7 @@ export class GameEngine {
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
     const feet = playerFeet(this.state.player);
-    return Math.hypot(plant.x - feet.x, plant.y - feet.y) <= 46 * CONFIG.gathering.rangeMultiplier + this.cottonFootprintRadius(plant);
+    return Math.hypot(plant.x - feet.x, plant.y - feet.y) <= (46 + this.cottonFootprintRadius(plant)) * CONFIG.gathering.rangeMultiplier;
   }
 
   private collectCotton() {
