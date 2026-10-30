@@ -1241,12 +1241,12 @@ export default function App() {
                 <p className="profile-class-description">{CLASSES[profileClassTab].description}</p>
                 <div className="profile-priority-controls" aria-label="Prioridade da classe">
                   <span>MINHAS PREFERÊNCIAS</span>
-                  <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences(current => {
+                  <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
                     if (current[0] === profileClassTab) return [null, current[1]];
                     if (current[1] === profileClassTab) return [profileClassTab, current[0]];
                     return [profileClassTab, current[1]];
                   })}><b>1</b> Principal</button>
-                  <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences(current => {
+                  <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
                     if (current[1] === profileClassTab) return [current[0], null];
                     if (current[0] === profileClassTab) return [current[1], profileClassTab];
                     return [current[0], profileClassTab];
