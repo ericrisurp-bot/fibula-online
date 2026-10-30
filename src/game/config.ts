@@ -29,11 +29,11 @@ export const CONFIG = {
   rocks: { max: 75, startCount: 15, spawnBase: 20, spawnReductionPerRock: 0, spawnMin: 20, noSpawnRadius: 600, mineRange: 60, dropChance: 0.07, attractionRadius: 300, attractionMaxNearby: 20, attractionMaxChance: 0.8, northEastSpawnChance: 0.7, northEastMinX: 0.55, northEastMaxY: 0.45, hitsToBreak: { small: 7, medium: 12, large: 22 }, sizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   cotton: { max: 38, startCount: 10, spawnInterval: 20, minSpacing: 600, dropChance: 0.07, plantPlayerClearRadius: 220, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   gathering: { baseInterval: 0.9, toolAnimationDuration: 0.55 },
-  tecelaria: { buildCostBronze: 2, buildCostWood: 50, buildCostCotton: 10, buildCostStone: 10, interactRadius: 88, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03 },
+  tecelaria: { buildCostBronze: 2, buildCostWood: 50, buildCostCotton: 10, buildCostStone: 10, interactRadius: 104, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03 },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
-  house: { buildCost: 60, interactRadius: 84, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
-  refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 84, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
-  cart: { repairCost: 10, interactRadius: 70, capacitySlots: 10, maxPerSlot: 8, followDistance: 52, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
+  house: { buildCost: 60, interactRadius: 100, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
+  refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 100, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
+  cart: { repairCost: 10, interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, followDistance: 62, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
