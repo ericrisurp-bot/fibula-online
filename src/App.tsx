@@ -65,11 +65,12 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   const ability = {
     guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
     mago: `A cada 4º ataque, cria uma explosão de raio ${CONFIG.mageExplosion.radius} com dano multiplicado por ${CONFIG.mageExplosion.damageMultiplier.toFixed(1)}.`,
-    arqueiro: `Flechas perfurantes; a cada ${CONFIG.archerHeal.arrowsPerHeal} flechas disparadas, recupera ${CONFIG.archerHeal.amount} de vida.`,
-    druida: `Envenena e reduz a velocidade dos inimigos; a cada ${CONFIG.druidHeal.basicHitsPerHeal} acertos básicos recupera ${CONFIG.druidHeal.basicHitAmount} de vida e gera orbes ao eliminar inimigos.`,
+    arqueiro: `Arco de longo alcance; as flechas perfuram inimigos e perdem dano nos alvos seguintes. A cada ${CONFIG.archerHeal.arrowsPerHeal} flechas disparadas, recupera ${CONFIG.archerHeal.amount} de vida.`,
+    druida: `Cajado natural à distância; aplica lentidão de ${Math.round((1 - CONFIG.druidSlow.speedMultiplier) * 100)}% por ${CONFIG.druidSlow.duration}s e veneno por ${CONFIG.druidPoison.duration}s. Cura ${CONFIG.druidHeal.basicHitAmount} de vida a cada ${CONFIG.druidHeal.basicHitsPerHeal} acertos e gera 1 orbe a cada ${CONFIG.druidHeal.killsPerOrb} eliminações (máx. ${CONFIG.druidHeal.maxOrbs}).`,
   }[classId];
 
   return <div className="profile-stats-content">
+    <p className="profile-weapon-note">Arma inicial: <strong>{weapon.label}</strong></p>
     <div className="profile-stat-summary">
       <div><span>VIDA INICIAL</span><strong>{CONFIG.attributes.classStartHealth[classId]}</strong><small>+{hpPerLevel.toFixed(1)} por nível</small></div>
       <div><span>DANO DA ARMA</span><strong>{weapon.damage}</strong><small>+{damagePerLevel.toFixed(2)}% de dano por nível</small></div>
