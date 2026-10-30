@@ -4,6 +4,7 @@ import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
+
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import Controls from './ui/Controls';
@@ -12,6 +13,8 @@ import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
+
+let floatingWeaponSide: 1 | -1 = 1;
 
 registerCombatSounds();
 registerGatherSounds();
@@ -287,8 +290,14 @@ export default function App() {
           closestDistanceSquared = distanceSquared;
         }
       }
+      if (s.player.facingX < -0.35) floatingWeaponSide = 1;
+      else if (s.player.facingX > 0.35) floatingWeaponSide = -1;
+      const bowGripX = s.player.x + floatingWeaponSide * CONFIG.player.auraRadius;
+      const bowGripY = s.player.y - CONFIG.player.radius * 0.1;
       const aimAngle = aimTarget
-        ? Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
+        ? s.weapon === 'arco'
+          ? Math.atan2(aimTarget.y - bowGripY, aimTarget.x - bowGripX)
+          : Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
       const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
       if (s.classId === 'druida') {

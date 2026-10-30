@@ -1572,30 +1572,20 @@ export class GameEngine {
         enemy.y = destination.y;
       }
     } else {
-      const aimAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       const rangedId = this.state.weapon as 'cajado' | 'bastao' | 'arco';
+      const gripX = p.x + this.weaponSide * CONFIG.player.auraRadius;
+      const gripY = p.y - CONFIG.player.radius * 0.1;
+      // Para o arco, a mira parte do centro da corda: a flecha segue o mesmo eixo do arco.
+      const aimAngle = rangedId === 'arco'
+        ? Math.atan2(target.e.y - gripY, target.e.x - gripX)
+        : Math.atan2(target.e.y - p.y, target.e.x - p.x);
       const muzzle = rangedMuzzle(rangedId, this.weaponSide, aimAngle, CONFIG.player.radius);
       const shotX = p.x + muzzle.x;
       const shotY = p.y + muzzle.y;
-      // Mira com antecipação: o mob anda em direção aos pés do jogador; o tiro vai para onde ele estará ao chegar.
-      const feetNow = playerFeet(p);
-      const enemySpeedNow = (CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease)
-        * ((target.e.slowRemaining ?? 0) > 0 ? CONFIG.druidSlow.speedMultiplier : 1);
-      const chaseX = feetNow.x - target.e.x, chaseY = feetNow.y - target.e.y;
-      const chaseDistance = Math.hypot(chaseX, chaseY) || 1;
-      const maxTravel = Math.max(0, chaseDistance - (CONFIG.player.footRadius + CONFIG.enemy.radius));
-      let aimX = target.e.x, aimY = target.e.y;
-      for (let i = 0; i < 3; i++) {
-        const flight = Math.hypot(aimX - shotX, aimY - shotY) / weapon.projectileSpeed;
-        const travel = Math.min(enemySpeedNow * flight, maxTravel);
-        aimX = target.e.x + chaseX / chaseDistance * travel;
-        aimY = target.e.y + chaseY / chaseDistance * travel;
-      }
-      const dx = aimX - shotX, dy = aimY - shotY, dist = Math.hypot(dx, dy) || 1;
+      const dx = target.e.x - shotX, dy = target.e.y - shotY, dist = Math.hypot(dx, dy) || 1;
       const explosive = this.state.classId === 'mago' && (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack === 0;
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
-      // Alcance a partir da boca: trajeto real até o alvo mais a folga que sobraria do centro.
-      const remainingRange = dist + Math.max(0, weapon.range - target.d);
+      const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
       this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
