@@ -687,6 +687,19 @@ export class GameEngine {
     this.resolvePlayerObstacles(p, this.state.cart.carried);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
     this.resolvePlayerObstacles(p, this.state.cart.carried);
+    // Carrinho puxado: o personagem não se afasta além do alcance da alça. Se o carrinho trava
+    // (vão estreito, obstáculo), o personagem trava junto e precisa voltar.
+    if (this.state.cart.carried) {
+      const feet = playerFeet(p);
+      const tx = feet.x - this.state.cart.x, ty = feet.y - this.state.cart.y;
+      const td = Math.hypot(tx, ty);
+      if (td > CONFIG.cart.tetherDistance && td > 0) {
+        const k = CONFIG.cart.tetherDistance / td;
+        p.x = this.state.cart.x + tx * k;
+        p.y = this.state.cart.y + ty * k - CONFIG.player.footOffset;
+        this.resolvePlayerObstacles(p, true);
+      }
+    }
     const playerSpeed = dt > 0 ? Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y) / dt : 0;
     if (this.state.player.moving && !this.state.dead && p.hp > 0) {
       const traveledDistance = Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y);
