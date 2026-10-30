@@ -4,7 +4,7 @@ import { CONFIG, type ClassId, type WeaponId } from './game/config';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
-import { drawFloatingTool } from './game/tools';
+import { drawFloatingToolAt } from './game/tools';
 import { drawCart } from './game/cart';
 import Controls from './ui/Controls';
 import { audioManager } from './audio/audioManager';
@@ -550,7 +550,21 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night', s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
+      if (s.gatherToolTarget) {
+        const target = s.gatherToolTarget;
+        const isTree = target.kind === 'tree';
+        const isRock = target.kind === 'rock';
+        const tool = isTree ? 'machadinho' : isRock ? 'picareta' : 'foice';
+        const angle = isTree ? s.treeChopAngle : isRock ? s.rockMineAngle : s.cottonHarvestAngle;
+        const timer = isTree ? s.treeChopTimer : isRock ? s.rockMineTimer : s.cottonHarvestTimer;
+        const depthOffset = isTree
+          ? (s.trees.find(tree => Math.abs(tree.x - target.x) < 0.001 && Math.abs(tree.y + 29 * (tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3) - target.y) < 0.001)?.size === 'small' ? 1.5 : s.trees.find(tree => Math.abs(tree.x - target.x) < 0.001 && Math.abs(tree.y + 29 * (tree.size === 'small' ? 1.5 : tree.size === 'medium' ? 2.2 : 3) - target.y) < 0.001)?.size === 'medium' ? 2.2 : 3) + 1
+          : isRock
+            ? 12 * (s.rocks.find(rock => rock.x === target.x && rock.y === target.y)?.size === 'small' ? 1.22 : s.rocks.find(rock => rock.x === target.x && rock.y === target.y)?.size === 'medium' ? 1.5 : 1.85) + 1
+            : 13 * 1.2 + 1;
+        worldDrawables.push({ depth: target.y + depthOffset, draw: () => drawFloatingToolAt(ctx, tool, CONFIG.player.radius, { angle, timer, duration: CONFIG.gathering.toolAnimationDuration }) });
+      }
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night', s.player.facingY) });
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1305,7 +1319,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1342,16 +1356,6 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     } else {
       drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies: true, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
     }
-  }
-  // À noite, cada ferramenta aparece durante sua própria animação de coleta, mesmo com arma de combate exposta.
-  if ((!isNight && !hasEnemies) || treeChopTimer > 0) {
-    drawFloatingTool(ctx, 'machadinho', r, { angle: treeChopAngle, timer: treeChopTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach, minGrip: CONFIG.player.auraRadius });
-  }
-  if ((!isNight && !hasEnemies) || rockMineTimer > 0) {
-    drawFloatingTool(ctx, 'picareta', r, { angle: rockMineAngle, timer: rockMineTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach, minGrip: CONFIG.player.auraRadius });
-  }
-  if ((!isNight && !hasEnemies) || cottonHarvestTimer > 0) {
-    drawFloatingTool(ctx, 'foice', r, { angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach, minGrip: CONFIG.player.auraRadius });
   }
   ctx.restore();
 }
