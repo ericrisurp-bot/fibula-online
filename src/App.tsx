@@ -1007,17 +1007,6 @@ export default function App() {
     }
   };
 
-  const startGame = () => {
-    void audioManager.unlock();
-    const stage = canvasRef.current?.parentElement;
-    if (stage?.requestFullscreen) {
-      void stage.requestFullscreen().catch(() => {
-        // Alguns navegadores ou modos incorporados não permitem tela cheia.
-      });
-    }
-    beginGame();
-  };
-
   return <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
@@ -1048,8 +1037,7 @@ export default function App() {
           <div className="start-eyebrow">FÍBULA ONLINE</div>
           <h1>{worldReady ? 'Pronto para sobreviver?' : 'Preparando o mundo...'}</h1>
           <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Preparando o terreno e renderizando o mapa antes de liberar a partida.'}</p>
-          <button className="start-fullscreen" type="button" disabled={!worldReady} onClick={startGame}><span aria-hidden="true">⛶</span> {worldReady ? 'INICIAR EM TELA CHEIA' : 'CARREGANDO...'}</button>
-          <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>Jogar sem tela cheia</button>
+          <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>{worldReady ? 'INICIAR JOGO' : 'CARREGANDO...'}</button>
         </div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
