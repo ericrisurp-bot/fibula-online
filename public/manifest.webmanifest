@@ -6,7 +6,11 @@
   "lang": "pt-BR",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "any",
   "background_color": "#10151a",
   "theme_color": "#10151a",
