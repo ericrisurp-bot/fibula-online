@@ -558,7 +558,7 @@ export default function App() {
         const angle = target.kind === 'tree' ? s.treeChopAngle : target.kind === 'rock' ? s.rockMineAngle : s.cottonHarvestAngle;
         const timer = target.kind === 'tree' ? s.treeChopTimer : target.kind === 'rock' ? s.rockMineTimer : s.cottonHarvestTimer;
         const depthOffset = target.kind === 'tree'
-          ? 29 * (tree?.size === 'small' ? 1.5 : tree?.size === 'medium' ? 2.2 : 3) + 1
+          ? (tree?.size === 'small' ? 1.5 : tree?.size === 'medium' ? 2.2 : 3) + 1
           : target.kind === 'rock'
             ? 12 * (rock?.size === 'small' ? 1.22 : rock?.size === 'medium' ? 1.5 : 1.85) + 1
             : 13 * 1.2 + 1;
