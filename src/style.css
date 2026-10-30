@@ -1526,6 +1526,7 @@ button, button * {
 .profile-class-option:disabled{opacity:.36;cursor:not-allowed}
 .profile-class-details{margin-top:18px;padding-top:15px;border-top:1px solid rgba(206,219,199,.13)}
 .profile-class-description{margin:-3px 0 13px;color:#c0cbbd;font-size:11px}
+.profile-weapon-note{margin:-2px 0 9px;color:#aebba8;font-size:9px}.profile-weapon-note strong{color:#e6eddf;font-size:10px}
 .profile-stat-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 .profile-stat-summary>div{
   display:flex;flex-direction:column;gap:4px;min-width:0;
