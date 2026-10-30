@@ -61,9 +61,47 @@ const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId === 'cotton' ? 'Algodão' : itemId === 'linen' ? 'Linho' : itemId;
 
+const createGrassTile = () => {
+  const tile = document.createElement('canvas');
+  tile.width = 256;
+  tile.height = 256;
+  const ctx = tile.getContext('2d');
+  if (!ctx) return tile;
+  let seed = 173;
+  const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  ctx.fillStyle = '#557a43';
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 46; i++) {
+    const x = random() * 256, y = random() * 256;
+    const radius = 8 + random() * 25;
+    ctx.fillStyle = ['rgba(105,139,69,0.24)', 'rgba(38,91,48,0.18)', 'rgba(133,145,76,0.12)'][Math.floor(random() * 3)];
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius * (0.45 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (let i = 0; i < 420; i++) {
+    const x = random() * 256, y = random() * 256;
+    ctx.strokeStyle = random() > 0.5 ? 'rgba(158,180,104,0.32)' : 'rgba(31,75,39,0.28)';
+    ctx.lineWidth = 0.7 + random() * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (random() - 0.5) * 4, y - 1 - random() * 4);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 12; i++) {
+    const x = random() * 256, y = random() * 256;
+    ctx.fillStyle = 'rgba(105,78,48,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return tile;
+};
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
@@ -105,6 +143,30 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
+
+  useEffect(() => {
+    if (!showStart) return;
+    const canvas = lobbyGrassCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const grassTile = createGrassTile();
+    const drawGrass = () => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const pattern = ctx.createPattern(grassTile, 'repeat');
+      if (pattern) pattern.setTransform(new DOMMatrix().scale(0.2));
+      ctx.fillStyle = pattern ?? '#557a43';
+      ctx.fillRect(0, 0, width, height);
+    };
+    drawGrass();
+    window.addEventListener('resize', drawGrass);
+    return () => window.removeEventListener('resize', drawGrass);
+  }, [showStart]);
 
   useEffect(() => {
     if (!showStart) return;
@@ -197,31 +259,8 @@ export default function App() {
     terrainCanvas.width = Math.ceil(engine.world * terrainScale);
     terrainCanvas.height = Math.ceil(engine.world * terrainScale);
     const terrainCtx = terrainCanvas.getContext('2d');
-    const grassTile = document.createElement('canvas');
-    grassTile.width = 256; grassTile.height = 256;
-    const grassCtx = grassTile.getContext('2d');
-    if (grassCtx && terrainCtx) {
-      let seed = 173;
-      const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      grassCtx.fillStyle = '#557a43'; grassCtx.fillRect(0, 0, 256, 256);
-      for (let i = 0; i < 46; i++) {
-        const x = random() * 256, y = random() * 256;
-        const radius = 8 + random() * 25;
-        grassCtx.fillStyle = ['rgba(105,139,69,0.24)', 'rgba(38,91,48,0.18)', 'rgba(133,145,76,0.12)'][Math.floor(random() * 3)];
-        grassCtx.beginPath(); grassCtx.ellipse(x, y, radius, radius * (0.45 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
-      }
-      for (let i = 0; i < 420; i++) {
-        const x = random() * 256, y = random() * 256;
-        grassCtx.strokeStyle = random() > 0.5 ? 'rgba(158,180,104,0.32)' : 'rgba(31,75,39,0.28)';
-        grassCtx.lineWidth = 0.7 + random() * 0.8;
-        grassCtx.beginPath(); grassCtx.moveTo(x, y); grassCtx.lineTo(x + (random() - 0.5) * 4, y - 1 - random() * 4); grassCtx.stroke();
-      }
-      for (let i = 0; i < 12; i++) {
-        const x = random() * 256, y = random() * 256;
-        grassCtx.fillStyle = 'rgba(105,78,48,0.18)';
-        grassCtx.beginPath(); grassCtx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
-      }
-
+    const grassTile = createGrassTile();
+    if (terrainCtx) {
       terrainCtx.scale(terrainScale, terrainScale);
       const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
       if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.2));
@@ -1044,7 +1083,8 @@ export default function App() {
       </div>
       {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
         <div className="lobby-sky" aria-hidden="true"><i className="lobby-moon"/><i className="lobby-trees lobby-trees-back"/><i className="lobby-trees lobby-trees-front"/><i className="lobby-lantern lantern-one"/><i className="lobby-lantern lantern-two"/><i className="lobby-ground"/></div>
-        <div className="lobby-character-wrap"><div className="lobby-character-glow"/><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/></div>
+        <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/></div>
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
