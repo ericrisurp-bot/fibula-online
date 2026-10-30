@@ -2001,27 +2001,30 @@ button, button * {
 .arsenal-no-character{position:relative;inset:auto;grid-column:1;grid-row:1;display:grid;place-items:center;min-width:0;min-height:0;padding:10px;text-align:center}
 
 
-/* PD permanece como identificador visual; o valor e a fórmula serão definidos depois. */
-.lobby-power-label{
+/* PD dentro do Arsenal, no canto superior esquerdo da área do personagem. */
+.arsenal-equipment-stage{position:relative}
+.arsenal-power-label{
   position:absolute;
-  z-index:24;
-  left:39%;
-  top:27%;
+  z-index:4;
+  top:12px;
+  left:14px;
   display:flex;
   align-items:center;
   justify-content:center;
-  min-width:48px;
-  min-height:30px;
-  padding:5px 12px;
-  border:1px solid rgba(190,211,169,.68);
-  border-radius:8px;
-  background:rgba(24,34,27,.78);
-  color:#e3edcf;
-  font:900 15px/1 system-ui,sans-serif;
+  min-width:42px;
+  min-height:27px;
+  padding:4px 9px;
+  border:1px solid rgba(105,133,94,.58);
+  border-radius:7px;
+  background:rgba(255,255,255,.9);
+  color:#42623d;
+  font:900 13px/1 system-ui,sans-serif;
   letter-spacing:.12em;
-  text-shadow:0 1px 5px rgba(0,0,0,.8);
-  box-shadow:0 3px 12px rgba(0,0,0,.25),inset 0 1px 2px rgba(255,255,255,.1);
+  box-shadow:0 2px 7px rgba(31,45,61,.12);
   pointer-events:none;
+}
+@media(max-width:650px){
+  .arsenal-power-label{top:9px;left:9px;min-width:36px;min-height:24px;font-size:11px}
 }
 
 /* Ação principal do lobby posicionada sobre a área D2-D3 da grade de referência. */
