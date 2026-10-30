@@ -72,6 +72,8 @@ export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number)
 
 // Animação de relógio: 12h -> alvo. Ponto de impacto local de cada ferramenta (unidades de r).
 const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0] };
+/** Escala da ferramenta flutuante em relação à arte original. */
+export const TOOL_SCALE = 0.7;
 const ease = { out: (t: number) => 1 - Math.pow(1 - t, 3), in: (t: number) => t * t * t };
 function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: number, minGrip: number) {
   const side = Math.cos(angle) >= 0 ? 1 : -1;
@@ -83,7 +85,7 @@ function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: numb
   else if (p < 0.82) { rot = angle; }
   else { const t = (p - 0.82) / 0.18; alpha = 1 - t; yOff = -6 * t; }
   // posição do cabo: a cabeça (ponto de impacto) cai em 'reach' quando rot == angle
-  const I = IMP[tool], ix = I[0] * r, iy = I[1] * r * side, c = Math.cos(angle), sn = Math.sin(angle);
+  const I = IMP[tool], ix = I[0] * r * TOOL_SCALE, iy = I[1] * r * TOOL_SCALE * side, c = Math.cos(angle), sn = Math.sin(angle);
   let gx = reach * c - (ix * c - iy * sn), gy = reach * sn - (ix * sn + iy * c);
   const along = gx * c + gy * sn; if (along < minGrip) { gx += c * (minGrip - along); gy += sn * (minGrip - along); }
   return { side, gx, gy: gy + yOff, rot, alpha };
@@ -96,6 +98,6 @@ export function drawFloatingTool(ctx: CanvasRenderingContext2D, tool: ToolId, r:
   const p = Math.min(1, Math.max(0, 1 - opts.timer / opts.duration));
   const q = toolPose(tool, r, opts.angle, opts.reach, p, opts.minGrip);
   if (q.alpha <= 0.01) return;
-  ctx.save(); ctx.globalAlpha = q.alpha; ctx.translate(q.gx, q.gy); ctx.rotate(q.rot); ctx.scale(1, q.side);
+  ctx.save(); ctx.globalAlpha = q.alpha; ctx.translate(q.gx, q.gy); ctx.rotate(q.rot); ctx.scale(TOOL_SCALE, TOOL_SCALE * q.side);
   drawTool(ctx, tool, r); ctx.restore();
 }
