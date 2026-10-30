@@ -271,7 +271,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
-  const [showStart] = useState(true);
+  const [showStart, setShowStart] = useState(true);
   const gameStartedRef = useRef(false);
   const zoomRef = useRef(window.matchMedia('(pointer: coarse)').matches ? 1.55 : 1.3);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
@@ -1076,6 +1076,15 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
+  const startGame = () => {
+    const engine = engineRef.current;
+    if (!engine || gameStartedRef.current) return;
+    const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
+    engine.setClass(selectedClass);
+    engine.start();
+    gameStartedRef.current = true;
+    setShowStart(false);
+  };
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
@@ -1310,7 +1319,7 @@ export default function App() {
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><span className="lobby-power-label" aria-label="Poder do personagem">PD</span><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
         <div className="lobby-coordinate-grid" aria-label="Grade de coordenadas do lobby">
           <span className="lobby-coordinate-corner"/>
           {['A', 'B', 'C', 'D', 'E', 'F'].map(column => <span className="lobby-coordinate-heading" key={column}>{column}</span>)}
@@ -1333,6 +1342,7 @@ export default function App() {
             <span>F6</span>
           </button>
         </div>
+        <button className="lobby-play-trigger" type="button" onClick={startGame}>JOGAR</button>
         {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-arsenal-header">
