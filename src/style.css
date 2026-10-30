@@ -2057,10 +2057,8 @@ button, button * {
 .lobby-play-trigger:active{transform:translate(-50%,-50%) scale(.96)}
 .lobby-play-trigger:focus-visible{outline:3px solid #e4edce;outline-offset:4px}
 @media(max-width:650px){
-  .lobby-power-label{left:36%;top:26%;min-width:42px;min-height:27px;font-size:13px}
   .lobby-play-trigger{left:61%;top:90%;width:clamp(112px,31vw,144px);min-height:clamp(68px,12vh,88px);border-radius:12px;font-size:16px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-power-label{left:37%;top:18%;min-height:24px;font-size:12px}
   .lobby-play-trigger{left:61%;top:88%;width:136px;min-height:58px}
 }
