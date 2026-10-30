@@ -69,12 +69,29 @@ function readSavedLoadout(): EquipmentLoadout {
   try {
     const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-equipped') ?? '{}');
     if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
-    return Object.fromEntries(
-      Object.entries(saved).flatMap(([rawSlot, id]) => {
-        const slot = rawSlot === 'armadura' ? 'peitoral' : rawSlot === 'calca' ? 'leggings' : rawSlot === 'arma1' ? 'arma' : rawSlot;
-        return EQUIPMENT_SLOTS.includes(slot as EquipmentSlotId) && typeof id === 'string' ? [[slot, id]] : [];
-      }),
-    ) as EquipmentLoadout;
+    return Object.fromEntries(Object.entries(saved).flatMap(([rawSlot, id]) => {
+      const slot = rawSlot === 'armadura' ? 'peitoral' : rawSlot === 'calca' ? 'leggings' : rawSlot === 'arma1' ? 'arma' : rawSlot;
+      return EQUIPMENT_SLOTS.includes(slot as EquipmentSlotId) && typeof id === 'string' ? [[slot, id]] : [];
+    })) as EquipmentLoadout;
+  } catch { return {}; }
+}
+
+type ClassEquipmentLoadouts = Partial<Record<ClassId, EquipmentLoadout>>;
+
+function readSavedLoadouts(): ClassEquipmentLoadouts {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-equipped-by-class') ?? 'null');
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+      return Object.fromEntries(Object.entries(saved).filter(([classId, loadout]) =>
+        isProfileClassId(classId) && !!loadout && typeof loadout === 'object' && !Array.isArray(loadout),
+      )) as ClassEquipmentLoadouts;
+    }
+    const legacy = readSavedLoadout();
+    if (!Object.keys(legacy).length) return {};
+    const preferences = JSON.parse(window.localStorage.getItem('fibula-character-preferences') ?? '["guerreiro","druida"]');
+    const primary = Array.isArray(preferences) && isProfileClassId(preferences[0]) ? preferences[0] : 'guerreiro';
+    return { [primary]: legacy };
   } catch { return {}; }
 }
 
@@ -236,9 +253,11 @@ export default function App() {
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
-  const [equipmentLoadout, setEquipmentLoadout] = useState<EquipmentLoadout>(readSavedLoadout);
+  const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
   const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
   const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
+  const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
+  const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
@@ -290,8 +309,8 @@ export default function App() {
   }, [arsenalItems]);
 
   useEffect(() => {
-    window.localStorage.setItem('fibula-arsenal-equipped', JSON.stringify(equipmentLoadout));
-  }, [equipmentLoadout]);
+    window.localStorage.setItem('fibula-arsenal-equipped-by-class', JSON.stringify(equipmentLoadouts));
+  }, [equipmentLoadouts]);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -1352,10 +1371,10 @@ export default function App() {
                   <div className="arsenal-selection-label">{arsenalItems.find(item => item.id === selectedArsenalItemId)?.name ?? 'Selecione um equipamento'}</div>
                   <button type="button" disabled={!arsenalItems.some(item => item.id === selectedArsenalItemId) || arsenalItems.find(item => item.id === selectedArsenalItemId)?.slot !== selectedEquipmentSlot} onClick={() => {
                     const selected = arsenalItems.find(item => item.id === selectedArsenalItemId);
-                    if (selected && selected.slot === selectedEquipmentSlot) setEquipmentLoadout(current => equipArsenalItem(current, selected));
+                    if (selected && selected.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selected) }));
                   }}>Equipar</button>
                   <button type="button" className="arsenal-unequip" disabled={!equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
-                    setEquipmentLoadout(current => unequipArsenalSlot(current, selectedEquipmentSlot));
+                    if (activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, selectedEquipmentSlot) }));
                     setSelectedArsenalItemId(null);
                   }}>Desequipar</button>
                 </div>
