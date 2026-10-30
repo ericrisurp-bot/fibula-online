@@ -1305,3 +1305,27 @@ button, button * {
   56%{opacity:.16;transform:scale(.9)}
 }
 .lobby-grass-floor{filter:brightness(.43) saturate(.78) contrast(1.08)}
+
+
+/* Personagem deslocado para liberar a faixa inferior para o futuro menu. */
+.lobby-character-wrap{z-index:3}
+.lobby-character-canvas{transform:translate(-11vw,-7vh)}
+@media(max-width:650px){
+  .lobby-character-canvas{transform:translate(-11vw,-7vh)}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-character-canvas{transform:translate(-8vw,-4vh)}
+}
+
+/* Reflexo lunar localizado no chão; mantém o personagem sem iluminação artificial. */
+.lobby-ground-light{
+  position:absolute;
+  z-index:2;
+  left:9%;
+  bottom:0;
+  width:58%;
+  height:33.333vh;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 52% 12%,rgba(174,190,139,.19) 0%,rgba(132,153,113,.10) 32%,rgba(96,119,91,.035) 58%,transparent 76%);
+  filter:blur(8px);
+}
