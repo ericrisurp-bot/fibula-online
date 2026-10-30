@@ -1331,42 +1331,46 @@ button, button * {
 }
 
 
-/* Primeiro controle do lobby: convite de duo, discreto e sem fundo. */
+/* Convite de duo: círculo translúcido ancorado junto ao personagem. */
 .lobby-duo-invite{
   position:absolute;
-  z-index:4;
-  left:calc(50% + 7vw);
-  top:calc(50% - 12vh);
+  z-index:5;
+  left:calc(50% + 2vw);
+  top:calc(50% - 5vh);
   display:grid;
   place-items:center;
-  width:44px;
-  height:44px;
+  width:48px;
+  height:48px;
   padding:0;
-  border:0;
+  border:1.5px solid rgba(34,35,34,.92);
   border-radius:50%;
-  background:transparent;
-  color:#222322;
-  font:500 38px/1 system-ui,sans-serif;
-  text-shadow:0 1px 4px rgba(225,232,220,.72),0 0 9px rgba(225,232,220,.28);
+  background:rgba(34,35,34,.66);
+  color:#e8e7dc;
+  font:400 30px/1 system-ui,sans-serif;
+  box-shadow:0 3px 12px rgba(0,0,0,.28),inset 0 1px 2px rgba(255,255,255,.12);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
+  transition:background .16s ease,transform .16s ease;
 }
-.lobby-duo-invite:focus-visible{
-  outline:1px solid rgba(34,35,34,.72);
-  outline-offset:2px;
-}
+.lobby-duo-invite:hover{background:rgba(34,35,34,.82);transform:scale(1.06)}
+.lobby-duo-invite:active{transform:scale(.96)}
+.lobby-duo-invite:focus-visible{outline:2px solid rgba(232,231,220,.8);outline-offset:3px}
 @media(max-width:650px){
   .lobby-duo-invite{
-    left:calc(50% + 8vw);
-    top:calc(50% - 12vh);
-    width:38px;
-    height:38px;
-    font-size:34px;
+    left:calc(50% + 3vw);
+    top:calc(50% - 5vh);
+    width:42px;
+    height:42px;
+    font-size:27px;
   }
 }
 @media(orientation:landscape) and (max-height:520px){
   .lobby-duo-invite{
-    left:calc(50% + 9vw);
-    top:calc(50% - 14vh);
+    left:calc(50% + 4vw);
+    top:calc(50% - 7vh);
+    width:42px;
+    height:42px;
   }
 }
