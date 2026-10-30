@@ -26,6 +26,7 @@
     "wrangler": "^4.151.3"
   },
   "overrides": {
-    "rollup": "4.65.1"
+    "rollup": "4.65.1",
+    "tslib": "2.8.1"
   }
 }
