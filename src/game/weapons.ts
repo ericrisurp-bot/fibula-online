@@ -294,6 +294,8 @@ type FloatingWeaponOptions = {
   carried: boolean;
   swingTimer: number;
   swingAngle: number;
+  forceVisible?: boolean;
+  preferredSide?: -1 | 1;
 };
 
 const hover = {
@@ -334,19 +336,20 @@ export function drawFloatingWeapon(
   hover.lastTime = opts.time;
 
   if (opts.hasEnemies && !opts.carried) hover.lastEnemyTime = opts.time;
-  const presenceTarget = opts.time - hover.lastEnemyTime < 0.8 ? 1 : 0;
+  const presenceTarget = opts.forceVisible || opts.time - hover.lastEnemyTime < 0.8 ? 1 : 0;
   const presenceAlpha = 1 - Math.exp(-dt / 0.12);
-  hover.presence += (presenceTarget - hover.presence) * presenceAlpha;
+  hover.presence = opts.forceVisible ? 1 : hover.presence + (presenceTarget - hover.presence) * presenceAlpha;
   if (hover.presence < 0.02) return;
 
   // Enquanto houver alvo, mantém a arma no lado em que já está; só reposiciona após perdê-lo.
-  if (!opts.hasTarget) {
+  if (opts.preferredSide) hover.side = opts.preferredSide;
+  else if (!opts.hasTarget) {
     if (opts.facingX < -0.35) hover.side = 1;
     else if (opts.facingX > 0.35) hover.side = -1;
   }
 
   const sideAlpha = 1 - Math.exp(-dt / 0.15);
-  hover.sideT += (hover.side - hover.sideT) * sideAlpha;
+  hover.sideT = opts.forceVisible && opts.preferredSide ? opts.preferredSide : hover.sideT + (hover.side - hover.sideT) * sideAlpha;
   const movingTarget = opts.moving ? 1 : 0;
   hover.moveT += (movingTarget - hover.moveT) * sideAlpha;
 
@@ -390,9 +393,9 @@ export function drawFloatingWeapon(
   if (weapon === 'espada' && hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
 
   ctx.save();
-  ctx.globalAlpha = hover.presence;
+  ctx.globalAlpha = opts.forceVisible ? 1 : hover.presence;
   ctx.translate(x, y);
-  const entryScale = 0.85 + 0.15 * hover.presence;
+  const entryScale = opts.forceVisible ? 1 : 0.85 + 0.15 * hover.presence;
   ctx.scale(entryScale, entryScale);
   ctx.rotate(hover.angle);
   drawWeapon(ctx, weapon, r);

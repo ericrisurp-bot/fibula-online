@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
-import { CONFIG, type ClassId, type WeaponId } from './game/config';
+import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
+import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
+import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
@@ -29,6 +31,137 @@ const initial: GameSnapshot = {
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
   enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherReach: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
+const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
+const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
+  guerreiro: 'espada',
+  mago: 'cajado',
+  arqueiro: 'arco',
+  druida: 'bastao',
+};
+const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
+  capacete: { label: 'capacete' }, peitoral: { label: 'peitoral' },
+  leggings: { label: 'leggings' }, bota: { label: 'bota' },
+  arma: { label: 'arma' }, luva: { label: 'luva' },
+  colar: { label: 'colar' }, bolsa: { label: 'bolsa' },
+  pulseira: { label: 'pulseira' },
+};
+const ARSENAL_SLOT_LAYOUT: { slot: EquipmentSlotId; row: number; column: number }[] = [
+  { slot: 'colar', row: 1, column: 1 }, { slot: 'capacete', row: 1, column: 2 },
+  { slot: 'bolsa', row: 1, column: 3 }, { slot: 'arma', row: 2, column: 1 },
+  { slot: 'peitoral', row: 2, column: 2 }, { slot: 'luva', row: 2, column: 3 },
+  { slot: 'leggings', row: 3, column: 2 }, { slot: 'pulseira', row: 3, column: 3 },
+  { slot: 'bota', row: 4, column: 2 },
+];
+
+function readSavedArsenal(): ArsenalEquipment[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-items') ?? '[]');
+    if (!Array.isArray(saved)) return [];
+    return saved.flatMap((item): ArsenalEquipment[] => {
+      if (!item || typeof item.id !== 'string' || typeof item.name !== 'string' || typeof item.icon !== 'string') return [];
+      const slot = item.slot === 'armadura' ? 'peitoral' : item.slot === 'calca' ? 'leggings' : item.slot === 'arma1' ? 'arma' : item.slot;
+      return EQUIPMENT_SLOTS.includes(slot as EquipmentSlotId) ? [{ ...item, slot: slot as EquipmentSlotId }] : [];
+    }).slice(0, ARSENAL_CAPACITY);
+  } catch { return []; }
+}
+
+function readSavedLoadout(): EquipmentLoadout {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-equipped') ?? '{}');
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+    return Object.fromEntries(Object.entries(saved).flatMap(([rawSlot, id]) => {
+      const slot = rawSlot === 'armadura' ? 'peitoral' : rawSlot === 'calca' ? 'leggings' : rawSlot === 'arma1' ? 'arma' : rawSlot;
+      return EQUIPMENT_SLOTS.includes(slot as EquipmentSlotId) && typeof id === 'string' ? [[slot, id]] : [];
+    })) as EquipmentLoadout;
+  } catch { return {}; }
+}
+
+type ClassEquipmentLoadouts = Partial<Record<ClassId, EquipmentLoadout>>;
+
+function readSavedLoadouts(): ClassEquipmentLoadouts {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = JSON.parse(window.localStorage.getItem('fibula-arsenal-equipped-by-class') ?? 'null');
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+      return Object.fromEntries(Object.entries(saved).filter(([classId, loadout]) =>
+        isProfileClassId(classId) && !!loadout && typeof loadout === 'object' && !Array.isArray(loadout),
+      )) as ClassEquipmentLoadouts;
+    }
+    const legacy = readSavedLoadout();
+    if (!Object.keys(legacy).length) return {};
+    const preferences = JSON.parse(window.localStorage.getItem('fibula-character-preferences') ?? '["guerreiro","druida"]');
+    const primary = Array.isArray(preferences) && isProfileClassId(preferences[0]) ? preferences[0] : 'guerreiro';
+    return { [primary]: legacy };
+  } catch { return {}; }
+}
+
+const isProfileClassId = (value: unknown): value is ClassId =>
+  typeof value === 'string' && PROFILE_CLASS_IDS.includes(value as ClassId);
+
+function ProfileClassStats({ classId }: { classId: ClassId }) {
+  const attributes = getPlayerAttributes(classId, 0);
+  const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
+  const hpPerLevel = getAttributeEffectPerLevel(classId, 1, 'vida');
+  const damagePerLevel = (getDamageMultiplier(classId, 1) - 1) * 100;
+  const movementPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeMovimento');
+  const armorPerLevel = getAttributeEffectPerLevel(classId, 1, 'armadura');
+  const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque') * 100;
+  const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva') * 100;
+  const nextLevelAttributes = getPlayerAttributes(classId, 1);
+  const attributeRows = [
+    ['Força', nextLevelAttributes.forca - attributes.forca],
+    ['Inteligência', nextLevelAttributes.inteligencia - attributes.inteligencia],
+    ['Destreza', nextLevelAttributes.destreza - attributes.destreza],
+    ['Armadura', nextLevelAttributes.armadura - attributes.armadura],
+    ['Resistência mágica', nextLevelAttributes.resistenciaMagica - attributes.resistenciaMagica],
+    ['Velocidade de movimento', nextLevelAttributes.velocidadeMovimento - attributes.velocidadeMovimento],
+    ['Velocidade de ataque', nextLevelAttributes.velocidadeAtaque - attributes.velocidadeAtaque],
+    ['Alcance de ataque', nextLevelAttributes.alcanceAtaque - attributes.alcanceAtaque],
+    ['Esquiva', nextLevelAttributes.esquiva - attributes.esquiva],
+    ['Área de ataque', nextLevelAttributes.areaAtaque - attributes.areaAtaque],
+  ] as const;
+  const ability = {
+    guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
+    mago: `A cada 4º ataque, cria uma explosão de raio ${CONFIG.mageExplosion.radius} com dano multiplicado por ${CONFIG.mageExplosion.damageMultiplier.toFixed(1)}.`,
+    arqueiro: `Arco de longo alcance; as flechas perfuram inimigos e perdem dano nos alvos seguintes. A cada ${CONFIG.archerHeal.arrowsPerHeal} flechas disparadas, recupera ${CONFIG.archerHeal.amount} de vida.`,
+    druida: `Cajado natural à distância; aplica lentidão de ${Math.round((1 - CONFIG.druidSlow.speedMultiplier) * 100)}% por ${CONFIG.druidSlow.duration}s e veneno por ${CONFIG.druidPoison.duration}s. Cura ${CONFIG.druidHeal.basicHitAmount} de vida a cada ${CONFIG.druidHeal.basicHitsPerHeal} acertos e gera 1 orbe a cada ${CONFIG.druidHeal.killsPerOrb} eliminações (máx. ${CONFIG.druidHeal.maxOrbs}).`,
+  }[classId];
+
+  const statIcons: Record<string, string> = {
+    'Força': '💪', 'Inteligência': '🧠', 'Destreza': '🎯', 'Armadura': '🛡️',
+    'Resistência mágica': '✨', 'Velocidade de movimento': '👢',
+    'Velocidade de ataque': '⚔️', 'Alcance de ataque': '🏹',
+    'Esquiva': '💨', 'Área de ataque': '💥',
+  };
+  return <div className="profile-stats-content">
+    <div className="profile-weapon-note"><span>ARMA INICIAL</span><strong>⚔️ {weapon.label}</strong></div>
+    <div className="profile-stat-summary">
+      <div className="stat-health"><span>❤️ VIDA / HP</span><strong>{CONFIG.attributes.classStartHealth[classId]}</strong><small>+{hpPerLevel.toFixed(1)} por nível</small></div>
+      <div className="stat-damage"><span>💥 DANO</span><strong>{weapon.damage}</strong><small>+{damagePerLevel.toFixed(2)}% por nível</small></div>
+      <div className="stat-range"><span>🎯 ALCANCE</span><strong>{weapon.range}</strong><small>unidades do jogo</small></div>
+      <div className="stat-speed"><span>⚔️ ATAQUES / SEG</span><strong>{weapon.attackSpeed.toFixed(2)}</strong><small>+{attackSpeedPerLevel.toFixed(2)}% por nível</small></div>
+    </div>
+    <section className="profile-stat-section">
+      <h4>🧭 Sobrevivência e mobilidade</h4>
+      <div className="profile-stat-list">
+        <div><span>👢 Velocidade de movimento</span><strong>{CONFIG.player.speed} <small>+{movementPerLevel.toFixed(2)} / nível</small></strong></div>
+        <div><span>🛡️ Armadura inicial</span><strong>{CONFIG.player.armor} <small>+{armorPerLevel.toFixed(2)} / nível</small></strong></div>
+        <div><span>💨 Esquiva inicial</span><strong>{(CONFIG.player.dodge * 100).toFixed(1)}% <small>+{dodgePerLevel.toFixed(2)} p.p. / nível</small></strong></div>
+      </div>
+    </section>
+    <section className="profile-stat-section">
+      <h4>📊 Atributos da classe</h4>
+      <p className="profile-stat-note">Quanto cada atributo aumenta a cada nível.</p>
+      <div className="profile-attribute-list">
+        {attributeRows.map(([label, gain]) => <div key={label}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>+{gain.toFixed(2)} <small>/ nível</small></strong></div>)}
+      </div>
+    </section>
+    <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
+  </div>;
+}
+
 const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : itemId === 'cotton' ? '☁️' : itemId === 'linen' ? '🧵' : '📦';
 const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
@@ -61,10 +194,74 @@ const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId === 'cotton' ? 'Algodão' : itemId === 'linen' ? 'Linho' : itemId;
 
+const createGrassTile = () => {
+  const tile = document.createElement('canvas');
+  tile.width = 256;
+  tile.height = 256;
+  const ctx = tile.getContext('2d');
+  if (!ctx) return tile;
+  let seed = 173;
+  const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  ctx.fillStyle = '#557a43';
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 46; i++) {
+    const x = random() * 256, y = random() * 256;
+    const radius = 8 + random() * 25;
+    ctx.fillStyle = ['rgba(105,139,69,0.24)', 'rgba(38,91,48,0.18)', 'rgba(133,145,76,0.12)'][Math.floor(random() * 3)];
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius * (0.45 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (let i = 0; i < 420; i++) {
+    const x = random() * 256, y = random() * 256;
+    ctx.strokeStyle = random() > 0.5 ? 'rgba(158,180,104,0.32)' : 'rgba(31,75,39,0.28)';
+    ctx.lineWidth = 0.7 + random() * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (random() - 0.5) * 4, y - 1 - random() * 4);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 12; i++) {
+    const x = random() * 256, y = random() * 256;
+    ctx.fillStyle = 'rgba(105,78,48,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return tile;
+};
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem('fibula-character-preferences') ?? 'null');
+        if (Array.isArray(saved) && saved.length === 2 &&
+          (saved[0] === null || isProfileClassId(saved[0])) &&
+          (saved[1] === null || isProfileClassId(saved[1])) &&
+          saved[0] !== saved[1]) {
+          return [saved[0], saved[1]];
+        }
+      } catch { /* Preferências inválidas são substituídas pelos padrões. */ }
+    }
+    return ['guerreiro', 'druida'];
+  });
+  const [arsenalOpen, setArsenalOpen] = useState(false);
+  const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
+  const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
+  const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
+  const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
+  const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
+  const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
+  const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
     const saved = window.localStorage.getItem('fibula-interface-scale');
@@ -75,7 +272,6 @@ export default function App() {
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
-  const [worldReady, setWorldReady] = useState(false);
   const gameStartedRef = useRef(false);
   const zoomRef = useRef(window.matchMedia('(pointer: coarse)').matches ? 1.55 : 1.3);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
@@ -105,6 +301,121 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
+
+  useEffect(() => {
+    window.localStorage.setItem('fibula-character-preferences', JSON.stringify(characterPreferences));
+  }, [characterPreferences]);
+
+  useEffect(() => {
+    window.localStorage.setItem('fibula-arsenal-items', JSON.stringify(arsenalItems));
+  }, [arsenalItems]);
+
+  useEffect(() => {
+    window.localStorage.setItem('fibula-arsenal-equipped-by-class', JSON.stringify(equipmentLoadouts));
+  }, [equipmentLoadouts]);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [profileOpen]);
+
+  useEffect(() => {
+    if (!arsenalOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setArsenalOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [arsenalOpen]);
+
+  useEffect(() => {
+    if (!arsenalOpen) return;
+    const canvas = arsenalCharacterCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const classId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
+    if (!canvas || !ctx || !classId) return;
+    let frame = 0;
+    const renderArsenalCharacter = (now: number) => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const scale = Math.min(width / 65, height / 260);
+      ctx.save();
+      ctx.translate(width / 2, height * 0.78);
+      ctx.scale(scale, scale);
+      const weapon = PROFILE_CLASS_WEAPONS[classId];
+      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, false, true, 0, 0, 0, 0, 0, 0, 0, false);
+      ctx.restore();
+      frame = window.requestAnimationFrame(renderArsenalCharacter);
+    };
+    frame = window.requestAnimationFrame(renderArsenalCharacter);
+    return () => window.cancelAnimationFrame(frame);
+  }, [arsenalOpen, arsenalCharacterTab, characterPreferences]);
+
+  useEffect(() => {
+    if (!showStart) return;
+    const canvas = lobbyGrassCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const grassTile = createGrassTile();
+    const drawGrass = () => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const pattern = ctx.createPattern(grassTile, 'repeat');
+      if (pattern) pattern.setTransform(new DOMMatrix().scale(0.2));
+      ctx.fillStyle = pattern ?? '#557a43';
+      ctx.fillRect(0, 0, width, height);
+    };
+    drawGrass();
+    window.addEventListener('resize', drawGrass);
+    return () => window.removeEventListener('resize', drawGrass);
+  }, [showStart]);
+
+  useEffect(() => {
+    if (!showStart) return;
+    const canvas = lobbyCharacterCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    let frame = 0;
+    const renderCharacter = (now: number) => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const scale = Math.min(width / 220, height / 310);
+      ctx.save();
+      ctx.translate(width / 2, height * 0.82);
+      ctx.scale(scale, scale);
+      const lobbyClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
+      const lobbyWeapon = PROFILE_CLASS_WEAPONS[lobbyClass];
+      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, true, false, 0, 0, 0, 0, 0, 0, 0);
+      drawFloatingWeapon(ctx, lobbyWeapon, CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
+      ctx.restore();
+      frame = window.requestAnimationFrame(renderCharacter);
+    };
+    frame = window.requestAnimationFrame(renderCharacter);
+    return () => window.cancelAnimationFrame(frame);
+  }, [showStart, characterPreferences]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -149,9 +460,6 @@ export default function App() {
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const engine = new GameEngine((next) => setState(next)); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
     let frame = 0;
-    let readyTimer: number | null = null;
-    let firstFrameRendered = false;
-    const loadingStartedAt = performance.now();
     const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
     let fpsDisplay: HTMLDivElement | null = null;
     let fpsFrameCount = 0;
@@ -172,31 +480,8 @@ export default function App() {
     terrainCanvas.width = Math.ceil(engine.world * terrainScale);
     terrainCanvas.height = Math.ceil(engine.world * terrainScale);
     const terrainCtx = terrainCanvas.getContext('2d');
-    const grassTile = document.createElement('canvas');
-    grassTile.width = 256; grassTile.height = 256;
-    const grassCtx = grassTile.getContext('2d');
-    if (grassCtx && terrainCtx) {
-      let seed = 173;
-      const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-      grassCtx.fillStyle = '#557a43'; grassCtx.fillRect(0, 0, 256, 256);
-      for (let i = 0; i < 46; i++) {
-        const x = random() * 256, y = random() * 256;
-        const radius = 8 + random() * 25;
-        grassCtx.fillStyle = ['rgba(105,139,69,0.24)', 'rgba(38,91,48,0.18)', 'rgba(133,145,76,0.12)'][Math.floor(random() * 3)];
-        grassCtx.beginPath(); grassCtx.ellipse(x, y, radius, radius * (0.45 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
-      }
-      for (let i = 0; i < 420; i++) {
-        const x = random() * 256, y = random() * 256;
-        grassCtx.strokeStyle = random() > 0.5 ? 'rgba(158,180,104,0.32)' : 'rgba(31,75,39,0.28)';
-        grassCtx.lineWidth = 0.7 + random() * 0.8;
-        grassCtx.beginPath(); grassCtx.moveTo(x, y); grassCtx.lineTo(x + (random() - 0.5) * 4, y - 1 - random() * 4); grassCtx.stroke();
-      }
-      for (let i = 0; i < 12; i++) {
-        const x = random() * 256, y = random() * 256;
-        grassCtx.fillStyle = 'rgba(105,78,48,0.18)';
-        grassCtx.beginPath(); grassCtx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2); grassCtx.fill();
-      }
-
+    const grassTile = createGrassTile();
+    if (terrainCtx) {
       terrainCtx.scale(terrainScale, terrainScale);
       const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
       if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.2));
@@ -706,17 +991,12 @@ export default function App() {
         ctx.fill();
         ctx.restore();
       }
-      if (!firstFrameRendered) {
-        firstFrameRendered = true;
-        const remainingLoadingMs = Math.max(0, 800 - (performance.now() - loadingStartedAt));
-        readyTimer = window.setTimeout(() => setWorldReady(true), remainingLoadingMs);
-      }
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); if (readyTimer !== null) window.clearTimeout(readyTimer); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -796,6 +1076,15 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
+  const startGame = () => {
+    const engine = engineRef.current;
+    if (!engine || gameStartedRef.current) return;
+    const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
+    engine.setClass(selectedClass);
+    engine.start();
+    gameStartedRef.current = true;
+    setShowStart(false);
+  };
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
@@ -976,16 +1265,6 @@ export default function App() {
     flagHoldRef.current = null;
   };
   const onFlagContextMenu = (event: MouseEvent<HTMLCanvasElement>) => { event.preventDefault(); };
-  const beginGame = () => {
-    if (!worldReady) return;
-    gameStartedRef.current = true;
-    // Sorteia novamente ao iniciar de verdade, não enquanto a tela inicial fica aberta.
-    flagsRef.current = []; setFlags([]); setWheel(null);
-    closeFlagMenu();
-    closeInventoryPanel();
-    engineRef.current?.restart();
-    setShowStart(false);
-  };
   const toggleLandscapeMode = async () => {
     const orientation = window.screen.orientation as typeof window.screen.orientation & {
       lock?: (value: 'landscape') => Promise<void>;
@@ -1032,13 +1311,131 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showStart && <div className="start-overlay" role="dialog" aria-label="Iniciar Fíbula Online">
-        <div className="start-panel">
-          <div className="start-eyebrow">FÍBULA ONLINE</div>
-          <h1>{worldReady ? 'Pronto para sobreviver?' : 'Preparando o mundo...'}</h1>
-          <p>{worldReady ? 'Sobreviva às noites, aproveite o dia e prepare-se para hordas cada vez maiores.' : 'Preparando o terreno e renderizando o mapa antes de liberar a partida.'}</p>
-          <button className="start-normal" type="button" disabled={!worldReady} onClick={beginGame}>{worldReady ? 'INICIAR JOGO' : 'CARREGANDO...'}</button>
+      {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
+        <div className="lobby-sky" aria-hidden="true">
+          <i className="lobby-moon"/>
+          <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
+          <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
         </div>
+        <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
+        <i className="lobby-ground-light" aria-hidden="true"/>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
+        
+          <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/>
+            </svg>
+            <span>F5</span>
+          </button>
+          <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
+            </svg>
+            <span>F6</span>
+          </button>
+        <button className="lobby-play-trigger" type="button" onClick={startGame}>JOGAR</button>
+        {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
+          <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-arsenal-header">
+              <div><span>EQUIPAMENTOS DO PERSONAGEM</span><h2 id="lobby-arsenal-title">Arsenal</h2></div>
+              <div className="lobby-arsenal-count">{arsenalItems.length}/{ARSENAL_CAPACITY} espaços</div>
+              <button type="button" className="lobby-profile-close" aria-label="Fechar Arsenal" onClick={() => setArsenalOpen(false)}>×</button>
+            </header>
+            <div className="lobby-arsenal-content">
+              <section className="arsenal-equipment-section" aria-label="Equipamentos equipados">
+                 <div className="arsenal-character-tabs" role="tablist" aria-label="Personagem do Arsenal">
+                   <button type="button" role="tab" aria-selected={arsenalCharacterTab === 'principal'} className={arsenalCharacterTab === 'principal' ? 'active' : ''} onClick={() => setArsenalCharacterTab('principal')}>Principal</button>
+                   <button type="button" role="tab" aria-selected={arsenalCharacterTab === 'secundario'} className={arsenalCharacterTab === 'secundario' ? 'active' : ''} onClick={() => setArsenalCharacterTab('secundario')}>Secundário</button>
+                 </div>
+                 <div className="arsenal-section-heading"><strong>{arsenalCharacterTab === 'principal' ? 'PERSONAGEM PRINCIPAL' : 'PERSONAGEM SECUNDÁRIO'}</strong><span>Selecione um espaço para equipar</span></div>
+                 <div className="arsenal-equipment-stage">
+                    <span className="arsenal-power-label" aria-label="Poder do personagem">PD</span>
+                   {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
+                   <div className="arsenal-equipment-grid">
+                     {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
+                       const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                       const info = ARSENAL_SLOT_INFO[slot];
+                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
+                         <strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
+                       </button>;
+                     })}
+                   </div>
+                 </div>
+               </section>
+               <section className="arsenal-inventory-section">
+                <div className="arsenal-section-heading"><strong>INVENTÁRIO DE EQUIPAMENTOS</strong><span>Itens obtidos e fabricados ficam aqui</span></div>
+                <div className="arsenal-inventory-grid">
+                  {Array.from({ length: ARSENAL_CAPACITY }, (_, index) => {
+                    const item = arsenalItems[index];
+                    const isEquipped = !!item && Object.values(equipmentLoadout).includes(item.id);
+                    return <button type="button" key={index} className={`arsenal-inventory-slot ${item ? 'filled' : ''} ${item?.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} disabled={!item} onClick={() => { if (item) { setSelectedArsenalItemId(item.id); setSelectedEquipmentSlot(item.slot); } }} aria-label={item ? `Selecionar ${item.name}${isEquipped ? ', equipado' : ''}` : `Espaço ${index + 1} vazio`}>
+                      {item ? <><span>{item.icon}</span><small>{item.name}</small>{isEquipped && <em>EQUIPADO</em>}</> : <span className="arsenal-empty-number">{index + 1}</span>}
+                    </button>;
+                  })}
+                </div>
+                <div className="arsenal-actions">
+                  <div className="arsenal-selection-label">{arsenalItems.find(item => item.id === selectedArsenalItemId)?.name ?? 'Selecione um equipamento'}</div>
+                  <button type="button" disabled={!activeArsenalClassId || !arsenalItems.some(item => item.id === selectedArsenalItemId) || arsenalItems.find(item => item.id === selectedArsenalItemId)?.slot !== selectedEquipmentSlot} onClick={() => {
+                    const selected = arsenalItems.find(item => item.id === selectedArsenalItemId);
+                    if (selected && selected.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selected) }));
+                  }}>Equipar</button>
+                  <button type="button" className="arsenal-unequip" disabled={!activeArsenalClassId || !equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
+                    if (activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, selectedEquipmentSlot) }));
+                    setSelectedArsenalItemId(null);
+                  }}>Desequipar</button>
+                </div>
+                <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
+              </section>
+            </div>
+          </section>
+        </div>}
+        {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
+          <section className="lobby-profile-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-profile-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-profile-header">
+              <div><span>CONFIGURAÇÃO DOS PERSONAGENS</span><h2 id="lobby-profile-title">Perfil</h2></div>
+              <button type="button" className="lobby-profile-close" aria-label="Fechar perfil" onClick={() => setProfileOpen(false)}>×</button>
+            </header>
+            <nav className="lobby-profile-tabs" role="tablist" aria-label="Classes disponíveis">
+              {PROFILE_CLASS_IDS.map(classId => <button
+                type="button"
+                role="tab"
+                aria-selected={profileClassTab === classId}
+                className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
+                key={classId}
+                onClick={() => setProfileClassTab(classId)}
+              >
+                <span className="profile-class-emoji" aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[classId]}</span>
+                <strong>{CLASSES[classId].label}</strong>
+                <small>{characterPreferences[0] === classId ? '★ PRINCIPAL' : characterPreferences[1] === classId ? '② SECUNDÁRIO' : 'NÃO SELECIONADO'}</small>
+              </button>)}
+            </nav>
+            <div className="lobby-profile-content">
+              <section className={`profile-class-details class-${profileClassTab}`}>
+                <div className="profile-section-heading">
+                  <div><span>FICHA DO PERSONAGEM · NÍVEL 0</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[profileClassTab]}</span> {CLASSES[profileClassTab].label}</h3></div>
+                  <small>Início da partida</small>
+                </div>
+                <p className="profile-class-description">{CLASSES[profileClassTab].description}</p>
+                <div className="profile-priority-controls" aria-label="Prioridade da classe">
+                  <span>MINHAS PREFERÊNCIAS</span>
+                  <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
+                    if (current[0] === profileClassTab) return [null, current[1]];
+                    if (current[1] === profileClassTab) return [profileClassTab, current[0]];
+                    return [profileClassTab, current[1]];
+                  })}><b>1</b> Principal</button>
+                  <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
+                    if (current[1] === profileClassTab) return [current[0], null];
+                    if (current[0] === profileClassTab) return [current[1], profileClassTab];
+                    return [current[0], profileClassTab];
+                  })}><b>2</b> Secundário</button>
+                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Escolha 1 ou 2 para adicionar esta classe às suas preferências. Os controles também desligam uma preferência já ativa.</small>}
+                </div>
+                <ProfileClassStats classId={profileClassTab} />
+              </section>
+              <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
+            </div>
+          </section>
+        </div>}
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
@@ -1302,7 +1699,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number, showWeapon = true) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1321,7 +1718,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
-  if (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao'))) {
+  if (showWeapon && (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao')))) {
     if (weapon === 'espada') {
       const duration = 0.24;
       const progress = swordSwingTimer > 0 ? 1 - swordSwingTimer / duration : 0;

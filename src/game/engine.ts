@@ -22,7 +22,7 @@ type BronzeDrop = Vec & { id: number; age: number };
 type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | LinenDrop | BronzeDrop;
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
-type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; explosive?: boolean; hitEnemyIds?: number[] };
+type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; explosive?: boolean; hitEnemyIds?: number[] };
 type ExplosionEffect = Vec & { id: number; age: number; duration: number };
 type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
@@ -1587,7 +1587,7 @@ export class GameEngine {
       if (this.state.classId === 'mago') this.mageAttackCount = (this.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
       const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
-      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
   }
@@ -1655,13 +1655,63 @@ export class GameEngine {
   private moveShots(dt: number) {
     for (const shot of [...this.state.shots]) {
       const previousPosition = { x: shot.x, y: shot.y };
-      shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt;
+
+      // Magias (orbes) são teleguiadas ao alvo escolhido no disparo.
+      // Se ele morrer/desaparecer, a magia mantém a última direção e não troca de alvo.
+      let guidedTarget: Enemy | undefined;
+      if (shot.kind === 'orb') {
+        guidedTarget = this.state.enemies.find(enemy => enemy.id === shot.targetId);
+        if (guidedTarget) {
+          const speed = Math.hypot(shot.vx, shot.vy) || CONFIG.weapons.cajado.projectileSpeed;
+          const dx = guidedTarget.x - shot.x;
+          const dy = guidedTarget.y - shot.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          shot.vx = dx / distance * speed;
+          shot.vy = dy / distance * speed;
+        }
+      }
+
+      shot.x += shot.vx * dt;
+      shot.y += shot.vy * dt;
+      // Enquanto o alvo original existir, a magia não expira antes de alcançá-lo.
+      // Flechas e magias cujo alvo desapareceu continuam usando o tempo de vida normal.
+      if (shot.kind === 'arrow' || !guidedTarget) shot.life -= dt;
+
       if (shot.kind === 'arrow' && this.arrowHitsSolidObstacle(previousPosition, shot)) {
         this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         continue;
       }
-      const target = this.state.enemies.find(e => Math.hypot(e.x - shot.x, e.y - shot.y) < CONFIG.enemy.radius + 6 && (shot.kind !== 'arrow' || !(shot.hitEnemyIds ?? []).includes(e.id)));
-      if (target && shot.kind === 'arrow') {
+
+      // Verifica todo o trecho percorrido neste frame, não apenas o ponto final.
+      // Flechas atingem qualquer inimigo que cruzar sua linha; magias só colidem
+      // com o alvo que estavam perseguindo.
+      const segmentX = shot.x - previousPosition.x;
+      const segmentY = shot.y - previousPosition.y;
+      const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+      const candidates = this.state.enemies
+        .filter(enemy => shot.kind === 'arrow'
+          ? !(shot.hitEnemyIds ?? []).includes(enemy.id)
+          : enemy.id === shot.targetId)
+        .map(enemy => {
+          const projection = segmentLengthSquared === 0 ? 0 : this.clamp(
+            ((enemy.x - previousPosition.x) * segmentX + (enemy.y - previousPosition.y) * segmentY) / segmentLengthSquared,
+            0,
+            1,
+          );
+          const nearestX = previousPosition.x + projection * segmentX;
+          const nearestY = previousPosition.y + projection * segmentY;
+          return { enemy, projection, distance: Math.hypot(enemy.x - nearestX, enemy.y - nearestY) };
+        })
+        .filter(hit => hit.distance < CONFIG.enemy.radius + 6)
+        .sort((a, b) => a.projection - b.projection);
+      const collision = candidates[0];
+
+      if (collision && shot.kind === 'arrow') {
+        const target = collision.enemy;
+        // Deixa a flecha no ponto do impacto para que ela continue pela mesma
+        // linha no próximo frame e possa atravessar outros inimigos.
+        shot.x = previousPosition.x + segmentX * collision.projection;
+        shot.y = previousPosition.y + segmentY * collision.projection;
         const hitIds = shot.hitEnemyIds ?? (shot.hitEnemyIds = []);
         const hitIndex = hitIds.length;
         if (hitIndex >= CONFIG.archerPierce.damageFactors.length) {
@@ -1693,7 +1743,8 @@ export class GameEngine {
         if (hitIds.length >= CONFIG.archerPierce.damageFactors.length || shot.life <= 0) {
           this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         }
-      } else if (target) {
+      } else if (collision) {
+        const target = collision.enemy;
         this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
         if (shot.explosive) {
           const impact = { x: target.x, y: target.y };
@@ -1731,7 +1782,9 @@ export class GameEngine {
           this.registerDruidBasicHit();
           if (target.hp <= 0) this.killEnemy(target.id);
         }
-      } else if (shot.life <= 0) this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+      } else if (shot.life <= 0) {
+        this.state.shots = this.state.shots.filter(s => s.id !== shot.id);
+      }
     }
   }
 
