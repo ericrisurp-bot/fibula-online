@@ -2235,3 +2235,100 @@ button, button * {
 }
 .lobby-friends-empty strong{color:#573344;font-size:14px}
 .lobby-friends-empty p{margin:0;color:#a4778b;font-size:11px;line-height:1.5}
+
+
+/* Baú do lobby: botão abaixo de Amigos, mantendo o padrão branco e rosa. */
+.lobby-chest-trigger{
+  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 228px);z-index:26;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
+  padding:3px;border:1px solid rgba(235,160,193,.78);border-radius:10px;
+  background:rgba(34,35,34,.86);color:#ffeaf2;backdrop-filter:blur(5px);
+  box-shadow:inset 0 1px 2px #ffffff12,0 2px 9px #0005;-webkit-tap-highlight-color:transparent;
+}
+.lobby-chest-trigger svg{width:clamp(17px,4.5vw,25px);height:clamp(17px,4.5vw,25px);color:#f0a6c3}
+.lobby-chest-trigger span{font-size:9px;font-weight:900;letter-spacing:.035em;line-height:1}
+.lobby-chest-trigger:active{background:#503344;transform:scale(.96)}
+.lobby-chest-trigger:focus-visible{outline:2px solid #f0a6c3;outline-offset:2px}
+.lobby-chest-modal{width:min(560px,100%)}
+.lobby-chest-grid{
+  display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:7px;
+  padding:14px;overflow-y:auto;overscroll-behavior:contain;
+}
+.lobby-chest-slot{
+  position:relative;display:flex;min-width:0;aspect-ratio:1;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;overflow:hidden;
+  border:1px solid #f0d5e1;border-radius:9px;background:rgba(255,255,255,.78);
+  color:#a78a97;
+}
+.lobby-chest-slot.filled{border-color:#eab8cd;background:linear-gradient(145deg,#fff,#fff0f6);color:#573344}
+.lobby-chest-slot>span:first-child{display:grid;place-items:center;min-height:24px;font-size:22px}
+.lobby-chest-slot>span:first-child svg{width:23px;height:23px}
+.lobby-chest-slot small{max-width:100%;overflow:hidden;padding:0 2px;color:#9b6b80;font-size:clamp(6px,.85vw,9px);font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+.lobby-chest-slot b{color:#a34f76;font-size:clamp(8px,1vw,11px);font-variant-numeric:tabular-nums}
+.lobby-chest-slot-number{font-size:10px;color:#d1b9c4}
+.lobby-chest-note{margin:0;padding:0 14px 14px;color:#a4778b;font-size:10px;line-height:1.5;text-align:center}
+@media(max-width:650px){
+  .lobby-chest-trigger{right:12px;top:calc(38% + 186px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-chest-trigger span{font-size:8px}
+  .lobby-chest-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:10px}
+  .lobby-chest-slot{border-radius:7px}
+  .lobby-chest-slot small{font-size:8px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-chest-trigger{top:calc(30% + 174px)}
+}
+
+
+/* Baú do lobby: modal neutro, com os mesmos slots visuais do inventário da partida. */
+.lobby-chest-trigger{
+  border:1px solid rgba(225,225,225,.42);
+  background:rgba(34,35,34,.86);
+  color:#f0f0f0;
+}
+.lobby-chest-trigger svg{color:#e0e0e0}
+.lobby-chest-trigger:active{background:#454745}
+.lobby-chest-trigger:focus-visible{outline-color:#e8e8e8}
+.lobby-chest-backdrop{
+  position:absolute;z-index:64;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:clamp(10px,3vw,28px);background:rgba(0,0,0,.62);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.lobby-chest-modal{
+  display:flex;flex-direction:column;width:min(620px,100%);max-height:min(82dvh,650px);overflow:hidden;
+  border:1px solid #d9dde2;border-radius:12px;background:#fff;color:#26313d;
+  box-shadow:0 18px 55px rgba(0,0,0,.35);
+}
+.lobby-chest-header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid #e5e8ec;background:#fff;
+}
+.lobby-chest-header h2{margin:0;color:#26313d;font-size:21px;font-weight:800}
+.lobby-chest-header p{margin:3px 0 0;color:#737e8b;font-size:12px}
+.lobby-chest-close{
+  display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  border:1px solid #d8dde4;border-radius:8px;background:#f7f8fa;color:#536171;
+  font-size:22px;line-height:1;
+}
+.lobby-chest-close:hover{background:#eceff3}
+.lobby-chest-grid{
+  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;
+  padding:14px;overflow-y:auto;overscroll-behavior:contain;align-content:start;
+}
+.lobby-chest-slot{
+  min-width:0;min-height:0;width:auto;height:auto;aspect-ratio:1;
+  border:1px solid rgba(215,215,215,.55);border-radius:8px;
+  background:rgba(70,71,70,.10);color:#39434e;
+}
+.lobby-chest-slot>span:not(.quick-slot-empty){font-size:22px;line-height:1}
+.lobby-chest-slot small{max-width:100%;overflow:hidden;color:#657181;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.lobby-chest-slot b{position:absolute;right:3px;bottom:3px;padding:1px 3px;border-radius:4px;background:rgba(34,35,34,.82);color:#fff;font-size:9px}
+@media(max-width:650px){
+  .lobby-chest-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
+  .lobby-chest-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:10px}
+  .lobby-chest-header{padding:11px 12px}
+  .lobby-chest-header h2{font-size:19px}
+  .lobby-chest-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:10px}
+  .lobby-chest-slot>span:not(.quick-slot-empty){font-size:18px}
+  .lobby-chest-slot small{font-size:8px}
+}

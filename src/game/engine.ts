@@ -10,6 +10,27 @@ const XP_ATTRACTION_RADIUS = 250;
 const MATERIAL_ATTRACTION_RADIUS = 80;
 const MATERIAL_ATTRACTION_DELAY = 0.5;
 const MATERIAL_DROP_LIFETIME = 15;
+const HOUSE_STORAGE_KEY = 'fibula-house-storage';
+const HOUSE_STORAGE_SLOTS = 50;
+
+function readHouseStorage(): InventoryStack[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(HOUSE_STORAGE_KEY) ?? '[]');
+    if (!Array.isArray(saved)) return [];
+    const merged = new Map<string, number>();
+    for (const item of saved) {
+      if (!item || typeof item.itemId !== 'string' || !Number.isFinite(item.quantity) || item.quantity <= 0) continue;
+      merged.set(item.itemId, (merged.get(item.itemId) ?? 0) + Math.floor(item.quantity));
+    }
+    return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity })).slice(0, HOUSE_STORAGE_SLOTS);
+  } catch { return []; }
+}
+
+function persistHouseStorage(inventory: InventoryStack[]) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Armazenamento local indisponível. */ }
+}
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
@@ -82,6 +103,7 @@ export class GameEngine {
 
   constructor(private onUpdate: (state: GameSnapshot) => void) {
     this.state = this.freshState();
+    this.state.house.inventory = readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
     this.placeCart();
@@ -482,18 +504,18 @@ export class GameEngine {
     if (Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) > CONFIG.house.interactRadius) return;
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
     const store = (items: InventoryStack[]) => {
+      const remaining: InventoryStack[] = [];
       for (const stack of items) {
         const existing = house.inventory.find(item => item.itemId === stack.itemId);
         if (existing) existing.quantity += stack.quantity;
-        else house.inventory.push({ ...stack });
+        else if (house.inventory.length < HOUSE_STORAGE_SLOTS) house.inventory.push({ ...stack });
+        else remaining.push({ ...stack });
       }
+      return remaining;
     };
-    store(this.state.inventory);
-    this.state.inventory = [];
-    if (this.state.cart.carried || cartNearHouse) {
-      store(this.state.cart.inventory);
-      this.state.cart.inventory = [];
-    }
+    this.state.inventory = store(this.state.inventory);
+    if (this.state.cart.carried || cartNearHouse) this.state.cart.inventory = store(this.state.cart.inventory);
+    persistHouseStorage(house.inventory);
     this.emit();
   }
   transferHouseToBag(itemId: string) {
@@ -507,6 +529,7 @@ export class GameEngine {
     this.state.inventory = result.inventory;
     const remaining = stack.quantity - result.added;
     house.inventory = house.inventory.flatMap(item => item.itemId !== itemId ? [item] : remaining > 0 ? [{ ...item, quantity: remaining }] : []);
+    persistHouseStorage(house.inventory);
     this.emit();
   }
   transferCartToBag(index: number) {
@@ -590,7 +613,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.state = this.freshState(classId); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
+    this.stop(); this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.wasNight = false; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.start(); this.emit();
   }
