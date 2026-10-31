@@ -2334,68 +2334,81 @@ button, button * {
 }
 
 
-/* Botão Jogar: pequeno planeta com hemisférios de dia/noite e recursos low-poly em rotação. */
+/* Botão Jogar: pequeno planeta vivo, com elementos presos à superfície. */
 .lobby-play-trigger{
   position:absolute;z-index:25;left:61%;top:90%;transform:translate(-50%,-50%);
-  display:grid;place-items:center;width:clamp(112px,14vw,148px);height:clamp(112px,14vw,148px);
+  display:grid;place-items:center;width:clamp(124px,15vw,154px);height:clamp(124px,15vw,154px);
   min-height:0;padding:0;border:0;border-radius:50%;background:transparent;color:#fff;
   cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;
-  filter:drop-shadow(0 8px 12px rgba(0,0,0,.42));
+  filter:drop-shadow(0 9px 13px rgba(0,0,0,.46));
   transition:filter .2s ease,transform .2s ease;
 }
-.lobby-world-sphere{
-  position:absolute;inset:5px;border:2px solid rgba(232,244,235,.9);border-radius:50%;overflow:hidden;
-  background:linear-gradient(180deg,#9ed8ed 0%,#75b7d0 48%,#18283c 52%,#0a1425 100%);
-  box-shadow:inset -10px -7px 16px rgba(0,0,0,.42),inset 5px 4px 12px rgba(255,255,255,.35),0 0 0 4px rgba(255,255,255,.12),0 0 20px rgba(155,211,232,.28);
-  transform:translateZ(0);
+.lobby-world-planet{
+  position:absolute;inset:0;display:block;perspective:420px;
 }
-.lobby-world-day{
-  position:absolute;inset:0 0 48%;
+.lobby-world-orbiting-body{
+  position:absolute;left:13%;top:25%;width:74%;height:70%;
+  transform-style:preserve-3d;animation:lobby-planet-spin 18s ease-in-out infinite;
+}
+.lobby-world-surface{
+  position:absolute;inset:0;border-radius:50%;
   background:
-    radial-gradient(ellipse at 30% 24%,rgba(255,255,220,.8) 0 5%,transparent 6%),
-    radial-gradient(ellipse at 72% 12%,rgba(255,255,255,.55) 0 7%,transparent 8%),
-    linear-gradient(180deg,#bce9f4 0%,#80c7df 70%,#5b9e70 100%);
-  clip-path:ellipse(78% 75% at 50% 0%);
+    radial-gradient(ellipse at 29% 22%,rgba(255,255,255,.82) 0 3%,transparent 24%),
+    radial-gradient(ellipse at 34% 30%,#a8d38b 0%,#78ae68 34%,#477b50 72%,#294b3c 100%);
+  border:1px solid rgba(226,244,206,.82);
+  box-shadow:inset -13px -8px 16px rgba(8,22,20,.5),inset 5px 5px 13px rgba(255,255,255,.32),0 0 0 3px rgba(255,255,255,.13),0 5px 12px rgba(0,0,0,.3);
+  transform-style:preserve-3d;
+  animation:lobby-planet-daynight 14s ease-in-out infinite;
 }
-.lobby-world-night{
-  position:absolute;inset:51% 0 0;
-  background:radial-gradient(ellipse at 50% 0%,#273b57 0%,#101d32 62%,#070f1d 100%);
+.lobby-world-ground{
+  position:absolute;inset:48% -3% -2%;border-radius:48% 52% 50% 50%;
+  background:linear-gradient(180deg,#6c9b58 0%,#426f48 62%,#2d5140 100%);
+  box-shadow:inset 0 5px 8px rgba(218,235,160,.2);
 }
-.lobby-world-night i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff4c7;box-shadow:0 0 5px #fff4c7}
-.lobby-world-night i:nth-child(1){left:23%;top:23%}.lobby-world-night i:nth-child(2){left:72%;top:18%;width:2px;height:2px}
-.lobby-world-night i:nth-child(3){left:56%;top:61%;width:2px;height:2px}.lobby-world-night i:nth-child(4){left:18%;top:68%;width:2px;height:2px}
-.lobby-world-resources{position:absolute;inset:0;animation:lobby-world-orbit 13s linear infinite;transform-origin:50% 50%}
-.lobby-world-resources svg{position:absolute;overflow:visible;filter:drop-shadow(0 2px 2px rgba(0,0,0,.38))}
-.lobby-world-tree{width:24px;height:29px;left:13%;top:15%}
-.lobby-world-rock{width:25px;height:22px;right:11%;top:43%}
-.lobby-world-cotton{width:25px;height:27px;left:38%;bottom:4%}
-.lobby-world-shine{
-  position:absolute;inset:-25%;border-radius:50%;
-  background:linear-gradient(112deg,transparent 35%,rgba(255,255,255,.22) 48%,transparent 59%);
-  animation:lobby-world-shimmer 5.5s ease-in-out infinite;
-  pointer-events:none;
+.lobby-world-tree{position:absolute;width:48%;height:83%;left:21%;top:-56%;z-index:3;overflow:visible;filter:drop-shadow(2px 3px 2px rgba(0,0,0,.35))}
+.lobby-world-rock{position:absolute;width:31%;height:26%;right:8%;top:51%;z-index:4;filter:drop-shadow(1px 2px 2px rgba(0,0,0,.35))}
+.lobby-world-cotton{position:absolute;width:32%;height:42%;left:6%;top:39%;z-index:4;filter:drop-shadow(1px 2px 2px rgba(0,0,0,.25))}
+.lobby-world-daynight{
+  position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:5;
+  background:linear-gradient(105deg,rgba(5,12,31,.78) 0%,rgba(8,18,39,.5) 23%,rgba(8,18,39,0) 56%,rgba(255,247,196,.14) 100%);
+  mix-blend-mode:multiply;animation:lobby-planet-light 14s ease-in-out infinite;
 }
+.lobby-world-stars{position:absolute;inset:0;z-index:6;opacity:0;animation:lobby-planet-stars 14s ease-in-out infinite;pointer-events:none}
+.lobby-world-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff5c9;box-shadow:0 0 4px #fff5c9}
+.lobby-world-stars i:nth-child(1){left:25%;top:25%}.lobby-world-stars i:nth-child(2){left:73%;top:32%}
+.lobby-world-stars i:nth-child(3){left:55%;top:70%}.lobby-world-stars i:nth-child(4){left:16%;top:61%}
 .lobby-world-label{
-  position:relative;z-index:2;display:grid;place-items:center;width:58%;height:30%;
-  border:1px solid rgba(255,255,255,.72);border-radius:999px;
-  background:linear-gradient(180deg,rgba(26,43,47,.76),rgba(9,20,31,.9));
-  color:#fff;font:1000 clamp(14px,1.8vw,18px)/1 system-ui,sans-serif;
+  position:absolute;z-index:8;left:50%;top:62%;transform:translate(-50%,-50%);
+  display:grid;place-items:center;width:57%;height:25%;border:1px solid rgba(255,255,255,.78);
+  border-radius:999px;background:rgba(23,38,31,.82);backdrop-filter:blur(3px);
+  color:#fff;font:1000 clamp(13px,1.7vw,17px)/1 system-ui,sans-serif;
   letter-spacing:.08em;text-transform:uppercase;text-shadow:0 2px 4px #000;
   box-shadow:0 3px 9px rgba(0,0,0,.38),inset 0 1px 2px rgba(255,255,255,.2);
 }
-.lobby-play-trigger:hover{filter:drop-shadow(0 10px 17px rgba(0,0,0,.55)) brightness(1.1);transform:translate(-50%,-50%) scale(1.04)}
+.lobby-play-trigger:hover{filter:drop-shadow(0 11px 17px rgba(0,0,0,.58)) brightness(1.08);transform:translate(-50%,-50%) scale(1.04)}
 .lobby-play-trigger:active{transform:translate(-50%,-50%) scale(.95)}
 .lobby-play-trigger:focus-visible{outline:3px solid #e4edce;outline-offset:7px}
-@keyframes lobby-world-orbit{to{transform:rotate(360deg)}}
-@keyframes lobby-world-shimmer{0%,100%{transform:translateX(-13%) rotate(-8deg);opacity:.4}50%{transform:translateX(13%) rotate(8deg);opacity:.9}}
+@keyframes lobby-planet-spin{
+  0%,100%{transform:rotateY(-17deg) rotateZ(-2deg) scale(1)}
+  50%{transform:rotateY(17deg) rotateZ(2deg) scale(1.015)}
+}
+@keyframes lobby-planet-daynight{
+  0%,100%{filter:brightness(1.12) saturate(1.08)}
+  48%,58%{filter:brightness(.38) saturate(.62)}
+}
+@keyframes lobby-planet-light{
+  0%,100%{opacity:.08;transform:translateX(13%)}
+  48%,58%{opacity:.9;transform:translateX(-13%)}
+}
+@keyframes lobby-planet-stars{0%,38%,65%,100%{opacity:0}48%,58%{opacity:.95}}
 @media(max-width:650px){
-  .lobby-play-trigger{left:61%;top:90%;width:clamp(104px,28vw,124px);height:clamp(104px,28vw,124px)}
-  .lobby-world-tree{width:21px;height:26px}.lobby-world-rock{width:22px;height:20px}.lobby-world-cotton{width:22px;height:24px}
-  .lobby-world-label{font-size:14px}
+  .lobby-play-trigger{left:61%;top:90%;width:clamp(112px,29vw,132px);height:clamp(112px,29vw,132px)}
+  .lobby-world-label{font-size:13px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-play-trigger{left:61%;top:88%;width:94px;height:94px}
+  .lobby-play-trigger{left:61%;top:88%;width:100px;height:100px}
 }
 @media(prefers-reduced-motion:reduce){
-  .lobby-world-resources,.lobby-world-shine{animation:none}
+  .lobby-world-orbiting-body,.lobby-world-surface,.lobby-world-daynight,.lobby-world-stars{animation:none}
+  .lobby-world-stars{opacity:0}
 }
