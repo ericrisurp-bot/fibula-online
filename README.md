@@ -3,7 +3,7 @@
 RPG 2D de sobrevivência em ondas, feito com React, Vite, TypeScript e Canvas 2D. O mapa reúne combate, coleta de recursos e crescimento natural da vegetação.
 
 ## Requisitos
-- Node.js 20 ou superior
+- Node.js 22 ou superior
 - npm
 
 ## Como rodar

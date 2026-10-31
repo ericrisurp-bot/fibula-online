@@ -50,8 +50,8 @@ async function createCodeChallenge(verifier: string): Promise<string> {
 }
 
 function clearPendingAuthorization(): void {
-  sessionStorage.removeItem(STATE_KEY);
-  sessionStorage.removeItem(VERIFIER_KEY);
+  localStorage.removeItem(STATE_KEY);
+  localStorage.removeItem(VERIFIER_KEY);
 }
 
 function cleanCallbackUrl(): void {
@@ -142,8 +142,8 @@ async function fetchArenaUser(accessToken: string): Promise<ArenaUser> {
     credentials: 'omit',
   });
   const user = await readResponse<ArenaUser>(response);
-  if (!user || typeof user.sub !== 'string' || !user.sub) {
-    throw new Error('A Arena não retornou um identificador de usuário válido.');
+  if (!user || typeof user.sub !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.sub)) {
+    throw new Error('A Arena não retornou um identificador UUID válido para o usuário.');
   }
   return user;
 }
@@ -175,8 +175,8 @@ export async function startArenaLogin(): Promise<void> {
   const verifier = randomBase64Url();
   const state = randomBase64Url();
   const challenge = await createCodeChallenge(verifier);
-  sessionStorage.setItem(STATE_KEY, state);
-  sessionStorage.setItem(VERIFIER_KEY, verifier);
+  localStorage.setItem(STATE_KEY, state);
+  localStorage.setItem(VERIFIER_KEY, verifier);
 
   const authorizationUrl = new URL(`${ARENA_AUTH_BASE}/oauth/authorize`);
   authorizationUrl.search = new URLSearchParams({
@@ -211,8 +211,8 @@ async function completeArenaLoginOnce(): Promise<ArenaOAuthSession | null> {
   const returnedState = callback.searchParams.get('state');
   const oauthError = callback.searchParams.get('error');
   const errorDescription = callback.searchParams.get('error_description');
-  const expectedState = sessionStorage.getItem(STATE_KEY);
-  const verifier = sessionStorage.getItem(VERIFIER_KEY);
+  const expectedState = localStorage.getItem(STATE_KEY);
+  const verifier = localStorage.getItem(VERIFIER_KEY);
 
   cleanCallbackUrl();
 
