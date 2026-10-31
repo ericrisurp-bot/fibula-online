@@ -375,7 +375,7 @@ export function drawFloatingWeapon(
     ? opts.swingAngle
     : opts.aimAngle;
   const combatDistance = weapon === 'espada'
-    ? Math.max(0, CONFIG.weapons.espada.range - SWORD_TIP_LENGTH)
+    ? CONFIG.weapons.espada.range - SWORD_TIP_LENGTH
     : CONFIG.player.auraRadius - r * 0.68;
   const combatX = combatDistance * Math.cos(combatDirection);
   const combatY = combatDistance * Math.sin(combatDirection);
@@ -402,9 +402,9 @@ export function drawFloatingWeapon(
   ctx.restore();
 }
 
-/** Espada mais larga e longa que a arte base, para ler melhor em jogo. */
-const SWORD_SCALE_X = 1.25;
-const SWORD_SCALE_Y = 1.7;
+/** Espada mais longa e fina que a arte base, para ler melhor em jogo. */
+const SWORD_SCALE_X = 1.4;
+const SWORD_SCALE_Y = 1.3;
 /** Distância da empunhadura à ponta da lâmina, em px (a razão r cancela na normalização visual). */
 const SWORD_TIP_LENGTH = (3.7 * 50 / 3.14) * SWORD_SCALE_X;
 
