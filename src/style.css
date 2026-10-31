@@ -3284,3 +3284,97 @@ button, button * {
   .lobby-friends-trigger{top:calc(clamp(64px,18vh,80px) + 44px + 44px + 44px)}
   .lobby-chest-trigger{top:calc(clamp(64px,18vh,80px) + 44px + 44px + 44px + 44px)}
 }
+
+
+/* Lobby em paisagem no celular: atalhos em faixa superior e estações na faixa inferior. */
+@media (orientation:landscape) and (max-height:600px) and (pointer:coarse) {
+  .lobby-profile-trigger,
+  .lobby-status-trigger,
+  .lobby-arsenal-trigger,
+  .lobby-friends-trigger,
+  .lobby-chest-trigger {
+    top: max(8px, env(safe-area-inset-top));
+    right: auto;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 2px;
+    border-radius: 8px;
+  }
+  .lobby-profile-trigger { right: 10px; }
+  .lobby-status-trigger { right: 60px; }
+  .lobby-arsenal-trigger { right: 110px; }
+  .lobby-friends-trigger { right: 160px; }
+  .lobby-chest-trigger { right: 210px; }
+
+  .lobby-profile-trigger .lobby-top-emoji,
+  .lobby-status-trigger .lobby-top-emoji,
+  .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-friends-trigger .lobby-top-emoji,
+  .lobby-chest-trigger .lobby-top-emoji {
+    font-size: 18px;
+  }
+  .lobby-profile-trigger span:not(.lobby-top-emoji),
+  .lobby-status-trigger span:not(.lobby-top-emoji),
+  .lobby-arsenal-trigger span:not(.lobby-top-emoji),
+  .lobby-friends-trigger span:not(.lobby-top-emoji),
+  .lobby-chest-trigger span:not(.lobby-top-emoji) {
+    font-size: 6px;
+    letter-spacing: 0;
+  }
+
+  .lobby-ranking-trigger {
+    left: 10px;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    transform: translateY(-50%);
+  }
+  .lobby-ranking-trigger > .lobby-ranking-trophy {
+    font-size: 25px !important;
+  }
+
+  .lobby-crafting-stations {
+    left: 10px;
+    right: 94px;
+    top: auto;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(4, 44px);
+    justify-content: start;
+    justify-items: center;
+    align-items: center;
+    gap: 6px;
+    transform: none;
+  }
+  .lobby-crafting-trigger {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    gap: 2px;
+    border-radius: 8px;
+  }
+  .lobby-crafting-icon { font-size: 17px; }
+  .lobby-crafting-trigger > span:last-child { font-size: 6px; }
+
+  .lobby-play-trigger {
+    left: auto;
+    right: max(10px, env(safe-area-inset-right));
+    top: auto;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: 68px;
+    height: 68px;
+    min-width: 68px;
+    min-height: 68px;
+    transform: none;
+    font-size: 12px;
+  }
+  .lobby-play-trigger:hover { transform: scale(1.04); }
+  .lobby-play-trigger:active { transform: scale(.96); }
+}
