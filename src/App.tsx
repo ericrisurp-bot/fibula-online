@@ -253,6 +253,7 @@ export default function App() {
     return ['guerreiro', 'druida'];
   });
   const [arsenalOpen, setArsenalOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -1358,6 +1359,12 @@ export default function App() {
             </svg>
             <span>F5</span>
           </button>
+          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M16 21v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V21"/><circle cx="9" cy="8" r="3.5"/><path d="M20 21v-1.5a4 4 0 0 0-3-3.87M16 4.2a3.5 3.5 0 0 1 0 6.7"/>
+            </svg>
+            <span>AMIGOS</span>
+          </button>
           <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
             <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
@@ -1418,6 +1425,35 @@ export default function App() {
                 <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
               </section>
             </div>
+          </section>
+        </div>}
+        {friendsOpen && <div className="lobby-friends-backdrop" onClick={() => setFriendsOpen(false)}>
+          <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-friends-header">
+              <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
+              <div className="lobby-friends-count"><i/> 2 online · 4 amigos</div>
+              <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={() => setFriendsOpen(false)}>×</button>
+            </header>
+            <div className="lobby-friends-list">
+              {[
+                { id: 'nyx', name: 'Nyx', classId: 'mago' as ClassId, pd: 128, online: true, time: 'há 12 min' },
+                { id: 'kael', name: 'Kael', classId: 'guerreiro' as ClassId, pd: 96, online: true, time: 'há 1 h 08 min' },
+                { id: 'lira', name: 'Lira', classId: 'arqueiro' as ClassId, pd: 143, online: false, time: 'há 35 min' },
+                { id: 'thorn', name: 'Thorn', classId: 'druida' as ClassId, pd: 82, online: false, time: 'há 4 h' },
+              ].map(friend => <article className="lobby-friend-row" key={friend.id}>
+                <div className="lobby-friend-avatar" aria-hidden="true">{{ guerreiro: '⚔', mago: '✦', arqueiro: '➶', druida: '❧' }[friend.classId]}</div>
+                <div className="lobby-friend-main">
+                  <strong>{friend.name}</strong>
+                  <span>{CLASSES[friend.classId].label}</span>
+                </div>
+                <div className="lobby-friend-power"><small>PD</small><b>{friend.pd}</b></div>
+                <div className={`lobby-friend-status ${friend.online ? 'is-online' : 'is-offline'}`}>
+                  <span>{friend.online ? 'ON' : 'OFF'}</span>
+                  <small>{friend.time}</small>
+                </div>
+              </article>)}
+            </div>
+            <p className="lobby-friends-note">Prévia visual · amigos e horários demonstrativos. A conexão real será feita depois com o Supabase.</p>
           </section>
         </div>}
         {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
