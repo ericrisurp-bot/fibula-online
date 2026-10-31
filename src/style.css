@@ -2278,3 +2278,57 @@ button, button * {
 @media(orientation:landscape) and (max-height:520px){
   .lobby-chest-trigger{top:calc(30% + 174px)}
 }
+
+
+/* Baú do lobby: modal neutro, com os mesmos slots visuais do inventário da partida. */
+.lobby-chest-trigger{
+  border:1px solid rgba(225,225,225,.42);
+  background:rgba(34,35,34,.86);
+  color:#f0f0f0;
+}
+.lobby-chest-trigger svg{color:#e0e0e0}
+.lobby-chest-trigger:active{background:#454745}
+.lobby-chest-trigger:focus-visible{outline-color:#e8e8e8}
+.lobby-chest-backdrop{
+  position:absolute;z-index:64;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:clamp(10px,3vw,28px);background:rgba(0,0,0,.62);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.lobby-chest-modal{
+  display:flex;flex-direction:column;width:min(620px,100%);max-height:min(82dvh,650px);overflow:hidden;
+  border:1px solid #d9dde2;border-radius:12px;background:#fff;color:#26313d;
+  box-shadow:0 18px 55px rgba(0,0,0,.35);
+}
+.lobby-chest-header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid #e5e8ec;background:#fff;
+}
+.lobby-chest-header h2{margin:0;color:#26313d;font-size:21px;font-weight:800}
+.lobby-chest-header p{margin:3px 0 0;color:#737e8b;font-size:12px}
+.lobby-chest-close{
+  display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  border:1px solid #d8dde4;border-radius:8px;background:#f7f8fa;color:#536171;
+  font-size:22px;line-height:1;
+}
+.lobby-chest-close:hover{background:#eceff3}
+.lobby-chest-grid{
+  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;
+  padding:14px;overflow-y:auto;overscroll-behavior:contain;align-content:start;
+}
+.lobby-chest-slot{
+  min-width:0;min-height:0;width:auto;height:auto;aspect-ratio:1;
+  border:1px solid rgba(215,215,215,.55);border-radius:8px;
+  background:rgba(70,71,70,.10);color:#39434e;
+}
+.lobby-chest-slot>span:not(.quick-slot-empty){font-size:22px;line-height:1}
+.lobby-chest-slot small{max-width:100%;overflow:hidden;color:#657181;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.lobby-chest-slot b{position:absolute;right:3px;bottom:3px;padding:1px 3px;border-radius:4px;background:rgba(34,35,34,.82);color:#fff;font-size:9px}
+@media(max-width:650px){
+  .lobby-chest-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
+  .lobby-chest-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:10px}
+  .lobby-chest-header{padding:11px 12px}
+  .lobby-chest-header h2{font-size:19px}
+  .lobby-chest-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:10px}
+  .lobby-chest-slot>span:not(.quick-slot-empty){font-size:18px}
+  .lobby-chest-slot small{font-size:8px}
+}
