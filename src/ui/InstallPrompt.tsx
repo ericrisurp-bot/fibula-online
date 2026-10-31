@@ -10,6 +10,7 @@ export default function InstallPrompt() {
   const [visible, setVisible] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [ios, setIos] = useState(false);
+  const [safari, setSafari] = useState(true);
 
   useEffect(() => {
     const isInstalledApp = () =>
@@ -23,7 +24,11 @@ export default function InstallPrompt() {
     const userAgent = window.navigator.userAgent;
     const isIosDevice = /iPad|iPhone|iPod/.test(userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafariBrowser = /Safari/.test(userAgent) &&
+      !/(CriOS|FxiOS|EdgiOS|OPiOS)/.test(userAgent);
+
     setIos(isIosDevice);
+    setSafari(isSafariBrowser);
     setVisible(true);
 
     const handleBeforeInstall = (event: Event) => {
@@ -45,7 +50,7 @@ export default function InstallPrompt() {
 
   const install = async () => {
     if (!installEvent) {
-      setShowHelp(true);
+      setShowHelp((current) => !current);
       return;
     }
     await installEvent.prompt();
@@ -55,6 +60,19 @@ export default function InstallPrompt() {
   };
 
   if (!visible) return null;
+
+  const helpSteps = ios
+    ? [
+        ...(!safari ? ['Abra esta página no Safari. No iPhone, a opção de adicionar à tela inicial fica disponível pelo Safari.'] : []),
+        'No Safari, toque no botão Compartilhar (ícone de um quadrado com uma seta para cima).',
+        'Role as opções e escolha “Adicionar à Tela de Início”.',
+        'Se aparecer a opção “Abrir como App da Web”, deixe-a ativada e toque em “Adicionar”.',
+      ]
+    : [
+        'No Chrome, toque no menu de três pontos (⋮), no canto superior.',
+        'Escolha “Instalar app”. Se essa opção não aparecer, escolha “Adicionar à tela inicial”.',
+        'Confirme em “Instalar” ou “Adicionar”.',
+      ];
 
   return (
     <aside
@@ -77,18 +95,21 @@ export default function InstallPrompt() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 22 }}>
         <img src="/icons/icon.png" alt="" width="48" height="48" style={{ borderRadius: 10, objectFit: 'cover' }} />
         <div>
-          <strong style={{ display: 'block', fontSize: 16 }}>Instale o Fíbula Online</strong>
+          <strong style={{ display: 'block', fontSize: 16 }}>
+            {ios ? 'Instale no iPhone ou iPad' : 'Instale o Fíbula Online'}
+          </strong>
           <span style={{ display: 'block', marginTop: 3, color: '#a9bdb2', fontSize: 12, lineHeight: 1.4 }}>
-            Tenha o jogo na tela inicial e abra como um aplicativo.
+            Tenha o jogo na tela inicial e abra em uma janela própria, como um aplicativo.
           </span>
         </div>
       </div>
       {showHelp && (
-        <p style={{ margin: '12px 0 0', color: '#c5d5cc', fontSize: 12, lineHeight: 1.5 }}>
-          {ios
-            ? 'Toque em Compartilhar e depois em “Adicionar à Tela de Início”.'
-            : 'Abra o menu do navegador (⋮) e escolha “Instalar app” ou “Adicionar à tela inicial”.'}
-        </p>
+        <ol
+          aria-live="polite"
+          style={{ margin: '12px 0 0', paddingLeft: 22, color: '#c5d5cc', fontSize: 12, lineHeight: 1.6 }}
+        >
+          {helpSteps.map((step) => <li key={step} style={{ paddingLeft: 3, marginBottom: 5 }}>{step}</li>)}
+        </ol>
       )}
       <button
         type="button"
@@ -98,7 +119,9 @@ export default function InstallPrompt() {
           background: '#92e0bf', color: '#12231b', fontWeight: 900, letterSpacing: '.06em',
           cursor: 'pointer',
         }}
-      >{showHelp || ios ? 'COMO INSTALAR' : 'INSTALAR JOGO'}</button>
+      >
+        {showHelp ? 'FECHAR INSTRUÇÕES' : ios || !installEvent ? 'COMO INSTALAR' : 'INSTALAR JOGO'}
+      </button>
     </aside>
   );
 }
