@@ -3139,24 +3139,22 @@ button, button * {
 
 
 
-/* Cometa percorre o arco em fluxo contínuo, sem desacelerar no ponto central. */
+/* Cometa cruza a tela em uma única diagonal reta, de baixo para cima. */
 @media(min-width:651px){
   .lobby-comet{animation-name:lobby-comet-cycle-desktop}
   @keyframes lobby-comet-cycle-desktop{
-    0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
-    1%{opacity:1;transform:translate3d(calc(-100% - 2px),0,0);animation-timing-function:linear}
-    5.5%{opacity:1;transform:translate3d(50vw,-9vh,0);animation-timing-function:linear}
-    10%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
-    10.5%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+    0%{opacity:0;transform:translate3d(calc(-100% - 2px),14vh,0) rotate(-12deg)}
+    1%{opacity:1;transform:translate3d(calc(-100% - 2px),14vh,0) rotate(-12deg);animation-timing-function:linear}
+    10%{opacity:1;transform:translate3d(calc(100vw + 2px),-14vh,0) rotate(-12deg)}
+    10.5%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),-14vh,0) rotate(-12deg)}
   }
 }
 @media(max-width:650px){
   .lobby-comet{animation-name:lobby-comet-cycle-mobile}
   @keyframes lobby-comet-cycle-mobile{
-    0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
-    1%{opacity:1;transform:translate3d(calc(-100% - 2px),0,0);animation-timing-function:linear}
-    4.75%{opacity:1;transform:translate3d(50vw,-6vh,0);animation-timing-function:linear}
-    8.5%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
-    9%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+    0%{opacity:0;transform:translate3d(calc(-100% - 2px),11vh,0) rotate(-12deg)}
+    1%{opacity:1;transform:translate3d(calc(-100% - 2px),11vh,0) rotate(-12deg);animation-timing-function:linear}
+    8.5%{opacity:1;transform:translate3d(calc(100vw + 2px),-11vh,0) rotate(-12deg)}
+    9%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),-11vh,0) rotate(-12deg)}
   }
 }
