@@ -66,6 +66,23 @@ function readSavedArsenal(): ArsenalEquipment[] {
   } catch { return []; }
 }
 
+type HouseStorageStack = { itemId: string; quantity: number };
+const HOUSE_STORAGE_KEY = 'fibula-house-storage';
+
+function readSavedHouseStorage(): HouseStorageStack[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(HOUSE_STORAGE_KEY) ?? '[]');
+    if (!Array.isArray(saved)) return [];
+    const merged = new Map<string, number>();
+    for (const item of saved) {
+      if (!item || typeof item.itemId !== 'string' || !Number.isFinite(item.quantity) || item.quantity <= 0) continue;
+      merged.set(item.itemId, (merged.get(item.itemId) ?? 0) + Math.floor(item.quantity));
+    }
+    return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity })).slice(0, 50);
+  } catch { return []; }
+}
+
 function readSavedLoadout(): EquipmentLoadout {
   if (typeof window === 'undefined') return {};
   try {
@@ -254,6 +271,8 @@ export default function App() {
   });
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [chestOpen, setChestOpen] = useState(false);
+  const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -324,6 +343,15 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [friendsOpen]);
+
+  useEffect(() => {
+    if (!chestOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setChestOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [chestOpen]);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -1374,6 +1402,12 @@ export default function App() {
             </svg>
             <span>AMIGOS</span>
           </button>
+          <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={() => { setLobbyChestItems(readSavedHouseStorage()); setChestOpen(true); }}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 8h18v12H3z"/><path d="M2 8l2-5h16l2 5M3 12h18M10 12v3h4v-3"/><path d="M6 3v5M18 3v5"/>
+            </svg>
+            <span>BAÚ</span>
+          </button>
           <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
             <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
@@ -1448,6 +1482,24 @@ export default function App() {
               <strong>Você ainda não tem amigos</strong>
               <p>Quando adicionar amigos, eles aparecerão aqui.</p>
             </div>
+          </section>
+        </div>}
+        {chestOpen && <div className="lobby-friends-backdrop" onClick={() => setChestOpen(false)}>
+          <section className="lobby-friends-modal lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-friends-header">
+              <div><span>ARMAZENAMENTO DO LOBBY</span><h2 id="lobby-chest-title">Baú</h2></div>
+              <div className="lobby-friends-count">{lobbyChestItems.length}/50 espaços</div>
+              <button type="button" className="lobby-friends-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
+            </header>
+            <div className="lobby-chest-grid" aria-label="50 espaços do Baú">
+              {Array.from({ length: 50 }, (_, index) => {
+                const item = lobbyChestItems[index];
+                return <div key={index} className={item ? 'lobby-chest-slot filled' : 'lobby-chest-slot'} aria-label={item ? `${itemLabel(item.itemId)}: ${item.quantity}` : `Espaço ${index + 1} vazio`}>
+                  {item ? <><span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></> : <span className="lobby-chest-slot-number">{index + 1}</span>}
+                </div>;
+              })}
+            </div>
+            <p className="lobby-chest-note">Materiais e recursos guardados na casinha aparecem aqui. Equipamentos ficam no Arsenal.</p>
           </section>
         </div>}
         {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
