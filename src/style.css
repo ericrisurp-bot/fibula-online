@@ -3036,3 +3036,31 @@ button, button * {
   top:43%;
   transform:translate(-50%,-50%) scale(1.08);
 }
+
+
+/* Auditoria final do atalho: troféu menor e totalmente contido no botão. */
+.lobby-ranking-trigger{
+  position:absolute;
+  overflow:hidden;
+}
+.lobby-ranking-trigger>.lobby-ranking-trophy{
+  position:absolute;
+  left:50%;
+  top:40%;
+  display:block;
+  font-size:36px !important;
+  line-height:1;
+  transform:translate(-50%,-50%);
+  transform-origin:center;
+}
+@media(max-width:650px){
+  .lobby-ranking-trigger>.lobby-ranking-trophy{
+    font-size:34px !important;
+    top:40%;
+  }
+}
+@media(max-width:360px){
+  .lobby-ranking-trigger>.lobby-ranking-trophy{
+    font-size:31px !important;
+  }
+}
