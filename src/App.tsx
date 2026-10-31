@@ -248,6 +248,13 @@ const createGrassTile = () => {
   return tile;
 };
 
+const LOBBY_CRAFTING_STATIONS = [
+  { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
+  { id: 'costura', label: 'COSTURA', icon: '🧵', title: 'Alfaiataria', description: 'Mesa de costura para trabalhar tecidos e materiais flexíveis.', products: 'Luvas, botas e peças de tecido' },
+  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Bancada para criar acessórios que complementam os atributos do personagem.', products: 'Colares e pulseiras' },
+  { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão', description: 'Estação culinária para preparar refeições e cozidos com ingredientes coletados.', products: 'Cozidos e refeições com efeitos' },
+] as const;
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -279,8 +286,10 @@ export default function App() {
   const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
   const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
+  const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
+  const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1417,6 +1426,33 @@ export default function App() {
         <button className="lobby-play-trigger" type="button" onClick={startGame} aria-label="Jogar" title="Entrar no mundo">
           Jogar
         </button>
+        <nav className="lobby-crafting-stations" aria-label="Estações de criação">
+          {LOBBY_CRAFTING_STATIONS.map(station => <button
+            key={station.id}
+            className="lobby-crafting-trigger"
+            type="button"
+            aria-label={`Abrir estação: ${station.title}`}
+            title={station.title}
+            onClick={() => setCraftingStationId(station.id)}
+          >
+            <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
+            <span>{station.label}</span>
+          </button>)}
+        </nav>
+        {activeCraftingStation && <div className="lobby-crafting-backdrop" onClick={() => setCraftingStationId(null)}>
+          <section className="lobby-crafting-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-crafting-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-crafting-header">
+              <div><span>ESTAÇÃO DE CRIAÇÃO</span><h2 id="lobby-crafting-title">{activeCraftingStation.title}</h2></div>
+              <button type="button" className="lobby-crafting-close" aria-label="Fechar estação" onClick={() => setCraftingStationId(null)}>×</button>
+            </header>
+            <div className="lobby-crafting-content">
+              <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
+              <p>{activeCraftingStation.description}</p>
+              <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
+              <small>Esta estação está sendo preparada. As receitas e a fabricação serão ativadas em uma próxima etapa.</small>
+            </div>
+          </section>
+        </div>}
         {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-arsenal-header">
