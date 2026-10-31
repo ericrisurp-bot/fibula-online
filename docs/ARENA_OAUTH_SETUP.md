@@ -14,13 +14,13 @@
 2. Cadastrar **somente um redirect URI fixo** no OAuth App da Arena:
    - `https://fibula.iericris.com.br/auth/callback`
 3. Solicitar os escopos `openid email profile` e manter PKCE habilitado.
-
-Os previews do Cloudflare Pages não precisam ser cadastrados individualmente. O Fíbula sempre envia o callback fixo de produção à Arena e inclui a origem do preview no parâmetro `state`. Depois da autorização, o callback de produção encaminha o navegador de volta ao preview de origem; o próprio preview valida o `state` e troca o código usando o mesmo redirect URI fixo. O encaminhamento aceita apenas HTTPS nos domínios `*.fibula.iericris.com.br` e `*.fibula-online.pages.dev`, além do domínio de produção.
 4. Copiar somente o **Client ID público** para a variável `VITE_ARENA_OAUTH_CLIENT_ID` do Cloudflare Pages.
 5. Configurar no Cloudflare Pages:
    - `VITE_FIBULA_SUPABASE_URL=https://jkbplwnklzhayzghizwh.supabase.co`
    - `VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY` com a chave publishable ativa do projeto Fíbula.
 6. Reexecutar o build/deploy do Cloudflare Pages somente após aprovação explícita da PR.
+
+Os previews do Cloudflare Pages não precisam ser cadastrados individualmente. O Fíbula sempre envia o callback fixo de produção à Arena e inclui a origem do preview no parâmetro `state`. Depois da autorização, o callback de produção encaminha o navegador de volta ao preview de origem; o próprio preview valida o `state` e troca o código usando o mesmo redirect URI fixo. O encaminhamento aceita apenas HTTPS nos domínios `*.fibula.iericris.com.br` e `*.fibula-online.pages.dev`, além do domínio de produção.
 
 Para desenvolvimento local, copiar `.env.example` para `.env.local` e preencher as mesmas variáveis.
 
