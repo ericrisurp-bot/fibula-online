@@ -597,8 +597,7 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
-.quick-slot {
-  background: rgba(34, 35, 34, 0.36);
+.quick-slot {  background: rgba(34, 35, 34, 0.36);
 }
 .quick-slot.filled {
   background: rgba(70, 71, 70, 0.42);
@@ -1197,8 +1196,7 @@ button, button * {
   border-radius: 7px;
   background: rgba(34,35,34,.9);
   color: #fff;
-  font-size: 23px;
-  line-height: 1;
+  font-size: 23px;  line-height: 1;
 }
 
 
@@ -1797,8 +1795,7 @@ button, button * {
 .profile-stat-summary strong{font-size:clamp(20px,3.2vw,25px)}
 .profile-stat-summary small{font-size:11px;line-height:1.35}
 .profile-stat-section h4{font-size:14px;letter-spacing:0}
-.profile-stat-list span,.profile-attribute-list span{font-size:12px}
-.profile-stat-list strong,.profile-attribute-list strong{font-size:12px}
+.profile-stat-list span,.profile-attribute-list span{font-size:12px}.profile-stat-list strong,.profile-attribute-list strong{font-size:12px}
 .profile-stat-list small,.profile-attribute-list small{font-size:11px}
 .profile-stat-note{font-size:11px;line-height:1.5}
 .profile-ability p{font-size:13px;line-height:1.55}
@@ -2397,8 +2394,7 @@ button, button * {
 .lobby-crafting-backdrop{
   position:absolute;z-index:66;inset:0;display:flex;align-items:center;justify-content:center;
   padding:clamp(10px,3vw,28px);background:rgba(0,0,0,.62);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-}
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
 .lobby-crafting-modal{
   display:flex;flex-direction:column;width:min(420px,100%);overflow:hidden;
   border:1px solid #d9dde2;border-radius:12px;background:#fff;color:#26313d;
@@ -2883,4 +2879,93 @@ button, button * {
 }
 @media(prefers-reduced-motion:reduce){
   .lobby-ranking-trigger,.lobby-ranking-spark-one,.lobby-ranking-spark-two{animation:none}
+}
+
+/* Ranking: modal branco, controles compactos no topo e quadro ocupando o espaço principal. */
+.lobby-ranking-modal{
+  background:#fff;color:#20231f;border:1px solid #d6d9d3;
+  box-shadow:0 22px 75px rgba(0,0,0,.45);
+}
+.lobby-ranking-header{background:#fff;border-bottom:1px solid #e4e7e1}
+.lobby-ranking-header>div>span{color:#777f73}
+.lobby-ranking-header h2{color:#202820;text-shadow:none}
+.lobby-ranking-close{border-color:#d8ddd5;background:#f3f5f1;color:#283027}
+.lobby-ranking-mode-tabs{border-bottom:1px solid #e4e7e1}
+.lobby-ranking-mode-tabs button{background:#f1f3ef;color:#62695f}
+.lobby-ranking-mode-tabs button.active{border-color:#aeb9a8;background:#e6eee2;color:#244a2a}
+.lobby-ranking-body{background:#fff}
+.lobby-ranking-category-tabs button{border-color:#dce1d8;background:#f3f5f1;color:#60685d}
+.lobby-ranking-category-tabs button.active{border-color:#9fb69b;background:#e5efe2;color:#244a2a;box-shadow:inset 3px 0 #4d8a4d}
+.lobby-ranking-board{border-color:#dce1d8;background:#fff}
+.lobby-ranking-board-heading{border-bottom-color:#e5e8e2}
+.lobby-ranking-board-heading>div>span{color:#6b7567}
+.lobby-ranking-board-heading h3{color:#242b23}
+.lobby-ranking-board-heading>strong{border-color:#dce1d8;color:#3d633b;background:#f4f7f1}
+.lobby-ranking-empty>span{filter:none}
+.lobby-ranking-empty>strong{color:#303a2e}
+.lobby-ranking-empty p{color:#626a60}
+.lobby-ranking-empty small{color:#858c82}
+.lobby-ranking-player-position{border-top-color:#e1e5de;background:#f7f8f5}
+.lobby-ranking-player-position>div{border-color:#dce1d8;background:#fff}
+.lobby-ranking-player-position>div>span{color:#697563}
+.lobby-ranking-player-position>div>strong{color:#293d27}
+.lobby-ranking-player-position>small{color:#777f74}
+.lobby-ranking-trophy{font-size:clamp(30px,3vw,36px)}
+.lobby-ranking-trigger{gap:0}
+@media(max-width:650px){
+  .lobby-ranking-backdrop{position:fixed;inset:0;padding:0;background:rgba(5,7,6,.72)}
+  .lobby-ranking-modal{
+    position:relative;width:100%;height:100dvh;max-height:100dvh;min-height:100dvh;
+    border:0;border-radius:0;box-shadow:none;
+    padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+  }
+  .lobby-ranking-header{
+    position:absolute;z-index:2;top:calc(7px + env(safe-area-inset-top));right:8px;
+    padding:0;border:0;background:transparent;
+  }
+  .lobby-ranking-header>div{display:none}
+  .lobby-ranking-close{width:34px;height:34px;flex-basis:34px;background:#f1f3ef;color:#202820;border-color:#d5dbd1}
+  .lobby-ranking-mode-tabs{
+    position:absolute;z-index:2;top:calc(9px + env(safe-area-inset-top));left:10px;
+    display:flex;width:auto;gap:4px;padding:0;border:0;
+  }
+  .lobby-ranking-mode-tabs button{min-width:64px;padding:9px 13px;border:1px solid #dce1d8;border-radius:7px;font-size:10px}
+  .lobby-ranking-mode-tabs button.active{border-color:#91a88b;background:#e6eee2;color:#244a2a}
+  .lobby-ranking-body{
+    position:relative;display:flex;flex:1;flex-direction:column;gap:0;min-height:0;height:100%;
+    padding:calc(58px + env(safe-area-inset-top)) 9px 8px;
+  }
+  .lobby-ranking-category-tabs{
+    position:absolute;z-index:2;top:calc(9px + env(safe-area-inset-top));right:52px;
+    display:flex;flex-direction:row;gap:4px;padding:0;
+  }
+  .lobby-ranking-category-tabs button{
+    flex-direction:row;justify-content:center;gap:4px;min-height:34px;padding:6px 8px;
+    border:1px solid #dce1d8;border-radius:7px;font-size:8px;white-space:nowrap;
+  }
+  .lobby-ranking-category-tabs button>span:first-child{font-size:13px}
+  .lobby-ranking-category-tabs button.active{border-color:#91a88b;background:#e6eee2;box-shadow:none}
+  .lobby-ranking-board{
+    flex:1;min-height:0;height:100%;padding:12px;border-radius:9px;
+  }
+  .lobby-ranking-board-heading{padding-bottom:10px}
+  .lobby-ranking-board-heading h3{font-size:15px}
+  .lobby-ranking-empty{flex:1;min-height:0;padding:18px 10px}
+  .lobby-ranking-empty>strong{font-size:14px}
+  .lobby-ranking-empty p{font-size:11px}
+  .lobby-ranking-player-position{grid-template-columns:1fr 1fr;padding:8px 10px;gap:6px}
+  .lobby-ranking-player-position>div{padding:7px 9px}
+  .lobby-ranking-player-position>div>strong{font-size:16px}
+  .lobby-ranking-player-position>small{font-size:8px}
+  .lobby-ranking-trigger{width:56px;height:56px;min-width:56px;min-height:56px}
+  .lobby-ranking-trophy{font-size:34px}
+}
+@media(max-width:390px){
+  .lobby-ranking-mode-tabs button{min-width:55px;padding:8px 9px}
+  .lobby-ranking-category-tabs{right:49px;gap:3px}
+  .lobby-ranking-category-tabs button{gap:3px;padding:6px 5px;font-size:7px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-ranking-body{padding-top:calc(50px + env(safe-area-inset-top))}
+  .lobby-ranking-player-position{padding:6px 10px}
 }
