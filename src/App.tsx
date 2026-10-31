@@ -1484,22 +1484,17 @@ export default function App() {
             </div>
           </section>
         </div>}
-        {chestOpen && <div className="lobby-friends-backdrop" onClick={() => setChestOpen(false)}>
-          <section className="lobby-friends-modal lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
-            <header className="lobby-friends-header">
-              <div><span>ARMAZENAMENTO DO LOBBY</span><h2 id="lobby-chest-title">Baú</h2></div>
-              <div className="lobby-friends-count">{lobbyChestItems.length}/50 espaços</div>
-              <button type="button" className="lobby-friends-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
+        {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
+          <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-chest-header">
+              <div><h2 id="lobby-chest-title">Baú</h2><p>Sua coleção de itens</p></div>
+              <button type="button" className="lobby-chest-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
             </header>
-            <div className="lobby-chest-grid" aria-label="50 espaços do Baú">
-              {Array.from({ length: 50 }, (_, index) => {
-                const item = lobbyChestItems[index];
-                return <div key={index} className={item ? 'lobby-chest-slot filled' : 'lobby-chest-slot'} aria-label={item ? `${itemLabel(item.itemId)}: ${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                  {item ? <><span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></> : <span className="lobby-chest-slot-number">{index + 1}</span>}
-                </div>;
-              })}
+            <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
+              {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
+                <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+              </div>)}
             </div>
-            <p className="lobby-chest-note">Materiais e recursos guardados na casinha aparecem aqui. Equipamentos ficam no Arsenal.</p>
           </section>
         </div>}
         {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
