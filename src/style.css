@@ -2147,3 +2147,91 @@ button, button * {
 @media(prefers-reduced-motion:reduce){
   .lobby-comet{animation:none;opacity:0}
 }
+
+
+/* Lista de amigos do lobby — prévia com dados demonstrativos, sem integração online. */
+.lobby-friends-trigger{
+  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 152px);z-index:26;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
+  padding:3px;border:1px solid rgba(177,143,255,.72);border-radius:10px;
+  background:rgba(34,35,34,.86);color:#eee8ff;backdrop-filter:blur(5px);
+  box-shadow:inset 0 1px 2px #ffffff12,0 2px 9px #0005;-webkit-tap-highlight-color:transparent;
+}
+.lobby-friends-trigger svg{width:clamp(17px,4.5vw,25px);height:clamp(17px,4.5vw,25px);color:#c7a8ff}
+.lobby-friends-trigger span{font-size:9px;font-weight:900;letter-spacing:.035em;line-height:1}
+.lobby-friends-trigger:active{background:#392c50;transform:scale(.96)}
+.lobby-friends-trigger:focus-visible{outline:2px solid #c7a8ff;outline-offset:2px}
+.lobby-friends-backdrop{
+  position:absolute;z-index:64;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:clamp(10px,3vw,28px);background:#030708c9;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+}
+.lobby-friends-modal{
+  display:flex;flex-direction:column;width:min(460px,100%);max-height:min(82dvh,620px);overflow:hidden;
+  border:1px solid #a98be766;border-radius:15px;background:linear-gradient(150deg,#24232d 0%,#171820 100%);
+  color:#f7f5ff;box-shadow:0 22px 70px #0009;
+}
+.lobby-friends-header{display:flex;align-items:center;gap:10px;padding:16px 17px 13px;border-bottom:1px solid #ffffff18}
+.lobby-friends-header>div:first-child{min-width:0;margin-right:auto}
+.lobby-friends-header>div:first-child>span{color:#bca7e9;font-size:9px;font-weight:900;letter-spacing:.14em}
+.lobby-friends-header h2{margin:3px 0 0;color:#fff;font-size:25px}
+.lobby-friends-count{display:flex;align-items:center;gap:6px;color:#d6c9ef;font-size:10px;font-weight:800;white-space:nowrap}
+.lobby-friends-count i{width:7px;height:7px;border-radius:50%;background:#58d68d;box-shadow:0 0 8px #58d68d}
+.lobby-friends-close{width:32px;height:32px;border:1px solid #ffffff30;border-radius:8px;background:#ffffff0c;color:#fff;font-size:23px;line-height:1}
+.lobby-friends-list{display:flex;flex-direction:column;gap:7px;padding:13px}
+.lobby-friend-row{display:flex;align-items:center;gap:10px;min-height:62px;padding:9px 10px;border:1px solid #ffffff12;border-radius:10px;background:#ffffff08}
+.lobby-friend-avatar{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border:1px solid #b99be755;border-radius:10px;background:#9a72d51c;color:#d7c4ff;font-size:21px}
+.lobby-friend-main{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.lobby-friend-main strong{color:#fff;font-size:13px}
+.lobby-friend-main span{color:#bcb5cc;font-size:10px}
+.lobby-friend-power{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:34px}
+.lobby-friend-power small{color:#bca7e9;font-size:8px;font-weight:900}
+.lobby-friend-power b{color:#f3edff;font-size:12px}
+.lobby-friend-status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:78px}
+.lobby-friend-status span{font-size:10px;font-weight:900;letter-spacing:.06em}
+.lobby-friend-status small{color:#aaa5b6;font-size:9px;white-space:nowrap}
+.lobby-friend-status.is-online span{color:#65e6a0}
+.lobby-friend-status.is-offline span{color:#a7a2b2}
+.lobby-friends-note{margin:0;padding:0 14px 13px;color:#9f98ae;font-size:9px;line-height:1.45;text-align:center}
+@media(max-width:650px){
+  .lobby-friends-trigger{right:12px;top:calc(38% + 124px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-friends-trigger span{font-size:8px}
+  .lobby-friends-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
+  .lobby-friends-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:12px}
+  .lobby-friends-header{padding:13px 12px 10px;gap:7px}
+  .lobby-friends-count{font-size:9px}
+  .lobby-friends-list{padding:10px;gap:6px}
+  .lobby-friend-row{gap:7px;padding:8px}
+}
+@media(orientation:landscape) and (max-height:520px){.lobby-friends-trigger{top:calc(30% + 116px)}}
+
+
+/* Modal de amigos no mesmo padrão branco e rosa dos demais modais. */
+.lobby-friends-backdrop{
+  background:rgba(20,12,18,.58);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+.lobby-friends-modal{
+  border:1px solid #f2bfd5;
+  border-radius:16px;
+  background:linear-gradient(150deg,#fff 0%,#fff7fb 100%);
+  color:#3b2933;
+  box-shadow:0 22px 70px rgba(48,20,34,.28);
+}
+.lobby-friends-header{border-bottom:1px solid #f5d7e4}
+.lobby-friends-header>div:first-child>span{color:#c16b91}
+.lobby-friends-header h2{color:#3b2933}
+.lobby-friends-count{color:#a34f76}
+.lobby-friends-close{border-color:#efc6d8;background:#fff0f6;color:#9d456d}
+.lobby-friends-close:hover{background:#fce2ed}
+.lobby-friends-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;min-height:190px;padding:28px 18px;text-align:center;
+}
+.lobby-friends-empty>span{
+  display:grid;place-items:center;width:48px;height:48px;border:1px solid #f1c2d7;
+  border-radius:50%;background:#fff0f6;color:#d66e9b;font-size:28px;line-height:1;
+}
+.lobby-friends-empty strong{color:#573344;font-size:14px}
+.lobby-friends-empty p{margin:0;color:#a4778b;font-size:11px;line-height:1.5}

@@ -253,6 +253,7 @@ export default function App() {
     return ['guerreiro', 'druida'];
   });
   const [arsenalOpen, setArsenalOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -314,6 +315,15 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-arsenal-equipped-by-class', JSON.stringify(equipmentLoadouts));
   }, [equipmentLoadouts]);
+
+  useEffect(() => {
+    if (!friendsOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFriendsOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [friendsOpen]);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -1358,6 +1368,12 @@ export default function App() {
             </svg>
             <span>F5</span>
           </button>
+          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
+            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M16 21v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V21"/><circle cx="9" cy="8" r="3.5"/><path d="M20 21v-1.5a4 4 0 0 0-3-3.87M16 4.2a3.5 3.5 0 0 1 0 6.7"/>
+            </svg>
+            <span>AMIGOS</span>
+          </button>
           <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
             <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
@@ -1417,6 +1433,20 @@ export default function App() {
                 </div>
                 <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
               </section>
+            </div>
+          </section>
+        </div>}
+        {friendsOpen && <div className="lobby-friends-backdrop" onClick={() => setFriendsOpen(false)}>
+          <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-friends-header">
+              <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
+              <div className="lobby-friends-count">0 amigos</div>
+              <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={() => setFriendsOpen(false)}>×</button>
+            </header>
+            <div className="lobby-friends-empty" role="status">
+              <span aria-hidden="true">♡</span>
+              <strong>Você ainda não tem amigos</strong>
+              <p>Quando adicionar amigos, eles aparecerão aqui.</p>
             </div>
           </section>
         </div>}
