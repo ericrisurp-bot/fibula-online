@@ -3027,3 +3027,12 @@ button, button * {
 @media(max-width:360px){
   .lobby-ranking-trigger>.lobby-ranking-trophy+span{font-size:8px !important}
 }
+
+
+/* Centraliza o troféu pelo centro geométrico do botão, independente da largura do emoji. */
+.lobby-ranking-trigger>.lobby-ranking-trophy{
+  position:absolute;
+  left:50%;
+  top:43%;
+  transform:translate(-50%,-50%) scale(1.08);
+}
