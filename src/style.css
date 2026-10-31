@@ -3116,3 +3116,23 @@ button, button * {
     top:calc(31% + 5px);
   }
 }
+
+
+/* Em telas maiores, agrupa as estações junto ao botão Jogar sem esticar a faixa. */
+@media(min-width:651px){
+  .lobby-crafting-stations{
+    left:auto;
+    right:calc(clamp(14px,4vw,42px) + 90px + 8px);
+    width:max-content;
+    max-width:calc(100% - (clamp(14px,4vw,42px) * 2) - 90px - 8px);
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+  }
+}
+@media(min-width:651px) and (orientation:landscape) and (max-height:520px){
+  .lobby-crafting-stations{
+    right:110px;
+  }
+}
