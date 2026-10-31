@@ -3,7 +3,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
-import { getDrawnMuzzle, rangedMuzzle } from './rangedWeapons';
+import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -1621,6 +1621,7 @@ export class GameEngine {
       const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
       this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      if (rangedId === 'arco') markArrowReleased(this.state.elapsed);
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
   }
