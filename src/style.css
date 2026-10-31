@@ -2675,3 +2675,107 @@ button, button * {
 }
 .lobby-status-card.class-druida .lobby-status-card-heading h3{color:#83dba2}
 .lobby-status-card.class-druida .lobby-status-card-heading>div>span{color:#a1dfb5}
+
+
+/* Status: bloco inteiro na cor da classe, com texto de alto contraste. */
+.lobby-status-card.class-guerreiro,
+.lobby-status-card.class-mago,
+.lobby-status-card.class-arqueiro,
+.lobby-status-card.class-druida{
+  border:1px solid rgba(255,255,255,.48);
+  box-shadow:0 5px 18px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.16);
+}
+.lobby-status-card.class-guerreiro{
+  background:#c83f3f;
+  color:#fff;
+}
+.lobby-status-card.class-mago{
+  background:#7541c8;
+  color:#fff;
+}
+.lobby-status-card.class-arqueiro{
+  background:#a87508;
+  color:#17130a;
+}
+.lobby-status-card.class-druida{
+  background:#21834b;
+  color:#fff;
+}
+.lobby-status-card.class-guerreiro .lobby-status-card-heading h3,
+.lobby-status-card.class-mago .lobby-status-card-heading h3,
+.lobby-status-card.class-druida .lobby-status-card-heading h3,
+.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span,
+.lobby-status-card.class-mago .lobby-status-card-heading>div>span,
+.lobby-status-card.class-druida .lobby-status-card-heading>div>span,
+.lobby-status-card.class-guerreiro .lobby-status-level,
+.lobby-status-card.class-mago .lobby-status-level,
+.lobby-status-card.class-druida .lobby-status-level,
+.lobby-status-card.class-guerreiro .lobby-status-power>span,
+.lobby-status-card.class-mago .lobby-status-power>span,
+.lobby-status-card.class-druida .lobby-status-power>span,
+.lobby-status-card.class-guerreiro .lobby-status-power>strong,
+.lobby-status-card.class-mago .lobby-status-power>strong,
+.lobby-status-card.class-druida .lobby-status-power>strong,
+.lobby-status-card.class-guerreiro .lobby-status-power>small,
+.lobby-status-card.class-mago .lobby-status-power>small,
+.lobby-status-card.class-druida .lobby-status-power>small,
+.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
+.lobby-status-card.class-mago .lobby-status-attributes>div,
+.lobby-status-card.class-druida .lobby-status-attributes>div,
+.lobby-status-card.class-guerreiro .lobby-status-attributes strong,
+.lobby-status-card.class-mago .lobby-status-attributes strong,
+.lobby-status-card.class-druida .lobby-status-attributes strong,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>span,
+.lobby-status-card.class-mago .lobby-status-equipment>span,
+.lobby-status-card.class-druida .lobby-status-equipment>span,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
+.lobby-status-card.class-mago .lobby-status-equipment>div small,
+.lobby-status-card.class-druida .lobby-status-equipment>div small,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>small,
+.lobby-status-card.class-mago .lobby-status-equipment>small,
+.lobby-status-card.class-druida .lobby-status-equipment>small{
+  color:#fff;
+}
+.lobby-status-card.class-arqueiro .lobby-status-card-heading h3,
+.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span,
+.lobby-status-card.class-arqueiro .lobby-status-level,
+.lobby-status-card.class-arqueiro .lobby-status-power>span,
+.lobby-status-card.class-arqueiro .lobby-status-power>strong,
+.lobby-status-card.class-arqueiro .lobby-status-power>small,
+.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
+.lobby-status-card.class-arqueiro .lobby-status-attributes strong,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>span,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>div small,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>small{
+  color:#17130a;
+}
+.lobby-status-card.class-guerreiro .lobby-status-power,
+.lobby-status-card.class-mago .lobby-status-power,
+.lobby-status-card.class-druida .lobby-status-power,
+.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
+.lobby-status-card.class-mago .lobby-status-attributes>div,
+.lobby-status-card.class-druida .lobby-status-attributes>div,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
+.lobby-status-card.class-mago .lobby-status-equipment>div small,
+.lobby-status-card.class-druida .lobby-status-equipment>div small{
+  background:rgba(0,0,0,.13);
+}
+.lobby-status-card.class-arqueiro .lobby-status-power,
+.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>div small{
+  background:rgba(255,255,255,.28);
+}
+.lobby-status-card.class-guerreiro .lobby-status-equipment,
+.lobby-status-card.class-mago .lobby-status-equipment,
+.lobby-status-card.class-druida .lobby-status-equipment{
+  border-top-color:rgba(255,255,255,.38);
+}
+.lobby-status-card.class-arqueiro .lobby-status-equipment{
+  border-top-color:rgba(23,19,10,.3);
+}
+.lobby-status-card.class-guerreiro .lobby-status-equipment .lobby-status-equipment-note,
+.lobby-status-card.class-mago .lobby-status-equipment .lobby-status-equipment-note,
+.lobby-status-card.class-druida .lobby-status-equipment .lobby-status-equipment-note,
+.lobby-status-card.class-arqueiro .lobby-status-equipment .lobby-status-equipment-note{
+  color:inherit;
+}
