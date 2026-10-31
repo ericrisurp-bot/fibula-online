@@ -20,7 +20,7 @@
    - `VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY` com a chave publishable ativa do projeto Fíbula.
 6. Reexecutar o build/deploy do Cloudflare Pages somente após aprovação explícita da PR.
 
-Os previews do Cloudflare Pages não precisam ser cadastrados individualmente. O Fíbula sempre envia o callback fixo de produção à Arena e inclui a origem do preview no parâmetro `state`. Depois da autorização, o callback de produção encaminha o navegador de volta ao preview de origem; o próprio preview valida o `state` e troca o código usando o mesmo redirect URI fixo. O encaminhamento aceita apenas HTTPS nos domínios `*.fibula.iericris.com.br` e `*.fibula-online.pages.dev`, além do domínio de produção.
+Os previews do Cloudflare Pages não precisam ser cadastrados individualmente. O Fíbula sempre envia o callback fixo de produção à Arena e inclui a origem do preview no parâmetro `state`. Depois da autorização, o callback de produção encaminha o navegador de volta ao preview de origem; o próprio preview valida o `state` e troca o código usando o mesmo redirect URI fixo. O encaminhamento aceita apenas HTTPS nos domínios `*.fibula.iericris.com.br` e `*.fibula-online.pages.dev`, além do domínio de produção. Essa capacidade só estará disponível nos previews depois que esta alteração estiver publicada no domínio de produção, pois é o callback de produção que faz o encaminhamento.
 
 Para desenvolvimento local, copiar `.env.example` para `.env.local` e preencher as mesmas variáveis.
 
