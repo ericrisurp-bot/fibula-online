@@ -3415,3 +3415,5 @@ button, button * {
 .player-profile-message{padding:28px 20px;color:#cbd5c8;text-align:center}
 .player-profile-footer{padding:11px 18px;border-top:1px solid #cedbc322;color:#9eaa9a;font-size:10px;text-align:center}
 @media(max-width:520px){.player-profile-content{padding:13px}.player-profile-details{grid-template-columns:1fr 1fr}.player-profile-avatar{width:62px;height:62px;font-size:34px}.player-profile-hero{padding:11px;gap:10px}.player-profile-header{padding:15px}}
+
+.player-profile-avatar-canvas{display:block;width:100%;height:100%;overflow:visible}
