@@ -29,7 +29,7 @@ const initial: GameSnapshot = {
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherReach: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
@@ -354,7 +354,7 @@ export default function App() {
       ctx.translate(width / 2, height * 0.78);
       ctx.scale(scale, scale);
       const weapon = PROFILE_CLASS_WEAPONS[classId];
-      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, false, true, 0, 0, 0, 0, 0, 0, 0, false);
+      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, true, false);
       ctx.restore();
       frame = window.requestAnimationFrame(renderArsenalCharacter);
     };
@@ -408,7 +408,7 @@ export default function App() {
       ctx.scale(scale, scale);
       const lobbyClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       const lobbyWeapon = PROFILE_CLASS_WEAPONS[lobbyClass];
-      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, true, false, 0, 0, 0, 0, 0, 0, 0);
+      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false);
       drawFloatingWeapon(ctx, lobbyWeapon, CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
       ctx.restore();
       frame = window.requestAnimationFrame(renderCharacter);
@@ -847,7 +847,18 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.enemies.some(enemy => Math.hypot(enemy.x - s.player.x, enemy.y - s.player.y) <= CONFIG.weapons[s.weapon].range), s.dayNight === 'night', s.treeChopAngle, s.treeChopTimer, s.rockMineAngle, s.rockMineTimer, s.cottonHarvestAngle, s.cottonHarvestTimer, s.gatherReach) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.dayNight === 'night') });
+      // Ferramentas de coleta ficam ancoradas no recurso (não no jogador) e em camada própria, à frente do recurso.
+      const gatherTool = s.treeChopTimer > 0 ? { tool: 'machadinho' as const, timer: s.treeChopTimer, angle: s.treeChopAngle }
+        : s.rockMineTimer > 0 ? { tool: 'picareta' as const, timer: s.rockMineTimer, angle: s.rockMineAngle }
+        : s.cottonHarvestTimer > 0 ? { tool: 'foice' as const, timer: s.cottonHarvestTimer, angle: s.cottonHarvestAngle } : null;
+      if (gatherTool) {
+        worldDrawables.push({ depth: s.gatherY + 40, draw: () => {
+          ctx.save(); ctx.translate(s.gatherX, s.gatherY);
+          drawFloatingTool(ctx, gatherTool.tool, CONFIG.player.radius, { angle: gatherTool.angle, timer: gatherTool.timer, duration: CONFIG.gathering.toolAnimationDuration, reach: 0, minGrip: -9999 });
+          ctx.restore();
+        } });
+      }
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
       for (const damage of s.floatingDamage) {
@@ -1702,7 +1713,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, hasEnemies: boolean, isNight: boolean, treeChopAngle: number, treeChopTimer: number, rockMineAngle: number, rockMineTimer: number, cottonHarvestAngle: number, cottonHarvestTimer: number, gatherReach: number, showWeapon = true) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, isNight: boolean, showWeapon = true) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1739,16 +1750,6 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     } else {
       drawFloatingWeapon(ctx, weapon, r, { time, facingX, moving, hasEnemies: true, hasTarget, aimAngle, carried, swingTimer: swordSwingTimer, swingAngle: swordSwingAngle });
     }
-  }
-  // À noite, cada ferramenta aparece durante sua própria animação de coleta, mesmo com arma de combate exposta.
-  if ((!isNight && !hasEnemies) || treeChopTimer > 0) {
-    drawFloatingTool(ctx, 'machadinho', r, { angle: treeChopAngle, timer: treeChopTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach, minGrip: 0 });
-  }
-  if ((!isNight && !hasEnemies) || rockMineTimer > 0) {
-    drawFloatingTool(ctx, 'picareta', r, { angle: rockMineAngle, timer: rockMineTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach, minGrip: 0 });
-  }
-  if ((!isNight && !hasEnemies) || cottonHarvestTimer > 0) {
-    drawFloatingTool(ctx, 'foice', r, { angle: cottonHarvestAngle, timer: cottonHarvestTimer, duration: CONFIG.gathering.toolAnimationDuration, reach: gatherReach, minGrip: 0 });
   }
   ctx.restore();
 }
