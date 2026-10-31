@@ -2495,3 +2495,68 @@ button, button * {
   .lobby-chest-trigger .lobby-top-emoji,
   .lobby-profile-trigger .lobby-top-emoji{font-size:19px}
 }
+
+
+/* Acesso triplo do lobby: Classes, Status e Arsenal. */
+.lobby-status-trigger{
+  position:absolute;
+  top:calc(42% + 76px);
+  right:clamp(14px,4vw,42px);
+  z-index:26;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  width:clamp(54px,6vw,68px);
+  height:clamp(54px,6vw,68px);
+  min-width:54px;
+  min-height:54px;
+  padding:2px;
+  border:1px solid rgba(151,190,174,.72);
+  border-radius:10px;
+  background:rgba(34,35,34,.84);
+  color:#e5f1e9;
+  box-shadow:0 4px 14px rgba(0,0,0,.24);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.lobby-status-trigger:active{background:rgba(53,83,69,.95);transform:scale(.96)}
+.lobby-status-trigger:focus-visible{outline:2px solid #c9e8d5;outline-offset:2px}
+.lobby-status-trigger span:not(.lobby-top-emoji){font-size:10px;font-weight:900;line-height:1;letter-spacing:.04em}
+.lobby-status-trigger .lobby-top-emoji{font-size:clamp(21px,2.2vw,26px);line-height:1}
+.lobby-status-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lobby-status-card{min-width:0;padding:14px;border:1px solid rgba(185,205,185,.2);border-radius:12px;background:rgba(18,25,22,.72)}
+.lobby-status-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.lobby-status-card-heading>div>span,.lobby-status-equipment>span{font-size:9px;font-weight:900;letter-spacing:.09em;color:#b9cbbd}
+.lobby-status-card-heading h3{margin:4px 0 0;font-size:19px;color:#edf3e8}
+.lobby-status-level{font-size:10px;color:#c8d6c9}
+.lobby-status-power-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lobby-status-power{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:9px;background:rgba(255,255,255,.055)}
+.lobby-status-power>span{font-size:9px;font-weight:900;color:#c5d3c6}
+.lobby-status-power>strong{font-size:26px;line-height:1.1;color:#f3f2df}
+.lobby-status-power>small{font-size:9px;color:#aab7aa}
+.lobby-status-attributes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:9px}
+.lobby-status-attributes>div{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:7px;background:rgba(255,255,255,.04);font-size:10px;color:#d6dfd5}
+.lobby-status-attributes strong{color:#fff;font-variant-numeric:tabular-nums}
+.lobby-status-equipment{display:flex;flex-direction:column;gap:7px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1)}
+.lobby-status-equipment>div{display:flex;flex-wrap:wrap;gap:5px}
+.lobby-status-equipment>div small{padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.07);font-size:10px;color:#e1e9df}
+.lobby-status-equipment>small{font-size:10px;color:#c0cabe}
+.lobby-status-equipment .lobby-status-equipment-note{color:#d4b98b;line-height:1.4}
+.lobby-status-empty{display:flex;flex-direction:column;gap:8px;color:#dce6dc}
+@media(max-width:650px){
+  .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-status-trigger .lobby-top-emoji{font-size:21px}
+  .lobby-status-content{grid-template-columns:1fr;gap:8px;padding:10px}
+  .lobby-status-card{padding:10px}
+  .lobby-status-card-heading h3{font-size:16px}
+  .lobby-status-power>strong{font-size:22px}
+}
+@media(max-width:360px){
+  .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-status-trigger .lobby-top-emoji{font-size:19px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-status-trigger{top:calc(30% + 58px)}
+}
