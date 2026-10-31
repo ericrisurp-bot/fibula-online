@@ -2644,3 +2644,34 @@ button, button * {
   .lobby-friends-trigger{top:calc(31% + 192px)}
   .lobby-chest-trigger{top:calc(31% + 256px)}
 }
+
+
+/* Status: cada ficha acompanha dinamicamente a cor da classe escolhida. */
+.lobby-status-card.class-guerreiro{
+  border-color:rgba(200,63,63,.62);
+  background:linear-gradient(135deg,rgba(200,63,63,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #c83f3f;
+}
+.lobby-status-card.class-guerreiro .lobby-status-card-heading h3{color:#ff8b85}
+.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span{color:#f2a6a1}
+.lobby-status-card.class-mago{
+  border-color:rgba(117,65,200,.62);
+  background:linear-gradient(135deg,rgba(117,65,200,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #7541c8;
+}
+.lobby-status-card.class-mago .lobby-status-card-heading h3{color:#c4a2ff}
+.lobby-status-card.class-mago .lobby-status-card-heading>div>span{color:#cdb6f4}
+.lobby-status-card.class-arqueiro{
+  border-color:rgba(168,117,8,.66);
+  background:linear-gradient(135deg,rgba(168,117,8,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #a87508;
+}
+.lobby-status-card.class-arqueiro .lobby-status-card-heading h3{color:#f1c76a}
+.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span{color:#e8ca87}
+.lobby-status-card.class-druida{
+  border-color:rgba(33,131,75,.66);
+  background:linear-gradient(135deg,rgba(33,131,75,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #21834b;
+}
+.lobby-status-card.class-druida .lobby-status-card-heading h3{color:#83dba2}
+.lobby-status-card.class-druida .lobby-status-card-heading>div>span{color:#a1dfb5}
