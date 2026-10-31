@@ -3118,21 +3118,45 @@ button, button * {
 }
 
 
-/* Em telas maiores, agrupa as estações junto ao botão Jogar sem esticar a faixa. */
+/* Estações alinhadas ao Jogar, com o mesmo intervalo visual da coluna lateral. */
 @media(min-width:651px){
   .lobby-crafting-stations{
     left:auto;
-    right:calc(clamp(14px,4vw,42px) + 90px + 8px);
+    right:calc(clamp(14px,4vw,42px) + 90px + 14px);
     width:max-content;
-    max-width:calc(100% - (clamp(14px,4vw,42px) * 2) - 90px - 8px);
+    max-width:calc(100% - (clamp(14px,4vw,42px) * 2) - 90px - 14px);
     display:flex;
     align-items:center;
     justify-content:flex-end;
-    gap:8px;
+    gap:14px;
   }
 }
 @media(min-width:651px) and (orientation:landscape) and (max-height:520px){
   .lobby-crafting-stations{
-    right:110px;
+    right:calc(clamp(14px,4vw,42px) + 90px + 14px);
+  }
+}
+
+
+
+/* Cometa acompanha a curva do gramado: arco suave, sem inclinação rígida. */
+@media(min-width:651px){
+  .lobby-comet{animation-name:lobby-comet-cycle-desktop}
+  @keyframes lobby-comet-cycle-desktop{
+    0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
+    1%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}
+    5%{opacity:1;transform:translate3d(50vw,-9vh,0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+    10%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
+    10.5%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+  }
+}
+@media(max-width:650px){
+  .lobby-comet{animation-name:lobby-comet-cycle-mobile}
+  @keyframes lobby-comet-cycle-mobile{
+    0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
+    1%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}
+    4.25%{opacity:1;transform:translate3d(50vw,-6vh,0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+    8.5%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
+    9%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
   }
 }
