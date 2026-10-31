@@ -68,6 +68,15 @@ export default function PlayerProfileModal({
             .single();
           if (insertError) throw insertError;
           if (active) setProfile(created as PlayerProfile);
+        } else if (data && isOwner) {
+          const { data: refreshed, error: refreshError } = await fibulaSupabase
+            .from('fibula_profiles')
+            .update({ main_character: currentCharacter, level, kills, attributes, updated_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .select('user_id,display_name,age,sex,main_character,level,kills,attributes,created_at')
+            .single();
+          if (refreshError) throw refreshError;
+          if (active) setProfile(refreshed as PlayerProfile);
         } else if (active) {
           setProfile(data as PlayerProfile | null);
         }
@@ -79,7 +88,7 @@ export default function PlayerProfileModal({
     };
     void load();
     return () => { active = false; };
-  }, [userId, isOwner, currentCharacter, level, kills, attributes]);
+  }, [userId, isOwner, currentCharacter, level, kills]);
 
   useEffect(() => {
     if (!profile) return;
@@ -131,6 +140,7 @@ export default function PlayerProfileModal({
 
   const character = profile?.main_character ? CLASS_INFO[profile.main_character] : CLASS_INFO[currentCharacter];
   const createdAt = profile?.created_at ? new Date(profile.created_at) : null;
+  const accountDays = createdAt ? Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 86_400_000)) : 0;
 
   return <div className="player-profile-backdrop" onClick={onClose}>
     <section className="player-profile-modal" role="dialog" aria-modal="true" aria-labelledby="player-profile-title" onClick={event => event.stopPropagation()}>
@@ -153,7 +163,7 @@ export default function PlayerProfileModal({
             <div className="player-profile-details">
               <div><span>IDADE</span><strong>{profile.age ? `${profile.age} anos` : 'Não informada'}</strong></div>
               <div><span>SEXO</span><strong>{profile.sex ? profile.sex.charAt(0).toUpperCase() + profile.sex.slice(1) : 'Não informado'}</strong></div>
-              <div><span>CONTA NO FÍBULA DESDE</span><strong>{createdAt ? DATE_FORMAT.format(createdAt) : '—'}</strong></div>
+              <div><span>CONTA NO FÍBULA DESDE</span><strong>{createdAt ? DATE_FORMAT.format(createdAt) : '—'}</strong><small>{createdAt ? `Há ${accountDays} dias` : ''}</small></div>
               <div><span>PROGRESSO</span><strong>Nível {profile.level} · {profile.kills} eliminações</strong></div>
             </div>
             <section className="player-profile-attributes"><h4>Atributos do personagem</h4><div>
