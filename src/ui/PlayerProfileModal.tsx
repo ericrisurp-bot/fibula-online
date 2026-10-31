@@ -61,12 +61,19 @@ export default function PlayerProfileModal({
           .maybeSingle();
         if (queryError) throw queryError;
         if (!data && isOwner) {
-          const { data: created, error: insertError } = await fibulaSupabase
+          const { error: insertError } = await fibulaSupabase
             .from('fibula_profiles')
-            .insert({ user_id: userId, main_character: currentCharacter, level, kills, attributes })
-            .select('user_id,display_name,age,sex,main_character,level,kills,attributes,created_at')
-            .single();
+            .upsert(
+              { user_id: userId, main_character: currentCharacter, level, kills, attributes },
+              { onConflict: 'user_id', ignoreDuplicates: true },
+            );
           if (insertError) throw insertError;
+          const { data: created, error: reloadError } = await fibulaSupabase
+            .from('fibula_profiles')
+            .select('user_id,display_name,age,sex,main_character,level,kills,attributes,created_at')
+            .eq('user_id', userId)
+            .single();
+          if (reloadError) throw reloadError;
           if (active) setProfile(created as PlayerProfile);
         } else if (data && isOwner) {
           const { data: refreshed, error: refreshError } = await fibulaSupabase
@@ -151,7 +158,7 @@ export default function PlayerProfileModal({
       {loading ? <p className="player-profile-message">Carregando perfil...</p> : !profile ? <p className="player-profile-message">{error || 'Este jogador ainda não criou um perfil.'}</p> : <>
         <div className="player-profile-content">
           <div className="player-profile-hero">
-            <div className={`player-profile-avatar class-${character ? profile.main_character ?? currentCharacter : currentCharacter}`} aria-hidden="true">{character.icon}</div>
+            <div className={`player-profile-avatar class-${profile.main_character ?? currentCharacter}`} aria-hidden="true">{character.icon}</div>
             <div><span>PERSONAGEM PRINCIPAL</span><h3>{profile.display_name || 'Nome ainda não escolhido'}</h3><p>{character.name} · Nível {profile.level}</p></div>
           </div>
           {editing && isOwner ? <form className="player-profile-form" onSubmit={save}>
