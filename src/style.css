@@ -3192,3 +3192,28 @@ button, button * {
     100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
   }
 }
+
+
+/* A passagem ocupa apenas uma pequena parte do ciclo, mantendo o intervalo original. */
+@keyframes lobby-comet-cycle-desktop{
+  0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
+  1%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  5%{
+    opacity:1;
+    transform:translate3d(50vw,-9vh,0);
+    animation-timing-function:cubic-bezier(.45,0,.55,1);
+  }
+  10%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
+  10.5%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+}
+@keyframes lobby-comet-cycle-mobile{
+  0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
+  1%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  4.25%{
+    opacity:1;
+    transform:translate3d(50vw,-6vh,0);
+    animation-timing-function:cubic-bezier(.45,0,.55,1);
+  }
+  8.5%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
+  9%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+}
