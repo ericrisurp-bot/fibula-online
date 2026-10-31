@@ -289,6 +289,9 @@ export default function App() {
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [rankingOpen, setRankingOpen] = useState(false);
+  const [rankingMode, setRankingMode] = useState<'solo' | 'duo'>('solo');
+  const [rankingCategory, setRankingCategory] = useState<'power' | 'survival'>('power');
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
@@ -1425,6 +1428,12 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
             <span>CLASSES</span>
           </button>
+          <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => setRankingOpen(true)}>
+            <span className="lobby-ranking-spark lobby-ranking-spark-one" aria-hidden="true">✦</span>
+            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
+            <span>RANKING</span>
+            <span className="lobby-ranking-spark lobby-ranking-spark-two" aria-hidden="true">✧</span>
+          </button>
           <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => setStatusOpen(true)}>
             <span className="lobby-top-emoji" aria-hidden="true">📊</span>
             <span>STATUS</span>
@@ -1631,6 +1640,45 @@ export default function App() {
               </section>
               <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
             </div>
+          </section>
+        </div>}
+        {rankingOpen && <div className="lobby-ranking-backdrop" onClick={() => setRankingOpen(false)}>
+          <section className="lobby-ranking-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-ranking-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-ranking-header">
+              <div><span>FÍBULA ONLINE · HALL DA FAMA</span><h2 id="lobby-ranking-title"><span aria-hidden="true">🏆</span> Ranking</h2></div>
+              <button type="button" className="lobby-ranking-close" aria-label="Fechar Ranking" onClick={() => setRankingOpen(false)}>×</button>
+            </header>
+            <nav className="lobby-ranking-mode-tabs" role="tablist" aria-label="Modalidade do ranking">
+              <button type="button" role="tab" aria-selected={rankingMode === 'solo'} className={rankingMode === 'solo' ? 'active' : ''} onClick={() => setRankingMode('solo')}>SOLO</button>
+              <button type="button" role="tab" aria-selected={rankingMode === 'duo'} className={rankingMode === 'duo' ? 'active' : ''} onClick={() => setRankingMode('duo')}>DUO</button>
+            </nav>
+            <div className="lobby-ranking-body">
+              <nav className="lobby-ranking-category-tabs" aria-label="Categoria do ranking">
+                <button type="button" aria-pressed={rankingCategory === 'power'} className={rankingCategory === 'power' ? 'active' : ''} onClick={() => setRankingCategory('power')}>
+                  <span aria-hidden="true">⚔️</span><span>PODER</span>
+                </button>
+                <button type="button" aria-pressed={rankingCategory === 'survival'} className={rankingCategory === 'survival' ? 'active' : ''} onClick={() => setRankingCategory('survival')}>
+                  <span aria-hidden="true">🛡️</span><span>SOBREVIVÊNCIA</span>
+                </button>
+              </nav>
+              <section className="lobby-ranking-board" aria-live="polite">
+                <div className="lobby-ranking-board-heading">
+                  <div><span>TOP 100</span><h3>{rankingMode === 'solo' ? 'Lendas individuais' : 'Duplas lendárias'}</h3></div>
+                  <strong>{rankingCategory === 'power' ? '⚔️ PODER' : '☀️ DIAS'}</strong>
+                </div>
+                <div className="lobby-ranking-empty">
+                  <span aria-hidden="true">{rankingCategory === 'power' ? '⚔️' : '🌄'}</span>
+                  <strong>O ranking está sendo preparado</strong>
+                  <p>{rankingMode === 'solo' ? 'No Solo, o nome do personagem representa cada conquista.' : 'No Duo, cada equipe terá sua própria sigla de três letras, como nos fliperamas.'}</p>
+                  <small>As 100 melhores posições aparecerão aqui quando os dados de ranking forem conectados.</small>
+                </div>
+              </section>
+            </div>
+            <footer className="lobby-ranking-player-position">
+              <div><span>SUA POSIÇÃO</span><strong>—</strong></div>
+              <div><span>{rankingCategory === 'power' ? 'PODER TOTAL' : 'DIAS SOBREVIVIDOS'}</span><strong>—</strong></div>
+              <small>Sua colocação será exibida aqui, mesmo que fique abaixo do TOP 100.</small>
+            </footer>
           </section>
         </div>}
       </div>}
