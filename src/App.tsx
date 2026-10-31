@@ -10,6 +10,9 @@ import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import Controls from './ui/Controls';
+import PlayerProfileModal from './ui/PlayerProfileModal';
+import { useArenaAuth } from './auth/AuthGate';
+import { fibulaSupabase } from './auth/supabase';
 import { audioManager } from './audio/audioManager';
 import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
@@ -256,6 +259,7 @@ const LOBBY_CRAFTING_STATIONS = [
 ] as const;
 
 export default function App() {
+  const { session } = useArenaAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -288,6 +292,7 @@ export default function App() {
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
+  const [playerProfileOpen, setPlayerProfileOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState<'solo' | 'duo'>('solo');
@@ -365,6 +370,21 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [chestOpen]);
+
+  useEffect(() => {
+    if (!playerProfileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setPlayerProfileOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [playerProfileOpen]);
+
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub) return;
+    void fibulaSupabase.from('fibula_profiles').upsert(
+      { user_id: session.user.sub },
+      { onConflict: 'user_id', ignoreDuplicates: true },
+    );
+  }, [session.user.sub]);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -1410,7 +1430,7 @@ export default function App() {
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
+        <div className="lobby-character-wrap"><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => setPlayerProfileOpen(true)}><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Abrir perfil do personagem"/></button><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
@@ -1681,6 +1701,25 @@ export default function App() {
             </footer>
           </section>
         </div>}
+        {playerProfileOpen && <PlayerProfileModal
+          userId={session.user.sub}
+          isOwner
+          currentCharacter={characterPreferences[0] ?? state.classId}
+          level={state.player.level}
+          kills={state.kills}
+          attributes={(() => {
+            const stats = getPlayerAttributes(characterPreferences[0] ?? state.classId, state.player.level);
+            return {
+              'Força': stats.forca,
+              'Inteligência': stats.inteligencia,
+              'Destreza': stats.destreza,
+              'Vida': stats.vida,
+              'Armadura': stats.armadura,
+              'Resistência mágica': stats.resistenciaMagica,
+            };
+          })()}
+          onClose={() => setPlayerProfileOpen(false)}
+        />}
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><button className="restart-button" onClick={restart}>↻ Tentar novamente</button></div>}
