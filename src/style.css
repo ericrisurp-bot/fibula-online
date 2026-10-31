@@ -2562,28 +2562,20 @@ button, button * {
 }
 
 
-/* Auditoria visual do lobby: atalhos brancos, tipografia e espaçamento unificados. */
+/* Padrão definitivo dos atalhos: vidro escuro translúcido, mantendo fonte e emojis. */
 .lobby-profile-trigger,
 .lobby-status-trigger,
 .lobby-arsenal-trigger,
 .lobby-friends-trigger,
 .lobby-chest-trigger,
 .lobby-crafting-trigger{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:3px;
-  padding:3px;
-  border:1px solid #d8dee8;
-  border-radius:10px;
-  background:#fff;
-  color:#263246;
+  background:rgba(34,35,34,.82);
+  border:1px solid rgba(235,239,235,.24);
+  color:#f2f3ef;
   font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
-  box-shadow:0 3px 12px rgba(0,0,0,.22);
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
-  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 4px 13px rgba(0,0,0,.34),inset 0 1px 3px rgba(255,255,255,.12);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
 }
 .lobby-profile-trigger span:not(.lobby-top-emoji),
 .lobby-status-trigger span:not(.lobby-top-emoji),
@@ -2591,7 +2583,7 @@ button, button * {
 .lobby-friends-trigger span:not(.lobby-top-emoji),
 .lobby-chest-trigger span:not(.lobby-top-emoji),
 .lobby-crafting-trigger>span:last-child{
-  color:#263246;
+  color:#f2f3ef;
   font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
   font-size:9px;
   font-weight:900;
@@ -2605,7 +2597,7 @@ button, button * {
 .lobby-friends-trigger:active,
 .lobby-chest-trigger:active,
 .lobby-crafting-trigger:active{
-  background:#edf1f6;
+  background:rgba(34,35,34,.96);
   transform:scale(.96);
 }
 .lobby-profile-trigger:hover,
@@ -2614,17 +2606,8 @@ button, button * {
 .lobby-friends-trigger:hover,
 .lobby-chest-trigger:hover,
 .lobby-crafting-trigger:hover{
-  background:#f5f7fa;
-  border-color:#aeb9c8;
-}
-.lobby-profile-trigger:focus-visible,
-.lobby-status-trigger:focus-visible,
-.lobby-arsenal-trigger:focus-visible,
-.lobby-friends-trigger:focus-visible,
-.lobby-chest-trigger:focus-visible,
-.lobby-crafting-trigger:focus-visible{
-  outline:2px solid #526d8a;
-  outline-offset:3px;
+  background:rgba(48,50,48,.92);
+  border-color:rgba(235,239,235,.42);
 }
 .lobby-profile-trigger .lobby-top-emoji,
 .lobby-status-trigger .lobby-top-emoji,
@@ -2635,42 +2618,29 @@ button, button * {
   font-size:clamp(21px,2.2vw,26px);
   line-height:1;
 }
-.lobby-friends-trigger svg,
-.lobby-chest-trigger svg{color:#526d8a}
-.lobby-status-card{
-  border:1px solid #dce3eb;
-  background:#fff;
-  color:#263246;
-}
-.lobby-status-card-heading>div>span,
-.lobby-status-equipment>span{color:#657286}
-.lobby-status-card-heading h3{color:#202633}
-.lobby-status-level{color:#526174}
-.lobby-status-power{background:#f2f5f9}
-.lobby-status-power>span{color:#526174}
-.lobby-status-power>strong{color:#202b3a}
-.lobby-status-power>small{color:#718096}
-.lobby-status-attributes>div{
-  background:#f6f8fb;
-  color:#39475a;
-}
-.lobby-status-attributes strong{color:#202b3a}
-.lobby-status-equipment{border-top-color:#e1e6ed}
-.lobby-status-equipment>div small{background:#eef2f7;color:#39475a}
-.lobby-status-equipment>small{color:#657286}
-.lobby-status-equipment .lobby-status-equipment-note{color:#8a642b}
-.lobby-status-empty{color:#39475a}
+/* Coluna lateral com ritmo uniforme e mais próxima da linha inferior do lobby. */
+.lobby-profile-trigger{top:44%}
+.lobby-status-trigger{top:calc(44% + 82px)}
+.lobby-arsenal-trigger{top:calc(44% + 164px)}
+.lobby-friends-trigger{top:calc(44% + 246px)}
+.lobby-chest-trigger{top:calc(44% + 328px)}
 @media(max-width:650px){
+  .lobby-profile-trigger{top:40%}
+  .lobby-status-trigger{top:calc(40% + 70px)}
+  .lobby-arsenal-trigger{top:calc(40% + 140px)}
+  .lobby-friends-trigger{top:calc(40% + 210px)}
+  .lobby-chest-trigger{top:calc(40% + 280px)}
   .lobby-profile-trigger span:not(.lobby-top-emoji),
   .lobby-status-trigger span:not(.lobby-top-emoji),
   .lobby-arsenal-trigger span:not(.lobby-top-emoji),
   .lobby-friends-trigger span:not(.lobby-top-emoji),
   .lobby-chest-trigger span:not(.lobby-top-emoji),
   .lobby-crafting-trigger>span:last-child{font-size:8px}
-  .lobby-profile-trigger,
-  .lobby-status-trigger,
-  .lobby-arsenal-trigger,
-  .lobby-friends-trigger,
-  .lobby-chest-trigger,
-  .lobby-crafting-trigger{gap:2px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-profile-trigger{top:34%}
+  .lobby-status-trigger{top:calc(34% + 64px)}
+  .lobby-arsenal-trigger{top:calc(34% + 128px)}
+  .lobby-friends-trigger{top:calc(34% + 192px)}
+  .lobby-chest-trigger{top:calc(34% + 256px)}
 }
