@@ -3,7 +3,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, type InventoryStack } from './inventory';
-import { rangedMuzzle } from './rangedWeapons';
+import { getDrawnMuzzle, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -1611,7 +1611,8 @@ export class GameEngine {
       const aimAngle = rangedId === 'arco'
         ? Math.atan2(target.e.y - gripY, target.e.x - gripX)
         : Math.atan2(target.e.y - p.y, target.e.x - p.x);
-      const muzzle = rangedMuzzle(rangedId, this.weaponSide, aimAngle, CONFIG.player.radius);
+      // Prefere a ponta realmente desenhada no último quadro; sem desenho (ex.: simulador), usa a pose de repouso.
+      const muzzle = getDrawnMuzzle(rangedId, this.state.elapsed) ?? rangedMuzzle(rangedId, this.weaponSide, aimAngle, CONFIG.player.radius);
       const shotX = p.x + muzzle.x;
       const shotY = p.y + muzzle.y;
       const dx = target.e.x - shotX, dy = target.e.y - shotY, dist = Math.hypot(dx, dy) || 1;

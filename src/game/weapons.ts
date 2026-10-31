@@ -1,4 +1,5 @@
 import { CONFIG, type WeaponId } from './config';
+import { STAFF_TIP_LOCAL, setDrawnMuzzle } from './rangedWeapons';
 
 type Point = readonly [number, number];
 
@@ -392,10 +393,15 @@ export function drawFloatingWeapon(
   else hover.angle += angleDelta(hover.angle, desiredAngle) * angleAlpha;
   if (weapon === 'espada' && hover.combatT === 1 && opts.swingTimer > 0) hover.angle = combatAngle;
 
+  const entryScale = opts.forceVisible ? 1 : 0.85 + 0.15 * hover.presence;
+  if (weapon === 'cajado' || weapon === 'bastao') {
+    // Publica onde a gema realmente está neste quadro (posição + giro + escala).
+    const tip = STAFF_TIP_LOCAL[weapon], cos = Math.cos(hover.angle), sin = Math.sin(hover.angle);
+    setDrawnMuzzle(weapon, opts.time, x + (tip.x * cos - tip.y * sin) * entryScale, y + (tip.x * sin + tip.y * cos) * entryScale);
+  }
   ctx.save();
   ctx.globalAlpha = opts.forceVisible ? 1 : hover.presence;
   ctx.translate(x, y);
-  const entryScale = opts.forceVisible ? 1 : 0.85 + 0.15 * hover.presence;
   ctx.scale(entryScale, entryScale);
   ctx.rotate(hover.angle);
   drawWeapon(ctx, weapon, r);
