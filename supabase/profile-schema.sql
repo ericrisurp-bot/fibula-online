@@ -37,6 +37,14 @@ create policy "Authenticated players can read profiles"
   on public.fibula_profiles for select to authenticated
   using (true);
 
+-- Aceita somente tokens emitidos pelo servidor OAuth da Arena.
+-- A integração Custom OIDC correspondente deve estar cadastrada no Supabase do Fíbula.
+drop policy if exists "Restrict profile access to Arena identities" on public.fibula_profiles;
+create policy "Restrict profile access to Arena identities"
+  on public.fibula_profiles as restrictive for all to authenticated
+  using ((select auth.jwt()->>'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1')
+  with check ((select auth.jwt()->>'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1');
+
 drop policy if exists "Players can create their own profile" on public.fibula_profiles;
 create policy "Players can create their own profile"
   on public.fibula_profiles for insert to authenticated
@@ -66,3 +74,9 @@ drop policy if exists "Authenticated players can read profile badges" on public.
 create policy "Authenticated players can read profile badges"
   on public.fibula_profile_badges for select to authenticated
   using (true);
+
+drop policy if exists "Restrict badge access to Arena identities" on public.fibula_profile_badges;
+create policy "Restrict badge access to Arena identities"
+  on public.fibula_profile_badges as restrictive for all to authenticated
+  using ((select auth.jwt()->>'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1')
+  with check ((select auth.jwt()->>'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1');
