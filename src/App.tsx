@@ -29,7 +29,7 @@ const initial: GameSnapshot = {
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   cart: { x: 1800, y: 600, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
@@ -914,7 +914,7 @@ export default function App() {
         : s.rockMineTimer > 0 ? { tool: 'picareta' as const, timer: s.rockMineTimer, angle: s.rockMineAngle }
         : s.cottonHarvestTimer > 0 ? { tool: 'foice' as const, timer: s.cottonHarvestTimer, angle: s.cottonHarvestAngle } : null;
       if (gatherTool) {
-        worldDrawables.push({ depth: s.gatherY + 40, draw: () => {
+        worldDrawables.push({ depth: s.gatherDepth, draw: () => {
           ctx.save(); ctx.translate(s.gatherX, s.gatherY);
           drawFloatingTool(ctx, gatherTool.tool, CONFIG.player.radius, { angle: gatherTool.angle, timer: gatherTool.timer, duration: CONFIG.gathering.toolAnimationDuration, reach: 0, minGrip: -9999 });
           ctx.restore();

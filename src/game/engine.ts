@@ -58,7 +58,7 @@ export type GameSnapshot = {
   tecelaria: TecelariaState;
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; cottonPlants: CottonPlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
-  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 
@@ -131,7 +131,7 @@ export class GameEngine {
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, repairWood: 0, repaired: false, carried: false, inventory: [] },
-      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0,
+      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -1031,6 +1031,11 @@ export class GameEngine {
     this.rockSpawnCountdown = this.rockSpawnDuration();
   }
 
+  /** Escala visual da pedra (igual à usada no desenho em App.tsx). */
+  private rockDrawScale(rock: Rock) {
+    return rock.size === 'small' ? 1.22 : rock.size === 'medium' ? 1.5 : 1.85;
+  }
+
   private rockFootprintRadius(rock: Rock) {
     return rock.size === 'small' ? 16 : rock.size === 'medium' ? 23 : 31;
   }
@@ -1619,12 +1624,12 @@ export class GameEngine {
     }
   }
 
-  /** Ancora a ferramenta no recurso: ponto de impacto na borda do lado do jogador. Retorna o ângulo (0 = jogador à esquerda, π = à direita). */
-  private anchorGatherTool(tx: number, ty: number, footprint: number) {
-    const side = this.state.player.x <= tx ? 1 : -1;
-    this.state.gatherX = tx - side * 0.6 * footprint;
+  /** Ancora a ferramenta no CENTRO visual do recurso (cabeça da ferramenta em cima dele). Retorna o ângulo (0 = jogador à esquerda, π = à direita). */
+  private anchorGatherTool(tx: number, ty: number, depth: number) {
+    this.state.gatherX = tx;
     this.state.gatherY = ty;
-    return side > 0 ? 0 : Math.PI;
+    this.state.gatherDepth = depth;
+    return this.state.player.x <= tx ? 0 : Math.PI;
   }
 
   private autoGather() {
@@ -1651,19 +1656,18 @@ export class GameEngine {
 
     this.gatheringTimer = 0;
     if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d)) {
-      const treeBase = this.treeBase(treeTarget.tree);
-      this.state.treeChopAngle = this.anchorGatherTool(treeBase.x, treeBase.y, this.treeFootprintRadius(treeTarget.tree));
+      this.state.treeChopAngle = this.anchorGatherTool(treeTarget.tree.x, treeTarget.tree.y + 6 * this.treeScale(treeTarget.tree), treeTarget.tree.y + 30 * this.treeScale(treeTarget.tree) + 1);
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
       treeTarget.tree.hits -= 1;
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
-      this.state.rockMineAngle = this.anchorGatherTool(rockTarget.rock.x, rockTarget.rock.y, this.rockFootprintRadius(rockTarget.rock));
+      this.state.rockMineAngle = this.anchorGatherTool(rockTarget.rock.x, rockTarget.rock.y - 6 * this.rockDrawScale(rockTarget.rock), rockTarget.rock.y + 12 * this.rockDrawScale(rockTarget.rock) + 1);
       this.state.rockMineTimer = CONFIG.gathering.toolAnimationDuration;
       this.hitRock(rockTarget.rock.id);
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget) {
-      this.state.cottonHarvestAngle = this.anchorGatherTool(cottonTarget.plant.x, cottonTarget.plant.y, this.cottonFootprintRadius(cottonTarget.plant));
+      this.state.cottonHarvestAngle = this.anchorGatherTool(cottonTarget.plant.x, cottonTarget.plant.y - 6, cottonTarget.plant.y + 13 * 1.2 + 1);
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
       this.hitCottonPlant(cottonTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
