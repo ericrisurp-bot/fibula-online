@@ -140,6 +140,9 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const onSecondaryPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     const movement = activePointer.current;
     if (!movement || movement.id === e.pointerId || classSwipePointer.current || menuOpen || flagWheelOpen) return;
+    // Um segundo toque em um controle deve executar o botão, nunca virar gesto de troca de classe.
+    if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, [role="button"], .mobile-menu-panel')) return;
+    e.preventDefault();
     classSwipePointer.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, changed: false };
   };
 
