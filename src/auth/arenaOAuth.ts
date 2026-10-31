@@ -3,6 +3,7 @@ const SESSION_KEY = 'fibula-arena-oauth-session';
 const STATE_KEY = 'fibula-arena-oauth-state';
 const VERIFIER_KEY = 'fibula-arena-oauth-verifier';
 const CALLBACK_PATH = '/auth/callback';
+const PRODUCTION_ORIGIN = 'https://fibula.iericris.com.br';
 
 export type ArenaUser = {
   sub: string;
@@ -31,7 +32,47 @@ const getClientId = () => import.meta.env.VITE_ARENA_OAUTH_CLIENT_ID?.trim() ?? 
 
 export const isArenaOAuthConfigured = () => getClientId().length > 0;
 
-const getRedirectUri = () => `${window.location.origin}${CALLBACK_PATH}`;
+const getRedirectUri = () => `${PRODUCTION_ORIGIN}${CALLBACK_PATH}`;
+
+function encodeBase64Url(value: string): string {
+  return btoa(String.fromCharCode(...new TextEncoder().encode(value)))
+    .replace(/\\+/g, '-')
+    .replace(/\\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function decodeBase64Url(value: string): string | null {
+  try {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '='));
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function getOAuthReturnOrigin(state: string | null): string | null {
+  if (!state) return null;
+  const separator = state.lastIndexOf('.');
+  if (separator <= 0) return null;
+
+  const decodedOrigin = decodeBase64Url(state.slice(separator + 1));
+  if (!decodedOrigin) return null;
+
+  try {
+    const url = new URL(decodedOrigin);
+    if (url.origin !== decodedOrigin || url.protocol !== 'https:') return null;
+    const hostname = url.hostname;
+    const isAllowedOrigin = hostname === 'fibula.iericris.com.br'
+      || /^[a-z0-9-]+\\.fibula\\.iericris\\.com\\.br$/i.test(hostname)
+      || hostname === 'fibula-online.pages.dev'
+      || /^[a-z0-9-]+\\.fibula-online\\.pages\\.dev$/i.test(hostname);
+    return isAllowedOrigin ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
 
 function randomBase64Url(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -173,7 +214,7 @@ export async function startArenaLogin(): Promise<void> {
   if (!clientId) throw new Error('O cliente OAuth da Arena ainda não foi configurado no ambiente do Fíbula.');
 
   const verifier = randomBase64Url();
-  const state = randomBase64Url();
+  const state = `${randomBase64Url()}.${encodeBase64Url(window.location.origin)}`;
   const challenge = await createCodeChallenge(verifier);
   localStorage.setItem(STATE_KEY, state);
   localStorage.setItem(VERIFIER_KEY, verifier);
@@ -213,6 +254,16 @@ async function completeArenaLoginOnce(): Promise<ArenaOAuthSession | null> {
   const errorDescription = callback.searchParams.get('error_description');
   const expectedState = localStorage.getItem(STATE_KEY);
   const verifier = localStorage.getItem(VERIFIER_KEY);
+
+  if (window.location.origin === PRODUCTION_ORIGIN) {
+    const returnOrigin = getOAuthReturnOrigin(returnedState);
+    if (returnOrigin && returnOrigin !== PRODUCTION_ORIGIN) {
+      const relayUrl = new URL(CALLBACK_PATH, returnOrigin);
+      callback.searchParams.forEach((value, key) => relayUrl.searchParams.append(key, value));
+      window.location.replace(relayUrl.toString());
+      return null;
+    }
+  }
 
   cleanCallbackUrl();
 
