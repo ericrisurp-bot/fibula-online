@@ -2121,7 +2121,7 @@ button, button * {
   background:linear-gradient(90deg,transparent 0%,rgba(255,91,22,.08) 28%,rgba(255,111,35,.48) 72%,#ffd18a 100%);
   background-size:200% 100%;
   box-shadow:0 0 9px 2px rgba(255,100,25,.55);
-  animation:lobby-comet-tail-flow 1.15s ease-in-out infinite alternate;
+  animation:lobby-comet-tail-flow 1.15s linear infinite;
 }
 .lobby-comet:after{
   content:"";
@@ -2136,8 +2136,8 @@ button, button * {
   box-shadow:0 0 8px 4px rgba(255,172,74,.9),0 0 22px 9px rgba(255,93,25,.58);
 }
 @keyframes lobby-comet-tail-flow{
-  from{background-position:0% 50%;opacity:.72;filter:brightness(.9)}
-  to{background-position:100% 50%;opacity:1;filter:brightness(1.3)}
+  from{background-position:0% 50%;opacity:1;filter:brightness(1.1)}
+  to{background-position:100% 50%;opacity:1;filter:brightness(1.1)}
 }
 /* A posição inicial e final extrapolam a largura da tela; a variação vertical
    acompanha a inclinação de 12 graus em função da largura do viewport. */
@@ -3118,13 +3118,13 @@ button, button * {
 }
 
 
-/* Estações alinhadas ao Jogar, com o mesmo intervalo visual da coluna lateral. */
+/* Mantém o ritmo entre estações e destaca a separação entre Fogão e Jogar. */
 @media(min-width:651px){
   .lobby-crafting-stations{
     left:auto;
-    right:calc(clamp(14px,4vw,42px) + 90px + 14px);
+    right:calc(clamp(14px,4vw,42px) + 90px + 22px);
     width:max-content;
-    max-width:calc(100% - (clamp(14px,4vw,42px) * 2) - 90px - 14px);
+    max-width:calc(100% - (clamp(14px,4vw,42px) * 2) - 90px - 22px);
     display:flex;
     align-items:center;
     justify-content:flex-end;
@@ -3133,30 +3133,28 @@ button, button * {
 }
 @media(min-width:651px) and (orientation:landscape) and (max-height:520px){
   .lobby-crafting-stations{
-    right:calc(clamp(14px,4vw,42px) + 90px + 14px);
+    right:calc(clamp(14px,4vw,42px) + 90px + 22px);
   }
 }
 
 
 
-/* Cometa acompanha a curva do gramado: arco suave, sem inclinação rígida. */
+/* Cometa cruza a tela em uma única diagonal reta, de baixo para cima. */
 @media(min-width:651px){
   .lobby-comet{animation-name:lobby-comet-cycle-desktop}
   @keyframes lobby-comet-cycle-desktop{
-    0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
-    1%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}
-    5%{opacity:1;transform:translate3d(50vw,-9vh,0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
-    10%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
-    10.5%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+    0%{opacity:0;transform:translate3d(calc(-100% - 2px),14vh,0) rotate(-12deg)}
+    1%{opacity:1;transform:translate3d(calc(-100% - 2px),14vh,0) rotate(-12deg);animation-timing-function:linear}
+    10%{opacity:1;transform:translate3d(calc(100vw + 2px),-14vh,0) rotate(-12deg)}
+    10.5%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),-14vh,0) rotate(-12deg)}
   }
 }
 @media(max-width:650px){
   .lobby-comet{animation-name:lobby-comet-cycle-mobile}
   @keyframes lobby-comet-cycle-mobile{
-    0%{opacity:0;transform:translate3d(calc(-100% - 2px),0,0)}
-    1%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}
-    4.25%{opacity:1;transform:translate3d(50vw,-6vh,0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
-    8.5%{opacity:1;transform:translate3d(calc(100vw + 2px),0,0)}
-    9%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),0,0)}
+    0%{opacity:0;transform:translate3d(calc(-100% - 2px),11vh,0) rotate(-12deg)}
+    1%{opacity:1;transform:translate3d(calc(-100% - 2px),11vh,0) rotate(-12deg);animation-timing-function:linear}
+    8.5%{opacity:1;transform:translate3d(calc(100vw + 2px),-11vh,0) rotate(-12deg)}
+    9%,100%{opacity:0;transform:translate3d(calc(100vw + 2px),-11vh,0) rotate(-12deg)}
   }
 }
