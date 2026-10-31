@@ -1,7 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
 import { useArenaAuth } from '../auth/AuthGate';
-import type { ClassId } from '../game/config';
+import { CONFIG, type ClassId, type WeaponId } from '../game/config';
+import { drawLadino } from '../game/ladino';
+import { drawFloatingWeapon } from '../game/weapons';
 
 type PlayerProfile = {
   user_id: string;
@@ -33,12 +35,16 @@ const CLASS_INFO: Record<ClassId, { name: string; icon: string }> = {
 };
 
 const DATE_FORMAT = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+const CLASS_WEAPONS: Record<ClassId, WeaponId> = {
+  guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao',
+};
 
 export default function PlayerProfileModal({
   userId, isOwner, currentCharacter, level, kills, attributes, onClose,
 }: Props) {
   const { session } = useArenaAuth();
   const canEdit = isOwner && session.user.sub === userId;
+  const avatarCanvasRef = useRef<HTMLCanvasElement>(null);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -148,7 +154,32 @@ export default function PlayerProfileModal({
     }
   };
 
-  const character = profile?.main_character ? CLASS_INFO[profile.main_character] : CLASS_INFO[currentCharacter];
+  const characterClass = profile?.main_character ?? currentCharacter;
+  const character = CLASS_INFO[characterClass];
+  useEffect(() => {
+    const canvas = avatarCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = canvas.clientWidth || 76;
+    const height = canvas.clientHeight || 76;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const radius = CONFIG.player.radius;
+    ctx.save();
+    ctx.translate(width / 2, height * 0.78);
+    ctx.scale(Math.min(width / 44, height / 58), Math.min(width / 44, height / 58));
+    drawLadino(ctx, characterClass, radius, { walking: false, phase: 0, breath: 0, carry: false, direction: 'front' });
+    drawFloatingWeapon(ctx, CLASS_WEAPONS[characterClass], radius, {
+      time: 0, facingX: 1, moving: false, hasEnemies: false, hasTarget: false,
+      aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0,
+      forceVisible: true, preferredSide: -1,
+    });
+    ctx.restore();
+  }, [characterClass]);
+
   const createdAt = profile?.created_at ? new Date(profile.created_at) : null;
   const accountDays = createdAt ? Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 86_400_000)) : 0;
 
@@ -161,7 +192,7 @@ export default function PlayerProfileModal({
       {loading ? <p className="player-profile-message">Carregando perfil...</p> : !profile ? <p className="player-profile-message">{error || 'Este jogador ainda não criou um perfil.'}</p> : <>
         <div className="player-profile-content">
           <div className="player-profile-hero">
-            <div className={`player-profile-avatar class-${profile.main_character ?? currentCharacter}`} aria-hidden="true">{character.icon}</div>
+            <div className={`player-profile-avatar class-${characterClass}`}><canvas ref={avatarCanvasRef} className="player-profile-avatar-canvas" aria-label={`Personagem principal: ${character.name}`} /></div>
             <div><span>PERSONAGEM PRINCIPAL</span><h3>{profile.display_name || 'Nome ainda não escolhido'}</h3><p>{character.name} · Nível {profile.level}</p></div>
           </div>
           {editing && canEdit ? <form className="player-profile-form" onSubmit={save}>
