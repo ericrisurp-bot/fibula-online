@@ -2440,3 +2440,58 @@ button, button * {
 @media(orientation:landscape) and (max-height:520px){
   .lobby-crafting-stations{top:88%;left:12px}
 }
+
+
+/* Distribuição proporcional dos quatro atalhos na faixa entre a borda esquerda e Jogar. */
+.lobby-crafting-stations{
+  left:clamp(14px,4vw,42px);
+  right:calc(clamp(14px,4vw,42px) + 90px + clamp(14px,3vw,28px));
+  width:auto;
+  max-width:none;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  justify-items:center;
+  align-items:center;
+  gap:0;
+}
+.lobby-crafting-trigger{
+  width:clamp(54px,6vw,68px);
+  height:clamp(54px,6vw,68px);
+}
+.lobby-top-emoji{
+  display:block;
+  font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  font-size:clamp(21px,2.2vw,27px);
+  line-height:1;
+}
+.lobby-arsenal-trigger .lobby-top-emoji,
+.lobby-friends-trigger .lobby-top-emoji,
+.lobby-chest-trigger .lobby-top-emoji,
+.lobby-profile-trigger .lobby-top-emoji{
+  font-size:clamp(21px,2.2vw,26px);
+  line-height:1;
+}
+@media(max-width:650px){
+  .lobby-crafting-stations{
+    left:12px;
+    right:110px;
+    width:auto;
+    max-width:none;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .lobby-crafting-trigger{width:52px;height:52px;min-width:52px;min-height:52px}
+  .lobby-top-emoji,
+  .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-friends-trigger .lobby-top-emoji,
+  .lobby-chest-trigger .lobby-top-emoji,
+  .lobby-profile-trigger .lobby-top-emoji{font-size:21px}
+}
+@media(max-width:360px){
+  .lobby-crafting-stations{left:8px;right:106px}
+  .lobby-crafting-trigger{width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-top-emoji,
+  .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-friends-trigger .lobby-top-emoji,
+  .lobby-chest-trigger .lobby-top-emoji,
+  .lobby-profile-trigger .lobby-top-emoji{font-size:19px}
+}
