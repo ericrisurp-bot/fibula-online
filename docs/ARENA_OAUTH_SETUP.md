@@ -11,10 +11,11 @@
 ## Configuração necessária
 
 1. No projeto Supabase da Arena, em **Authentication → OAuth Server → OAuth Apps**, registrar o Fíbula como **public client**.
-2. Cadastrar o redirect URI exato do ambiente:
-   - Produção: `https://fibula.iericris.com.br/auth/callback`
-   - Preview: usar o endereço Preview do Cloudflare Pages seguido de `/auth/callback`, se o preview também for testado com OAuth.
+2. Cadastrar **somente um redirect URI fixo** no OAuth App da Arena:
+   - `https://fibula.iericris.com.br/auth/callback`
 3. Solicitar os escopos `openid email profile` e manter PKCE habilitado.
+
+Os previews do Cloudflare Pages não precisam ser cadastrados individualmente. O Fíbula sempre envia o callback fixo de produção à Arena e inclui a origem do preview no parâmetro `state`. Depois da autorização, o callback de produção encaminha o navegador de volta ao preview de origem; o próprio preview valida o `state` e troca o código usando o mesmo redirect URI fixo. O encaminhamento aceita apenas HTTPS nos domínios `*.fibula.iericris.com.br` e `*.fibula-online.pages.dev`, além do domínio de produção.
 4. Copiar somente o **Client ID público** para a variável `VITE_ARENA_OAUTH_CLIENT_ID` do Cloudflare Pages.
 5. Configurar no Cloudflare Pages:
    - `VITE_FIBULA_SUPABASE_URL=https://jkbplwnklzhayzghizwh.supabase.co`
