@@ -2981,3 +2981,23 @@ button, button * {
 @media(max-width:360px){
   .lobby-ranking-trigger>span.lobby-ranking-trophy{font-size:35px !important}
 }
+
+
+/* Rótulo RANKING sobre a base do troféu, mantendo o emoji no tamanho atual. */
+.lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  position:absolute;
+  z-index:2;
+  left:50%;
+  bottom:8px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font-size:8px !important;
+  line-height:1;
+  letter-spacing:.025em;
+  color:#fff4d2;
+  text-shadow:0 1px 2px #3a2608,0 0 4px #5a390b;
+  pointer-events:none;
+}
+@media(max-width:650px){
+  .lobby-ranking-trigger>.lobby-ranking-trophy+span{bottom:8px;font-size:7px !important}
+}
