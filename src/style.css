@@ -3064,3 +3064,45 @@ button, button * {
     font-size:31px !important;
   }
 }
+
+
+/* Ajuste final do atalho Ranking: alinhar abaixo da linha de Classes e centralizar o troféu. */
+.lobby-ranking-trigger{
+  top:calc(41% + 6px);
+  align-items:center;
+  justify-content:center;
+}
+.lobby-ranking-trigger>.lobby-ranking-trophy{
+  position:relative;
+  left:auto;
+  top:auto;
+  display:block;
+  transform:none;
+  transform-origin:center;
+  font-size:30px !important;
+  line-height:1;
+}
+.lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  bottom:4px;
+}
+@media(max-width:650px){
+  .lobby-ranking-trigger{
+    top:calc(37% + 5px);
+  }
+  .lobby-ranking-trigger>.lobby-ranking-trophy{
+    font-size:28px !important;
+  }
+  .lobby-ranking-trigger>.lobby-ranking-trophy+span{
+    bottom:4px;
+  }
+}
+@media(max-width:360px){
+  .lobby-ranking-trigger>.lobby-ranking-trophy{
+    font-size:24px !important;
+  }
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-ranking-trigger{
+    top:calc(31% + 5px);
+  }
+}
