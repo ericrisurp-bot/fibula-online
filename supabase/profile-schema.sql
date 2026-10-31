@@ -25,7 +25,12 @@ create unique index if not exists fibula_profiles_display_name_lower_uidx
 
 alter table public.fibula_profiles enable row level security;
 
-grant select, insert, update on public.fibula_profiles to authenticated;
+revoke all on public.fibula_profiles from anon;
+revoke insert, update, delete, truncate, references, trigger on public.fibula_profiles from authenticated;
+grant select on public.fibula_profiles to authenticated;
+grant insert (user_id, main_character, level, kills, attributes) on public.fibula_profiles to authenticated;
+grant update (display_name, age, sex, main_character, level, kills, attributes, updated_at)
+  on public.fibula_profiles to authenticated;
 
 drop policy if exists "Authenticated players can read profiles" on public.fibula_profiles;
 create policy "Authenticated players can read profiles"
@@ -46,7 +51,7 @@ create policy "Players can update their own profile"
 -- Estrutura reservada para conquistas futuras; nesta etapa não há escrita pelo cliente.
 create table if not exists public.fibula_profile_badges (
   id bigint generated always as identity primary key,
-  user_id uuid not null,
+  user_id uuid not null references public.fibula_profiles(user_id) on delete cascade,
   badge_code text not null,
   earned_at timestamptz not null default now(),
   metadata jsonb not null default '{}'::jsonb,
@@ -54,6 +59,7 @@ create table if not exists public.fibula_profile_badges (
 );
 
 alter table public.fibula_profile_badges enable row level security;
+revoke all on public.fibula_profile_badges from anon;
 grant select on public.fibula_profile_badges to authenticated;
 
 drop policy if exists "Authenticated players can read profile badges" on public.fibula_profile_badges;
