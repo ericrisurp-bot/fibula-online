@@ -1102,9 +1102,14 @@ export class GameEngine {
     return true;
   }
 
+  /** Distância de coleta oval a partir do centro do corpo: vertical dividida por rangeAspect. */
+  private gatherDist(tx: number, ty: number) {
+    const p = this.state.player;
+    return Math.hypot(tx - p.x, (ty - p.y) / CONFIG.gathering.rangeAspect);
+  }
+
   private isPlayerAtRock(rock: Rock) {
-    const feet = playerFeet(this.state.player);
-    return Math.hypot(rock.x - feet.x, rock.y - feet.y)
+    return this.gatherDist(rock.x, rock.y)
       <= CONFIG.rocks.mineRange + this.rockFootprintRadius(rock);
   }
 
@@ -1147,8 +1152,7 @@ export class GameEngine {
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
-    const feet = playerFeet(this.state.player);
-    return Math.hypot(plant.x - feet.x, plant.y - feet.y) <= 46 + this.cottonFootprintRadius(plant);
+    return this.gatherDist(plant.x, plant.y) <= 46 + this.cottonFootprintRadius(plant);
   }
 
   private collectCotton() {
@@ -1462,9 +1466,9 @@ export class GameEngine {
   private isPlayerAtTreeShadow(tree: Tree) {
     const scale = this.treeScale(tree);
     const shadow = this.treeBase(tree);
-    const feet = playerFeet(this.state.player);
-    const dx = feet.x - shadow.x;
-    const dy = feet.y - shadow.y;
+    const p = this.state.player;
+    const dx = p.x - shadow.x;
+    const dy = (p.y - shadow.y) / CONFIG.gathering.rangeAspect;
     const collisionR = 9.6 * scale + CONFIG.player.footRadius;
     const oldRx = (19 * scale + CONFIG.player.footRadius) * 1.2;
     const rx = Math.max(oldRx, collisionR + CONFIG.interaction.margin);
@@ -1602,15 +1606,15 @@ export class GameEngine {
 
     const treeTarget = this.state.trees
       .filter(tree => this.isPlayerAtTreeShadow(tree))
-      .map(tree => ({ tree, d: Math.hypot(this.treeBase(tree).x - playerFeet(p).x, this.treeBase(tree).y - playerFeet(p).y), centerD: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
+      .map(tree => ({ tree, d: this.gatherDist(this.treeBase(tree).x, this.treeBase(tree).y), centerD: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
       .filter(rock => this.isPlayerAtRock(rock))
-      .map(rock => ({ rock, d: Math.hypot(rock.x - playerFeet(p).x, rock.y - playerFeet(p).y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
+      .map(rock => ({ rock, d: this.gatherDist(rock.x, rock.y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
-      .map(plant => ({ plant, d: Math.hypot(plant.x - playerFeet(p).x, plant.y - playerFeet(p).y), centerD: Math.hypot(plant.x - p.x, plant.y - p.y) }))
+      .map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y), centerD: Math.hypot(plant.x - p.x, plant.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     if (!treeTarget && !rockTarget && !cottonTarget) return;
 
