@@ -2103,7 +2103,7 @@ button, button * {
 .lobby-comet{
   position:absolute;
   z-index:1;
-  top:72%;
+  top:35%;
   left:0;
   width:clamp(130px,19vw,230px);
   height:9px;
@@ -2144,8 +2144,8 @@ button, button * {
 @keyframes lobby-comet-cycle{
   0%{opacity:0;transform:translate3d(calc(-100vw - 100%),0,0) rotate(-12deg)}
   1%{opacity:1}
-  7%{opacity:1;transform:translate3d(100vw,-42.5vw,0) rotate(-12deg)}
-  7.5%,100%{opacity:0;transform:translate3d(100vw,-42.5vw,0) rotate(-12deg)}
+  7%{opacity:1;transform:translate3d(100vw,-12vh,0) rotate(-12deg)}
+  7.5%,100%{opacity:0;transform:translate3d(100vw,-12vh,0) rotate(-12deg)}
 }
 @media(prefers-reduced-motion:reduce){
   .lobby-comet{animation:none;opacity:0}
