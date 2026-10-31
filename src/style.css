@@ -2336,7 +2336,7 @@ button, button * {
 
 /* Botão Jogar: círculo de 64px alinhado à coluna de atalhos, no canto inferior direito. */
 .lobby-play-trigger{
-  position:absolute;z-index:27;right:clamp(14px,4vw,42px);bottom:clamp(14px,3vh,28px);
+  position:absolute;z-index:27;left:auto;right:clamp(14px,4vw,42px);top:90%;bottom:auto;transform:none;
   display:grid;place-items:center;width:64px;height:64px;
   min-width:64px;min-height:64px;padding:0;border:1px solid rgba(235,239,235,.42);
   border-radius:50%;background:rgba(34,35,34,.76);color:#f5f5f2;
@@ -2364,10 +2364,10 @@ button, button * {
   48%,58%{opacity:.38;transform:scale(.94);background:radial-gradient(circle,rgba(153,181,235,.26) 0%,rgba(153,181,235,.08) 44%,transparent 72%)}
 }
 @media(max-width:650px){
-  .lobby-play-trigger{right:12px;bottom:calc(14px + env(safe-area-inset-bottom));width:64px;height:64px;min-width:64px;min-height:64px;font-size:11px}
+  .lobby-play-trigger{left:auto;right:12px;top:90%;bottom:auto;transform:none;width:64px;height:64px;min-width:64px;min-height:64px;font-size:11px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-play-trigger{right:12px;bottom:12px;width:64px;height:64px;min-width:64px;min-height:64px}
+  .lobby-play-trigger{left:auto;right:12px;top:88%;bottom:auto;transform:none;width:64px;height:64px;min-width:64px;min-height:64px}
 }
 @media(prefers-reduced-motion:reduce){
   .lobby-play-trigger,.lobby-play-trigger::before{animation:none}
