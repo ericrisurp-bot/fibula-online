@@ -1,5 +1,5 @@
 import { CONFIG, type WeaponId } from './config';
-import { STAFF_TIP_LOCAL, setDrawnMuzzle } from './rangedWeapons';
+import { BOW_ARROW_CENTER, STAFF_TIP_LOCAL, arrowNockAlpha, setDrawnMuzzle } from './rangedWeapons';
 
 type Point = readonly [number, number];
 
@@ -118,7 +118,63 @@ function drawMageStaff(ctx: CanvasRenderingContext2D, r: number) {
   facet(ctx,r,[[3.53,-0.39],[3.62,-0.49],[3.7,-0.38],[3.62,-0.28]],'#a978ed','#55327b',0.9);
   facet(ctx,r,[[3.24,-1.06],[3.31,-1.16],[3.39,-1.07],[3.34,-0.98]],'#e1c7ff','#55327b',0.9);
 }
-function drawBow(ctx: CanvasRenderingContext2D, r: number) {
+/** Arte da flecha ao longo de +x: penas em x≈1.19 (BOW_ARROW_NOCK_X), ponta em x≈4.38 (unidades de r). */
+const BOW_ARROW_NOCK_X = 1.18;
+function drawArrowArt(ctx: CanvasRenderingContext2D, r: number) {
+  // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta antes da escala.
+  facet(ctx, r, [[BOW_ARROW_NOCK_X,-0.035],[3.94,-0.035],[3.94,0.035],[BOW_ARROW_NOCK_X,0.035]], '#b98a50', '#4c3a2b', 0.8);
+  facet(ctx, r, [[BOW_ARROW_NOCK_X,-0.027],[3.91,-0.027],[3.91,-0.006],[BOW_ARROW_NOCK_X,-0.006]], '#f0d5a0', '');
+  facet(ctx, r, [[1.24,0.006],[3.94,0.006],[3.94,0.035],[1.24,0.035]], '#8c623c', '');
+  // Nock traseiro com entalhe voltado para a corda.
+  facet(ctx, r, [[BOW_ARROW_NOCK_X,-0.055],[BOW_ARROW_NOCK_X+0.075,-0.035],[BOW_ARROW_NOCK_X+0.075,0.035],[BOW_ARROW_NOCK_X,0.055],[BOW_ARROW_NOCK_X+0.025,0],[BOW_ARROW_NOCK_X,0]], '#e7e5dc', '#50535a', 0.8);
+
+  // Três vanes traseiros; os dois principais são facetas espelhadas vermelho e creme.
+  facet(ctx, r, [[1.23,-0.028],[1.34,-0.095],[1.58,-0.17],[1.78,-0.16],[1.66,-0.09],[1.48,-0.035]], '#c93442', '#522b31', 0.8);
+  facet(ctx, r, [[1.23,0.028],[1.34,0.095],[1.58,0.17],[1.78,0.16],[1.66,0.09],[1.48,0.035]], '#f2e5c9', '#66584a', 0.8);
+  facet(ctx, r, [[1.22,-0.012],[1.35,0],[1.65,0.012],[1.77,0]], '#8c2939', '');
+  // Quatro barbas diagonais finas em cada vane.
+  ctx.save();
+  ctx.lineWidth = 0.65;
+  ctx.strokeStyle = '#f08a8c';
+  for (const [x, y] of [[1.37,-0.06],[1.44,-0.08],[1.51,-0.105],[1.58,-0.125]]) {
+    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y-0.045)*r); ctx.stroke();
+  }
+  ctx.strokeStyle = '#b3a28b';
+  for (const [x, y] of [[1.37,0.06],[1.44,0.08],[1.51,0.105],[1.58,0.125]]) {
+    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y+0.045)*r); ctx.stroke();
+  }
+  // Terceiro vane estreito visível junto ao eixo.
+  ctx.strokeStyle = '#dfcba8';
+  ctx.beginPath(); ctx.moveTo(1.28*r, 0); ctx.lineTo(1.63*r, 0); ctx.stroke();
+  ctx.restore();
+
+  // Três marcas curtas de veio na haste.
+  ctx.save();
+  ctx.strokeStyle = '#6f4c32';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(2.02*r, -0.018*r); ctx.lineTo(2.11*r, -0.006*r);
+  ctx.moveTo(2.72*r, 0.012*r); ctx.lineTo(2.82*r, 0.002*r);
+  ctx.moveTo(3.35*r, -0.016*r); ctx.lineTo(3.44*r, -0.004*r);
+  ctx.stroke();
+  ctx.restore();
+
+  // Amarração colorida na junção dos vanes com a haste.
+  facet(ctx, r, [[1.19,-0.045],[1.23,-0.045],[1.23,0.045],[1.19,0.045]], '#b52c3c', '#5c2830', 0.7);
+  facet(ctx, r, [[1.195,-0.04],[1.215,-0.04],[1.215,0.04],[1.195,0.04]], '#f1c76a', '');
+
+  // Soquete metálico curto, amarração e ponta de aço em forma de folha.
+  facet(ctx, r, [[3.82,-0.045],[3.96,-0.045],[3.96,0.045],[3.82,0.045]], '#7c8990', '#414950', 0.8);
+  facet(ctx, r, [[3.83,-0.028],[3.95,-0.028],[3.95,-0.008],[3.83,-0.008]], '#dfe8e8', '');
+  facet(ctx, r, [[3.78,-0.048],[3.81,-0.048],[3.81,0.048],[3.78,0.048]], '#c13a46', '#4b2b31', 0.7);
+  facet(ctx, r, [[3.93,-0.04],[4.12,-0.11],[4.27,-0.065],[4.38,0],[4.27,0.065],[4.12,0.11],[3.93,0.04]], '#9ba8ad', '#3e4b53', 1.0);
+  // Três facetas da ponta: clara, média e escura.
+  facet(ctx, r, [[3.94,-0.035],[4.12,-0.11],[4.38,0],[4.13,-0.012]], '#edf4f1', '');
+  facet(ctx, r, [[4.13,-0.012],[4.38,0],[4.27,0.065],[4.12,0.11]], '#687780', '');
+  facet(ctx, r, [[3.94,0.035],[4.13,-0.012],[4.27,0.065],[4.12,0.11]], '#b7c3c7', '');
+}
+
+function drawBow(ctx: CanvasRenderingContext2D, r: number, arrowAlpha = 1) {
   // Aumenta o arco inteiro em 40%, mantendo o centro visual no mesmo lugar.
   ctx.save();
   ctx.translate(1.4 * r, 0);
@@ -172,70 +228,17 @@ function drawBow(ctx: CanvasRenderingContext2D, r: number) {
   ctx.lineWidth = Math.max(0.7, r * 0.018);
   ctx.stroke();
 
-  // Flecha decorativa encaixada na corda; não participa da mecânica de projéteis.
-  // Desloca a flecha inteira para que o nock coincida com o vértice do V.
-  const nockX = centerAt(0);
-  ctx.save();
-  // Inverte a flecha horizontalmente: ponta e penas trocam de extremidade.
-  // Mantém o conjunto dentro da mesma área visual antes da redução para 50%.
-  ctx.translate((2 * nockPointX + 0.5 * (4.38 - nockX)) * r, 0);
-  ctx.scale(-1, 1);
-  // Reduz a flecha para 50%, mantendo o conjunto alinhado à corda.
-  ctx.translate(nockPointX * r, 0);
-  ctx.scale(0.5, 0.5);
-  ctx.translate(-nockX * r, 0);
-  // Haste de madeira clara, comprimento total aproximado de 3.2*r até a ponta antes da escala.
-  facet(ctx, r, [[nockX,-0.035],[3.94,-0.035],[3.94,0.035],[nockX,0.035]], '#b98a50', '#4c3a2b', 0.8);
-  facet(ctx, r, [[nockX,-0.027],[3.91,-0.027],[3.91,-0.006],[nockX,-0.006]], '#f0d5a0', '');
-  facet(ctx, r, [[1.24,0.006],[3.94,0.006],[3.94,0.035],[1.24,0.035]], '#8c623c', '');
-  // Nock traseiro com entalhe voltado para a corda.
-  facet(ctx, r, [[nockX,-0.055],[nockX+0.075,-0.035],[nockX+0.075,0.035],[nockX,0.055],[nockX+0.025,0],[nockX,0]], '#e7e5dc', '#50535a', 0.8);
-
-  // Três vanes traseiros; os dois principais são facetas espelhadas vermelho e creme.
-  facet(ctx, r, [[1.23,-0.028],[1.34,-0.095],[1.58,-0.17],[1.78,-0.16],[1.66,-0.09],[1.48,-0.035]], '#c93442', '#522b31', 0.8);
-  facet(ctx, r, [[1.23,0.028],[1.34,0.095],[1.58,0.17],[1.78,0.16],[1.66,0.09],[1.48,0.035]], '#f2e5c9', '#66584a', 0.8);
-  facet(ctx, r, [[1.22,-0.012],[1.35,0],[1.65,0.012],[1.77,0]], '#8c2939', '');
-  // Quatro barbas diagonais finas em cada vane.
-  ctx.save();
-  ctx.lineWidth = 0.65;
-  ctx.strokeStyle = '#f08a8c';
-  for (const [x, y] of [[1.37,-0.06],[1.44,-0.08],[1.51,-0.105],[1.58,-0.125]]) {
-    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y-0.045)*r); ctx.stroke();
+  // Flecha encaixada na corda: penas no vértice do V, ponta à frente (passa pela madeira do arco).
+  // Some ao soltar o tiro e volta (reencaixa) com fade; o projétil usa exatamente esta mesma arte.
+  if (arrowAlpha > 0.01) {
+    ctx.save();
+    ctx.globalAlpha *= arrowAlpha;
+    ctx.translate(nockPointX * r, 0);
+    ctx.scale(0.5, 0.5);
+    ctx.translate(-BOW_ARROW_NOCK_X * r, 0);
+    drawArrowArt(ctx, r);
+    ctx.restore();
   }
-  ctx.strokeStyle = '#b3a28b';
-  for (const [x, y] of [[1.37,0.06],[1.44,0.08],[1.51,0.105],[1.58,0.125]]) {
-    ctx.beginPath(); ctx.moveTo(x*r, y*r); ctx.lineTo((x+0.055)*r, (y+0.045)*r); ctx.stroke();
-  }
-  // Terceiro vane estreito visível junto ao eixo.
-  ctx.strokeStyle = '#dfcba8';
-  ctx.beginPath(); ctx.moveTo(1.28*r, 0); ctx.lineTo(1.63*r, 0); ctx.stroke();
-  ctx.restore();
-
-  // Três marcas curtas de veio na haste.
-  ctx.save();
-  ctx.strokeStyle = '#6f4c32';
-  ctx.lineWidth = 0.7;
-  ctx.beginPath();
-  ctx.moveTo(2.02*r, -0.018*r); ctx.lineTo(2.11*r, -0.006*r);
-  ctx.moveTo(2.72*r, 0.012*r); ctx.lineTo(2.82*r, 0.002*r);
-  ctx.moveTo(3.35*r, -0.016*r); ctx.lineTo(3.44*r, -0.004*r);
-  ctx.stroke();
-  ctx.restore();
-
-  // Amarração colorida na junção dos vanes com a haste.
-  facet(ctx, r, [[1.19,-0.045],[1.23,-0.045],[1.23,0.045],[1.19,0.045]], '#b52c3c', '#5c2830', 0.7);
-  facet(ctx, r, [[1.195,-0.04],[1.215,-0.04],[1.215,0.04],[1.195,0.04]], '#f1c76a', '');
-
-  // Soquete metálico curto, amarração e ponta de aço em forma de folha.
-  facet(ctx, r, [[3.82,-0.045],[3.96,-0.045],[3.96,0.045],[3.82,0.045]], '#7c8990', '#414950', 0.8);
-  facet(ctx, r, [[3.83,-0.028],[3.95,-0.028],[3.95,-0.008],[3.83,-0.008]], '#dfe8e8', '');
-  facet(ctx, r, [[3.78,-0.048],[3.81,-0.048],[3.81,0.048],[3.78,0.048]], '#c13a46', '#4b2b31', 0.7);
-  facet(ctx, r, [[3.93,-0.04],[4.12,-0.11],[4.27,-0.065],[4.38,0],[4.27,0.065],[4.12,0.11],[3.93,0.04]], '#9ba8ad', '#3e4b53', 1.0);
-  // Três facetas da ponta: clara, média e escura.
-  facet(ctx, r, [[3.94,-0.035],[4.12,-0.11],[4.38,0],[4.13,-0.012]], '#edf4f1', '');
-  facet(ctx, r, [[4.13,-0.012],[4.38,0],[4.27,0.065],[4.12,0.11]], '#687780', '');
-  facet(ctx, r, [[3.94,0.035],[4.13,-0.012],[4.27,0.065],[4.12,0.11]], '#b7c3c7', '');
-  ctx.restore();
   ctx.restore();
 }
 function drawDruidStaff(ctx: CanvasRenderingContext2D, r: number) {
@@ -398,13 +401,16 @@ export function drawFloatingWeapon(
     // Publica onde a gema realmente está neste quadro (posição + giro + escala).
     const tip = STAFF_TIP_LOCAL[weapon], cos = Math.cos(hover.angle), sin = Math.sin(hover.angle);
     setDrawnMuzzle(weapon, opts.time, x + (tip.x * cos - tip.y * sin) * entryScale, y + (tip.x * sin + tip.y * cos) * entryScale);
+  } else if (weapon === 'arco') {
+    // A flecha sai do centro da flecha encaixada (penas -> madeira -> ponta), no eixo atual do arco.
+    setDrawnMuzzle(weapon, opts.time, x + BOW_ARROW_CENTER * Math.cos(hover.angle) * entryScale, y + BOW_ARROW_CENTER * Math.sin(hover.angle) * entryScale);
   }
   ctx.save();
   ctx.globalAlpha = opts.forceVisible ? 1 : hover.presence;
   ctx.translate(x, y);
   ctx.scale(entryScale, entryScale);
   ctx.rotate(hover.angle);
-  drawWeapon(ctx, weapon, r);
+  drawWeapon(ctx, weapon, r, weapon === 'arco' ? arrowNockAlpha(opts.time) : 1);
   ctx.restore();
 }
 
@@ -421,7 +427,17 @@ const WEAPON_VISUAL_LENGTH: Record<WeaponId, number> = {
   bastao: 2.57,
 };
 
-export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: number): void {
+/** Flecha em voo: mesma arte da flecha encaixada no arco, centrada em (0,0) e apontando para +x. */
+export function drawArrowShot(ctx: CanvasRenderingContext2D, r: number): void {
+  const s = 50 / (WEAPON_VISUAL_LENGTH.arco * r) * 1.4 * 0.5;
+  ctx.save();
+  ctx.scale(s, s);
+  ctx.translate(-2.785 * r, 0);
+  drawArrowArt(ctx, r);
+  ctx.restore();
+}
+
+export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: number, arrowAlpha = 1): void {
   // Normaliza o maior eixo visual de cada arma para cerca de 50 unidades.
   const visualScale = 50 / (WEAPON_VISUAL_LENGTH[weapon] * r);
   ctx.save();
@@ -435,7 +451,7 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
       drawMageStaff(ctx, r);
       break;
     case 'arco':
-      drawBow(ctx, r);
+      drawBow(ctx, r, arrowAlpha);
       break;
     case 'bastao':
       drawDruidStaff(ctx, r);
