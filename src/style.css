@@ -2151,7 +2151,7 @@ button, button * {
 
 /* Lista de amigos do lobby — prévia com dados demonstrativos, sem integração online. */
 .lobby-friends-trigger{
-  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 152px);z-index:26;
+  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 228px);z-index:26;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
   padding:3px;border:1px solid rgba(177,143,255,.72);border-radius:10px;
@@ -2194,7 +2194,7 @@ button, button * {
 .lobby-friend-status.is-offline span{color:#a7a2b2}
 .lobby-friends-note{margin:0;padding:0 14px 13px;color:#9f98ae;font-size:9px;line-height:1.45;text-align:center}
 @media(max-width:650px){
-  .lobby-friends-trigger{right:12px;top:calc(38% + 124px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-friends-trigger{right:12px;top:calc(38% + 186px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
   .lobby-friends-trigger span{font-size:8px}
   .lobby-friends-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
   .lobby-friends-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:12px}
@@ -2203,7 +2203,7 @@ button, button * {
   .lobby-friends-list{padding:10px;gap:6px}
   .lobby-friend-row{gap:7px;padding:8px}
 }
-@media(orientation:landscape) and (max-height:520px){.lobby-friends-trigger{top:calc(30% + 116px)}}
+@media(orientation:landscape) and (max-height:520px){.lobby-friends-trigger{top:calc(30% + 174px)}}
 
 
 /* Modal de amigos no mesmo padrão branco e rosa dos demais modais. */
@@ -2239,7 +2239,7 @@ button, button * {
 
 /* Baú do lobby: botão abaixo de Amigos, mantendo o padrão branco e rosa. */
 .lobby-chest-trigger{
-  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 228px);z-index:26;
+  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 304px);z-index:26;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
   padding:3px;border:1px solid rgba(235,160,193,.78);border-radius:10px;
@@ -2269,14 +2269,14 @@ button, button * {
 .lobby-chest-slot-number{font-size:10px;color:#d1b9c4}
 .lobby-chest-note{margin:0;padding:0 14px 14px;color:#a4778b;font-size:10px;line-height:1.5;text-align:center}
 @media(max-width:650px){
-  .lobby-chest-trigger{right:12px;top:calc(38% + 186px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-chest-trigger{right:12px;top:calc(38% + 248px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
   .lobby-chest-trigger span{font-size:8px}
   .lobby-chest-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:10px}
   .lobby-chest-slot{border-radius:7px}
   .lobby-chest-slot small{font-size:8px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-chest-trigger{top:calc(30% + 174px)}
+  .lobby-chest-trigger{top:calc(30% + 232px)}
 }
 
 
