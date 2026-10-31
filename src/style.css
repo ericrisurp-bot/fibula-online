@@ -2372,3 +2372,71 @@ button, button * {
 @media(prefers-reduced-motion:reduce){
   .lobby-play-trigger,.lobby-play-trigger::before{animation:none}
 }
+
+
+/* Estações de criação do lobby: mesma dimensão e linguagem dos atalhos laterais. */
+.lobby-crafting-stations{
+  position:absolute;z-index:27;left:clamp(14px,4vw,42px);top:90%;transform:translateY(-50%);
+  display:flex;align-items:center;gap:8px;max-width:calc(100% - 128px);
+}
+.lobby-crafting-trigger{
+  display:flex;flex:0 0 auto;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
+  padding:3px;border:1px solid rgba(225,225,225,.42);border-radius:10px;
+  background:rgba(34,35,34,.86);color:#f0f0f0;
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  box-shadow:inset 0 1px 2px #ffffff12,0 2px 9px #0005;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background .16s ease,transform .16s ease,border-color .16s ease;
+}
+.lobby-crafting-trigger:hover{background:rgba(62,65,62,.94);border-color:rgba(245,245,245,.68)}
+.lobby-crafting-trigger:active{transform:scale(.96)}
+.lobby-crafting-trigger:focus-visible{outline:2px solid #e8e8e8;outline-offset:3px}
+.lobby-crafting-icon{font-size:clamp(18px,2vw,24px);line-height:1}
+.lobby-crafting-trigger>span:last-child{font-size:8px;font-weight:900;letter-spacing:.025em;line-height:1}
+.lobby-crafting-backdrop{
+  position:absolute;z-index:66;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:clamp(10px,3vw,28px);background:rgba(0,0,0,.62);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.lobby-crafting-modal{
+  display:flex;flex-direction:column;width:min(420px,100%);overflow:hidden;
+  border:1px solid #d9dde2;border-radius:12px;background:#fff;color:#26313d;
+  box-shadow:0 18px 55px rgba(0,0,0,.35);
+}
+.lobby-crafting-header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid #e5e8ec;background:#fff;
+}
+.lobby-crafting-header>div>span{color:#818b97;font-size:9px;font-weight:900;letter-spacing:.13em}
+.lobby-crafting-header h2{margin:3px 0 0;color:#26313d;font-size:22px}
+.lobby-crafting-close{
+  display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  border:1px solid #d8dde4;border-radius:8px;background:#f7f8fa;color:#536171;font-size:22px;line-height:1;
+}
+.lobby-crafting-content{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px;text-align:center}
+.lobby-crafting-emblem{display:grid;place-items:center;width:66px;height:66px;border:1px solid #dfe3e7;border-radius:14px;background:#f5f6f7;font-size:34px}
+.lobby-crafting-content>p{margin:0;color:#536171;font-size:13px;line-height:1.55}
+.lobby-crafting-products{display:flex;flex-direction:column;gap:5px;width:100%;padding:12px;border:1px solid #e5e8ec;border-radius:9px;background:#f8f9fa}
+.lobby-crafting-products>span{color:#818b97;font-size:9px;font-weight:900;letter-spacing:.1em}
+.lobby-crafting-products>strong{color:#354150;font-size:12px;line-height:1.4}
+.lobby-crafting-content>small{color:#8a949f;font-size:10px;line-height:1.45}
+@media(max-width:650px){
+  .lobby-crafting-stations{left:12px;top:90%;gap:4px;max-width:calc(100% - 112px)}
+  .lobby-crafting-trigger{width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px;gap:2px;padding:2px}
+  .lobby-crafting-icon{font-size:19px}
+  .lobby-crafting-trigger>span:last-child{font-size:7px}
+  .lobby-crafting-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
+  .lobby-crafting-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  .lobby-crafting-header{padding:11px 12px}
+  .lobby-crafting-content{padding:17px}
+}
+@media(max-width:360px){
+  .lobby-crafting-stations{left:8px;gap:3px}
+  .lobby-crafting-trigger{width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-crafting-icon{font-size:17px}
+  .lobby-crafting-trigger>span:last-child{font-size:6px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-crafting-stations{top:88%;left:12px}
+}
