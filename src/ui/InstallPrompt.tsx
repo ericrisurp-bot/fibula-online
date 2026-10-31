@@ -12,11 +12,13 @@ export default function InstallPrompt() {
   const [ios, setIos] = useState(false);
 
   useEffect(() => {
-    const isStandalone = () =>
+    const isInstalledApp = () =>
+      window.matchMedia('(display-mode: fullscreen)').matches ||
       window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: minimal-ui)').matches ||
       (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-    if (isStandalone()) return;
+    if (isInstalledApp()) return;
 
     const userAgent = window.navigator.userAgent;
     const isIosDevice = /iPad|iPhone|iPod/.test(userAgent) ||
