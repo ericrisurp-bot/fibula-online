@@ -2083,7 +2083,7 @@ button, button * {
   -webkit-backdrop-filter:blur(5px);
 }
 .lobby-profile-trigger{top:42%}
-.lobby-arsenal-trigger{top:calc(42% + 76px)}
+.lobby-arsenal-trigger{top:calc(42% + 152px)}
 .lobby-profile-trigger span,
 .lobby-arsenal-trigger span{font-size:10px}
 @media(max-width:650px){
@@ -2097,11 +2097,11 @@ button, button * {
     border-radius:9px;
   }
   .lobby-profile-trigger{top:38%}
-  .lobby-arsenal-trigger{top:calc(38% + 62px)}
+  .lobby-arsenal-trigger{top:calc(38% + 124px)}
 }
 @media(orientation:landscape) and (max-height:520px){
   .lobby-profile-trigger{top:30%}
-  .lobby-arsenal-trigger{top:calc(30% + 58px)}
+  .lobby-arsenal-trigger{top:calc(30% + 116px)}
 }
 
 /* Cometa de fogo: passagem curta da esquerda para a direita a cada 60 segundos. */
