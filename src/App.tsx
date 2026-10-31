@@ -1440,30 +1440,14 @@ export default function App() {
           <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-friends-header">
               <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
-              <div className="lobby-friends-count"><i/> 2 online · 5 amigos</div>
+              <div className="lobby-friends-count">0 amigos</div>
               <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={() => setFriendsOpen(false)}>×</button>
             </header>
-            <div className="lobby-friends-list">
-              {[
-                { id: 'nyx', name: 'Nyx', classId: 'mago' as ClassId, pd: 128, online: true, time: 'online há 12 min' },
-                { id: 'kael', name: 'Kael', classId: 'guerreiro' as ClassId, pd: 96, online: true, time: 'online há 1 h 08 min' },
-                { id: 'lira', name: 'Lira', classId: 'arqueiro' as ClassId, pd: 143, online: false, time: 'há 35 min' },
-                { id: 'thorn', name: 'Thorn', classId: 'druida' as ClassId, pd: 82, online: false, time: 'há 4 h' },
-                { id: 'mira', name: 'Mira', classId: 'mago' as ClassId, pd: 117, online: false, time: 'há 2 dias' },
-              ].map(friend => <article className="lobby-friend-row" key={friend.id}>
-                <div className="lobby-friend-avatar" aria-hidden="true">{{ guerreiro: '⚔', mago: '✦', arqueiro: '➶', druida: '❧' }[friend.classId]}</div>
-                <div className="lobby-friend-main">
-                  <strong>{friend.name}</strong>
-                  <span>{CLASSES[friend.classId].label}</span>
-                </div>
-                <div className="lobby-friend-power"><small>PD</small><b>{friend.pd}</b></div>
-                <div className={`lobby-friend-status ${friend.online ? 'is-online' : 'is-offline'}`}>
-                  <span>{friend.online ? 'ON' : 'OFF'}</span>
-                  <small>{friend.time}</small>
-                </div>
-              </article>)}
+            <div className="lobby-friends-empty" role="status">
+              <span aria-hidden="true">♡</span>
+              <strong>Você ainda não tem amigos</strong>
+              <p>Quando adicionar amigos, eles aparecerão aqui.</p>
             </div>
-            <p className="lobby-friends-note">Prévia visual · amigos e horários demonstrativos. A conexão real será feita depois com o Supabase.</p>
           </section>
         </div>}
         {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
