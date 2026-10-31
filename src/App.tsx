@@ -1346,6 +1346,7 @@ export default function App() {
           <i className="lobby-moon"/>
           <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
           <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
+          <i className="lobby-comet" aria-hidden="true"/>
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
