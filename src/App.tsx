@@ -1414,7 +1414,37 @@ export default function App() {
             </svg>
             <span>F6</span>
           </button>
-        <button className="lobby-play-trigger" type="button" onClick={startGame}>JOGAR</button>
+        <button className="lobby-play-trigger" type="button" onClick={startGame} aria-label="Jogar" title="Entrar no mundo">
+          <span className="lobby-world-sphere" aria-hidden="true">
+            <span className="lobby-world-day" />
+            <span className="lobby-world-night"><i /><i /><i /><i /></span>
+            <span className="lobby-world-resources">
+              <svg className="lobby-world-tree" viewBox="0 0 40 48">
+                <path d="M17 25h7v19h-7z" fill="#805333" stroke="#593820" strokeWidth="1.4"/>
+                <path d="M20 2 10 13l3 1-8 10 6 1-4 9 13 5 13-5-4-9 6-1-8-10 3-1z" fill="#397b4c" stroke="#173d2a" strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="m20 2 1 16-8 8-6-2 6-10z" fill="#60965a"/>
+                <path d="m21 18 8-7 5 10-7 7z" fill="#285b3b"/>
+              </svg>
+              <svg className="lobby-world-rock" viewBox="0 0 40 34">
+                <path d="m3 25 2-10 8-10 9-3 9 6 6 12-4 9-12 3-13-2z" fill="#788188" stroke="#454d53" strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="m5 15 8-10 9-3-1 11-9 7-9 5z" fill="#aab2b7"/>
+                <path d="m22 2 9 6-2 10-8-5z" fill="#c0c6ca"/>
+                <path d="m21 13 8 5-3 11-12 1-2-10z" fill="#68737a"/>
+              </svg>
+              <svg className="lobby-world-cotton" viewBox="0 0 42 44">
+                <path d="M21 40V22l-9-9m9 11 9-12m-9 15-11-4m11 0 11-3" fill="none" stroke="#765038" strokeWidth="2.5" strokeLinecap="round"/>
+                <g fill="#fffaf0" stroke="#d8d0c1" strokeWidth="1">
+                  <circle cx="11" cy="11" r="5"/><circle cx="9" cy="10" r="3.5"/><circle cx="14" cy="10" r="3.5"/>
+                  <circle cx="31" cy="10" r="5"/><circle cx="28" cy="9" r="3.5"/><circle cx="34" cy="9" r="3.5"/>
+                  <circle cx="10" cy="23" r="4.5"/><circle cx="7" cy="22" r="3"/><circle cx="13" cy="21" r="3"/>
+                  <circle cx="32" cy="20" r="4.5"/><circle cx="29" cy="19" r="3"/><circle cx="35" cy="19" r="3"/>
+                </g>
+              </svg>
+            </span>
+            <span className="lobby-world-shine" />
+          </span>
+          <span className="lobby-world-label">Jogar</span>
+        </button>
         {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-arsenal-header">
