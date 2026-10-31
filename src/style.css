@@ -2619,17 +2619,17 @@ button, button * {
   line-height:1;
 }
 /* Coluna lateral com ritmo uniforme e mais próxima da linha inferior do lobby. */
-.lobby-profile-trigger{top:44%}
-.lobby-status-trigger{top:calc(44% + 82px)}
-.lobby-arsenal-trigger{top:calc(44% + 164px)}
-.lobby-friends-trigger{top:calc(44% + 246px)}
-.lobby-chest-trigger{top:calc(44% + 328px)}
+.lobby-profile-trigger{top:41%}
+.lobby-status-trigger{top:calc(41% + 82px)}
+.lobby-arsenal-trigger{top:calc(41% + 164px)}
+.lobby-friends-trigger{top:calc(41% + 246px)}
+.lobby-chest-trigger{top:calc(41% + 328px)}
 @media(max-width:650px){
-  .lobby-profile-trigger{top:40%}
-  .lobby-status-trigger{top:calc(40% + 70px)}
-  .lobby-arsenal-trigger{top:calc(40% + 140px)}
-  .lobby-friends-trigger{top:calc(40% + 210px)}
-  .lobby-chest-trigger{top:calc(40% + 280px)}
+  .lobby-profile-trigger{top:37%}
+  .lobby-status-trigger{top:calc(37% + 70px)}
+  .lobby-arsenal-trigger{top:calc(37% + 140px)}
+  .lobby-friends-trigger{top:calc(37% + 210px)}
+  .lobby-chest-trigger{top:calc(37% + 280px)}
   .lobby-profile-trigger span:not(.lobby-top-emoji),
   .lobby-status-trigger span:not(.lobby-top-emoji),
   .lobby-arsenal-trigger span:not(.lobby-top-emoji),
@@ -2638,9 +2638,9 @@ button, button * {
   .lobby-crafting-trigger>span:last-child{font-size:8px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-profile-trigger{top:34%}
-  .lobby-status-trigger{top:calc(34% + 64px)}
-  .lobby-arsenal-trigger{top:calc(34% + 128px)}
-  .lobby-friends-trigger{top:calc(34% + 192px)}
-  .lobby-chest-trigger{top:calc(34% + 256px)}
+  .lobby-profile-trigger{top:31%}
+  .lobby-status-trigger{top:calc(31% + 64px)}
+  .lobby-arsenal-trigger{top:calc(31% + 128px)}
+  .lobby-friends-trigger{top:calc(31% + 192px)}
+  .lobby-chest-trigger{top:calc(31% + 256px)}
 }
