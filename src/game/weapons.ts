@@ -429,10 +429,23 @@ const WEAPON_VISUAL_LENGTH: Record<WeaponId, number> = {
 
 /** Flecha em voo: mesma arte da flecha encaixada no arco, centrada em (0,0) e apontando para +x. */
 export function drawArrowShot(ctx: CanvasRenderingContext2D, r: number): void {
-  const s = 50 / (WEAPON_VISUAL_LENGTH.arco * r) * 1.4 * 0.5;
+  // Aumenta a leitura da flecha em voo sem alterar a arte encaixada no arco.
+  const s = 50 / (WEAPON_VISUAL_LENGTH.arco * r) * 1.4 * 0.7;
   ctx.save();
   ctx.scale(s, s);
   ctx.translate(-2.785 * r, 0);
+
+  // Silhueta escura mais espessa cria contraste com cenários claros e escuros.
+  // A arte facetada é desenhada por cima, preservando madeira, penas e ponta metálica.
+  ctx.beginPath();
+  ctx.moveTo(BOW_ARROW_NOCK_X * r, 0);
+  ctx.lineTo(4.38 * r, 0);
+  ctx.strokeStyle = '#282326';
+  ctx.lineWidth = 0.16 * r;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
   drawArrowArt(ctx, r);
   ctx.restore();
 }
