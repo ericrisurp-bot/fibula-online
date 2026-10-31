@@ -3001,3 +3001,29 @@ button, button * {
 @media(max-width:650px){
   .lobby-ranking-trigger>.lobby-ranking-trophy+span{bottom:8px;font-size:7px !important}
 }
+
+
+/* Camadas do atalho: brilhos e rótulo na frente do troféu. */
+.lobby-ranking-trigger>.lobby-ranking-trophy{
+  position:relative;
+  z-index:1;
+}
+.lobby-ranking-trigger>.lobby-ranking-spark{
+  z-index:4;
+}
+.lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  z-index:5;
+  bottom:8px;
+  font-size:9px !important;
+  letter-spacing:.035em;
+  text-shadow:0 1px 2px #3a2608,0 0 5px #5a390b;
+}
+@media(max-width:650px){
+  .lobby-ranking-trigger>.lobby-ranking-trophy+span{
+    bottom:8px;
+    font-size:8px !important;
+  }
+}
+@media(max-width:360px){
+  .lobby-ranking-trigger>.lobby-ranking-trophy+span{font-size:8px !important}
+}
