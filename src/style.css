@@ -2083,7 +2083,7 @@ button, button * {
   -webkit-backdrop-filter:blur(5px);
 }
 .lobby-profile-trigger{top:42%}
-.lobby-arsenal-trigger{top:calc(42% + 76px)}
+.lobby-arsenal-trigger{top:calc(42% + 152px)}
 .lobby-profile-trigger span,
 .lobby-arsenal-trigger span{font-size:10px}
 @media(max-width:650px){
@@ -2097,11 +2097,11 @@ button, button * {
     border-radius:9px;
   }
   .lobby-profile-trigger{top:38%}
-  .lobby-arsenal-trigger{top:calc(38% + 62px)}
+  .lobby-arsenal-trigger{top:calc(38% + 124px)}
 }
 @media(orientation:landscape) and (max-height:520px){
   .lobby-profile-trigger{top:30%}
-  .lobby-arsenal-trigger{top:calc(30% + 58px)}
+  .lobby-arsenal-trigger{top:calc(30% + 116px)}
 }
 
 /* Cometa de fogo: passagem curta da esquerda para a direita a cada 60 segundos. */
@@ -2151,7 +2151,7 @@ button, button * {
 
 /* Lista de amigos do lobby — prévia com dados demonstrativos, sem integração online. */
 .lobby-friends-trigger{
-  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 152px);z-index:26;
+  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 228px);z-index:26;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
   padding:3px;border:1px solid rgba(177,143,255,.72);border-radius:10px;
@@ -2194,7 +2194,7 @@ button, button * {
 .lobby-friend-status.is-offline span{color:#a7a2b2}
 .lobby-friends-note{margin:0;padding:0 14px 13px;color:#9f98ae;font-size:9px;line-height:1.45;text-align:center}
 @media(max-width:650px){
-  .lobby-friends-trigger{right:12px;top:calc(38% + 124px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-friends-trigger{right:12px;top:calc(38% + 186px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
   .lobby-friends-trigger span{font-size:8px}
   .lobby-friends-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
   .lobby-friends-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:12px}
@@ -2203,7 +2203,7 @@ button, button * {
   .lobby-friends-list{padding:10px;gap:6px}
   .lobby-friend-row{gap:7px;padding:8px}
 }
-@media(orientation:landscape) and (max-height:520px){.lobby-friends-trigger{top:calc(30% + 116px)}}
+@media(orientation:landscape) and (max-height:520px){.lobby-friends-trigger{top:calc(30% + 174px)}}
 
 
 /* Modal de amigos no mesmo padrão branco e rosa dos demais modais. */
@@ -2239,7 +2239,7 @@ button, button * {
 
 /* Baú do lobby: botão abaixo de Amigos, mantendo o padrão branco e rosa. */
 .lobby-chest-trigger{
-  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 228px);z-index:26;
+  position:absolute;right:clamp(14px,4vw,42px);top:calc(42% + 304px);z-index:26;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
   padding:3px;border:1px solid rgba(235,160,193,.78);border-radius:10px;
@@ -2269,14 +2269,14 @@ button, button * {
 .lobby-chest-slot-number{font-size:10px;color:#d1b9c4}
 .lobby-chest-note{margin:0;padding:0 14px 14px;color:#a4778b;font-size:10px;line-height:1.5;text-align:center}
 @media(max-width:650px){
-  .lobby-chest-trigger{right:12px;top:calc(38% + 186px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-chest-trigger{right:12px;top:calc(38% + 248px);width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
   .lobby-chest-trigger span{font-size:8px}
   .lobby-chest-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:10px}
   .lobby-chest-slot{border-radius:7px}
   .lobby-chest-slot small{font-size:8px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-chest-trigger{top:calc(30% + 174px)}
+  .lobby-chest-trigger{top:calc(30% + 232px)}
 }
 
 
@@ -2371,4 +2371,411 @@ button, button * {
 }
 @media(prefers-reduced-motion:reduce){
   .lobby-play-trigger,.lobby-play-trigger::before{animation:none}
+}
+
+
+/* Estações de criação do lobby: mesma dimensão e linguagem dos atalhos laterais. */
+.lobby-crafting-stations{
+  position:absolute;z-index:27;left:clamp(14px,4vw,42px);top:90%;transform:translateY(-50%);
+  display:flex;align-items:center;gap:8px;max-width:calc(100% - 128px);
+}
+.lobby-crafting-trigger{
+  display:flex;flex:0 0 auto;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  width:clamp(54px,6vw,68px);height:clamp(54px,6vw,68px);min-width:54px;min-height:54px;
+  padding:3px;border:1px solid rgba(225,225,225,.42);border-radius:10px;
+  background:rgba(34,35,34,.86);color:#f0f0f0;
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  box-shadow:inset 0 1px 2px #ffffff12,0 2px 9px #0005;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background .16s ease,transform .16s ease,border-color .16s ease;
+}
+.lobby-crafting-trigger:hover{background:rgba(62,65,62,.94);border-color:rgba(245,245,245,.68)}
+.lobby-crafting-trigger:active{transform:scale(.96)}
+.lobby-crafting-trigger:focus-visible{outline:2px solid #e8e8e8;outline-offset:3px}
+.lobby-crafting-icon{font-size:clamp(18px,2vw,24px);line-height:1}
+.lobby-crafting-trigger>span:last-child{font-size:8px;font-weight:900;letter-spacing:.025em;line-height:1}
+.lobby-crafting-backdrop{
+  position:absolute;z-index:66;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:clamp(10px,3vw,28px);background:rgba(0,0,0,.62);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.lobby-crafting-modal{
+  display:flex;flex-direction:column;width:min(420px,100%);overflow:hidden;
+  border:1px solid #d9dde2;border-radius:12px;background:#fff;color:#26313d;
+  box-shadow:0 18px 55px rgba(0,0,0,.35);
+}
+.lobby-crafting-header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid #e5e8ec;background:#fff;
+}
+.lobby-crafting-header>div>span{color:#818b97;font-size:9px;font-weight:900;letter-spacing:.13em}
+.lobby-crafting-header h2{margin:3px 0 0;color:#26313d;font-size:22px}
+.lobby-crafting-close{
+  display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  border:1px solid #d8dde4;border-radius:8px;background:#f7f8fa;color:#536171;font-size:22px;line-height:1;
+}
+.lobby-crafting-content{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px;text-align:center}
+.lobby-crafting-emblem{display:grid;place-items:center;width:66px;height:66px;border:1px solid #dfe3e7;border-radius:14px;background:#f5f6f7;font-size:34px}
+.lobby-crafting-content>p{margin:0;color:#536171;font-size:13px;line-height:1.55}
+.lobby-crafting-products{display:flex;flex-direction:column;gap:5px;width:100%;padding:12px;border:1px solid #e5e8ec;border-radius:9px;background:#f8f9fa}
+.lobby-crafting-products>span{color:#818b97;font-size:9px;font-weight:900;letter-spacing:.1em}
+.lobby-crafting-products>strong{color:#354150;font-size:12px;line-height:1.4}
+.lobby-crafting-content>small{color:#8a949f;font-size:10px;line-height:1.45}
+@media(max-width:650px){
+  .lobby-crafting-stations{left:12px;top:90%;gap:4px;max-width:calc(100% - 112px)}
+  .lobby-crafting-trigger{width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px;gap:2px;padding:2px}
+  .lobby-crafting-icon{font-size:19px}
+  .lobby-crafting-trigger>span:last-child{font-size:7px}
+  .lobby-crafting-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
+  .lobby-crafting-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  .lobby-crafting-header{padding:11px 12px}
+  .lobby-crafting-content{padding:17px}
+}
+@media(max-width:360px){
+  .lobby-crafting-stations{left:8px;gap:3px}
+  .lobby-crafting-trigger{width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-crafting-icon{font-size:17px}
+  .lobby-crafting-trigger>span:last-child{font-size:6px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-crafting-stations{top:88%;left:12px}
+}
+
+
+/* Distribuição proporcional dos quatro atalhos na faixa entre a borda esquerda e Jogar. */
+.lobby-crafting-stations{
+  left:clamp(14px,4vw,42px);
+  right:calc(clamp(14px,4vw,42px) + 90px + clamp(14px,3vw,28px));
+  width:auto;
+  max-width:none;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  justify-items:center;
+  align-items:center;
+  gap:0;
+}
+.lobby-crafting-trigger{
+  width:clamp(54px,6vw,68px);
+  height:clamp(54px,6vw,68px);
+}
+.lobby-top-emoji{
+  display:block;
+  font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  font-size:clamp(21px,2.2vw,27px);
+  line-height:1;
+}
+.lobby-arsenal-trigger .lobby-top-emoji,
+.lobby-friends-trigger .lobby-top-emoji,
+.lobby-chest-trigger .lobby-top-emoji,
+.lobby-profile-trigger .lobby-top-emoji{
+  font-size:clamp(21px,2.2vw,26px);
+  line-height:1;
+}
+@media(max-width:650px){
+  .lobby-crafting-stations{
+    left:12px;
+    right:110px;
+    width:auto;
+    max-width:none;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .lobby-crafting-trigger{width:52px;height:52px;min-width:52px;min-height:52px}
+  .lobby-top-emoji,
+  .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-friends-trigger .lobby-top-emoji,
+  .lobby-chest-trigger .lobby-top-emoji,
+  .lobby-profile-trigger .lobby-top-emoji{font-size:21px}
+}
+@media(max-width:360px){
+  .lobby-crafting-stations{left:8px;right:106px}
+  .lobby-crafting-trigger{width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-top-emoji,
+  .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-friends-trigger .lobby-top-emoji,
+  .lobby-chest-trigger .lobby-top-emoji,
+  .lobby-profile-trigger .lobby-top-emoji{font-size:19px}
+}
+
+
+/* Acesso triplo do lobby: Classes, Status e Arsenal. */
+.lobby-status-trigger{
+  position:absolute;
+  top:calc(42% + 76px);
+  right:clamp(14px,4vw,42px);
+  z-index:26;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  width:clamp(54px,6vw,68px);
+  height:clamp(54px,6vw,68px);
+  min-width:54px;
+  min-height:54px;
+  padding:2px;
+  border:1px solid rgba(151,190,174,.72);
+  border-radius:10px;
+  background:rgba(34,35,34,.84);
+  color:#e5f1e9;
+  box-shadow:0 4px 14px rgba(0,0,0,.24);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.lobby-status-trigger:active{background:rgba(53,83,69,.95);transform:scale(.96)}
+.lobby-status-trigger:focus-visible{outline:2px solid #c9e8d5;outline-offset:2px}
+.lobby-status-trigger span:not(.lobby-top-emoji){font-size:10px;font-weight:900;line-height:1;letter-spacing:.04em}
+.lobby-status-trigger .lobby-top-emoji{font-size:clamp(21px,2.2vw,26px);line-height:1}
+.lobby-status-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lobby-status-card{min-width:0;padding:14px;border:1px solid rgba(185,205,185,.2);border-radius:12px;background:rgba(18,25,22,.72)}
+.lobby-status-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.lobby-status-card-heading>div>span,.lobby-status-equipment>span{font-size:9px;font-weight:900;letter-spacing:.09em;color:#b9cbbd}
+.lobby-status-card-heading h3{margin:4px 0 0;font-size:19px;color:#edf3e8}
+.lobby-status-level{font-size:10px;color:#c8d6c9}
+.lobby-status-power-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.lobby-status-power{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:9px;background:rgba(255,255,255,.055)}
+.lobby-status-power>span{font-size:9px;font-weight:900;color:#c5d3c6}
+.lobby-status-power>strong{font-size:26px;line-height:1.1;color:#f3f2df}
+.lobby-status-power>small{font-size:9px;color:#aab7aa}
+.lobby-status-attributes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:9px}
+.lobby-status-attributes>div{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:7px;background:rgba(255,255,255,.04);font-size:10px;color:#d6dfd5}
+.lobby-status-attributes strong{color:#fff;font-variant-numeric:tabular-nums}
+.lobby-status-equipment{display:flex;flex-direction:column;gap:7px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1)}
+.lobby-status-equipment>div{display:flex;flex-wrap:wrap;gap:5px}
+.lobby-status-equipment>div small{padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.07);font-size:10px;color:#e1e9df}
+.lobby-status-equipment>small{font-size:10px;color:#c0cabe}
+.lobby-status-equipment .lobby-status-equipment-note{color:#d4b98b;line-height:1.4}
+.lobby-status-empty{display:flex;flex-direction:column;gap:8px;color:#dce6dc}
+@media(max-width:650px){
+  .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-status-trigger .lobby-top-emoji{font-size:21px}
+  .lobby-status-content{grid-template-columns:1fr;gap:8px;padding:10px}
+  .lobby-status-card{padding:10px}
+  .lobby-status-card-heading h3{font-size:16px}
+  .lobby-status-power>strong{font-size:22px}
+}
+@media(max-width:360px){
+  .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-status-trigger .lobby-top-emoji{font-size:19px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-status-trigger{top:calc(30% + 58px)}
+}
+
+
+/* Padrão definitivo dos atalhos: vidro escuro translúcido, mantendo fonte e emojis. */
+.lobby-profile-trigger,
+.lobby-status-trigger,
+.lobby-arsenal-trigger,
+.lobby-friends-trigger,
+.lobby-chest-trigger,
+.lobby-crafting-trigger{
+  background:rgba(34,35,34,.82);
+  border:1px solid rgba(235,239,235,.24);
+  color:#f2f3ef;
+  font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
+  box-shadow:0 4px 13px rgba(0,0,0,.34),inset 0 1px 3px rgba(255,255,255,.12);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+.lobby-profile-trigger span:not(.lobby-top-emoji),
+.lobby-status-trigger span:not(.lobby-top-emoji),
+.lobby-arsenal-trigger span:not(.lobby-top-emoji),
+.lobby-friends-trigger span:not(.lobby-top-emoji),
+.lobby-chest-trigger span:not(.lobby-top-emoji),
+.lobby-crafting-trigger>span:last-child{
+  color:#f2f3ef;
+  font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
+  font-size:9px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+.lobby-profile-trigger:active,
+.lobby-status-trigger:active,
+.lobby-arsenal-trigger:active,
+.lobby-friends-trigger:active,
+.lobby-chest-trigger:active,
+.lobby-crafting-trigger:active{
+  background:rgba(34,35,34,.96);
+  transform:scale(.96);
+}
+.lobby-profile-trigger:hover,
+.lobby-status-trigger:hover,
+.lobby-arsenal-trigger:hover,
+.lobby-friends-trigger:hover,
+.lobby-chest-trigger:hover,
+.lobby-crafting-trigger:hover{
+  background:rgba(48,50,48,.92);
+  border-color:rgba(235,239,235,.42);
+}
+.lobby-profile-trigger .lobby-top-emoji,
+.lobby-status-trigger .lobby-top-emoji,
+.lobby-arsenal-trigger .lobby-top-emoji,
+.lobby-friends-trigger .lobby-top-emoji,
+.lobby-chest-trigger .lobby-top-emoji,
+.lobby-crafting-icon{
+  font-size:clamp(21px,2.2vw,26px);
+  line-height:1;
+}
+/* Coluna lateral com ritmo uniforme e mais próxima da linha inferior do lobby. */
+.lobby-profile-trigger{top:41%}
+.lobby-status-trigger{top:calc(41% + 82px)}
+.lobby-arsenal-trigger{top:calc(41% + 164px)}
+.lobby-friends-trigger{top:calc(41% + 246px)}
+.lobby-chest-trigger{top:calc(41% + 328px)}
+@media(max-width:650px){
+  .lobby-profile-trigger{top:37%}
+  .lobby-status-trigger{top:calc(37% + 70px)}
+  .lobby-arsenal-trigger{top:calc(37% + 140px)}
+  .lobby-friends-trigger{top:calc(37% + 210px)}
+  .lobby-chest-trigger{top:calc(37% + 280px)}
+  .lobby-profile-trigger span:not(.lobby-top-emoji),
+  .lobby-status-trigger span:not(.lobby-top-emoji),
+  .lobby-arsenal-trigger span:not(.lobby-top-emoji),
+  .lobby-friends-trigger span:not(.lobby-top-emoji),
+  .lobby-chest-trigger span:not(.lobby-top-emoji),
+  .lobby-crafting-trigger>span:last-child{font-size:8px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-profile-trigger{top:31%}
+  .lobby-status-trigger{top:calc(31% + 64px)}
+  .lobby-arsenal-trigger{top:calc(31% + 128px)}
+  .lobby-friends-trigger{top:calc(31% + 192px)}
+  .lobby-chest-trigger{top:calc(31% + 256px)}
+}
+
+
+/* Status: cada ficha acompanha dinamicamente a cor da classe escolhida. */
+.lobby-status-card.class-guerreiro{
+  border-color:rgba(200,63,63,.62);
+  background:linear-gradient(135deg,rgba(200,63,63,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #c83f3f;
+}
+.lobby-status-card.class-guerreiro .lobby-status-card-heading h3{color:#ff8b85}
+.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span{color:#f2a6a1}
+.lobby-status-card.class-mago{
+  border-color:rgba(117,65,200,.62);
+  background:linear-gradient(135deg,rgba(117,65,200,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #7541c8;
+}
+.lobby-status-card.class-mago .lobby-status-card-heading h3{color:#c4a2ff}
+.lobby-status-card.class-mago .lobby-status-card-heading>div>span{color:#cdb6f4}
+.lobby-status-card.class-arqueiro{
+  border-color:rgba(168,117,8,.66);
+  background:linear-gradient(135deg,rgba(168,117,8,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #a87508;
+}
+.lobby-status-card.class-arqueiro .lobby-status-card-heading h3{color:#f1c76a}
+.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span{color:#e8ca87}
+.lobby-status-card.class-druida{
+  border-color:rgba(33,131,75,.66);
+  background:linear-gradient(135deg,rgba(33,131,75,.20),rgba(18,25,22,.82) 72%);
+  box-shadow:inset 3px 0 0 #21834b;
+}
+.lobby-status-card.class-druida .lobby-status-card-heading h3{color:#83dba2}
+.lobby-status-card.class-druida .lobby-status-card-heading>div>span{color:#a1dfb5}
+
+
+/* Status: bloco inteiro na cor da classe, com texto de alto contraste. */
+.lobby-status-card.class-guerreiro,
+.lobby-status-card.class-mago,
+.lobby-status-card.class-arqueiro,
+.lobby-status-card.class-druida{
+  border:1px solid rgba(255,255,255,.48);
+  box-shadow:0 5px 18px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.16);
+}
+.lobby-status-card.class-guerreiro{
+  background:#c83f3f;
+  color:#fff;
+}
+.lobby-status-card.class-mago{
+  background:#7541c8;
+  color:#fff;
+}
+.lobby-status-card.class-arqueiro{
+  background:#a87508;
+  color:#17130a;
+}
+.lobby-status-card.class-druida{
+  background:#21834b;
+  color:#fff;
+}
+.lobby-status-card.class-guerreiro .lobby-status-card-heading h3,
+.lobby-status-card.class-mago .lobby-status-card-heading h3,
+.lobby-status-card.class-druida .lobby-status-card-heading h3,
+.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span,
+.lobby-status-card.class-mago .lobby-status-card-heading>div>span,
+.lobby-status-card.class-druida .lobby-status-card-heading>div>span,
+.lobby-status-card.class-guerreiro .lobby-status-level,
+.lobby-status-card.class-mago .lobby-status-level,
+.lobby-status-card.class-druida .lobby-status-level,
+.lobby-status-card.class-guerreiro .lobby-status-power>span,
+.lobby-status-card.class-mago .lobby-status-power>span,
+.lobby-status-card.class-druida .lobby-status-power>span,
+.lobby-status-card.class-guerreiro .lobby-status-power>strong,
+.lobby-status-card.class-mago .lobby-status-power>strong,
+.lobby-status-card.class-druida .lobby-status-power>strong,
+.lobby-status-card.class-guerreiro .lobby-status-power>small,
+.lobby-status-card.class-mago .lobby-status-power>small,
+.lobby-status-card.class-druida .lobby-status-power>small,
+.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
+.lobby-status-card.class-mago .lobby-status-attributes>div,
+.lobby-status-card.class-druida .lobby-status-attributes>div,
+.lobby-status-card.class-guerreiro .lobby-status-attributes strong,
+.lobby-status-card.class-mago .lobby-status-attributes strong,
+.lobby-status-card.class-druida .lobby-status-attributes strong,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>span,
+.lobby-status-card.class-mago .lobby-status-equipment>span,
+.lobby-status-card.class-druida .lobby-status-equipment>span,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
+.lobby-status-card.class-mago .lobby-status-equipment>div small,
+.lobby-status-card.class-druida .lobby-status-equipment>div small,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>small,
+.lobby-status-card.class-mago .lobby-status-equipment>small,
+.lobby-status-card.class-druida .lobby-status-equipment>small{
+  color:#fff;
+}
+.lobby-status-card.class-arqueiro .lobby-status-card-heading h3,
+.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span,
+.lobby-status-card.class-arqueiro .lobby-status-level,
+.lobby-status-card.class-arqueiro .lobby-status-power>span,
+.lobby-status-card.class-arqueiro .lobby-status-power>strong,
+.lobby-status-card.class-arqueiro .lobby-status-power>small,
+.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
+.lobby-status-card.class-arqueiro .lobby-status-attributes strong,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>span,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>div small,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>small{
+  color:#17130a;
+}
+.lobby-status-card.class-guerreiro .lobby-status-power,
+.lobby-status-card.class-mago .lobby-status-power,
+.lobby-status-card.class-druida .lobby-status-power,
+.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
+.lobby-status-card.class-mago .lobby-status-attributes>div,
+.lobby-status-card.class-druida .lobby-status-attributes>div,
+.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
+.lobby-status-card.class-mago .lobby-status-equipment>div small,
+.lobby-status-card.class-druida .lobby-status-equipment>div small{
+  background:rgba(0,0,0,.13);
+}
+.lobby-status-card.class-arqueiro .lobby-status-power,
+.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
+.lobby-status-card.class-arqueiro .lobby-status-equipment>div small{
+  background:rgba(255,255,255,.28);
+}
+.lobby-status-card.class-guerreiro .lobby-status-equipment,
+.lobby-status-card.class-mago .lobby-status-equipment,
+.lobby-status-card.class-druida .lobby-status-equipment{
+  border-top-color:rgba(255,255,255,.38);
+}
+.lobby-status-card.class-arqueiro .lobby-status-equipment{
+  border-top-color:rgba(23,19,10,.3);
+}
+.lobby-status-card.class-guerreiro .lobby-status-equipment .lobby-status-equipment-note,
+.lobby-status-card.class-mago .lobby-status-equipment .lobby-status-equipment-note,
+.lobby-status-card.class-druida .lobby-status-equipment .lobby-status-equipment-note,
+.lobby-status-card.class-arqueiro .lobby-status-equipment .lobby-status-equipment-note{
+  color:inherit;
 }

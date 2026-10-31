@@ -248,6 +248,13 @@ const createGrassTile = () => {
   return tile;
 };
 
+const LOBBY_CRAFTING_STATIONS = [
+  { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
+  { id: 'costura', label: 'COSTURA', icon: '🧵', title: 'Alfaiataria', description: 'Mesa de costura para trabalhar tecidos e materiais flexíveis.', products: 'Luvas, botas e peças de tecido' },
+  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Bancada para criar acessórios que complementam os atributos do personagem.', products: 'Colares e pulseiras' },
+  { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão', description: 'Estação culinária para preparar refeições e cozidos com ingredientes coletados.', products: 'Cozidos e refeições com efeitos' },
+] as const;
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -281,6 +288,9 @@ export default function App() {
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
+  const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -361,6 +371,15 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (!statusOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setStatusOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [statusOpen]);
 
   useEffect(() => {
     if (!arsenalOpen) return;
@@ -1391,32 +1410,55 @@ export default function App() {
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/>
-            </svg>
-            <span>F5</span>
+            <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
+            <span>ARSENAL</span>
           </button>
           <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M16 21v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V21"/><circle cx="9" cy="8" r="3.5"/><path d="M20 21v-1.5a4 4 0 0 0-3-3.87M16 4.2a3.5 3.5 0 0 1 0 6.7"/>
-            </svg>
+            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
             <span>AMIGOS</span>
           </button>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={() => { setLobbyChestItems(readSavedHouseStorage()); setChestOpen(true); }}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 8h18v12H3z"/><path d="M2 8l2-5h16l2 5M3 12h18M10 12v3h4v-3"/><path d="M6 3v5M18 3v5"/>
-            </svg>
+            <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
             <span>BAÚ</span>
           </button>
-          <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
-            </svg>
-            <span>F6</span>
+          <button className="lobby-profile-trigger" type="button" aria-label="Abrir seleção de classes" title="Classes" onClick={() => setProfileOpen(true)}>
+            <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
+            <span>CLASSES</span>
+          </button>
+          <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => setStatusOpen(true)}>
+            <span className="lobby-top-emoji" aria-hidden="true">📊</span>
+            <span>STATUS</span>
           </button>
         <button className="lobby-play-trigger" type="button" onClick={startGame} aria-label="Jogar" title="Entrar no mundo">
           Jogar
         </button>
+        <nav className="lobby-crafting-stations" aria-label="Estações de criação">
+          {LOBBY_CRAFTING_STATIONS.map(station => <button
+            key={station.id}
+            className="lobby-crafting-trigger"
+            type="button"
+            aria-label={`Abrir estação: ${station.title}`}
+            title={station.title}
+            onClick={() => setCraftingStationId(station.id)}
+          >
+            <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
+            <span>{station.label}</span>
+          </button>)}
+        </nav>
+        {activeCraftingStation && <div className="lobby-crafting-backdrop" onClick={() => setCraftingStationId(null)}>
+          <section className="lobby-crafting-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-crafting-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-crafting-header">
+              <div><span>ESTAÇÃO DE CRIAÇÃO</span><h2 id="lobby-crafting-title">{activeCraftingStation.title}</h2></div>
+              <button type="button" className="lobby-crafting-close" aria-label="Fechar estação" onClick={() => setCraftingStationId(null)}>×</button>
+            </header>
+            <div className="lobby-crafting-content">
+              <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
+              <p>{activeCraftingStation.description}</p>
+              <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
+              <small>Esta estação está sendo preparada. As receitas e a fabricação serão ativadas em uma próxima etapa.</small>
+            </div>
+          </section>
+        </div>}
         {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-arsenal-header">
@@ -1499,11 +1541,56 @@ export default function App() {
             </div>
           </section>
         </div>}
+        {statusOpen && <div className="lobby-profile-backdrop lobby-status-backdrop" onClick={() => setStatusOpen(false)}>
+          <section className="lobby-profile-modal lobby-status-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-status-title" onClick={event => event.stopPropagation()}>
+            <header className="lobby-profile-header">
+              <div><span>RESUMO DOS PERSONAGENS ESCOLHIDOS</span><h2 id="lobby-status-title">Status</h2></div>
+              <button type="button" className="lobby-profile-close" aria-label="Fechar Status" onClick={() => setStatusOpen(false)}>×</button>
+            </header>
+            <div className="lobby-profile-content lobby-status-content">
+              {characterPreferences.map((classId, index) => {
+                if (!classId) return <section className="lobby-status-card lobby-status-empty" key={index}>
+                  <span>{index === 0 ? 'PRINCIPAL' : 'SECUNDÁRIA'}</span>
+                  <strong>Nenhuma classe selecionada</strong>
+                </section>;
+                const attributes = getPlayerAttributes(classId, state.player.level);
+                const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
+                const powerDamage = weapon.damage * getDamageMultiplier(classId, state.player.level);
+                const loadout = equipmentLoadouts[classId] ?? {};
+                const equippedItems = Object.values(loadout).flatMap(itemId => {
+                  const item = arsenalItems.find(candidate => candidate.id === itemId);
+                  return item ? [item] : [];
+                });
+                return <section className={`lobby-status-card class-${classId}`} key={classId}>
+                  <div className="lobby-status-card-heading">
+                    <div><span>{index === 0 ? '★ CLASSE PRINCIPAL' : '② CLASSE SECUNDÁRIA'}</span><h3>{CLASSES[classId].label}</h3></div>
+                    <strong className="lobby-status-level">NÍVEL {state.player.level}</strong>
+                  </div>
+                  <div className="lobby-status-power-grid">
+                    <div className="lobby-status-power"><span>PD · DANO POR GOLPE</span><strong>{powerDamage.toFixed(1)}</strong><small>{weapon.label} · antes de bônus de equipamento</small></div>
+                    <div className="lobby-status-power"><span>💪 FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong><small>Valor atual da classe</small></div>
+                  </div>
+                  <div className="lobby-status-attributes">
+                    <div><span>❤️ Vida</span><strong>{attributes.vida.toFixed(1)}</strong></div>
+                    <div><span>🧠 Inteligência</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
+                    <div><span>🎯 Destreza</span><strong>{attributes.destreza.toFixed(1)}</strong></div>
+                    <div><span>🛡️ Armadura</span><strong>{(CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue).toFixed(1)}</strong></div>
+                  </div>
+                  <div className="lobby-status-equipment">
+                    <span>EQUIPAMENTOS · {equippedItems.length}</span>
+                    {equippedItems.length ? <div>{equippedItems.map(item => <small key={item.id}>{item.icon} {item.name}</small>)}</div> : <small>Nenhum equipamento equipado</small>}
+                    <small className="lobby-status-equipment-note">Os itens atuais ainda não possuem bônus de atributos/PD cadastrados.</small>
+                  </div>
+                </section>;
+              })}
+            </div>
+          </section>
+        </div>}
         {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
           <section className="lobby-profile-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-profile-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-profile-header">
-              <div><span>CONFIGURAÇÃO DOS PERSONAGENS</span><h2 id="lobby-profile-title">Perfil</h2></div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar perfil" onClick={() => setProfileOpen(false)}>×</button>
+              <div><span>SELEÇÃO E CONFIGURAÇÃO</span><h2 id="lobby-profile-title">Classes</h2></div>
+              <button type="button" className="lobby-profile-close" aria-label="Fechar Classes" onClick={() => setProfileOpen(false)}>×</button>
             </header>
             <nav className="lobby-profile-tabs" role="tablist" aria-label="Classes disponíveis">
               {PROFILE_CLASS_IDS.map(classId => <button
