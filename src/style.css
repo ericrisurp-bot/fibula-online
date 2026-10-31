@@ -2334,13 +2334,13 @@ button, button * {
 }
 
 
-/* Botão Jogar: círculo de 64px alinhado à coluna de atalhos, no canto inferior direito. */
+/* Botão Jogar: círculo de 128px alinhado à coluna de atalhos, no canto inferior direito. */
 .lobby-play-trigger{
   position:absolute;z-index:27;left:auto;right:clamp(14px,4vw,42px);top:90%;bottom:auto;transform:translateY(-50%);
-  display:grid;place-items:center;width:64px;height:64px;
-  min-width:64px;min-height:64px;padding:0;border:1px solid rgba(235,239,235,.42);
+  display:grid;place-items:center;width:128px;height:128px;
+  min-width:128px;min-height:128px;padding:0;border:1px solid rgba(235,239,235,.42);
   border-radius:50%;background:rgba(34,35,34,.76);color:#f5f5f2;
-  font:900 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+  font:900 16px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;
   cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;
   box-shadow:0 4px 13px rgba(0,0,0,.38),inset 0 1px 3px rgba(255,255,255,.16);
   backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
@@ -2348,7 +2348,7 @@ button, button * {
   animation:lobby-play-daynight 9s ease-in-out infinite;
 }
 .lobby-play-trigger::before{
-  content:"";position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
+  content:"";position:absolute;inset:-10px;border-radius:50%;pointer-events:none;
   background:radial-gradient(circle,rgba(255,232,160,.28) 0%,rgba(255,232,160,.10) 42%,transparent 72%);
   opacity:.65;filter:blur(3px);animation:lobby-play-glow 9s ease-in-out infinite;
 }
@@ -2364,10 +2364,10 @@ button, button * {
   48%,58%{opacity:.38;transform:scale(.94);background:radial-gradient(circle,rgba(153,181,235,.26) 0%,rgba(153,181,235,.08) 44%,transparent 72%)}
 }
 @media(max-width:650px){
-  .lobby-play-trigger{left:auto;right:12px;top:90%;bottom:auto;transform:none;width:64px;height:64px;min-width:64px;min-height:64px;font-size:11px}
+  .lobby-play-trigger{left:auto;right:12px;top:90%;bottom:auto;transform:translateY(-50%);width:128px;height:128px;min-width:128px;min-height:128px;font-size:14px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-play-trigger{left:auto;right:12px;top:88%;bottom:auto;transform:translateY(-50%);width:64px;height:64px;min-width:64px;min-height:64px}
+  .lobby-play-trigger{left:auto;right:12px;top:88%;bottom:auto;transform:translateY(-50%);width:128px;height:128px;min-width:128px;min-height:128px}
 }
 @media(prefers-reduced-motion:reduce){
   .lobby-play-trigger,.lobby-play-trigger::before{animation:none}
