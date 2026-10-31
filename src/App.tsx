@@ -286,10 +286,10 @@ export default function App() {
   const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
   const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
-  const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
+  const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
