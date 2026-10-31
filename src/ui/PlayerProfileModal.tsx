@@ -100,7 +100,7 @@ export default function PlayerProfileModal({
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!fibulaSupabase || !isOwner || !profile) return;
-    const cleanName = displayName.trim().replace(/\\s+/g, ' ');
+    const cleanName = displayName.trim().replace(/\s+/g, ' ');
     const parsedAge = age.trim() ? Number(age) : null;
     if (cleanName.length < 3 || cleanName.length > 20) {
       setError('O nome precisa ter entre 3 e 20 caracteres.');
