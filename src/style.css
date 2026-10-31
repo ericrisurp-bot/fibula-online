@@ -2204,3 +2204,34 @@ button, button * {
   .lobby-friend-row{gap:7px;padding:8px}
 }
 @media(orientation:landscape) and (max-height:520px){.lobby-friends-trigger{top:calc(30% + 116px)}}
+
+
+/* Modal de amigos no mesmo padrão branco e rosa dos demais modais. */
+.lobby-friends-backdrop{
+  background:rgba(20,12,18,.58);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+.lobby-friends-modal{
+  border:1px solid #f2bfd5;
+  border-radius:16px;
+  background:linear-gradient(150deg,#fff 0%,#fff7fb 100%);
+  color:#3b2933;
+  box-shadow:0 22px 70px rgba(48,20,34,.28);
+}
+.lobby-friends-header{border-bottom:1px solid #f5d7e4}
+.lobby-friends-header>div:first-child>span{color:#c16b91}
+.lobby-friends-header h2{color:#3b2933}
+.lobby-friends-count{color:#a34f76}
+.lobby-friends-close{border-color:#efc6d8;background:#fff0f6;color:#9d456d}
+.lobby-friends-close:hover{background:#fce2ed}
+.lobby-friends-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;min-height:190px;padding:28px 18px;text-align:center;
+}
+.lobby-friends-empty>span{
+  display:grid;place-items:center;width:48px;height:48px;border:1px solid #f1c2d7;
+  border-radius:50%;background:#fff0f6;color:#d66e9b;font-size:28px;line-height:1;
+}
+.lobby-friends-empty strong{color:#573344;font-size:14px}
+.lobby-friends-empty p{margin:0;color:#a4778b;font-size:11px;line-height:1.5}
