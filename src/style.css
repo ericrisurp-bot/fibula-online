@@ -3191,3 +3191,53 @@ button, button * {
   scrollbar-width:none;
 }
 .mobile-quick-buttons::-webkit-scrollbar{display:none}
+
+
+/* Ajuste mobile de dimensões: preserva posições, formatos e identidade visual do lobby. */
+@media(max-width:650px){
+  .lobby-profile-trigger,
+  .lobby-status-trigger,
+  .lobby-arsenal-trigger,
+  .lobby-friends-trigger,
+  .lobby-chest-trigger{
+    width:clamp(46px,7.2vw,52px);
+    height:clamp(46px,7.2vw,52px);
+    min-width:44px;
+    min-height:44px;
+    padding:2px;
+  }
+  .lobby-profile-trigger svg,
+  .lobby-arsenal-trigger svg,
+  .lobby-friends-trigger svg,
+  .lobby-chest-trigger svg{width:clamp(16px,4vw,21px);height:clamp(16px,4vw,21px)}
+  .lobby-status-trigger .lobby-top-emoji,
+  .lobby-profile-trigger .lobby-top-emoji,
+  .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-friends-trigger .lobby-top-emoji,
+  .lobby-chest-trigger .lobby-top-emoji{font-size:clamp(18px,4.5vw,21px)}
+  .lobby-crafting-trigger{
+    width:clamp(44px,6.8vw,50px);
+    height:clamp(44px,6.8vw,50px);
+    min-width:44px;
+    min-height:44px;
+    padding:2px;
+  }
+  .lobby-crafting-icon{font-size:clamp(16px,4vw,19px)}
+  .lobby-crafting-trigger>span:last-child{font-size:clamp(6px,1.7vw,7px)}
+}
+@media(max-width:360px){
+  .lobby-profile-trigger,
+  .lobby-status-trigger,
+  .lobby-arsenal-trigger,
+  .lobby-friends-trigger,
+  .lobby-chest-trigger{width:46px;height:46px}
+  .lobby-crafting-trigger{width:44px;height:44px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-profile-trigger,
+  .lobby-status-trigger,
+  .lobby-arsenal-trigger,
+  .lobby-friends-trigger,
+  .lobby-chest-trigger{width:44px;height:44px;min-width:44px;min-height:44px}
+  .lobby-crafting-trigger{width:44px;height:44px;min-width:44px;min-height:44px}
+}
