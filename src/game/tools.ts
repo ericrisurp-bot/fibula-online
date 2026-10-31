@@ -73,7 +73,7 @@ export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number)
 // Animação de relógio: 12h -> alvo. Ponto de impacto local de cada ferramenta (unidades de r).
 const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0] };
 /** Escala da ferramenta flutuante em relação à arte original. */
-export const TOOL_SCALE = 0.7;
+export const TOOL_SCALE = 1.0;
 const ease = { out: (t: number) => 1 - Math.pow(1 - t, 3), in: (t: number) => t * t * t };
 function toolPose(tool: ToolId, r: number, angle: number, reach: number, p: number, minGrip: number) {
   const side = Math.cos(angle) >= 0 ? 1 : -1;

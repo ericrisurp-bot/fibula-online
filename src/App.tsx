@@ -541,8 +541,10 @@ export default function App() {
       ctx.drawImage(terrainCanvas, 0, 0, engine.world, engine.world);
       ctx.strokeStyle = '#91a99a'; ctx.lineWidth = CONFIG.map.wall; ctx.strokeRect(CONFIG.map.wall / 2, CONFIG.map.wall / 2, engine.world - CONFIG.map.wall, engine.world - CONFIG.map.wall);
       if (s.showRange && !s.cameraFull) {
+        ctx.save();
         ctx.beginPath(); ctx.arc(s.player.x, s.player.y, CONFIG.weapons[s.weapon].range, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(135,205,179,0.045)'; ctx.fill(); ctx.strokeStyle = 'rgba(135,205,179,0.24)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.restore();
       }
       // Efeitos de chão/voo ficam em camada própria; entidades sólidas usam ordenação por profundidade Y.
       for (const orb of s.xpOrbs) {
@@ -826,6 +828,7 @@ export default function App() {
           ctx.save(); ctx.translate(drop.x, drop.y);
           // Usa o mesmo ícone da mochila, agora como um único tronco.
           ctx.font = '22px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#ffffff';
           ctx.fillText(itemIcon('wood'), 0, 0);
           ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom';
           ctx.fillText(String(drop.amount), 0, -13); ctx.restore();
