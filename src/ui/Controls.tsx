@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
@@ -80,6 +80,22 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const lastTouchActionAt = useRef(0);
+  const runTouchAction = (event: PointerEvent<HTMLElement>, action: () => void) => {
+    if (event.pointerType === 'mouse') return;
+    event.preventDefault();
+    event.stopPropagation();
+    lastTouchActionAt.current = Date.now();
+    action();
+  };
+  const runClickAction = (event: MouseEvent<HTMLElement>, action: () => void) => {
+    if (event.detail !== 0 && Date.now() - lastTouchActionAt.current < 800) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    action();
+  };
   useEffect(() => { if (flagWheelOpen || inventoryPanelOpen) setMenuOpen(false); }, [flagWheelOpen, inventoryPanelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
@@ -140,6 +156,9 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const onSecondaryPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     const movement = activePointer.current;
     if (!movement || movement.id === e.pointerId || classSwipePointer.current || menuOpen || flagWheelOpen) return;
+    // Um segundo toque em um controle deve executar o botão, nunca virar gesto de troca de classe.
+    if (e.target instanceof Element && e.target.closest('button, input, select, textarea, a, [role="button"], .mobile-menu-panel')) return;
+    e.preventDefault();
     classSwipePointer.current = { id: e.pointerId, startX: e.clientX, startY: e.clientY, changed: false };
   };
 
@@ -164,17 +183,17 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     onPointerMove={onSecondaryPointerMove}
     onPointerUp={onSecondaryPointerEnd}
     onPointerCancel={onSecondaryPointerEnd}>
-    <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
+    <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
     {menuOpen && <div
       className="mobile-menu-backdrop"
       aria-hidden="true"
-      onPointerDown={event => event.stopPropagation()}
-      onClick={event => { event.stopPropagation(); setMenuOpen(false); }}
+      onPointerDown={event => { if (event.pointerType !== 'mouse') { event.preventDefault(); event.stopPropagation(); lastTouchActionAt.current = Date.now(); setMenuOpen(false); } else event.stopPropagation(); }}
+      onClick={event => { event.stopPropagation(); if (event.detail !== 0 && Date.now() - lastTouchActionAt.current < 800) return; setMenuOpen(false); }}
     />}
     {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
-      <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
+      <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onPointerDown={event => runTouchAction(event, () => setMenuOpen(false))} onClick={event => runClickAction(event, () => setMenuOpen(false))}>×</button></div>
       <div className="menu-section-label">ÁUDIO</div>
       <div className="menu-audio-volume">
         <label htmlFor="game-master-volume">Volume geral <strong>{Math.round(audioVolume * 100)}%</strong></label>
@@ -183,13 +202,13 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       </div>
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">
-        <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onClick={onRange}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
-        <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onClick={() => onZoom(-0.15)}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onClick={() => onZoom(0.15)}>+</button></div></div>
-        <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onClick={onToggleLandscape}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
+        <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onPointerDown={event => runTouchAction(event, onRange)} onClick={event => runClickAction(event, onRange)}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
+        <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(-0.15))} onClick={event => runClickAction(event, () => onZoom(-0.15))}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(0.15))} onClick={event => runClickAction(event, () => onZoom(0.15))}>+</button></div></div>
+        <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onPointerDown={event => runTouchAction(event, onToggleLandscape)} onClick={event => runClickAction(event, onToggleLandscape)}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
         <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
           <span>Escala da interface</span>
           <div className="menu-interface-scale-options">
-            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onClick={() => onInterfaceScaleChange(scale)}>{scale}%</button>)}
+            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
           </div>
         </div>
       </div>
@@ -218,7 +237,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
       {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Reparar carrinho"><span aria-hidden="true">🪵</span><small>Construir</small></button>}
       <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
-      <button type="button" className="mobile-quick-bag" onClick={() => { setMenuOpen(false); onInventoryToggle(); }} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
+      <button type="button" className="mobile-quick-bag" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
     </div>
   </div>;
 }

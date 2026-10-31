@@ -284,6 +284,7 @@ export default function App() {
   const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
   const inventoryPanelOpenRef = useRef(false);
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
+  const lastTouchInventoryCloseAt = useRef(0);
   // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
   const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const feet = playerFeet(state.player);
@@ -1126,6 +1127,21 @@ export default function App() {
     inventoryPanelOpenRef.current = false;
     setInventoryPanelOpen(false);
   };
+  const handleInventoryClosePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'mouse') return;
+    event.preventDefault();
+    event.stopPropagation();
+    lastTouchInventoryCloseAt.current = Date.now();
+    closeInventoryPanel();
+  };
+  const handleInventoryCloseClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (event.detail !== 0 && Date.now() - lastTouchInventoryCloseAt.current < 800) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    closeInventoryPanel();
+  };
   const toggleInventoryPanel = () => {
     closeFlagMenu();
     const nextOpen = !inventoryPanelOpenRef.current;
@@ -1459,7 +1475,7 @@ export default function App() {
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
       {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho">
-        <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onClick={closeInventoryPanel} aria-label="Fechar mochila" title="Fechar">×</button></header>
+        <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onPointerDown={handleInventoryClosePointerDown} onClick={handleInventoryCloseClick} aria-label="Fechar mochila" title="Fechar">×</button></header>
 
         <section>
           <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
