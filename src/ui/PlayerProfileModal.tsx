@@ -39,6 +39,27 @@ const CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao',
 };
 
+function getProfileErrorMessage(cause: unknown, action: 'carregar' | 'salvar'): string {
+  if (cause && typeof cause === 'object') {
+    const error = cause as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
+    const code = typeof error.code === 'string' ? error.code : '';
+    const message = typeof error.message === 'string' ? error.message : '';
+    const details = typeof error.details === 'string' ? error.details : '';
+
+    if (code === 'PGRST205' || code === '42P01') {
+      return 'A estrutura do perfil ainda não foi criada no Supabase do Fíbula. É necessário aplicar supabase/profile-schema.sql no projeto do Fíbula.';
+    }
+    if (code === '42501' || code === 'PGRST301' || code === '401') {
+      return 'O Supabase do Fíbula recusou o acesso. Verifique a integração de autenticação externa da Arena e as políticas RLS do Fíbula.';
+    }
+    if (message) return [message, details].filter(Boolean).join(' — ');
+  }
+
+  return cause instanceof Error
+    ? cause.message
+    : `Não foi possível ${action} o perfil. O servidor não retornou detalhes do erro.`;
+}
+
 export default function PlayerProfileModal({
   userId, isOwner, currentCharacter, level, kills, attributes, onClose,
 }: Props) {
@@ -97,7 +118,7 @@ export default function PlayerProfileModal({
           setProfile(data as PlayerProfile | null);
         }
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o perfil.');
+        if (active) setError(getProfileErrorMessage(cause, 'carregar'));
       } finally {
         if (active) setLoading(false);
       }
@@ -148,7 +169,7 @@ export default function PlayerProfileModal({
       setProfile(data as PlayerProfile);
       setEditing(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível salvar o perfil.');
+      setError(getProfileErrorMessage(cause, 'salvar'));
     } finally {
       setSaving(false);
     }
