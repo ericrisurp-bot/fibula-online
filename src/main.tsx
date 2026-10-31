@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import AuthGate from './auth/AuthGate';
 import InstallPrompt from './ui/InstallPrompt';
 import './style.css';
 
@@ -14,7 +15,9 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <AuthGate>
+      <App />
+    </AuthGate>
     <InstallPrompt />
   </React.StrictMode>,
 );
