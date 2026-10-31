@@ -1411,7 +1411,7 @@ export default function App() {
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
-            <span>F5</span>
+            <span>ARSENAL</span>
           </button>
           <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
             <span className="lobby-top-emoji" aria-hidden="true">👥</span>
