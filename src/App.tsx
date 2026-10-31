@@ -1400,27 +1400,19 @@ export default function App() {
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Personagem equipado com arma flutuante"/><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/>
-            </svg>
+            <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
             <span>F5</span>
           </button>
           <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M16 21v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V21"/><circle cx="9" cy="8" r="3.5"/><path d="M20 21v-1.5a4 4 0 0 0-3-3.87M16 4.2a3.5 3.5 0 0 1 0 6.7"/>
-            </svg>
+            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
             <span>AMIGOS</span>
           </button>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={() => { setLobbyChestItems(readSavedHouseStorage()); setChestOpen(true); }}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 8h18v12H3z"/><path d="M2 8l2-5h16l2 5M3 12h18M10 12v3h4v-3"/><path d="M6 3v5M18 3v5"/>
-            </svg>
+            <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
             <span>BAÚ</span>
           </button>
           <button className="lobby-profile-trigger" type="button" aria-label="Abrir perfil dos personagens" title="Perfil dos personagens" onClick={() => setProfileOpen(true)}>
-            <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.2"/><path d="M5.5 20c.6-3.4 2.9-5.2 6.5-5.2s5.9 1.8 6.5 5.2"/><path d="M4 4h16v16H4z" opacity=".42"/>
-            </svg>
+            <span className="lobby-top-emoji" aria-hidden="true">👤</span>
             <span>F6</span>
           </button>
         <button className="lobby-play-trigger" type="button" onClick={startGame} aria-label="Jogar" title="Entrar no mundo">
