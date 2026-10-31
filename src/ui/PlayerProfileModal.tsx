@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
+import { useArenaAuth } from '../auth/AuthGate';
 import type { ClassId } from '../game/config';
 
 type PlayerProfile = {
@@ -36,6 +37,8 @@ const DATE_FORMAT = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'l
 export default function PlayerProfileModal({
   userId, isOwner, currentCharacter, level, kills, attributes, onClose,
 }: Props) {
+  const { session } = useArenaAuth();
+  const canEdit = isOwner && session.user.sub === userId;
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,7 +63,7 @@ export default function PlayerProfileModal({
           .eq('user_id', userId)
           .maybeSingle();
         if (queryError) throw queryError;
-        if (!data && isOwner) {
+        if (!data && canEdit) {
           const { error: insertError } = await fibulaSupabase
             .from('fibula_profiles')
             .upsert(
@@ -75,7 +78,7 @@ export default function PlayerProfileModal({
             .single();
           if (reloadError) throw reloadError;
           if (active) setProfile(created as PlayerProfile);
-        } else if (data && isOwner) {
+        } else if (data && canEdit) {
           const { data: refreshed, error: refreshError } = await fibulaSupabase
             .from('fibula_profiles')
             .update({ main_character: currentCharacter, level, kills, attributes, updated_at: new Date().toISOString() })
@@ -95,7 +98,7 @@ export default function PlayerProfileModal({
     };
     void load();
     return () => { active = false; };
-  }, [userId, isOwner, currentCharacter, level, kills]);
+  }, [userId, canEdit, currentCharacter, level, kills]);
 
   useEffect(() => {
     if (!profile) return;
@@ -106,7 +109,7 @@ export default function PlayerProfileModal({
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!fibulaSupabase || !isOwner || !profile) return;
+    if (!fibulaSupabase || !canEdit || !profile) return;
     const cleanName = displayName.trim().replace(/\s+/g, ' ');
     const parsedAge = age.trim() ? Number(age) : null;
     if (cleanName.length < 3 || cleanName.length > 20) {
@@ -161,7 +164,7 @@ export default function PlayerProfileModal({
             <div className={`player-profile-avatar class-${profile.main_character ?? currentCharacter}`} aria-hidden="true">{character.icon}</div>
             <div><span>PERSONAGEM PRINCIPAL</span><h3>{profile.display_name || 'Nome ainda não escolhido'}</h3><p>{character.name} · Nível {profile.level}</p></div>
           </div>
-          {editing && isOwner ? <form className="player-profile-form" onSubmit={save}>
+          {editing && canEdit ? <form className="player-profile-form" onSubmit={save}>
             <label>Nome de jogador<input value={displayName} onChange={event => setDisplayName(event.target.value)} minLength={3} maxLength={20} placeholder="Escolha seu nome" required /></label>
             <label>Idade <small>(opcional)</small><input type="number" min="1" max="120" value={age} onChange={event => setAge(event.target.value)} placeholder="Não informado" /></label>
             <label>Sexo <small>(opcional)</small><select value={sex} onChange={event => setSex(event.target.value)}><option value="">Prefiro não informar</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="outro">Outro</option></select></label>
@@ -177,7 +180,7 @@ export default function PlayerProfileModal({
               {Object.entries(profile.attributes ?? {}).map(([key, value]) => <div key={key}><span>{key}</span><strong>{Number(value).toFixed(1)}</strong></div>)}
               {!Object.keys(profile.attributes ?? {}).length && <small>Os atributos aparecerão conforme o personagem evoluir.</small>}
             </div></section>
-            {isOwner && <button type="button" className="player-profile-edit" onClick={() => { setEditing(true); setError(''); }}>{profile.display_name ? 'Editar perfil' : 'Criar meu perfil'}</button>}
+            {canEdit && <button type="button" className="player-profile-edit" onClick={() => { setEditing(true); setError(''); }}>{profile.display_name ? 'Editar perfil' : 'Criar meu perfil'}</button>}
           </>}
           {error && <p className="player-profile-error" role="alert">{error}</p>}
         </div>
