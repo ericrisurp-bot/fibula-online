@@ -317,6 +317,15 @@ export default function App() {
   }, [equipmentLoadouts]);
 
   useEffect(() => {
+    if (!friendsOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFriendsOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [friendsOpen]);
+
+  useEffect(() => {
     if (!profileOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setProfileOpen(false);
