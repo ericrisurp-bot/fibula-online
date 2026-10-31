@@ -2103,3 +2103,47 @@ button, button * {
   .lobby-profile-trigger{top:30%}
   .lobby-arsenal-trigger{top:calc(30% + 58px)}
 }
+
+/* Cometa de fogo: passagem curta da esquerda para a direita a cada 60 segundos. */
+.lobby-moon{z-index:2}
+.lobby-comet{
+  position:absolute;
+  z-index:1;
+  top:13%;
+  left:0;
+  width:clamp(110px,19vw,230px);
+  height:8px;
+  opacity:0;
+  pointer-events:none;
+  transform-origin:center;
+  filter:drop-shadow(0 0 7px rgba(255,112,35,.9));
+  animation:lobby-comet-cycle 60s linear infinite;
+}
+.lobby-comet:before{
+  content:"";
+  position:absolute;
+  inset:1px 0;
+  border-radius:100%;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,91,22,.08) 28%,rgba(255,111,35,.48) 72%,#ffd18a 100%);
+  box-shadow:0 0 9px 2px rgba(255,100,25,.55);
+}
+.lobby-comet:after{
+  content:"";
+  position:absolute;
+  right:0;
+  top:50%;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  transform:translate(1px,-50%);
+  background:radial-gradient(circle,#fff8d9 0 12%,#ffe0a0 28%,#ff8a32 58%,rgba(255,91,22,0) 76%);
+  box-shadow:0 0 8px 4px rgba(255,172,74,.9),0 0 22px 9px rgba(255,93,25,.58);
+}
+@keyframes lobby-comet-cycle{
+  0%{opacity:1;transform:translate3d(-135%,8vh,0) rotate(-12deg)}
+  7%{opacity:1;transform:translate3d(610%,-3vh,0) rotate(-12deg)}
+  7.5%,100%{opacity:0;transform:translate3d(610%,-3vh,0) rotate(-12deg)}
+}
+@media(prefers-reduced-motion:reduce){
+  .lobby-comet{animation:none;opacity:0}
+}
