@@ -5,7 +5,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
-import { drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
+import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -641,7 +641,7 @@ export default function App() {
       }
       for (const shot of s.shots) {
         ctx.save(); ctx.translate(shot.x, shot.y); ctx.rotate(Math.atan2(shot.vy, shot.vx));
-        if (shot.kind === 'arrow') { ctx.strokeStyle = '#f3d59b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.lineTo(6, -4); ctx.moveTo(12, 0); ctx.lineTo(6, 4); ctx.stroke(); }
+        if (shot.kind === 'arrow') drawArrowShot(ctx, CONFIG.player.radius);
         else { ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = s.classId === 'druida' ? '#65e65d' : '#a98cff'; ctx.fill(); if (s.classId === 'druida') { ctx.strokeStyle = '#c6ffad'; ctx.lineWidth = 2; ctx.stroke(); } }
         ctx.restore();
       }
