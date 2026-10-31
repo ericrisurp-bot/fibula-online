@@ -1414,7 +1414,9 @@ export default function App() {
             </svg>
             <span>F6</span>
           </button>
-        <button className="lobby-play-trigger" type="button" onClick={startGame}>JOGAR</button>
+        <button className="lobby-play-trigger" type="button" onClick={startGame} aria-label="Jogar" title="Entrar no mundo">
+          Jogar
+        </button>
         {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-arsenal-header">
