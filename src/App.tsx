@@ -14,6 +14,7 @@ import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import Controls from './ui/Controls';
 import PlayerProfileModal from './ui/PlayerProfileModal';
+import FriendsModal from './ui/FriendsModal';
 import { useArenaAuth } from './auth/AuthGate';
 import { fibulaSupabase } from './auth/supabase';
 import { audioManager } from './audio/audioManager';
@@ -262,6 +263,7 @@ export default function App() {
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -376,6 +378,16 @@ export default function App() {
 
   useEffect(() => {
     if (!fibulaSupabase || !session.user.sub) return;
+    let active = true;
+    void fibulaSupabase.from('fibula_profiles').select('avatar_character').eq('user_id', session.user.sub).maybeSingle()
+      .then(({ data, error }) => {
+        if (active && !error && data && isProfileClassId(data.avatar_character)) setAvatarCharacter(data.avatar_character);
+      });
+    return () => { active = false; };
+  }, [session.user.sub]);
+
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub) return;
     void fibulaSupabase.from('fibula_profiles').upsert(
       { user_id: session.user.sub },
       { onConflict: 'user_id', ignoreDuplicates: true },
@@ -431,7 +443,7 @@ export default function App() {
       ctx.translate(width / 2, height * 0.78);
       ctx.scale(scale, scale);
       const weapon = PROFILE_CLASS_WEAPONS[classId];
-      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, true, false);
+      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, true, false, avatarCharacter);
       ctx.restore();
       frame = window.requestAnimationFrame(renderArsenalCharacter);
     };
@@ -485,14 +497,14 @@ export default function App() {
       ctx.scale(scale, scale);
       const lobbyClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       const lobbyWeapon = PROFILE_CLASS_WEAPONS[lobbyClass];
-      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false);
+      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false, true, avatarCharacter);
       drawFloatingWeapon(ctx, lobbyWeapon, CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
       ctx.restore();
       frame = window.requestAnimationFrame(renderCharacter);
     };
     frame = window.requestAnimationFrame(renderCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [showStart, characterPreferences]);
+  }, [showStart, characterPreferences, avatarCharacter]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -842,7 +854,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.dayNight === 'night') });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.dayNight === 'night', true, avatarCharacter) });
       // Ferramentas de coleta ficam ancoradas no recurso (não no jogador) e em camada própria, à frente do recurso.
       const gatherTool = s.treeChopTimer > 0 ? { tool: 'machadinho' as const, timer: s.treeChopTimer, angle: s.treeChopAngle }
         : s.rockMineTimer > 0 ? { tool: 'picareta' as const, timer: s.rockMineTimer, angle: s.rockMineAngle }
@@ -1457,20 +1469,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        {friendsOpen && <div className="lobby-friends-backdrop" onClick={() => setFriendsOpen(false)}>
-          <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
-            <header className="lobby-friends-header">
-              <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
-              <div className="lobby-friends-count">0 amigos</div>
-              <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={() => setFriendsOpen(false)}>×</button>
-            </header>
-            <div className="lobby-friends-empty" role="status">
-              <span aria-hidden="true">♡</span>
-              <strong>Você ainda não tem amigos</strong>
-              <p>Quando adicionar amigos, eles aparecerão aqui.</p>
-            </div>
-          </section>
-        </div>}
+        {friendsOpen && <FriendsModal userId={session.user.sub} onClose={() => setFriendsOpen(false)} />}
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
@@ -1625,6 +1624,8 @@ export default function App() {
           userId={session.user.sub}
           isOwner
           currentCharacter={characterPreferences[0] ?? state.classId}
+          avatarCharacter={avatarCharacter}
+          onAvatarChange={setAvatarCharacter}
           level={state.player.level}
           kills={state.kills}
           attributes={(() => {
@@ -1903,7 +1904,7 @@ function drawSlime(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fillStyle = '#102c26'; ctx.beginPath(); ctx.ellipse(-r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.ellipse(r * .32, 0, r * .1, r * .16, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
-function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, isNight: boolean, showWeapon = true) {
+function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon: WeaponId, classId: ClassId, time: number, swordSwingAngle: number, swordSwingTimer: number, moving: boolean, walkPhase: number, carried: boolean, facingX: number, facingY: number, aimAngle: number, hasTarget: boolean, isNight: boolean, showWeapon = true, avatarClassId: ClassId = classId) {
   const r = CONFIG.player.radius;
   const breath = Math.sin(time * 2.6);
   // Seleciona a vista pela direção; o desenho-base não é girado.
@@ -1920,7 +1921,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, ladinoFeetY(r) - r * 0.1, r * 1.2, r * .46, 0, 0, Math.PI * 2); ctx.fill();
   ctx.save(); ctx.scale(facingScaleX, 1);
-  drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
+  drawLadino(ctx, avatarClassId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
   if (showWeapon && (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao')))) {
     if (weapon === 'espada') {
