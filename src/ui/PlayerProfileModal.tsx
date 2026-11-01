@@ -76,8 +76,8 @@ export default function PlayerProfileModal({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setSelectedAvatar(avatarCharacter);
-  }, [avatarCharacter]);
+    if (canEdit) setSelectedAvatar(avatarCharacter);
+  }, [avatarCharacter, canEdit]);
 
   useEffect(() => {
     let active = true;
@@ -197,13 +197,13 @@ export default function PlayerProfileModal({
     ctx.translate(width / 2, height * 0.78);
     ctx.scale(Math.min(width / 44, height / 58), Math.min(width / 44, height / 58));
     drawLadino(ctx, selectedAvatar, radius, { walking: false, phase: 0, breath: 0, carry: false, direction: 'front' });
-    drawFloatingWeapon(ctx, CLASS_WEAPONS[currentCharacter], radius, {
+    drawFloatingWeapon(ctx, CLASS_WEAPONS[profile?.main_character ?? currentCharacter], radius, {
       time: 0, facingX: 1, moving: false, hasEnemies: false, hasTarget: false,
       aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0,
       forceVisible: true, preferredSide: -1,
     });
     ctx.restore();
-  }, [selectedAvatar, currentCharacter]);
+  }, [selectedAvatar, currentCharacter, profile?.main_character]);
 
   const createdAt = profile?.created_at ? new Date(profile.created_at) : null;
   const identityIncomplete = !!profile && (profile.display_name === null || profile.age === null || profile.sex === null);
