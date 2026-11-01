@@ -26,9 +26,6 @@ type Props = {
   isOwner: boolean;
   currentCharacter: ClassId;
   avatarCharacter: ClassId;
-  level: number;
-  kills: number;
-  attributes: Record<string, number>;
   onAvatarChange: (avatar: ClassId) => void;
   onClose: () => void;
 };
@@ -82,7 +79,7 @@ function AvatarPortrait({ classId }: { classId: ClassId }) {
 }
 
 export default function PlayerProfileModal({
-  userId, isOwner, currentCharacter, avatarCharacter, level, kills, attributes, onAvatarChange, onClose,
+  userId, isOwner, currentCharacter, avatarCharacter, onAvatarChange, onClose,
 }: Props) {
   const { session } = useArenaAuth();
   const canEdit = isOwner && session.user.sub === userId;
@@ -117,7 +114,7 @@ export default function PlayerProfileModal({
         if (queryError) throw queryError;
         if (!data && canEdit) {
           const { error: insertError } = await fibulaSupabase.from('fibula_profiles').upsert(
-            { user_id: userId, main_character: currentCharacter, level, kills, attributes },
+            { user_id: userId, main_character: currentCharacter },
             { onConflict: 'user_id', ignoreDuplicates: true },
           );
           if (insertError) throw insertError;
@@ -128,7 +125,7 @@ export default function PlayerProfileModal({
         } else if (data && canEdit) {
           const { data: refreshed, error: refreshError } = await fibulaSupabase
             .from('fibula_profiles')
-            .update({ main_character: currentCharacter, level, kills, attributes, updated_at: new Date().toISOString() })
+            .update({ main_character: currentCharacter, updated_at: new Date().toISOString() })
             .eq('user_id', userId).select(PROFILE_FIELDS).single();
           if (refreshError) throw refreshError;
           if (active) setProfile(refreshed as PlayerProfile);
@@ -143,7 +140,7 @@ export default function PlayerProfileModal({
     };
     void load();
     return () => { active = false; };
-  }, [userId, canEdit, currentCharacter, level, kills]);
+  }, [userId, canEdit, currentCharacter]);
 
   useEffect(() => {
     if (!profile) return;

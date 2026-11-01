@@ -1627,19 +1627,6 @@ export default function App() {
           currentCharacter={characterPreferences[0] ?? state.classId}
           avatarCharacter={avatarCharacter}
           onAvatarChange={setAvatarCharacter}
-          level={state.player.level}
-          kills={state.kills}
-          attributes={(() => {
-            const stats = getPlayerAttributes(characterPreferences[0] ?? state.classId, state.player.level);
-            return {
-              'Força': stats.forca,
-              'Inteligência': stats.inteligencia,
-              'Destreza': stats.destreza,
-              'Vida': stats.vida,
-              'Armadura': stats.armadura,
-              'Resistência mágica': stats.resistenciaMagica,
-            };
-          })()}
           onClose={() => { setPlayerProfileOpen(false); setViewedProfileUserId(null); }}
         />}
       </div>}

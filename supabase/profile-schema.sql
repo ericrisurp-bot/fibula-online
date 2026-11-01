@@ -11,6 +11,11 @@ create table if not exists public.fibula_profiles (
   level integer not null default 0 check (level >= 0),
   kills integer not null default 0 check (kills >= 0),
   attributes jsonb not null default '{}'::jsonb,
+  avatar_character text not null default 'guerreiro'
+    check (avatar_character in ('guerreiro', 'mago', 'arqueiro', 'druida')),
+  attribute_gain_per_level integer not null default 1 check (attribute_gain_per_level >= 1),
+  highest_survival_level integer not null default 0 check (highest_survival_level >= 0),
+  highest_pd integer not null default 0 check (highest_pd >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint fibula_profiles_display_name_length
@@ -19,18 +24,52 @@ create table if not exists public.fibula_profiles (
     check (age is null or age between 1 and 120)
 );
 
+create or replace function public.prevent_fibula_profile_identity_changes()
+returns trigger
+language plpgsql
+set search_path to ''
+as $function$
+begin
+  if old.display_name is not null and new.display_name is distinct from old.display_name then
+    raise exception 'O nome do jogador não pode ser alterado.';
+  end if;
+  if old.age is not null and new.age is distinct from old.age then
+    raise exception 'A idade declarada não pode ser alterada.';
+  end if;
+  if old.sex is not null and new.sex is distinct from old.sex then
+    raise exception 'O sexo declarado não pode ser alterado.';
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists fibula_profiles_identity_immutable on public.fibula_profiles;
+create trigger fibula_profiles_identity_immutable
+  before update on public.fibula_profiles
+  for each row execute function public.prevent_fibula_profile_identity_changes();
+
 create unique index if not exists fibula_profiles_display_name_lower_uidx
   on public.fibula_profiles (lower(display_name))
   where display_name is not null;
 
 alter table public.fibula_profiles enable row level security;
 
-revoke all on public.fibula_profiles from anon;
-revoke insert, update, delete, truncate, references, trigger on public.fibula_profiles from authenticated;
-grant select on public.fibula_profiles to authenticated;
-grant insert (user_id, main_character, level, kills, attributes) on public.fibula_profiles to authenticated;
-grant update (display_name, age, sex, main_character, level, kills, attributes, updated_at)
-  on public.fibula_profiles to authenticated;
+revoke all privileges on table public.fibula_profiles from anon, authenticated;
+revoke insert (
+  user_id, display_name, age, sex, main_character, level, kills, attributes,
+  created_at, updated_at, avatar_character, attribute_gain_per_level,
+  highest_survival_level, highest_pd
+) on table public.fibula_profiles from authenticated;
+revoke update (
+  user_id, display_name, age, sex, main_character, level, kills, attributes,
+  created_at, updated_at, avatar_character, attribute_gain_per_level,
+  highest_survival_level, highest_pd
+) on table public.fibula_profiles from authenticated;
+grant select on table public.fibula_profiles to authenticated;
+grant insert (user_id, main_character)
+  on table public.fibula_profiles to authenticated;
+grant update (display_name, age, sex, main_character, avatar_character, updated_at)
+  on table public.fibula_profiles to authenticated;
 
 drop policy if exists "Authenticated players can read profiles" on public.fibula_profiles;
 create policy "Authenticated players can read profiles"
@@ -67,8 +106,8 @@ create table if not exists public.fibula_profile_badges (
 );
 
 alter table public.fibula_profile_badges enable row level security;
-revoke all on public.fibula_profile_badges from anon;
-grant select on public.fibula_profile_badges to authenticated;
+revoke all privileges on table public.fibula_profile_badges from anon, authenticated;
+grant select on table public.fibula_profile_badges to authenticated;
 
 drop policy if exists "Authenticated players can read profile badges" on public.fibula_profile_badges;
 create policy "Authenticated players can read profile badges"
