@@ -4005,3 +4005,21 @@ button, button * {
   .lobby-ranking-board { min-height: 0 !important; height: auto !important; min-width: 0 !important; }
   .lobby-ranking-empty { min-height: 100px !important; }
 }
+
+/* ===== Status enxuto (Etapa 3): ficha curta no padrão carvão; a cor da classe vira só uma linha fina ===== */
+.lobby-status-card { padding: 12px !important; }
+.lobby-status-card-heading { margin-bottom: 0 !important; }
+.lobby-status-card-heading h3 { color: var(--fb-modal-text) !important; font-size: 17px !important; }
+.lobby-status-card-heading > div > span, .lobby-status-equipment > span { color: var(--fb-modal-label) !important; }
+.lobby-status-level { padding: 3px 8px; border: 1px solid var(--fb-modal-border); border-radius: 999px; background: #303330; color: var(--fb-modal-text) !important; font-weight: 900; }
+.lobby-status-tag { display: block; height: 3px; margin: 9px 0; border-radius: 3px; background: var(--fb-modal-selected); }
+.lobby-status-card.class-guerreiro .lobby-status-tag { background: #d2586a; }
+.lobby-status-card.class-mago .lobby-status-tag { background: #8a63d6; }
+.lobby-status-card.class-arqueiro .lobby-status-tag { background: #c99a2e; }
+.lobby-status-card.class-druida .lobby-status-tag { background: #4fae6b; }
+.lobby-status-power { background: rgba(0, 0, 0, 0.22) !important; }
+.lobby-status-power > span { color: var(--fb-modal-label) !important; letter-spacing: 0.1em; }
+.lobby-status-power > strong { color: var(--fb-modal-text) !important; font-size: 22px; }
+.lobby-status-attributes > div { color: var(--fb-modal-muted); font-size: 11px; }
+.lobby-status-equipment { margin-top: 9px !important; padding-top: 8px !important; }
+.lobby-status-equipment > small { color: var(--fb-modal-label) !important; }
