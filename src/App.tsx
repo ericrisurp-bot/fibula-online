@@ -283,7 +283,7 @@ export default function App() {
         engineRef.current?.setHouseInventory(inventory);
         lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
       } else {
-        lastSyncedHouseInventoryRef.current = inventory.length ? '' : JSON.stringify(inventory);
+        lastSyncedHouseInventoryRef.current = '';
       }
       houseLoadReadyRef.current = true;
       setHouseLoadReady(true);
