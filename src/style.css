@@ -4302,3 +4302,19 @@ button, button * {
 .lobby-character-profile-trigger:focus-visible{outline:2px solid #b8c99b;outline-offset:2px}
 @media(max-width:650px){.lobby-character-profile-trigger{left:calc(50% - 11vw);top:calc(50% - 7vh + 22vh);width:clamp(72px,24vw,108px);height:clamp(112px,25vh,160px)}}
 @media(orientation:landscape) and (max-height:520px){.lobby-character-profile-trigger{left:calc(50% - 8vw);top:calc(50% - 4vh + 18vh);width:clamp(68px,12vh,112px);height:clamp(96px,38vh,160px)}}
+
+
+/* Ranking conectado: linhas compactas para as três classificações Solo. */
+.lobby-ranking-list{display:flex;flex-direction:column;gap:6px;max-height:390px;overflow-y:auto;padding:3px 2px}
+.lobby-ranking-entry{display:grid;grid-template-columns:28px 30px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:43px;padding:6px 9px;border:1px solid #e5e8e2;border-radius:8px;background:#f8faf7;color:#252923}
+.lobby-ranking-entry-position{color:#8b7547;font-size:12px;font-weight:900;text-align:center}
+.lobby-ranking-entry-avatar{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:#ecefe8;font-size:16px}
+.lobby-ranking-entry>strong{overflow:hidden;color:#30352e;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.lobby-ranking-entry>b{color:#6e5420;font-size:13px;font-variant-numeric:tabular-nums}
+@media(max-width:650px){
+  .lobby-ranking-list{max-height:340px;gap:5px}
+  .lobby-ranking-entry{grid-template-columns:23px 27px minmax(0,1fr) auto;gap:6px;min-height:39px;padding:5px 6px}
+  .lobby-ranking-entry-avatar{width:25px;height:25px;font-size:14px}
+  .lobby-ranking-entry>strong{font-size:10px}
+  .lobby-ranking-entry>b{font-size:11px}
+}

@@ -24,6 +24,16 @@ import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
 
+type RankingEntry = {
+  user_id: string;
+  display_name: string | null;
+  avatar_character: ClassId;
+  highest_pd: number;
+  highest_survival_level: number;
+  kills: number;
+  created_at: string;
+};
+
 let floatingWeaponSide: 1 | -1 = 1;
 
 registerCombatSounds();
@@ -371,7 +381,56 @@ export default function App() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState<'solo' | 'duo'>('solo');
-  const [rankingCategory, setRankingCategory] = useState<'power' | 'survival'>('power');
+  const [rankingCategory, setRankingCategory] = useState<'power' | 'survival' | 'kills'>('survival');
+  const [rankingRows, setRankingRows] = useState<RankingEntry[]>([]);
+  const [rankingOwnProfile, setRankingOwnProfile] = useState<RankingEntry | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const [rankingError, setRankingError] = useState('');
+  useEffect(() => {
+    if (!rankingOpen) return;
+    const supabase = fibulaSupabase;
+    if (!supabase || rankingMode !== 'solo') {
+      setRankingRows([]);
+      setRankingOwnProfile(null);
+      setRankingError('');
+      setRankingLoading(false);
+      return;
+    }
+    let active = true;
+    const loadRanking = async () => {
+      setRankingLoading(true);
+      setRankingError('');
+      const valueField = rankingCategory === 'power'
+        ? 'highest_pd'
+        : rankingCategory === 'survival' ? 'highest_survival_level' : 'kills';
+      try {
+        const [boardResult, ownResult] = await Promise.all([
+          supabase.from('fibula_profiles')
+            .select('user_id,display_name,avatar_character,highest_pd,highest_survival_level,kills,created_at')
+            .gt(valueField, 0)
+            .order(valueField, { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(100),
+          supabase.from('fibula_profiles')
+            .select('user_id,display_name,avatar_character,highest_pd,highest_survival_level,kills,created_at')
+            .eq('user_id', session.user.sub)
+            .maybeSingle(),
+        ]);
+        if (boardResult.error) throw boardResult.error;
+        if (ownResult.error) throw ownResult.error;
+        if (!active) return;
+        setRankingRows((boardResult.data ?? []) as RankingEntry[]);
+        setRankingOwnProfile(ownResult.data as RankingEntry | null);
+      } catch (cause) {
+        if (active) setRankingError(cause instanceof Error ? cause.message : 'Não foi possível carregar o ranking.');
+      } finally {
+        if (active) setRankingLoading(false);
+      }
+    };
+    void loadRanking();
+    return () => { active = false; };
+  }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
+
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
@@ -1712,30 +1771,56 @@ export default function App() {
             </nav>
             <div className="lobby-ranking-body">
               <nav className="lobby-ranking-category-tabs" aria-label="Categoria do ranking">
-                <button type="button" aria-pressed={rankingCategory === 'power'} className={rankingCategory === 'power' ? 'active' : ''} onClick={() => setRankingCategory('power')}>
-                  <span aria-hidden="true">⚔️</span><span>PODER</span>
-                </button>
                 <button type="button" aria-pressed={rankingCategory === 'survival'} className={rankingCategory === 'survival' ? 'active' : ''} onClick={() => setRankingCategory('survival')}>
-                  <span aria-hidden="true">🛡️</span><span>SOBREVIVÊNCIA</span>
+                  <span aria-hidden="true">🌄</span><span>DIAS</span>
+                </button>
+                <button type="button" aria-pressed={rankingCategory === 'power'} className={rankingCategory === 'power' ? 'active' : ''} onClick={() => setRankingCategory('power')}>
+                  <span aria-hidden="true">⚔️</span><span>PD</span>
+                </button>
+                <button type="button" aria-pressed={rankingCategory === 'kills'} className={rankingCategory === 'kills' ? 'active' : ''} onClick={() => setRankingCategory('kills')}>
+                  <span aria-hidden="true">💀</span><span>ABATES</span>
                 </button>
               </nav>
               <section className="lobby-ranking-board" aria-live="polite">
                 <div className="lobby-ranking-board-heading">
                   <div><span>TOP 100</span><h3>{rankingMode === 'solo' ? 'Lendas individuais' : 'Duplas lendárias'}</h3></div>
-                  <strong>{rankingCategory === 'power' ? '⚔️ PODER' : '☀️ DIAS'}</strong>
+                  <strong>{rankingCategory === 'power' ? '⚔️ PD' : rankingCategory === 'survival' ? '🌄 DIAS' : '💀 ABATES'}</strong>
                 </div>
-                <div className="lobby-ranking-empty">
-                  <span aria-hidden="true">{rankingCategory === 'power' ? '⚔️' : '🌄'}</span>
-                  <strong>O ranking está sendo preparado</strong>
-                  <p>{rankingMode === 'solo' ? 'No Solo, o nome do personagem representa cada conquista.' : 'No Duo, cada equipe terá sua própria sigla de três letras, como nos fliperamas.'}</p>
-                  <small>As 100 melhores posições aparecerão aqui quando os dados de ranking forem conectados.</small>
-                </div>
+                {rankingMode === 'duo' ? <div className="lobby-ranking-empty">
+                  <span aria-hidden="true">🤝</span><strong>Ranking Duo em preparação</strong>
+                  <p>As classificações Solo são individuais. O modo Duo terá uma tabela própria quando as partidas em equipe forem ativadas.</p>
+                </div> : rankingLoading ? <div className="lobby-ranking-empty"><span aria-hidden="true">⌛</span><strong>Carregando classificação...</strong></div>
+                  : rankingError ? <div className="lobby-ranking-empty"><span aria-hidden="true">⚠️</span><strong>Não foi possível carregar o ranking</strong><p>{rankingError}</p></div>
+                  : rankingRows.length === 0 ? <div className="lobby-ranking-empty">
+                    <span aria-hidden="true">{rankingCategory === 'power' ? '⚔️' : rankingCategory === 'survival' ? '🌄' : '💀'}</span>
+                    <strong>{rankingCategory === 'power' ? 'Ainda não há PD registrado' : rankingCategory === 'survival' ? 'Ainda não há dias registrados' : 'Ainda não há abates registrados'}</strong>
+                    <p>Os melhores resultados dos jogadores aparecerão aqui assim que forem validados e salvos.</p>
+                    {rankingCategory === 'power' && <small>O registro seguro do PD depende da atualização da validação de partidas no banco.</small>}
+                  </div> : <div className="lobby-ranking-list">
+                    {rankingRows.map((entry, index) => {
+                      const value = rankingCategory === 'power' ? entry.highest_pd
+                        : rankingCategory === 'survival' ? entry.highest_survival_level : entry.kills;
+                      const avatar = entry.avatar_character === 'mago' ? '🔮' : entry.avatar_character === 'arqueiro' ? '🏹'
+                        : entry.avatar_character === 'druida' ? '🌿' : '⚔️';
+                      return <article className="lobby-ranking-entry" key={entry.user_id}>
+                        <span className="lobby-ranking-entry-position">{index + 1}</span>
+                        <span className="lobby-ranking-entry-avatar" aria-hidden="true">{avatar}</span>
+                        <strong>{entry.display_name || 'Jogador sem nome'}</strong>
+                        <b>{new Intl.NumberFormat('pt-BR').format(value)}</b>
+                      </article>;
+                    })}
+                  </div>}
               </section>
             </div>
             <footer className="lobby-ranking-player-position">
-              <div><span>SUA POSIÇÃO</span><strong>—</strong></div>
-              <div><span>{rankingCategory === 'power' ? 'PODER TOTAL' : 'DIAS SOBREVIVIDOS'}</span><strong>—</strong></div>
-              <small>Sua colocação será exibida aqui, mesmo que fique abaixo do TOP 100.</small>
+              <div><span>SUA POSIÇÃO</span><strong>{rankingRows.findIndex(entry => entry.user_id === session.user.sub) >= 0
+                ? `#${rankingRows.findIndex(entry => entry.user_id === session.user.sub) + 1}`
+                : (rankingOwnProfile && (rankingCategory === 'power' ? rankingOwnProfile.highest_pd
+                  : rankingCategory === 'survival' ? rankingOwnProfile.highest_survival_level : rankingOwnProfile.kills) > 0) ? 'FORA DO TOP 100' : '—'}</strong></div>
+              <div><span>{rankingCategory === 'power' ? 'SEU PD' : rankingCategory === 'survival' ? 'SEUS DIAS' : 'SEUS ABATES'}</span><strong>{rankingOwnProfile
+                ? new Intl.NumberFormat('pt-BR').format(rankingCategory === 'power' ? rankingOwnProfile.highest_pd
+                  : rankingCategory === 'survival' ? rankingOwnProfile.highest_survival_level : rankingOwnProfile.kills) : '—'}</strong></div>
+              <small>Classificação individual atualizada a partir dos perfis públicos do jogo.</small>
             </footer>
           </section>
         </div>}

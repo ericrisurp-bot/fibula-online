@@ -36,10 +36,9 @@ export async function loadHouseInventory(
   userId: string,
 ): Promise<{ inventory: PersistedHouseStack[]; source: 'cloud' | 'local' }> {
   try {
-    await client.from('fibula_profiles').upsert(
-      { user_id: userId },
-      { onConflict: 'user_id', ignoreDuplicates: true },
-    );
+    // A sessão e o perfil são provisionados pela RPC segura ao iniciar a partida.
+    // Não tente inserir o perfil durante a leitura do baú: o cliente não tem escrita
+    // de progressão e essa tentativa fazia a leitura do armazenamento cair no fallback local.
     if (window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
       return { inventory: readLocalHouseInventory(), source: 'local' };
     }
