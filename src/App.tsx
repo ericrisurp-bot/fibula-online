@@ -288,7 +288,7 @@ export default function App() {
     const userId = session.user.sub;
     if (!fibulaSupabase || !userId) return;
     let cancelled = false;
-    void loadHouseInventory(fibulaSupabase).then(({ inventory, source }) => {
+    void loadHouseInventory(fibulaSupabase, userId).then(({ inventory, source }) => {
       if (cancelled) return;
       const changedWhileLoading = houseChangedDuringLoadRef.current;
       if (source === 'cloud' && !changedWhileLoading) {
