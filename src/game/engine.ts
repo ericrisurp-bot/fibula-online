@@ -62,6 +62,20 @@ export type GameSnapshot = {
 };
 type InputState = { x: number; y: number };
 
+export type GameEngineOptions = {
+  /** Seed emitida pelo servidor para reproduzir a mesma sequência pseudoaleatória. */
+  seed?: number;
+  /** Desativa APIs de animação/desenho para execução em ambiente sem navegador. */
+  headless?: boolean;
+  /** Estado inicial da casa fornecido pelo chamador em simulações sem navegador. */
+  houseInventory?: InventoryStack[];
+};
+
+function normalizeSimulationSeed(seed?: number): number {
+  if (seed === undefined) return (Math.floor(Math.random() * 0x1_0000_0000) >>> 0) || 0x6d2b79f5;
+  return (Math.floor(seed) >>> 0) || 0x6d2b79f5;
+}
+
 export class GameEngine {
   readonly world = CONFIG.map.size;
   state: GameSnapshot;
@@ -100,10 +114,16 @@ export class GameEngine {
   private druidContagionTimer = 0;
   private refineryProcessTimer = 0;
   private tecelariaProcessTimer = 0;
+  private randomState: number;
+  private headless: boolean;
+  readonly seed: number;
 
-  constructor(private onUpdate: (state: GameSnapshot) => void) {
+  constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
+    this.seed = normalizeSimulationSeed(options.seed);
+    this.randomState = this.seed;
+    this.headless = options.headless ?? false;
     this.state = this.freshState();
-    this.state.house.inventory = readHouseStorage();
+    this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
     this.placeCart();
@@ -138,11 +158,31 @@ export class GameEngine {
   }
 
   start() {
-    if (this.state.dead) return;
+    if (this.state.dead || this.headless) return;
     this.lastTime = performance.now();
     this.animation = requestAnimationFrame(this.loop);
   }
-  stop() { cancelAnimationFrame(this.animation); this.animation = 0; }
+  stop() {
+    if (this.animation) cancelAnimationFrame(this.animation);
+    this.animation = 0;
+  }
+
+  /** Avança a simulação por um passo controlado, sem depender do relógio do navegador. */
+  step(dt: number) {
+    if (this.state.dead || !Number.isFinite(dt) || dt <= 0) return;
+    const previousVisibleState = this.visibleStateKey();
+    this.update(Math.min(dt, 0.04));
+    if (this.visibleStateKey() !== previousVisibleState) this.emit();
+  }
+
+  private random(): number {
+    let value = this.randomState;
+    value ^= value << 13;
+    value ^= value >>> 17;
+    value ^= value << 5;
+    this.randomState = value >>> 0;
+    return this.randomState / 0x1_0000_0000;
+  }
   setKey(key: string, down: boolean) { if (this.state.dead) return; down ? this.keys.add(key.toLowerCase()) : this.keys.delete(key.toLowerCase()); }
   setMove(x: number, y: number) {
     if (this.state.dead) return;
@@ -381,9 +421,9 @@ export class GameEngine {
     this.tecelariaProcessTimer -= CONFIG.tecelaria.processInterval;
     building.cottonStock -= 1;
     building.cottonProcessed += 1;
-    if (Math.random() < CONFIG.tecelaria.linenChance) {
-      const angle = Math.random() * Math.PI * 2;
-      const distance = 42 + Math.random() * 12;
+    if (this.random() < CONFIG.tecelaria.linenChance) {
+      const angle = this.random() * Math.PI * 2;
+      const distance = 42 + this.random() * 12;
       this.state.linenDrops.push({ id: this.nextId++, x: building.x + Math.cos(angle) * distance, y: building.y + Math.sin(angle) * distance, age: 0 });
       building.linenProduced += 1;
     }
@@ -427,9 +467,9 @@ export class GameEngine {
     this.refineryProcessTimer -= CONFIG.refinery.processInterval;
     refinery.stoneStock -= 1;
     refinery.stonesProcessed += 1;
-    if (Math.random() < CONFIG.refinery.bronzeChance) {
-      const angle = Math.random() * Math.PI * 2;
-      const distance = 42 + Math.random() * 12;
+    if (this.random() < CONFIG.refinery.bronzeChance) {
+      const angle = this.random() * Math.PI * 2;
+      const distance = 42 + this.random() * 12;
       this.state.bronzeDrops.push({ id: this.nextId++, x: refinery.x + Math.cos(angle) * distance, y: refinery.y + Math.sin(angle) * distance, age: 0 });
       refinery.bronzeProduced += 1;
     }
@@ -600,8 +640,8 @@ export class GameEngine {
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     for (let attempt = 0; attempt < 1200; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
+      const x = margin + this.random() * (this.world - margin * 2);
+      const y = margin + this.random() * (this.world - margin * 2);
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.minimumHouseDistance) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < 38 + this.treeFootprintRadius(tree))) continue;
@@ -614,7 +654,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
+    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.mageAttackCount = 0; this.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.attackTimer = 0; this.combatLockTimer = 0; this.gatheringTimer = 0; this.stepDistance = 0; this.stepFoot = 'left'; this.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.healthTransitionRemaining = 0; this.healthTransitionRate = 0;
     this.enemyDamageTimer = 0; this.druidBasicHitCount = 0; this.druidKillsSinceOrb = 0; this.druidOrbHealTimer = 0; this.keys.clear(); this.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.start(); this.emit();
   }
@@ -633,9 +673,7 @@ export class GameEngine {
   private loop = (now: number) => {
     if (this.state.dead) return;
     const dt = Math.min((now - this.lastTime) / 1000, 0.04); this.lastTime = now;
-    const previousVisibleState = this.visibleStateKey();
-    this.update(dt);
-    if (this.visibleStateKey() !== previousVisibleState) this.emit();
+    this.step(dt);
     if (this.state.dead) { this.stop(); return; }
     this.animation = requestAnimationFrame(this.loop);
   };
@@ -755,7 +793,7 @@ export class GameEngine {
           ? (CONFIG.dayNight.dayDuration - stepPhase.phaseElapsed) / transition
           : (stepPhase.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
         this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried, night });
-        this.stepTarget = 47 + Math.random() * 10;
+        this.stepTarget = 47 + this.random() * 10;
       }
     } else {
       this.stepDistance = this.stepTarget * 0.4;
@@ -812,16 +850,16 @@ export class GameEngine {
     const northEastMaxY = margin + CONFIG.rocks.northEastMaxY * span;
     for (let attempt = 0; attempt < 1200; attempt++) {
       // Inverte a prioridade geográfica das pedras: 70% fora do nordeste e 30% no nordeste.
-      const northEast = Math.random() >= CONFIG.rocks.northEastSpawnChance;
+      const northEast = this.random() >= CONFIG.rocks.northEastSpawnChance;
       let x: number;
       let y: number;
       if (northEast) {
-        x = northEastMinX + Math.random() * (margin + span - northEastMinX);
-        y = margin + Math.random() * (northEastMaxY - margin);
+        x = northEastMinX + this.random() * (margin + span - northEastMinX);
+        y = margin + this.random() * (northEastMaxY - margin);
       } else {
         do {
-          x = margin + Math.random() * span;
-          y = margin + Math.random() * span;
+          x = margin + this.random() * span;
+          y = margin + this.random() * span;
         } while (x >= northEastMinX && y <= northEastMaxY);
       }
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.refinery.playerClearRadius) continue;
@@ -838,8 +876,8 @@ export class GameEngine {
   private placeTecelaria() {
     const margin = CONFIG.map.wall + 120;
     for (let attempt = 0; attempt < 1200; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
+      const x = margin + this.random() * (this.world - margin * 2);
+      const y = margin + this.random() * (this.world - margin * 2);
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < 700) continue;
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + CONFIG.tecelaria.clearRadius) continue;
       if (Math.hypot(x - this.state.refinery.x, y - this.state.refinery.y) < CONFIG.tecelaria.clearRadius + CONFIG.refinery.rockClearRadius) continue;
@@ -853,8 +891,8 @@ export class GameEngine {
   private placeHouse() {
     const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
     for (let attempt = 0; attempt < 1200; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
+      const x = margin + this.random() * (this.world - margin * 2);
+      const y = margin + this.random() * (this.world - margin * 2);
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < CONFIG.house.treeClearRadius + this.treeFootprintRadius(tree))) continue;
       if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 90) continue;
@@ -873,7 +911,7 @@ export class GameEngine {
       ['rare', RESOURCE_RARITY_RULES.rare],
       ['legendary', RESOURCE_RARITY_RULES.legendary],
     ] as const;
-    let roll = Math.random();
+    let roll = this.random();
     for (const [rarity, rule] of rules) {
       if (this.nightNumber < rule.minNight) continue;
       roll -= rule.chancePercent / 100;
@@ -912,7 +950,7 @@ export class GameEngine {
 
   private spawnCottonPlant() {
     if (this.state.cottonPlants.length >= CONFIG.cotton.max) return false;
-    const roll = Math.random();
+    const roll = this.random();
     const size: CottonPlant['size'] = roll < CONFIG.cotton.plantSizeWeights.small
       ? 'small'
       : roll < CONFIG.cotton.plantSizeWeights.small + CONFIG.cotton.plantSizeWeights.medium ? 'medium' : 'large';
@@ -922,16 +960,16 @@ export class GameEngine {
     for (const spacing of spacingOptions) {
       for (let attempt = 0; attempt < 180 && !position; attempt++) {
         // Duas amostras uniformes concentram os nascimentos no centro sem proibir os cantos.
-        const x = this.world / 2 + (Math.random() + Math.random() - 1) * (this.world / 2 - margin);
-        const y = this.world / 2 + (Math.random() + Math.random() - 1) * (this.world / 2 - margin);
+        const x = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
+        const y = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
         if (this.validCottonPosition(x, y, size, spacing)) position = { x, y };
       }
       if (position) break;
     }
     if (!position) {
       for (let attempt = 0; attempt < 600 && !position; attempt++) {
-        const x = margin + Math.random() * (this.world - margin * 2);
-        const y = margin + Math.random() * (this.world - margin * 2);
+        const x = margin + this.random() * (this.world - margin * 2);
+        const y = margin + this.random() * (this.world - margin * 2);
         if (this.validCottonPosition(x, y, size, 0)) position = { x, y };
       }
     }
@@ -980,18 +1018,18 @@ export class GameEngine {
   private spawnTree(initial = false) {
     if (this.state.trees.length >= CONFIG.trees.max) return false;
     const margin = CONFIG.map.wall + 80;
-    const roll = Math.random();
+    const roll = this.random();
     const size: Tree['size'] = roll < CONFIG.trees.sizeWeights.small ? 'small' : roll < CONFIG.trees.sizeWeights.small + CONFIG.trees.sizeWeights.medium ? 'medium' : 'large';
     // As árvores iniciais não têm espaçamento artificial; só respeitam colisões e áreas proibidas.
     const minSpacing = 0;
     let position: Vec | null = null;
 
     // Uma árvore espontânea perto da casa é rara; depois de existir, ela atrai normalmente.
-    if (!initial && Math.random() < CONFIG.trees.rareHouseSpawnChance) {
+    if (!initial && this.random() < CONFIG.trees.rareHouseSpawnChance) {
       for (let attempt = 0; attempt < 120 && !position; attempt++) {
-        const angle = Math.random() * Math.PI * 2;
+        const angle = this.random() * Math.PI * 2;
         const minimumDistance = this.treeFootprintRadius({ x: 0, y: 0, size } as Tree) + 42;
-        const distance = minimumDistance + Math.random() * Math.max(1, CONFIG.trees.rareHouseRadius - minimumDistance);
+        const distance = minimumDistance + this.random() * Math.max(1, CONFIG.trees.rareHouseRadius - minimumDistance);
         const x = this.state.house.x + Math.cos(angle) * distance;
         const y = this.state.house.y + Math.sin(angle) * distance;
         if (this.validTreePosition(x, y, minSpacing, size, true)) position = { x, y };
@@ -1011,7 +1049,7 @@ export class GameEngine {
 
       if (weightedAnchors.length > 0) {
         const totalWeight = weightedAnchors.reduce((sum, item) => sum + item.weight, 0);
-        let ticket = Math.random() * totalWeight;
+        let ticket = this.random() * totalWeight;
         let selected = weightedAnchors[weightedAnchors.length - 1]!;
         for (const item of weightedAnchors) {
           ticket -= item.weight;
@@ -1026,12 +1064,12 @@ export class GameEngine {
             : count <= 15
               ? 0.55 + (count - 10) * 0.03
               : Math.min(CONFIG.trees.attractionMaxChance, 0.7 + (count - 15) * 0.02);
-        if (Math.random() < attractionChance) {
+        if (this.random() < attractionChance) {
           const anchor = selected.tree;
           const anchorNearHouse = Math.hypot(anchor.x - this.state.house.x, anchor.y - this.state.house.y) <= CONFIG.trees.rareHouseRadius;
           for (let attempt = 0; attempt < 120 && !position; attempt++) {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 90 + Math.random() * 80;
+            const angle = this.random() * Math.PI * 2;
+            const distance = 90 + this.random() * 80;
             const x = anchor.x + Math.cos(angle) * distance;
             const y = anchor.y + Math.sin(angle) * distance;
             if (this.validTreePosition(x, y, minSpacing, size, anchorNearHouse)) position = { x, y };
@@ -1042,8 +1080,8 @@ export class GameEngine {
 
     // O restante dos nascimentos continua podendo ocupar qualquer região válida do mapa.
     for (let attempt = 0; attempt < 500 && !position; attempt++) {
-      const x = margin + Math.random() * (this.world - margin * 2);
-      const y = margin + Math.random() * (this.world - margin * 2);
+      const x = margin + this.random() * (this.world - margin * 2);
+      const y = margin + this.random() * (this.world - margin * 2);
       if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
     }
     if (!position) return false;
@@ -1095,7 +1133,7 @@ export class GameEngine {
 
   private spawnRock() {
     if (this.state.rocks.length >= CONFIG.rocks.max) return false;
-    const roll = Math.random();
+    const roll = this.random();
     const size: Rock['size'] = roll < CONFIG.rocks.sizeWeights.small
       ? 'small'
       : roll < CONFIG.rocks.sizeWeights.small + CONFIG.rocks.sizeWeights.medium ? 'medium' : 'large';
@@ -1104,10 +1142,10 @@ export class GameEngine {
     let clusterId: number | null = null;
 
     // Nascimento perto da refinaria é raro e independente de qualquer atração.
-    if (Math.random() < CONFIG.refinery.rareRockSpawnChance) {
+    if (this.random() < CONFIG.refinery.rareRockSpawnChance) {
       for (let attempt = 0; attempt < 120 && !position; attempt++) {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 45 + Math.random() * Math.max(1, CONFIG.refinery.rareRockSpawnRadius - 45);
+        const angle = this.random() * Math.PI * 2;
+        const distance = 45 + this.random() * Math.max(1, CONFIG.refinery.rareRockSpawnRadius - 45);
         const x = this.state.refinery.x + Math.cos(angle) * distance;
         const y = this.state.refinery.y + Math.sin(angle) * distance;
         if (this.validRockPosition(x, y, size, true)) position = { x, y };
@@ -1123,7 +1161,7 @@ export class GameEngine {
       if (anchors.length > 0) {
         const weighted = anchors.map(item => ({ ...item, weight: 1 + item.count * item.count }));
         const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
-        let ticket = Math.random() * totalWeight;
+        let ticket = this.random() * totalWeight;
         let selected = weighted[weighted.length - 1];
         for (const item of weighted) {
           ticket -= item.weight;
@@ -1131,10 +1169,10 @@ export class GameEngine {
         }
         const count = Math.max(1, selected.count);
         const attractionChance = Math.min(CONFIG.rocks.attractionMaxChance, 0.1 + count * 0.05);
-        if (Math.random() < attractionChance) {
+        if (this.random() < attractionChance) {
           for (let attempt = 0; attempt < 160 && !position; attempt++) {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 90 + Math.random() * 80;
+            const angle = this.random() * Math.PI * 2;
+            const distance = 90 + this.random() * 80;
             const x = selected.rock.x + Math.cos(angle) * distance;
             const y = selected.rock.y + Math.sin(angle) * distance;
             if (this.validRockPosition(x, y, size)) {
@@ -1148,14 +1186,14 @@ export class GameEngine {
 
     // Fora dos agrupamentos, a região nordeste tem prioridade, sem bloquear o resto do mapa.
     for (let attempt = 0; attempt < 500 && !position; attempt++) {
-      const northEast = Math.random() < CONFIG.rocks.northEastSpawnChance;
+      const northEast = this.random() < CONFIG.rocks.northEastSpawnChance;
       const x = northEast
         ? margin + CONFIG.rocks.northEastMinX * (this.world - margin * 2)
-          + Math.random() * (this.world - margin * 2) * (1 - CONFIG.rocks.northEastMinX)
-        : margin + Math.random() * (this.world - margin * 2);
+          + this.random() * (this.world - margin * 2) * (1 - CONFIG.rocks.northEastMinX)
+        : margin + this.random() * (this.world - margin * 2);
       const y = northEast
-        ? margin + Math.random() * (this.world - margin * 2) * CONFIG.rocks.northEastMaxY
-        : margin + Math.random() * (this.world - margin * 2);
+        ? margin + this.random() * (this.world - margin * 2) * CONFIG.rocks.northEastMaxY
+        : margin + this.random() * (this.world - margin * 2);
       if (!this.validRockPosition(x, y, size)) continue;
       position = { x, y };
     }
@@ -1180,8 +1218,8 @@ export class GameEngine {
     const rock = this.state.rocks.find(value => value.id === id);
     if (!rock) return;
     rock.hits -= 1;
-    if (Math.random() < CONFIG.rocks.dropChance) {
-      const angle = Math.random() * Math.PI * 2;
+    if (this.random() < CONFIG.rocks.dropChance) {
+      const angle = this.random() * Math.PI * 2;
       const distance = this.rockFootprintRadius(rock) + 5;
       this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, age: 0, rarity: rock.rarity });
     }
@@ -1192,8 +1230,8 @@ export class GameEngine {
     const plant = this.state.cottonPlants.find(value => value.id === id);
     if (!plant) return;
     plant.hits -= 1;
-    if (Math.random() < CONFIG.cotton.dropChance) {
-      const angle = Math.random() * Math.PI * 2;
+    if (this.random() < CONFIG.cotton.dropChance) {
+      const angle = this.random() * Math.PI * 2;
       const distance = this.cottonFootprintRadius(plant) + 5;
       this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance, age: 0, rarity: plant.rarity });
     }
@@ -1246,7 +1284,7 @@ export class GameEngine {
     const tree = this.state.trees.find(value => value.id === id);
     if (!tree) return;
     this.state.trees = this.state.trees.filter(value => value.id !== id);
-    const roll = Math.random();
+    const roll = this.random();
     const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
     const base = this.treeBase(tree);
     this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount, age: 0, rarity: tree.rarity });
@@ -1299,7 +1337,7 @@ export class GameEngine {
   }
 
   private initializeDayNight() {
-    const startsAtNight = Math.random() < 0.5;
+    const startsAtNight = this.random() < 0.5;
     this.state.startedAtNight = startsAtNight;
     this.phase = startsAtNight ? 'night' : 'day';
     this.phaseElapsed = 0;
@@ -1343,9 +1381,9 @@ export class GameEngine {
     let x = player.x, y = player.y;
     let placed = false;
     for (let attempt = 0; attempt < 200; attempt++) {
-      const angle = Math.random() * Math.PI * 2;
+      const angle = this.random() * Math.PI * 2;
       const distance = CONFIG.dayNight.spawnMinDistance
-        + Math.random() * (CONFIG.dayNight.spawnMaxDistance - CONFIG.dayNight.spawnMinDistance);
+        + this.random() * (CONFIG.dayNight.spawnMaxDistance - CONFIG.dayNight.spawnMinDistance);
       const candidateX = player.x + Math.cos(angle) * distance;
       const candidateY = player.y + Math.sin(angle) * distance;
       if (candidateX < margin || candidateX > this.world - margin || candidateY < margin || candidateY > this.world - margin) continue;
@@ -1362,7 +1400,7 @@ export class GameEngine {
       x = this.clamp(player.x + dx / distance * CONFIG.dayNight.spawnMinDistance, margin, this.world - margin);
       y = this.clamp(player.y + dy / distance * CONFIG.dayNight.spawnMinDistance, margin, this.world - margin);
     }
-    this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: Math.random() * 8 });
+    this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: this.random() * 8 });
     return true;
   }
 
@@ -1422,7 +1460,7 @@ export class GameEngine {
       const contactDistance = Math.hypot(feet.x - e.x, feet.y - e.y);
       if (contactDistance <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
         e.hitWait = CONFIG.enemy.contactCooldown;
-        if (Math.random() > CONFIG.player.dodge + levelStats.dodge) {
+        if (this.random() > CONFIG.player.dodge + levelStats.dodge) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const damage = Math.max(1, Math.round(waveDamage * (this.getDayNightState().isNight ? 1 : 1.5) - CONFIG.player.armor - levelStats.armor));
           p.hp -= damage;
@@ -1651,7 +1689,8 @@ export class GameEngine {
         ? Math.atan2(target.e.y - gripY, target.e.x - gripX)
         : Math.atan2(target.e.y - p.y, target.e.x - p.x);
       // Prefere a ponta realmente desenhada no último quadro; sem desenho (ex.: simulador), usa a pose de repouso.
-      const muzzle = getDrawnMuzzle(rangedId, this.state.elapsed) ?? rangedMuzzle(rangedId, this.weaponSide, aimAngle, CONFIG.player.radius);
+      const muzzle = (!this.headless ? getDrawnMuzzle(rangedId, this.state.elapsed) : null)
+        ?? rangedMuzzle(rangedId, this.weaponSide, aimAngle, CONFIG.player.radius);
       const shotX = p.x + muzzle.x;
       const shotY = p.y + muzzle.y;
       const dx = target.e.x - shotX, dy = target.e.y - shotY, dist = Math.hypot(dx, dy) || 1;
