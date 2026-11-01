@@ -2,7 +2,7 @@ import { CONFIG, type ClassId, type ResourceRarity, type WeaponId } from './conf
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
-import { addToInventory, type InventoryStack } from './inventory';
+import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
@@ -35,9 +35,9 @@ type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; sl
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
-type WoodDrop = Vec & { id: number; amount: number; age: number };
-type StoneDrop = Vec & { id: number; age: number };
-type CottonDrop = Vec & { id: number; age: number };
+type WoodDrop = Vec & { id: number; amount: number; age: number; rarity?: ResourceRarity };
+type StoneDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
+type CottonDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
 type LinenDrop = Vec & { id: number; age: number };
 type BronzeDrop = Vec & { id: number; age: number };
 type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | LinenDrop | BronzeDrop;
@@ -221,7 +221,7 @@ export class GameEngine {
       let toRemove = requested;
       let consumed = 0;
       const nextInventory = inventory.flatMap(stack => {
-        if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
+        if (getBaseItemId(stack.itemId) !== 'wood' || toRemove <= 0) return [stack];
         const used = Math.min(stack.quantity, toRemove);
         toRemove -= used;
         consumed += used;
@@ -263,7 +263,7 @@ export class GameEngine {
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
       const nextInventory = inventory.flatMap(stack => {
-        if (stack.itemId !== itemId || toRemove <= 0) return [stack];
+        if (getBaseItemId(stack.itemId) !== itemId || toRemove <= 0) return [stack];
         const used = Math.min(stack.quantity, toRemove);
         toRemove -= used; consumed += used;
         const left = stack.quantity - used;
@@ -360,7 +360,7 @@ export class GameEngine {
       const room = CONFIG.tecelaria.cottonCapacity - building.cottonStock;
       let toRemove = room, moved = 0;
       const nextInventory = inventory.flatMap(stack => {
-        if (stack.itemId !== 'cotton' || toRemove <= 0) return [stack];
+        if (getBaseItemId(stack.itemId) !== 'cotton' || toRemove <= 0) return [stack];
         const used = Math.min(stack.quantity, toRemove);
         toRemove -= used; moved += used;
         const left = stack.quantity - used;
@@ -401,7 +401,7 @@ export class GameEngine {
       let toRemove = room;
       let transferred = 0;
       const nextInventory = inventory.flatMap(stack => {
-        if (stack.itemId !== 'stone' || toRemove <= 0) return [stack];
+        if (getBaseItemId(stack.itemId) !== 'stone' || toRemove <= 0) return [stack];
         const used = Math.min(stack.quantity, toRemove);
         toRemove -= used;
         transferred += used;
@@ -551,7 +551,7 @@ export class GameEngine {
     const cart = this.state.cart;
     if (this.state.dead || cart.repaired || Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) > CONFIG.cart.interactRadius) return;
     const remaining = CONFIG.cart.repairCost - cart.repairWood;
-    const carriedWood = this.state.inventory.reduce((total, stack) => total + (stack.itemId === 'wood' ? stack.quantity : 0), 0);
+    const carriedWood = this.state.inventory.reduce((total, stack) => total + (getBaseItemId(stack.itemId) === 'wood' ? stack.quantity : 0), 0);
     const amount = Math.min(remaining, carriedWood);
     if (amount <= 0) return;
     let toRemove = amount;
@@ -1176,7 +1176,7 @@ export class GameEngine {
     if (Math.random() < CONFIG.rocks.dropChance) {
       const angle = Math.random() * Math.PI * 2;
       const distance = this.rockFootprintRadius(rock) + 5;
-      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, age: 0 });
+      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, age: 0, rarity: rock.rarity });
     }
     if (rock.hits <= 0) this.state.rocks = this.state.rocks.filter(value => value.id !== id);
   }
@@ -1188,7 +1188,7 @@ export class GameEngine {
     if (Math.random() < CONFIG.cotton.dropChance) {
       const angle = Math.random() * Math.PI * 2;
       const distance = this.cottonFootprintRadius(plant) + 5;
-      this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance, age: 0 });
+      this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance, age: 0, rarity: plant.rarity });
     }
     if (plant.hits <= 0) this.state.cottonPlants = this.state.cottonPlants.filter(value => value.id !== id);
   }
@@ -1198,7 +1198,7 @@ export class GameEngine {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const feet = playerFeet(this.state.player);
       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
-      const result = addToInventory(this.state.inventory, 'stone', 1, CONFIG.inventory);
+      const result = addToInventory(this.state.inventory, getRarityItemId('stone', drop.rarity), 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
       this.state.stoneDrops = this.state.stoneDrops.filter(value => value.id !== drop.id);
@@ -1216,7 +1216,7 @@ export class GameEngine {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const feet = playerFeet(this.state.player);
       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
-      const result = addToInventory(this.state.inventory, 'cotton', 1, CONFIG.inventory);
+      const result = addToInventory(this.state.inventory, getRarityItemId('cotton', drop.rarity), 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
       this.state.cottonDrops = this.state.cottonDrops.filter(value => value.id !== drop.id);
@@ -1242,16 +1242,16 @@ export class GameEngine {
     const roll = Math.random();
     const amount = tree.size === 'small' ? 1 : tree.size === 'medium' ? (roll < 0.5 ? 1 : 2) : (roll < 0.2 ? 1 : roll < 0.5 ? 2 : 3);
     const base = this.treeBase(tree);
-    this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount, age: 0 });
+    this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount, age: 0, rarity: tree.rarity });
   }
 
   private attractMaterials(dt: number, playerSpeed: number) {
     const player = this.state.player;
     const feet = playerFeet(player);
     const drops: { drop: MaterialDrop; itemId: string; amount: number }[] = [
-      ...this.state.woodDrops.map(drop => ({ drop, itemId: 'wood', amount: drop.amount })),
-      ...this.state.stoneDrops.map(drop => ({ drop, itemId: 'stone', amount: 1 })),
-      ...this.state.cottonDrops.map(drop => ({ drop, itemId: 'cotton', amount: 1 })),
+      ...this.state.woodDrops.map(drop => ({ drop, itemId: getRarityItemId('wood', drop.rarity), amount: drop.amount })),
+      ...this.state.stoneDrops.map(drop => ({ drop, itemId: getRarityItemId('stone', drop.rarity), amount: 1 })),
+      ...this.state.cottonDrops.map(drop => ({ drop, itemId: getRarityItemId('cotton', drop.rarity), amount: 1 })),
       ...this.state.linenDrops.map(drop => ({ drop, itemId: 'linen', amount: 1 })),
       ...this.state.bronzeDrops.map(drop => ({ drop, itemId: 'bronze', amount: 1 })),
     ];
@@ -1283,7 +1283,7 @@ export class GameEngine {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const feet = playerFeet(this.state.player);
       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
-      const result = addToInventory(this.state.inventory, 'wood', drop.amount, CONFIG.inventory);
+      const result = addToInventory(this.state.inventory, getRarityItemId('wood', drop.rarity), drop.amount, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
       if (result.added >= drop.amount) this.state.woodDrops = this.state.woodDrops.filter(value => value.id !== drop.id);
