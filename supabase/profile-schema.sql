@@ -11,6 +11,11 @@ create table if not exists public.fibula_profiles (
   level integer not null default 0 check (level >= 0),
   kills integer not null default 0 check (kills >= 0),
   attributes jsonb not null default '{}'::jsonb,
+  avatar_character text not null default 'guerreiro'
+    check (avatar_character in ('guerreiro', 'mago', 'arqueiro', 'druida')),
+  attribute_gain_per_level integer not null default 1 check (attribute_gain_per_level >= 1),
+  highest_survival_level integer not null default 0 check (highest_survival_level >= 0),
+  highest_pd integer not null default 0 check (highest_pd >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint fibula_profiles_display_name_length
