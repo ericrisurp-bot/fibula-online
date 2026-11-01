@@ -6,7 +6,7 @@ create table if not exists public.fibula_house_storage (
   inventory jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now(),
   constraint fibula_house_storage_inventory_array
-    check (jsonb_typeof(inventory) = 'array' and jsonb_array_length(inventory) <= 50)
+    check (case when jsonb_typeof(inventory) = 'array' then jsonb_array_length(inventory) <= 50 else false end)
 );
 
 alter table public.fibula_house_storage enable row level security;
