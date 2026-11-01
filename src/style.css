@@ -3595,3 +3595,378 @@ button, button * {
   .lobby-arsenal-backdrop,.lobby-arsenal-modal{animation:none}
   .arsenal-equipment-slot{transition:none}
 }
+
+
+/* Sistema visual unificado dos modais do lobby — carvão e vidro. */
+:root {
+  --fb-modal-bg: rgba(34,35,34,.97);
+  --fb-modal-panel: rgba(43,46,43,.9);
+  --fb-modal-card: rgba(255,255,255,.055);
+  --fb-modal-border: rgba(225,230,224,.2);
+  --fb-modal-border-soft: rgba(225,230,224,.12);
+  --fb-modal-text: #f2f3ef;
+  --fb-modal-muted: #c0c6bf;
+  --fb-modal-label: #9fa79e;
+  --fb-modal-selected: #494e49;
+}
+.lobby-profile-backdrop,
+.lobby-crafting-backdrop,
+.lobby-friends-backdrop,
+.lobby-chest-backdrop,
+.lobby-ranking-backdrop,
+.player-profile-backdrop {
+  background: rgba(0,0,0,.68) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+.lobby-profile-modal,
+.lobby-crafting-modal,
+.lobby-friends-modal,
+.lobby-chest-modal,
+.lobby-ranking-modal,
+.player-profile-modal {
+  border: 1px solid var(--fb-modal-border) !important;
+  border-radius: 14px !important;
+  background: var(--fb-modal-bg) !important;
+  color: var(--fb-modal-text) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,.62), inset 0 1px rgba(255,255,255,.04) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+.lobby-profile-header,
+.lobby-crafting-header,
+.lobby-friends-header,
+.lobby-chest-header,
+.lobby-ranking-header,
+.player-profile-header {
+  border-bottom: 1px solid var(--fb-modal-border-soft) !important;
+  background: rgba(34,35,34,.72) !important;
+}
+.lobby-profile-header h2,
+.lobby-crafting-header h2,
+.lobby-friends-header h2,
+.lobby-chest-header h2,
+.lobby-ranking-header h2,
+.player-profile-header h2 {
+  color: var(--fb-modal-text) !important;
+  text-shadow: none !important;
+}
+.lobby-profile-header>div>span,
+.profile-section-heading>div>span,
+.lobby-crafting-header>div>span,
+.lobby-friends-header>div>span,
+.lobby-chest-header>div>span,
+.lobby-ranking-header>div>span,
+.player-profile-header span,
+.player-profile-hero>div>span,
+.player-profile-details>div>span {
+  color: var(--fb-modal-muted) !important;
+}
+.lobby-profile-close,
+.lobby-crafting-close,
+.lobby-friends-close,
+.lobby-chest-close,
+.lobby-ranking-close,
+.player-profile-close {
+  border: 1px solid #555a55 !important;
+  border-radius: 9px !important;
+  background: #303330 !important;
+  color: var(--fb-modal-text) !important;
+}
+.lobby-profile-close:hover,
+.lobby-crafting-close:hover,
+.lobby-friends-close:hover,
+.lobby-chest-close:hover,
+.lobby-ranking-close:hover,
+.player-profile-close:hover {
+  background: #414641 !important;
+}
+.lobby-profile-tabs {
+  border-bottom-color: var(--fb-modal-border-soft) !important;
+  background: rgba(34,35,34,.5) !important;
+}
+.lobby-profile-tabs .profile-class-tab,
+.lobby-profile-tabs button {
+  border-color: #555a55 !important;
+  background: #303330 !important;
+  color: #e1e5df !important;
+  box-shadow: none !important;
+}
+.lobby-profile-tabs .profile-class-tab.active,
+.lobby-profile-tabs button.active,
+.profile-class-tab.class-guerreiro.active,
+.profile-class-tab.class-mago.active,
+.profile-class-tab.class-arqueiro.active,
+.profile-class-tab.class-druida.active {
+  border-color: #c5cbc3 !important;
+  background: #494e49 !important;
+  color: #fff !important;
+  box-shadow: inset 0 -2px #c5cbc3 !important;
+}
+.profile-class-tab small,
+.lobby-profile-tabs button span,
+.profile-priority-controls>span,
+.profile-priority-controls>small,
+.profile-section-heading>small {
+  color: var(--fb-modal-muted) !important;
+}
+.profile-class-details .profile-section-heading h3,
+.profile-class-details.class-guerreiro .profile-section-heading h3,
+.profile-class-details.class-mago .profile-section-heading h3,
+.profile-class-details.class-arqueiro .profile-section-heading h3,
+.profile-class-details.class-druida .profile-section-heading h3 {
+  color: var(--fb-modal-text) !important;
+}
+.profile-class-description,
+.profile-weapon-note,
+.profile-stat-summary small,
+.profile-stat-list span,
+.profile-attribute-list span,
+.profile-stat-list small,
+.profile-attribute-list small,
+.profile-stat-note,
+.profile-save-note,
+.profile-priority-controls>small {
+  color: var(--fb-modal-muted) !important;
+}
+.profile-priority-controls,
+.profile-weapon-note,
+.profile-stat-summary>div,
+.profile-ability,
+.profile-priority-controls button,
+.player-profile-hero,
+.player-profile-details>div,
+.player-profile-attributes>div>div {
+  border-color: var(--fb-modal-border) !important;
+  background: var(--fb-modal-card) !important;
+}
+.profile-priority-controls button,
+.profile-priority-controls button.chosen.primary,
+.profile-priority-controls button.chosen.secondary,
+.profile-priority-controls button b,
+.profile-priority-controls button.chosen.primary b,
+.profile-priority-controls button.chosen.secondary b {
+  border-color: #666c65 !important;
+  background: #393d39 !important;
+  color: var(--fb-modal-text) !important;
+}
+.profile-stat-summary span,
+.profile-ability>span,
+.profile-stat-section h4,
+.profile-stat-summary strong,
+.profile-stat-list strong,
+.profile-attribute-list strong,
+.profile-weapon-note strong,
+.profile-ability p,
+.profile-class-details .profile-section-heading h3 {
+  color: var(--fb-modal-text) !important;
+}
+.profile-stat-summary .stat-health,
+.profile-stat-summary .stat-damage,
+.profile-stat-summary .stat-range,
+.profile-stat-summary .stat-speed,
+.profile-class-details.class-guerreiro .profile-ability,
+.profile-class-details.class-mago .profile-ability,
+.profile-class-details.class-arqueiro .profile-ability,
+.profile-class-details.class-druida .profile-ability {
+  border-color: var(--fb-modal-border) !important;
+  background: var(--fb-modal-card) !important;
+}
+.profile-stat-summary .stat-health span,
+.profile-stat-summary .stat-damage span,
+.profile-stat-summary .stat-range span,
+.profile-stat-summary .stat-speed span,
+.profile-class-details.class-guerreiro .profile-ability>span,
+.profile-class-details.class-mago .profile-ability>span,
+.profile-class-details.class-arqueiro .profile-ability>span,
+.profile-class-details.class-druida .profile-ability>span {
+  color: var(--fb-modal-muted) !important;
+}
+.profile-stat-list>div,
+.profile-attribute-list>div,
+.player-profile-attributes {
+  border-bottom-color: var(--fb-modal-border-soft) !important;
+  border-top-color: var(--fb-modal-border-soft) !important;
+}
+.lobby-status-card,
+.lobby-status-card.class-guerreiro,
+.lobby-status-card.class-mago,
+.lobby-status-card.class-arqueiro,
+.lobby-status-card.class-druida {
+  border-color: var(--fb-modal-border) !important;
+  background: var(--fb-modal-panel) !important;
+  color: var(--fb-modal-text) !important;
+  box-shadow: none !important;
+}
+.lobby-status-card-heading h3,
+.lobby-status-card-heading>div>span,
+.lobby-status-level,
+.lobby-status-power>span,
+.lobby-status-power>strong,
+.lobby-status-power>small,
+.lobby-status-attributes>div,
+.lobby-status-attributes strong,
+.lobby-status-equipment>span,
+.lobby-status-equipment>div small,
+.lobby-status-equipment>small,
+.lobby-status-equipment-note {
+  color: var(--fb-modal-text) !important;
+  text-shadow: none !important;
+}
+.lobby-status-power,
+.lobby-status-attributes>div,
+.lobby-status-equipment,
+.lobby-status-equipment>div small,
+.lobby-status-equipment-note {
+  border-color: var(--fb-modal-border-soft) !important;
+  background: var(--fb-modal-card) !important;
+}
+.lobby-status-card.class-guerreiro .lobby-status-power,
+.lobby-status-card.class-mago .lobby-status-power,
+.lobby-status-card.class-arqueiro .lobby-status-power,
+.lobby-status-card.class-druida .lobby-status-power,
+.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
+.lobby-status-card.class-mago .lobby-status-attributes>div,
+.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
+.lobby-status-card.class-druida .lobby-status-attributes>div,
+.lobby-status-card.class-guerreiro .lobby-status-equipment,
+.lobby-status-card.class-mago .lobby-status-equipment,
+.lobby-status-card.class-arqueiro .lobby-status-equipment,
+.lobby-status-card.class-druida .lobby-status-equipment {
+  border-color: var(--fb-modal-border-soft) !important;
+  background: var(--fb-modal-card) !important;
+}
+.lobby-crafting-content,
+.lobby-friends-list,
+.lobby-chest-grid,
+.lobby-ranking-body,
+.player-profile-content {
+  color: var(--fb-modal-text) !important;
+}
+.lobby-crafting-emblem,
+.lobby-crafting-products,
+.lobby-friends-empty,
+.lobby-friends-empty>span,
+.lobby-chest-slot,
+.lobby-chest-slot.filled,
+.lobby-ranking-board,
+.lobby-ranking-empty,
+.lobby-ranking-player-position>div,
+.player-profile-avatar,
+.player-profile-details>div {
+  border-color: var(--fb-modal-border) !important;
+  background: var(--fb-modal-card) !important;
+  color: var(--fb-modal-text) !important;
+  box-shadow: none !important;
+}
+.lobby-crafting-content>p,
+.lobby-crafting-content>small,
+.lobby-crafting-products>span,
+.lobby-friends-empty p,
+.lobby-friends-note,
+.lobby-friends-count,
+.lobby-chest-header p,
+.lobby-chest-note,
+.lobby-chest-slot small,
+.lobby-chest-slot-number,
+.lobby-ranking-header>div>span,
+.lobby-ranking-board-heading>div>span,
+.lobby-ranking-empty p,
+.lobby-ranking-empty small,
+.lobby-ranking-player-position>div>span,
+.lobby-ranking-player-position>small,
+.player-profile-hero p,
+.player-profile-details small,
+.player-profile-attributes small,
+.player-profile-footer {
+  color: var(--fb-modal-muted) !important;
+}
+.lobby-crafting-products>strong,
+.lobby-friends-empty strong,
+.lobby-chest-slot b,
+.lobby-ranking-board-heading h3,
+.lobby-ranking-board-heading>strong,
+.lobby-ranking-empty>strong,
+.lobby-ranking-player-position>div>strong,
+.player-profile-hero h3,
+.player-profile-details strong,
+.player-profile-attributes h4,
+.player-profile-attributes strong {
+  color: var(--fb-modal-text) !important;
+}
+.lobby-chest-slot b {
+  background: #303330 !important;
+  border: 1px solid var(--fb-modal-border-soft);
+}
+.lobby-ranking-mode-tabs,
+.lobby-ranking-player-position {
+  border-color: var(--fb-modal-border-soft) !important;
+  background: rgba(34,35,34,.58) !important;
+}
+.lobby-ranking-mode-tabs button,
+.lobby-ranking-category-tabs button,
+.lobby-ranking-board-heading>strong {
+  border-color: #555a55 !important;
+  background: #303330 !important;
+  color: #d5dad3 !important;
+  box-shadow: none !important;
+}
+.lobby-ranking-mode-tabs button.active,
+.lobby-ranking-category-tabs button.active {
+  border-color: #c5cbc3 !important;
+  background: #494e49 !important;
+  color: #fff !important;
+}
+.lobby-ranking-board-heading,
+.lobby-ranking-player-position>div {
+  border-color: var(--fb-modal-border-soft) !important;
+}
+.lobby-ranking-empty>span { filter: grayscale(1) !important; }
+.player-profile-avatar { border-radius: 12px !important; }
+.player-profile-edit,
+.player-profile-actions button,
+.lobby-ranking-mode-tabs button,
+.lobby-ranking-category-tabs button,
+.profile-priority-controls button {
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+.player-profile-edit,
+.player-profile-actions button:not(.secondary) {
+  border-color: #d0d4ce !important;
+  background: #d0d4ce !important;
+  color: #222322 !important;
+}
+.player-profile-actions button.secondary {
+  border-color: #646b63 !important;
+  background: #393d39 !important;
+  color: #e1e5df !important;
+}
+.player-profile-form label,
+.player-profile-form label small { color: var(--fb-modal-muted) !important; }
+.player-profile-form input,
+.player-profile-form select {
+  border-color: #555a55 !important;
+  background: #292c29 !important;
+  color: var(--fb-modal-text) !important;
+}
+.player-profile-error { color: #e5aaa5 !important; }
+.lobby-profile-modal :focus-visible,
+.lobby-crafting-modal :focus-visible,
+.lobby-friends-modal :focus-visible,
+.lobby-chest-modal :focus-visible,
+.lobby-ranking-modal :focus-visible,
+.player-profile-modal :focus-visible {
+  outline: 2px solid #d0d4ce !important;
+  outline-offset: 2px;
+}
+@media(prefers-reduced-motion:reduce) {
+  .lobby-profile-modal,
+  .lobby-crafting-modal,
+  .lobby-friends-modal,
+  .lobby-chest-modal,
+  .lobby-ranking-modal,
+  .player-profile-modal {
+    animation: none !important;
+    transition: none !important;
+  }
+}
