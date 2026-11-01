@@ -1,4 +1,4 @@
-import { CONFIG, type ClassId, type WeaponId } from './config';
+import { CONFIG, type ClassId, type ResourceRarity, type WeaponId } from './config';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
@@ -32,9 +32,9 @@ function persistHouseStorage(inventory: InventoryStack[]) {
   try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Armazenamento local indisponível. */ }
 }
 type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
-type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
-type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number };
-type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large' };
+type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
+type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
+type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type WoodDrop = Vec & { id: number; amount: number; age: number };
 type StoneDrop = Vec & { id: number; age: number };
 type CottonDrop = Vec & { id: number; age: number };
@@ -115,6 +115,7 @@ export class GameEngine {
     this.rockSpawnCountdown = this.rockSpawnDuration();
     this.spawnInitialCottonPlants();
     this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval;
+    this.spawnRarityShowcase();
   }
 
   private freshState(classId: ClassId = 'guerreiro'): GameSnapshot {
@@ -849,6 +850,33 @@ export class GameEngine {
 
   private spawnInitialCottonPlants() {
     for (let i = 0; i < CONFIG.cotton.startCount; i++) this.spawnCottonPlant();
+  }
+
+  private spawnRarityShowcase() {
+    const player = this.state.player;
+    // Limpa algodoeiros aleatórios que poderiam ocupar a área reservada à demonstração.
+    this.state.cottonPlants = this.state.cottonPlants.filter(plant =>
+      Math.hypot(plant.x - player.x, plant.y - player.y) > 560
+    );
+
+    // Quatro recursos grandes, um por raridade, em volta do ponto inicial do jogador.
+    this.state.trees.push({
+      id: this.nextId++, x: player.x - 210, y: player.y - 220,
+      hits: CONFIG.trees.hitsToCut, size: 'large', rarity: 'common',
+    });
+    this.state.rocks.push({
+      id: this.nextId++, x: player.x + 210, y: player.y - 220,
+      hits: CONFIG.rocks.hitsToBreak.large, size: 'large',
+      clusterId: this.nextRockClusterId++, rarity: 'uncommon',
+    });
+    this.state.cottonPlants.push({
+      id: this.nextId++, x: player.x - 210, y: player.y + 220,
+      hits: CONFIG.rocks.hitsToBreak.large, size: 'large', rarity: 'rare',
+    });
+    this.state.trees.push({
+      id: this.nextId++, x: player.x + 210, y: player.y + 220,
+      hits: CONFIG.trees.hitsToCut, size: 'large', rarity: 'legendary',
+    });
   }
 
   private updateCottonSpawner(dt: number) {
