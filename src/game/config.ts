@@ -4,6 +4,13 @@ const SWORD_REACH_BEYOND_AURA = 32;
 
 export type ResourceRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
+export const RESOURCE_RARITY_RULES = {
+  common: { chancePercent: 0.09, minNight: 1 },
+  uncommon: { chancePercent: 0.07, minNight: 8 },
+  rare: { chancePercent: 0.05, minNight: 15 },
+  legendary: { chancePercent: 0.02, minNight: 30 },
+} as const;
+
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
   player: { radius: 18, footOffset: 40, footRadius: 12, // footOffset ≈ ladinoFeetY(player.radius)
