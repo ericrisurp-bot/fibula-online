@@ -3535,18 +3535,9 @@ body {
   border-color: var(--fb-line-soft);
 }
 
-.button:not(.selected):not(.active):not([aria-pressed="true"]):not([class*="danger"]):not([class*="delete"]):not([class*="discard"]):not([class*="error"]):not([class*="warning"]):not([class*="success"]) {
+button:not(.selected):not(.active):not([aria-pressed="true"]):not([class*="danger"]):not([class*="delete"]):not([class*="discard"]):not([class*="error"]):not([class*="warning"]):not([class*="success"]) {
   border-color: var(--fb-line);
   background-color: var(--fb-card);
-  color: var(--fb-text);
-}
-
-.mobile-menu-panel button.selected,
-button.selected,
-button.active,
-button[aria-pressed="true"] {
-  border-color: var(--fb-line);
-  background-color: var(--fb-selected);
   color: var(--fb-text);
 }
 
