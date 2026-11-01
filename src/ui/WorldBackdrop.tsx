@@ -19,6 +19,7 @@ export default function WorldBackdrop({ className, opacity = 1 }: WorldBackdropP
     const cycleDuration = CONFIG.dayNight.cycle;
     const dayDuration = CONFIG.dayNight.dayDuration;
     const transitionDuration = CONFIG.dayNight.transitionDuration;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const sceneWidth = 900;
     const sceneHeight = 540;
     let frame = 0;
@@ -38,7 +39,7 @@ export default function WorldBackdrop({ className, opacity = 1 }: WorldBackdropP
 
     const render = (now: number) => {
       if (!startedAt) startedAt = now;
-      const elapsed = ((now - startedAt) / 1000) % cycleDuration;
+      const elapsed = reducedMotion ? 0 : ((now - startedAt) / 1000) % cycleDuration;
       const nightDuration = cycleDuration - dayDuration;
       let darkness = 0;
 
@@ -60,7 +61,7 @@ export default function WorldBackdrop({ className, opacity = 1 }: WorldBackdropP
       ctx.fillStyle = pattern ?? '#557a43';
       ctx.fillRect(0, 0, width, height);
 
-      const scale = Math.max(width / sceneWidth, height / sceneHeight);
+      const scale = Math.min(width / sceneWidth, height / sceneHeight);
       ctx.save();
       ctx.translate((width - sceneWidth * scale) / 2, (height - sceneHeight * scale) / 2);
       ctx.scale(scale, scale);
@@ -87,7 +88,7 @@ export default function WorldBackdrop({ className, opacity = 1 }: WorldBackdropP
         ctx.fillRect(0, 0, width, height);
       }
 
-      frame = window.requestAnimationFrame(render);
+      if (!reducedMotion) frame = window.requestAnimationFrame(render);
     };
 
     resize();
