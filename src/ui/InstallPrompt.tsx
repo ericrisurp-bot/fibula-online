@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import WorldBackdrop from './WorldBackdrop';
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -82,10 +83,13 @@ export default function InstallPrompt() {
         position: 'fixed', zIndex: 10000, top: 'max(12px, env(safe-area-inset-top))',
         left: '50%', transform: 'translateX(-50%)', width: 'min(440px, calc(100vw - 24px))',
         padding: '16px', borderRadius: '14px', border: '1px solid rgba(230, 230, 230, .28)',
-        background: '#222322', color: '#f0f0f0',
+        background: 'rgba(34, 35, 34, .84)', color: '#f0f0f0',
+        overflow: 'hidden', backdropFilter: 'blur(5px)',
         boxShadow: '0 12px 40px #0009', fontFamily: 'inherit',
       }}
     >
+      <WorldBackdrop opacity={0.5} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <button
         type="button"
         aria-label="Fechar aviso"
@@ -122,6 +126,7 @@ export default function InstallPrompt() {
       >
         {showHelp ? 'FECHAR INSTRUÇÕES' : ios || !installEvent ? 'COMO INSTALAR' : 'INSTALAR JOGO'}
       </button>
+      </div>
     </aside>
   );
 }
