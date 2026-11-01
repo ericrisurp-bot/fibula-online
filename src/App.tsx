@@ -449,7 +449,7 @@ export default function App() {
     };
     frame = window.requestAnimationFrame(renderArsenalCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [arsenalOpen, arsenalCharacterTab, characterPreferences]);
+  }, [arsenalOpen, arsenalCharacterTab, characterPreferences, avatarCharacter]);
 
   useEffect(() => {
     if (!showStart) return;
