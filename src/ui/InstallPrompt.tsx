@@ -98,7 +98,7 @@ export default function InstallPrompt() {
           <strong style={{ display: 'block', fontSize: 16 }}>
             {ios ? 'Instale no iPhone ou iPad' : 'Instale o Fíbula Online'}
           </strong>
-          <span style={{ display: 'block', marginTop: 3, color: '#a9bdb2', fontSize: 12, lineHeight: 1.4 }}>
+          <span style={{ display: 'block', marginTop: 3, color: '#b4b7b4', fontSize: 12, lineHeight: 1.4 }}>
             Tenha o jogo na tela inicial e abra em uma janela própria, como um aplicativo.
           </span>
         </div>
