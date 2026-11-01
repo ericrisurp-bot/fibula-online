@@ -54,7 +54,7 @@ export const CONFIG = {
   classSwitch: { healthTransitionSeconds: 5 },
   xp: { perSlime: 1, radius: 7, attractionRadius: 40, attractionSpeed: 300, levelBase: 4, levelGrowth: 2 },
   attributes: {
-    classStartHealth: { guerreiro: 200, mago: 90, arqueiro: 100, druida: 110 },
+    classStartHealth: { guerreiro: 150, mago: 90, arqueiro: 100, druida: 110 },
     baseValue: 100,
     gainPerLevel: 1,
     // Multiplicadores aplicados somente ao ganho de cada nível.
@@ -76,7 +76,7 @@ export const CONFIG = {
   archerHeal: { arrowsPerHeal: 15, amount: 1 },
   druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
   weapons: {
-    espada: { label: 'Espada', range: AURA_RADIUS + SWORD_REACH_BEYOND_AURA, damage: 16, attackSpeed: 2.1, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
+    espada: { label: 'Espada', range: AURA_RADIUS + SWORD_REACH_BEYOND_AURA, damage: 16, attackSpeed: 1.0, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.92, kind: 'orb' as const, projectileSpeed: 390 },
     arco: { label: 'Arco', range: 420, damage: 13, attackSpeed: 1.15, kind: 'arrow' as const, projectileSpeed: 560 },
     bastao: { label: 'Cajado da Natureza', range: 290, damage: 17, attackSpeed: 0.92, kind: 'orb' as const, projectileSpeed: 390 },
