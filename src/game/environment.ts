@@ -128,3 +128,39 @@ export function drawRock(ctx: CanvasRenderingContext2D, x: number, y: number, si
   ctx.stroke();
   ctx.restore();
 }
+
+ 
+export function drawResourceRarityAura(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  rarity?: import('./config').ResourceRarity,
+) {
+  if (!rarity) return;
+  const styles = {
+    common: { color: '#49d879', fill: 'rgba(73,216,121,0.16)', edge: 'rgba(73,216,121,0.48)', blur: 14 },
+    uncommon: { color: '#579fff', fill: 'rgba(87,159,255,0.12)', edge: 'rgba(87,159,255,0.4)', blur: 11 },
+    rare: { color: '#b477f0', fill: 'rgba(180,119,240,0.22)', edge: 'rgba(180,119,240,0.62)', blur: 20 },
+    legendary: { color: '#ff9b43', fill: 'rgba(255,155,67,0.32)', edge: 'rgba(255,155,67,0.82)', blur: 30 },
+  } as const;
+  const style = styles[rarity];
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const glow = ctx.createRadialGradient(x, y - radius * 0.12, radius * 0.08, x, y - radius * 0.12, radius);
+  glow.addColorStop(0, style.fill);
+  glow.addColorStop(0.58, style.fill);
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.ellipse(x, y - radius * 0.12, radius * 0.82, radius * 1.08, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowColor = style.color;
+  ctx.shadowBlur = style.blur;
+  ctx.strokeStyle = style.edge;
+  ctx.lineWidth = rarity === 'legendary' ? 2.2 : 1.4;
+  ctx.beginPath();
+  ctx.ellipse(x, y + radius * 0.42, radius * 0.78, radius * 0.24, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
