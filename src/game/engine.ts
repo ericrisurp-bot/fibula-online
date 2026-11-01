@@ -313,7 +313,7 @@ export class GameEngine {
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
       const nextInventory = inventory.flatMap(stack => {
-        if (stack.itemId !== itemId || toRemove <= 0) return [stack];
+        if (getBaseItemId(stack.itemId) !== itemId || toRemove <= 0) return [stack];
         const used = Math.min(stack.quantity, toRemove);
         toRemove -= used; consumed += used;
         const left = stack.quantity - used;
@@ -556,7 +556,7 @@ export class GameEngine {
     if (amount <= 0) return;
     let toRemove = amount;
     this.state.inventory = this.state.inventory.flatMap(stack => {
-      if (stack.itemId !== 'wood' || toRemove <= 0) return [stack];
+      if (getBaseItemId(stack.itemId) !== 'wood' || toRemove <= 0) return [stack];
       const used = Math.min(stack.quantity, toRemove);
       toRemove -= used;
       const left = stack.quantity - used;
