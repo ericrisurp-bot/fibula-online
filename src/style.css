@@ -4231,3 +4231,67 @@ button, button * {
   .player-profile-avatar-choice { min-height: 104px; }
   .player-profile-avatar-option-canvas { width: 68px; height: 68px; }
 }
+
+
+/* Tela de fim de partida: identidade carvão e botões no padrão do login. */
+.game-over {
+  background: rgba(34, 35, 34, 0.94);
+  color: #f2f3ef;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.game-over .skull {
+  background: #393d39;
+  border-color: #737970;
+  color: #e1e5df;
+}
+.game-over .eyebrow { color: #d0d4ce; }
+.game-over > p:not(.eyebrow) { color: #c0c5bd; }
+.game-over .summary div {
+  border-color: #555a55;
+  background: #2b2e2b;
+}
+.game-over .summary span { color: #aeb4aa; }
+.game-over .summary b { color: #f2f3ef; }
+.game-over-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: min(100%, 440px);
+}
+.game-over-actions button {
+  min-width: min(190px, 100%);
+  min-height: 44px;
+  padding: 11px 18px;
+  border: 1px solid #d0d4ce;
+  border-radius: 8px;
+  font-weight: 900;
+  transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
+}
+.game-over-actions .restart-button {
+  background: #d0d4ce;
+  color: #222322;
+}
+.game-over-actions .lobby-return-button {
+  background: #393d39;
+  border-color: #737970;
+  color: #e1e5df;
+}
+.game-over-actions button:active {
+  transform: translateY(1px);
+  background: #aeb4aa;
+  border-color: #aeb4aa;
+  color: #222322;
+}
+.game-over-actions button:focus-visible {
+  outline: 2px solid #f2f3ef;
+  outline-offset: 3px;
+}
+@media (max-width: 520px) {
+  .game-over { padding: 16px; }
+  .game-over .summary { gap: 6px; margin: 18px 0; }
+  .game-over .summary div { min-width: 0; flex: 1; padding: 9px 8px; }
+  .game-over-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+  .game-over-actions button { width: 100%; }
+}
