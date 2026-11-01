@@ -33,7 +33,6 @@ export function readLocalHouseInventory(): PersistedHouseStack[] {
 
 export async function loadHouseInventory(
   client: SupabaseClient,
-  userId: string,
 ): Promise<{ inventory: PersistedHouseStack[]; source: 'cloud' | 'local' }> {
   try {
     // A sessão e o perfil são provisionados pela RPC segura ao iniciar a partida.
