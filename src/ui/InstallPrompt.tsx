@@ -91,40 +91,40 @@ export default function InstallPrompt() {
       <WorldBackdrop opacity={0.5} />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <button
-        type="button"
-        aria-label="Fechar aviso"
-        onClick={() => setVisible(false)}
-        style={{ position: 'absolute', right: 10, top: 8, border: 0, background: 'transparent', color: '#b4b7b4', fontSize: 22, cursor: 'pointer' }}
-      >×</button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 22 }}>
-        <img src="/icons/icon.png" alt="" width="48" height="48" style={{ borderRadius: 10, objectFit: 'cover' }} />
+          type="button"
+          aria-label="Fechar aviso"
+          onClick={() => setVisible(false)}
+          style={{ position: 'absolute', right: 10, top: 8, border: 0, background: 'transparent', color: '#b4b7b4', fontSize: 22, cursor: 'pointer' }}
+        >×</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 22 }}>
+          <img src="/icons/icon.png" alt="" width="48" height="48" style={{ borderRadius: 10, objectFit: 'cover' }} />
           <div>
             <strong style={{ display: 'block', fontSize: 16 }}>
-            {ios ? 'Instale no iPhone ou iPad' : 'Instale o Fíbula Online'}
+              {ios ? 'Instale no iPhone ou iPad' : 'Instale o Fíbula Online'}
             </strong>
             <span style={{ display: 'block', marginTop: 3, color: '#b4b7b4', fontSize: 12, lineHeight: 1.4 }}>
-            Tenha o jogo na tela inicial e abra em uma janela própria, como um aplicativo.
+              Tenha o jogo na tela inicial e abra em uma janela própria, como um aplicativo.
             </span>
           </div>
         </div>
         {showHelp && (
-        <ol
-          aria-live="polite"
-          style={{ margin: '12px 0 0', paddingLeft: 22, color: '#d0d2d0', fontSize: 12, lineHeight: 1.6 }}
-        >
-          {helpSteps.map((step) => <li key={step} style={{ paddingLeft: 3, marginBottom: 5 }}>{step}</li>)}
-        </ol>
-      )}
+          <ol
+            aria-live="polite"
+            style={{ margin: '12px 0 0', paddingLeft: 22, color: '#d0d2d0', fontSize: 12, lineHeight: 1.6 }}
+          >
+            {helpSteps.map((step) => <li key={step} style={{ paddingLeft: 3, marginBottom: 5 }}>{step}</li>)}
+          </ol>
+        )}
         <button
           type="button"
           onClick={() => void install()}
-        style={{
-          width: '100%', marginTop: 14, padding: '11px 14px', border: 0, borderRadius: 8,
-          background: '#d0d2d0', color: '#222322', fontWeight: 900, letterSpacing: '.06em',
-          cursor: 'pointer',
-        }}
-      >
-        {showHelp ? 'FECHAR INSTRUÇÕES' : ios || !installEvent ? 'COMO INSTALAR' : 'INSTALAR JOGO'}
+          style={{
+            width: '100%', marginTop: 14, padding: '11px 14px', border: 0, borderRadius: 8,
+            background: '#d0d2d0', color: '#222322', fontWeight: 900, letterSpacing: '.06em',
+            cursor: 'pointer',
+          }}
+        >
+          {showHelp ? 'FECHAR INSTRUÇÕES' : ios || !installEvent ? 'COMO INSTALAR' : 'INSTALAR JOGO'}
         </button>
       </div>
     </aside>
