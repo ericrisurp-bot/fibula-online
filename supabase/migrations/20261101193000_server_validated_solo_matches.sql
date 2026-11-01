@@ -48,7 +48,7 @@ declare
   v_session_id uuid := gen_random_uuid();
 begin
   if v_user_id is null
-    or (auth.jwt()->>'iss') is distinct from 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1' then
+    or (auth.jwt()->>'iss') is distinct from 'https://jkbplwnklzhayzghizwh.supabase.co/auth/v1' then
     raise exception 'Sessão não autorizada.';
   end if;
 
@@ -92,7 +92,7 @@ declare
   v_distribution numeric[] := array[0.30, 0.20, 0.25, 0.15, 0.10];
 begin
   if v_user_id is null
-    or (auth.jwt()->>'iss') is distinct from 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1' then
+    or (auth.jwt()->>'iss') is distinct from 'https://jkbplwnklzhayzghizwh.supabase.co/auth/v1' then
     raise exception 'Sessão não autorizada.';
   end if;
 
