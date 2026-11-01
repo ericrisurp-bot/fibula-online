@@ -144,6 +144,11 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
     ['Esquiva', nextLevelAttributes.esquiva - attributes.esquiva],
     ['Área de ataque', nextLevelAttributes.areaAtaque - attributes.areaAtaque],
   ] as const;
+  const growthRows = ([['forca', 'Força', '💪'], ['armadura', 'Armadura', '🛡️'], ['inteligencia', 'Inteligência', '🧠'], ['destreza', 'Destreza', '🎯']] as const).map(([key, label, icon]) => {
+    const gain = nextLevelAttributes[key] - attributes[key];
+    const best = Math.max(0.0001, ...PROFILE_CLASS_IDS.map(id => getPlayerAttributes(id, 1)[key] - getPlayerAttributes(id, 0)[key]));
+    return { label, icon, gain, percent: Math.max(0, Math.min(100, Math.round(gain / best * 100))) };
+  });
   const ability = {
     guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
     mago: `A cada 4º ataque, cria uma explosão de raio ${CONFIG.mageExplosion.radius} com dano multiplicado por ${CONFIG.mageExplosion.damageMultiplier.toFixed(1)}.`,
@@ -165,6 +170,14 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
       <div className="stat-range"><span>🎯 ALCANCE</span><strong>{weapon.range}</strong><small>unidades do jogo</small></div>
       <div className="stat-speed"><span>⚔️ ATAQUES / SEG</span><strong>{weapon.attackSpeed.toFixed(2)}</strong><small>+{attackSpeedPerLevel.toFixed(2)}% por nível</small></div>
     </div>
+    <section className="profile-stat-section profile-growth">
+      <h4>📈 Cresce a cada nível</h4>
+      <p className="profile-stat-note">A barra compara com as outras classes.</p>
+      {growthRows.map(row => <div className="profile-growth-row" key={row.label}><span><i aria-hidden="true">{row.icon}</i>{row.label}</span><b aria-hidden="true"><u style={{ width: `${row.percent}%` }} /></b><strong>+{row.gain.toFixed(2)}</strong></div>)}
+    </section>
+    <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
+    <details className="profile-more">
+    <summary>Todos os atributos e mobilidade</summary>
     <section className="profile-stat-section">
       <h4>🧭 Sobrevivência e mobilidade</h4>
       <div className="profile-stat-list">
@@ -180,7 +193,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
         {attributeRows.map(([label, gain]) => <div key={label}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>+{gain.toFixed(2)} <small>/ nível</small></strong></div>)}
       </div>
     </section>
-    <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
+    </details>
   </div>;
 }
 
@@ -1532,12 +1545,11 @@ export default function App() {
             <div className="lobby-profile-content">
               <section className={`profile-class-details class-${profileClassTab}`}>
                 <div className="profile-section-heading">
-                  <div><span>FICHA DO PERSONAGEM · NÍVEL 0</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[profileClassTab]}</span> {CLASSES[profileClassTab].label}</h3></div>
-                  <small>Início da partida</small>
+                  <div><span>NÍVEL 0 · INÍCIO DA PARTIDA</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[profileClassTab]}</span> {CLASSES[profileClassTab].label}{(characterPreferences[0] === profileClassTab || characterPreferences[1] === profileClassTab) && <em className="profile-class-pill">{characterPreferences[0] === profileClassTab ? '★ PRINCIPAL' : '② SECUNDÁRIO'}</em>}</h3></div>
                 </div>
                 <p className="profile-class-description">{CLASSES[profileClassTab].description}</p>
                 <div className="profile-priority-controls" aria-label="Prioridade da classe">
-                  <span>MINHAS PREFERÊNCIAS</span>
+                  <span>USAR COMO</span>
                   <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
                     if (current[0] === profileClassTab) return [null, current[1]];
                     if (current[1] === profileClassTab) return [profileClassTab, current[0]];
@@ -1548,7 +1560,7 @@ export default function App() {
                     if (current[0] === profileClassTab) return [current[1], profileClassTab];
                     return [current[0], profileClassTab];
                   })}><b>2</b> Secundário</button>
-                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Escolha 1 ou 2 para adicionar esta classe às suas preferências. Os controles também desligam uma preferência já ativa.</small>}
+                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Toque em 1 ou 2 para escolher. Toque de novo para desligar.</small>}
                 </div>
                 <ProfileClassStats classId={profileClassTab} />
               </section>

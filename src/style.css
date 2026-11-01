@@ -4023,3 +4023,30 @@ button, button * {
 .lobby-status-attributes > div { color: var(--fb-modal-muted); font-size: 11px; }
 .lobby-status-equipment { margin-top: 9px !important; padding-top: 8px !important; }
 .lobby-status-equipment > small { color: var(--fb-modal-label) !important; }
+
+/* ===== Classes enxuto (Etapa 4): herói + 4 números + barras de crescimento; o resto fica recolhido ===== */
+.profile-class-details .profile-section-heading h3 { flex-wrap: wrap; }
+.profile-class-pill { margin-left: 4px; padding: 3px 8px; border: 1px solid var(--fb-modal-border); border-radius: 999px; background: #303330; color: var(--fb-modal-text); font-size: 9px; font-style: normal; font-weight: 900; letter-spacing: 0.08em; }
+.profile-growth { margin-top: 12px; }
+.profile-growth .profile-stat-note { margin: 0 0 8px; }
+.profile-growth-row { display: grid; grid-template-columns: minmax(96px, 128px) minmax(0, 1fr) 52px; align-items: center; gap: 10px; padding: 5px 2px; }
+.profile-growth-row > span { color: var(--fb-modal-muted); font-size: 12px; white-space: nowrap; }
+.profile-growth-row > span i { display: inline-block; width: 22px; font-style: normal; }
+.profile-growth-row > b { display: block; height: 8px; border-radius: 8px; background: rgba(0, 0, 0, 0.3); overflow: hidden; }
+.profile-growth-row > b u { display: block; height: 100%; border-radius: 8px; background: var(--fb-modal-selected); text-decoration: none; }
+.profile-growth-row > strong { color: var(--fb-modal-text); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.profile-class-details.class-guerreiro .profile-growth-row > b u { background: #d2586a; }
+.profile-class-details.class-mago .profile-growth-row > b u { background: #8a63d6; }
+.profile-class-details.class-arqueiro .profile-growth-row > b u { background: #c99a2e; }
+.profile-class-details.class-druida .profile-growth-row > b u { background: #4fae6b; }
+.profile-more { margin-top: 12px; border: 1px solid var(--fb-modal-border-soft); border-radius: 10px; background: var(--fb-modal-card); }
+.profile-more > summary { padding: 10px 12px; color: var(--fb-modal-text); font-size: 12px; font-weight: 900; cursor: pointer; list-style: none; }
+.profile-more > summary::-webkit-details-marker { display: none; }
+.profile-more > summary::after { content: '▾'; float: right; color: var(--fb-modal-label); }
+.profile-more[open] > summary::after { content: '▴'; }
+.profile-more > .profile-stat-section { margin: 0; padding: 0 12px 12px; }
+@media (max-width: 520px) {
+  .profile-growth-row { grid-template-columns: minmax(84px, 108px) minmax(0, 1fr) 46px; gap: 8px; }
+  .profile-growth-row > span { font-size: 11px; }
+}
+.profile-priority-controls button.chosen.primary, .profile-priority-controls button.chosen.secondary { background: var(--fb-modal-selected) !important; border-color: rgba(240, 240, 240, 0.75) !important; color: var(--fb-modal-text) !important; }
