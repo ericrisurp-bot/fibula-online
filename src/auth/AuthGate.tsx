@@ -8,6 +8,7 @@ import {
   type ArenaOAuthSession,
 } from './arenaOAuth';
 import { fibulaSupabase, isFibulaSupabaseConfigured } from './supabase';
+import WorldBackdrop from '../ui/WorldBackdrop';
 
 type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'error' | 'configuration';
 
@@ -97,15 +98,19 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <main
       style={{
         minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 20,
+        position: 'relative', isolation: 'isolate', overflow: 'hidden',
         background: 'radial-gradient(ellipse at 50% 0%, #2e2f2e 0%, #171817 68%)',
         color: '#f0f0f0', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
       }}
     >
+      <WorldBackdrop />
       <section
         aria-labelledby="arena-auth-title"
         style={{
           width: 'min(100%, 420px)', padding: '30px 26px', borderRadius: 16,
-          border: '1px solid rgba(230, 230, 230, .24)', background: 'rgba(34, 35, 34, .96)',
+          position: 'relative', zIndex: 1,
+          border: '1px solid rgba(230, 230, 230, .24)', background: 'rgba(34, 35, 34, .88)',
+          backdropFilter: 'blur(8px)',
           boxShadow: '0 20px 60px #0008', textAlign: 'center',
         }}
       >
