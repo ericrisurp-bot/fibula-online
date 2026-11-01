@@ -1,4 +1,4 @@
-import { CONFIG, type ClassId, type ResourceRarity, type WeaponId } from './config';
+import { CONFIG, RESOURCE_RARITY_RULES, type ClassId, type ResourceRarity, type WeaponId } from './config';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
@@ -851,10 +851,10 @@ export class GameEngine {
   private rollResourceRarity(size: 'small' | 'medium' | 'large'): ResourceRarity | undefined {
     if (size !== 'large') return undefined;
     const rules = [
-      ['common', CONFIG.resourceRarity.common],
-      ['uncommon', CONFIG.resourceRarity.uncommon],
-      ['rare', CONFIG.resourceRarity.rare],
-      ['legendary', CONFIG.resourceRarity.legendary],
+      ['common', RESOURCE_RARITY_RULES.common],
+      ['uncommon', RESOURCE_RARITY_RULES.uncommon],
+      ['rare', RESOURCE_RARITY_RULES.rare],
+      ['legendary', RESOURCE_RARITY_RULES.legendary],
     ] as const;
     let roll = Math.random();
     for (const [rarity, rule] of rules) {
