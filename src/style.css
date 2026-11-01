@@ -4295,3 +4295,10 @@ button, button * {
   .game-over-actions { flex-direction: column; align-items: stretch; gap: 8px; }
   .game-over-actions button { width: 100%; }
 }
+
+
+/* O alvo do perfil acompanha apenas a silhueta do personagem, não o canvas inteiro. */
+.lobby-character-profile-trigger{position:absolute;z-index:4;left:calc(50% - 11vw);top:calc(50% - 7vh + 24vh);width:clamp(76px,12vw,150px);height:clamp(120px,26vh,220px);min-height:0;padding:0;border:0;border-radius:40%;background:transparent;color:inherit;cursor:pointer;transform:translate(-50%,-50%)}
+.lobby-character-profile-trigger:focus-visible{outline:2px solid #b8c99b;outline-offset:2px}
+@media(max-width:650px){.lobby-character-profile-trigger{left:calc(50% - 11vw);top:calc(50% - 7vh + 22vh);width:clamp(72px,24vw,108px);height:clamp(112px,25vh,160px)}}
+@media(orientation:landscape) and (max-height:520px){.lobby-character-profile-trigger{left:calc(50% - 8vw);top:calc(50% - 4vh + 18vh);width:clamp(68px,12vh,112px);height:clamp(96px,38vh,160px)}}
