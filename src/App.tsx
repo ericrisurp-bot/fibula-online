@@ -388,7 +388,8 @@ export default function App() {
   const [rankingError, setRankingError] = useState('');
   useEffect(() => {
     if (!rankingOpen) return;
-    if (!fibulaSupabase || rankingMode !== 'solo') {
+    const supabase = fibulaSupabase;
+    if (!supabase || rankingMode !== 'solo') {
       setRankingRows([]);
       setRankingOwnProfile(null);
       setRankingError('');
@@ -404,13 +405,13 @@ export default function App() {
         : rankingCategory === 'survival' ? 'highest_survival_level' : 'kills';
       try {
         const [boardResult, ownResult] = await Promise.all([
-          fibulaSupabase.from('fibula_profiles')
+          supabase.from('fibula_profiles')
             .select('user_id,display_name,avatar_character,highest_pd,highest_survival_level,kills,created_at')
             .gt(valueField, 0)
             .order(valueField, { ascending: false })
             .order('created_at', { ascending: true })
             .limit(100),
-          fibulaSupabase.from('fibula_profiles')
+          supabase.from('fibula_profiles')
             .select('user_id,display_name,avatar_character,highest_pd,highest_survival_level,kills,created_at')
             .eq('user_id', session.user.sub)
             .maybeSingle(),
