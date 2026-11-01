@@ -8,6 +8,7 @@ import {
   type ArenaOAuthSession,
 } from './arenaOAuth';
 import { fibulaSupabase, isFibulaSupabaseConfigured } from './supabase';
+import WorldBackdrop from '../ui/WorldBackdrop';
 
 type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'error' | 'configuration';
 
@@ -97,25 +98,29 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <main
       style={{
         minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 20,
-        background: 'radial-gradient(ellipse at 50% 0%, #26363a 0%, #10151a 68%)',
-        color: '#e8f0ec', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+        position: 'relative', isolation: 'isolate', overflow: 'hidden',
+        background: 'radial-gradient(ellipse at 50% 0%, #2e2f2e 0%, #171817 68%)',
+        color: '#f0f0f0', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
       }}
     >
+      <WorldBackdrop />
       <section
         aria-labelledby="arena-auth-title"
         style={{
           width: 'min(100%, 420px)', padding: '30px 26px', borderRadius: 16,
-          border: '1px solid #40564b', background: 'rgba(16, 25, 22, .94)',
+          position: 'relative', zIndex: 1,
+          border: '1px solid rgba(230, 230, 230, .24)', background: 'rgba(34, 35, 34, .88)',
+          backdropFilter: 'blur(8px)',
           boxShadow: '0 20px 60px #0008', textAlign: 'center',
         }}
       >
-        <div style={{ color: '#91dfbd', fontSize: 12, fontWeight: 900, letterSpacing: '.2em' }}>
+        <div style={{ color: '#d0d2d0', fontSize: 12, fontWeight: 900, letterSpacing: '.2em' }}>
           FÍBULA ONLINE
         </div>
         <h1 id="arena-auth-title" style={{ margin: '14px 0 8px', fontSize: 25, lineHeight: 1.2 }}>
           {title}
         </h1>
-        <p style={{ margin: '0 0 22px', color: '#a9bdb2', fontSize: 14, lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 22px', color: '#b4b7b4', fontSize: 14, lineHeight: 1.6 }}>
           {isLoading
             ? 'Estamos verificando sua sessão com segurança.'
             : isConfiguration
@@ -125,8 +130,8 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
         {message && (
           <p role="alert" style={{
-            margin: '0 0 16px', padding: 11, borderRadius: 8, background: '#3b2525',
-            border: '1px solid #865050', color: '#ffd1ca', fontSize: 13, lineHeight: 1.5,
+            margin: '0 0 16px', padding: 11, borderRadius: 8, background: '#2e2f2e',
+            border: '1px solid rgba(190, 190, 190, .32)', color: '#f0f0f0', fontSize: 13, lineHeight: 1.5,
           }}>
             {message}
           </p>
@@ -134,7 +139,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
         {isConfiguration ? (
           <div style={{
-            padding: 12, borderRadius: 8, background: '#1b2923', color: '#c2d8cb',
+            padding: 12, borderRadius: 8, background: '#2e2f2e', color: '#d0d2d0',
             fontSize: 12, lineHeight: 1.7, textAlign: 'left',
           }}>
             <div>• VITE_ARENA_OAUTH_CLIENT_ID</div>
@@ -148,7 +153,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             disabled={isLoading}
             style={{
               width: '100%', minHeight: 48, border: 0, borderRadius: 10,
-              background: isLoading ? '#547565' : '#92e0bf', color: '#12231b',
+              background: isLoading ? '#4a4b4a' : '#d0d2d0', color: '#222322',
               fontWeight: 900, fontSize: 14, letterSpacing: '.04em',
               cursor: isLoading ? 'wait' : 'pointer',
             }}
@@ -157,7 +162,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
           </button>
         )}
 
-        <p style={{ margin: '18px 0 0', color: '#71877c', fontSize: 11, lineHeight: 1.5 }}>
+        <p style={{ margin: '18px 0 0', color: '#9a9d9a', fontSize: 11, lineHeight: 1.5 }}>
           Sua identidade continua protegida pela autenticação da Arena iEricris.
         </p>
       </section>
