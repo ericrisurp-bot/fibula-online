@@ -177,6 +177,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
     </section>
     <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
     <details className="profile-more">
+    <summary>Todos os atributos e mobilidade</summary>
     <section className="profile-stat-section">
       <h4>🧭 Sobrevivência e mobilidade</h4>
       <div className="profile-stat-list">
