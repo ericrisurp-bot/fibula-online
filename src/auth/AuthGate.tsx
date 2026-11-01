@@ -125,8 +125,8 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
         {message && (
           <p role="alert" style={{
-            margin: '0 0 16px', padding: 11, borderRadius: 8, background: '#3b2525',
-            border: '1px solid #865050', color: '#ffd1ca', fontSize: 13, lineHeight: 1.5,
+            margin: '0 0 16px', padding: 11, borderRadius: 8, background: '#222322',
+            border: '1px solid rgba(190, 105, 105, .55)', color: '#ffd1ca', fontSize: 13, lineHeight: 1.5,
           }}>
             {message}
           </p>
