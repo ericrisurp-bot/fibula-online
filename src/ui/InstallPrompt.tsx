@@ -81,8 +81,8 @@ export default function InstallPrompt() {
       style={{
         position: 'fixed', zIndex: 10000, top: 'max(12px, env(safe-area-inset-top))',
         left: '50%', transform: 'translateX(-50%)', width: 'min(440px, calc(100vw - 24px))',
-        padding: '16px', borderRadius: '14px', border: '1px solid #668776',
-        background: 'linear-gradient(145deg, #1b2b24, #101916)', color: '#e8f0ec',
+        padding: '16px', borderRadius: '14px', border: '1px solid rgba(230, 230, 230, .28)',
+        background: '#222322', color: '#f0f0f0',
         boxShadow: '0 12px 40px #0009', fontFamily: 'inherit',
       }}
     >
@@ -90,7 +90,7 @@ export default function InstallPrompt() {
         type="button"
         aria-label="Fechar aviso"
         onClick={() => setVisible(false)}
-        style={{ position: 'absolute', right: 10, top: 8, border: 0, background: 'transparent', color: '#a9bdb2', fontSize: 22, cursor: 'pointer' }}
+        style={{ position: 'absolute', right: 10, top: 8, border: 0, background: 'transparent', color: '#b4b7b4', fontSize: 22, cursor: 'pointer' }}
       >×</button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 22 }}>
         <img src="/icons/icon.png" alt="" width="48" height="48" style={{ borderRadius: 10, objectFit: 'cover' }} />
@@ -106,7 +106,7 @@ export default function InstallPrompt() {
       {showHelp && (
         <ol
           aria-live="polite"
-          style={{ margin: '12px 0 0', paddingLeft: 22, color: '#c5d5cc', fontSize: 12, lineHeight: 1.6 }}
+          style={{ margin: '12px 0 0', paddingLeft: 22, color: '#d0d2d0', fontSize: 12, lineHeight: 1.6 }}
         >
           {helpSteps.map((step) => <li key={step} style={{ paddingLeft: 3, marginBottom: 5 }}>{step}</li>)}
         </ol>
@@ -116,7 +116,7 @@ export default function InstallPrompt() {
         onClick={() => void install()}
         style={{
           width: '100%', marginTop: 14, padding: '11px 14px', border: 0, borderRadius: 8,
-          background: '#92e0bf', color: '#12231b', fontWeight: 900, letterSpacing: '.06em',
+          background: '#d0d2d0', color: '#222322', fontWeight: 900, letterSpacing: '.06em',
           cursor: 'pointer',
         }}
       >
