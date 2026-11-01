@@ -128,3 +128,34 @@ export function drawRock(ctx: CanvasRenderingContext2D, x: number, y: number, si
   ctx.stroke();
   ctx.restore();
 }
+
+ 
+export function drawResourceRarityAura(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  footY: number,
+  radius: number,
+  rarity?: import('./config').ResourceRarity,
+) {
+  if (!rarity) return;
+  const styles = {
+    common: { color: '#36d66f', opacity: 0.25, blur: 15 },
+    uncommon: { color: '#348cff', opacity: 0.28, blur: 17 },
+    rare: { color: '#a34be8', opacity: 0.36, blur: 23 },
+    legendary: { color: '#ff8a24', opacity: 0.48, blur: 30 },
+  } as const;
+  const style = styles[rarity];
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.shadowColor = style.color;
+  ctx.shadowBlur = style.blur;
+  const glow = ctx.createRadialGradient(x, footY, 0, x, footY, radius);
+  glow.addColorStop(0, `rgba(${rarity === 'common' ? '54,214,111' : rarity === 'uncommon' ? '52,140,255' : rarity === 'rare' ? '163,75,232' : '255,138,36'},${style.opacity})`);
+  glow.addColorStop(0.42, `rgba(${rarity === 'common' ? '54,214,111' : rarity === 'uncommon' ? '52,140,255' : rarity === 'rare' ? '163,75,232' : '255,138,36'},${style.opacity * 0.48})`);
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.ellipse(x, footY, radius * 1.2, radius * 0.46, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}

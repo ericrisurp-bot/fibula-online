@@ -3,6 +3,23 @@ export type InventoryStack = {
   quantity: number;
 };
 
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
+export function getBaseItemId(itemId: string): string {
+  return itemId.split(':', 1)[0];
+}
+
+export function getItemRarity(itemId: string): ItemRarity | undefined {
+  const rarity = itemId.split(':')[1];
+  return rarity === 'common' || rarity === 'uncommon' || rarity === 'rare' || rarity === 'legendary'
+    ? rarity
+    : undefined;
+}
+
+export function getRarityItemId(itemId: string, rarity?: ItemRarity): string {
+  return rarity ? `${getBaseItemId(itemId)}:${rarity}` : getBaseItemId(itemId);
+}
+
 export type InventoryLimits = {
   maxSlots: number;
   maxPerSlot: number;
