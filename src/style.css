@@ -4130,3 +4130,6 @@ button, button * {
   .lobby-friend-card { flex-wrap: wrap; }
   .lobby-friend-actions { width: 100%; padding-left: 48px; }
 }
+
+.lobby-friend-profile { display: flex; flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.lobby-friend-profile:focus-visible { outline: 2px solid #d0d4ce; outline-offset: 3px; border-radius: 5px; }
