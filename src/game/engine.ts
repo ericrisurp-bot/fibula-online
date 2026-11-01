@@ -1658,7 +1658,13 @@ export class GameEngine {
 
     this.gatheringTimer = 0;
     if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d)) {
-      this.state.treeChopAngle = this.anchorGatherTool(treeTarget.tree.x, treeTarget.tree.y + 6 * this.treeScale(treeTarget.tree), treeTarget.tree.y + 30 * this.treeScale(treeTarget.tree) + 1);
+      this.state.treeChopAngle = this.anchorGatherTool(
+        treeTarget.tree.x,
+        treeTarget.tree.y + 6 * this.treeScale(treeTarget.tree),
+        // A árvore usa escalas visuais maiores no Canvas; a ferramenta precisa
+        // ficar depois dela na ordenação para não ser encoberta pela copa/tronco.
+        treeTarget.tree.y + 30 * (treeTarget.tree.size === 'small' ? 1.75 : treeTarget.tree.size === 'medium' ? 2.45 : 3.25) + 1,
+      );
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
       treeTarget.tree.hits -= 1;
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
