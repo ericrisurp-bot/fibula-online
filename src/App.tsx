@@ -444,13 +444,13 @@ export default function App() {
       ctx.translate(width / 2, height * 0.78);
       ctx.scale(scale, scale);
       const weapon = PROFILE_CLASS_WEAPONS[classId];
-      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, true, false, avatarCharacter);
+      drawPlayer(ctx, 0, 0, weapon, classId, now / 1000, 0, 0, false, 0, false, 1, 0, -Math.PI / 2, false, true, false);
       ctx.restore();
       frame = window.requestAnimationFrame(renderArsenalCharacter);
     };
     frame = window.requestAnimationFrame(renderArsenalCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [arsenalOpen, arsenalCharacterTab, characterPreferences, avatarCharacter]);
+  }, [arsenalOpen, arsenalCharacterTab, characterPreferences]);
 
   useEffect(() => {
     if (!showStart) return;
@@ -498,14 +498,14 @@ export default function App() {
       ctx.scale(scale, scale);
       const lobbyClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       const lobbyWeapon = PROFILE_CLASS_WEAPONS[lobbyClass];
-      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false, true, avatarCharacter);
+      drawPlayer(ctx, 0, 0, lobbyWeapon, lobbyClass, now / 1000, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false);
       drawFloatingWeapon(ctx, lobbyWeapon, CONFIG.player.radius, { time: now / 1000, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
       ctx.restore();
       frame = window.requestAnimationFrame(renderCharacter);
     };
     frame = window.requestAnimationFrame(renderCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [showStart, characterPreferences, avatarCharacter]);
+  }, [showStart, characterPreferences]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -855,7 +855,7 @@ export default function App() {
           ctx.restore();
         }});
       }
-      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.dayNight === 'night', true, avatarCharacter) });
+      worldDrawables.push({ depth: s.player.y + ladinoFeetY(CONFIG.player.radius) - CONFIG.player.radius * 0.1, draw: () => drawPlayer(ctx, s.player.x, s.player.y, s.weapon, s.classId, s.elapsed, s.swordSwingAngle, s.swordSwingTimer, s.player.moving, s.walkPhase, s.cart.carried, s.player.facingX, s.player.facingY, aimAngle, aimTarget != null, s.dayNight === 'night') });
       // Ferramentas de coleta ficam ancoradas no recurso (não no jogador) e em camada própria, à frente do recurso.
       const gatherTool = s.treeChopTimer > 0 ? { tool: 'machadinho' as const, timer: s.treeChopTimer, angle: s.treeChopAngle }
         : s.rockMineTimer > 0 ? { tool: 'picareta' as const, timer: s.rockMineTimer, angle: s.rockMineAngle }
