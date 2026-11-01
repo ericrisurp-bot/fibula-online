@@ -3607,3 +3607,310 @@ textarea:focus-visible {
 }
 
 /* Barras de vida/XP, erros, alertas e raridades mantêm suas cores informativas. */
+
+
+/* Auditoria final: todos os modais e painéis do lobby no mesmo vidro carvão. */
+.lobby-profile-backdrop,
+.lobby-arsenal-backdrop,
+.lobby-friends-backdrop,
+.lobby-chest-backdrop,
+.lobby-crafting-backdrop,
+.lobby-ranking-backdrop,
+.player-profile-backdrop {
+  background: rgba(0, 0, 0, 0.74) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.lobby-profile-modal,
+.lobby-arsenal-modal,
+.lobby-friends-modal,
+.lobby-chest-modal,
+.lobby-crafting-modal,
+.lobby-ranking-modal,
+.player-profile-modal {
+  border: 1px solid var(--fb-line) !important;
+  background: linear-gradient(145deg, rgba(43, 44, 43, 0.97), rgba(27, 28, 27, 0.98)) !important;
+  color: var(--fb-text) !important;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.52) !important;
+}
+
+.lobby-profile-header,
+.lobby-arsenal-header,
+.lobby-friends-header,
+.lobby-chest-header,
+.lobby-crafting-header,
+.lobby-ranking-header,
+.player-profile-header {
+  border-bottom: 1px solid var(--fb-line-soft) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+.lobby-profile-modal h2,
+.lobby-arsenal-modal h2,
+.lobby-friends-modal h2,
+.lobby-chest-modal h2,
+.lobby-crafting-modal h2,
+.lobby-ranking-modal h2,
+.player-profile-modal h2,
+.player-profile-modal h3,
+.player-profile-modal h4 {
+  color: var(--fb-text) !important;
+}
+
+.lobby-profile-header > div > span,
+.lobby-arsenal-header > div > span,
+.lobby-friends-header > div > span,
+.lobby-ranking-header > div > span,
+.lobby-chest-header p,
+.lobby-crafting-header > div > span,
+.arsenal-section-heading > span,
+.arsenal-section-heading strong,
+.lobby-ranking-board-heading > div > span,
+.lobby-ranking-player-position > div > span,
+.player-profile-header span,
+.player-profile-hero > div > span,
+.player-profile-details > div > span,
+.player-profile-footer {
+  color: var(--fb-muted) !important;
+}
+
+.lobby-profile-close,
+.lobby-arsenal-header .lobby-profile-close,
+.lobby-friends-close,
+.lobby-chest-close,
+.lobby-crafting-close,
+.lobby-ranking-close,
+.player-profile-close {
+  border: 1px solid var(--fb-line) !important;
+  background: var(--fb-card) !important;
+  color: var(--fb-text) !important;
+}
+
+.lobby-profile-tabs,
+.lobby-ranking-mode-tabs,
+.lobby-ranking-category-tabs {
+  border-color: var(--fb-line-soft) !important;
+  background: transparent !important;
+}
+
+.lobby-profile-tabs button,
+.lobby-profile-tabs .profile-class-tab,
+.lobby-ranking-mode-tabs button,
+.lobby-ranking-category-tabs button,
+.arsenal-character-tabs button,
+.profile-priority-controls button {
+  border: 1px solid var(--fb-line) !important;
+  background: var(--fb-card) !important;
+  color: var(--fb-text) !important;
+  box-shadow: none;
+}
+
+.lobby-profile-tabs .profile-class-tab.active,
+.lobby-ranking-mode-tabs button.active,
+.lobby-ranking-category-tabs button.active,
+.arsenal-character-tabs button.active,
+.profile-priority-controls button.chosen {
+  background: var(--fb-selected) !important;
+  color: var(--fb-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(240, 240, 240, 0.08) !important;
+}
+
+/* As classes continuam identificáveis pelas cores de seus detalhes, não por fundos claros. */
+.lobby-profile-tabs .profile-class-tab.class-guerreiro.active { border-color: #d94b4b !important; }
+.lobby-profile-tabs .profile-class-tab.class-mago.active { border-color: #8b5cf6 !important; }
+.lobby-profile-tabs .profile-class-tab.class-arqueiro.active { border-color: #d49a16 !important; }
+.lobby-profile-tabs .profile-class-tab.class-druida.active { border-color: #269b58 !important; }
+
+.profile-class-details,
+.lobby-profile-content,
+.lobby-arsenal-content,
+.lobby-ranking-body {
+  background: transparent !important;
+  color: var(--fb-text);
+}
+
+.profile-priority-controls,
+.profile-weapon-note,
+.profile-stat-summary > div,
+.profile-ability,
+.arsenal-equipment-section,
+.arsenal-inventory-section,
+.arsenal-equipment-stage,
+.arsenal-equipment-slot,
+.arsenal-inventory-slot,
+.lobby-status-power,
+.lobby-status-attributes > div,
+.lobby-status-equipment > div small,
+.lobby-ranking-board,
+.lobby-ranking-player-position,
+.lobby-ranking-player-position > div,
+.lobby-friends-empty,
+.lobby-crafting-emblem,
+.lobby-crafting-products {
+  border-color: var(--fb-line-soft) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: var(--fb-text) !important;
+  box-shadow: none;
+}
+
+.arsenal-equipment-stage {
+  background: radial-gradient(ellipse at 50% 45%, rgba(115, 116, 115, 0.16), rgba(20, 21, 20, 0.28) 72%) !important;
+}
+
+.arsenal-no-character,
+.arsenal-section-heading > span,
+.profile-class-description,
+.profile-priority-controls > span,
+.profile-priority-controls > small,
+.profile-weapon-note,
+.profile-stat-summary small,
+.profile-stat-list span,
+.profile-attribute-list span,
+.profile-stat-list small,
+.profile-attribute-list small,
+.profile-stat-note,
+.profile-ability p,
+.profile-save-note,
+.lobby-status-power > small,
+.lobby-status-equipment > small,
+.lobby-friends-empty p,
+.lobby-crafting-content > p,
+.lobby-crafting-content > small,
+.lobby-ranking-empty p,
+.lobby-ranking-empty small,
+.lobby-ranking-player-position > small,
+.player-profile-hero p,
+.player-profile-attributes small,
+.player-profile-message,
+.player-profile-footer {
+  color: var(--fb-muted) !important;
+}
+
+.profile-stat-summary strong,
+.profile-stat-section h4,
+.profile-stat-list strong,
+.profile-attribute-list strong,
+.profile-ability > span,
+.arsenal-section-heading strong,
+.arsenal-character-tabs button,
+.arsenal-equipment-slot,
+.arsenal-inventory-slot,
+.lobby-status-card,
+.lobby-status-card-heading h3,
+.lobby-status-power > span,
+.lobby-status-power > strong,
+.lobby-status-attributes,
+.lobby-status-attributes strong,
+.lobby-status-equipment > span,
+.lobby-status-equipment > div small,
+.lobby-ranking-board-heading h3,
+.lobby-ranking-board-heading > strong,
+.lobby-ranking-empty > strong,
+.lobby-ranking-player-position > div > strong,
+.lobby-friends-empty strong,
+.lobby-crafting-products > strong,
+.player-profile-details strong,
+.player-profile-attributes strong {
+  color: var(--fb-text);
+}
+
+/* Fichas de Status deixam de ser blocos inteiros coloridos; preservam apenas o acento da classe. */
+.lobby-status-card,
+.lobby-status-card.class-guerreiro,
+.lobby-status-card.class-mago,
+.lobby-status-card.class-arqueiro,
+.lobby-status-card.class-druida {
+  border: 1px solid var(--fb-line-soft) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: var(--fb-text) !important;
+  box-shadow: inset 3px 0 0 rgba(240, 240, 240, 0.22) !important;
+}
+.lobby-status-card.class-guerreiro { box-shadow: inset 3px 0 0 #d94b4b !important; }
+.lobby-status-card.class-mago { box-shadow: inset 3px 0 0 #8b5cf6 !important; }
+.lobby-status-card.class-arqueiro { box-shadow: inset 3px 0 0 #d49a16 !important; }
+.lobby-status-card.class-druida { box-shadow: inset 3px 0 0 #269b58 !important; }
+
+.lobby-status-card.class-guerreiro .lobby-status-card-heading h3 { color: #ff8b85 !important; }
+.lobby-status-card.class-mago .lobby-status-card-heading h3 { color: #c4a2ff !important; }
+.lobby-status-card.class-arqueiro .lobby-status-card-heading h3 { color: #f1c76a !important; }
+.lobby-status-card.class-druida .lobby-status-card-heading h3 { color: #83dba2 !important; }
+
+.lobby-chest-slot,
+.lobby-chest-slot.filled {
+  border-color: var(--fb-line) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: var(--fb-text) !important;
+}
+.lobby-chest-slot small,
+.lobby-chest-slot b { color: var(--fb-muted) !important; }
+
+.lobby-friends-empty > span {
+  border-color: var(--fb-line) !important;
+  background: var(--fb-card) !important;
+  color: var(--fb-text) !important;
+}
+
+.arsenal-equipped-item {
+  border-color: var(--fb-line) !important;
+  background: var(--fb-selected) !important;
+  color: var(--fb-text) !important;
+}
+.arsenal-equipment-slot.selected,
+.arsenal-inventory-slot.selected,
+.arsenal-equipment-slot.equipped,
+.arsenal-inventory-slot.is-equipped {
+  border-color: var(--fb-muted) !important;
+  background: var(--fb-selected) !important;
+}
+
+.lobby-ranking-board-heading,
+.lobby-ranking-player-position {
+  border-color: var(--fb-line-soft) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+.lobby-ranking-board-heading > strong {
+  border-color: var(--fb-line) !important;
+  background: var(--fb-card) !important;
+}
+
+.player-profile-hero,
+.player-profile-details > div,
+.player-profile-attributes > div > div {
+  border-color: var(--fb-line-soft) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: var(--fb-text) !important;
+}
+.player-profile-avatar {
+  border-color: var(--fb-line) !important;
+  background: var(--fb-selected) !important;
+}
+.player-profile-form label { color: var(--fb-text) !important; }
+.player-profile-form input,
+.player-profile-form select {
+  border-color: var(--fb-line) !important;
+  background: var(--fb-surface-strong) !important;
+  color: var(--fb-text) !important;
+}
+.player-profile-edit,
+.player-profile-actions button {
+  border: 1px solid var(--fb-line) !important;
+  background: var(--fb-selected) !important;
+  color: var(--fb-text) !important;
+}
+.player-profile-error { color: #ffb3a9 !important; }
+
+/* Inventário e ajuda seguem o mesmo tratamento dos demais painéis flutuantes. */
+.inventory-quick-panel,
+.help-card,
+.start-panel {
+  border-color: var(--fb-line) !important;
+  background: var(--fb-surface) !important;
+  color: var(--fb-text) !important;
+}
+.inventory-quick-panel .quick-slot,
+.inventory-quick-panel .quick-slot.filled {
+  border-color: var(--fb-line-soft);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--fb-text);
+}
