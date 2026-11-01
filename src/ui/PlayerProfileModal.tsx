@@ -33,11 +33,11 @@ type Props = {
   onClose: () => void;
 };
 
-const CLASS_INFO: Record<ClassId, { name: string; icon: string; color: string }> = {
-  guerreiro: { name: 'Guerreiro', icon: '⚔️', color: '#c94f60' },
-  mago: { name: 'Mago', icon: '🔮', color: '#9065d6' },
-  arqueiro: { name: 'Arqueiro', icon: '🏹', color: '#c99a2e' },
-  druida: { name: 'Druida', icon: '🌿', color: '#4fae6b' },
+const CLASS_INFO: Record<ClassId, { name: string }> = {
+  guerreiro: { name: 'Guerreiro' },
+  mago: { name: 'Mago' },
+  arqueiro: { name: 'Arqueiro' },
+  druida: { name: 'Druida' },
 };
 const CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao',
@@ -273,7 +273,7 @@ export default function PlayerProfileModal({
               <div className="player-profile-avatar-options">
                 {CLASS_IDS.map(classId => <button key={classId} type="button" disabled={savingAvatar} aria-pressed={selectedAvatar === classId}
                   className={`player-profile-avatar-choice${selectedAvatar === classId ? ' selected' : ''}`}
-                  onClick={() => { void saveAvatar(classId).then(saved => { if (saved) setAvatarPickerOpen(false); }); }}>
+                  onClick={() => { if (selectedAvatar === classId) { setAvatarPickerOpen(false); return; } void saveAvatar(classId).then(saved => { if (saved) setAvatarPickerOpen(false); }); }}>
                   <AvatarPortrait classId={classId} />
                   <span>{CLASS_INFO[classId].name}</span>
                   {selectedAvatar === classId && <small>Atual</small>}
