@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
-import { createGrassTile, drawRock, drawTree } from './game/environment';
+import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
@@ -661,6 +661,7 @@ export default function App() {
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
+          drawResourceRarityAura(ctx, plant.x, plant.y - 5, plant.size === 'large' ? 46 : plant.size === 'medium' ? 36 : 28, plant.rarity);
           ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale * 0.9, scale * 1.15);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
 
@@ -712,11 +713,11 @@ export default function App() {
       }
       for (const tree of s.trees) {
         const scale = tree.size === 'small' ? 1.75 : tree.size === 'medium' ? 2.45 : 3.25;
-        worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => drawTree(ctx, tree.x, tree.y, tree.size) });
+        worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => { drawResourceRarityAura(ctx, tree.x, tree.y - 28, tree.size === 'large' ? 102 : tree.size === 'medium' ? 78 : 58, tree.rarity); drawTree(ctx, tree.x, tree.y, tree.size); } });
       }
       for (const rock of s.rocks) {
         const scale = rock.size === 'small' ? 1.22 : rock.size === 'medium' ? 1.5 : 1.85;
-        worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => drawRock(ctx, rock.x, rock.y, rock.size) });
+        worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => { drawResourceRarityAura(ctx, rock.x, rock.y, rock.size === 'large' ? 58 : rock.size === 'medium' ? 46 : 36, rock.rarity); drawRock(ctx, rock.x, rock.y, rock.size); } });
       }
       for (const drop of s.cottonDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
