@@ -1,15 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type PersistedHouseStack = { itemId: string; quantity: number };
-export type SoloMatchSummary = {
-  matchId: string;
+export type SoloMatchResult = {
   kills: number;
   survivalNights: number;
 };
 
+export const SOLO_MATCH_RULESET_VERSION = 'solo-v1';
+
 const HOUSE_STORAGE_KEY = 'fibula-house-storage';
 const HOUSE_STORAGE_DIRTY_KEY = 'fibula-house-storage-dirty';
-const PENDING_MATCHES_KEY = 'fibula-pending-solo-matches';
 
 function normalizeHouseInventory(value: unknown): PersistedHouseStack[] {
   if (!Array.isArray(value)) return [];
@@ -89,49 +89,35 @@ export async function syncHouseInventory(
   }
 }
 
-function readPendingMatches(): SoloMatchSummary[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const value = JSON.parse(window.localStorage.getItem(PENDING_MATCHES_KEY) ?? '[]');
-    if (!Array.isArray(value)) return [];
-    return value.filter((item): item is SoloMatchSummary =>
-      !!item && typeof item.matchId === 'string'
-      && Number.isSafeInteger(item.kills) && item.kills >= 0
-      && Number.isSafeInteger(item.survivalNights) && item.survivalNights >= 0,
-    );
-  } catch {
-    return [];
+export async function startSoloMatchSession(client: SupabaseClient): Promise<string> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('É necessário estar conectado para iniciar uma partida validada.');
   }
+  const { data, error } = await client.rpc('fibula_start_solo_match');
+  if (error) throw error;
+  if (typeof data !== 'string' || !data) {
+    throw new Error('O servidor não confirmou o início da partida.');
+  }
+  return data;
 }
 
-export function queueSoloMatchSummary(summary: SoloMatchSummary): void {
-  if (typeof window === 'undefined') return;
-  const pending = readPendingMatches();
-  if (pending.some(item => item.matchId === summary.matchId)) return;
-  try {
-    window.localStorage.setItem(PENDING_MATCHES_KEY, JSON.stringify([...pending, summary]));
-  } catch {
-    // Sem armazenamento local, a próxima sincronização ainda pode ocorrer nesta sessão.
-  }
-}
-
-export async function flushPendingSoloMatchSummaries(
+export async function finishSoloMatchSession(
   client: SupabaseClient,
-): Promise<void> {
-  if (typeof window === 'undefined' || !navigator.onLine) return;
-  const pending = readPendingMatches();
-  const remaining: SoloMatchSummary[] = [];
-  for (const summary of pending) {
-    try {
-      const { error } = await client.rpc('fibula_sync_solo_match', {
-        p_match_id: summary.matchId,
-        p_kills: summary.kills,
-        p_survival_nights: summary.survivalNights,
-      });
-      if (error) remaining.push(summary);
-    } catch {
-      remaining.push(summary);
-    }
+  sessionId: string,
+  result: SoloMatchResult,
+): Promise<'accepted' | 'duplicate' | 'rejected'> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('Sem conexão no encerramento; o resultado não foi validado nem salvo.');
   }
-  try { window.localStorage.setItem(PENDING_MATCHES_KEY, JSON.stringify(remaining)); } catch { /* Fila local indisponível. */ }
+  const { data, error } = await client.rpc('fibula_finish_solo_match', {
+    p_session_id: sessionId,
+    p_kills: result.kills,
+    p_survival_nights: result.survivalNights,
+    p_ruleset_version: SOLO_MATCH_RULESET_VERSION,
+  });
+  if (error) throw error;
+  if (data !== 'accepted' && data !== 'duplicate' && data !== 'rejected') {
+    throw new Error('O servidor retornou uma resposta inválida para a partida.');
+  }
+  return data;
 }

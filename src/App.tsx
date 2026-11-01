@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { flushPendingSoloMatchSummaries, loadHouseInventory, queueSoloMatchSummary, readLocalHouseInventory, syncHouseInventory } from './game/persistence';
+import { finishSoloMatchSession, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
@@ -268,6 +268,8 @@ export default function App() {
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
   const lastSyncedHouseInventoryRef = useRef(initialHouseInventoryRef.current);
   const matchSummaryHandledRef = useRef(false);
+  const matchSessionIdRef = useRef<string | null>(null);
+  const gameStartPendingRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const houseInventoryJson = JSON.stringify(state.house.inventory);
@@ -314,30 +316,28 @@ export default function App() {
   }, [houseInventoryJson, session.user.sub, houseLoadReady]);
 
   useEffect(() => {
-    if (!fibulaSupabase || !session.user.sub) return;
-    const supabaseClient = fibulaSupabase;
-    const flush = () => { void flushPendingSoloMatchSummaries(supabaseClient); };
-    flush();
-    window.addEventListener('online', flush);
-    return () => window.removeEventListener('online', flush);
-  }, [session.user.sub]);
-
-  useEffect(() => {
     if (!state.dead) {
       matchSummaryHandledRef.current = false;
       return;
     }
     if (matchSummaryHandledRef.current) return;
     matchSummaryHandledRef.current = true;
-    const matchId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
-        const random = Math.floor(Math.random() * 16);
-        return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16);
-      });
+
+    const sessionId = matchSessionIdRef.current;
+    matchSessionIdRef.current = null;
+    if (!sessionId || !fibulaSupabase) return;
+
     const survivalNights = Math.max(0, state.nightNumber - (state.dayNight === 'night' ? 1 : 0));
-    queueSoloMatchSummary({ matchId, kills: state.kills, survivalNights });
-    if (fibulaSupabase) void flushPendingSoloMatchSummaries(fibulaSupabase);
+    void finishSoloMatchSession(fibulaSupabase, sessionId, {
+      kills: state.kills,
+      survivalNights,
+    }).then((result) => {
+      if (result === 'rejected') {
+        window.alert('O servidor recusou o resultado desta partida por não passar na validação. Seu progresso não foi atualizado.');
+      }
+    }).catch(() => {
+      window.alert('Não foi possível validar o resultado no encerramento. Esta partida não foi salva no perfil.');
+    });
   }, [state.dead, state.kills, state.nightNumber, state.dayNight]);
   const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
@@ -1174,14 +1174,27 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
-  const startGame = () => {
+  const startGame = async () => {
     const engine = engineRef.current;
-    if (!engine || gameStartedRef.current) return;
-    const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
-    engine.setClass(selectedClass);
-    engine.start();
-    gameStartedRef.current = true;
-    setShowStart(false);
+    if (!engine || gameStartedRef.current || gameStartPendingRef.current) return;
+    gameStartPendingRef.current = true;
+    try {
+      if (!fibulaSupabase || !session.user.sub) {
+        throw new Error('Entre na sua conta e conecte-se à internet para iniciar uma partida com progresso validado.');
+      }
+      const sessionId = await startSoloMatchSession(fibulaSupabase);
+      matchSessionIdRef.current = sessionId;
+      matchSummaryHandledRef.current = false;
+      const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
+      engine.setClass(selectedClass);
+      engine.start();
+      gameStartedRef.current = true;
+      setShowStart(false);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Não foi possível registrar o início da partida. Tente novamente.');
+    } finally {
+      gameStartPendingRef.current = false;
+    }
   };
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
@@ -1268,13 +1281,28 @@ export default function App() {
     flagsRef.current = next;
     setFlags(next);
   };
-  const restart = () => {
-    flagsRef.current = [];
-    setFlags([]);
-    setWheel(null);
-    closeFlagMenu();
-    closeInventoryPanel();
-    engineRef.current?.restart();
+  const restart = async () => {
+    const engine = engineRef.current;
+    if (!engine || gameStartPendingRef.current) return;
+    gameStartPendingRef.current = true;
+    try {
+      if (!fibulaSupabase || !session.user.sub) {
+        throw new Error('Conecte-se à internet para iniciar outra partida com progresso validado.');
+      }
+      const sessionId = await startSoloMatchSession(fibulaSupabase);
+      matchSessionIdRef.current = sessionId;
+      matchSummaryHandledRef.current = false;
+      flagsRef.current = [];
+      setFlags([]);
+      setWheel(null);
+      closeFlagMenu();
+      closeInventoryPanel();
+      engine.restart();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Não foi possível registrar o início da nova partida.');
+    } finally {
+      gameStartPendingRef.current = false;
+    }
   };
   const worldPointAt = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
