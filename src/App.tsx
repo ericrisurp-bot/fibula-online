@@ -269,6 +269,7 @@ export default function App() {
   const lastSyncedHouseInventoryRef = useRef(initialHouseInventoryRef.current);
   const matchSummaryHandledRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [houseLoadReady, setHouseLoadReady] = useState(false);
   const houseInventoryJson = JSON.stringify(state.house.inventory);
 
   useEffect(() => {
@@ -285,9 +286,11 @@ export default function App() {
         lastSyncedHouseInventoryRef.current = inventory.length ? '' : JSON.stringify(inventory);
       }
       houseLoadReadyRef.current = true;
+      setHouseLoadReady(true);
     }).catch(() => {
       if (cancelled) return;
       houseLoadReadyRef.current = true;
+      setHouseLoadReady(true);
       lastSyncedHouseInventoryRef.current = '';
     });
     return () => { cancelled = true; };
@@ -307,7 +310,7 @@ export default function App() {
     sync();
     window.addEventListener('online', sync);
     return () => window.removeEventListener('online', sync);
-  }, [houseInventoryJson, session.user.sub]);
+  }, [houseInventoryJson, session.user.sub, houseLoadReady]);
 
   useEffect(() => {
     if (!fibulaSupabase || !session.user.sub) return;
