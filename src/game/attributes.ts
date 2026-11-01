@@ -36,22 +36,24 @@ export function getPlayerAttributes(classId: ClassId, level: number): PlayerAttr
   };
 }
 
-// Força, resistência mágica, inteligência, alcance e área existem na estrutura, mas ainda não afetam o jogo.
-export function getDamageMultiplier(classId: ClassId, level: number): number {
-  const { baseValue, gainPerLevel, classMultipliers, archerDamageWeights } = CONFIG.attributes;
-  const multipliers = classMultipliers[classId];
-  const gainedLevels = Math.max(0, level) * gainPerLevel;
-  let damageAttributeValue: number;
+// Quanto de cada atributo a classe usa de verdade: 0 = não usa (não soma no PD), 1 = usa por inteiro.
+// Nos atributos de dano (força, inteligência, destreza) os fatores de cada classe somam 1.
+// Quando uma classe passar a usar um atributo, é só mudar o valor aqui; o dano e o PD acompanham.
+export const ATTRIBUTE_USAGE: Record<ClassId, Record<AttributeKey, number>> = {
+  guerreiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 0, inteligencia: 0, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  mago: { vida: 1, forca: 0, armadura: 1, resistenciaMagica: 0, inteligencia: 1, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  arqueiro: { vida: 1, forca: CONFIG.attributes.archerDamageWeights.forca, armadura: 1, resistenciaMagica: 0, inteligencia: 0, destreza: CONFIG.attributes.archerDamageWeights.destreza, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  druida: { vida: 1, forca: 0, armadura: 1, resistenciaMagica: 0, inteligencia: 1, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+};
 
-  if (classId === 'guerreiro') {
-    damageAttributeValue = baseValue + gainedLevels * multipliers.forca;
-  } else if (classId === 'mago' || classId === 'druida') {
-    damageAttributeValue = baseValue + gainedLevels * multipliers.inteligencia;
-  } else {
-    const destreza = baseValue + gainedLevels * multipliers.destreza;
-    const forca = baseValue + gainedLevels * multipliers.forca;
-    damageAttributeValue = destreza * archerDamageWeights.destreza + forca * archerDamageWeights.forca;
-  }
+const DAMAGE_ATTRIBUTES = ['forca', 'inteligencia', 'destreza'] as const;
+
+export function getDamageMultiplier(classId: ClassId, level: number): number {
+  const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
+  const multipliers = classMultipliers[classId];
+  const usage = ATTRIBUTE_USAGE[classId];
+  const gainedLevels = Math.max(0, level) * gainPerLevel;
+  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + gainedLevels * multipliers[key]), 0);
 
   return damageAttributeValue / baseValue;
 }
