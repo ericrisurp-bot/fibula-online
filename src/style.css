@@ -4064,3 +4064,14 @@ button, button * {
   .lobby-status-trigger { top: calc(90dvh - 369px) !important; }
   .lobby-profile-trigger { top: calc(90dvh - 451px) !important; }
 }
+
+
+/* ===== PODER na tela (Etapa 6B): número do PODER, estilo da classe e atributos não usados em vermelho riscado ===== */
+.lobby-status-poder { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--fb-modal-border); border-radius: 10px; background: rgba(0, 0, 0, 0.28); }
+.lobby-status-poder > div { display: flex; align-items: baseline; gap: 8px; }
+.lobby-status-poder span { color: var(--fb-modal-label); font-size: 10px; font-weight: 900; letter-spacing: 0.12em; }
+.lobby-status-poder strong { color: var(--fb-modal-text); font-size: 26px; font-variant-numeric: tabular-nums; }
+.lobby-status-poder small { color: var(--fb-modal-muted); font-size: 11px; }
+.lobby-status-note { grid-column: 1 / -1; margin: 10px 2px 0; color: var(--fb-modal-label); font-size: 11px; line-height: 1.5; }
+.attr-unused, .attr-unused span, .attr-unused strong, .attr-unused small, .attr-unused i { color: #e57373 !important; text-decoration: line-through; text-decoration-thickness: 1px; }
+.profile-growth-row.attr-unused > b u { background: #7a3b3b !important; }

@@ -4,7 +4,8 @@ import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './g
 import { getBaseItemId, getItemRarity } from './game/inventory';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
-import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
+import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
+import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
@@ -37,6 +38,8 @@ const initial: GameSnapshot = {
   enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
+const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
+const attributeUnusedClass = (classId: ClassId, key: AttributeKey) => ATTRIBUTE_USAGE[classId][key] > 0 ? '' : ' attr-unused';
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada',
   mago: 'cajado',
@@ -132,6 +135,10 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque') * 100;
   const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva') * 100;
   const nextLevelAttributes = getPlayerAttributes(classId, 1);
+  const attributeKeyByLabel: Record<string, AttributeKey> = {
+    'Força': 'forca', 'Inteligência': 'inteligencia', 'Destreza': 'destreza', 'Armadura': 'armadura', 'Resistência mágica': 'resistenciaMagica',
+    'Velocidade de movimento': 'velocidadeMovimento', 'Velocidade de ataque': 'velocidadeAtaque', 'Alcance de ataque': 'alcanceAtaque', 'Esquiva': 'esquiva', 'Área de ataque': 'areaAtaque',
+  };
   const attributeRows = [
     ['Força', nextLevelAttributes.forca - attributes.forca],
     ['Inteligência', nextLevelAttributes.inteligencia - attributes.inteligencia],
@@ -147,7 +154,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   const growthRows = ([['forca', 'Força', '💪'], ['armadura', 'Armadura', '🛡️'], ['inteligencia', 'Inteligência', '🧠'], ['destreza', 'Destreza', '🎯']] as const).map(([key, label, icon]) => {
     const gain = nextLevelAttributes[key] - attributes[key];
     const best = Math.max(0.0001, ...PROFILE_CLASS_IDS.map(id => getPlayerAttributes(id, 1)[key] - getPlayerAttributes(id, 0)[key]));
-    return { label, icon, gain, percent: Math.max(0, Math.min(100, Math.round(gain / best * 100))) };
+    return { label, icon, gain, percent: Math.max(0, Math.min(100, Math.round(gain / best * 100))), unused: ATTRIBUTE_USAGE[classId][key] === 0 };
   });
   const ability = {
     guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
@@ -173,7 +180,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
     <section className="profile-stat-section profile-growth">
       <h4>📈 Cresce a cada nível</h4>
       <p className="profile-stat-note">A barra compara com as outras classes.</p>
-      {growthRows.map(row => <div className="profile-growth-row" key={row.label}><span><i aria-hidden="true">{row.icon}</i>{row.label}</span><b aria-hidden="true"><u style={{ width: `${row.percent}%` }} /></b><strong>+{row.gain.toFixed(2)}</strong></div>)}
+      {growthRows.map(row => <div className={`profile-growth-row${row.unused ? ' attr-unused' : ''}`} title={row.unused ? 'Esta classe não usa este atributo: ele não soma no PODER.' : undefined} key={row.label}><span><i aria-hidden="true">{row.icon}</i>{row.label}</span><b aria-hidden="true"><u style={{ width: `${row.percent}%` }} /></b><strong>+{row.gain.toFixed(2)}</strong></div>)}
     </section>
     <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
     <details className="profile-more">
@@ -190,7 +197,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
       <h4>📊 Atributos da classe</h4>
       <p className="profile-stat-note">Quanto cada atributo aumenta a cada nível.</p>
       <div className="profile-attribute-list">
-        {attributeRows.map(([label, gain]) => <div key={label}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>+{gain.toFixed(2)} <small>/ nível</small></strong></div>)}
+        {attributeRows.map(([label, gain]) => <div key={label} className={attributeUnusedClass(classId, attributeKeyByLabel[label]).trim() || undefined} title={ATTRIBUTE_USAGE[classId][attributeKeyByLabel[label]] > 0 ? undefined : 'Esta classe não usa este atributo: ele não soma no PODER.'}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>+{gain.toFixed(2)} <small>/ nível</small></strong></div>)}
       </div>
     </section>
     </details>
@@ -1492,6 +1499,8 @@ export default function App() {
                 const attributes = getPlayerAttributes(classId, state.player.level);
                 const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
                 const powerDamage = weapon.damage * getDamageMultiplier(classId, state.player.level);
+                const classPower = getClassPower(classId, state.player.level).total;
+                const classPowerAt10 = getClassPower(classId, 10).total;
                 const loadout = equipmentLoadouts[classId] ?? {};
                 const equippedItems = Object.values(loadout).flatMap(itemId => {
                   const item = arsenalItems.find(candidate => candidate.id === itemId);
@@ -1503,15 +1512,19 @@ export default function App() {
                     <strong className="lobby-status-level">NÍVEL {state.player.level}</strong>
                   </div>
                   <i className="lobby-status-tag" aria-hidden="true" />
+                  <div className="lobby-status-poder">
+                    <div><span>PODER</span><strong>{classPower.toFixed(0)}</strong></div>
+                    <small>{CLASS_STYLE[classId]} · no nível 10: {classPowerAt10.toFixed(0)}</small>
+                  </div>
                   <div className="lobby-status-power-grid">
                     <div className="lobby-status-power"><span>PD / GOLPE</span><strong>{powerDamage.toFixed(1)}</strong></div>
-                    <div className="lobby-status-power"><span>FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong></div>
+                    <div className={`lobby-status-power${attributeUnusedClass(classId, 'forca')}`}><span>FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong></div>
                   </div>
                   <div className="lobby-status-attributes">
-                    <div><span>❤️ Vida</span><strong>{attributes.vida.toFixed(1)}</strong></div>
-                    <div><span>🧠 Int.</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
-                    <div><span>🎯 Dest.</span><strong>{attributes.destreza.toFixed(1)}</strong></div>
-                    <div><span>🛡️ Arm.</span><strong>{(CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue).toFixed(1)}</strong></div>
+                    <div className={attributeUnusedClass(classId, 'vida').trim()}><span>❤️ Vida</span><strong>{attributes.vida.toFixed(1)}</strong></div>
+                    <div className={attributeUnusedClass(classId, 'inteligencia').trim()}><span>🧠 Int.</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
+                    <div className={attributeUnusedClass(classId, 'destreza').trim()}><span>🎯 Dest.</span><strong>{attributes.destreza.toFixed(1)}</strong></div>
+                    <div className={attributeUnusedClass(classId, 'armadura').trim()}><span>🛡️ Arm.</span><strong>{(CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue).toFixed(1)}</strong></div>
                   </div>
                   <div className="lobby-status-equipment">
                     <span>EQUIPAMENTOS · {equippedItems.length}</span>
@@ -1519,6 +1532,7 @@ export default function App() {
                   </div>
                 </section>;
               })}
+              <p className="lobby-status-note">O PODER soma a base do personagem: vida, armadura, esquiva, velocidades e dano. Ele não mede quem é melhor: cada classe foi feita para um estilo de combate, e um número menor só mostra que ela cumpre outro papel. Atributo em vermelho riscado não é usado pela classe e não soma.</p>
             </div>
           </section>
         </div>}
