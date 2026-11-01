@@ -7,6 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
+import { flushPendingSoloMatchSummaries, loadHouseInventory, queueSoloMatchSummary, readLocalHouseInventory, syncHouseInventory } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
@@ -262,7 +263,82 @@ export default function App() {
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
-  const [state, setState] = useState<GameSnapshot>(initial);
+  const houseLoadReadyRef = useRef(false);
+  const houseChangedDuringLoadRef = useRef(false);
+  const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
+  const lastSyncedHouseInventoryRef = useRef(initialHouseInventoryRef.current);
+  const matchSummaryHandledRef = useRef(false);
+  const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
+  const [houseLoadReady, setHouseLoadReady] = useState(false);
+  const houseInventoryJson = JSON.stringify(state.house.inventory);
+
+  useEffect(() => {
+    const userId = session.user.sub;
+    if (!fibulaSupabase || !userId) return;
+    let cancelled = false;
+    void loadHouseInventory(fibulaSupabase, userId).then(({ inventory, source }) => {
+      if (cancelled) return;
+      const changedWhileLoading = houseChangedDuringLoadRef.current;
+      if (source === 'cloud' && !changedWhileLoading) {
+        engineRef.current?.setHouseInventory(inventory);
+        lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+      } else {
+        lastSyncedHouseInventoryRef.current = '';
+      }
+      houseLoadReadyRef.current = true;
+      setHouseLoadReady(true);
+    }).catch(() => {
+      if (cancelled) return;
+      houseLoadReadyRef.current = true;
+      setHouseLoadReady(true);
+      lastSyncedHouseInventoryRef.current = '';
+    });
+    return () => { cancelled = true; };
+  }, [session.user.sub]);
+
+  useEffect(() => {
+    const userId = session.user.sub;
+    if (!fibulaSupabase || !userId) return;
+    const supabaseClient = fibulaSupabase;
+    if (!houseLoadReadyRef.current) {
+      if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
+      return;
+    }
+    if (houseInventoryJson === lastSyncedHouseInventoryRef.current) return;
+    lastSyncedHouseInventoryRef.current = houseInventoryJson;
+    const inventory = JSON.parse(houseInventoryJson) as Array<{ itemId: string; quantity: number }>;
+    const sync = () => { void syncHouseInventory(supabaseClient, userId, inventory); };
+    sync();
+    window.addEventListener('online', sync);
+    return () => window.removeEventListener('online', sync);
+  }, [houseInventoryJson, session.user.sub, houseLoadReady]);
+
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub) return;
+    const supabaseClient = fibulaSupabase;
+    const flush = () => { void flushPendingSoloMatchSummaries(supabaseClient); };
+    flush();
+    window.addEventListener('online', flush);
+    return () => window.removeEventListener('online', flush);
+  }, [session.user.sub]);
+
+  useEffect(() => {
+    if (!state.dead) {
+      matchSummaryHandledRef.current = false;
+      return;
+    }
+    if (matchSummaryHandledRef.current) return;
+    matchSummaryHandledRef.current = true;
+    const matchId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+        const random = Math.floor(Math.random() * 16);
+        return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+      });
+    const survivalNights = Math.max(0, state.nightNumber - (state.dayNight === 'night' ? 1 : 0));
+    queueSoloMatchSummary({ matchId, kills: state.kills, survivalNights });
+    if (fibulaSupabase) void flushPendingSoloMatchSummaries(fibulaSupabase);
+  }, [state.dead, state.kills, state.nightNumber, state.dayNight]);
   const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
     if (typeof window !== 'undefined') {

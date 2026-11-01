@@ -138,6 +138,12 @@ export class GameEngine {
 
   }
 
+  setHouseInventory(inventory: InventoryStack[]) {
+    this.state.house.inventory = inventory.map(item => ({ ...item }));
+    persistHouseStorage(this.state.house.inventory);
+    this.emit();
+  }
+
   private freshState(classId: ClassId = 'guerreiro'): GameSnapshot {
     const classWeapon: Record<ClassId, WeaponId> = {
       guerreiro: 'espada',
