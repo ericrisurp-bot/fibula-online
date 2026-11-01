@@ -2,6 +2,8 @@
 const AURA_RADIUS = 40;
 const SWORD_REACH_BEYOND_AURA = 32;
 
+export type ResourceRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
   player: { radius: 18, footOffset: 40, footRadius: 12, // footOffset ≈ ladinoFeetY(player.radius)
