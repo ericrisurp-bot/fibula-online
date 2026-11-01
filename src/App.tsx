@@ -299,6 +299,7 @@ export default function App() {
   useEffect(() => {
     const userId = session.user.sub;
     if (!fibulaSupabase || !userId) return;
+    const supabaseClient = fibulaSupabase;
     if (!houseLoadReadyRef.current) {
       if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
       return;
@@ -306,7 +307,7 @@ export default function App() {
     if (houseInventoryJson === lastSyncedHouseInventoryRef.current) return;
     lastSyncedHouseInventoryRef.current = houseInventoryJson;
     const inventory = JSON.parse(houseInventoryJson) as Array<{ itemId: string; quantity: number }>;
-    const sync = () => { void syncHouseInventory(fibulaSupabase, userId, inventory); };
+    const sync = () => { void syncHouseInventory(supabaseClient, userId, inventory); };
     sync();
     window.addEventListener('online', sync);
     return () => window.removeEventListener('online', sync);
@@ -314,7 +315,8 @@ export default function App() {
 
   useEffect(() => {
     if (!fibulaSupabase || !session.user.sub) return;
-    const flush = () => { void flushPendingSoloMatchSummaries(fibulaSupabase); };
+    const supabaseClient = fibulaSupabase;
+    const flush = () => { void flushPendingSoloMatchSummaries(supabaseClient); };
     flush();
     window.addEventListener('online', flush);
     return () => window.removeEventListener('online', flush);
