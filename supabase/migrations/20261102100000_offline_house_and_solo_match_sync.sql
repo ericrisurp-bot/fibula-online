@@ -16,7 +16,10 @@ grant select, insert, update on table public.fibula_house_storage to authenticat
 drop policy if exists "Players can read their own house storage" on public.fibula_house_storage;
 create policy "Players can read their own house storage"
   on public.fibula_house_storage for select to authenticated
-  using ((select auth.uid()) = user_id);
+  using (
+    (select auth.uid()) = user_id
+    and (select auth.jwt()->>'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1'
+  );
 
 drop policy if exists "Players can insert their own house storage" on public.fibula_house_storage;
 create policy "Players can insert their own house storage"
