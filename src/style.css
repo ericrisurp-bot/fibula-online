@@ -3417,3 +3417,199 @@ button, button * {
 @media(max-width:520px){.player-profile-content{padding:13px}.player-profile-details{grid-template-columns:1fr 1fr}.player-profile-avatar{width:62px;height:62px;font-size:34px}.player-profile-hero{padding:11px;gap:10px}.player-profile-header{padding:15px}}
 
 .player-profile-avatar-canvas{display:block;width:100%;height:100%;overflow:visible}
+
+
+/* Tema global Fíbula: carvão e vidro, preservando cores semânticas do jogo. */
+:root {
+  color-scheme: dark;
+  --fb-bg: #222322;
+  --fb-surface: rgba(34, 35, 34, 0.86);
+  --fb-surface-strong: rgba(34, 35, 34, 0.94);
+  --fb-line: rgba(230, 230, 230, 0.28);
+  --fb-line-soft: rgba(255, 255, 255, 0.14);
+  --fb-card: rgba(255, 255, 255, 0.06);
+  --fb-selected: rgba(115, 116, 115, 0.34);
+  --fb-text: #f0f0f0;
+  --fb-muted: #b4b7b4;
+  --fb-label: #9a9d9a;
+}
+
+html,
+body,
+#root {
+  color: var(--fb-text);
+  background-color: var(--fb-bg);
+}
+
+body {
+  color-scheme: dark;
+}
+
+.game-shell {
+  color: var(--fb-text);
+  background: radial-gradient(ellipse at 50% 0%, #383938 0%, var(--fb-bg) 68%);
+}
+
+.game-stage {
+  border-color: var(--fb-line);
+  background-color: #292a29;
+}
+
+.topbar .brand-mark,
+.topbar .brand-mark span {
+  color: var(--fb-text);
+}
+
+.subtitle,
+.footer,
+.footer-right {
+  color: var(--fb-label);
+}
+
+.subtitle i,
+.footer i {
+  background: var(--fb-muted);
+}
+
+.help-button,
+.close-help {
+  border-color: var(--fb-line);
+  background: var(--fb-card);
+  color: var(--fb-text);
+}
+
+.hud-chip,
+.hud-bottom,
+.help-card,
+.game-over,
+.mobile-menu-panel,
+.summary div,
+.lobby-ranking-board,
+.player-profile-modal,
+.player-profile-hero,
+.player-profile-details > div,
+.player-profile-attributes > div > div {
+  border-color: var(--fb-line);
+  background: var(--fb-surface);
+  color: var(--fb-text);
+}
+
+.hud-chip span,
+.health-row > span,
+.xp-row > span,
+.weapon-row > span,
+.summary span,
+.menu-section-label,
+.menu-weapon > span,
+.player-profile-header span,
+.player-profile-hero > div > span,
+.player-profile-details > div > span,
+.player-profile-footer {
+  color: var(--fb-label);
+}
+
+.hud-chip strong,
+.hud-bottom strong,
+.help-card h3,
+.game-over h2,
+.summary b,
+.player-profile-modal h2,
+.player-profile-modal h3,
+.player-profile-modal h4,
+.player-profile-details strong {
+  color: var(--fb-text);
+}
+
+.help-card p,
+.game-over > p:not(.eyebrow),
+.player-profile-hero p,
+.player-profile-attributes small,
+.player-profile-message {
+  color: var(--fb-muted);
+}
+
+.mobile-menu-heading,
+.player-profile-header,
+.player-profile-footer,
+.weapon-row {
+  border-color: var(--fb-line-soft);
+}
+
+.mobile-menu-panel button:not([class*="danger"]):not([class*="delete"]):not([class*="discard"]):not([class*="error"]):not([class*="warning"]):not([class*="success"]),
+button:not([class*="danger"]):not([class*="delete"]):not([class*="discard"]):not([class*="error"]):not([class*="warning"]):not([class*="success"]) {
+  border-color: var(--fb-line);
+  background-color: var(--fb-card);
+  color: var(--fb-text);
+}
+
+.mobile-menu-panel button.selected,
+button.selected,
+button.active,
+button[aria-pressed="true"] {
+  border-color: var(--fb-line);
+  background-color: var(--fb-selected);
+  color: var(--fb-text);
+}
+
+input:not([type="range"]),
+select,
+textarea {
+  border-color: var(--fb-line);
+  background-color: var(--fb-surface-strong);
+  color: var(--fb-text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--fb-label);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-color: var(--fb-muted);
+}
+
+:where(
+  [class$="-modal"],
+  [class$="-panel"],
+  [class$="-dialog"],
+  [class$="-card"],
+  [class$="-window"]
+) {
+  border-color: var(--fb-line);
+  background-color: var(--fb-surface);
+  color: var(--fb-text);
+}
+
+:where(
+  [class$="-modal"] h1,
+  [class$="-modal"] h2,
+  [class$="-modal"] h3,
+  [class$="-panel"] h1,
+  [class$="-panel"] h2,
+  [class$="-panel"] h3,
+  [class$="-dialog"] h1,
+  [class$="-dialog"] h2,
+  [class$="-dialog"] h3,
+  [class$="-card"] h1,
+  [class$="-card"] h2,
+  [class$="-card"] h3
+) {
+  color: var(--fb-text);
+}
+
+.player-profile-backdrop,
+.mobile-menu-backdrop {
+  background-color: rgba(0, 0, 0, 0.72);
+}
+
+.player-profile-close,
+.player-profile-actions button.secondary {
+  border-color: var(--fb-line);
+  background: var(--fb-card);
+  color: var(--fb-text);
+}
+
+/* Barras de vida/XP, erros, alertas e raridades mantêm suas cores informativas. */
