@@ -36,6 +36,10 @@ export async function loadHouseInventory(
   userId: string,
 ): Promise<{ inventory: PersistedHouseStack[]; source: 'cloud' | 'local' }> {
   try {
+    await client.from('fibula_profiles').upsert(
+      { user_id: userId },
+      { onConflict: 'user_id', ignoreDuplicates: true },
+    );
     if (window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
       return { inventory: readLocalHouseInventory(), source: 'local' };
     }
