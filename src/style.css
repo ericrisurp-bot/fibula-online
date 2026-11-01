@@ -4050,3 +4050,17 @@ button, button * {
   .profile-growth-row > span { font-size: 11px; }
 }
 .profile-priority-controls button.chosen.primary, .profile-priority-controls button.chosen.secondary { background: var(--fb-modal-selected) !important; border-color: rgba(240, 240, 240, 0.75) !important; color: var(--fb-modal-text) !important; }
+
+
+/* ===== Lobby sem sobreposição (Etapa 5): aviso de instalar fora do menu e coluna da direita acima do JOGAR ===== */
+@media (max-width: 900px), (max-height: 520px) {
+  .install-prompt { left: max(12px, env(safe-area-inset-left)) !important; transform: none !important; width: min(300px, calc(100vw - 108px)) !important; padding: 12px !important; }
+}
+/* PC e tablet: o último botão da coluna (Baú) termina 10px acima do JOGAR, que fica a 90% da altura. */
+@media (min-width: 651px) and (min-height: 521px) {
+  .lobby-chest-trigger { top: calc(90dvh - 123px) !important; }
+  .lobby-friends-trigger { top: calc(90dvh - 205px) !important; }
+  .lobby-arsenal-trigger { top: calc(90dvh - 287px) !important; }
+  .lobby-status-trigger { top: calc(90dvh - 369px) !important; }
+  .lobby-profile-trigger { top: calc(90dvh - 451px) !important; }
+}
