@@ -138,8 +138,16 @@ export default function PlayerProfileModal({
       setError('O nome precisa ter entre 3 e 20 caracteres.');
       return;
     }
+    if (profile.age === null && parsedAge === null) {
+      setError('Informe sua idade para concluir o perfil.');
+      return;
+    }
     if (profile.age === null && parsedAge !== null && (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120)) {
-      setError('Informe uma idade válida ou deixe o campo vazio.');
+      setError('Informe uma idade válida entre 1 e 120 anos.');
+      return;
+    }
+    if (profile.sex === null && !sex) {
+      setError('Selecione uma opção para o campo sexo.');
       return;
     }
     setSaving(true);
@@ -236,8 +244,8 @@ export default function PlayerProfileModal({
           </section>
           {editing && canEdit ? <form className="player-profile-form" onSubmit={saveIdentity}>
             {profile.display_name === null && <label>Nome de jogador<input value={displayName} onChange={event => setDisplayName(event.target.value)} minLength={3} maxLength={20} placeholder="Escolha seu nome" required /></label>}
-            {profile.age === null && <label>Idade <small>(não poderá ser alterada depois)</small><input type="number" min="1" max="120" value={age} onChange={event => setAge(event.target.value)} placeholder="Não informada" /></label>}
-            {profile.sex === null && <label>Sexo <small>(não poderá ser alterado depois)</small><select value={sex} onChange={event => setSex(event.target.value)}><option value="">Prefiro não informar</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="outro">Outro</option></select></label>}
+            {profile.age === null && <label>Idade <small>(não poderá ser alterada depois)</small><input type="number" min="1" max="120" value={age} onChange={event => setAge(event.target.value)} placeholder="Sua idade" required /></label>}
+            {profile.sex === null && <label>Sexo <small>(não poderá ser alterado depois)</small><select value={sex} onChange={event => setSex(event.target.value)} required><option value="">Selecione</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="outro">Outro</option></select></label>}
             <div className="player-profile-actions"><button type="button" className="secondary" onClick={() => { setEditing(false); setError(''); }}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar dados'}</button></div>
           </form> : <>
             <div className="player-profile-details">
