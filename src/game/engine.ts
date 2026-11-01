@@ -1217,14 +1217,15 @@ export class GameEngine {
   }
 
   /** Alcance de mineração medido a partir da base do personagem, no chão. */
+  /** Distância de mineração em linha reta a partir dos pés do personagem. */
   private rockGatherDist(tx: number, ty: number) {
     const feet = playerFeet(this.state.player);
-    return Math.hypot(tx - feet.x, (ty - feet.y) / CONFIG.gathering.rangeAspect);
+    return Math.hypot(tx - feet.x, ty - feet.y);
   }
 
   private isPlayerAtRock(rock: Rock) {
-    return this.rockGatherDist(rock.x, rock.y)
-      <= CONFIG.rocks.mineRange + this.rockFootprintRadius(rock);
+    // O alcance é fixo a partir dos pés; não aumenta pelo tamanho da pedra.
+    return this.rockGatherDist(rock.x, rock.y) <= CONFIG.rocks.mineRange;
   }
 
   private hitRock(id: number) {
