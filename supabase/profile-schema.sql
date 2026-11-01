@@ -24,6 +24,30 @@ create table if not exists public.fibula_profiles (
     check (age is null or age between 1 and 120)
 );
 
+create or replace function public.prevent_fibula_profile_identity_changes()
+returns trigger
+language plpgsql
+set search_path to ''
+as $function$
+begin
+  if old.display_name is not null and new.display_name is distinct from old.display_name then
+    raise exception 'O nome do jogador não pode ser alterado.';
+  end if;
+  if old.age is not null and new.age is distinct from old.age then
+    raise exception 'A idade declarada não pode ser alterada.';
+  end if;
+  if old.sex is not null and new.sex is distinct from old.sex then
+    raise exception 'O sexo declarado não pode ser alterado.';
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists fibula_profiles_identity_immutable on public.fibula_profiles;
+create trigger fibula_profiles_identity_immutable
+  before update on public.fibula_profiles
+  for each row execute function public.prevent_fibula_profile_identity_changes();
+
 create unique index if not exists fibula_profiles_display_name_lower_uidx
   on public.fibula_profiles (lower(display_name))
   where display_name is not null;
