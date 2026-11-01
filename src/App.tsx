@@ -1470,23 +1470,23 @@ export default function App() {
                 });
                 return <section className={`lobby-status-card class-${classId}`} key={classId}>
                   <div className="lobby-status-card-heading">
-                    <div><span>{index === 0 ? '★ CLASSE PRINCIPAL' : '② CLASSE SECUNDÁRIA'}</span><h3>{CLASSES[classId].label}</h3></div>
+                    <div><span>{index === 0 ? '★ PRINCIPAL' : '② SECUNDÁRIA'}</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[classId]}</span> {CLASSES[classId].label}</h3></div>
                     <strong className="lobby-status-level">NÍVEL {state.player.level}</strong>
                   </div>
+                  <i className="lobby-status-tag" aria-hidden="true" />
                   <div className="lobby-status-power-grid">
-                    <div className="lobby-status-power"><span>PD · DANO POR GOLPE</span><strong>{powerDamage.toFixed(1)}</strong><small>{weapon.label} · antes de bônus de equipamento</small></div>
-                    <div className="lobby-status-power"><span>💪 FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong><small>Valor atual da classe</small></div>
+                    <div className="lobby-status-power"><span>PD / GOLPE</span><strong>{powerDamage.toFixed(1)}</strong></div>
+                    <div className="lobby-status-power"><span>FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong></div>
                   </div>
                   <div className="lobby-status-attributes">
                     <div><span>❤️ Vida</span><strong>{attributes.vida.toFixed(1)}</strong></div>
-                    <div><span>🧠 Inteligência</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
-                    <div><span>🎯 Destreza</span><strong>{attributes.destreza.toFixed(1)}</strong></div>
-                    <div><span>🛡️ Armadura</span><strong>{(CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue).toFixed(1)}</strong></div>
+                    <div><span>🧠 Int.</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
+                    <div><span>🎯 Dest.</span><strong>{attributes.destreza.toFixed(1)}</strong></div>
+                    <div><span>🛡️ Arm.</span><strong>{(CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue).toFixed(1)}</strong></div>
                   </div>
                   <div className="lobby-status-equipment">
                     <span>EQUIPAMENTOS · {equippedItems.length}</span>
-                    {equippedItems.length ? <div>{equippedItems.map(item => <small key={item.id}>{item.icon} {item.name}</small>)}</div> : <small>Nenhum equipamento equipado</small>}
-                    <small className="lobby-status-equipment-note">Os itens atuais ainda não possuem bônus de atributos/PD cadastrados.</small>
+                    {equippedItems.length ? <div>{equippedItems.map(item => <small key={item.id}>{item.icon} {item.name}</small>)}</div> : <small>Sem equipamentos</small>}
                   </div>
                 </section>;
               })}
