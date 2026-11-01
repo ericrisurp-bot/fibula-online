@@ -1216,8 +1216,14 @@ export class GameEngine {
     return Math.hypot(tx - p.x, (ty - p.y) / CONFIG.gathering.rangeAspect);
   }
 
+  /** Alcance de mineração medido a partir da base do personagem, no chão. */
+  private rockGatherDist(tx: number, ty: number) {
+    const feet = playerFeet(this.state.player);
+    return Math.hypot(tx - feet.x, (ty - feet.y) / CONFIG.gathering.rangeAspect);
+  }
+
   private isPlayerAtRock(rock: Rock) {
-    return this.gatherDist(rock.x, rock.y)
+    return this.rockGatherDist(rock.x, rock.y)
       <= CONFIG.rocks.mineRange + this.rockFootprintRadius(rock);
   }
 
@@ -1733,7 +1739,7 @@ export class GameEngine {
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
       .filter(rock => this.isPlayerAtRock(rock))
-      .map(rock => ({ rock, d: this.gatherDist(rock.x, rock.y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
+      .map(rock => ({ rock, d: this.rockGatherDist(rock.x, rock.y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
