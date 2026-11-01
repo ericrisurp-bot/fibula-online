@@ -53,13 +53,13 @@ const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
   leggings: { label: 'leggings' }, bota: { label: 'bota' },
   arma: { label: 'arma' }, luva: { label: 'luva' },
   colar: { label: 'colar' }, bolsa: { label: 'bolsa' },
-  pulseira: { label: 'pulseira' },
+  pulseira: { label: 'pulseira' }, cinto: { label: 'cinto' },
 };
 const ARSENAL_SLOT_LAYOUT: { slot: EquipmentSlotId; row: number; column: number }[] = [
   { slot: 'colar', row: 1, column: 1 }, { slot: 'capacete', row: 1, column: 2 },
   { slot: 'bolsa', row: 1, column: 3 }, { slot: 'arma', row: 2, column: 1 },
   { slot: 'peitoral', row: 2, column: 2 }, { slot: 'luva', row: 2, column: 3 },
-  { slot: 'leggings', row: 3, column: 2 }, { slot: 'pulseira', row: 3, column: 3 },
+  { slot: 'cinto', row: 3, column: 1 }, { slot: 'leggings', row: 3, column: 2 }, { slot: 'pulseira', row: 3, column: 3 },
   { slot: 'bota', row: 4, column: 2 },
 ];
 

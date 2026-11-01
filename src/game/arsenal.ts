@@ -10,6 +10,7 @@ export const EQUIPMENT_SLOTS = [
   'bolsa',
   'colar',
   'pulseira',
+  'cinto',
 ] as const;
 
 export type EquipmentSlotId = typeof EQUIPMENT_SLOTS[number];
