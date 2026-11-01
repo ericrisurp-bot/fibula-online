@@ -90,7 +90,7 @@ export default function InstallPrompt() {
     >
       <WorldBackdrop opacity={0.5} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-      <button
+        <button
         type="button"
         aria-label="Fechar aviso"
         onClick={() => setVisible(false)}
@@ -98,16 +98,16 @@ export default function InstallPrompt() {
       >×</button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 22 }}>
         <img src="/icons/icon.png" alt="" width="48" height="48" style={{ borderRadius: 10, objectFit: 'cover' }} />
-        <div>
-          <strong style={{ display: 'block', fontSize: 16 }}>
+          <div>
+            <strong style={{ display: 'block', fontSize: 16 }}>
             {ios ? 'Instale no iPhone ou iPad' : 'Instale o Fíbula Online'}
-          </strong>
-          <span style={{ display: 'block', marginTop: 3, color: '#b4b7b4', fontSize: 12, lineHeight: 1.4 }}>
+            </strong>
+            <span style={{ display: 'block', marginTop: 3, color: '#b4b7b4', fontSize: 12, lineHeight: 1.4 }}>
             Tenha o jogo na tela inicial e abra em uma janela própria, como um aplicativo.
-          </span>
+            </span>
+          </div>
         </div>
-      </div>
-      {showHelp && (
+        {showHelp && (
         <ol
           aria-live="polite"
           style={{ margin: '12px 0 0', paddingLeft: 22, color: '#d0d2d0', fontSize: 12, lineHeight: 1.6 }}
@@ -115,9 +115,9 @@ export default function InstallPrompt() {
           {helpSteps.map((step) => <li key={step} style={{ paddingLeft: 3, marginBottom: 5 }}>{step}</li>)}
         </ol>
       )}
-      <button
-        type="button"
-        onClick={() => void install()}
+        <button
+          type="button"
+          onClick={() => void install()}
         style={{
           width: '100%', marginTop: 14, padding: '11px 14px', border: 0, borderRadius: 8,
           background: '#d0d2d0', color: '#222322', fontWeight: 900, letterSpacing: '.06em',
@@ -125,7 +125,7 @@ export default function InstallPrompt() {
         }}
       >
         {showHelp ? 'FECHAR INSTRUÇÕES' : ios || !installEvent ? 'COMO INSTALAR' : 'INSTALAR JOGO'}
-      </button>
+        </button>
       </div>
     </aside>
   );
