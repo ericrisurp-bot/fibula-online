@@ -1030,7 +1030,7 @@ export class GameEngine {
       if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
     }
     if (!position) return false;
-    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size, rarity: initial ? this.rollResourceRarity(size) : this.rollResourceRarity(size) });
+    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size, rarity: this.rollResourceRarity(size) });
     return true;
   }
 
