@@ -3467,3 +3467,131 @@ button, button * {
 .lobby-friends-count { color: var(--fb-muted) !important; }
 .lobby-crafting-products > span, .lobby-crafting-content > small { color: var(--fb-label) !important; }
 .lobby-crafting-products > strong, .lobby-friends-empty strong, .lobby-chest-slot small, .lobby-chest-slot b { color: var(--fb-text) !important; }
+
+
+/* Arsenal — primeiro teste do padrão carvão/vidro, isolado dos demais modais. */
+.lobby-arsenal-backdrop{
+  background:rgba(0,0,0,.68);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  animation:arsenal-backdrop-enter .18s ease-out both;
+}
+.lobby-arsenal-modal{
+  border-color:rgba(235,239,235,.22);
+  background:rgba(34,35,34,.96);
+  color:#f2f3ef;
+  box-shadow:0 24px 80px rgba(0,0,0,.62),inset 0 1px rgba(255,255,255,.045);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  animation:arsenal-modal-enter .2s cubic-bezier(.2,.75,.25,1) both;
+}
+.lobby-arsenal-header{
+  border-bottom-color:rgba(235,239,235,.14);
+  background:rgba(34,35,34,.72);
+}
+.lobby-arsenal-header>div:first-child>span,
+.arsenal-section-heading>span{color:#bfc6be}
+.lobby-arsenal-header h2{color:#f2f3ef}
+.lobby-arsenal-count{
+  border-color:#555a55;
+  background:#303330;
+  color:#e1e5df;
+}
+.lobby-arsenal-header .lobby-profile-close{
+  border-color:#555a55;
+  background:#303330;
+  color:#f2f3ef;
+}
+.lobby-arsenal-header .lobby-profile-close:hover{background:#414541}
+.arsenal-equipment-section,
+.arsenal-inventory-section{
+  border-color:#494e49;
+  background:rgba(43,46,43,.88);
+}
+.arsenal-section-heading strong{color:#e5e9e3}
+.arsenal-character-tabs button{
+  border-color:#555a55;
+  background:#303330;
+  color:#cbd1ca;
+}
+.arsenal-character-tabs button.active{
+  border-color:#aeb5ad;
+  background:#494d49;
+  color:#fff;
+  box-shadow:inset 0 -2px #c5cbc3;
+}
+.arsenal-equipment-stage{
+  border-color:#596059;
+  background:radial-gradient(ellipse at 50% 45%,#414641 0%,#343834 66%,#2b2e2b 100%);
+}
+.arsenal-no-character{color:#c4cbc3}
+.arsenal-equipment-slot{
+  border-color:#626a62;
+  background:rgba(48,51,48,.96);
+  color:#f2f3ef;
+  box-shadow:0 3px 10px rgba(0,0,0,.24);
+}
+.arsenal-equipment-slot.selected{
+  border-color:#d0d5ce;
+  background:#4a4e4a;
+  box-shadow:0 0 0 2px rgba(220,225,218,.16);
+}
+.arsenal-equipment-slot.equipped{border-color:#969e95;background:#383d38}
+.arsenal-equipped-item{
+  border-color:#777f76;
+  background:#d0d4ce;
+  color:#222322;
+  box-shadow:0 2px 5px rgba(0,0,0,.3);
+}
+.arsenal-inventory-slot{
+  border-color:#555b55;
+  background:#303330;
+  color:#c2c9c1;
+}
+.arsenal-inventory-slot.filled{
+  border-color:#697169;
+  background:#393d39;
+  color:#f2f3ef;
+}
+.arsenal-inventory-slot.selected{
+  border-color:#d0d5ce;
+  background:#4a4e4a;
+  box-shadow:0 0 0 2px rgba(220,225,218,.16);
+}
+.arsenal-inventory-slot.is-equipped{border-color:#969e95}
+.arsenal-empty-number{color:#929b91}
+.arsenal-selection-label{color:#d4dad2}
+.arsenal-actions button{
+  border-color:#d0d4ce;
+  background:#d0d4ce;
+  color:#222322;
+}
+.arsenal-actions button:hover:not(:disabled){background:#e0e3de}
+.arsenal-actions button.arsenal-unequip{
+  border-color:#646b63;
+  background:#393d39;
+  color:#e1e5df;
+}
+.arsenal-actions button.arsenal-unequip:hover:not(:disabled){background:#494e49}
+.arsenal-actions button:disabled{opacity:.42}
+.arsenal-footnote{color:#aeb6ad}
+.arsenal-power-label{
+  border-color:#747c73;
+  background:rgba(48,51,48,.94);
+  color:#f2f3ef;
+  box-shadow:0 2px 7px rgba(0,0,0,.28);
+}
+.arsenal-equipment-slot:focus-visible,
+.arsenal-inventory-slot:focus-visible,
+.arsenal-character-tabs button:focus-visible,
+.arsenal-actions button:focus-visible,
+.lobby-arsenal-header .lobby-profile-close:focus-visible{
+  outline:2px solid #d0d4ce;
+  outline-offset:2px;
+}
+@keyframes arsenal-backdrop-enter{from{opacity:0}to{opacity:1}}
+@keyframes arsenal-modal-enter{from{opacity:0;transform:translateY(9px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){
+  .lobby-arsenal-backdrop,.lobby-arsenal-modal{animation:none}
+  .arsenal-equipment-slot{transition:none}
+}
