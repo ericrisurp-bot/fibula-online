@@ -8,6 +8,7 @@ export type SoloMatchSummary = {
 };
 
 const HOUSE_STORAGE_KEY = 'fibula-house-storage';
+const HOUSE_STORAGE_DIRTY_KEY = 'fibula-house-storage-dirty';
 const PENDING_MATCHES_KEY = 'fibula-pending-solo-matches';
 
 function normalizeHouseInventory(value: unknown): PersistedHouseStack[] {
@@ -35,6 +36,9 @@ export async function loadHouseInventory(
   userId: string,
 ): Promise<{ inventory: PersistedHouseStack[]; source: 'cloud' | 'local' }> {
   try {
+    if (window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
+      return { inventory: readLocalHouseInventory(), source: 'local' };
+    }
     const { data, error } = await client
       .from('fibula_house_storage')
       .select('inventory')
@@ -58,14 +62,27 @@ export async function syncHouseInventory(
   userId: string,
   inventory: PersistedHouseStack[],
 ): Promise<boolean> {
-  if (!navigator.onLine) return false;
   const safeInventory = normalizeHouseInventory(inventory);
-  const { error } = await client.from('fibula_house_storage').upsert({
-    user_id: userId,
-    inventory: safeInventory,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
-  return !error;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    try { window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1'); } catch { /* Cache indisponível. */ }
+    return false;
+  }
+  try {
+    const { error } = await client.from('fibula_house_storage').upsert({
+      user_id: userId,
+      inventory: safeInventory,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    if (error) {
+      window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1');
+      return false;
+    }
+    window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
+    return true;
+  } catch {
+    try { window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1'); } catch { /* Cache indisponível. */ }
+    return false;
+  }
 }
 
 function readPendingMatches(): SoloMatchSummary[] {
@@ -101,12 +118,16 @@ export async function flushPendingSoloMatchSummaries(
   const pending = readPendingMatches();
   const remaining: SoloMatchSummary[] = [];
   for (const summary of pending) {
-    const { error } = await client.rpc('fibula_sync_solo_match', {
-      p_match_id: summary.matchId,
-      p_kills: summary.kills,
-      p_survival_nights: summary.survivalNights,
-    });
-    if (error) remaining.push(summary);
+    try {
+      const { error } = await client.rpc('fibula_sync_solo_match', {
+        p_match_id: summary.matchId,
+        p_kills: summary.kills,
+        p_survival_nights: summary.survivalNights,
+      });
+      if (error) remaining.push(summary);
+    } catch {
+      remaining.push(summary);
+    }
   }
   try { window.localStorage.setItem(PENDING_MATCHES_KEY, JSON.stringify(remaining)); } catch { /* Fila local indisponível. */ }
 }
