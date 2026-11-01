@@ -909,8 +909,8 @@ export class GameEngine {
     this.state.house = { x: this.world * 0.25, y: this.world * 0.25, woodDelivered: 0, built: false, inventory: [] };
   }
 
-  private rollResourceRarity(size: 'small' | 'medium' | 'large'): ResourceRarity | undefined {
-    if (size !== 'large') return undefined;
+  private rollResourceRarity(size: 'small' | 'medium' | 'large', mediumMineral = false): ResourceRarity | undefined {
+    if (size === 'small' || (size === 'medium' && !mediumMineral)) return undefined;
     const rules = [
       ['common', RESOURCE_RARITY_RULES.common],
       ['uncommon', RESOURCE_RARITY_RULES.uncommon],
@@ -919,6 +919,7 @@ export class GameEngine {
     ] as const;
     let roll = this.random();
     for (const [rarity, rule] of rules) {
+      if (size === 'medium' && rarity !== 'common' && rarity !== 'uncommon') continue;
       if (this.nightNumber < rule.minNight) continue;
       roll -= rule.chancePercent / 100;
       if (roll < 0) return rarity;
@@ -1205,7 +1206,7 @@ export class GameEngine {
     }
     if (!position) return false;
     if (clusterId === null) clusterId = this.nextRockClusterId++;
-    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, clusterId, rarity: this.rollResourceRarity(size) });
+    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, clusterId, rarity: this.rollResourceRarity(size, true) });
     return true;
   }
 
