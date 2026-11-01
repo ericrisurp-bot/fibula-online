@@ -24,6 +24,16 @@ import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
 
+type RankingEntry = {
+  user_id: string;
+  display_name: string | null;
+  avatar_character: ClassId;
+  highest_pd: number;
+  highest_survival_level: number;
+  kills: number;
+  created_at: string;
+};
+
 let floatingWeaponSide: 1 | -1 = 1;
 
 registerCombatSounds();
@@ -371,7 +381,55 @@ export default function App() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState<'solo' | 'duo'>('solo');
-  const [rankingCategory, setRankingCategory] = useState<'power' | 'survival'>('power');
+  const [rankingCategory, setRankingCategory] = useState<'power' | 'survival' | 'kills'>('survival');
+  const [rankingRows, setRankingRows] = useState<RankingEntry[]>([]);
+  const [rankingOwnProfile, setRankingOwnProfile] = useState<RankingEntry | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const [rankingError, setRankingError] = useState('');
+  useEffect(() => {
+    if (!rankingOpen) return;
+    if (!fibulaSupabase || rankingMode !== 'solo') {
+      setRankingRows([]);
+      setRankingOwnProfile(null);
+      setRankingError('');
+      setRankingLoading(false);
+      return;
+    }
+    let active = true;
+    const loadRanking = async () => {
+      setRankingLoading(true);
+      setRankingError('');
+      const valueField = rankingCategory === 'power'
+        ? 'highest_pd'
+        : rankingCategory === 'survival' ? 'highest_survival_level' : 'kills';
+      try {
+        const [boardResult, ownResult] = await Promise.all([
+          fibulaSupabase.from('fibula_profiles')
+            .select('user_id,display_name,avatar_character,highest_pd,highest_survival_level,kills,created_at')
+            .gt(valueField, 0)
+            .order(valueField, { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(100),
+          fibulaSupabase.from('fibula_profiles')
+            .select('user_id,display_name,avatar_character,highest_pd,highest_survival_level,kills,created_at')
+            .eq('user_id', session.user.sub)
+            .maybeSingle(),
+        ]);
+        if (boardResult.error) throw boardResult.error;
+        if (ownResult.error) throw ownResult.error;
+        if (!active) return;
+        setRankingRows((boardResult.data ?? []) as RankingEntry[]);
+        setRankingOwnProfile(ownResult.data as RankingEntry | null);
+      } catch (cause) {
+        if (active) setRankingError(cause instanceof Error ? cause.message : 'Não foi possível carregar o ranking.');
+      } finally {
+        if (active) setRankingLoading(false);
+      }
+    };
+    void loadRanking();
+    return () => { active = false; };
+  }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
+
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
