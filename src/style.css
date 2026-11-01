@@ -3565,7 +3565,7 @@ textarea:focus-visible {
   outline-color: var(--fb-muted);
 }
 
-:where(
+:is(
   [class$="-modal"],
   [class$="-panel"],
   [class$="-dialog"],
@@ -3577,7 +3577,7 @@ textarea:focus-visible {
   color: var(--fb-text);
 }
 
-:where(
+:is(
   [class$="-modal"] h1,
   [class$="-modal"] h2,
   [class$="-modal"] h3,
