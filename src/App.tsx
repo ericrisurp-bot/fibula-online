@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
+import { getBaseItemId, getItemRarity } from './game/inventory';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes } from './game/attributes';
@@ -183,8 +184,8 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   </div>;
 }
 
-const itemIcon = (itemId: string) => itemId === 'wood' ? '🪵' : itemId === 'stone' ? '🪨' : itemId === 'bronze' ? '🟤' : itemId === 'cotton' ? '☁️' : itemId === 'linen' ? '🧵' : '📦';
-const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
+const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'linen' ? '🧵' : '📦';
+const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
     <g fill="#fffaf0" stroke="#c8c3b6" strokeWidth="1" strokeLinejoin="round">
       <polygon points="3,12 5,7 9,6 12,9 11,15 6,16" />
@@ -195,7 +196,7 @@ const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
       <path d="M5.5 10 7.5 8 M11.5 6 13.5 5" />
     </g>
   </svg>
-) : itemId === 'stone' ? (
+) : getBaseItemId(itemId) === 'stone' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
     <g stroke="#454d53" strokeWidth="0.9" strokeLinejoin="round">
       <polygon points="2,14 3,9 7,5 11,2 15,3 19,7 22,12 20,17 16,20 10,21 5,19" fill="#788188" />
@@ -213,7 +214,18 @@ const inventoryItemIcon = (itemId: string) => itemId === 'cotton' ? (
     </g>
   </svg>
 ) : itemIcon(itemId);
-const itemLabel = (itemId: string) => itemId === 'wood' ? 'Madeira' : itemId === 'stone' ? 'Pedra' : itemId === 'bronze' ? 'Bronze' : itemId === 'cotton' ? 'Algodão' : itemId === 'linen' ? 'Linho' : itemId;
+const itemLabel = (itemId: string) => {
+  const base = getBaseItemId(itemId);
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'linen' ? 'Linho' : base;
+  const rarity = getItemRarity(itemId);
+  const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
+  return rarityLabel ? `${label} · ${rarityLabel}` : label;
+};
+const itemRarityGlow = (itemId: string): React.CSSProperties => {
+  const rarity = getItemRarity(itemId);
+  const color = rarity === 'common' ? '#36d66f' : rarity === 'uncommon' ? '#348cff' : rarity === 'rare' ? '#a34be8' : rarity === 'legendary' ? '#ff8a24' : 'transparent';
+  return rarity ? { filter: `drop-shadow(0 0 5px ${color})` } : {};
+};
 
 const LOBBY_CRAFTING_STATIONS = [
   { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
@@ -661,7 +673,7 @@ export default function App() {
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
         worldDrawables.push({ depth: plant.y + 13 * scale, draw: () => {
-          drawResourceRarityAura(ctx, plant.x, plant.y - 5, plant.size === 'large' ? 46 : plant.size === 'medium' ? 36 : 28, plant.rarity);
+          drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
           ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale * 0.9, scale * 1.15);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 18, 7, 0, 0, Math.PI * 2); ctx.fill();
 
@@ -713,14 +725,15 @@ export default function App() {
       }
       for (const tree of s.trees) {
         const scale = tree.size === 'small' ? 1.75 : tree.size === 'medium' ? 2.45 : 3.25;
-        worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => { drawResourceRarityAura(ctx, tree.x, tree.y - 28, tree.size === 'large' ? 102 : tree.size === 'medium' ? 78 : 58, tree.rarity); drawTree(ctx, tree.x, tree.y, tree.size); } });
+        worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => { drawResourceRarityAura(ctx, tree.x, tree.y + 29 * scale, tree.size === 'large' ? 64 : tree.size === 'medium' ? 50 : 38, tree.rarity); drawTree(ctx, tree.x, tree.y, tree.size); } });
       }
       for (const rock of s.rocks) {
         const scale = rock.size === 'small' ? 1.22 : rock.size === 'medium' ? 1.5 : 1.85;
-        worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => { drawResourceRarityAura(ctx, rock.x, rock.y, rock.size === 'large' ? 58 : rock.size === 'medium' ? 46 : 36, rock.rarity); drawRock(ctx, rock.x, rock.y, rock.size); } });
+        worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => { drawResourceRarityAura(ctx, rock.x, rock.y + 12 * scale, rock.size === 'large' ? 46 : rock.size === 'medium' ? 36 : 28, rock.rarity); drawRock(ctx, rock.x, rock.y, rock.size); } });
       }
       for (const drop of s.cottonDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 4, 18, drop.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(1.12, 1.12);
           // Capulho de algodão em lóbulos facetados, mantendo o aspecto macio.
           ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#c8c3b6'; ctx.lineWidth = 1;
@@ -747,6 +760,7 @@ export default function App() {
       }
       for (const drop of s.stoneDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 6, 20, drop.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(0.84, 0.84);
           // Pedra low-poly com a mesma paleta cinza da rocha minerável e dos slots.
           const facet = (points: Array<[number, number]>, fill: string) => {
@@ -785,6 +799,7 @@ export default function App() {
       }
       for (const drop of s.woodDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 22, drop.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y);
           // Usa o mesmo ícone da mochila, agora como um único tronco.
           ctx.font = '22px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1444,7 +1459,7 @@ export default function App() {
             </header>
             <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
               {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
-                <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
               </div>)}
             </div>
           </section>
@@ -1616,7 +1631,7 @@ export default function App() {
             {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
               const item = state.inventory[index];
               return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} style={{ position: 'relative' }} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <><span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, padding: 0, lineHeight: '16px', borderRadius: 999, background: '#632f35', color: '#fff', border: '1px solid #d98b8b', fontSize: 14 }} onClick={(event) => { event.stopPropagation(); discardBagItem(index); }} aria-label={`Descartar ${item.itemId} x${item.quantity} da mochila`} title="Descartar item">×</button></> : <span className="quick-slot-empty">{index + 1}</span>}
+                {item ? <><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, padding: 0, lineHeight: '16px', borderRadius: 999, background: '#632f35', color: '#fff', border: '1px solid #d98b8b', fontSize: 14 }} onClick={(event) => { event.stopPropagation(); discardBagItem(index); }} aria-label={`Descartar ${item.itemId} x${item.quantity} da mochila`} title="Descartar item">×</button></> : <span className="quick-slot-empty">{index + 1}</span>}
               </div>;
             })}
           </div>
