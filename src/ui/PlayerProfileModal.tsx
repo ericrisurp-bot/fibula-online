@@ -58,6 +58,29 @@ function getProfileErrorMessage(cause: unknown, action: 'carregar' | 'salvar'): 
   return cause instanceof Error ? cause.message : `Não foi possível ${action} o perfil.`;
 }
 
+
+function AvatarPortrait({ classId }: { classId: ClassId }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = canvas.clientWidth || 72;
+    const height = canvas.clientHeight || 72;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.translate(width / 2, height * 0.8);
+    ctx.scale(Math.min(width / 44, height / 58), Math.min(width / 44, height / 58));
+    drawLadino(ctx, classId, CONFIG.player.radius, { walking: false, phase: 0, breath: 0, carry: false, direction: 'front' });
+    ctx.restore();
+  }, [classId]);
+  return <canvas ref={canvasRef} className="player-profile-avatar-option-canvas" aria-hidden="true" />;
+}
+
 export default function PlayerProfileModal({
   userId, isOwner, currentCharacter, avatarCharacter, level, kills, attributes, onAvatarChange, onClose,
 }: Props) {
@@ -69,6 +92,7 @@ export default function PlayerProfileModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [age, setAge] = useState('');
@@ -169,8 +193,8 @@ export default function PlayerProfileModal({
     }
   };
 
-  const saveAvatar = async (avatar: ClassId) => {
-    if (!fibulaSupabase || !canEdit || !profile || savingAvatar) return;
+  const saveAvatar = async (avatar: ClassId): Promise<boolean> => {
+    if (!fibulaSupabase || !canEdit || !profile || savingAvatar) return false;
     setSelectedAvatar(avatar);
     setSavingAvatar(true);
     setError('');
@@ -181,9 +205,11 @@ export default function PlayerProfileModal({
       if (updateError) throw updateError;
       setProfile(data as PlayerProfile);
       onAvatarChange(avatar);
+      return true;
     } catch (cause) {
       setSelectedAvatar(profile.avatar_character ?? 'guerreiro');
       setError(getProfileErrorMessage(cause, 'salvar'));
+      return false;
     } finally {
       setSavingAvatar(false);
     }
@@ -217,7 +243,6 @@ export default function PlayerProfileModal({
   const identityIncomplete = !!profile && (profile.display_name === null || profile.age === null || profile.sex === null);
   const canCompleteIdentity = canEdit && identityIncomplete;
   const accountDays = createdAt ? Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 86_400_000)) : 0;
-  const avatarInfo = CLASS_INFO[selectedAvatar];
 
   return <div className="player-profile-backdrop" onClick={onClose}>
     <section className="player-profile-modal" role="dialog" aria-modal="true" aria-labelledby="player-profile-title" onClick={event => event.stopPropagation()}>
@@ -227,21 +252,37 @@ export default function PlayerProfileModal({
       </header>
       {loading ? <p className="player-profile-message">Carregando perfil...</p> : !profile ? <p className="player-profile-message">{error || 'Este jogador ainda não criou um perfil.'}</p> : <>
         <div className="player-profile-content">
-          <div className={`player-profile-hero class-${selectedAvatar}`}>
-            <div className={`player-profile-avatar class-${selectedAvatar}`}><canvas ref={avatarCanvasRef} className="player-profile-avatar-canvas" aria-label={`Avatar: ${avatarInfo.name}`} /></div>
-            <div><span>AVATAR DO PERFIL</span><h3>{profile.display_name || 'Nome ainda não escolhido'}</h3><p>{avatarInfo.name} · Nível {profile.level}</p></div>
-          </div>
-          <section className="player-profile-avatar-picker" aria-label="Escolher avatar">
-            <div><strong>Seu avatar</strong><small>Independente da classe usada na partida</small></div>
-            <div className="player-profile-avatar-options">
-              {CLASS_IDS.map(classId => <button key={classId} type="button" disabled={!canEdit || savingAvatar} aria-pressed={selectedAvatar === classId}
-                className={`player-profile-avatar-choice class-${classId}${selectedAvatar === classId ? ' selected' : ''}`}
-                onClick={() => void saveAvatar(classId)}>
-                <span aria-hidden="true">{CLASS_INFO[classId].icon}</span><b>{CLASS_INFO[classId].name}</b>
-              </button>)}
+          <div className="player-profile-hero">
+            <div className="player-profile-avatar-wrap">
+              <button type="button" className="player-profile-avatar" disabled={!canEdit}
+                aria-label={canEdit ? "Alterar foto de perfil" : "Foto de perfil"}
+                title={canEdit ? "Alterar foto de perfil" : "Foto de perfil"}
+                onClick={() => setAvatarPickerOpen(true)}>
+                <canvas ref={avatarCanvasRef} className="player-profile-avatar-canvas" aria-hidden="true" />
+                {canEdit && <span className="player-profile-avatar-edit" aria-hidden="true">✎</span>}
+              </button>
             </div>
-            {savingAvatar && <small role="status">Salvando avatar...</small>}
-          </section>
+            <div><span>PERFIL DO JOGADOR</span><h3>{profile.display_name || 'Nome ainda não escolhido'}</h3><p>Nível {profile.level}</p></div>
+          </div>
+          {avatarPickerOpen && canEdit && <div className="player-profile-avatar-backdrop" onClick={() => !savingAvatar && setAvatarPickerOpen(false)}>
+            <section className="player-profile-avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="player-profile-avatar-title" onClick={event => event.stopPropagation()}>
+              <header><div><span>PERSONALIZAÇÃO</span><h3 id="player-profile-avatar-title">Escolher foto</h3></div>
+                <button type="button" aria-label="Fechar seleção de avatar" disabled={savingAvatar} onClick={() => setAvatarPickerOpen(false)}>×</button>
+              </header>
+              <p>Escolha o personagem que vai representar seu perfil.</p>
+              <div className="player-profile-avatar-options">
+                {CLASS_IDS.map(classId => <button key={classId} type="button" disabled={savingAvatar} aria-pressed={selectedAvatar === classId}
+                  className={`player-profile-avatar-choice${selectedAvatar === classId ? ' selected' : ''}`}
+                  onClick={() => { void saveAvatar(classId).then(saved => { if (saved) setAvatarPickerOpen(false); }); }}>
+                  <AvatarPortrait classId={classId} />
+                  <span>{CLASS_INFO[classId].name}</span>
+                  {selectedAvatar === classId && <small>Atual</small>}
+                </button>)}
+              </div>
+              {savingAvatar && <small className="player-profile-avatar-saving" role="status">Salvando foto...</small>}
+              {error && <p className="player-profile-error" role="alert">{error}</p>}
+            </section>
+          </div>}
           {editing && canEdit ? <form className="player-profile-form" onSubmit={saveIdentity}>
             {profile.display_name === null && <label>Nome de jogador<input value={displayName} onChange={event => setDisplayName(event.target.value)} minLength={3} maxLength={20} placeholder="Escolha seu nome" required /></label>}
             {profile.age === null && <label>Idade <small>(não poderá ser alterada depois)</small><input type="number" min="1" max="120" value={age} onChange={event => setAge(event.target.value)} placeholder="Sua idade" required /></label>}
