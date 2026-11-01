@@ -77,6 +77,7 @@ export default function InstallPrompt() {
 
   return (
     <aside
+      className="install-prompt"
       role="dialog"
       aria-label="Instalar Fíbula Online"
       style={{
