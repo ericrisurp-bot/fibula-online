@@ -763,7 +763,7 @@ export class GameEngine {
     this.updateCart(dt);
 
     if (this.phase === 'night' && this.hordeTarget > 0) {
-      const spawnWindow = CONFIG.dayNight.dayDuration - CONFIG.dayNight.spawnStopBeforeDawn;
+      const spawnWindow = CONFIG.dayNight.nightSpawnDuration;
       const progress = Math.min(1, this.phaseElapsed / spawnWindow);
       // Mantém a distribuição das cinco ondas atuais; o nascimento final ocorre até o fim da janela.
       const distribution = CONFIG.dayNight.spawnWaveDistribution;
