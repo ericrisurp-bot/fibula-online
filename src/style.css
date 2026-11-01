@@ -3417,3 +3417,53 @@ button, button * {
 @media(max-width:520px){.player-profile-content{padding:13px}.player-profile-details{grid-template-columns:1fr 1fr}.player-profile-avatar{width:62px;height:62px;font-size:34px}.player-profile-hero{padding:11px;gap:10px}.player-profile-header{padding:15px}}
 
 .player-profile-avatar-canvas{display:block;width:100%;height:100%;overflow:visible}
+
+/* ===== Padrão de modal do lobby: vidro carvão #222322, igual à Mochila da partida ===== */
+:root {
+  --fb-surface: rgba(34, 35, 34, 0.86);
+  --fb-line: rgba(230, 230, 230, 0.28);
+  --fb-line-soft: rgba(255, 255, 255, 0.14);
+  --fb-card: rgba(255, 255, 255, 0.06);
+  --fb-selected: rgba(115, 116, 115, 0.34);
+  --fb-text: #f0f0f0;
+  --fb-muted: #b4b7b4;
+  --fb-label: #9a9d9a;
+}
+.lobby-crafting-backdrop, .lobby-friends-backdrop, .lobby-chest-backdrop {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+.lobby-crafting-modal, .lobby-friends-modal, .lobby-chest-modal {
+  background: var(--fb-surface) !important;
+  color: var(--fb-text) !important;
+  border: 1px solid var(--fb-line) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: inherit !important;
+}
+.lobby-crafting-header, .lobby-friends-header, .lobby-chest-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--fb-line-soft) !important;
+}
+.lobby-crafting-header h2, .lobby-friends-header h2, .lobby-chest-header h2 { color: var(--fb-text) !important; }
+.lobby-crafting-header > div > span, .lobby-friends-header > div > span, .lobby-chest-header span { color: var(--fb-label) !important; }
+.lobby-crafting-close, .lobby-friends-close, .lobby-chest-close {
+  background: rgba(34, 35, 34, 0.9) !important;
+  border: 1px solid var(--fb-line) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+.lobby-crafting-close:hover, .lobby-friends-close:hover, .lobby-chest-close:hover { background: var(--fb-selected) !important; }
+.lobby-crafting-emblem, .lobby-crafting-products, .lobby-friends-empty, .lobby-friends-empty > span,
+.lobby-chest-slot, .lobby-chest-slot.filled {
+  background: var(--fb-card) !important;
+  border: 1px solid var(--fb-line-soft) !important;
+  color: var(--fb-text) !important;
+}
+.lobby-crafting-content > p, .lobby-friends-empty p, .lobby-chest-header p, .lobby-chest-note, .lobby-friends-note,
+.lobby-friends-count { color: var(--fb-muted) !important; }
+.lobby-crafting-products > span, .lobby-crafting-content > small { color: var(--fb-label) !important; }
+.lobby-crafting-products > strong, .lobby-friends-empty strong, .lobby-chest-slot small, .lobby-chest-slot b { color: var(--fb-text) !important; }
