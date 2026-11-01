@@ -268,7 +268,7 @@ export default function App() {
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
   const lastSyncedHouseInventoryRef = useRef(initialHouseInventoryRef.current);
   const matchSummaryHandledRef = useRef(false);
-  const [state, setState] = useState<GameSnapshot>(initial);
+  const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const houseInventoryJson = JSON.stringify(state.house.inventory);
 
