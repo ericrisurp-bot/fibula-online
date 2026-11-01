@@ -115,7 +115,7 @@ export class GameEngine {
     this.rockSpawnCountdown = this.rockSpawnDuration();
     this.spawnInitialCottonPlants();
     this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval;
-    this.spawnRarityShowcase();
+
   }
 
   private freshState(classId: ClassId = 'guerreiro'): GameSnapshot {
@@ -848,35 +848,25 @@ export class GameEngine {
     this.state.house = { x: this.world * 0.25, y: this.world * 0.25, woodDelivered: 0, built: false, inventory: [] };
   }
 
-  private spawnInitialCottonPlants() {
-    for (let i = 0; i < CONFIG.cotton.startCount; i++) this.spawnCottonPlant();
+  private rollResourceRarity(size: 'small' | 'medium' | 'large'): ResourceRarity | undefined {
+    if (size !== 'large') return undefined;
+    const rules = [
+      ['common', CONFIG.resourceRarity.common],
+      ['uncommon', CONFIG.resourceRarity.uncommon],
+      ['rare', CONFIG.resourceRarity.rare],
+      ['legendary', CONFIG.resourceRarity.legendary],
+    ] as const;
+    let roll = Math.random();
+    for (const [rarity, rule] of rules) {
+      if (this.nightNumber < rule.minNight) continue;
+      roll -= rule.chancePercent / 100;
+      if (roll < 0) return rarity;
+    }
+    return undefined;
   }
 
-  private spawnRarityShowcase() {
-    const player = this.state.player;
-    // Limpa algodoeiros aleatórios que poderiam ocupar a área reservada à demonstração.
-    this.state.cottonPlants = this.state.cottonPlants.filter(plant =>
-      Math.hypot(plant.x - player.x, plant.y - player.y) > 560
-    );
-
-    // Quatro recursos grandes, um por raridade, em volta do ponto inicial do jogador.
-    this.state.trees.push({
-      id: this.nextId++, x: player.x - 210, y: player.y - 220,
-      hits: CONFIG.trees.hitsToCut, size: 'large', rarity: 'common',
-    });
-    this.state.rocks.push({
-      id: this.nextId++, x: player.x + 210, y: player.y - 220,
-      hits: CONFIG.rocks.hitsToBreak.large, size: 'large',
-      clusterId: this.nextRockClusterId++, rarity: 'uncommon',
-    });
-    this.state.cottonPlants.push({
-      id: this.nextId++, x: player.x - 210, y: player.y + 220,
-      hits: CONFIG.rocks.hitsToBreak.large, size: 'large', rarity: 'rare',
-    });
-    this.state.trees.push({
-      id: this.nextId++, x: player.x + 210, y: player.y + 220,
-      hits: CONFIG.trees.hitsToCut, size: 'large', rarity: 'legendary',
-    });
+  private spawnInitialCottonPlants() {
+    for (let i = 0; i < CONFIG.cotton.startCount; i++) this.spawnCottonPlant();
   }
 
   private updateCottonSpawner(dt: number) {
@@ -929,7 +919,7 @@ export class GameEngine {
       }
     }
     if (!position) return false;
-    this.state.cottonPlants.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size });
+    this.state.cottonPlants.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, rarity: this.rollResourceRarity(size) });
     return true;
   }
 
@@ -1040,7 +1030,7 @@ export class GameEngine {
       if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
     }
     if (!position) return false;
-    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size });
+    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size, rarity: initial ? this.rollResourceRarity(size) : this.rollResourceRarity(size) });
     return true;
   }
 
@@ -1154,7 +1144,7 @@ export class GameEngine {
     }
     if (!position) return false;
     if (clusterId === null) clusterId = this.nextRockClusterId++;
-    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, clusterId });
+    this.state.rocks.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.rocks.hitsToBreak[size], size, clusterId, rarity: this.rollResourceRarity(size) });
     return true;
   }
 
