@@ -4075,3 +4075,159 @@ button, button * {
 .lobby-status-note { grid-column: 1 / -1; margin: 10px 2px 0; color: var(--fb-modal-label); font-size: 11px; line-height: 1.5; }
 .attr-unused, .attr-unused span, .attr-unused strong, .attr-unused small, .attr-unused i { color: #e57373 !important; text-decoration: line-through; text-decoration-thickness: 1px; }
 .profile-growth-row.attr-unused > b u { background: #7a3b3b !important; }
+
+
+/* Amigos: busca por nome, pedidos recebidos/enviados e lista de amizades. */
+.lobby-friends-content { display: flex; flex-direction: column; gap: 14px; min-height: 0; padding: 14px; overflow-y: auto; }
+.lobby-friends-search { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--fb-modal-border-soft); border-radius: 10px; background: var(--fb-modal-card); }
+.lobby-friends-search label { color: var(--fb-modal-muted); font-size: 11px; font-weight: 800; }
+.lobby-friends-search > div { display: flex; gap: 8px; min-width: 0; }
+.lobby-friends-search input { flex: 1; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid var(--fb-modal-border); border-radius: 8px; background: #292c29; color: var(--fb-modal-text); font: inherit; font-size: 12px; }
+.lobby-friends-search button, .lobby-friend-actions button { min-height: 38px; padding: 8px 11px; border: 1px solid #d0d4ce; border-radius: 8px; background: #d0d4ce; color: #222322; font-size: 11px; font-weight: 900; cursor: pointer; }
+.lobby-friends-search button:disabled, .lobby-friend-actions button:disabled { opacity: .55; cursor: default; }
+.lobby-friends-section { display: grid; gap: 8px; }
+.lobby-friends-section h3 { display: flex; justify-content: space-between; align-items: center; margin: 0; color: var(--fb-modal-text); font-size: 12px; }
+.lobby-friends-section h3 span { color: var(--fb-modal-muted); }
+.lobby-friend-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px; border: 1px solid var(--fb-modal-border-soft); border-radius: 9px; background: var(--fb-modal-card); }
+.lobby-friend-avatar { display: grid; flex: 0 0 38px; place-items: center; width: 38px; height: 38px; border: 1px solid var(--fb-modal-border); border-radius: 10px; background: #303330; font-size: 19px; }
+.lobby-friend-avatar.class-guerreiro { background: rgba(201,79,96,.2); }
+.lobby-friend-avatar.class-mago { background: rgba(144,101,214,.2); }
+.lobby-friend-avatar.class-arqueiro { background: rgba(201,154,46,.2); }
+.lobby-friend-avatar.class-druida { background: rgba(79,174,107,.2); }
+.lobby-friend-identity { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.lobby-friend-identity strong { overflow: hidden; color: var(--fb-modal-text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.lobby-friend-identity small, .lobby-friend-pending { color: var(--fb-modal-muted); font-size: 10px; }
+.lobby-friend-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.lobby-friend-actions button { min-height: 32px; padding: 6px 8px; }
+.lobby-friend-actions button.secondary { border-color: var(--fb-modal-border); background: #303330; color: var(--fb-modal-text); }
+.lobby-friends-feedback { margin: 0; padding: 9px 10px; border: 1px solid var(--fb-modal-border-soft); border-radius: 8px; color: var(--fb-modal-text); font-size: 11px; }
+.lobby-friends-feedback.error { border-color: rgba(229,130,120,.5); color: #e5aaa5; }
+@media (max-width: 520px) {
+  .player-profile-avatar-options { gap: 4px; }
+  .player-profile-avatar-choice { padding: 8px 2px; }
+  .player-profile-avatar-choice b { font-size: 9px; }
+  .lobby-friends-search > div { flex-direction: column; }
+  .lobby-friend-card { flex-wrap: wrap; }
+  .lobby-friend-actions { width: 100%; padding-left: 48px; }
+}
+
+.lobby-friend-profile { display: flex; flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.lobby-friend-profile:focus-visible { outline: 2px solid #d0d4ce; outline-offset: 3px; border-radius: 5px; }
+
+
+/* Foto de perfil interativa: a galeria só aparece quando o jogador toca no retrato. */
+.player-profile-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease;
+}
+.player-profile-avatar:hover:not(:disabled) { border-color: #d0d4ce !important; transform: translateY(-1px); }
+.player-profile-avatar:disabled { cursor: default; }
+.player-profile-avatar-edit {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border: 1px solid rgba(225,230,224,.35);
+  border-radius: 50%;
+  background: rgba(34,35,34,.92);
+  color: #f2f3ef;
+  font-size: 12px;
+}
+.player-profile-avatar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+.player-profile-avatar-dialog {
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(480px, calc(100dvh - 32px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--fb-modal-border);
+  border-radius: 14px;
+  background: #222322;
+  color: var(--fb-modal-text);
+  box-shadow: 0 22px 70px rgba(0,0,0,.62);
+}
+.player-profile-avatar-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.player-profile-avatar-dialog > header span {
+  color: var(--fb-modal-label);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.player-profile-avatar-dialog > header h3 {
+  margin: 3px 0 0;
+  color: var(--fb-modal-text);
+  font-size: 18px;
+}
+.player-profile-avatar-dialog > header button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--fb-modal-border);
+  border-radius: 8px;
+  background: #303330;
+  color: var(--fb-modal-text);
+  font-size: 22px;
+}
+.player-profile-avatar-dialog > p {
+  margin: 8px 0 12px;
+  color: var(--fb-modal-muted);
+  font-size: 11px;
+}
+.player-profile-avatar-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.player-profile-avatar-choice {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--fb-modal-border-soft);
+  border-radius: 10px;
+  background: #2b2e2b;
+  color: var(--fb-modal-text);
+  cursor: pointer;
+}
+.player-profile-avatar-choice.selected {
+  border-color: #d0d4ce;
+  background: #393d39;
+  box-shadow: inset 0 0 0 1px #d0d4ce;
+}
+.player-profile-avatar-choice:disabled { opacity: .65; cursor: default; }
+.player-profile-avatar-option-canvas { display: block; width: 76px; height: 76px; }
+.player-profile-avatar-choice > span { color: var(--fb-modal-text); font-size: 11px; font-weight: 800; }
+.player-profile-avatar-choice > small { color: var(--fb-modal-muted); font-size: 9px; }
+.player-profile-avatar-saving { display: block; margin-top: 10px; color: var(--fb-modal-muted); font-size: 10px; text-align: center; }
+.player-profile-avatar-dialog .player-profile-error { margin-top: 8px; }
+@media (max-width: 520px) {
+  .player-profile-avatar-dialog { width: min(330px, calc(100vw - 28px)); padding: 12px; }
+  .player-profile-avatar-choice { min-height: 104px; }
+  .player-profile-avatar-option-canvas { width: 68px; height: 68px; }
+}

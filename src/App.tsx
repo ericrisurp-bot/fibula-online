@@ -14,6 +14,7 @@ import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import Controls from './ui/Controls';
 import PlayerProfileModal from './ui/PlayerProfileModal';
+import FriendsModal from './ui/FriendsModal';
 import { useArenaAuth } from './auth/AuthGate';
 import { fibulaSupabase } from './auth/supabase';
 import { audioManager } from './audio/audioManager';
@@ -262,6 +263,7 @@ export default function App() {
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameSnapshot>(initial);
+  const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -289,6 +291,7 @@ export default function App() {
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
   const [playerProfileOpen, setPlayerProfileOpen] = useState(false);
+  const [viewedProfileUserId, setViewedProfileUserId] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState<'solo' | 'duo'>('solo');
@@ -373,6 +376,16 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [playerProfileOpen]);
+
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub) return;
+    let active = true;
+    void fibulaSupabase.from('fibula_profiles').select('avatar_character').eq('user_id', session.user.sub).maybeSingle()
+      .then(({ data, error }) => {
+        if (active && !error && data && isProfileClassId(data.avatar_character)) setAvatarCharacter(data.avatar_character);
+      });
+    return () => { active = false; };
+  }, [session.user.sub]);
 
   useEffect(() => {
     if (!fibulaSupabase || !session.user.sub) return;
@@ -1344,7 +1357,7 @@ export default function App() {
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => setPlayerProfileOpen(true)}><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Abrir perfil do personagem"/></button><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
+        <div className="lobby-character-wrap"><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-label="Abrir perfil do personagem"/></button><button className="lobby-duo-invite" type="button" aria-label="Convidar uma pessoa para jogar em duo" title="Convidar duo">+</button></div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
@@ -1457,20 +1470,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        {friendsOpen && <div className="lobby-friends-backdrop" onClick={() => setFriendsOpen(false)}>
-          <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
-            <header className="lobby-friends-header">
-              <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
-              <div className="lobby-friends-count">0 amigos</div>
-              <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={() => setFriendsOpen(false)}>×</button>
-            </header>
-            <div className="lobby-friends-empty" role="status">
-              <span aria-hidden="true">♡</span>
-              <strong>Você ainda não tem amigos</strong>
-              <p>Quando adicionar amigos, eles aparecerão aqui.</p>
-            </div>
-          </section>
-        </div>}
+        {friendsOpen && <FriendsModal userId={session.user.sub} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} />}
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
@@ -1622,9 +1622,11 @@ export default function App() {
           </section>
         </div>}
         {playerProfileOpen && <PlayerProfileModal
-          userId={session.user.sub}
-          isOwner
+          userId={viewedProfileUserId ?? session.user.sub}
+          isOwner={(viewedProfileUserId ?? session.user.sub) === session.user.sub}
           currentCharacter={characterPreferences[0] ?? state.classId}
+          avatarCharacter={avatarCharacter}
+          onAvatarChange={setAvatarCharacter}
           level={state.player.level}
           kills={state.kills}
           attributes={(() => {
@@ -1638,7 +1640,7 @@ export default function App() {
               'Resistência mágica': stats.resistenciaMagica,
             };
           })()}
-          onClose={() => setPlayerProfileOpen(false)}
+          onClose={() => { setPlayerProfileOpen(false); setViewedProfileUserId(null); }}
         />}
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta o carrinho reparado quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
