@@ -871,7 +871,7 @@ export default function App() {
       }
       const transition = CONFIG.dayNight.transitionDuration;
       const darkness = s.dayNight === 'night'
-        ? Math.max(0, Math.min(1, (CONFIG.dayNight.dayDuration - s.phaseElapsed) / transition))
+        ? 1
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
       // Neblina e vinheta são renderizadas em um overlay reutilizado a 6,25% da resolução para reduzir o custo de renderização.
@@ -1320,7 +1320,7 @@ export default function App() {
             <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
           </div>
           <div className="hud-center-stack">
-            <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : 'DIA'}</strong></div>
+            <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : state.dayNight === 'dawn' ? 'AMANHECENDO' : 'DIA'}</strong></div>
             <div className="hud-substats">
               <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
               <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
