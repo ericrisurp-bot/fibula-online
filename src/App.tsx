@@ -329,7 +329,10 @@ export default function App() {
     matchSummaryHandledRef.current = true;
     const matchId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
-      : `match-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+        const random = Math.floor(Math.random() * 16);
+        return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+      });
     const survivalNights = Math.max(0, state.nightNumber - (state.dayNight === 'night' ? 1 : 0));
     queueSoloMatchSummary({ matchId, kills: state.kills, survivalNights });
     if (fibulaSupabase) void flushPendingSoloMatchSummaries(fibulaSupabase);
