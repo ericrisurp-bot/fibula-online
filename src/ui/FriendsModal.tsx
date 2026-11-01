@@ -16,7 +16,7 @@ type FriendProfile = {
   age: number | null;
   sex: string | null;
 };
-type Props = { userId: string; onClose: () => void };
+type Props = { userId: string; onClose: () => void; onOpenProfile: (userId: string) => void };
 
 const AVATARS = {
   guerreiro: { label: 'Guerreiro', icon: '⚔️' },
@@ -25,7 +25,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, onClose }: Props) {
+export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -155,10 +155,9 @@ export default function FriendsModal({ userId, onClose }: Props) {
     const avatar = AVATARS[profile?.avatar_character ?? 'guerreiro'];
     return <article className="lobby-friend-card" key={request.id}>
       <span className={`lobby-friend-avatar class-${profile?.avatar_character ?? 'guerreiro'}`} aria-hidden="true">{avatar.icon}</span>
-      <div className="lobby-friend-identity">
-        <strong>{profile?.display_name || 'Jogador sem nome'}</strong>
-        <small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small>
-      </div>
+      <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
+        <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
+      </button>
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
