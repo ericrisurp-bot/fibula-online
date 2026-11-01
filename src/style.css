@@ -4077,26 +4077,6 @@ button, button * {
 .profile-growth-row.attr-unused > b u { background: #7a3b3b !important; }
 
 
-/* Perfil: avatar persistente independente da classe de combate. */
-.player-profile-avatar-picker { margin: 12px 0 16px; padding: 12px; border: 1px solid var(--fb-modal-border-soft); border-radius: 11px; background: var(--fb-modal-card); }
-.player-profile-avatar-picker > div:first-child { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
-.player-profile-avatar-picker > div:first-child strong { color: var(--fb-modal-text); font-size: 13px; }
-.player-profile-avatar-picker > div:first-child small, .player-profile-avatar-picker > small { color: var(--fb-modal-muted); font-size: 11px; }
-.player-profile-avatar-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
-.player-profile-avatar-choice { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 5px; padding: 9px 4px; border: 1px solid var(--fb-modal-border); border-radius: 9px; background: #292c29; color: var(--fb-modal-text); cursor: pointer; }
-.player-profile-avatar-choice > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 19px; background: #393d39; }
-.player-profile-avatar-choice b { font-size: 10px; }
-.player-profile-avatar-choice.class-guerreiro > span { background: rgba(201,79,96,.2); }
-.player-profile-avatar-choice.class-mago > span { background: rgba(144,101,214,.2); }
-.player-profile-avatar-choice.class-arqueiro > span { background: rgba(201,154,46,.2); }
-.player-profile-avatar-choice.class-druida > span { background: rgba(79,174,107,.2); }
-.player-profile-avatar-choice.selected { border-color: #d0d4ce; box-shadow: inset 0 0 0 1px #d0d4ce; }
-.player-profile-avatar-choice:disabled { opacity: .72; cursor: default; }
-.player-profile-hero.class-guerreiro { border-left: 3px solid #c94f60; }
-.player-profile-hero.class-mago { border-left: 3px solid #9065d6; }
-.player-profile-hero.class-arqueiro { border-left: 3px solid #c99a2e; }
-.player-profile-hero.class-druida { border-left: 3px solid #4fae6b; }
-
 /* Amigos: busca por nome, pedidos recebidos/enviados e lista de amizades. */
 .lobby-friends-content { display: flex; flex-direction: column; gap: 14px; min-height: 0; padding: 14px; overflow-y: auto; }
 .lobby-friends-search { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--fb-modal-border-soft); border-radius: 10px; background: var(--fb-modal-card); }
@@ -4133,3 +4113,121 @@ button, button * {
 
 .lobby-friend-profile { display: flex; flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .lobby-friend-profile:focus-visible { outline: 2px solid #d0d4ce; outline-offset: 3px; border-radius: 5px; }
+
+
+/* Foto de perfil interativa: a galeria só aparece quando o jogador toca no retrato. */
+.player-profile-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease;
+}
+.player-profile-avatar:hover:not(:disabled) { border-color: #d0d4ce !important; transform: translateY(-1px); }
+.player-profile-avatar:disabled { cursor: default; }
+.player-profile-avatar-edit {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border: 1px solid rgba(225,230,224,.35);
+  border-radius: 50%;
+  background: rgba(34,35,34,.92);
+  color: #f2f3ef;
+  font-size: 12px;
+}
+.player-profile-avatar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+.player-profile-avatar-dialog {
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(480px, calc(100dvh - 32px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--fb-modal-border);
+  border-radius: 14px;
+  background: #222322;
+  color: var(--fb-modal-text);
+  box-shadow: 0 22px 70px rgba(0,0,0,.62);
+}
+.player-profile-avatar-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.player-profile-avatar-dialog > header span {
+  color: var(--fb-modal-label);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.player-profile-avatar-dialog > header h3 {
+  margin: 3px 0 0;
+  color: var(--fb-modal-text);
+  font-size: 18px;
+}
+.player-profile-avatar-dialog > header button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--fb-modal-border);
+  border-radius: 8px;
+  background: #303330;
+  color: var(--fb-modal-text);
+  font-size: 22px;
+}
+.player-profile-avatar-dialog > p {
+  margin: 8px 0 12px;
+  color: var(--fb-modal-muted);
+  font-size: 11px;
+}
+.player-profile-avatar-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.player-profile-avatar-choice {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--fb-modal-border-soft);
+  border-radius: 10px;
+  background: #2b2e2b;
+  color: var(--fb-modal-text);
+  cursor: pointer;
+}
+.player-profile-avatar-choice.selected {
+  border-color: #d0d4ce;
+  background: #393d39;
+  box-shadow: inset 0 0 0 1px #d0d4ce;
+}
+.player-profile-avatar-choice:disabled { opacity: .65; cursor: default; }
+.player-profile-avatar-option-canvas { display: block; width: 76px; height: 76px; }
+.player-profile-avatar-choice > span { color: var(--fb-modal-text); font-size: 11px; font-weight: 800; }
+.player-profile-avatar-choice > small { color: var(--fb-modal-muted); font-size: 9px; }
+.player-profile-avatar-saving { display: block; margin-top: 10px; color: var(--fb-modal-muted); font-size: 10px; text-align: center; }
+.player-profile-avatar-dialog .player-profile-error { margin-top: 8px; }
+@media (max-width: 520px) {
+  .player-profile-avatar-dialog { width: min(330px, calc(100vw - 28px)); padding: 12px; }
+  .player-profile-avatar-choice { min-height: 104px; }
+  .player-profile-avatar-option-canvas { width: 68px; height: 68px; }
+}
