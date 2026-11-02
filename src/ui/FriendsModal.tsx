@@ -169,11 +169,26 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     const self = room.participants.find(participant => participant.user_id === userId);
     if (!self) throw new Error('Sua conta não consta entre os participantes da sala Duo.');
     const other = room.participants.find(participant => participant.user_id !== userId);
-    const friendId = other?.user_id ?? (current?.roomId === room.id ? current.friendId : null);
+    let invitedUserId = current?.roomId === room.id ? current.friendId : null;
+    if (!other && !invitedUserId && self.role === 'host' && fibulaSupabase) {
+      const { data: invitation, error: invitationError } = await fibulaSupabase
+        .from('fibula_duo_rooms')
+        .select('invited_user_id')
+        .eq('id', room.id)
+        .maybeSingle();
+      if (invitationError) throw invitationError;
+      invitedUserId = typeof invitation?.invited_user_id === 'string' ? invitation.invited_user_id : null;
+    }
+    const friendId = other?.user_id ?? invitedUserId;
     if (!friendId) {
-      await leaveDuoRoom(room.id);
+      let leaveError: string | null = null;
+      try {
+        await leaveDuoRoom(room.id);
+      } catch (cause) {
+        leaveError = cause instanceof Error ? cause.message : 'Falha ao encerrar a sala órfã.';
+      }
       clearLobby();
-      notify('A sala Duo sem convidado não pôde ser restaurada porque o RPC não informa o amigo convidado. A sala foi encerrada para evitar ficar órfã.');
+      notify('A sala Duo sem convidado não pôde ser restaurada porque não foi possível recuperar o amigo convidado. ' + (leaveError ? `Falha ao encerrar: ${leaveError}` : 'A sala foi encerrada para evitar ficar órfã.'));
       return;
     }
     if (!friendIdsRef.current.includes(friendId)) {
