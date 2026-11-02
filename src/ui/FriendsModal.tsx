@@ -147,8 +147,11 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
         setNotice('Seu convite de lobby foi recusado.');
       }
     });
-    void fibulaSupabase.realtime.setAuth();
-    inbox.subscribe();
+    void fibulaSupabase.realtime.setAuth().then(() => {
+      if (active) inbox.subscribe();
+    }).catch(() => {
+      if (active) setError('Não foi possível conectar ao serviço de convites.');
+    });
     return () => { active = false; void fibulaSupabase?.removeChannel(inbox); };
   }, [userId]);
 
