@@ -48,6 +48,16 @@ try {
   }
   assert.equal(first.state.dayNight, 'night', 'O ciclo deve sair do dia e entrar na noite.');
 
+  // A fachada do jogador local é dona da entrada e da direção de movimento.
+  first.setKey('W', true);
+  assert.equal(first.primaryPlayer.runtime.keys.has('w'), true);
+  first.setKey('W', false);
+  assert.equal(first.primaryPlayer.runtime.keys.has('w'), false);
+  first.setMove(3, 4);
+  assert.deepEqual(first.primaryPlayer.runtime.input, { x: 3, y: 4 });
+  assert.equal(first.primaryPlayer.pub.facingX, 0.6);
+  assert.equal(first.primaryPlayer.pub.facingY, 0.8);
+
   // Troca de classe mantém o motor headless funcional e atualiza a arma.
   first.setClass('mago');
   assert.equal(first.state.classId, 'mago');
