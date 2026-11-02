@@ -72,7 +72,6 @@ begin
         where r.id = p.room_id
           and r.phase = 'finished'
           and r.finished_at = v_now
-          and r.phase in ('starting', 'playing')
      );
 
   -- A lobby is cancelled when its host has gone stale.
@@ -128,6 +127,22 @@ begin
           and r.guest_id = p.user_id
      );
 
+  update public.fibula_duo_room_participants host
+     set ready = false
+   where host.left_at is null
+     and host.role = 'host'
+     and exists (
+       select 1
+         from public.fibula_duo_rooms r
+         join public.fibula_duo_room_participants guest
+           on guest.room_id = r.id
+          and guest.user_id = r.guest_id
+          and guest.role = 'guest'
+          and guest.left_at = v_now
+        where r.id = host.room_id
+          and r.phase = 'lobby'
+     );
+
   update public.fibula_duo_rooms r
      set guest_id = null,
          updated_at = v_now
@@ -140,18 +155,6 @@ begin
           and p.user_id = r.guest_id
           and p.role = 'guest'
           and p.left_at is null
-     );
-
-  update public.fibula_duo_room_participants p
-     set ready = false
-   where p.left_at is null
-     and p.role = 'host'
-     and exists (
-       select 1
-         from public.fibula_duo_rooms r
-        where r.id = p.room_id
-          and r.phase = 'lobby'
-          and r.guest_id is null
      );
 end;
 $function$;
@@ -321,7 +324,7 @@ declare
   v_phase text;
   v_ready_count integer;
   v_participant_count integer;
-  v_match_id uuid := gen_random_uuid();
+  v_match_id uuid := pg_catalog.gen_random_uuid();
   v_match_seed bigint := pg_catalog.floor(pg_catalog.random() * 4294967295)::bigint + 1;
 begin
   perform public.fibula_duo_expire_stale();
