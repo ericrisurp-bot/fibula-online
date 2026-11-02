@@ -21,7 +21,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: { friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null) => void;
+  onLobbyChange: (peer: { friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null, leave?: (() => void) | null) => void;
   onLobbyConnected: () => void;
 };
 
@@ -104,7 +104,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
 
     const peer = { friendId, friendName, avatarCharacter: profiles[friendId]?.avatar_character ?? 'guerreiro' };
     lobbyRef.current = peer;
-    onLobbyChange(peer);
+    onLobbyChange(peer, leaveLobby);
     setError('');
     try {
       // The accepted-friend inbox is already authorized for private broadcasts.
