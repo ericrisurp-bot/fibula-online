@@ -1,6 +1,7 @@
 -- Harden persistent Duo rooms with heartbeats, expiry, invite reads and room Broadcast authorization.
--- Named timeout constants: host/guest lobby heartbeat 45s, empty invite 120s,
--- active match heartbeat 90s. Keep these values centralized here.
+-- Named timeout constants (seconds): DUO_LOBBY_HEARTBEAT_TIMEOUT = 45,
+-- DUO_EMPTY_INVITE_TIMEOUT = 120, DUO_MATCH_HEARTBEAT_TIMEOUT = 90.
+-- Their interval variables below are the only values used by expiry checks.
 -- This migration extends the objects created by 20261102000400; it does not
 -- modify that migration and is safe to re-run after the base migration.
 
@@ -43,11 +44,15 @@ security definer
 set search_path = ''
 as $function$
 declare
-  v_lobby_heartbeat_timeout constant interval := interval '45 seconds';
-  v_empty_invite_timeout constant interval := interval '120 seconds';
-  v_match_heartbeat_timeout constant interval := interval '90 seconds';
+  v_duo_lobby_heartbeat_timeout constant interval := interval '45 seconds';
+  v_duo_empty_invite_timeout constant interval := interval '120 seconds';
+  v_duo_match_heartbeat_timeout constant interval := interval '90 seconds';
   v_now timestamptz := pg_catalog.now();
 begin
+  if (select auth.jwt() ->> 'iss') is distinct from 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1' then
+    raise exception 'Sessão não autorizada.';
+  end if;
+
   -- A running match is finished if either active participant stops heartbeating.
   update public.fibula_duo_rooms r
      set phase = 'finished',
@@ -59,7 +64,7 @@ begin
          from public.fibula_duo_room_participants p
         where p.room_id = r.id
           and p.left_at is null
-          and p.last_seen_at < v_now - v_match_heartbeat_timeout
+          and p.last_seen_at < v_now - v_duo_match_heartbeat_timeout
      );
 
   update public.fibula_duo_room_participants p
@@ -87,7 +92,7 @@ begin
           and p.user_id = r.host_id
           and p.role = 'host'
           and p.left_at is null
-          and p.last_seen_at < v_now - v_lobby_heartbeat_timeout
+          and p.last_seen_at < v_now - v_duo_lobby_heartbeat_timeout
      );
 
   -- Invites that never received a guest are also bounded by creation time.
@@ -97,7 +102,7 @@ begin
          updated_at = v_now
    where r.phase = 'lobby'
      and r.guest_id is null
-     and r.created_at < v_now - v_empty_invite_timeout;
+     and r.created_at < v_now - v_duo_empty_invite_timeout;
 
   -- Close participants in lobbies cancelled by either rule above.
   update public.fibula_duo_room_participants p
