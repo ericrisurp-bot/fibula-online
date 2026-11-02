@@ -120,8 +120,8 @@ begin
     raise exception 'Sessão não autorizada.';
   end if;
   if coalesce(pg_catalog.cardinality(p_item_ids), 0) > 40
-    or (select pg_catalog.count(*) from pg_catalog.unnest(p_item_ids) x) <>
-       (select pg_catalog.count(distinct x) from pg_catalog.unnest(p_item_ids) x) then
+    or (select pg_catalog.count(*) from pg_catalog.unnest(p_item_ids) as u(item_id)) <>
+       (select pg_catalog.count(distinct u.item_id) from pg_catalog.unnest(p_item_ids) as u(item_id)) then
     raise exception 'Oferta inválida.';
   end if;
 
