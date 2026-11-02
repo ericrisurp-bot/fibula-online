@@ -4,7 +4,7 @@ import type { GameSnapshot } from '../engine';
 export const DUO_PROTOCOL_VERSION = 1 as const;
 export const DUO_MAX_PLAYERS = 2 as const;
 
-export type DuoRoomPhase = 'lobby' | 'starting' | 'playing' | 'finished';
+export type DuoRoomPhase = 'lobby' | 'starting' | 'playing' | 'finished' | 'cancelled';
 
 export type DuoParticipant = {
   userId: string;
