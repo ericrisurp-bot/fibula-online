@@ -22,6 +22,17 @@ create table if not exists public.fibula_item_catalog (
     check (stackable or item_type = 'equipment')
 );
 
+-- Initial canonical material IDs already used by the game engine.
+insert into public.fibula_item_catalog
+  (item_id, display_name, icon, rarity, item_type, stackable, metadata)
+values
+  ('wood', 'Madeira', '🪵', 'normal', 'material', true, '{}'::jsonb),
+  ('stone', 'Pedra', '🪨', 'normal', 'material', true, '{}'::jsonb),
+  ('cotton', 'Algodão', '☁️', 'normal', 'material', true, '{}'::jsonb),
+  ('bronze', 'Bronze', '🟤', 'normal', 'material', true, '{}'::jsonb),
+  ('linen', 'Linho', '🧵', 'normal', 'material', true, '{}'::jsonb)
+on conflict (item_id) do nothing;
+
 create table if not exists public.fibula_player_item_stacks (
   user_id uuid not null references public.fibula_profiles(user_id) on delete cascade,
   item_id text not null references public.fibula_item_catalog(item_id) on update cascade,
