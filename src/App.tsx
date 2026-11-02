@@ -7,6 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
+import { duoHordeTotalForNight } from './game/coop/rules';
 import { finishSoloMatchSession, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
@@ -373,6 +374,9 @@ export default function App() {
   const [duoNotice, setDuoNotice] = useState('');
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
   const duoReadyActionRef = useRef<(() => void) | null>(null);
+  const duoStartActionRef = useRef<(() => void) | null>(null);
+  const duoStartedMatchIdRef = useRef<string | null>(null);
+  const duoMatchStartingRef = useRef(false);
   const [chestOpen, setChestOpen] = useState(false);
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
@@ -1275,7 +1279,7 @@ export default function App() {
   const handleLobbyPlay = () => {
     if (duoPeer) {
       if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
-        setDuoNotice('A partida cooperativa será liberada nas próximas etapas.');
+        duoStartActionRef.current?.();
       }
       return;
     }
@@ -1291,6 +1295,7 @@ export default function App() {
         throw new Error('Entre na sua conta e conecte-se à internet para iniciar uma partida com progresso validado.');
       }
       const sessionId = await startSoloMatchSession(fibulaSupabase);
+      engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
       matchSummaryHandledRef.current = false;
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
@@ -1304,6 +1309,62 @@ export default function App() {
       gameStartPendingRef.current = false;
     }
   };
+  useEffect(() => {
+    const peer = duoPeer;
+    if (!peer?.matchId || !fibulaSupabase || !session.user.sub
+      || gameStartedRef.current || duoMatchStartingRef.current
+      || duoStartedMatchIdRef.current === peer.matchId) return;
+    let cancelled = false;
+    duoMatchStartingRef.current = true;
+    void (async () => {
+      try {
+        const engine = engineRef.current;
+        if (!engine) throw new Error('O motor local ainda não está pronto.');
+        const { data, error } = await fibulaSupabase.rpc('fibula_start_duo_session', { p_room_id: peer.roomId });
+        if (error) throw error;
+        if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('O servidor retornou dados inválidos para iniciar o Duo.');
+        const payload = data as Record<string, unknown>;
+        const matchId = payload.match_id;
+        const playerSeed = payload.player_seed;
+        const playerRole = payload.player_role;
+        const nightNumber = payload.night_number;
+        const initialTarget = payload.horde_target;
+        if (matchId !== peer.matchId || !Number.isSafeInteger(playerSeed) || (playerSeed as number) < 1
+          || (playerRole !== 'host' && playerRole !== 'guest')
+          || !Number.isSafeInteger(nightNumber) || (nightNumber as number) < 1
+          || !Number.isSafeInteger(initialTarget) || (initialTarget as number) < 0) {
+          throw new Error('O servidor retornou uma configuração inválida para sua partida Duo.');
+        }
+        const role = playerRole as 'host' | 'guest';
+        const firstNight = nightNumber as number;
+        const firstTarget = initialTarget as number;
+        const expectedFirstTarget = role === 'host'
+          ? Math.ceil(duoHordeTotalForNight(firstNight) / 2)
+          : Math.floor(duoHordeTotalForNight(firstNight) / 2);
+        if (firstTarget !== expectedFirstTarget) throw new Error('O alvo inicial da horda recebido do servidor não corresponde às regras desta versão.');
+        if (cancelled) return;
+        engine.setClass(characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro');
+        engine.configureCooperativeMatch(playerSeed as number, {
+          hordeTargetForNight: night => night === firstNight ? firstTarget : role === 'host'
+            ? Math.ceil(duoHordeTotalForNight(night) / 2)
+            : Math.floor(duoHordeTotalForNight(night) / 2),
+        });
+        duoStartedMatchIdRef.current = peer.matchId;
+        matchSessionIdRef.current = null;
+        matchSummaryHandledRef.current = false;
+        engine.restart();
+        gameStartedRef.current = true;
+        setShowStart(false);
+        setDuoNotice('Seu mundo foi iniciado. A sincronização dos ciclos Duo será conectada na próxima etapa.');
+      } catch (cause) {
+        if (!cancelled) window.alert(cause instanceof Error ? cause.message : 'Não foi possível iniciar seu mundo Duo.');
+      } finally {
+        duoMatchStartingRef.current = false;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [duoPeer?.matchId, duoPeer?.roomId, session.user.sub, characterPreferences]);
+
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
@@ -1412,6 +1473,7 @@ export default function App() {
         throw new Error('Conecte-se à internet para iniciar outra partida com progresso validado.');
       }
       const sessionId = await startSoloMatchSession(fibulaSupabase);
+      engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
       matchSummaryHandledRef.current = false;
       flagsRef.current = [];
@@ -1699,7 +1761,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; if (!peer) setDuoNotice(''); }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
+        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; if (!peer) { duoStartActionRef.current = null; duoStartedMatchIdRef.current = null; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">

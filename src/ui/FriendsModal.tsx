@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
-import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady } from './duoRooms';
+import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, startDuoMatch } from './duoRooms';
 
 type RequestStatus = 'pending' | 'accepted' | 'declined';
 type FriendRequest = {
@@ -27,7 +27,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null) => void;
+  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null) => void;
   onLobbyConnected: () => void;
   onLobbyNotice: (message: string) => void;
 };
@@ -72,7 +72,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     const current = lobbyRef.current;
     const next = current ? { ...current } : null;
     setActiveDuo(next);
-    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null);
+    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null, current?.role === 'host' ? startMatch : null);
   };
   const clearLobby = () => {
     lobbyRef.current = null;
@@ -166,7 +166,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       }
       return;
     }
-    if (room.phase !== 'lobby') {
+    if (room.phase !== 'lobby' && room.phase !== 'playing') {
       clearLobby();
       notify('O Duo foi encerrado.');
       return;
@@ -469,6 +469,10 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
           if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           refreshOnDuoSignal();
         });
+        inbox.on('broadcast', { event: 'duo_match_started' }, ({ payload }) => {
+          if (!validPeerEvent(payload) || payload?.room_id !== lobbyRef.current?.roomId || typeof payload?.match_id !== 'string') return;
+          refreshOnDuoSignal();
+        });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
           if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           refreshOnDuoSignal();
@@ -611,6 +615,29 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       setError(cause instanceof Error ? cause.message : 'Não foi possível entrar na sala Duo.');
     }
   };
+
+  async function startMatch() {
+    const current = lobbyRef.current;
+    if (!current || current.role !== 'host' || current.status !== 'connected' || !current.peerReady || current.matchId) return;
+    try {
+      setError('');
+      setNotice('Iniciando a partida Duo…');
+      const matchId = await startDuoMatch(current.roomId);
+      const channel = inboxChannels.current.get(current.friendId);
+      if (channel) {
+        const result = await channel.send({
+          type: 'broadcast', event: 'duo_match_started',
+          payload: { from: userId, to: current.friendId, room_id: current.roomId, match_id: matchId },
+        });
+        if (result !== 'ok') setError('A partida foi iniciada no servidor, mas o aviso imediato ao convidado não foi entregue.');
+      }
+      await refreshDuoRoom();
+      setNotice('Partida iniciada. Preparando seu mundo…');
+    } catch (cause) {
+      setNotice('');
+      setError(cause instanceof Error ? cause.message : 'Não foi possível iniciar a partida Duo.');
+    }
+  }
 
   const sendRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

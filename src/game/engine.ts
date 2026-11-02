@@ -266,9 +266,9 @@ export class GameEngine {
   private tecelariaProcessTimer = 0;
   private randomState: number;
   private headless: boolean;
-  private readonly cooperativeOptions: GameEngineOptions['cooperative'];
+  private cooperativeOptions: GameEngineOptions['cooperative'];
   private waitingForCooperativeNightRelease = false;
-  readonly seed: number;
+  seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
     this.cooperativeOptions = options.cooperative;
@@ -293,6 +293,22 @@ export class GameEngine {
   }
 
   get primaryPlayer(): PlayerEntity { return this.players[0]; }
+
+  /** Configura uma nova partida cooperativa neste motor local, antes de restart(). */
+  configureCooperativeMatch(seed: number, cooperative: NonNullable<GameEngineOptions['cooperative']>): void {
+    if (!Number.isSafeInteger(seed) || seed < 1) {
+      throw new RangeError('A seed individual recebida do servidor é inválida.');
+    }
+    this.seed = normalizeSimulationSeed(seed);
+    this.randomState = this.seed;
+    this.cooperativeOptions = cooperative;
+  }
+
+  /** Remove opções cooperativas ao iniciar uma nova partida Solo. */
+  configureSoloMatch(): void {
+    this.cooperativeOptions = undefined;
+    this.waitingForCooperativeNightRelease = false;
+  }
 
   /** Indica que a horda local terminou e o avanço aguarda a coordenação Duo. */
   get isWaitingForCooperativeNight(): boolean {
