@@ -8,6 +8,7 @@ import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPl
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { duoHordeTotalForNight } from './game/coop/rules';
+import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
@@ -337,6 +338,13 @@ export default function App() {
     if (matchSummaryHandledRef.current) return;
     matchSummaryHandledRef.current = true;
 
+    if (duoStartedMatchIdRef.current) {
+      void duoTransportRef.current?.reportDeath().catch(cause => {
+        setDuoNotice(cause instanceof Error ? cause.message : 'Não foi possível registrar sua morte no servidor Duo.');
+      });
+      return;
+    }
+
     const sessionId = matchSessionIdRef.current;
     matchSessionIdRef.current = null;
     if (!sessionId || !fibulaSupabase) return;
@@ -377,6 +385,8 @@ export default function App() {
   const duoStartActionRef = useRef<(() => void) | null>(null);
   const duoStartedMatchIdRef = useRef<string | null>(null);
   const duoMatchStartingRef = useRef(false);
+  const duoTransportRef = useRef<DuoCycleTransport | null>(null);
+  const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
@@ -1315,6 +1325,7 @@ export default function App() {
       || gameStartedRef.current || duoMatchStartingRef.current
       || duoStartedMatchIdRef.current === peer.matchId) return;
     let cancelled = false;
+    let transport: DuoCycleTransport | null = null;
     duoMatchStartingRef.current = true;
     void (async () => {
       try {
@@ -1343,27 +1354,66 @@ export default function App() {
           : Math.floor(duoHordeTotalForNight(firstNight) / 2);
         if (firstTarget !== expectedFirstTarget) throw new Error('O alvo inicial da horda recebido do servidor não corresponde às regras desta versão.');
         if (cancelled) return;
+
+        duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER;
+        transport = new DuoCycleTransport(fibulaSupabase, matchId as string, session.user.sub, peer.friendId, serverState => {
+          if (serverState.status === 'playing' && serverState.player_status === 'alive' && serverState.horde_target > 0) {
+            const splitTarget = role === 'host'
+              ? Math.ceil(duoHordeTotalForNight(serverState.current_night) / 2)
+              : Math.floor(duoHordeTotalForNight(serverState.current_night) / 2);
+            if (serverState.horde_target > splitTarget) {
+              const localNight = engine.state.nightNumber;
+              duoSoloFromNightRef.current = localNight < serverState.current_night
+                ? serverState.current_night
+                : serverState.current_night + 1;
+            }
+          }
+          if (serverState.current_night > engine.state.nightNumber && engine.isWaitingForCooperativeNight) {
+            engine.releaseCooperativeNight();
+          }
+          if (serverState.status === 'finished') setDuoNotice('A partida Duo foi encerrada.');
+        }, cause => setDuoNotice(cause instanceof Error ? cause.message : 'Falha na comunicação da partida Duo.'));
+        await transport.connect();
+        if (cancelled) {
+          await transport.disconnect();
+          return;
+        }
+
         engine.setClass(characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro');
         engine.configureCooperativeMatch(playerSeed as number, {
-          hordeTargetForNight: night => night === firstNight ? firstTarget : role === 'host'
-            ? Math.ceil(duoHordeTotalForNight(night) / 2)
-            : Math.floor(duoHordeTotalForNight(night) / 2),
+          waitForNightRelease: true,
+          hordeTargetForNight: night => night >= duoSoloFromNightRef.current
+            ? duoHordeTotalForNight(night)
+            : role === 'host'
+              ? Math.ceil(duoHordeTotalForNight(night) / 2)
+              : Math.floor(duoHordeTotalForNight(night) / 2),
+          onNightComplete: night => {
+            void transport?.reportNightComplete(night).catch(cause => {
+              setDuoNotice(cause instanceof Error ? cause.message : 'Não foi possível registrar a conclusão da noite Duo.');
+            });
+          },
         });
+        duoTransportRef.current?.disconnect();
+        duoTransportRef.current = transport;
         duoStartedMatchIdRef.current = peer.matchId;
         matchSessionIdRef.current = null;
         matchSummaryHandledRef.current = false;
         engine.restart();
         gameStartedRef.current = true;
         setShowStart(false);
-        setDuoNotice('Seu mundo foi iniciado. A sincronização dos ciclos Duo será conectada na próxima etapa.');
+        setDuoNotice('Duo conectado. O avanço das noites agora depende da confirmação do servidor.');
       } catch (cause) {
+        if (transport) await transport.disconnect();
         if (!cancelled) window.alert(cause instanceof Error ? cause.message : 'Não foi possível iniciar seu mundo Duo.');
       } finally {
         duoMatchStartingRef.current = false;
       }
     })();
-    return () => { cancelled = true; };
-  }, [duoPeer?.matchId, duoPeer?.roomId, session.user.sub, characterPreferences]);
+    return () => {
+      cancelled = true;
+      if (transport && duoTransportRef.current !== transport) void transport.disconnect();
+    };
+  }, [duoPeer?.matchId, duoPeer?.roomId, duoPeer?.friendId, session.user.sub, characterPreferences]);
 
   const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
   const toggleRange = () => engineRef.current?.toggleRange();
@@ -1761,7 +1811,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; if (!peer) { duoStartActionRef.current = null; duoStartedMatchIdRef.current = null; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
+        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; if (!peer) { duoStartActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
