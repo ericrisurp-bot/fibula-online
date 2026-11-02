@@ -39,7 +39,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const [lobby, setLobby] = useState<any>(null);
   const [lobbyMembers, setLobbyMembers] = useState<string[]>([]);
   const [lobbyStatus, setLobbyStatus] = useState<'connecting' | 'waiting' | 'connected'>('connecting');
-  const lobbyChannel = useRef<any>(null);
+  const lobbyRef = useRef<{ friendId: string; friendName: string } | null>(null);
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
@@ -87,64 +87,30 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
-  const joinLobby = async (roomTopic: string, friendId: string, friendName: string) => {
-    if (!fibulaSupabase) return;
-    if (lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
-    const channel = fibulaSupabase.channel(roomTopic, { config: { private: true, presence: { key: userId } } });
-    const syncMembers = () => {
-      const state = channel.presenceState() as Record<string, Array<{ user_id?: string; display_name?: string }>>;
-      const presences = Object.values(state).flat();
-      const names = presences.map(member => member.user_id === userId ? 'Você' : friendName);
-      // Keep the local player visible even if the initial presence sync arrives
-      // before the server has propagated this client's track payload.
-      setLobbyMembers(current => [...new Set([...names, ...(current.includes('Você') ? ['Você'] : [])])]);
-      setLobbyStatus(presences.some(member => member.user_id === friendId) ? 'connected' : 'waiting');
-    };
-    channel.on('presence', { event: 'sync' }, syncMembers);
-    channel.on('presence', { event: 'join' }, syncMembers);
-    channel.on('presence', { event: 'leave' }, syncMembers);
-    channel.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
-      if (payload?.from !== friendId) return;
-      setLobbyMembers(current => [...new Set([...current, 'Você', friendName])]);
-      setLobbyStatus('connected');
-    });
-    channel.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
-      if (payload?.from !== friendId) return;
-      setLobbyMembers(current => current.filter(name => name !== friendName));
-      setLobbyStatus('waiting');
-    });
-    lobbyChannel.current = channel;
-    setLobby({ roomTopic, friendId, friendName });
-    setLobbyMembers([]);
-    setLobbyStatus('connecting');
+  const joinLobby = async (_roomTopic: string, friendId: string, friendName: string) => {
+    const channel = inboxChannels.current.get(friendId);
+    if (!channel || !connectedInboxFriends.includes(friendId)) {
+      setError('O canal privado entre vocês ainda não está conectado. Tente novamente em instantes.');
+      return;
+    }
+
+    lobbyRef.current = { friendId, friendName };
+    setLobby({ friendId, friendName });
+    setLobbyMembers(['Você']);
+    setLobbyStatus('waiting');
+    setError('');
     try {
-      await fibulaSupabase.realtime.setAuth();
-      await new Promise<void>((resolve, reject) => channel.subscribe(status => {
-        if (status === 'SUBSCRIBED') resolve();
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          reject(new Error('Não foi possível conectar ao canal do Lobby Duo.'));
-        }
-      }));
-      const trackResult = await channel.track({ user_id: userId, display_name: profiles[userId]?.display_name || 'Jogador' });
-      if (trackResult !== 'ok') throw new Error(`O Realtime não confirmou sua presença no Lobby Duo (${String(trackResult)}).`);
-      setLobbyMembers(current => [...new Set([...current, 'Você'])]);
-      setLobbyStatus('waiting');
-      // Broadcast readiness as a second signal; presence remains the source of
-      // truth for join/leave and the event is scoped to this accepted friend pair.
-      // Reconcile the initial snapshot before sending the peer-ready signal.
-      syncMembers();
-      const readyResult = await channel.send({
+      // The accepted-friend inbox is already authorized for private broadcasts.
+      // Use it for the lobby handshake instead of publishing Presence on a
+      // separate topic whose INSERT authorization is currently rejecting track().
+      const result = await channel.send({
         type: 'broadcast',
         event: 'duo_ready',
-        payload: { from: userId, display_name: profiles[userId]?.display_name || 'Jogador' },
+        payload: { from: userId, to: friendId },
       });
-      if (readyResult !== 'ok') {
-        // Presence join/sync events remain authoritative if the auxiliary signal fails.
-        setLobbyStatus('waiting');
-      }
+      if (result !== 'ok') throw new Error(`O Realtime recusou a entrada no Lobby Duo (resultado: ${String(result)}).`);
     } catch (cause) {
-      await fibulaSupabase.removeChannel(channel);
-      lobbyChannel.current = null;
+      lobbyRef.current = null;
       setLobby(null);
       setLobbyMembers([]);
       setLobbyStatus('connecting');
@@ -210,6 +176,31 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
             pendingInvite.current = null;
             setNotice('Seu convite de lobby foi recusado.');
           }
+        });
+        inbox.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
+          const currentLobby = lobbyRef.current;
+          if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
+          setLobbyMembers(['Você', currentLobby.friendName]);
+          setLobbyStatus('connected');
+          // Acknowledge the peer's readiness. This completes the handshake even
+          // when the first ready event was sent before the other player joined.
+          void inbox.send({
+            type: 'broadcast',
+            event: 'duo_ready_ack',
+            payload: { from: userId, to: friendId },
+          });
+        });
+        inbox.on('broadcast', { event: 'duo_ready_ack' }, ({ payload }) => {
+          const currentLobby = lobbyRef.current;
+          if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
+          setLobbyMembers(['Você', currentLobby.friendName]);
+          setLobbyStatus('connected');
+        });
+        inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
+          const currentLobby = lobbyRef.current;
+          if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
+          setLobbyMembers(['Você']);
+          setLobbyStatus('waiting');
         });
         channels.set(friendId, inbox);
         inboxChannels.current.set(friendId, inbox);
@@ -288,11 +279,20 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   };
 
   const leaveLobby = async () => {
-    if (fibulaSupabase && lobbyChannel.current) {
-      try { await lobbyChannel.current.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId } }); } catch { /* Presence leave remains authoritative. */ }
-      await fibulaSupabase.removeChannel(lobbyChannel.current);
+    const currentLobby = lobbyRef.current;
+    if (currentLobby) {
+      const channel = inboxChannels.current.get(currentLobby.friendId);
+      if (channel) {
+        try {
+          await channel.send({
+            type: 'broadcast',
+            event: 'duo_left',
+            payload: { from: userId, to: currentLobby.friendId },
+          });
+        } catch { /* The local lobby still closes if the peer is disconnected. */ }
+      }
     }
-    lobbyChannel.current = null;
+    lobbyRef.current = null;
     setLobby(null);
     setLobbyMembers([]);
     setLobbyStatus('connecting');
