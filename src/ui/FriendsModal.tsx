@@ -161,7 +161,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       }
       return;
     }
-    if (room.phase === null || room.phase === 'cancelled' || room.phase === 'finished') {
+    if (room.phase !== 'lobby') {
       clearLobby();
       notify('O Duo foi encerrado.');
       return;
