@@ -116,6 +116,29 @@ export type PlayerEntity = {
   readonly runtime: PlayerRuntime;
 };
 
+class PrimaryPlayerView implements PlayerEntity {
+  readonly id = 'local';
+
+  constructor(
+    private readonly getState: () => GameSnapshot,
+    readonly runtime: PlayerRuntime,
+  ) {}
+
+  get classId(): ClassId { return this.getState().classId; }
+  set classId(value: ClassId) { this.getState().classId = value; }
+
+  get weapon(): WeaponId { return this.getState().weapon; }
+  set weapon(value: WeaponId) { this.getState().weapon = value; }
+
+  get dead(): boolean { return this.getState().dead; }
+  set dead(value: boolean) { this.getState().dead = value; }
+
+  get bag(): InventoryStack[] { return this.getState().inventory; }
+  set bag(value: InventoryStack[]) { this.getState().inventory = value; }
+
+  get pub(): GameSnapshot['player'] { return this.getState().player; }
+}
+
 export type GameEngineOptions = {
   /** Seed emitida pelo servidor para reproduzir a mesma sequência pseudoaleatória. */
   seed?: number;
@@ -161,7 +184,7 @@ export class GameEngine {
     this.randomState = this.seed;
     this.headless = options.headless ?? false;
     this.state = this.freshState();
-    this.players = [this.createPrimaryPlayerView()];
+    this.players = [new PrimaryPlayerView(() => this.state, this.local)];
     this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
@@ -178,23 +201,6 @@ export class GameEngine {
   }
 
   get primaryPlayer(): PlayerEntity { return this.players[0]; }
-
-  private createPrimaryPlayerView(): PlayerEntity {
-    const engine = this;
-    return {
-      get id() { return 'local'; },
-      get classId() { return engine.state.classId; },
-      set classId(value: ClassId) { engine.state.classId = value; },
-      get weapon() { return engine.state.weapon; },
-      set weapon(value: WeaponId) { engine.state.weapon = value; },
-      get dead() { return engine.state.dead; },
-      set dead(value: boolean) { engine.state.dead = value; },
-      get bag() { return engine.state.inventory; },
-      set bag(value: InventoryStack[]) { engine.state.inventory = value; },
-      get pub() { return engine.state.player; },
-      get runtime() { return engine.local; },
-    };
-  }
 
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
