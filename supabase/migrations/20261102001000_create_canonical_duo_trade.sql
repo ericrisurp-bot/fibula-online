@@ -30,13 +30,13 @@ create unique index if not exists fibula_duo_trade_one_open_per_room_idx
   where status = 'open';
 
 create table if not exists public.fibula_duo_trade_offers (
+  id uuid primary key default gen_random_uuid(),
   trade_id uuid not null references public.fibula_duo_trade_sessions(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
   item_id text references public.fibula_item_catalog(item_id),
   quantity bigint,
   equipment_id uuid references public.fibula_player_equipment(id) on delete restrict,
   created_at timestamptz not null default now(),
-  primary key (trade_id, owner_id, item_id, equipment_id),
   check (
     (item_id is not null and quantity is not null and quantity > 0 and equipment_id is null)
     or (item_id is null and quantity is null and equipment_id is not null)
@@ -45,6 +45,12 @@ create table if not exists public.fibula_duo_trade_offers (
 
 create index if not exists fibula_duo_trade_offers_owner_idx
   on public.fibula_duo_trade_offers (owner_id, trade_id);
+create unique index if not exists fibula_duo_trade_offer_stack_uidx
+  on public.fibula_duo_trade_offers (trade_id, owner_id, item_id)
+  where item_id is not null;
+create unique index if not exists fibula_duo_trade_offer_equipment_uidx
+  on public.fibula_duo_trade_offers (trade_id, owner_id, equipment_id)
+  where equipment_id is not null;
 
 alter table public.fibula_duo_trade_sessions enable row level security;
 alter table public.fibula_duo_trade_offers enable row level security;
@@ -66,7 +72,7 @@ begin
     return old;
   end if;
 
-  if new.quantity < old.reserved_quantity then
+  if new.quantity < new.reserved_quantity then
     raise exception 'Parte deste material está reservada em uma troca.';
   end if;
   return new;
@@ -431,7 +437,7 @@ begin
      set reserved_trade_id = null, updated_at = pg_catalog.now()
     from public.fibula_duo_trade_offers o
    where o.trade_id = p_trade_id and o.equipment_id = e.id
-     and e.owner_id = o.owner_id and e.reserved_trade_id = p_trade_id;
+     and e.user_id = o.owner_id and e.reserved_trade_id = p_trade_id;
 
   update public.fibula_duo_trade_sessions
      set status = 'cancelled', updated_at = pg_catalog.now()
