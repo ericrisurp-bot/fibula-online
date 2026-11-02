@@ -1464,6 +1464,7 @@ export class GameEngine {
   }
 
   private initializeDayNight() {
+    this.waitingForCooperativeNightRelease = false;
     const startsAtNight = this.random() < 0.5;
     this.state.startedAtNight = startsAtNight;
     this.phase = startsAtNight ? 'night' : 'day';
