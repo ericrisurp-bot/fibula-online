@@ -29,6 +29,21 @@ Nesta etapa, os campos abaixo foram agrupados em `GameEngine.local`, um objeto `
 
 Continuam compartilhados nesta etapa: árvores, pedras, algodão, casa, refinaria, tecelaria, carrinho, inimigos, tiros, orbes, drops, ciclo dia/noite, tempo decorrido, número da noite, hordas, seed/PRNG e kills da partida. Nenhuma dessas estruturas foi movida ou alterada aqui.
 
+## Passo 2: fachada do jogador principal
+
+O motor expõe `readonly players: PlayerEntity[]` com uma única instância `PrimaryPlayerView`, além do getter `primaryPlayer` que retorna `players[0]`. A classe `PrimaryPlayerView` implementa a fachada como adaptador, não como cópia de estado: `id` é sempre `local`; `classId`, `weapon`, `dead` e `bag` delegam com getters/setters para `state.classId`, `state.weapon`, `state.dead` e `state.inventory`; `pub` lê `state.player`; `runtime` lê `local`. Cada acesso consulta o `state` atual, portanto substituições feitas por `restart()`/`freshState()` não deixam referências públicas obsoletas. Nenhum uso preexistente de `this.state.*` foi migrado nesta etapa.
+
+### Métodos que o Passo 3 migrará
+
+- **Movimento/entrada:** `setKey`, `setMove`, `setClass`, `resolvePlayerObstacles`, `isPlayerAtTreeShadow`, `isPlayerAtRock`, `isPlayerAtCottonPlant` e a atualização individual executada por `update`.
+- **Combate e tiros:** `autoAttack`, `moveShots`, `arrowHitsSolidObstacle`, `updateDruidEffects`, `registerDruidBasicHit` e `killEnemy`.
+- **Coleta e construção:** `autoGather`, `gatherDist`, `rockGatherDist`, `hitRock`, `hitCottonPlant`, `collectStone`, `collectCotton`, `collectLinen`, `cutTree`, `collectWood`, `attractMaterials`, `buildHouse`, `buildRefinery`, `buildTecelaria`, `deliverCottonToTecelaria`, `deliverStonesToRefinery` e as operações de inventário/carrinho.
+- **Inimigos e hordas:** `spawnHordeEnemy`, `enemyMovementDirection`, `moveEnemies`, `separateEnemies`, `resolveRockBoxCollisions` e `getLevelStats`.
+- **XP/drops/orbes:** `collectXp`, `killEnemy` e os trechos de coleta/atração de drops e orbes dentro de `update` e `attractMaterials`.
+
+
+Na etapa 3.1b, o segundo jogador será outro `PlayerEntity` com campos próprios. O contador `kills` continuará pertencendo ao estado compartilhado da partida, não a cada jogador.
+
 ## Decisões pendentes para a etapa 3.1b
 
 A implementação ainda trata o mundo como se houvesse um único jogador nos pontos abaixo. Esta lista registra decisões necessárias; não implementa mudanças:

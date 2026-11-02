@@ -106,6 +106,39 @@ function createPlayerRuntime(): PlayerRuntime {
   };
 }
 
+export type PlayerEntity = {
+  id: string;
+  classId: ClassId;
+  weapon: WeaponId;
+  dead: boolean;
+  bag: InventoryStack[];
+  readonly pub: GameSnapshot['player'];
+  readonly runtime: PlayerRuntime;
+};
+
+class PrimaryPlayerView implements PlayerEntity {
+  readonly id = 'local';
+
+  constructor(
+    private readonly getState: () => GameSnapshot,
+    readonly runtime: PlayerRuntime,
+  ) {}
+
+  get classId(): ClassId { return this.getState().classId; }
+  set classId(value: ClassId) { this.getState().classId = value; }
+
+  get weapon(): WeaponId { return this.getState().weapon; }
+  set weapon(value: WeaponId) { this.getState().weapon = value; }
+
+  get dead(): boolean { return this.getState().dead; }
+  set dead(value: boolean) { this.getState().dead = value; }
+
+  get bag(): InventoryStack[] { return this.getState().inventory; }
+  set bag(value: InventoryStack[]) { this.getState().inventory = value; }
+
+  get pub(): GameSnapshot['player'] { return this.getState().player; }
+}
+
 export type GameEngineOptions = {
   /** Seed emitida pelo servidor para reproduzir a mesma sequência pseudoaleatória. */
   seed?: number;
@@ -123,6 +156,7 @@ function normalizeSimulationSeed(seed?: number): number {
 export class GameEngine {
   readonly world = CONFIG.map.size;
   state: GameSnapshot;
+  readonly players: PlayerEntity[];
   onSound?: (event: SoundEvent) => void;
   private local: PlayerRuntime = createPlayerRuntime();
   private nextId = 1;
@@ -150,6 +184,7 @@ export class GameEngine {
     this.randomState = this.seed;
     this.headless = options.headless ?? false;
     this.state = this.freshState();
+    this.players = [new PrimaryPlayerView(() => this.state, this.local)];
     this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
@@ -164,6 +199,8 @@ export class GameEngine {
     this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval;
 
   }
+
+  get primaryPlayer(): PlayerEntity { return this.players[0]; }
 
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
@@ -2043,3 +2080,4 @@ export class GameEngine {
   }
   private clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 }
+
