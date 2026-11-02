@@ -244,17 +244,22 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     if (!current) return;
     try {
       await leaveDuoRoom(current.roomId);
-      const channel = inboxChannels.current.get(current.friendId);
-      if (channel) {
-        const result = await channel.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId, to: current.friendId, room_id: current.roomId } });
-        if (result !== 'ok') setError('Você saiu da sala, mas o aviso ao outro jogador não foi entregue.');
-      }
-      clearLobby();
-      setLobbyInvite(null);
-      setError('');
-      setNotice('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível sair da sala Duo.');
+      return;
+    }
+    clearLobby();
+    setLobbyInvite(null);
+    setError('');
+    setNotice('');
+    const channel = inboxChannels.current.get(current.friendId);
+    if (channel) {
+      try {
+        const result = await channel.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId, to: current.friendId, room_id: current.roomId } });
+        if (result !== 'ok') setError('Você saiu da sala, mas o aviso ao outro jogador não foi entregue.');
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Você saiu da sala, mas o aviso ao outro jogador falhou.');
+      }
     }
   }
 
@@ -268,17 +273,22 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     try {
       await setDuoReady(current.roomId, nextReady);
       await refreshDuoRoom();
-      const channel = inboxChannels.current.get(current.friendId);
-      if (channel) {
-        const result = await channel.send({ type: 'broadcast', event: 'duo_ready_state', payload: { from: userId, to: current.friendId, room_id: current.roomId, ready: nextReady } });
-        if (result !== 'ok') setError('Prontidão salva, mas o aviso imediato ao anfitrião não foi entregue.');
-      }
     } catch (cause) {
       if (lobbyRef.current?.roomId === current.roomId) {
         current.selfReady = previousReady;
         publishLobby();
       }
       setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar sua prontidão.');
+      return;
+    }
+    const channel = inboxChannels.current.get(current.friendId);
+    if (channel) {
+      try {
+        const result = await channel.send({ type: 'broadcast', event: 'duo_ready_state', payload: { from: userId, to: current.friendId, room_id: current.roomId, ready: nextReady } });
+        if (result !== 'ok') setError('Prontidão salva, mas o aviso imediato ao anfitrião não foi entregue.');
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Prontidão salva, mas o aviso imediato ao anfitrião falhou.');
+      }
     }
   }
 
@@ -542,10 +552,18 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       publishLobby();
       setLobbyInvite(null);
       if (channel) {
-        const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { from: userId, to: invite.from, accepted: true } });
-        if (result !== 'ok') setError('Você entrou na sala, mas o aviso imediato ao anfitrião não foi entregue.');
-        const readyResult = await channel.send({ type: 'broadcast', event: 'duo_ready', payload: ownReadyPayload(invite.from) });
-        if (readyResult !== 'ok') setError('Você entrou na sala, mas não foi possível enviar seu nome e classe ao anfitrião.');
+        try {
+          const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { from: userId, to: invite.from, accepted: true } });
+          if (result !== 'ok') setError('Você entrou na sala, mas o aviso imediato ao anfitrião não foi entregue.');
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Você entrou na sala, mas o aviso imediato ao anfitrião falhou.');
+        }
+        try {
+          const readyResult = await channel.send({ type: 'broadcast', event: 'duo_ready', payload: ownReadyPayload(invite.from) });
+          if (readyResult !== 'ok') setError('Você entrou na sala, mas não foi possível enviar seu nome e classe ao anfitrião.');
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Você entrou na sala, mas não foi possível enviar seu nome e classe ao anfitrião.');
+        }
       } else {
         setError('Você entrou na sala, mas o canal de aviso com o anfitrião está indisponível.');
       }
