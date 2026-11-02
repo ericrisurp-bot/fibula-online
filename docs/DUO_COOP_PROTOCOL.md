@@ -84,4 +84,55 @@ Inputs, snapshots e eventos efêmeros usam **Broadcast privado**, no tópico exa
 7. Em uma sala de teste, pare de enviar `fibula_duo_heartbeat(room_id)` para um participante durante uma partida. Após mais de 90 segundos, faça uma chamada de leitura/RPC de sala para disparar a rotina de expiração e confirme fase `finished` e `left_at` preenchido para ambos.
 8. Repita em lobby: pare o heartbeat do anfitrião por mais de 45 segundos e confirme cancelamento; depois teste um convidado sem heartbeat por mais de 45 segundos e confirme liberação da vaga e reset da prontidão do anfitrião. Para o convite sem convidado, aguarde mais de 120 segundos e confirme cancelamento.
 
-Este roteiro é manual e deve ser executado em ambiente de teste com duas contas. **A migration 00500 está apenas proposta nesta PR: não foi aplicada nem testada em banco.** Nenhuma alteração de banco, policy ou configuração foi executada nesta etapa. A integração com o lobby principal e com o motor de simulação cooperativa continua sendo trabalho posterior.
+Este roteiro é manual e deve ser executado em ambiente de teste com duas contas. As migrations 00400 e 00500 definem a persistência e o ciclo de vida das salas; a migration 00700 desta etapa acrescenta o limite de capacidade e permanece sujeita à revisão e autorização antes de ser aplicada. Nenhuma alteração de banco, policy ou configuração foi executada nesta etapa. A integração com o lobby principal e com o motor de simulação cooperativa continua sendo trabalho posterior.
+
+## Capacidade (plano Free)
+
+O projeto limita a **4 partidas Duo simultâneas**. Cada partida comporta dois jogadores. O limite é imposto no banco pela RPC `fibula_start_duo_match(p_room_id)`; o cliente não decide nem reserva capacidade localmente.
+
+- A configuração fica na linha única de `public.fibula_duo_settings`. O valor inicial aprovado é `max_active_matches = 4`.
+- A contagem considera somente salas em `starting` ou `playing`. Salas em `lobby`, `finished` ou `cancelled` não ocupam vaga.
+- O início valida anfitrião, dois participantes ativos e convidado pronto; em seguida adquire um advisory transaction lock compartilhado por todos os inícios, executa novamente a expiração de salas paradas e conta as partidas ativas. Assim, inícios concorrentes não conseguem ultrapassar o limite.
+- Sem vaga, a RPC rejeita o início com: **“Todas as % salas Duo estão ocupadas. Tente novamente em alguns minutos.”**
+- `fibula_duo_capacity()` retorna `max`, `in_use` e `free`; chama a rotina de expiração antes de calcular os números.
+- A vaga é liberada quando a sala deixa de estar em `starting/playing`: ao sair/encerrar a partida, ao terminar por derrota e ao expirar uma partida cujo participante ficou sem heartbeat por mais de **90 segundos**. A rotina `fibula_duo_expire_stale()` marca a partida expirada como `finished` e encerra as participações ativas.
+- A tabela de configuração tem RLS, leitura autenticada limitada ao issuer da Arena e nenhuma permissão de escrita para clientes. A RPC de capacidade também valida o issuer e só pode ser executada por `authenticated`. A rotina interna `fibula_duo_expire_stale()` continua sem execução concedida a `authenticated`.
+
+### Alterar o limite futuramente
+
+Somente quem administra o banco deve alterar manualmente a linha de configuração, por exemplo:
+
+```sql
+update public.fibula_duo_settings
+   set max_active_matches = 6,
+       updated_at = pg_catalog.now()
+ where id = true;
+```
+
+O valor permitido pela constraint é de 0 a 50. Não conceder escrita dessa tabela ao cliente.
+
+### Orçamento de mensagens Realtime
+
+No plano Free, considerar os limites de **100 mensagens por segundo no projeto inteiro** e **20 mensagens de Presence por segundo**. O transporte da partida deve manter folga para convites e presença de amigos:
+
+- Meta máxima de **8 mensagens ENVIADAS por segundo por sala**.
+- O anfitrião envia estado/snapshot entre **6 e 8 vezes por segundo**.
+- O convidado envia controle somente quando houver mudança de input; não transmitir continuamente controles inalterados.
+- O cenário estático é enviado uma única vez por partida/sala, não repetido em cada snapshot.
+- Presence não deve ser usado para transportar estado de jogo; o canal da partida permanece em Broadcast privado.
+
+Esses números são metas de orçamento para o transporte Duo, não uma ampliação dos limites do plano. O total agregado de todas as salas, convites e demais recursos Realtime do projeto deve permanecer abaixo dos limites do Free.
+
+### Roteiro manual de teste — capacidade
+
+Executar somente depois de revisar e aplicar a migration em ambiente autorizado:
+
+1. Consultar `select public.fibula_duo_capacity();` e confirmar `max = 4`, `in_use = 0` e `free = 4` (ou os valores correspondentes ao ambiente).
+2. Criar quatro salas válidas, cada uma com anfitrião e convidado ativos, convidado pronto, e iniciar as quatro. Confirmar que todas ficam em `playing`.
+3. Consultar `select public.fibula_duo_capacity();` e confirmar `in_use = 4` e `free = 0`.
+4. Tentar iniciar uma quinta sala: confirmar rejeição com a mensagem de capacidade. Uma sexta tentativa também deve ser recusada enquanto as quatro vagas continuarem ocupadas.
+5. Liberar uma vaga encerrando uma das partidas (ou aguardar a expiração por heartbeat acima de 90 segundos); consultar novamente a capacidade e confirmar `in_use = 3` e `free = 1`.
+6. Iniciar a sala que aguardava vaga e confirmar que ela passa para `playing`; consultar a capacidade e confirmar novamente `in_use = 4` e `free = 0`.
+7. Testar inícios concorrentes em salas distintas quando houver somente uma vaga: exatamente um início deve ocupar a vaga; os demais devem receber a mensagem de capacidade.
+
+Este roteiro é manual. **A migration 00700 é somente proposta nesta PR: NÃO foi aplicada nem testada em banco.** Nenhum SQL foi executado em banco nesta etapa.
