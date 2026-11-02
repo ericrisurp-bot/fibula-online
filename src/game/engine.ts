@@ -161,7 +161,7 @@ export class GameEngine {
     this.randomState = this.seed;
     this.headless = options.headless ?? false;
     this.state = this.freshState();
-    this.players = [new PrimaryPlayerView(this)];
+    this.players = [this.createPrimaryPlayerView()];
     this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
@@ -178,6 +178,23 @@ export class GameEngine {
   }
 
   get primaryPlayer(): PlayerEntity { return this.players[0]; }
+
+  private createPrimaryPlayerView(): PlayerEntity {
+    const engine = this;
+    return {
+      get id() { return 'local'; },
+      get classId() { return engine.state.classId; },
+      set classId(value: ClassId) { engine.state.classId = value; },
+      get weapon() { return engine.state.weapon; },
+      set weapon(value: WeaponId) { engine.state.weapon = value; },
+      get dead() { return engine.state.dead; },
+      set dead(value: boolean) { engine.state.dead = value; },
+      get bag() { return engine.state.inventory; },
+      set bag(value: InventoryStack[]) { engine.state.inventory = value; },
+      get pub() { return engine.state.player; },
+      get runtime() { return engine.local; },
+    };
+  }
 
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
@@ -2058,18 +2075,3 @@ export class GameEngine {
   private clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 }
 
-class PrimaryPlayerView implements PlayerEntity {
-  constructor(private readonly engine: GameEngine) {}
-
-  get id(): string { return 'local'; }
-  get classId(): ClassId { return this.engine.state.classId; }
-  set classId(value: ClassId) { this.engine.state.classId = value; }
-  get weapon(): WeaponId { return this.engine.state.weapon; }
-  set weapon(value: WeaponId) { this.engine.state.weapon = value; }
-  get dead(): boolean { return this.engine.state.dead; }
-  set dead(value: boolean) { this.engine.state.dead = value; }
-  get bag(): InventoryStack[] { return this.engine.state.inventory; }
-  set bag(value: InventoryStack[]) { this.engine.state.inventory = value; }
-  get pub(): GameSnapshot['player'] { return this.engine.state.player; }
-  get runtime(): PlayerRuntime { return this.engine.local; }
-}
