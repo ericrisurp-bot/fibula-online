@@ -103,7 +103,7 @@ drop policy if exists "Restrict Duo participants to Arena identities" on public.
 create policy "Restrict Duo participants to Arena identities"
   on public.fibula_duo_room_participants as restrictive for all to authenticated
   using ((select auth.jwt() ->> 'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1')
-  with check ((select auth.jwt() ->> 'iss') = 'https://bqzplfvjvdylbwmulisz.co/auth/v1');
+  with check ((select auth.jwt() ->> 'iss') = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1');
 
 -- Create a room as host. Only an accepted friend can be invited into it.
 create or replace function public.fibula_create_duo_room(p_friend_id uuid)
