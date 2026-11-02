@@ -58,7 +58,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       if (requestError) throw requestError;
       const rows = (data ?? []) as FriendRequest[];
       setRequests(rows);
-      const ids = [...new Set(rows.flatMap(row => [row.sender_id, row.receiver_id]).filter(id => id !== userId))];
+      const ids = [...new Set([...rows.flatMap(row => [row.sender_id, row.receiver_id]), userId])];
       if (ids.length) {
         const { data: profileRows, error: profileError } = await fibulaSupabase
           .from('fibula_profiles')
@@ -90,7 +90,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     const channel = fibulaSupabase.channel(roomTopic, { config: { private: true, presence: { key: userId } } });
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState() as Record<string, Array<{ user_id: string; display_name: string }>>;
-      setLobbyMembers(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : member.display_name || friendName));
+      setLobbyMembers(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : friendName));
     });
     lobbyChannel.current = channel;
     try {
@@ -99,7 +99,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
         if (status === 'SUBSCRIBED') resolve();
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reject(new Error('Não foi possível entrar no lobby compartilhado.'));
       }));
-      await channel.track({ user_id: userId, display_name: 'Jogador' });
+      await channel.track({ user_id: userId, display_name: profiles[userId]?.display_name || 'Jogador' });
       setLobby({ roomTopic, friendId, friendName });
       setLobbyMembers([]);
     } catch (cause) {
@@ -148,7 +148,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       if (payload.status === 'accepted') {
         const pending = pendingInvite.current;
         pendingInvite.current = null;
-        void joinLobby(pending.room_topic, pending.to, pending.sender_name);
+        void joinLobby(pending.room_topic, pending.to, pending.target_name);
       } else {
         pendingInvite.current = null;
         setNotice('Seu convite de lobby foi recusado.');
@@ -165,7 +165,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const sendLobbyInvite = async (friendId: string) => {
     if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
     const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
-    const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profiles[friendId]?.display_name || 'Seu amigo' };
+    const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profiles[userId]?.display_name || 'Seu amigo', target_name: profiles[friendId]?.display_name || 'Seu amigo' };
     const channel = fibulaSupabase.channel(`fibula:inbox:${friendId}`, { config: { private: true } });
     try {
       await fibulaSupabase.realtime.setAuth();
@@ -176,7 +176,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       const result = await channel.send({ type: 'broadcast', event: 'lobby_invite', payload: invite });
       if (result !== 'ok') throw new Error('Não foi possível entregar o convite.');
       pendingInvite.current = invite;
-      setNotice(`Convite enviado para ${invite.sender_name}. Aguardando resposta.`);
+      setNotice(`Convite enviado para ${invite.target_name}. Aguardando resposta.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível enviar o convite.');
     } finally {
@@ -194,7 +194,8 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
         if (state === 'SUBSCRIBED') resolve();
         if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') reject(new Error('Não foi possível responder ao convite.'));
       }));
-      await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { invite_id: invite.invite_id, from: userId, to: invite.from, status } });
+      const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { invite_id: invite.invite_id, from: userId, to: invite.from, status } });
+      if (result !== 'ok') throw new Error('Não foi possível entregar sua resposta ao convite.');
       setLobbyInvite(null);
       if (status === 'accepted') void joinLobby(invite.room_topic, invite.from, invite.sender_name || 'Seu amigo');
     } catch (cause) {
