@@ -3,13 +3,11 @@
 
 create table if not exists public.fibula_duo_settings (
   id boolean primary key default true check (id),
-  max_active_matches integer not null default 5
+  max_active_matches integer not null default 4
     check (max_active_matches between 0 and 50),
   updated_at timestamptz not null default pg_catalog.now()
 );
 
--- Four is the approved operational limit. The column default remains 5 for
--- compatibility with the requested schema; this singleton row is authoritative.
 insert into public.fibula_duo_settings (id, max_active_matches)
 values (true, 4)
 on conflict (id) do nothing;
@@ -49,10 +47,12 @@ declare
 begin
   perform public.fibula_duo_expire_stale();
 
-  select s.max_active_matches
-    into v_max
-    from public.fibula_duo_settings s
-   where s.id = true;
+  v_max := coalesce(
+    (select s.max_active_matches
+       from public.fibula_duo_settings s
+      where s.id = true),
+    4
+  );
 
   select count(*)::integer
     into v_in_use
@@ -122,10 +122,12 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('fibula_duo_start'));
   perform public.fibula_duo_expire_stale();
 
-  select s.max_active_matches
-    into v_max
-    from public.fibula_duo_settings s
-   where s.id = true;
+  v_max := coalesce(
+    (select s.max_active_matches
+       from public.fibula_duo_settings s
+      where s.id = true),
+    4
+  );
 
   select count(*)::integer
     into v_in_use
