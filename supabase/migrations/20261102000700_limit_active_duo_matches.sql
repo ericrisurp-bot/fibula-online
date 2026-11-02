@@ -19,6 +19,12 @@ alter table public.fibula_duo_settings enable row level security;
 revoke all privileges on table public.fibula_duo_settings from anon, authenticated;
 grant select on table public.fibula_duo_settings to authenticated;
 
+drop policy if exists "Authenticated users can read Duo settings"
+  on public.fibula_duo_settings;
+create policy "Authenticated users can read Duo settings"
+  on public.fibula_duo_settings for select to authenticated
+  using (id = true);
+
 drop policy if exists "Restrict Duo settings to Arena identities"
   on public.fibula_duo_settings;
 create policy "Restrict Duo settings to Arena identities"
