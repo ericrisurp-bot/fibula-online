@@ -4345,3 +4345,6 @@ button, button * {
 .lobby-duo-peer-name{overflow:hidden;color:#f0f2e9;font-size:clamp(10px,1.2vw,13px);font-weight:850;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:650px){.lobby-duo-peer{left:calc(50% + 8vw);top:calc(50% + 15vh);min-height:42px;max-width:42vw;gap:5px;padding:3px 8px 3px 4px}.lobby-duo-peer-avatar{flex-basis:34px;width:34px;height:34px;font-size:19px}.lobby-duo-peer-name{font-size:10px}}
 @media(orientation:landscape) and (max-height:520px){.lobby-duo-peer{left:calc(50% + 9vw);top:calc(50% + 10vh);min-height:42px}}
+
+.lobby-duo-peer{font:inherit;color:inherit;text-align:left;cursor:pointer}
+.lobby-duo-peer:focus-visible{outline:2px solid rgba(232,231,220,.85);outline-offset:3px}
