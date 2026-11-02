@@ -392,7 +392,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
           void inbox.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível enviar confirmação Duo.'));
         });
         inbox.on('broadcast', { event: 'duo_ready_ack' }, ({ payload }) => {
-          if (!validPeerEvent(payload)) return;
+          if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           applyPeerIdentity(friendId, payload);
           refreshOnDuoSignal();
         });
@@ -401,7 +401,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
           refreshOnDuoSignal();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
-          if (!validPeerEvent(payload)) return;
+          if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           refreshOnDuoSignal();
         });
         channels.set(friendId, inbox);
@@ -524,6 +524,10 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       if (channel) {
         const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { from: userId, to: invite.from, accepted: true } });
         if (result !== 'ok') setError('Você entrou na sala, mas o aviso imediato ao anfitrião não foi entregue.');
+        const readyResult = await channel.send({ type: 'broadcast', event: 'duo_ready', payload: ownReadyPayload(invite.from) });
+        if (readyResult !== 'ok') setError('Você entrou na sala, mas não foi possível enviar seu nome e classe ao anfitrião.');
+      } else {
+        setError('Você entrou na sala, mas o canal de aviso com o anfitrião está indisponível.');
       }
       await refreshDuoRoom();
     } catch (cause) {
