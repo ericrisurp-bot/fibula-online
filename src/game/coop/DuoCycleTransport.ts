@@ -5,7 +5,7 @@ export type DuoCycleServerState = {
   status: 'playing' | 'finished';
   current_night: number;
   cooperative_nights: number;
-  player_status: 'alive' | 'dead';
+  player_status: 'alive' | 'dead' | 'disconnected';
   horde_target: number;
 };
 
@@ -23,6 +23,8 @@ type ErrorHandler = (error: unknown) => void;
 export class DuoCycleTransport {
   private channel: any = null;
   private connecting: Promise<void> | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private heartbeatPending = false;
 
   constructor(
     private readonly supabase: SupabaseClient,
@@ -68,7 +70,25 @@ export class DuoCycleTransport {
         }
       });
     });
-    await this.refreshState();
+    await this.sendHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.heartbeatPending) return;
+      this.heartbeatPending = true;
+      void this.sendHeartbeat()
+        .catch(this.onError)
+        .finally(() => { this.heartbeatPending = false; });
+    }, 5_000);
+  }
+
+  private async sendHeartbeat(): Promise<void> {
+    const { data, error } = await this.supabase.rpc('fibula_duo_match_heartbeat', {
+      p_match_id: this.matchId,
+    });
+    if (error) throw error;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('O servidor retornou um heartbeat Duo inválido.');
+    }
+    this.applyServerState(data as Record<string, unknown>);
   }
 
   async reportNightComplete(nightNumber: number): Promise<void> {
@@ -120,12 +140,15 @@ export class DuoCycleTransport {
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       throw new Error('O servidor retornou um estado Duo inválido.');
     }
-    const value = data as Record<string, unknown>;
+    return this.applyServerState(data as Record<string, unknown>);
+  }
+
+  private applyServerState(value: Record<string, unknown>): DuoCycleServerState {
     if (value.match_id !== this.matchId
       || (value.status !== 'playing' && value.status !== 'finished')
       || !Number.isSafeInteger(value.current_night) || (value.current_night as number) < 1
       || !Number.isSafeInteger(value.cooperative_nights) || (value.cooperative_nights as number) < 0
-      || (value.player_status !== 'alive' && value.player_status !== 'dead')
+      || (value.player_status !== 'alive' && value.player_status !== 'dead' && value.player_status !== 'disconnected')
       || !Number.isSafeInteger(value.horde_target) || (value.horde_target as number) < 0) {
       throw new Error('O servidor retornou um estado Duo inconsistente.');
     }
@@ -142,6 +165,10 @@ export class DuoCycleTransport {
   }
 
   async disconnect(): Promise<void> {
+    if (this.heartbeatTimer !== null) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
     const channel = this.channel;
     this.channel = null;
     if (channel) await this.supabase.removeChannel(channel);

@@ -1349,14 +1349,31 @@ export default function App() {
         const role = playerRole as 'host' | 'guest';
         const firstNight = nightNumber as number;
         const firstTarget = initialTarget as number;
+        if (firstTarget === 0) {
+          duoStartedMatchIdRef.current = peer.matchId;
+          setDuoNotice('Esta partida Duo já foi encerrada para você. Você voltou ao lobby e não pode retomar a mesma partida.');
+          return;
+        }
         const expectedFirstTarget = role === 'host'
           ? Math.ceil(duoHordeTotalForNight(firstNight) / 2)
           : Math.floor(duoHordeTotalForNight(firstNight) / 2);
         if (firstTarget !== expectedFirstTarget) throw new Error('O alvo inicial da horda recebido do servidor não corresponde às regras desta versão.');
         if (cancelled) return;
 
+        let playerTimedOut = false;
         duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER;
         transport = new DuoCycleTransport(fibulaSupabase, matchId as string, session.user.sub, peer.friendId, serverState => {
+          if (serverState.player_status === 'disconnected') {
+            playerTimedOut = true;
+            setDuoNotice('Sua conexão ficou ausente por mais de 15 segundos. Esta partida foi encerrada para você; voltou ao lobby.');
+            setShowStart(true);
+            gameStartedRef.current = false;
+            engine.configureSoloMatch();
+            duoStartedMatchIdRef.current = peer.matchId;
+            if (duoTransportRef.current === transport) duoTransportRef.current = null;
+            void transport?.disconnect();
+            return;
+          }
           if (serverState.status === 'playing' && serverState.player_status === 'alive' && serverState.horde_target > 0) {
             const splitTarget = role === 'host'
               ? Math.ceil(duoHordeTotalForNight(serverState.current_night) / 2)
@@ -1374,6 +1391,10 @@ export default function App() {
           if (serverState.status === 'finished') setDuoNotice('A partida Duo foi encerrada.');
         }, cause => setDuoNotice(cause instanceof Error ? cause.message : 'Falha na comunicação da partida Duo.'));
         await transport.connect();
+        if (playerTimedOut) {
+          await transport.disconnect();
+          return;
+        }
         if (cancelled) {
           await transport.disconnect();
           return;
