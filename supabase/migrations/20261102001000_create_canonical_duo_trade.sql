@@ -266,6 +266,7 @@ declare
   v_receiver uuid;
   v_next_slot smallint;
   v_current_quantity bigint;
+  v_free_slots integer;
 begin
   perform public.fibula_inventory_assert_session();
 
@@ -293,6 +294,56 @@ begin
   if not (v_trade.host_confirmed and v_trade.guest_confirmed) then
     return false;
   end if;
+
+  -- Count new stack types per receiver so several incoming types cannot
+  -- individually pass a slot check while collectively exceeding 50 spaces.
+  for v_receiver in
+    select distinct case when o.owner_id = v_trade.host_id
+                         then v_trade.guest_id else v_trade.host_id end
+      from public.fibula_duo_trade_offers o
+     where o.trade_id = p_trade_id and o.item_id is not null
+  loop
+    select count(*) into v_count
+      from (
+        select distinct o.item_id
+          from public.fibula_duo_trade_offers o
+         where o.trade_id = p_trade_id and o.item_id is not null
+           and (case when o.owner_id = v_trade.host_id
+                     then v_trade.guest_id else v_trade.host_id end) = v_receiver
+           and not exists (
+             select 1 from public.fibula_player_item_stacks s
+              where s.user_id = v_receiver and s.item_id = o.item_id
+                and s.location = 'house'
+           )
+      ) incoming;
+    if (select count(*) from public.fibula_player_item_stacks s
+         where s.user_id = v_receiver and s.location = 'house') + v_count > 50 then
+      raise exception 'O armazenamento do outro jogador está cheio.';
+    end if;
+  end loop;
+
+  -- Check equipment capacity in aggregate for each receiver.
+  for v_receiver in
+    select distinct case when o.owner_id = v_trade.host_id
+                         then v_trade.guest_id else v_trade.host_id end
+      from public.fibula_duo_trade_offers o
+     where o.trade_id = p_trade_id and o.equipment_id is not null
+  loop
+    select count(*) into v_count
+      from public.fibula_duo_trade_offers o
+     where o.trade_id = p_trade_id and o.equipment_id is not null
+       and (case when o.owner_id = v_trade.host_id
+                 then v_trade.guest_id else v_trade.host_id end) = v_receiver;
+    select count(*) into v_free_slots
+      from generate_series(1, 30) as candidate(slot)
+     where not exists (
+       select 1 from public.fibula_player_equipment e
+        where e.user_id = v_receiver and e.arsenal_slot = candidate.slot
+     );
+    if v_free_slots < v_count then
+      raise exception 'O Arsenal do outro jogador está cheio.';
+    end if;
+  end loop;
 
   -- Check receiver capacity before transferring any item.
   for v_offer in
