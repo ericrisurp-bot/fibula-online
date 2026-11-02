@@ -57,12 +57,12 @@ Todas as RPCs de cliente são `SECURITY DEFINER`, validam o issuer da Arena, usa
 - `fibula_list_duo_invites() returns table(room_id uuid, host_id uuid, created_at timestamptz)`: lista convites pendentes endereçados ao usuário, somente se o anfitrião ainda estiver ativo e a amizade continuar aceita.
 - `fibula_join_duo_room(p_room_id uuid) returns uuid`: permite ao convidado designado ocupar a vaga e inicia seu heartbeat.
 - `fibula_set_duo_ready(p_room_id uuid, p_ready boolean) returns boolean`: altera a prontidão do próprio participante e atualiza seu heartbeat.
-- `fibula_start_duo_match(p_room_id uuid) returns uuid`: somente o anfitrião inicia com exatamente dois participantes ativos e ambos prontos; grava `match_id` e `match_seed`, mantendo a fase `playing`.
+- `fibula_start_duo_match(p_room_id uuid) returns uuid`: somente o anfitrião inicia com exatamente dois participantes ativos e exige que apenas o convidado esteja `ready`; a prontidão do anfitrião não é exigida. Grava `match_id` e `match_seed`, mantendo a fase `playing`.
 - `fibula_leave_duo_room(p_room_id uuid) returns boolean`: mantém as regras de saída da sala/lobby e encerra a partida em andamento.
 - `fibula_duo_heartbeat(p_room_id uuid) returns boolean`: atualiza somente o heartbeat da participação ativa do chamador; falha se ele não participa.
 - `fibula_get_my_duo_room() returns jsonb`: retorna a sala ativa do chamador, incluindo `id`, `host_id`, `guest_id`, `phase`, `match_id`, `match_seed` e participantes ativos (`user_id`, `role`, `ready`), ou `null`.
 
-A rotina interna `fibula_duo_expire_stale()` é chamada no início das RPCs de sala e não tem execução concedida aos clientes. As janelas são:
+A rotina interna `fibula_duo_expire_stale()` é chamada no início das RPCs de sala e não tem execução concedida aos clientes. O cliente deve enviar `fibula_duo_heartbeat(room_id)` a cada **15 segundos**. Abas em segundo plano podem ter timers throttled pelo navegador; por isso, a janela de tolerância é de **45 segundos no lobby** e **90 segundos durante a partida**. As janelas são:
 
 - Lobby: heartbeat sugerido a cada **15 segundos**; anfitrião sem heartbeat por mais de **45 segundos** cancela a sala e encerra todas as participações.
 - Convite sem convidado: sala em lobby sem `guest_id` por mais de **120 segundos** é cancelada.
