@@ -28,6 +28,7 @@ type Props = {
   onOpenProfile: (userId: string) => void;
   onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null) => void;
   onLobbyConnected: () => void;
+  onLobbyNotice: (message: string) => void;
 };
 
 const AVATARS = {
@@ -37,7 +38,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, myClassId, myDisplayName, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected }: Props) {
+export default function FriendsModal({ userId, myClassId, myDisplayName, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -52,12 +53,11 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
-  const [, setSelfReady] = useState(false);
-  const [, setPeerReady] = useState(false);
   const profilesRef = useRef(profiles);
   const identityRef = useRef({ myClassId, myDisplayName });
   const onLobbyChangeRef = useRef(onLobbyChange);
   const onLobbyConnectedRef = useRef(onLobbyConnected);
+  const onLobbyNoticeRef = useRef(onLobbyNotice);
   const handshakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPeerEventAtRef = useRef(0);
@@ -65,6 +65,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   identityRef.current = { myClassId, myDisplayName };
   onLobbyChangeRef.current = onLobbyChange;
   onLobbyConnectedRef.current = onLobbyConnected;
+  onLobbyNoticeRef.current = onLobbyNotice;
   const clearDuoTimers = () => {
     if (handshakeTimeoutRef.current) clearTimeout(handshakeTimeoutRef.current);
     if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
@@ -79,8 +80,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const clearLobby = () => {
     clearDuoTimers();
     lobbyRef.current = null;
-    setSelfReady(false);
-    setPeerReady(false);
     onLobbyChangeRef.current(null);
   };
   const validClassId = (value: unknown): FriendProfile['avatar_character'] =>
@@ -89,7 +88,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     from: userId,
     to: friendId,
     classId: identityRef.current.myClassId,
-    displayName: identityRef.current.myDisplayName || 'Jogador',
+    displayName: profilesRef.current[userId]?.display_name || identityRef.current.myDisplayName || 'Jogador',
   });
 
   const load = useCallback(async () => {
@@ -153,7 +152,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     if (!currentLobby || currentLobby.status !== 'connected' || currentLobby.role !== 'guest') return;
     const nextReady = !currentLobby.selfReady;
     currentLobby.selfReady = nextReady;
-    setSelfReady(nextReady);
     publishLobby();
     const channel = inboxChannels.current.get(currentLobby.friendId);
     if (!channel) return;
@@ -164,7 +162,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     });
     if (result !== 'ok' && lobbyRef.current?.friendId === currentLobby.friendId) {
       currentLobby.selfReady = !nextReady;
-      setSelfReady(!nextReady);
       publishLobby();
       setError('Não foi possível atualizar sua prontidão.');
     }
@@ -178,7 +175,9 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       if (!current || current.friendId !== friendId || current.status !== 'connected') return;
       if (Date.now() - lastPeerEventAtRef.current >= 15000) {
         clearLobby();
-        setNotice(`A conexão com ${current.friendName} foi encerrada.`);
+        const message = `A conexão com ${current.friendName} foi encerrada.`;
+        setNotice(message);
+        onLobbyNoticeRef.current(message);
         return;
       }
       void channel.send({ type: 'broadcast', event: 'duo_ping', payload: { from: userId, to: friendId } });
@@ -225,7 +224,9 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     handshakeTimeoutRef.current = setTimeout(() => {
       if (lobbyRef.current?.friendId !== friendId || lobbyRef.current.status !== 'connecting') return;
       clearLobby();
-      setError(`Não foi possível conectar com ${friendName}.`);
+      const message = `Não foi possível conectar com ${friendName}.`;
+      setError(message);
+      onLobbyNoticeRef.current(message);
     }, 8000);
     try {
       const result = await channel.send({ type: 'broadcast', event: 'duo_ready', payload: ownReadyPayload(friendId) });
@@ -276,6 +277,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     const channels = new Map<string, any>();
     const start = async () => {
       await supabase.realtime.setAuth();
+      if (!active) return;
       const subscriptions = friendIds.map(friendId => new Promise<void>((resolve, reject) => {
         const pairKey = [userId, friendId].sort().join(':');
         const inbox = supabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
@@ -360,7 +362,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     });
     return () => {
       active = false;
-      clearDuoTimers();
       clearDuoTimers();
       inboxChannels.current.clear();
       channels.forEach(channel => void supabase.removeChannel(channel));
