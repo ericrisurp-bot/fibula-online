@@ -1,4 +1,5 @@
 import { CONFIG, RESOURCE_RARITY_RULES, type ClassId, type ResourceRarity, type WeaponId } from './config';
+import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
@@ -1465,7 +1466,7 @@ export class GameEngine {
     this.nightNumber += 1;
     this.state.nightNumber = this.nightNumber;
     this.state.wave = this.nightNumber;
-    this.hordeTarget = CONFIG.dayNight.firstNightSpawnCount + (this.nightNumber - 1) * CONFIG.dayNight.addedPerNight;
+    this.hordeTarget = soloHordeTarget(this.nightNumber);
     this.hordeSpawned = 0;
     this.hordeScheduled = 0;
   }
