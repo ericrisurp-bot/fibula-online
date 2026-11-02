@@ -84,7 +84,7 @@ Inputs, snapshots e eventos efêmeros usam **Broadcast privado**, no tópico exa
 7. Em uma sala de teste, pare de enviar `fibula_duo_heartbeat(room_id)` para um participante durante uma partida. Após mais de 90 segundos, faça uma chamada de leitura/RPC de sala para disparar a rotina de expiração e confirme fase `finished` e `left_at` preenchido para ambos.
 8. Repita em lobby: pare o heartbeat do anfitrião por mais de 45 segundos e confirme cancelamento; depois teste um convidado sem heartbeat por mais de 45 segundos e confirme liberação da vaga e reset da prontidão do anfitrião. Para o convite sem convidado, aguarde mais de 120 segundos e confirme cancelamento.
 
-Este roteiro é manual e deve ser executado em ambiente de teste com duas contas. **A migration 00500 está apenas proposta nesta PR: não foi aplicada nem testada em banco.** Nenhuma alteração de banco, policy ou configuração foi executada nesta etapa. A integração com o lobby principal e com o motor de simulação cooperativa continua sendo trabalho posterior.
+Este roteiro é manual e deve ser executado em ambiente de teste com duas contas. As migrations 00400 e 00500 definem a persistência e o ciclo de vida das salas; a migration 00700 desta etapa acrescenta o limite de capacidade e permanece sujeita à revisão e autorização antes de ser aplicada. Nenhuma alteração de banco, policy ou configuração foi executada nesta etapa. A integração com o lobby principal e com o motor de simulação cooperativa continua sendo trabalho posterior.
 
 ## Capacidade (plano Free)
 
