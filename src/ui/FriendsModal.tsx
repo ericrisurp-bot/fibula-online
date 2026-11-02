@@ -91,6 +91,24 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
+  const leaveLobby = async () => {
+    const currentLobby = lobbyRef.current;
+    if (currentLobby) {
+      const channel = inboxChannels.current.get(currentLobby.friendId);
+      if (channel) {
+        try {
+          await channel.send({
+            type: 'broadcast',
+            event: 'duo_left',
+            payload: { from: userId, to: currentLobby.friendId },
+          });
+        } catch { /* The local lobby still closes if the peer is disconnected. */ }
+      }
+    }
+    lobbyRef.current = null;
+    onLobbyChange(null);
+  };
+
   const joinLobby = async (_roomTopic: string, friendId: string, friendName: string) => {
     const channel = inboxChannels.current.get(friendId);
     // This function is called by long-lived Realtime callbacks. The React state
@@ -279,24 +297,6 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível responder ao convite.');
     }
-  };
-
-  const leaveLobby = async () => {
-    const currentLobby = lobbyRef.current;
-    if (currentLobby) {
-      const channel = inboxChannels.current.get(currentLobby.friendId);
-      if (channel) {
-        try {
-          await channel.send({
-            type: 'broadcast',
-            event: 'duo_left',
-            payload: { from: userId, to: currentLobby.friendId },
-          });
-        } catch { /* The local lobby still closes if the peer is disconnected. */ }
-      }
-    }
-    lobbyRef.current = null;
-    onLobbyChange(null);
   };
 
   const sendRequest = async (event: FormEvent<HTMLFormElement>) => {
