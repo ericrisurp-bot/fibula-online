@@ -135,6 +135,7 @@ declare
   v_alive_count integer;
   v_host_seed bigint;
   v_guest_seed bigint;
+  v_session_seed bigint;
   v_own_seed bigint;
   v_own_role text;
   v_ruleset text := 'duo-v1';
@@ -197,19 +198,25 @@ begin
     insert into public.fibula_duo_match_sessions (
       match_id, room_id, ruleset_version, session_seed, started_at
     ) values (
-      v_room.match_id, p_room_id, v_ruleset, v_room.match_seed, v_room.started_at
+      v_room.match_id, p_room_id, v_ruleset,
+      (('x' || pg_catalog.substr(pg_catalog.md5(pg_catalog.gen_random_uuid()::text), 1, 16))::bit(64)::bigint),
+      v_room.started_at
     );
 
-    -- Use a 28-bit positive hash accepted by the local engine. Resolve the
-    -- astronomically unlikely collision deterministically without sharing it.
+    -- Derive from a private random session seed (not the room seed, which is
+    -- visible to lobby clients). Return only the caller's individual seed.
+    select s.session_seed into v_session_seed
+      from public.fibula_duo_match_sessions s
+     where s.match_id = v_room.match_id;
+
     v_host_seed := (
       ('x' || pg_catalog.substr(
-        pg_catalog.md5(v_room.match_seed::text || ':' || v_host_id::text), 1, 7
+        pg_catalog.md5(v_session_seed::text || ':' || v_host_id::text), 1, 7
       ))::bit(28)::bigint
     ) + 1;
     v_guest_seed := (
       ('x' || pg_catalog.substr(
-        pg_catalog.md5(v_room.match_seed::text || ':' || v_guest_id::text), 1, 7
+        pg_catalog.md5(v_session_seed::text || ':' || v_guest_id::text), 1, 7
       ))::bit(28)::bigint
     ) + 1;
     if v_guest_seed = v_host_seed then
