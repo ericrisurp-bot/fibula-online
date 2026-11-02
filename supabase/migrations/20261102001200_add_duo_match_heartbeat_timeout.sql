@@ -13,6 +13,18 @@ alter table public.fibula_duo_match_players
 alter table public.fibula_duo_match_players
   add column if not exists last_seen_at timestamptz not null default pg_catalog.clock_timestamp();
 
+-- A match session is created before both clients necessarily finish loading.
+-- Distinguish a player who has never sent a heartbeat from one who went stale.
+alter table public.fibula_duo_match_players
+  add column if not exists heartbeat_started_at timestamptz;
+
+-- Existing live sessions receive a fresh startup baseline when this migration
+-- is applied, avoiding an immediate timeout caused by their old last_seen_at.
+update public.fibula_duo_match_players
+   set heartbeat_started_at = pg_catalog.clock_timestamp()
+ where player_status = 'alive'
+   and heartbeat_started_at is null;
+
 create index if not exists fibula_duo_match_players_heartbeat_idx
   on public.fibula_duo_match_players (match_id, last_seen_at)
   where player_status = 'alive';
@@ -61,7 +73,8 @@ begin
 
   if v_player.player_status = 'alive' then
     update public.fibula_duo_match_players
-       set last_seen_at = pg_catalog.clock_timestamp()
+       set last_seen_at = pg_catalog.clock_timestamp(),
+           heartbeat_started_at = coalesce(heartbeat_started_at, pg_catalog.clock_timestamp())
      where match_id = p_match_id and user_id = v_user_id;
 
     update public.fibula_duo_match_players
@@ -70,7 +83,12 @@ begin
      where match_id = p_match_id
        and user_id <> v_user_id
        and player_status = 'alive'
-       and last_seen_at < pg_catalog.clock_timestamp() - interval '15 seconds';
+       and (
+         (heartbeat_started_at is not null
+           and last_seen_at < pg_catalog.clock_timestamp() - interval '15 seconds')
+         or (heartbeat_started_at is null
+           and v_session.created_at < pg_catalog.clock_timestamp() - interval '30 seconds')
+       );
   end if;
 
   select p.* into v_player
