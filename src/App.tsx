@@ -1325,9 +1325,9 @@ export default function App() {
       || gameStartedRef.current || duoMatchStartingRef.current
       || duoStartedMatchIdRef.current === peer.matchId) return;
     let cancelled = false;
+    let transport: DuoCycleTransport | null = null;
     duoMatchStartingRef.current = true;
     void (async () => {
-      let transport: DuoCycleTransport | null = null;
       try {
         const engine = engineRef.current;
         if (!engine) throw new Error('O motor local ainda não está pronto.');
