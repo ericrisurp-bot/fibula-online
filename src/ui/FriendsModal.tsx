@@ -16,13 +16,19 @@ type FriendProfile = {
   age: number | null;
   sex: string | null;
 };
+type DuoRole = 'host' | 'guest';
+type DuoStatus = 'connecting' | 'connected';
+type DuoPeer = { friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character']; classId: FriendProfile['avatar_character']; displayName: string; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
 type Props = {
   userId: string;
+  myClassId: FriendProfile['avatar_character'];
+  myDisplayName: string;
   open: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: { friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null, leave?: (() => void) | null) => void;
+  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null) => void;
   onLobbyConnected: () => void;
+  onLobbyNotice: (message: string) => void;
 };
 
 const AVATARS = {
@@ -32,7 +38,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected }: Props) {
+export default function FriendsModal({ userId, myClassId, myDisplayName, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -43,10 +49,47 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
   const [notice, setNotice] = useState('');
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
   const [lobbyInvite, setLobbyInvite] = useState<any>(null);
-  const lobbyRef = useRef<{ friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null>(null);
+  const lobbyRef = useRef<DuoPeer | null>(null);
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
+  const profilesRef = useRef(profiles);
+  const identityRef = useRef({ myClassId, myDisplayName });
+  const onLobbyChangeRef = useRef(onLobbyChange);
+  const onLobbyConnectedRef = useRef(onLobbyConnected);
+  const onLobbyNoticeRef = useRef(onLobbyNotice);
+  const handshakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastPeerEventAtRef = useRef(0);
+  profilesRef.current = profiles;
+  identityRef.current = { myClassId, myDisplayName };
+  onLobbyChangeRef.current = onLobbyChange;
+  onLobbyConnectedRef.current = onLobbyConnected;
+  onLobbyNoticeRef.current = onLobbyNotice;
+  const clearDuoTimers = () => {
+    if (handshakeTimeoutRef.current) clearTimeout(handshakeTimeoutRef.current);
+    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+    handshakeTimeoutRef.current = null;
+    heartbeatIntervalRef.current = null;
+    lastPeerEventAtRef.current = 0;
+  };
+  const publishLobby = () => {
+    const current = lobbyRef.current;
+    onLobbyChangeRef.current(current ? { ...current } : null, current ? leaveLobby : null, current ? toggleReady : null);
+  };
+  const clearLobby = () => {
+    clearDuoTimers();
+    lobbyRef.current = null;
+    onLobbyChangeRef.current(null);
+  };
+  const validClassId = (value: unknown): FriendProfile['avatar_character'] =>
+    value === 'guerreiro' || value === 'mago' || value === 'arqueiro' || value === 'druida' ? value : 'guerreiro';
+  const ownReadyPayload = (friendId: string) => ({
+    from: userId,
+    to: friendId,
+    classId: identityRef.current.myClassId,
+    displayName: profilesRef.current[userId]?.display_name || identityRef.current.myDisplayName || 'Jogador',
+  });
 
   const load = useCallback(async () => {
     if (!fibulaSupabase) {
@@ -91,52 +134,109 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
-  const leaveLobby = async () => {
+  async function leaveLobby() {
     const currentLobby = lobbyRef.current;
+    clearLobby();
     if (currentLobby) {
       const channel = inboxChannels.current.get(currentLobby.friendId);
       if (channel) {
         try {
-          await channel.send({
-            type: 'broadcast',
-            event: 'duo_left',
-            payload: { from: userId, to: currentLobby.friendId },
-          });
+          await channel.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId, to: currentLobby.friendId } });
         } catch { /* The local lobby still closes if the peer is disconnected. */ }
       }
     }
-    lobbyRef.current = null;
-    onLobbyChange(null);
+  }
+
+  async function toggleReady() {
+    const currentLobby = lobbyRef.current;
+    if (!currentLobby || currentLobby.status !== 'connected' || currentLobby.role !== 'guest') return;
+    const nextReady = !currentLobby.selfReady;
+    currentLobby.selfReady = nextReady;
+    publishLobby();
+    const channel = inboxChannels.current.get(currentLobby.friendId);
+    try {
+      if (!channel) throw new Error('Canal Duo indisponível.');
+      const result = await channel.send({
+        type: 'broadcast',
+        event: 'duo_ready_state',
+        payload: { from: userId, to: currentLobby.friendId, ready: nextReady },
+      });
+      if (result !== 'ok') throw new Error('O Realtime não confirmou a atualização.');
+    } catch {
+      if (lobbyRef.current?.friendId === currentLobby.friendId) {
+        currentLobby.selfReady = !nextReady;
+        publishLobby();
+      }
+      setError('Não foi possível atualizar sua prontidão.');
+    }
+  }
+
+  const startHeartbeat = (friendId: string, channel: any) => {
+    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+    lastPeerEventAtRef.current = Date.now();
+    heartbeatIntervalRef.current = setInterval(() => {
+      const current = lobbyRef.current;
+      if (!current || current.friendId !== friendId || current.status !== 'connected') return;
+      if (Date.now() - lastPeerEventAtRef.current >= 15000) {
+        clearLobby();
+        const message = `A conexão com ${current.friendName} foi encerrada.`;
+        setNotice(message);
+        onLobbyNoticeRef.current(message);
+        return;
+      }
+      void channel.send({ type: 'broadcast', event: 'duo_ping', payload: { from: userId, to: friendId } }).catch(() => undefined);
+    }, 5000);
   };
 
-  const joinLobby = async (_roomTopic: string, friendId: string, friendName: string) => {
+  const markConnected = (friendId: string, payload: any, channel: any, acknowledge: boolean) => {
+    const current = lobbyRef.current;
+    if (!current || current.friendId !== friendId) return;
+    lastPeerEventAtRef.current = Date.now();
+    current.classId = validClassId(payload?.classId);
+    current.avatarCharacter = current.classId;
+    current.displayName = typeof payload?.displayName === 'string' && payload.displayName.trim() ? payload.displayName.trim() : current.friendName;
+    current.friendName = current.displayName;
+    current.status = 'connected';
+    current.selfReady = false;
+    current.peerReady = false;
+    if (handshakeTimeoutRef.current) clearTimeout(handshakeTimeoutRef.current);
+    handshakeTimeoutRef.current = null;
+    publishLobby();
+    setError('');
+    onLobbyConnectedRef.current();
+    startHeartbeat(friendId, channel);
+    if (acknowledge) {
+      void channel.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) }).catch(() => undefined);
+    }
+  };
+
+  const joinLobby = async (_roomTopic: string, friendId: string, friendName: string, role: DuoRole) => {
     const channel = inboxChannels.current.get(friendId);
-    // This function is called by long-lived Realtime callbacks. The React state
-    // captured by those callbacks can be stale even while the channel is joined.
-    // Receiving the invite/response on this channel is the authoritative signal
-    // that the pair inbox is connected; do not gate lobby entry on UI state.
     if (!channel) {
       setError('O canal privado entre vocês ainda não está conectado. Tente novamente em instantes.');
       return;
     }
-
-    const peer = { friendId, friendName, avatarCharacter: profiles[friendId]?.avatar_character ?? 'guerreiro' };
+    clearDuoTimers();
+    const peer: DuoPeer = {
+      friendId, friendName, displayName: friendName, avatarCharacter: 'guerreiro', classId: 'guerreiro',
+      role, status: 'connecting', selfReady: false, peerReady: false,
+    };
     lobbyRef.current = peer;
-    onLobbyChange(peer, leaveLobby);
+    publishLobby();
     setError('');
+    setNotice('');
+    handshakeTimeoutRef.current = setTimeout(() => {
+      if (lobbyRef.current?.friendId !== friendId || lobbyRef.current.status !== 'connecting') return;
+      clearLobby();
+      const message = `Não foi possível conectar com ${friendName}.`;
+      setError(message);
+      onLobbyNoticeRef.current(message);
+    }, 8000);
     try {
-      // The accepted-friend inbox is already authorized for private broadcasts.
-      // Use it for the lobby handshake instead of publishing Presence on a
-      // separate topic whose INSERT authorization is currently rejecting track().
-      const result = await channel.send({
-        type: 'broadcast',
-        event: 'duo_ready',
-        payload: { from: userId, to: friendId },
-      });
+      const result = await channel.send({ type: 'broadcast', event: 'duo_ready', payload: ownReadyPayload(friendId) });
       if (result !== 'ok') throw new Error(`O Realtime recusou a entrada no Lobby Duo (resultado: ${String(result)}).`);
     } catch (cause) {
-      lobbyRef.current = null;
-      onLobbyChange(null);
+      if (lobbyRef.current?.friendId === friendId) clearLobby();
       setError(cause instanceof Error ? cause.message : 'Não foi possível entrar no lobby compartilhado.');
     }
   };
@@ -181,9 +281,16 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
     const channels = new Map<string, any>();
     const start = async () => {
       await supabase.realtime.setAuth();
-      for (const friendId of friendIds) {
+      if (!active) return;
+      const subscriptions = friendIds.map(friendId => new Promise<void>((resolve, reject) => {
         const pairKey = [userId, friendId].sort().join(':');
         const inbox = supabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
+        const validPeerEvent = (payload: any) => {
+          const current = lobbyRef.current;
+          if (!active || payload?.from !== friendId || payload?.to !== userId || current?.friendId !== friendId) return false;
+          lastPeerEventAtRef.current = Date.now();
+          return true;
+        };
         inbox.on('broadcast', { event: 'lobby_invite' }, ({ payload }) => {
           if (!active || payload?.to !== userId || payload?.from !== friendId) return;
           setLobbyInvite(payload);
@@ -194,58 +301,62 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
           if (payload.status === 'accepted') {
             const pending = pendingInvite.current;
             pendingInvite.current = null;
-            void joinLobby(pending.room_topic, pending.to, pending.target_name);
+            void joinLobby(pending.room_topic, pending.to, pending.target_name, 'host');
           } else if (payload.status === 'declined') {
             pendingInvite.current = null;
             setNotice('Seu convite de lobby foi recusado.');
           }
         });
         inbox.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
-          const currentLobby = lobbyRef.current;
-          if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
-          onLobbyConnected();
-          // Acknowledge the peer's readiness. This completes the handshake even
-          // when the first ready event was sent before the other player joined.
-          void inbox.send({
-            type: 'broadcast',
-            event: 'duo_ready_ack',
-            payload: { from: userId, to: friendId },
-          });
+          if (!validPeerEvent(payload)) return;
+          markConnected(friendId, payload, inbox, true);
         });
         inbox.on('broadcast', { event: 'duo_ready_ack' }, ({ payload }) => {
-          const currentLobby = lobbyRef.current;
-          if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
-          onLobbyConnected();
+          if (!validPeerEvent(payload)) return;
+          markConnected(friendId, payload, inbox, false);
+        });
+        inbox.on('broadcast', { event: 'duo_ping' }, ({ payload }) => {
+          const current = lobbyRef.current;
+          if (!validPeerEvent(payload) || current?.status !== 'connected') return;
+        });
+        inbox.on('broadcast', { event: 'duo_ready_state' }, ({ payload }) => {
+          const current = lobbyRef.current;
+          if (!validPeerEvent(payload) || current?.status !== 'connected' || typeof payload.ready !== 'boolean') return;
+          current.peerReady = payload.ready;
+          publishLobby();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
-          const currentLobby = lobbyRef.current;
-          if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
-          lobbyRef.current = null;
-          onLobbyChange(null);
+          if (!validPeerEvent(payload)) return;
+          clearLobby();
         });
         channels.set(friendId, inbox);
         inboxChannels.current.set(friendId, inbox);
-        await new Promise<void>((resolve, reject) => {
-          let settled = false;
-          const finish = (error?: Error) => {
-            if (settled) return;
-            settled = true;
-            if (error) reject(error); else resolve();
-          };
-          inbox.subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') {
-              if (active) setConnectedInboxFriends(current => [...new Set([...current, friendId])]);
-              finish();
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-              if (active) {
-                setConnectedInboxFriends(current => current.filter(id => id !== friendId));
-                setError(err?.message || `Falha ao conectar o canal de convites de ${profiles[friendId]?.display_name || 'um amigo'} (${status}).`);
-              }
-              finish(new Error(err?.message || `Falha ao conectar canal de convites (${status}).`));
+        let settled = false;
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          if (error) reject(error); else resolve();
+        };
+        inbox.subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            if (active) setConnectedInboxFriends(current => [...new Set([...current, friendId])]);
+            finish();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            if (active) {
+              setConnectedInboxFriends(current => current.filter(id => id !== friendId));
+              setError(err?.message || `Falha ao conectar o canal de convites de ${profilesRef.current[friendId]?.display_name || 'um amigo'} (${status}).`);
             }
-          });
+            finish(new Error(err?.message || `Falha ao conectar canal de convites (${status}).`));
+          }
         });
-      }
+      }));
+      const results = await Promise.allSettled(subscriptions);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected' && active) {
+          const friendId = friendIds[index];
+          setConnectedInboxFriends(current => current.filter(id => id !== friendId));
+        }
+      });
     };
     setConnectedInboxFriends([]);
     inboxChannels.current.clear();
@@ -254,15 +365,24 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
     });
     return () => {
       active = false;
+      if (lobbyRef.current) {
+        clearLobby();
+        onLobbyNoticeRef.current('O Duo foi encerrado porque a lista de amigos mudou.');
+      }
+      clearDuoTimers();
       inboxChannels.current.clear();
       channels.forEach(channel => void supabase.removeChannel(channel));
     };
   }, [userId, friendIdsKey]);
 
   const sendLobbyInvite = async (friendId: string) => {
+    if (lobbyRef.current) {
+      setError('Saia do Duo atual antes de convidar outra pessoa.');
+      return;
+    }
     if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
     const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
-    const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profiles[userId]?.display_name || 'Seu amigo', target_name: profiles[friendId]?.display_name || 'Seu amigo' };
+    const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profilesRef.current[userId]?.display_name || 'Seu amigo', target_name: profilesRef.current[friendId]?.display_name || 'Seu amigo', role: 'host' as const };
     const channel = inboxChannels.current.get(friendId);
     if (!channel || !connectedInboxFriends.includes(friendId)) {
       setError('O canal de convites ainda não está conectado. Feche e abra a lista de amigos para tentar novamente.');
@@ -281,6 +401,10 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
   };
 
   const answerLobbyInvite = async (status: 'accepted' | 'declined') => {
+    if (status === 'accepted' && lobbyRef.current) {
+      setError('Saia do Duo atual antes de convidar outra pessoa.');
+      return;
+    }
     if (!fibulaSupabase || !lobbyInvite) return;
     const invite = lobbyInvite;
     const channel = inboxChannels.current.get(invite.from);
@@ -293,7 +417,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
       const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { invite_id: invite.invite_id, from: userId, to: invite.from, status } });
       if (result !== 'ok') throw new Error(`O Realtime recusou a resposta (resultado: ${String(result)}).`);
       setLobbyInvite(null);
-      if (status === 'accepted') void joinLobby(invite.room_topic, invite.from, invite.sender_name || 'Seu amigo');
+      if (status === 'accepted') void joinLobby(invite.room_topic, invite.from, invite.sender_name || 'Seu amigo', 'guest');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível responder ao convite.');
     }
@@ -382,7 +506,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(lobbyRef.current) || Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
@@ -416,6 +540,6 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile, onL
       </div>
     </section>
   </div>}
-    {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
+    {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" disabled={Boolean(lobbyRef.current)} onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
   </>;
 }

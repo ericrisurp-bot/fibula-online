@@ -4348,3 +4348,25 @@ button, button * {
 
 .lobby-duo-peer{font:inherit;color:inherit;text-align:left;cursor:pointer}
 .lobby-duo-peer:focus-visible{outline:2px solid rgba(232,231,220,.85);outline-offset:3px}
+
+
+/* Duo compartilhado: personagem real, estados de conexão e prontidão. */
+.lobby-duo-peer{min-height:64px;gap:5px;padding:4px 10px 4px 4px}
+.lobby-duo-peer-avatar{display:block;flex:0 0 48px;width:48px;height:54px;border:0;border-radius:0;background:transparent}
+.lobby-duo-peer-info{display:flex;min-width:0;flex-direction:column;gap:2px;text-align:left}
+.lobby-duo-peer-name{display:block;max-width:125px}
+.lobby-duo-peer-info small{color:#c6d2c4;font-size:9px;font-weight:750;white-space:nowrap}
+.lobby-duo-peer-info .lobby-duo-peer-role{color:#aeb8aa;font-size:8px}
+.lobby-duo-peer.connecting{opacity:.62;filter:saturate(.55)}
+.lobby-play-trigger:disabled{border-color:#666b65!important;background:#555a55!important;color:#aeb4aa!important;box-shadow:none!important;opacity:.72;cursor:not-allowed}
+.lobby-play-trigger.duo-ready-trigger[aria-pressed="true"]{border-color:#8fc79a;background:#355b3e;color:#f2f3ef}
+.lobby-duo-notice{position:absolute;left:50%;top:calc(90dvh + 48px);z-index:8;width:min(320px,calc(100vw - 32px));margin:0;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(190,214,198,.35);border-radius:8px;background:rgba(24,35,29,.9);color:#d8e2d4;font-size:10px;text-align:center;pointer-events:none}
+@media(max-width:650px){
+  .lobby-duo-peer{min-height:58px;max-width:44vw;padding:3px 7px 3px 3px}
+  .lobby-duo-peer-avatar{flex-basis:42px;width:42px;height:48px}
+  .lobby-duo-peer-name{max-width:calc(44vw - 62px);font-size:10px}
+  .lobby-duo-peer-info small{font-size:8px}
+  .lobby-duo-notice{top:calc(90dvh + 40px);font-size:9px}
+}
+
+.lobby-duo-peer-ready{color:#8fd39a;font-weight:950;text-shadow:0 0 8px rgba(89,190,111,.3)}
