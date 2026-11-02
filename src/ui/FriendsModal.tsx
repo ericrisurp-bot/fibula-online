@@ -197,6 +197,8 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     current.displayName = typeof payload?.displayName === 'string' && payload.displayName.trim() ? payload.displayName.trim() : current.friendName;
     current.friendName = current.displayName;
     current.status = 'connected';
+    current.selfReady = false;
+    current.peerReady = false;
     if (handshakeTimeoutRef.current) clearTimeout(handshakeTimeoutRef.current);
     handshakeTimeoutRef.current = null;
     publishLobby();
@@ -363,6 +365,10 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     });
     return () => {
       active = false;
+      if (lobbyRef.current) {
+        clearLobby();
+        onLobbyNoticeRef.current('O Duo foi encerrado porque a lista de amigos mudou.');
+      }
       clearDuoTimers();
       inboxChannels.current.clear();
       channels.forEach(channel => void supabase.removeChannel(channel));
@@ -370,6 +376,10 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   }, [userId, friendIdsKey]);
 
   const sendLobbyInvite = async (friendId: string) => {
+    if (lobbyRef.current) {
+      setError('Saia do Duo atual antes de convidar outra pessoa.');
+      return;
+    }
     if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
     const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
     const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profilesRef.current[userId]?.display_name || 'Seu amigo', target_name: profilesRef.current[friendId]?.display_name || 'Seu amigo', role: 'host' as const };
@@ -391,6 +401,10 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   };
 
   const answerLobbyInvite = async (status: 'accepted' | 'declined') => {
+    if (status === 'accepted' && lobbyRef.current) {
+      setError('Saia do Duo atual antes de convidar outra pessoa.');
+      return;
+    }
     if (!fibulaSupabase || !lobbyInvite) return;
     const invite = lobbyInvite;
     const channel = inboxChannels.current.get(invite.from);
@@ -492,7 +506,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(lobbyRef.current) || Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
@@ -526,6 +540,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       </div>
     </section>
   </div>}
-    {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
+    {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" disabled={Boolean(lobbyRef.current)} onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
   </>;
 }
