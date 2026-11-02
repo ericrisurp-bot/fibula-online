@@ -38,6 +38,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const [lobbyInvite, setLobbyInvite] = useState<any>(null);
   const [lobby, setLobby] = useState<any>(null);
   const [lobbyMembers, setLobbyMembers] = useState<string[]>([]);
+  const [lobbyStatus, setLobbyStatus] = useState<'connecting' | 'waiting' | 'connected'>('connecting');
   const lobbyChannel = useRef<any>(null);
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
@@ -90,25 +91,63 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     if (!fibulaSupabase) return;
     if (lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
     const channel = fibulaSupabase.channel(roomTopic, { config: { private: true, presence: { key: userId } } });
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState() as Record<string, Array<{ user_id: string; display_name: string }>>;
-      setLobbyMembers(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : friendName));
+    const syncMembers = () => {
+      const state = channel.presenceState() as Record<string, Array<{ user_id?: string; display_name?: string }>>;
+      const presences = Object.values(state).flat();
+      const names = presences.map(member => member.user_id === userId ? 'Você' : friendName);
+      // Keep the local player visible even if the initial presence sync arrives
+      // before the server has propagated this client's track payload.
+      setLobbyMembers(current => [...new Set([...names, ...(current.includes('Você') ? ['Você'] : [])])]);
+      setLobbyStatus(presences.some(member => member.user_id === friendId) ? 'connected' : 'waiting');
+    };
+    channel.on('presence', { event: 'sync' }, syncMembers);
+    channel.on('presence', { event: 'join' }, syncMembers);
+    channel.on('presence', { event: 'leave' }, syncMembers);
+    channel.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
+      if (payload?.from !== friendId) return;
+      setLobbyMembers(current => [...new Set([...current, 'Você', friendName])]);
+      setLobbyStatus('connected');
+    });
+    channel.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
+      if (payload?.from !== friendId) return;
+      setLobbyMembers(current => current.filter(name => name !== friendName));
+      setLobbyStatus('waiting');
     });
     lobbyChannel.current = channel;
     setLobby({ roomTopic, friendId, friendName });
     setLobbyMembers([]);
+    setLobbyStatus('connecting');
     try {
       await fibulaSupabase.realtime.setAuth();
       await new Promise<void>((resolve, reject) => channel.subscribe(status => {
         if (status === 'SUBSCRIBED') resolve();
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reject(new Error('Não foi possível entrar no lobby compartilhado.'));
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          reject(new Error('Não foi possível conectar ao canal do Lobby Duo.'));
+        }
       }));
-      await channel.track({ user_id: userId, display_name: profiles[userId]?.display_name || 'Jogador' });
+      const trackResult = await channel.track({ user_id: userId, display_name: profiles[userId]?.display_name || 'Jogador' });
+      if (trackResult !== 'ok') throw new Error(`O Realtime não confirmou sua presença no Lobby Duo (${String(trackResult)}).`);
+      setLobbyMembers(current => [...new Set([...current, 'Você'])]);
+      setLobbyStatus('waiting');
+      // Broadcast readiness as a second signal; presence remains the source of
+      // truth for join/leave and the event is scoped to this accepted friend pair.
+      // Reconcile the initial snapshot before sending the peer-ready signal.
+      syncMembers();
+      const readyResult = await channel.send({
+        type: 'broadcast',
+        event: 'duo_ready',
+        payload: { from: userId, display_name: profiles[userId]?.display_name || 'Jogador' },
+      });
+      if (readyResult !== 'ok') {
+        // Presence join/sync events remain authoritative if the auxiliary signal fails.
+        setLobbyStatus('waiting');
+      }
     } catch (cause) {
       await fibulaSupabase.removeChannel(channel);
       lobbyChannel.current = null;
       setLobby(null);
       setLobbyMembers([]);
+      setLobbyStatus('connecting');
       setError(cause instanceof Error ? cause.message : 'Não foi possível entrar no lobby compartilhado.');
     }
   };
@@ -249,10 +288,14 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   };
 
   const leaveLobby = async () => {
-    if (fibulaSupabase && lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
+    if (fibulaSupabase && lobbyChannel.current) {
+      try { await lobbyChannel.current.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId } }); } catch { /* Presence leave remains authoritative. */ }
+      await fibulaSupabase.removeChannel(lobbyChannel.current);
+    }
     lobbyChannel.current = null;
     setLobby(null);
     setLobbyMembers([]);
+    setLobbyStatus('connecting');
   };
 
   const sendRequest = async (event: FormEvent<HTMLFormElement>) => {
@@ -373,6 +416,6 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     </section>
   </div>}
     {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
-    {lobby && <div className="duo-lobby-backdrop"><section className="duo-lobby-modal" role="dialog" aria-modal="true"><header><strong>Lobby Duo</strong><button type="button" onClick={() => void leaveLobby()}>×</button></header><p>Vocês estão no mesmo lobby compartilhado.</p><div className="duo-lobby-members">{lobbyMembers.map((name, index) => <span key={index}>{name}</span>)}{!lobbyMembers.length && <span>Conectando jogadores...</span>}</div><button type="button" onClick={() => void leaveLobby()}>Sair do lobby</button></section></div>}
+    {lobby && <div className="duo-lobby-backdrop"><section className="duo-lobby-modal" role="dialog" aria-modal="true"><header><strong>Lobby Duo</strong><button type="button" onClick={() => void leaveLobby()}>×</button></header><p>Vocês estão no mesmo lobby compartilhado.</p><div className="duo-lobby-members">{lobbyMembers.map((name, index) => <span key={index}>{name}</span>)}{lobbyStatus === 'connecting' && !lobbyMembers.length && <span>Conectando ao lobby...</span>}{lobbyStatus === 'waiting' && <span>Aguardando seu amigo entrar...</span>}{lobbyStatus === 'connected' && <span>Lobby conectado!</span>}</div><button type="button" onClick={() => void leaveLobby()}>Sair do lobby</button></section></div>}
   </>;
 }
