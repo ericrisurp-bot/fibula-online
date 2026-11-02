@@ -232,6 +232,8 @@ export type GameEngineOptions = {
     hordeTargetForNight?: (nightNumber: number) => number;
     /** Mantém a noite escura após limpar a horda até liberação externa. */
     waitForNightRelease?: boolean;
+    /** Emite uma única notificação quando a horda local é limpa e entra em espera. */
+    onNightComplete?: (nightNumber: number) => void;
   };
 };
 
@@ -945,7 +947,10 @@ export class GameEngine {
     }
     if (this.phase === 'night' && this.hordeSpawned >= this.hordeTarget && this.state.enemies.length === 0) {
       if (this.cooperativeOptions?.waitForNightRelease) {
-        this.waitingForCooperativeNightRelease = true;
+        if (!this.waitingForCooperativeNightRelease) {
+          this.waitingForCooperativeNightRelease = true;
+          this.cooperativeOptions.onNightComplete?.(this.nightNumber);
+        }
       } else {
         this.phase = 'dawn';
         this.phaseElapsed = 0;
