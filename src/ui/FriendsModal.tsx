@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
 
 type RequestStatus = 'pending' | 'accepted' | 'declined';
@@ -16,7 +16,7 @@ type FriendProfile = {
   age: number | null;
   sex: string | null;
 };
-type Props = { userId: string; onClose: () => void; onOpenProfile: (userId: string) => void };
+type Props = { userId: string; open: boolean; onClose: () => void; onOpenProfile: (userId: string) => void };
 
 const AVATARS = {
   guerreiro: { label: 'Guerreiro', icon: '⚔️' },
@@ -25,7 +25,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) {
+export default function FriendsModal({ userId, open, onClose, onOpenProfile }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -34,6 +34,11 @@ export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
+  const [lobbyInvite, setLobbyInvite] = useState<any>(null);
+  const [lobby, setLobby] = useState<any>(null);
+  const lobbyChannel = useRef<any>(null);
+  const pendingInvite = useRef<any>(null);
 
   const load = useCallback(async () => {
     if (!fibulaSupabase) {
@@ -75,6 +80,125 @@ export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) 
   const accepted = useMemo(() => requests.filter(row => row.status === 'accepted'), [requests]);
   const incoming = useMemo(() => requests.filter(row => row.status === 'pending' && row.receiver_id === userId), [requests, userId]);
   const outgoing = useMemo(() => requests.filter(row => row.status === 'pending' && row.sender_id === userId), [requests, userId]);
+  const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
+  const friendIdsKey = friendIds.join('|');
+
+  useEffect(() => { pendingInvite.current = pendingInvite.current; }, [userId]);
+
+  const joinLobby = async (roomTopic: string, friendId: string, friendName: string) => {
+    if (!fibulaSupabase) return;
+    if (lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
+    const channel = fibulaSupabase.channel(roomTopic, { config: { private: true, presence: { key: userId } } });
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState() as Record<string, Array<{ user_id: string; display_name: string }>>;
+      setLobby(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : member.display_name || friendName));
+    });
+    lobbyChannel.current = channel;
+    await fibulaSupabase.realtime.setAuth();
+    channel.subscribe(async status => {
+      if (status !== 'SUBSCRIBED') return;
+      await channel.track({ user_id: userId, display_name: 'Jogador' });
+    });
+    setLobby({ roomTopic, friendId, friendName, members: [] });
+  };
+
+  useEffect(() => {
+    if (!fibulaSupabase) return;
+    let active = true;
+    const channels: any[] = [];
+    const start = async () => {
+      await fibulaSupabase.realtime.setAuth();
+      const own = fibulaSupabase.channel(`fibula:presence:${userId}`, { config: { private: true, presence: { key: userId } } });
+      own.subscribe(status => { if (status === 'SUBSCRIBED') void own.track({ user_id: userId }); });
+      channels.push(own);
+      for (const friendId of friendIds) {
+        const channel = fibulaSupabase.channel(`fibula:presence:${friendId}`, { config: { private: true, presence: { key: friendId } } });
+        const sync = () => {
+          if (!active) return;
+          const online = Object.keys(channel.presenceState()).length > 0;
+          setOnlineFriends(current => online ? [...new Set([...current, friendId])] : current.filter(id => id !== friendId));
+        };
+        channel.on('presence', { event: 'sync' }, sync);
+        channel.subscribe(status => { if (status === 'SUBSCRIBED') sync(); });
+        channels.push(channel);
+      }
+    };
+    setOnlineFriends([]);
+    void start().catch(() => setOnlineFriends([]));
+    return () => { active = false; channels.forEach(channel => void fibulaSupabase?.removeChannel(channel)); };
+  }, [userId, friendIdsKey]);
+
+  useEffect(() => {
+    if (!fibulaSupabase) return;
+    let active = true;
+    const inbox = fibulaSupabase.channel(`fibula:inbox:${userId}`, { config: { private: true } });
+    inbox.on('broadcast', { event: 'lobby_invite' }, ({ payload }) => {
+      if (!active || payload?.to !== userId || typeof payload.from !== 'string') return;
+      setLobbyInvite(payload);
+    });
+    inbox.on('broadcast', { event: 'lobby_invite_response' }, ({ payload }) => {
+      if (!active || payload?.to !== userId || payload?.invite_id !== pendingInvite.current?.invite_id) return;
+      if (payload.status === 'accepted') {
+        const pending = pendingInvite.current;
+        pendingInvite.current = null;
+        void joinLobby(pending.room_topic, pending.to, pending.sender_name);
+      } else {
+        pendingInvite.current = null;
+        setNotice('Seu convite de lobby foi recusado.');
+      }
+    });
+    void fibulaSupabase.realtime.setAuth();
+    inbox.subscribe();
+    return () => { active = false; void fibulaSupabase?.removeChannel(inbox); };
+  }, [userId]);
+
+  const sendLobbyInvite = async (friendId: string) => {
+    if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
+    const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
+    const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profiles[friendId]?.display_name || 'Seu amigo' };
+    const channel = fibulaSupabase.channel(`fibula:inbox:${friendId}`, { config: { private: true } });
+    try {
+      await fibulaSupabase.realtime.setAuth();
+      await new Promise<void>((resolve, reject) => channel.subscribe(status => {
+        if (status === 'SUBSCRIBED') resolve();
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reject(new Error('Não foi possível conectar para enviar o convite.'));
+      }));
+      const result = await channel.send({ type: 'broadcast', event: 'lobby_invite', payload: invite });
+      if (result !== 'ok') throw new Error('Não foi possível entregar o convite.');
+      pendingInvite.current = invite;
+      setNotice(`Convite enviado para ${invite.sender_name}. Aguardando resposta.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível enviar o convite.');
+    } finally {
+      await fibulaSupabase.removeChannel(channel);
+    }
+  };
+
+  const answerLobbyInvite = async (status: 'accepted' | 'declined') => {
+    if (!fibulaSupabase || !lobbyInvite) return;
+    const invite = lobbyInvite;
+    const channel = fibulaSupabase.channel(`fibula:inbox:${invite.from}`, { config: { private: true } });
+    try {
+      await fibulaSupabase.realtime.setAuth();
+      await new Promise<void>((resolve, reject) => channel.subscribe(state => {
+        if (state === 'SUBSCRIBED') resolve();
+        if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') reject(new Error('Não foi possível responder ao convite.'));
+      }));
+      await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { invite_id: invite.invite_id, from: userId, to: invite.from, status } });
+      setLobbyInvite(null);
+      if (status === 'accepted') void joinLobby(invite.room_topic, invite.from, invite.sender_name || 'Seu amigo');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível responder ao convite.');
+    } finally {
+      await fibulaSupabase.removeChannel(channel);
+    }
+  };
+
+  const leaveLobby = async () => {
+    if (fibulaSupabase && lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
+    lobbyChannel.current = null;
+    setLobby(null);
+  };
 
   const sendRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -155,9 +279,11 @@ export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) 
     const avatar = AVATARS[profile?.avatar_character ?? 'guerreiro'];
     return <article className="lobby-friend-card" key={request.id}>
       <span className={`lobby-friend-avatar class-${profile?.avatar_character ?? 'guerreiro'}`} aria-hidden="true">{avatar.icon}</span>
+      {mode === 'friend' && <span className={`lobby-friend-online-dot ${onlineFriends.includes(otherId) ? 'online' : ''}`} aria-label={onlineFriends.includes(otherId) ? 'Online' : 'Offline'} />}
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(pendingInvite.current)} onClick={() => void sendLobbyInvite(otherId)}>Convidar</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
@@ -166,7 +292,7 @@ export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) 
     </article>;
   };
 
-  return <div className="lobby-friends-backdrop" onClick={onClose}>
+  return <>{open && <div className="lobby-friends-backdrop" onClick={onClose}>
     <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
       <header className="lobby-friends-header">
         <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
@@ -177,7 +303,7 @@ export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) 
         <form className="lobby-friends-search" onSubmit={sendRequest}>
           <label htmlFor="friend-search-name">Adicionar amigo pelo nome de jogador</label>
           <div><input id="friend-search-name" value={searchName} onChange={event => setSearchName(event.target.value)} minLength={3} maxLength={20} placeholder="Digite o nome exato" />
-            <button type="submit" disabled={searching || searchName.trim().length < 3}>{searching ? 'Buscando...' : 'Enviar convite'}</button></div>
+            <button type="submit" disabled={searching || searchName.trim().length < 3}>{searching ? 'Buscando...' : 'Enviar pedido'}</button></div>
         </form>
         {error && <p className="lobby-friends-feedback error" role="alert">{error}</p>}
         {notice && <p className="lobby-friends-feedback" role="status">{notice}</p>}
@@ -190,5 +316,8 @@ export default function FriendsModal({ userId, onClose, onOpenProfile }: Props) 
         </>}
       </div>
     </section>
-  </div>;
+  </div>}
+    {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
+    {lobby && <div className="duo-lobby-backdrop"><section className="duo-lobby-modal" role="dialog" aria-modal="true"><header><strong>Lobby Duo</strong><button type="button" onClick={() => void leaveLobby()}>×</button></header><p>Vocês estão no mesmo lobby compartilhado.</p><div className="duo-lobby-members">{(lobby.members || []).map((name: string, index: number) => <span key={index}>{name}</span>)}{!(lobby.members || []).length && <span>Conectando jogadores...</span>}</div><button type="button" onClick={() => void leaveLobby()}>Sair do lobby</button></section></div>}
+  </>;
 }
