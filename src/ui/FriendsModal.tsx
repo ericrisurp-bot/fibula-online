@@ -170,14 +170,19 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     if (!self) throw new Error('Sua conta não consta entre os participantes da sala Duo.');
     const other = room.participants.find(participant => participant.user_id !== userId);
     let invitedUserId = current?.roomId === room.id ? current.friendId : null;
+    let invitationLookupError: string | null = null;
     if (!other && !invitedUserId && self.role === 'host' && fibulaSupabase) {
-      const { data: invitation, error: invitationError } = await fibulaSupabase
-        .from('fibula_duo_rooms')
-        .select('invited_user_id')
-        .eq('id', room.id)
-        .maybeSingle();
-      if (invitationError) throw invitationError;
-      invitedUserId = typeof invitation?.invited_user_id === 'string' ? invitation.invited_user_id : null;
+      try {
+        const { data: invitation, error: invitationError } = await fibulaSupabase
+          .from('fibula_duo_rooms')
+          .select('invited_user_id')
+          .eq('id', room.id)
+          .maybeSingle();
+        if (invitationError) throw invitationError;
+        invitedUserId = typeof invitation?.invited_user_id === 'string' ? invitation.invited_user_id : null;
+      } catch (cause) {
+        invitationLookupError = cause instanceof Error ? cause.message : 'Não foi possível consultar o convite criado.';
+      }
     }
     const friendId = other?.user_id ?? invitedUserId;
     if (!friendId) {
@@ -188,7 +193,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
         leaveError = cause instanceof Error ? cause.message : 'Falha ao encerrar a sala órfã.';
       }
       clearLobby();
-      notify('A sala Duo sem convidado não pôde ser restaurada porque não foi possível recuperar o amigo convidado. ' + (leaveError ? `Falha ao encerrar: ${leaveError}` : 'A sala foi encerrada para evitar ficar órfã.'));
+      notify('A sala Duo sem convidado não pôde ser restaurada porque não foi possível recuperar o amigo convidado. ' + (leaveError ? `Falha ao encerrar: ${leaveError}` : invitationLookupError ? `Consulta do convite: ${invitationLookupError}. A sala foi encerrada para evitar ficar órfã.` : 'A sala foi encerrada para evitar ficar órfã.'));
       return;
     }
     if (!friendIdsRef.current.includes(friendId)) {
