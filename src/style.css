@@ -4368,3 +4368,5 @@ button, button * {
   .lobby-duo-peer-info small{font-size:8px}
   .lobby-duo-notice{top:calc(90dvh + 40px);font-size:9px}
 }
+
+.lobby-duo-peer-ready{color:#8fd39a;font-weight:950;text-shadow:0 0 8px rgba(89,190,111,.3)}
