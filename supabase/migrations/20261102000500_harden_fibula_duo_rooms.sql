@@ -327,7 +327,7 @@ declare
   v_user_id uuid := (select auth.uid());
   v_host_id uuid;
   v_phase text;
-  v_ready_count integer;
+  v_guest_ready boolean;
   v_participant_count integer;
   v_match_id uuid := pg_catalog.gen_random_uuid();
   v_match_seed bigint := pg_catalog.floor(pg_catalog.random() * 4294967295)::bigint + 1;
@@ -350,13 +350,16 @@ begin
     raise exception 'Somente o anfitrião pode iniciar a partida.';
   end if;
 
-  select count(*), count(*) filter (where p.ready)
-    into v_participant_count, v_ready_count
+  select count(*), coalesce(bool_or(p.role = 'guest' and p.ready), false)
+    into v_participant_count, v_guest_ready
     from public.fibula_duo_room_participants p
    where p.room_id = p_room_id and p.left_at is null;
 
-  if v_participant_count <> 2 or v_ready_count <> 2 then
-    raise exception 'Os dois jogadores precisam estar prontos para iniciar.';
+  if v_participant_count <> 2 then
+    raise exception 'A sala precisa ter exatamente dois participantes ativos.';
+  end if;
+  if not v_guest_ready then
+    raise exception 'O convidado precisa estar pronto para iniciar.';
   end if;
 
   update public.fibula_duo_rooms
@@ -601,6 +604,10 @@ with check (
     else false
   end
 );
+
+create index if not exists fibula_duo_rooms_active_phase_idx
+  on public.fibula_duo_rooms (phase, created_at)
+  where phase in ('lobby', 'starting', 'playing');
 
 -- Preserve the established RPC ACLs while explicitly exposing the new RPCs.
 revoke all on function public.fibula_create_duo_room(uuid) from public, anon;
