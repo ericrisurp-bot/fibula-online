@@ -146,6 +146,8 @@ as $function$
 declare
   v_user_id uuid := (select auth.uid());
   v_trade public.fibula_duo_trade_sessions%rowtype;
+  v_room_host_id uuid;
+  v_room_guest_id uuid;
   v_entry jsonb;
   v_item_id text;
   v_quantity bigint;
@@ -160,21 +162,37 @@ begin
     raise exception 'Oferta inválida.';
   end if;
 
+  -- Lock order is always room -> trade, matching room start/open operations.
+  select room_id into v_trade.room_id
+    from public.fibula_duo_trade_sessions
+   where id = p_trade_id and status = 'open';
+  if not found then
+    raise exception 'Negociação não encontrada ou não autorizada.';
+  end if;
+
+  select r.host_id, r.guest_id
+    into v_room_host_id, v_room_guest_id
+    from public.fibula_duo_rooms r
+   where r.id = v_trade.room_id and r.phase = 'lobby'
+   for update;
+  if not found then
+    raise exception 'A negociação só pode mudar enquanto os dois estiverem no lobby.';
+  end if;
+
   select * into v_trade
     from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'open'
    for update;
-  if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id) then
-    raise exception 'Negociação não encontrada ou não autorizada.';
-  end if;
-  if not exists (
-    select 1 from public.fibula_duo_rooms r
-     join public.fibula_duo_room_participants p on p.room_id = r.id
-     where r.id = v_trade.room_id and r.phase = 'lobby'
-       and p.user_id = v_user_id and p.left_at is null
-  ) or (select count(*) from public.fibula_duo_room_participants p
-         where p.room_id = v_trade.room_id and p.left_at is null) <> 2 then
-    raise exception 'A negociação só pode mudar enquanto os dois estiverem no lobby.';
+  if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id)
+    or v_trade.host_id <> v_room_host_id or v_trade.guest_id <> v_room_guest_id
+    or (select count(*) from public.fibula_duo_room_participants p
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2
+    or not exists (
+      select 1 from public.fibula_duo_room_participants p
+       where p.room_id = v_trade.room_id and p.user_id = v_user_id
+         and p.left_at is null
+    ) then
+    raise exception 'A negociação só pode mudar enquanto os dois participantes originais estiverem no lobby.';
   end if;
 
   -- Release the caller's previous reservation before validating its replacement.
@@ -270,22 +288,44 @@ declare
   v_next_slot smallint;
   v_current_quantity bigint;
   v_free_slots integer;
+  v_count integer;
+  v_room_host_id uuid;
+  v_room_guest_id uuid;
 begin
   perform public.fibula_inventory_assert_session();
+
+  -- Lock the room before the trade so a simultaneous match start cannot
+  -- pass the lobby check while this confirmation is committing.
+  select room_id into v_trade.room_id
+    from public.fibula_duo_trade_sessions
+   where id = p_trade_id and status = 'open';
+  if not found then
+    raise exception 'Negociação não encontrada ou não autorizada.';
+  end if;
+
+  select r.host_id, r.guest_id
+    into v_room_host_id, v_room_guest_id
+    from public.fibula_duo_rooms r
+   where r.id = v_trade.room_id and r.phase = 'lobby'
+   for update;
+  if not found then
+    raise exception 'A negociação não está mais no lobby com os dois participantes.';
+  end if;
 
   select * into v_trade
     from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'open'
    for update;
-  if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id) then
-    raise exception 'Negociação não encontrada ou não autorizada.';
-  end if;
-  if not exists (
-    select 1 from public.fibula_duo_rooms r
-     where r.id = v_trade.room_id and r.phase = 'lobby'
-  ) or (select count(*) from public.fibula_duo_room_participants p
-         where p.room_id = v_trade.room_id and p.left_at is null) <> 2 then
-    raise exception 'A negociação não está mais no lobby com os dois participantes.';
+  if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id)
+    or v_trade.host_id <> v_room_host_id or v_trade.guest_id <> v_room_guest_id
+    or (select count(*) from public.fibula_duo_room_participants p
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2
+    or not exists (
+      select 1 from public.fibula_duo_room_participants p
+       where p.room_id = v_trade.room_id and p.user_id = v_user_id
+         and p.left_at is null
+    ) then
+    raise exception 'A negociação não está mais no lobby com os dois participantes originais.';
   end if;
 
   update public.fibula_duo_trade_sessions
