@@ -13,7 +13,7 @@ export type DuoRoom = {
   id: string;
   host_id: string;
   guest_id: string | null;
-  phase: DuoRoomPhase;
+  phase: DuoRoomPhase | null;
   match_id: string | null;
   match_seed: number | null;
   participants: DuoRoomParticipant[];
@@ -56,7 +56,7 @@ function parseDuoRoom(value: unknown): DuoRoom | null {
     || typeof value.id !== 'string'
     || typeof value.host_id !== 'string'
     || !isNullableString(value.guest_id)
-    || !['lobby', 'starting', 'playing', 'finished', 'cancelled'].includes(String(value.phase))
+    || !(value.phase === null || ['lobby', 'starting', 'playing', 'finished', 'cancelled'].includes(String(value.phase)))
     || !isNullableString(value.match_id)
     || !(value.match_seed === null || (typeof value.match_seed === 'number' && Number.isFinite(value.match_seed)))
     || !Array.isArray(value.participants)
