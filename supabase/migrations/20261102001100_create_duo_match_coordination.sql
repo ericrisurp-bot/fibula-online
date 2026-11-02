@@ -154,6 +154,16 @@ begin
     raise exception 'A sala Duo não possui uma partida ativa.';
   end if;
 
+  if not exists (
+    select 1
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id
+       and p.user_id = v_user_id
+       and p.left_at is null
+  ) then
+    raise exception 'Você não participa desta partida Duo.';
+  end if;
+
   select s.* into v_session
     from public.fibula_duo_match_sessions s
    where s.match_id = v_room.match_id
@@ -257,6 +267,7 @@ set search_path = ''
 as $function$
 declare
   v_user_id uuid := (select auth.uid());
+  v_room_id uuid;
   v_session public.fibula_duo_match_sessions%rowtype;
   v_player public.fibula_duo_match_players%rowtype;
   v_existing_status text;
@@ -275,6 +286,20 @@ begin
     or p_night_number is null or p_night_number < 1 then
     raise exception 'Relato de noite inválido.';
   end if;
+
+  -- Match all writers on the same lock order: room, then session,
+  -- then participant/report rows. This avoids a start/report deadlock.
+  select s.room_id into v_room_id
+    from public.fibula_duo_match_sessions s
+   where s.match_id = p_match_id;
+  if not found then
+    raise exception 'Partida Duo não encontrada.';
+  end if;
+
+  perform 1
+    from public.fibula_duo_rooms r
+   where r.id = v_room_id
+   for update;
 
   select s.* into v_session
     from public.fibula_duo_match_sessions s
