@@ -136,6 +136,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
 
   async function leaveLobby() {
     const currentLobby = lobbyRef.current;
+    clearLobby();
     if (currentLobby) {
       const channel = inboxChannels.current.get(currentLobby.friendId);
       if (channel) {
@@ -144,7 +145,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
         } catch { /* The local lobby still closes if the peer is disconnected. */ }
       }
     }
-    clearLobby();
   }
 
   async function toggleReady() {
@@ -216,8 +216,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       role, status: 'connecting', selfReady: false, peerReady: false,
     };
     lobbyRef.current = peer;
-    setSelfReady(false);
-    setPeerReady(false);
     publishLobby();
     setError('');
     setNotice('');
@@ -319,7 +317,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
           const current = lobbyRef.current;
           if (!validPeerEvent(payload) || current?.status !== 'connected' || typeof payload.ready !== 'boolean') return;
           current.peerReady = payload.ready;
-          setPeerReady(payload.ready);
           publishLobby();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
