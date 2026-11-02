@@ -131,16 +131,17 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       setLobbyStatus('waiting');
       // Broadcast readiness as a second signal; presence remains the source of
       // truth for join/leave and the event is scoped to this accepted friend pair.
+      // Reconcile the initial snapshot before sending the peer-ready signal.
+      syncMembers();
       const readyResult = await channel.send({
         type: 'broadcast',
         event: 'duo_ready',
         payload: { from: userId, display_name: profiles[userId]?.display_name || 'Jogador' },
       });
       if (readyResult !== 'ok') {
-        // Presence can still complete the lobby if the auxiliary signal fails.
-        syncMembers();
+        // Presence join/sync events remain authoritative if the auxiliary signal fails.
+        setLobbyStatus('waiting');
       }
-      syncMembers();
     } catch (cause) {
       await fibulaSupabase.removeChannel(channel);
       lobbyChannel.current = null;
