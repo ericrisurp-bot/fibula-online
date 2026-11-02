@@ -80,6 +80,13 @@ export async function joinDuoRoom(roomId: string): Promise<string> {
   return data;
 }
 
+export async function startDuoMatch(roomId: string): Promise<string> {
+  const { data, error } = await getClient().rpc('fibula_start_duo_match', { p_room_id: roomId });
+  throwRpcError(error);
+  if (typeof data !== 'string' || !data) throw new Error('O servidor não retornou o identificador da partida Duo.');
+  return data;
+}
+
 export async function setDuoReady(roomId: string, ready: boolean): Promise<boolean> {
   const { data, error } = await getClient().rpc('fibula_set_duo_ready', { p_room_id: roomId, p_ready: ready });
   throwRpcError(error);
