@@ -1613,7 +1613,7 @@ export default function App() {
           </button>
         {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
           {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
-        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={duoPeer ? duoPeer.status !== 'connected' ? 'Aguardando conexão' : `Aguardando ${duoPeer.friendName} ficar pronto` : 'Entrar no mundo'}>
+        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={duoPeer ? `Aguardando ${duoPeer.friendName} ficar pronto` : 'Entrar no mundo'}>
           Jogar
         </button>}
         {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
