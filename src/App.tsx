@@ -1473,6 +1473,7 @@ export default function App() {
         throw new Error('Conecte-se à internet para iniciar outra partida com progresso validado.');
       }
       const sessionId = await startSoloMatchSession(fibulaSupabase);
+      engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
       matchSummaryHandledRef.current = false;
       flagsRef.current = [];
