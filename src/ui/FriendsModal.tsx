@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
+import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, type DuoRoom } from './duoRooms';
 
 type RequestStatus = 'pending' | 'accepted' | 'declined';
 type FriendRequest = {
@@ -18,7 +19,7 @@ type FriendProfile = {
 };
 type DuoRole = 'host' | 'guest';
 type DuoStatus = 'connecting' | 'connected';
-type DuoPeer = { friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character']; classId: FriendProfile['avatar_character']; displayName: string; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
+type DuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character']; classId: FriendProfile['avatar_character']; displayName: string; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
 type Props = {
   userId: string;
   myClassId: FriendProfile['avatar_character'];
@@ -48,7 +49,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
-  const [lobbyInvite, setLobbyInvite] = useState<any>(null);
+  const [lobbyInvite, setLobbyInvite] = useState<{ room_id: string; from: string; sender_name: string } | null>(null);\n  const [activeDuo, setActiveDuo] = useState<DuoPeer | null>(null);
   const lobbyRef = useRef<DuoPeer | null>(null);
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
@@ -134,145 +135,232 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
-  async function leaveLobby() {
-    const currentLobby = lobbyRef.current;
-    clearLobby();
-    if (currentLobby) {
-      const channel = inboxChannels.current.get(currentLobby.friendId);
-      if (channel) {
-        try {
-          await channel.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId, to: currentLobby.friendId } });
-        } catch { /* The local lobby still closes if the peer is disconnected. */ }
+  const notify = (message: string) => {
+    setNotice(message);
+    onLobbyNoticeRef.current(message);
+  };
+
+  const loadPeerProfile = async (friendId: string): Promise<FriendProfile | null> => {
+    const cached = profilesRef.current[friendId];
+    if (cached) return cached;
+    if (!fibulaSupabase) return null;
+    const { data, error: profileError } = await fibulaSupabase
+      .from('fibula_profiles')
+      .select('user_id,display_name,avatar_character,age,sex')
+      .eq('user_id', friendId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (!data) return null;
+    const profile = data as FriendProfile;
+    setProfiles(current => ({ ...current, [friendId]: profile }));
+    profilesRef.current = { ...profilesRef.current, [friendId]: profile };
+    return profile;
+  };
+
+  const refreshDuoRoom = async (restore = false) => {
+    const room = await getMyDuoRoom();
+    const current = lobbyRef.current;
+    if (!room) {
+      if (current) {
+        clearLobby();
+        notify('O Duo foi encerrado.');
       }
+      return;
+    }
+    if (room.phase === 'cancelled' || room.phase === 'finished') {
+      clearLobby();
+      notify('O Duo foi encerrado.');
+      return;
+    }
+    const self = room.participants.find(participant => participant.user_id === userId);
+    if (!self) throw new Error('Sua conta não consta entre os participantes da sala Duo.');
+    const other = room.participants.find(participant => participant.user_id !== userId);
+    const friendId = other?.user_id ?? (current?.roomId === room.id ? current.friendId : null);
+    if (!friendId) {
+      await leaveDuoRoom(room.id);
+      clearLobby();
+      notify('A sala Duo sem convidado não pôde ser restaurada porque o RPC não informa o amigo convidado. A sala foi encerrada para evitar ficar órfã.');
+      return;
+    }
+    if (!friendIdsRef.current.includes(friendId)) {
+      await leaveDuoRoom(room.id);
+      clearLobby();
+      notify('A sala Duo foi encerrada porque o outro participante não é mais um amigo aceito.');
+      return;
+    }
+    const profile = await loadPeerProfile(friendId);
+    const previous = lobbyRef.current;
+    const peer: DuoPeer = {
+      roomId: room.id,
+      matchId: room.match_id,
+      friendId,
+      friendName: previous?.friendId === friendId ? previous.friendName : profile?.display_name || 'Amigo',
+      displayName: previous?.friendId === friendId ? previous.displayName : profile?.display_name || 'Amigo',
+      avatarCharacter: previous?.friendId === friendId ? previous.avatarCharacter : validClassId(profile?.avatar_character),
+      classId: previous?.friendId === friendId ? previous.classId : validClassId(profile?.avatar_character),
+      role: self.role,
+      status: other ? 'connected' : 'connecting',
+      selfReady: self.ready,
+      peerReady: other?.ready ?? false,
+    };
+    lobbyRef.current = peer;
+    publishLobby();
+    if (peer.status === 'connected' && previous?.status !== 'connected') {
+      setError('');
+      onLobbyConnectedRef.current();
+    }
+    if (restore) setNotice('');
+  };
+
+  const refreshDuoInvites = async () => {
+    if (lobbyRef.current) return;
+    const invites = await listDuoInvites();
+    const acceptedFriends = friendIdsRef.current;
+    const invite = invites.find(item => acceptedFriends.includes(item.host_id));
+    if (!invite) {
+      setLobbyInvite(null);
+      return;
+    }
+    const profile = await loadPeerProfile(invite.host_id);
+    setLobbyInvite({ room_id: invite.room_id, from: invite.host_id, sender_name: profile?.display_name || 'Seu amigo' });
+  };
+
+  async function leaveLobby() {
+    const current = lobbyRef.current;
+    if (!current) return;
+    try {
+      await leaveDuoRoom(current.roomId);
+      const channel = inboxChannels.current.get(current.friendId);
+      if (channel) {
+        const result = await channel.send({ type: 'broadcast', event: 'duo_left', payload: { from: userId, to: current.friendId, room_id: current.roomId } });
+        if (result !== 'ok') setError('Você saiu da sala, mas o aviso ao outro jogador não foi entregue.');
+      }
+      clearLobby();
+      setLobbyInvite(null);
+      setError('');
+      setNotice('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível sair da sala Duo.');
     }
   }
 
   async function toggleReady() {
-    const currentLobby = lobbyRef.current;
-    if (!currentLobby || currentLobby.status !== 'connected' || currentLobby.role !== 'guest') return;
-    const nextReady = !currentLobby.selfReady;
-    currentLobby.selfReady = nextReady;
+    const current = lobbyRef.current;
+    if (!current || current.status !== 'connected' || current.role !== 'guest') return;
+    const previousReady = current.selfReady;
+    const nextReady = !previousReady;
+    current.selfReady = nextReady;
     publishLobby();
-    const channel = inboxChannels.current.get(currentLobby.friendId);
     try {
-      if (!channel) throw new Error('Canal Duo indisponível.');
-      const result = await channel.send({
-        type: 'broadcast',
-        event: 'duo_ready_state',
-        payload: { from: userId, to: currentLobby.friendId, ready: nextReady },
-      });
-      if (result !== 'ok') throw new Error('O Realtime não confirmou a atualização.');
-    } catch {
-      if (lobbyRef.current?.friendId === currentLobby.friendId) {
-        currentLobby.selfReady = !nextReady;
+      await setDuoReady(current.roomId, nextReady);
+      await refreshDuoRoom();
+      const channel = inboxChannels.current.get(current.friendId);
+      if (channel) {
+        const result = await channel.send({ type: 'broadcast', event: 'duo_ready_state', payload: { from: userId, to: current.friendId, room_id: current.roomId, ready: nextReady } });
+        if (result !== 'ok') setError('Prontidão salva, mas o aviso imediato ao anfitrião não foi entregue.');
+      }
+    } catch (cause) {
+      if (lobbyRef.current?.roomId === current.roomId) {
+        current.selfReady = previousReady;
         publishLobby();
       }
-      setError('Não foi possível atualizar sua prontidão.');
+      setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar sua prontidão.');
     }
   }
 
-  const startHeartbeat = (friendId: string, channel: any) => {
-    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
-    lastPeerEventAtRef.current = Date.now();
-    heartbeatIntervalRef.current = setInterval(() => {
-      const current = lobbyRef.current;
-      if (!current || current.friendId !== friendId || current.status !== 'connected') return;
-      if (Date.now() - lastPeerEventAtRef.current >= 15000) {
-        clearLobby();
-        const message = `A conexão com ${current.friendName} foi encerrada.`;
-        setNotice(message);
-        onLobbyNoticeRef.current(message);
-        return;
-      }
-      void channel.send({ type: 'broadcast', event: 'duo_ping', payload: { from: userId, to: friendId } }).catch(() => undefined);
-    }, 5000);
-  };
-
-  const markConnected = (friendId: string, payload: any, channel: any, acknowledge: boolean) => {
+  const applyPeerIdentity = (friendId: string, payload: any) => {
     const current = lobbyRef.current;
     if (!current || current.friendId !== friendId) return;
-    lastPeerEventAtRef.current = Date.now();
     current.classId = validClassId(payload?.classId);
     current.avatarCharacter = current.classId;
-    current.displayName = typeof payload?.displayName === 'string' && payload.displayName.trim() ? payload.displayName.trim() : current.friendName;
+    current.displayName = typeof payload?.displayName === 'string' && payload.displayName.trim()
+      ? payload.displayName.trim()
+      : current.friendName;
     current.friendName = current.displayName;
-    current.status = 'connected';
-    current.selfReady = false;
-    current.peerReady = false;
-    if (handshakeTimeoutRef.current) clearTimeout(handshakeTimeoutRef.current);
-    handshakeTimeoutRef.current = null;
     publishLobby();
-    setError('');
-    onLobbyConnectedRef.current();
-    startHeartbeat(friendId, channel);
-    if (acknowledge) {
-      void channel.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) }).catch(() => undefined);
-    }
-  };
-
-  const joinLobby = async (_roomTopic: string, friendId: string, friendName: string, role: DuoRole) => {
-    const channel = inboxChannels.current.get(friendId);
-    if (!channel) {
-      setError('O canal privado entre vocês ainda não está conectado. Tente novamente em instantes.');
-      return;
-    }
-    clearDuoTimers();
-    const peer: DuoPeer = {
-      friendId, friendName, displayName: friendName, avatarCharacter: 'guerreiro', classId: 'guerreiro',
-      role, status: 'connecting', selfReady: false, peerReady: false,
-    };
-    lobbyRef.current = peer;
-    publishLobby();
-    setError('');
-    setNotice('');
-    handshakeTimeoutRef.current = setTimeout(() => {
-      if (lobbyRef.current?.friendId !== friendId || lobbyRef.current.status !== 'connecting') return;
-      clearLobby();
-      const message = `Não foi possível conectar com ${friendName}.`;
-      setError(message);
-      onLobbyNoticeRef.current(message);
-    }, 8000);
-    try {
-      const result = await channel.send({ type: 'broadcast', event: 'duo_ready', payload: ownReadyPayload(friendId) });
-      if (result !== 'ok') throw new Error(`O Realtime recusou a entrada no Lobby Duo (resultado: ${String(result)}).`);
-    } catch (cause) {
-      if (lobbyRef.current?.friendId === friendId) clearLobby();
-      setError(cause instanceof Error ? cause.message : 'Não foi possível entrar no lobby compartilhado.');
-    }
   };
 
   useEffect(() => {
-    const supabase = fibulaSupabase;
-    if (!supabase) return;
+    friendIdsRef.current = friendIds;
+  }, [friendIdsKey]);
+
+  useEffect(() => {
     let active = true;
-    const channels: any[] = [];
-    const start = async () => {
-      await supabase.realtime.setAuth();
-      for (const friendId of friendIds) {
-        // Each pair shares one private channel, so both clients publish presence
-        // to the exact same topic and can see one another online.
-        const pairKey = [userId, friendId].sort().join(':');
-        const channel = supabase.channel(`fibula:presence:${pairKey}`, { config: { private: true, presence: { key: userId } } });
-        const sync = () => {
-          if (!active) return;
-          const presences = Object.values(channel.presenceState()).flat() as Array<{ user_id?: string }>;
-          const online = presences.some(member => member.user_id === friendId);
-          setOnlineFriends(current => online ? [...new Set([...current, friendId])] : current.filter(id => id !== friendId));
-        };
-        channel.on('presence', { event: 'sync' }, sync);
-        channel.subscribe(status => {
-          if (status === 'SUBSCRIBED') {
-            void channel.track({ user_id: userId });
-            sync();
-          }
-        });
-        channels.push(channel);
+    const restore = async () => {
+      try {
+        await refreshDuoRoom(true);
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível restaurar a sala Duo.');
       }
     };
-    setOnlineFriends([]);
-    void start().catch(() => setOnlineFriends([]));
-    return () => { active = false; channels.forEach(channel => void supabase.removeChannel(channel)); };
-  }, [userId, friendIdsKey]);
+    void restore();
+    return () => { active = false; };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!activeDuo?.roomId) return;
+    let active = true;
+    let refreshing = false;
+    const refresh = async () => {
+      if (!active || refreshing || !lobbyRef.current) return;
+      refreshing = true;
+      try {
+        await refreshDuoRoom();
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a sala Duo.');
+      } finally {
+        refreshing = false;
+      }
+    };
+    void refresh();
+    const interval = setInterval(() => { void refresh(); }, 3000);
+    return () => { active = false; clearInterval(interval); };
+  }, [activeDuo?.roomId]);
+
+  useEffect(() => {
+    if (!activeDuo?.roomId) return;
+    let active = true;
+    let sending = false;
+    const heartbeat = async () => {
+      if (!active || sending || !lobbyRef.current || lobbyRef.current.roomId !== activeDuo.roomId) return;
+      sending = true;
+      try {
+        await duoHeartbeat(activeDuo.roomId);
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Não foi possível manter a sala Duo ativa.';
+        if (active && message === 'Você não participa desta sala.') {
+          clearLobby();
+          notify('O Duo foi encerrado.');
+        } else if (active) {
+          setError(message);
+        }
+      } finally {
+        sending = false;
+      }
+    };
+    const interval = setInterval(() => { void heartbeat(); }, 15000);
+    return () => { active = false; clearInterval(interval); };
+  }, [activeDuo?.roomId]);
+
+  useEffect(() => {
+    if (activeDuo?.roomId) return;
+    let active = true;
+    let loadingInvites = false;
+    const refresh = async () => {
+      if (!active || loadingInvites || lobbyRef.current) return;
+      loadingInvites = true;
+      try {
+        await refreshDuoInvites();
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível carregar convites Duo.');
+      } finally {
+        loadingInvites = false;
+      }
+    };
+    void refresh();
+    const interval = setInterval(() => { void refresh(); }, 10000);
+    return () => { active = false; clearInterval(interval); };
+  }, [activeDuo?.roomId, friendIdsKey]);
 
   useEffect(() => {
     const supabase = fibulaSupabase;
@@ -285,49 +373,41 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       const subscriptions = friendIds.map(friendId => new Promise<void>((resolve, reject) => {
         const pairKey = [userId, friendId].sort().join(':');
         const inbox = supabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
-        const validPeerEvent = (payload: any) => {
-          const current = lobbyRef.current;
-          if (!active || payload?.from !== friendId || payload?.to !== userId || current?.friendId !== friendId) return false;
-          lastPeerEventAtRef.current = Date.now();
-          return true;
-        };
+        const validPeerEvent = (payload: any) =>
+          active && payload?.from === friendId && payload?.to === userId;
         inbox.on('broadcast', { event: 'lobby_invite' }, ({ payload }) => {
-          if (!active || payload?.to !== userId || payload?.from !== friendId) return;
-          setLobbyInvite(payload);
-          setError('');
+          if (!validPeerEvent(payload) || typeof payload?.room_id !== 'string') return;
+          void refreshDuoInvites().catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível conferir o convite Duo.'));
         });
         inbox.on('broadcast', { event: 'lobby_invite_response' }, ({ payload }) => {
-          if (!active || payload?.to !== userId || payload?.from !== friendId || payload?.invite_id !== pendingInvite.current?.invite_id) return;
-          if (payload.status === 'accepted') {
-            const pending = pendingInvite.current;
-            pendingInvite.current = null;
-            void joinLobby(pending.room_topic, pending.to, pending.target_name, 'host');
-          } else if (payload.status === 'declined') {
-            pendingInvite.current = null;
-            setNotice('Seu convite de lobby foi recusado.');
+          if (!validPeerEvent(payload) || typeof payload?.accepted !== 'boolean') return;
+          if (lobbyRef.current?.role === 'host') {
+            void refreshDuoRoom().catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a sala Duo.'));
+            if (!payload.accepted) notify('Seu convite de Duo foi recusado.');
           }
         });
+        const refreshOnDuoSignal = () => {
+          if (!validPeerEvent({ from: friendId, to: userId })) return;
+          void refreshDuoRoom().catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a sala Duo.'));
+        };
         inbox.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
           if (!validPeerEvent(payload)) return;
-          markConnected(friendId, payload, inbox, true);
+          applyPeerIdentity(friendId, payload);
+          refreshOnDuoSignal();
+          void inbox.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível enviar confirmação Duo.'));
         });
         inbox.on('broadcast', { event: 'duo_ready_ack' }, ({ payload }) => {
           if (!validPeerEvent(payload)) return;
-          markConnected(friendId, payload, inbox, false);
-        });
-        inbox.on('broadcast', { event: 'duo_ping' }, ({ payload }) => {
-          const current = lobbyRef.current;
-          if (!validPeerEvent(payload) || current?.status !== 'connected') return;
+          applyPeerIdentity(friendId, payload);
+          refreshOnDuoSignal();
         });
         inbox.on('broadcast', { event: 'duo_ready_state' }, ({ payload }) => {
-          const current = lobbyRef.current;
-          if (!validPeerEvent(payload) || current?.status !== 'connected' || typeof payload.ready !== 'boolean') return;
-          current.peerReady = payload.ready;
-          publishLobby();
+          if (!validPeerEvent(payload)) return;
+          refreshOnDuoSignal();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
           if (!validPeerEvent(payload)) return;
-          clearLobby();
+          refreshOnDuoSignal();
         });
         channels.set(friendId, inbox);
         inboxChannels.current.set(friendId, inbox);
@@ -365,11 +445,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     });
     return () => {
       active = false;
-      if (lobbyRef.current) {
-        clearLobby();
-        onLobbyNoticeRef.current('O Duo foi encerrado porque a lista de amigos mudou.');
-      }
-      clearDuoTimers();
       inboxChannels.current.clear();
       channels.forEach(channel => void supabase.removeChannel(channel));
     };
@@ -380,9 +455,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       setError('Saia do Duo atual antes de convidar outra pessoa.');
       return;
     }
-    if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
-    const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
-    const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profilesRef.current[userId]?.display_name || 'Seu amigo', target_name: profilesRef.current[friendId]?.display_name || 'Seu amigo', role: 'host' as const };
+    if (!fibulaSupabase || !onlineFriends.includes(friendId)) return;
     const channel = inboxChannels.current.get(friendId);
     if (!channel || !connectedInboxFriends.includes(friendId)) {
       setError('O canal de convites ainda não está conectado. Feche e abra a lista de amigos para tentar novamente.');
@@ -390,36 +463,78 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     }
     try {
       setError('');
-      pendingInvite.current = invite;
-      const result = await channel.send({ type: 'broadcast', event: 'lobby_invite', payload: invite });
-      if (result !== 'ok') throw new Error(`O Realtime recusou o envio do convite (resultado: ${String(result)}).`);
-      setNotice(`Convite enviado para ${invite.target_name}. Aguardando resposta.`);
+      const roomId = await createDuoRoom(friendId);
+      const peer: DuoPeer = {
+        roomId, matchId: null, friendId,
+        friendName: profilesRef.current[friendId]?.display_name || 'Seu amigo',
+        displayName: profilesRef.current[friendId]?.display_name || 'Seu amigo',
+        avatarCharacter: validClassId(profilesRef.current[friendId]?.avatar_character),
+        classId: validClassId(profilesRef.current[friendId]?.avatar_character),
+        role: 'host', status: 'connecting', selfReady: false, peerReady: false,
+      };
+      lobbyRef.current = peer;
+      publishLobby();
+      pendingInvite.current = { room_id: roomId, from: userId, to: friendId };
+      setNotice(`Convite enviado para ${peer.friendName}. Aguardando resposta.`);
+      try {
+        const result = await channel.send({
+          type: 'broadcast', event: 'lobby_invite',
+          payload: {
+            room_id: roomId, from: userId, to: friendId,
+            sender_name: profilesRef.current[userId]?.display_name || myDisplayName || 'Seu amigo',
+            target_name: peer.friendName,
+          },
+        });
+        if (result !== 'ok') setError('O convite foi salvo no servidor, mas o aviso imediato não foi entregue. O amigo ainda poderá recebê-lo pela lista de convites.');
+      } catch {
+        setNotice('O convite foi salvo no servidor. O amigo poderá recebê-lo pela lista de convites.');
+      }
     } catch (cause) {
-      pendingInvite.current = null;
-      setError(cause instanceof Error ? cause.message : 'Não foi possível enviar o convite.');
+      setError(cause instanceof Error ? cause.message : 'Não foi possível criar a sala Duo.');
     }
   };
 
-  const answerLobbyInvite = async (status: 'accepted' | 'declined') => {
-    if (status === 'accepted' && lobbyRef.current) {
-      setError('Saia do Duo atual antes de convidar outra pessoa.');
+  const answerLobbyInvite = async (accepted: boolean) => {
+    if (accepted && lobbyRef.current) {
+      setError('Saia do Duo atual antes de aceitar outro convite.');
       return;
     }
-    if (!fibulaSupabase || !lobbyInvite) return;
+    if (!lobbyInvite) return;
     const invite = lobbyInvite;
     const channel = inboxChannels.current.get(invite.from);
-    if (!channel || !connectedInboxFriends.includes(invite.from)) {
-      setError('O canal de convites ainda não está conectado. Não foi possível responder.');
+    if (!accepted) {
+      setLobbyInvite(null);
+      if (channel) {
+        try {
+          const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { from: userId, to: invite.from, accepted: false } });
+          if (result !== 'ok') setError('Convite fechado localmente, mas o aviso de recusa não foi entregue.');
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : 'Não foi possível avisar que o convite foi recusado.');
+        }
+      }
       return;
     }
     try {
-      setError('');
-      const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { invite_id: invite.invite_id, from: userId, to: invite.from, status } });
-      if (result !== 'ok') throw new Error(`O Realtime recusou a resposta (resultado: ${String(result)}).`);
+      const roomId = await joinDuoRoom(invite.room_id);
+      const profile = await loadPeerProfile(invite.from);
+      const peer: DuoPeer = {
+        roomId, matchId: null, friendId: invite.from,
+        friendName: profile?.display_name || invite.sender_name || 'Seu amigo',
+        displayName: profile?.display_name || invite.sender_name || 'Seu amigo',
+        avatarCharacter: validClassId(profile?.avatar_character),
+        classId: validClassId(profile?.avatar_character),
+        role: 'guest', status: 'connecting', selfReady: false, peerReady: false,
+      };
+      lobbyRef.current = peer;
+      publishLobby();
       setLobbyInvite(null);
-      if (status === 'accepted') void joinLobby(invite.room_topic, invite.from, invite.sender_name || 'Seu amigo', 'guest');
+      if (channel) {
+        const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { from: userId, to: invite.from, accepted: true } });
+        if (result !== 'ok') setError('Você entrou na sala, mas o aviso imediato ao anfitrião não foi entregue.');
+      }
+      await refreshDuoRoom();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível responder ao convite.');
+      setError(cause instanceof Error ? cause.message : 'Não foi possível entrar na sala Duo.');
     }
   };
 
@@ -506,7 +621,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(lobbyRef.current) || Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(activeDuo) || Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
@@ -540,6 +655,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       </div>
     </section>
   </div>}
-    {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" disabled={Boolean(lobbyRef.current)} onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
+    {lobbyInvite && !activeDuo && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" disabled={Boolean(activeDuo)} onClick={() => void answerLobbyInvite(true)}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite(false)}>Recusar</button></div></div>}
   </>;
 }
