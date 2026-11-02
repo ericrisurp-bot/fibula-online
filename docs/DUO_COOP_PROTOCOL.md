@@ -35,3 +35,20 @@ Esse modelo é host-authoritative, não server-authoritative: o navegador do anf
 ## Limites desta etapa
 
 Este documento e `src/game/coop/protocol.ts` definem o contrato inicial. Ainda não ativam multiplayer, não criam tabelas/policies, não alteram o Lobby principal nem mudam o motor Solo. Essas integrações devem entrar em etapas separadas e testáveis, começando pela persistência/controle de sala e depois pela simulação com dois jogadores.
+
+
+## Persistência das salas — migration proposta
+
+A migration `20261102000400_create_fibula_duo_rooms.sql` adiciona:
+
+- `fibula_duo_rooms`: anfitrião, convidado, fase, match ID e timestamps.
+- `fibula_duo_room_participants`: papel, prontidão e histórico de entrada/saída.
+- RLS de leitura limitada aos participantes; escrita direta nas tabelas fica revogada.
+- RPCs autenticadas e restritas ao issuer da Arena:
+  - `fibula_create_duo_room(friend_id)`: cria a sala para um amigo aceito.
+  - `fibula_join_duo_room(room_id)`: ocupa a vaga de convidado.
+  - `fibula_set_duo_ready(room_id, ready)`: altera somente a própria prontidão.
+  - `fibula_start_duo_match(room_id)`: somente o anfitrião inicia, com exatamente dois participantes prontos.
+  - `fibula_leave_duo_room(room_id)`: libera a vaga do convidado no lobby ou encerra a sala quando alguém sai durante a partida.
+
+A migration está proposta em uma PR e **não foi aplicada ao Supabase**. O próximo passo após revisão e aprovação é aplicá-la e testar as RPCs com duas contas reais. A integração com o lobby principal e com o motor de jogo continua sendo uma etapa posterior; esta migration, sozinha, ainda não cria uma partida cooperativa sincronizada.
