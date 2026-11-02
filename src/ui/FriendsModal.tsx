@@ -386,7 +386,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
           void refreshDuoRoom().catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a sala Duo.'));
         };
         inbox.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
-          if (!validPeerEvent(payload)) return;
+          if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           applyPeerIdentity(friendId, payload);
           refreshOnDuoSignal();
           void inbox.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) }).catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível enviar confirmação Duo.'));
@@ -397,7 +397,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
           refreshOnDuoSignal();
         });
         inbox.on('broadcast', { event: 'duo_ready_state' }, ({ payload }) => {
-          if (!validPeerEvent(payload)) return;
+          if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           refreshOnDuoSignal();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
@@ -648,6 +648,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       </div>
     </section>
   </div>}
-    {lobbyInvite && !activeDuo && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" disabled={Boolean(activeDuo)} onClick={() => void answerLobbyInvite(true)}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite(false)}>Recusar</button></div></div>}
+    {lobbyInvite && !activeDuo && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite(true)}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite(false)}>Recusar</button></div></div>}
   </>;
 }
