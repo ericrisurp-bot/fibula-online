@@ -78,6 +78,7 @@ try {
   assert.deepEqual(completedNights, [1], 'A espera não pode repetir o evento de conclusão.');
   assert.equal(cooperative.releaseCooperativeNight(), true);
   assert.equal(cooperative.isWaitingForCooperativeNight, false);
+  cooperative.step(0.04);
   assert.equal(cooperative.state.dayNight, 'dawn');
   assert.equal(cooperative.releaseCooperativeNight(), false, 'Uma liberação repetida deve ser ignorada.');
   cooperative.stop();
