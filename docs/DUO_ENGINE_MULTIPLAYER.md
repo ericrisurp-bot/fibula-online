@@ -31,7 +31,7 @@ Continuam compartilhados nesta etapa: árvores, pedras, algodão, casa, refinari
 
 ## Passo 2: fachada do jogador principal
 
-O motor expõe `readonly players: PlayerEntity[]` com uma única instância `PrimaryPlayerView`, além do getter `primaryPlayer` que retorna `players[0]`. A fachada é um adaptador, não uma cópia de estado: `id` é sempre `local`; `classId`, `weapon`, `dead` e `bag` delegam com getters/setters para `state.classId`, `state.weapon`, `state.dead` e `state.inventory`; `pub` lê `state.player`; `runtime` lê `local`. Cada acesso consulta o `state` atual, portanto substituições feitas por `restart()`/`freshState()` não deixam referências públicas obsoletas. Nenhum uso preexistente de `this.state.*` foi migrado nesta etapa.
+O motor expõe `readonly players: PlayerEntity[]` com uma única instância `PrimaryPlayerView`, além do getter `primaryPlayer` que retorna `players[0]`. A classe `PrimaryPlayerView` implementa a fachada como adaptador, não como cópia de estado: `id` é sempre `local`; `classId`, `weapon`, `dead` e `bag` delegam com getters/setters para `state.classId`, `state.weapon`, `state.dead` e `state.inventory`; `pub` lê `state.player`; `runtime` lê `local`. Cada acesso consulta o `state` atual, portanto substituições feitas por `restart()`/`freshState()` não deixam referências públicas obsoletas. Nenhum uso preexistente de `this.state.*` foi migrado nesta etapa.
 
 ### Métodos que o Passo 3 migrará
 
