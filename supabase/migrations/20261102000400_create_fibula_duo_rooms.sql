@@ -5,18 +5,19 @@
 create table if not exists public.fibula_duo_rooms (
   id uuid primary key default gen_random_uuid(),
   host_id uuid not null references public.fibula_profiles(user_id) on delete cascade,
+  invited_user_id uuid not null references public.fibula_profiles(user_id) on delete cascade,
   guest_id uuid references public.fibula_profiles(user_id) on delete set null,
   phase text not null default 'lobby'
-    check (phase in ('lobby', 'playing', 'finished', 'cancelled')),
+    check (phase in ('lobby', 'starting', 'playing', 'finished', 'cancelled')),
   match_id uuid unique,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   started_at timestamptz,
   finished_at timestamptz,
   constraint fibula_duo_rooms_distinct_players
-    check (guest_id is null or guest_id <> host_id),
+    check (invited_user_id <> host_id and (guest_id is null or guest_id <> host_id)),
   constraint fibula_duo_rooms_match_phase
-    check ((phase in ('playing', 'finished') and match_id is not null and started_at is not null)
+    check ((phase in ('starting', 'playing', 'finished') and match_id is not null and started_at is not null)
       or (phase in ('lobby', 'cancelled') and match_id is null))
 );
 
@@ -140,8 +141,8 @@ begin
     raise exception 'A sala Duo só pode ser criada com um amigo aceito.';
   end if;
 
-  insert into public.fibula_duo_rooms (host_id)
-  values (v_user_id)
+  insert into public.fibula_duo_rooms (host_id, invited_user_id)
+  values (v_user_id, p_friend_id)
   returning id into v_room_id;
 
   insert into public.fibula_duo_room_participants (room_id, user_id, role)
@@ -162,6 +163,7 @@ declare
   v_user_id uuid := (select auth.uid());
   v_host_id uuid;
   v_guest_id uuid;
+  v_invited_user_id uuid;
   v_phase text;
 begin
   if v_user_id is null
@@ -169,8 +171,8 @@ begin
     raise exception 'Sessão não autorizada.';
   end if;
 
-  select r.host_id, r.guest_id, r.phase
-    into v_host_id, v_guest_id, v_phase
+  select r.host_id, r.guest_id, r.invited_user_id, r.phase
+    into v_host_id, v_guest_id, v_invited_user_id, v_phase
     from public.fibula_duo_rooms r
    where r.id = p_room_id
    for update;
@@ -180,6 +182,9 @@ begin
   end if;
   if v_user_id = v_host_id then
     raise exception 'O anfitrião já pertence a esta sala.';
+  end if;
+  if v_user_id <> v_invited_user_id then
+    raise exception 'Esta sala foi criada para outro jogador.';
   end if;
   if exists (
     select 1 from public.fibula_duo_room_participants p
@@ -334,7 +339,7 @@ begin
     raise exception 'Você não participa desta sala.';
   end if;
 
-  if v_phase = 'playing' then
+  if v_phase in ('starting', 'playing') then
     update public.fibula_duo_rooms
        set phase = 'finished', finished_at = now(), updated_at = now()
      where id = p_room_id;
