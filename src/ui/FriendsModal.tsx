@@ -112,16 +112,17 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   };
 
   useEffect(() => {
-    if (!fibulaSupabase) return;
+    const supabase = fibulaSupabase;
+    if (!supabase) return;
     let active = true;
     const channels: any[] = [];
     const start = async () => {
-      await fibulaSupabase.realtime.setAuth();
-      const own = fibulaSupabase.channel(`fibula:presence:${userId}`, { config: { private: true, presence: { key: userId } } });
+      await supabase.realtime.setAuth();
+      const own = supabase.channel(`fibula:presence:${userId}`, { config: { private: true, presence: { key: userId } } });
       own.subscribe(status => { if (status === 'SUBSCRIBED') void own.track({ user_id: userId }); });
       channels.push(own);
       for (const friendId of friendIds) {
-        const channel = fibulaSupabase.channel(`fibula:presence:${friendId}`, { config: { private: true, presence: { key: friendId } } });
+        const channel = supabase.channel(`fibula:presence:${friendId}`, { config: { private: true, presence: { key: friendId } } });
         const sync = () => {
           if (!active) return;
           const online = Object.keys(channel.presenceState()).length > 0;
@@ -134,7 +135,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     };
     setOnlineFriends([]);
     void start().catch(() => setOnlineFriends([]));
-    return () => { active = false; channels.forEach(channel => void fibulaSupabase?.removeChannel(channel)); };
+    return () => { active = false; channels.forEach(channel => void supabase.removeChannel(channel)); };
   }, [userId, friendIdsKey]);
 
   useEffect(() => {
