@@ -145,37 +145,48 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   }, [userId, friendIdsKey]);
 
   useEffect(() => {
-    if (!fibulaSupabase) return;
+    const supabase = fibulaSupabase;
+    if (!supabase) return;
     let active = true;
-    const inbox = fibulaSupabase.channel(`fibula:inbox:${userId}`, { config: { private: true } });
-    inbox.on('broadcast', { event: 'lobby_invite' }, ({ payload }) => {
-      if (!active || payload?.to !== userId || typeof payload.from !== 'string') return;
-      setLobbyInvite(payload);
-    });
-    inbox.on('broadcast', { event: 'lobby_invite_response' }, ({ payload }) => {
-      if (!active || payload?.to !== userId || payload?.invite_id !== pendingInvite.current?.invite_id) return;
-      if (payload.status === 'accepted') {
-        const pending = pendingInvite.current;
-        pendingInvite.current = null;
-        void joinLobby(pending.room_topic, pending.to, pending.target_name);
-      } else {
-        pendingInvite.current = null;
-        setNotice('Seu convite de lobby foi recusado.');
+    const inboxChannels: any[] = [];
+    const start = async () => {
+      await supabase.realtime.setAuth();
+      for (const friendId of friendIds) {
+        // Each accepted pair has an isolated inbox topic: neither player can
+        // subscribe to another friend's private invitation traffic.
+        const pairKey = [userId, friendId].sort().join(':');
+        const inbox = supabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
+        inbox.on('broadcast', { event: 'lobby_invite' }, ({ payload }) => {
+          if (!active || payload?.to !== userId || payload?.from !== friendId) return;
+          setLobbyInvite(payload);
+        });
+        inbox.on('broadcast', { event: 'lobby_invite_response' }, ({ payload }) => {
+          if (!active || payload?.to !== userId || payload?.from !== friendId || payload?.invite_id !== pendingInvite.current?.invite_id) return;
+          if (payload.status === 'accepted') {
+            const pending = pendingInvite.current;
+            pendingInvite.current = null;
+            void joinLobby(pending.room_topic, pending.to, pending.target_name);
+          } else if (payload.status === 'declined') {
+            pendingInvite.current = null;
+            setNotice('Seu convite de lobby foi recusado.');
+          }
+        });
+        inbox.subscribe();
+        inboxChannels.push(inbox);
       }
-    });
-    void fibulaSupabase.realtime.setAuth().then(() => {
-      if (active) inbox.subscribe();
-    }).catch(() => {
+    };
+    void start().catch(() => {
       if (active) setError('Não foi possível conectar ao serviço de convites.');
     });
-    return () => { active = false; void fibulaSupabase?.removeChannel(inbox); };
-  }, [userId]);
+    return () => { active = false; inboxChannels.forEach(channel => void supabase.removeChannel(channel)); };
+  }, [userId, friendIdsKey]);
 
   const sendLobbyInvite = async (friendId: string) => {
     if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
     const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
     const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profiles[userId]?.display_name || 'Seu amigo', target_name: profiles[friendId]?.display_name || 'Seu amigo' };
-    const channel = fibulaSupabase.channel(`fibula:inbox:${friendId}`, { config: { private: true } });
+    const pairKey = [userId, friendId].sort().join(':');
+    const channel = fibulaSupabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
     try {
       await fibulaSupabase.realtime.setAuth();
       await new Promise<void>((resolve, reject) => channel.subscribe(status => {
@@ -196,7 +207,8 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const answerLobbyInvite = async (status: 'accepted' | 'declined') => {
     if (!fibulaSupabase || !lobbyInvite) return;
     const invite = lobbyInvite;
-    const channel = fibulaSupabase.channel(`fibula:inbox:${invite.from}`, { config: { private: true } });
+    const pairKey = [userId, invite.from].sort().join(':');
+    const channel = fibulaSupabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
     try {
       await fibulaSupabase.realtime.setAuth();
       await new Promise<void>((resolve, reject) => channel.subscribe(state => {
