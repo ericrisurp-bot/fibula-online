@@ -118,18 +118,24 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     const channels: any[] = [];
     const start = async () => {
       await supabase.realtime.setAuth();
-      const own = supabase.channel(`fibula:presence:${userId}`, { config: { private: true, presence: { key: userId } } });
-      own.subscribe(status => { if (status === 'SUBSCRIBED') void own.track({ user_id: userId }); });
-      channels.push(own);
       for (const friendId of friendIds) {
-        const channel = supabase.channel(`fibula:presence:${friendId}`, { config: { private: true, presence: { key: friendId } } });
+        // Each pair shares one private channel, so both clients publish presence
+        // to the exact same topic and can see one another online.
+        const pairKey = [userId, friendId].sort().join(':');
+        const channel = supabase.channel(`fibula:presence:${pairKey}`, { config: { private: true, presence: { key: userId } } });
         const sync = () => {
           if (!active) return;
-          const online = Object.keys(channel.presenceState()).length > 0;
+          const presences = Object.values(channel.presenceState()).flat() as Array<{ user_id?: string }>;
+          const online = presences.some(member => member.user_id === friendId);
           setOnlineFriends(current => online ? [...new Set([...current, friendId])] : current.filter(id => id !== friendId));
         };
         channel.on('presence', { event: 'sync' }, sync);
-        channel.subscribe(status => { if (status === 'SUBSCRIBED') sync(); });
+        channel.subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            void channel.track({ user_id: userId });
+            sync();
+          }
+        });
         channels.push(channel);
       }
     };
