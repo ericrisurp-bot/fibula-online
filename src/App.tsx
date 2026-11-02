@@ -1699,7 +1699,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.user_metadata?.display_name || session.user.user_metadata?.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; if (!peer) setDuoNotice(''); }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
+        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; if (!peer) setDuoNotice(''); }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
