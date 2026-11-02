@@ -114,6 +114,7 @@ export type PlayerEntity = {
   bag: InventoryStack[];
   readonly pub: GameSnapshot['player'];
   readonly runtime: PlayerRuntime;
+  setClass(classId: ClassId): void;
   setKey(key: string, down: boolean): void;
   setMove(x: number, y: number): void;
 };
@@ -124,6 +125,7 @@ class PrimaryPlayerView implements PlayerEntity {
   constructor(
     private readonly getState: () => GameSnapshot,
     readonly runtime: PlayerRuntime,
+    private readonly onChange: () => void,
   ) {}
 
   get classId(): ClassId { return this.getState().classId; }
@@ -139,6 +141,64 @@ class PrimaryPlayerView implements PlayerEntity {
   set bag(value: InventoryStack[]) { this.getState().inventory = value; }
 
   get pub(): GameSnapshot['player'] { return this.getState().player; }
+
+  setClass(classId: ClassId) {
+    const state = this.getState();
+    if (state.dead) return;
+
+    const changed = state.classId !== classId;
+    if (changed) {
+      // Evita que projéteis da classe anterior contem como acertos básicos da nova classe.
+      state.shots = [];
+      this.runtime.mageAttackCount = 0;
+      this.runtime.archerHealArrowCount = 0;
+
+      const player = state.player;
+      let classMaxHp = CONFIG.attributes.classStartHealth[classId];
+      for (let level = 1; level <= player.level; level++) {
+        classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida');
+      }
+      const previousMaxHp = player.maxHp;
+      const pendingHealth = this.runtime.healthTransitionRemaining;
+      this.runtime.healthTransitionRemaining = 0;
+      this.runtime.healthTransitionRate = 0;
+      player.maxHp = classMaxHp;
+      if (player.level === 0) {
+        player.hp = classMaxHp;
+      } else {
+        const healthProportion = (player.hp + pendingHealth) / previousMaxHp;
+        const initialHp = Math.min(player.hp, classMaxHp);
+        player.hp = initialHp;
+        this.runtime.healthTransitionRemaining = healthProportion * classMaxHp - initialHp;
+        this.runtime.healthTransitionRate = this.runtime.healthTransitionRemaining / CONFIG.classSwitch.healthTransitionSeconds;
+      }
+    }
+    state.classId = classId;
+
+    // A classe selecionada define a arma; não existe troca independente de arma.
+    const classWeapon: Record<ClassId, WeaponId> = {
+      guerreiro: 'espada',
+      mago: 'cajado',
+      arqueiro: 'arco',
+      druida: 'bastao',
+    };
+    state.weapon = classWeapon[classId];
+
+    // Habilidades exclusivas do Druida nunca sobrevivem ao sair da classe.
+    if (classId !== 'druida') {
+      this.runtime.druidBasicHitCount = 0;
+      this.runtime.druidKillsSinceOrb = 0;
+      this.runtime.druidOrbHealTimer = 0;
+      state.healingOrbs = [];
+    } else if (changed) {
+      this.runtime.druidBasicHitCount = 0;
+      this.runtime.druidKillsSinceOrb = 0;
+      this.runtime.druidOrbHealTimer = 0;
+    }
+
+    // Publica classe, arma e habilidades juntas como um único estado coerente.
+    this.onChange();
+  }
 
   setKey(key: string, down: boolean) {
     if (this.dead) return;
@@ -203,7 +263,7 @@ export class GameEngine {
     this.randomState = this.seed;
     this.headless = options.headless ?? false;
     this.state = this.freshState();
-    this.players = [new PrimaryPlayerView(() => this.state, this.local)];
+    this.players = [new PrimaryPlayerView(() => this.state, this.local, () => this.emit())];
     this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
@@ -275,59 +335,7 @@ export class GameEngine {
   setKey(key: string, down: boolean) { this.primaryPlayer.setKey(key, down); }
   setMove(x: number, y: number) { this.primaryPlayer.setMove(x, y); }
   setClass(classId: ClassId) {
-    if (this.state.dead) return;
-    const changed = this.state.classId !== classId;
-    if (changed) {
-      // Evita que projéteis da classe anterior contem como acertos básicos da nova classe.
-      this.state.shots = [];
-      this.local.mageAttackCount = 0;
-      this.local.archerHealArrowCount = 0;
-
-      const player = this.state.player;
-      let classMaxHp = CONFIG.attributes.classStartHealth[classId];
-      for (let level = 1; level <= player.level; level++) {
-        classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida');
-      }
-      const previousMaxHp = player.maxHp;
-      const pendingHealth = this.local.healthTransitionRemaining;
-      this.local.healthTransitionRemaining = 0;
-      this.local.healthTransitionRate = 0;
-      player.maxHp = classMaxHp;
-      if (player.level === 0) {
-        player.hp = classMaxHp;
-      } else {
-        const healthProportion = (player.hp + pendingHealth) / previousMaxHp;
-        const initialHp = Math.min(player.hp, classMaxHp);
-        player.hp = initialHp;
-        this.local.healthTransitionRemaining = healthProportion * classMaxHp - initialHp;
-        this.local.healthTransitionRate = this.local.healthTransitionRemaining / CONFIG.classSwitch.healthTransitionSeconds;
-      }
-    }
-    this.state.classId = classId;
-
-    // A classe selecionada define a arma; não existe troca independente de arma.
-    const classWeapon: Record<ClassId, WeaponId> = {
-      guerreiro: 'espada',
-      mago: 'cajado',
-      arqueiro: 'arco',
-      druida: 'bastao',
-    };
-    this.state.weapon = classWeapon[classId];
-
-    // Habilidades exclusivas do Druida nunca sobrevivem ao sair da classe.
-    if (classId !== 'druida') {
-      this.local.druidBasicHitCount = 0;
-      this.local.druidKillsSinceOrb = 0;
-      this.local.druidOrbHealTimer = 0;
-      this.state.healingOrbs = [];
-    } else if (changed) {
-      this.local.druidBasicHitCount = 0;
-      this.local.druidKillsSinceOrb = 0;
-      this.local.druidOrbHealTimer = 0;
-    }
-
-    // Publica classe, arma e habilidades juntas como um único estado coerente.
-    this.emit();
+    this.primaryPlayer.setClass(classId);
   }
   buildHouse() {
     const house = this.state.house;
