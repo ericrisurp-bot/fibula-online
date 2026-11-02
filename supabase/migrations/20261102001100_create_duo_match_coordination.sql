@@ -56,9 +56,9 @@ alter table public.fibula_duo_match_sessions enable row level security;
 alter table public.fibula_duo_match_players enable row level security;
 alter table public.fibula_duo_night_reports enable row level security;
 
-revoke all privileges on table public.fibula_duo_match_sessions from anon, authenticated;
-revoke all privileges on table public.fibula_duo_match_players from anon, authenticated;
-revoke all privileges on table public.fibula_duo_night_reports from anon, authenticated;
+revoke all privileges on table public.fibula_duo_match_sessions from public, anon, authenticated;
+revoke all privileges on table public.fibula_duo_match_players from public, anon, authenticated;
+revoke all privileges on table public.fibula_duo_night_reports from public, anon, authenticated;
 
 -- Solo source mirrored from src/game/horde.ts:
 -- firstNightSpawnCount = 5; addedPerNight = 5.
