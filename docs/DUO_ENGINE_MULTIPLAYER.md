@@ -35,11 +35,12 @@ O motor expõe `readonly players: PlayerEntity[]` com uma única instância `Pri
 
 ### Métodos que o Passo 3 migrará
 
-- **Movimento/entrada:** `setKey`, `setMove`, `updateMovement`, `updatePlayer` e os trechos de atualização de passos/entrada no ciclo principal.
-- **Combate e tiros:** `updateCombat`, `updateShots`, `updateDruidEffects`, `registerDruidBasicHit`, `killEnemy` e os métodos auxiliares de ataque/dano ligados ao jogador.
-- **Coleta e construção:** `gather`, `buildHouse`, `buildRefinery`, `buildTecelaria`, `updateGathering` e a interação/transferência de inventário do carrinho.
-- **Inimigos e hordas:** `updateEnemies`, `spawnHorde`, `spawnEnemy` e a lógica de contato/seleção de alvo dos inimigos.
-- **XP/drops/orbes:** `collectXp`, `collectDrops`, `updateDrops`, `collectHealingOrbs` e a atribuição de XP/loot/orbes após abates.
+- **Movimento/entrada:** `setKey`, `setMove`, `setClass`, `resolvePlayerObstacles`, `isPlayerAtTreeShadow`, `isPlayerAtRock`, `isPlayerAtCottonPlant` e a atualização individual executada por `update`.
+- **Combate e tiros:** `autoAttack`, `moveShots`, `arrowHitsSolidObstacle`, `updateDruidEffects`, `registerDruidBasicHit` e `killEnemy`.
+- **Coleta e construção:** `autoGather`, `gatherDist`, `rockGatherDist`, `hitRock`, `hitCottonPlant`, `collectStone`, `collectCotton`, `collectLinen`, `cutTree`, `collectWood`, `attractMaterials`, `buildHouse`, `buildRefinery`, `buildTecelaria`, `deliverCottonToTecelaria`, `deliverStonesToRefinery` e as operações de inventário/carrinho.
+- **Inimigos e hordas:** `spawnHordeEnemy`, `enemyMovementDirection`, `moveEnemies`, `separateEnemies`, `resolveRockBoxCollisions` e `getLevelStats`.
+- **XP/drops/orbes:** `collectXp`, `killEnemy` e os trechos de coleta/atração de drops e orbes dentro de `update` e `attractMaterials`.
+
 
 Na etapa 3.1b, o segundo jogador será outro `PlayerEntity` com campos próprios. O contador `kills` continuará pertencendo ao estado compartilhado da partida, não a cada jogador.
 
