@@ -173,6 +173,7 @@ as $function$
 declare
   v_user_id uuid := (select auth.uid());
   v_trade public.fibula_duo_trade_sessions%rowtype;
+  v_room_id uuid;
   v_room_host_id uuid;
   v_room_guest_id uuid;
   v_entry jsonb;
@@ -190,7 +191,7 @@ begin
   end if;
 
   -- Lock order is always room -> trade, matching room start/open operations.
-  select room_id into v_trade.room_id
+  select room_id into v_room_id
     from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'open';
   if not found then
@@ -200,7 +201,7 @@ begin
   select r.host_id, r.guest_id
     into v_room_host_id, v_room_guest_id
     from public.fibula_duo_rooms r
-   where r.id = v_trade.room_id and r.phase = 'lobby'
+   where r.id = v_room_id and r.phase = 'lobby'
    for update;
   if not found then
     raise exception 'A negociação só pode mudar enquanto os dois estiverem no lobby.';
@@ -310,6 +311,7 @@ as $function$
 declare
   v_user_id uuid := (select auth.uid());
   v_trade public.fibula_duo_trade_sessions%rowtype;
+  v_room_id uuid;
   v_offer record;
   v_receiver uuid;
   v_next_slot smallint;
@@ -323,7 +325,7 @@ begin
 
   -- Lock the room before the trade so a simultaneous match start cannot
   -- pass the lobby check while this confirmation is committing.
-  select room_id into v_trade.room_id
+  select room_id into v_room_id
     from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'open';
   if not found then
@@ -333,7 +335,7 @@ begin
   select r.host_id, r.guest_id
     into v_room_host_id, v_room_guest_id
     from public.fibula_duo_rooms r
-   where r.id = v_trade.room_id and r.phase = 'lobby'
+   where r.id = v_room_id and r.phase = 'lobby'
    for update;
   if not found then
     raise exception 'A negociação não está mais no lobby com os dois participantes.';
