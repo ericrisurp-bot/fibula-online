@@ -81,7 +81,7 @@ export class DuoCycleTransport {
   }
 
   private async sendHeartbeat(): Promise<void> {
-    const { data, error } = await this.supabase.rpc('fibula_duo_heartbeat', {
+    const { data, error } = await this.supabase.rpc('fibula_duo_match_heartbeat', {
       p_match_id: this.matchId,
     });
     if (error) throw error;
