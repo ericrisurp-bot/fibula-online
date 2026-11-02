@@ -50,7 +50,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const [notice, setNotice] = useState('');
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
   const [lobbyInvite, setLobbyInvite] = useState<{ room_id: string; from: string; sender_name: string } | null>(null);
-  const [activeDuo, setActiveDuo] = useState<DuoPeer | null>(null);
+  const [activeDuo, setActiveDuo] = useState<DuoPeer | null>(null);\n  const dismissedInvitesRef = useRef<Set<string>>(new Set());
   const lobbyRef = useRef<DuoPeer | null>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
@@ -160,7 +160,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       }
       return;
     }
-    if (room.phase === 'cancelled' || room.phase === 'finished') {
+    if (room.phase === null || room.phase === 'cancelled' || room.phase === 'finished') {
       clearLobby();
       notify('O Duo foi encerrado.');
       return;
@@ -209,7 +209,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     if (lobbyRef.current) return;
     const invites = await listDuoInvites();
     const acceptedFriends = friendIdsRef.current;
-    const invite = invites.find(item => acceptedFriends.includes(item.host_id));
+    const invite = invites.find(item => acceptedFriends.includes(item.host_id) && !dismissedInvitesRef.current.has(item.room_id));
     if (!invite) {
       setLobbyInvite(null);
       return;
@@ -493,7 +493,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     const invite = lobbyInvite;
     const channel = inboxChannels.current.get(invite.from);
     if (!accepted) {
-      setLobbyInvite(null);
+      dismissedInvitesRef.current.add(invite.room_id);\n      setLobbyInvite(null);
       if (channel) {
         try {
           const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { from: userId, to: invite.from, accepted: false } });
@@ -505,7 +505,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       return;
     }
     try {
-      const roomId = await joinDuoRoom(invite.room_id);
+      dismissedInvitesRef.current.add(invite.room_id);\n      const roomId = await joinDuoRoom(invite.room_id);
       const profile = await loadPeerProfile(invite.from);
       const peer: DuoPeer = {
         roomId, matchId: null, friendId: invite.from,
