@@ -226,6 +226,13 @@ export type GameEngineOptions = {
   headless?: boolean;
   /** Estado inicial da casa fornecido pelo chamador em simulações sem navegador. */
   houseInventory?: InventoryStack[];
+  /** Integração opcional com a coordenação Duo; ausente no Solo. */
+  cooperative?: {
+    /** Alvo individual definido externamente para cada noite. */
+    hordeTargetForNight?: (nightNumber: number) => number;
+    /** Mantém a noite escura após limpar a horda até liberação externa. */
+    waitForNightRelease?: boolean;
+  };
 };
 
 function normalizeSimulationSeed(seed?: number): number {
@@ -257,9 +264,12 @@ export class GameEngine {
   private tecelariaProcessTimer = 0;
   private randomState: number;
   private headless: boolean;
+  private readonly cooperativeOptions: GameEngineOptions['cooperative'];
+  private waitingForCooperativeNightRelease = false;
   readonly seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
+    this.cooperativeOptions = options.cooperative;
     this.seed = normalizeSimulationSeed(options.seed);
     this.randomState = this.seed;
     this.headless = options.headless ?? false;
@@ -281,6 +291,21 @@ export class GameEngine {
   }
 
   get primaryPlayer(): PlayerEntity { return this.players[0]; }
+
+  /** Indica que a horda local terminou e o avanço aguarda a coordenação Duo. */
+  get isWaitingForCooperativeNight(): boolean {
+    return this.waitingForCooperativeNightRelease;
+  }
+
+  /** Libera o amanhecer depois da confirmação externa dos dois mundos. */
+  releaseCooperativeNight(): boolean {
+    if (!this.waitingForCooperativeNightRelease || this.phase !== 'night') return false;
+    this.waitingForCooperativeNightRelease = false;
+    this.phase = 'dawn';
+    this.phaseElapsed = 0;
+    this.emit();
+    return true;
+  }
 
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
@@ -919,8 +944,12 @@ export class GameEngine {
       if (this.state.healingOrbs.length > 0) this.state.healingOrbs = [];
     }
     if (this.phase === 'night' && this.hordeSpawned >= this.hordeTarget && this.state.enemies.length === 0) {
-      this.phase = 'dawn';
-      this.phaseElapsed = 0;
+      if (this.cooperativeOptions?.waitForNightRelease) {
+        this.waitingForCooperativeNightRelease = true;
+      } else {
+        this.phase = 'dawn';
+        this.phaseElapsed = 0;
+      }
     }
     const previousPhase = this.state.dayNight;
     if (previousPhase !== this.phase) {
@@ -1435,6 +1464,7 @@ export class GameEngine {
   }
 
   private initializeDayNight() {
+    this.waitingForCooperativeNightRelease = false;
     const startsAtNight = this.random() < 0.5;
     this.state.startedAtNight = startsAtNight;
     this.phase = startsAtNight ? 'night' : 'day';
@@ -1466,9 +1496,14 @@ export class GameEngine {
     this.nightNumber += 1;
     this.state.nightNumber = this.nightNumber;
     this.state.wave = this.nightNumber;
-    this.hordeTarget = soloHordeTarget(this.nightNumber);
+    const externalTarget = this.cooperativeOptions?.hordeTargetForNight?.(this.nightNumber);
+    if (externalTarget !== undefined && (!Number.isSafeInteger(externalTarget) || externalTarget < 0)) {
+      throw new RangeError('O alvo externo da horda deve ser um inteiro seguro não negativo.');
+    }
+    this.hordeTarget = externalTarget ?? soloHordeTarget(this.nightNumber);
     this.hordeSpawned = 0;
     this.hordeScheduled = 0;
+    this.waitingForCooperativeNightRelease = false;
   }
 
   private spawnHordeEnemy() {
