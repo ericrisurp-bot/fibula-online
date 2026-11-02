@@ -19,7 +19,7 @@ create index if not exists fibula_duo_match_players_heartbeat_idx
 
 -- Refreshing a heartbeat also evaluates the partner's timeout. The 15-second
 -- comparison is performed exclusively with clock_timestamp() in PostgreSQL.
-create or replace function public.fibula_duo_heartbeat(p_match_id uuid)
+create or replace function public.fibula_duo_match_heartbeat(p_match_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -115,8 +115,8 @@ begin
 end;
 $function$;
 
-revoke all on function public.fibula_duo_heartbeat(uuid) from public, anon;
-grant execute on function public.fibula_duo_heartbeat(uuid) to authenticated;
+revoke all on function public.fibula_duo_match_heartbeat(uuid) from public, anon;
+grant execute on function public.fibula_duo_match_heartbeat(uuid) to authenticated;
 
 -- A player who timed out cannot revive the old match by reopening the lobby.
 create or replace function public.fibula_duo_get_session_state(p_match_id uuid)
