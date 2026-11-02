@@ -52,6 +52,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const [lobbyInvite, setLobbyInvite] = useState<{ room_id: string; from: string; sender_name: string } | null>(null);
   const [activeDuo, setActiveDuo] = useState<DuoPeer | null>(null);
   const dismissedInvitesRef = useRef<Set<string>>(new Set());
+  const hasRestoredDuoRef = useRef(false);
   const lobbyRef = useRef<DuoPeer | null>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
@@ -309,7 +310,8 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   }, [friendIdsKey]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || hasRestoredDuoRef.current) return;
+    hasRestoredDuoRef.current = true;
     let active = true;
     const restore = async () => {
       try {
@@ -320,7 +322,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     };
     void restore();
     return () => { active = false; };
-  }, [userId, loading, friendIdsKey]);
+  }, [userId, loading]);
 
   useEffect(() => {
     if (!activeDuo?.roomId) return;
@@ -406,7 +408,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
         });
         inbox.on('broadcast', { event: 'lobby_invite_response' }, ({ payload }) => {
           if (!validPeerEvent(payload) || typeof payload?.accepted !== 'boolean') return;
-          if (lobbyRef.current?.role === 'host') {
+          if (lobbyRef.current?.role === 'host' && lobbyRef.current.friendId === friendId) {
             void refreshDuoRoom().catch(cause => setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a sala Duo.'));
             if (!payload.accepted) notify('Seu convite de Duo foi recusado.');
           }
