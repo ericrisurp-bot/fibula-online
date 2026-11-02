@@ -62,7 +62,7 @@ begin
   return pg_catalog.jsonb_build_object(
     'max', v_max,
     'in_use', v_in_use,
-    'free', pg_catalog.greatest(v_max - v_in_use, 0)
+    'free', greatest(v_max - v_in_use, 0)
   );
 end;
 $function$;
