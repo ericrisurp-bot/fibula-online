@@ -48,6 +48,41 @@ try {
   }
   assert.equal(first.state.dayNight, 'night', 'O ciclo deve sair do dia e entrar na noite.');
 
+  // O gate cooperativo emite um único evento ao limpar a horda e mantém o mundo ativo.
+  const completedNights = [];
+  const cooperative = new GameEngine(() => {}, {
+    seed: 0x12345678,
+    headless: true,
+    houseInventory: [],
+    cooperative: {
+      waitForNightRelease: true,
+      onNightComplete: (nightNumber) => completedNights.push(nightNumber),
+    },
+  });
+  assert.equal(cooperative.state.dayNight, 'day');
+  for (let elapsed = 0; elapsed < 60.04; elapsed += 0.04) {
+    cooperative.step(0.04);
+  }
+  assert.equal(cooperative.state.dayNight, 'night');
+  // Força apenas a condição de horda limpa para testar a fronteira de integração.
+  cooperative.hordeTarget = 0;
+  cooperative.hordeSpawned = 0;
+  cooperative.state.enemies = [];
+  cooperative.step(0.04);
+  assert.equal(cooperative.isWaitingForCooperativeNight, true);
+  assert.deepEqual(completedNights, [1], 'A conclusão deve ser notificada uma única vez.');
+  const xBeforeWaitStep = cooperative.state.player.x;
+  cooperative.setMove(1, 0);
+  cooperative.step(0.04);
+  assert.ok(cooperative.state.player.x > xBeforeWaitStep, 'O mundo local deve continuar ativo durante a espera.');
+  assert.deepEqual(completedNights, [1], 'A espera não pode repetir o evento de conclusão.');
+  assert.equal(cooperative.releaseCooperativeNight(), true);
+  assert.equal(cooperative.isWaitingForCooperativeNight, false);
+  cooperative.step(0.04);
+  assert.equal(cooperative.state.dayNight, 'dawn');
+  assert.equal(cooperative.releaseCooperativeNight(), false, 'Uma liberação repetida deve ser ignorada.');
+  cooperative.stop();
+
   // A fachada do jogador local é dona da entrada e da direção de movimento.
   first.setKey('W', true);
   assert.equal(first.primaryPlayer.runtime.keys.has('w'), true);
