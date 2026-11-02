@@ -93,13 +93,20 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       setLobbyMembers(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : member.display_name || friendName));
     });
     lobbyChannel.current = channel;
-    await fibulaSupabase.realtime.setAuth();
-    channel.subscribe(async status => {
-      if (status !== 'SUBSCRIBED') return;
+    try {
+      await fibulaSupabase.realtime.setAuth();
+      await new Promise<void>((resolve, reject) => channel.subscribe(status => {
+        if (status === 'SUBSCRIBED') resolve();
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reject(new Error('Não foi possível entrar no lobby compartilhado.'));
+      }));
       await channel.track({ user_id: userId, display_name: 'Jogador' });
-    });
-    setLobby({ roomTopic, friendId, friendName });
-    setLobbyMembers([]);
+      setLobby({ roomTopic, friendId, friendName });
+      setLobbyMembers([]);
+    } catch (cause) {
+      await fibulaSupabase.removeChannel(channel);
+      lobbyChannel.current = null;
+      setError(cause instanceof Error ? cause.message : 'Não foi possível entrar no lobby compartilhado.');
+    }
   };
 
   useEffect(() => {
