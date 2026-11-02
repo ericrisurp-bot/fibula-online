@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
-import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, type DuoRoom } from './duoRooms';
+import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady } from './duoRooms';
 
 type RequestStatus = 'pending' | 'accepted' | 'declined';
 type FriendRequest = {
@@ -277,6 +277,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   }, [friendIdsKey]);
 
   useEffect(() => {
+    if (loading) return;
     let active = true;
     const restore = async () => {
       try {
@@ -287,7 +288,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     };
     void restore();
     return () => { active = false; };
-  }, [userId]);
+  }, [userId, loading, friendIdsKey]);
 
   useEffect(() => {
     if (!activeDuo?.roomId) return;
@@ -449,10 +450,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     }
     if (!fibulaSupabase || !onlineFriends.includes(friendId)) return;
     const channel = inboxChannels.current.get(friendId);
-    if (!channel || !connectedInboxFriends.includes(friendId)) {
-      setError('O canal de convites ainda não está conectado. Feche e abra a lista de amigos para tentar novamente.');
-      return;
-    }
     try {
       setError('');
       const roomId = await createDuoRoom(friendId);
@@ -468,6 +465,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       publishLobby();
       setNotice(`Convite enviado para ${peer.friendName}. Aguardando resposta.`);
       try {
+        if (!channel || !connectedInboxFriends.includes(friendId)) throw new Error('Canal de aviso indisponível.');
         const result = await channel.send({
           type: 'broadcast', event: 'lobby_invite',
           payload: {
@@ -612,7 +610,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(activeDuo) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(activeDuo) || false} onClick={() => void sendLobbyInvite(otherId)}>Convidar</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
