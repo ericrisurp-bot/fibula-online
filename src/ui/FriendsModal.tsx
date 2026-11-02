@@ -89,7 +89,11 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
 
   const joinLobby = async (_roomTopic: string, friendId: string, friendName: string) => {
     const channel = inboxChannels.current.get(friendId);
-    if (!channel || !connectedInboxFriends.includes(friendId)) {
+    // This function is called by long-lived Realtime callbacks. The React state
+    // captured by those callbacks can be stale even while the channel is joined.
+    // Receiving the invite/response on this channel is the authoritative signal
+    // that the pair inbox is connected; do not gate lobby entry on UI state.
+    if (!channel) {
       setError('O canal privado entre vocês ainda não está conectado. Tente novamente em instantes.');
       return;
     }
