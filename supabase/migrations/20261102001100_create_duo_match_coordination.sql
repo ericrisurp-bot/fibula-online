@@ -132,6 +132,7 @@ declare
   v_session public.fibula_duo_match_sessions%rowtype;
   v_host_id uuid;
   v_guest_id uuid;
+  v_alive_count integer;
   v_host_seed bigint;
   v_guest_seed bigint;
   v_own_seed bigint;
@@ -159,13 +160,22 @@ begin
    for update;
 
   if not found then
-    select
-      count(*) filter (where p.left_at is null)::integer,
-      max(p.user_id) filter (where p.role = 'host' and p.left_at is null),
-      max(p.user_id) filter (where p.role = 'guest' and p.left_at is null)
-      into v_alive_count, v_host_id, v_guest_id
+    select count(*) filter (where p.left_at is null)::integer
+      into v_alive_count
       from public.fibula_duo_room_participants p
      where p.room_id = p_room_id;
+
+    select p.user_id into v_host_id
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id
+       and p.role = 'host' and p.left_at is null
+     limit 1;
+
+    select p.user_id into v_guest_id
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id
+       and p.role = 'guest' and p.left_at is null
+     limit 1;
 
     if v_alive_count <> 2
       or v_host_id is distinct from v_room.host_id
@@ -250,6 +260,7 @@ declare
   v_session public.fibula_duo_match_sessions%rowtype;
   v_player public.fibula_duo_match_players%rowtype;
   v_existing_status text;
+  v_has_existing boolean := false;
   v_alive_count integer;
   v_finished_count integer;
   v_both_alive boolean;
@@ -260,7 +271,7 @@ begin
     or (select auth.jwt() ->> 'iss') is distinct from 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1' then
     raise exception 'Sessão Arena não autorizada.';
   end if;
-  if p_report_status not in ('finished', 'dead')
+  if p_report_status is null or p_report_status not in ('finished', 'dead')
     or p_night_number is null or p_night_number < 1 then
     raise exception 'Relato de noite inválido.';
   end if;
@@ -284,22 +295,29 @@ begin
     raise exception 'Você não participa desta partida Duo.';
   end if;
 
-  -- Old retries are idempotent and cannot move the current cycle.
-  if p_night_number < v_session.current_night then
-    select r.report_status into v_existing_status
-      from public.fibula_duo_night_reports r
-     where r.match_id = p_match_id
-       and r.night_number = p_night_number
-       and r.user_id = v_user_id;
+  -- A retry of an already stored report is idempotent, including after
+  -- the session has finished. A conflicting second result is rejected.
+  select r.report_status into v_existing_status
+    from public.fibula_duo_night_reports r
+   where r.match_id = p_match_id
+     and r.night_number = p_night_number
+     and r.user_id = v_user_id;
+  v_has_existing := found;
+
+  if v_has_existing then
     if v_existing_status is distinct from p_report_status then
       raise exception 'Este relato já foi registrado com outro resultado.';
     end if;
     return pg_catalog.jsonb_build_object(
       'accepted', true, 'duplicate', true,
       'current_night', v_session.current_night,
-      'night_released', true,
+      'night_released', p_night_number < v_session.current_night,
       'session_finished', v_session.status = 'finished'
     );
+  end if;
+
+  if p_night_number < v_session.current_night then
+    raise exception 'Relato atrasado sem registro idempotente.';
   end if;
 
   if v_session.status <> 'playing'
