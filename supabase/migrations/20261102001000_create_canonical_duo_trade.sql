@@ -95,6 +95,8 @@ declare
   v_user_id uuid := (select auth.uid());
   v_host_id uuid;
   v_guest_id uuid;
+  v_existing_host_id uuid;
+  v_existing_guest_id uuid;
   v_trade_id uuid;
 begin
   perform public.fibula_inventory_assert_session();
@@ -117,10 +119,35 @@ begin
     raise exception 'A troca só pode ser aberta pelos dois participantes no lobby.';
   end if;
 
-  select t.id into v_trade_id
+  select t.id, t.host_id, t.guest_id
+    into v_trade_id, v_existing_host_id, v_existing_guest_id
     from public.fibula_duo_trade_sessions t
    where t.room_id = p_room_id and t.status = 'open'
    for update;
+
+  -- A guest may leave and be replaced while the room remains in the lobby.
+  -- Never reuse an open trade bound to the previous pair of participants.
+  if v_trade_id is not null
+    and (v_existing_host_id <> v_host_id or v_existing_guest_id <> v_guest_id) then
+    update public.fibula_player_item_stacks s
+       set reserved_quantity = s.reserved_quantity - o.quantity,
+           updated_at = pg_catalog.now()
+      from public.fibula_duo_trade_offers o
+     where o.trade_id = v_trade_id and o.item_id = s.item_id
+       and o.owner_id = s.user_id and s.location = 'house';
+
+    update public.fibula_player_equipment e
+       set reserved_trade_id = null, updated_at = pg_catalog.now()
+      from public.fibula_duo_trade_offers o
+     where o.trade_id = v_trade_id and o.equipment_id = e.id
+       and e.user_id = o.owner_id and e.reserved_trade_id = v_trade_id;
+
+    update public.fibula_duo_trade_sessions
+       set status = 'cancelled', updated_at = pg_catalog.now()
+     where id = v_trade_id;
+
+    v_trade_id := null;
+  end if;
 
   if v_trade_id is null then
     insert into public.fibula_duo_trade_sessions (room_id, host_id, guest_id)
