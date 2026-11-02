@@ -114,6 +114,8 @@ export type PlayerEntity = {
   bag: InventoryStack[];
   readonly pub: GameSnapshot['player'];
   readonly runtime: PlayerRuntime;
+  setKey(key: string, down: boolean): void;
+  setMove(x: number, y: number): void;
 };
 
 class PrimaryPlayerView implements PlayerEntity {
@@ -137,6 +139,23 @@ class PrimaryPlayerView implements PlayerEntity {
   set bag(value: InventoryStack[]) { this.getState().inventory = value; }
 
   get pub(): GameSnapshot['player'] { return this.getState().player; }
+
+  setKey(key: string, down: boolean) {
+    if (this.dead) return;
+    const normalizedKey = key.toLowerCase();
+    if (down) this.runtime.keys.add(normalizedKey);
+    else this.runtime.keys.delete(normalizedKey);
+  }
+
+  setMove(x: number, y: number) {
+    if (this.dead) return;
+    this.runtime.input = { x, y };
+    const magnitude = Math.hypot(x, y);
+    if (magnitude > 0.12) {
+      this.pub.facingX = x / magnitude;
+      this.pub.facingY = y / magnitude;
+    }
+  }
 }
 
 export type GameEngineOptions = {
@@ -253,16 +272,8 @@ export class GameEngine {
     this.randomState = value >>> 0;
     return this.randomState / 0x1_0000_0000;
   }
-  setKey(key: string, down: boolean) { if (this.state.dead) return; down ? this.local.keys.add(key.toLowerCase()) : this.local.keys.delete(key.toLowerCase()); }
-  setMove(x: number, y: number) {
-    if (this.state.dead) return;
-    this.local.input = { x, y };
-    const magnitude = Math.hypot(x, y);
-    if (magnitude > 0.12) {
-      this.state.player.facingX = x / magnitude;
-      this.state.player.facingY = y / magnitude;
-    }
-  }
+  setKey(key: string, down: boolean) { this.primaryPlayer.setKey(key, down); }
+  setMove(x: number, y: number) { this.primaryPlayer.setMove(x, y); }
   setClass(classId: ClassId) {
     if (this.state.dead) return;
     const changed = this.state.classId !== classId;
