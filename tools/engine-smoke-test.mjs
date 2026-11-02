@@ -59,10 +59,20 @@ try {
   assert.equal(first.primaryPlayer.pub.facingY, 0.8);
 
   // Troca de classe mantém o motor headless funcional e atualiza a arma.
-  first.setClass('mago');
+  first.primaryPlayer.setClass('mago');
   assert.equal(first.state.classId, 'mago');
   assert.equal(first.state.weapon, 'cajado');
   assert.equal(first.primaryPlayer.classId, 'mago');
+  first.setClass('arqueiro');
+  assert.equal(first.primaryPlayer.classId, 'arqueiro', 'O adaptador público do motor deve delegar a troca à entidade.');
+  assert.equal(first.state.weapon, 'arco');
+
+  // Uma entidade morta não pode trocar classe nem alterar a arma.
+  first.primaryPlayer.dead = true;
+  first.primaryPlayer.setClass('druida');
+  assert.equal(first.primaryPlayer.classId, 'arqueiro');
+  assert.equal(first.primaryPlayer.weapon, 'arco');
+  first.primaryPlayer.dead = false;
 
   // Um motor marcado como morto não avança; reiniciar restaura a partida.
   const xBeforeDeath = first.state.player.x;
