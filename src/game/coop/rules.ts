@@ -1,4 +1,9 @@
+import { soloHordeTarget } from '../horde';
+
+// Mantido apenas para exibição/documentação; o cálculo usa as constantes inteiras abaixo.
 export const DUO_HORDE_MULTIPLIER = 1.7 as const;
+export const DUO_HORDE_MULTIPLIER_NUMERATOR = 17 as const;
+export const DUO_HORDE_MULTIPLIER_DENOMINATOR = 10 as const;
 export const DUO_PLAYER_COUNT = 2 as const;
 
 export type DuoHordeAllocation = {
@@ -23,16 +28,26 @@ function assertSoloEnemyTarget(value: number): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new RangeError('A quantidade de inimigos do Solo deve ser um inteiro seguro não negativo.');
   }
+  if (value > Math.floor(Number.MAX_SAFE_INTEGER / DUO_HORDE_MULTIPLIER_NUMERATOR)) {
+    throw new RangeError('A quantidade de inimigos do Solo excede o limite seguro para o cálculo cooperativo.');
+  }
 }
 
 /**
  * Calculates the total cooperative horde from the current Solo target.
- * Math.round keeps the result an integer while preserving the 1.7 multiplier
- * for the usual whole-number targets (10 -> 17, 20 -> 34, 30 -> 51).
+ * Espelhado no servidor como floor((solo*17+5)/10). Nunca usar ponto flutuante.
  */
 export function calculateDuoHordePressure(soloEnemyTarget: number): number {
   assertSoloEnemyTarget(soloEnemyTarget);
-  return Math.round(soloEnemyTarget * DUO_HORDE_MULTIPLIER);
+  return Math.floor((
+    soloEnemyTarget * DUO_HORDE_MULTIPLIER_NUMERATOR
+    + DUO_HORDE_MULTIPLIER_DENOMINATOR / 2
+  ) / DUO_HORDE_MULTIPLIER_DENOMINATOR);
+}
+
+/** Obtém o alvo cooperativo da noite a partir da fonte única do Solo. */
+export function duoHordeTotalForNight(nightNumber: number): number {
+  return calculateDuoHordePressure(soloHordeTarget(nightNumber));
 }
 
 /**
