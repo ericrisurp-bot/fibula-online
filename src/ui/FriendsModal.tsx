@@ -40,6 +40,8 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const [lobbyMembers, setLobbyMembers] = useState<string[]>([]);
   const lobbyChannel = useRef<any>(null);
   const pendingInvite = useRef<any>(null);
+  const inboxChannels = useRef<Map<string, any>>(new Map());
+  const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     if (!fibulaSupabase) {
@@ -148,17 +150,16 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     const supabase = fibulaSupabase;
     if (!supabase) return;
     let active = true;
-    const inboxChannels: any[] = [];
+    const channels = new Map<string, any>();
     const start = async () => {
       await supabase.realtime.setAuth();
       for (const friendId of friendIds) {
-        // Each accepted pair has an isolated inbox topic: neither player can
-        // subscribe to another friend's private invitation traffic.
         const pairKey = [userId, friendId].sort().join(':');
         const inbox = supabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
         inbox.on('broadcast', { event: 'lobby_invite' }, ({ payload }) => {
           if (!active || payload?.to !== userId || payload?.from !== friendId) return;
           setLobbyInvite(payload);
+          setError('');
         });
         inbox.on('broadcast', { event: 'lobby_invite_response' }, ({ payload }) => {
           if (!active || payload?.to !== userId || payload?.from !== friendId || payload?.invite_id !== pendingInvite.current?.invite_id) return;
@@ -171,58 +172,79 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
             setNotice('Seu convite de lobby foi recusado.');
           }
         });
-        inbox.subscribe();
-        inboxChannels.push(inbox);
+        channels.set(friendId, inbox);
+        inboxChannels.current.set(friendId, inbox);
+        await new Promise<void>((resolve, reject) => {
+          let settled = false;
+          const finish = (error?: Error) => {
+            if (settled) return;
+            settled = true;
+            if (error) reject(error); else resolve();
+          };
+          inbox.subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+              if (active) setConnectedInboxFriends(current => [...new Set([...current, friendId])]);
+              finish();
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              if (active) {
+                setConnectedInboxFriends(current => current.filter(id => id !== friendId));
+                setError(err?.message || `Falha ao conectar o canal de convites de ${profiles[friendId]?.display_name || 'um amigo'} (${status}).`);
+              }
+              finish(new Error(err?.message || `Falha ao conectar canal de convites (${status}).`));
+            }
+          });
+        });
       }
     };
-    void start().catch(() => {
-      if (active) setError('Não foi possível conectar ao serviço de convites.');
+    setConnectedInboxFriends([]);
+    inboxChannels.current.clear();
+    void start().catch(cause => {
+      if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível conectar ao serviço de convites.');
     });
-    return () => { active = false; inboxChannels.forEach(channel => void supabase.removeChannel(channel)); };
+    return () => {
+      active = false;
+      inboxChannels.current.clear();
+      channels.forEach(channel => void supabase.removeChannel(channel));
+    };
   }, [userId, friendIdsKey]);
 
   const sendLobbyInvite = async (friendId: string) => {
     if (!fibulaSupabase || !onlineFriends.includes(friendId) || pendingInvite.current) return;
     const roomTopic = `fibula:duo:${[userId, friendId].sort().join(':')}`;
     const invite = { invite_id: crypto.randomUUID(), from: userId, to: friendId, room_topic: roomTopic, sender_name: profiles[userId]?.display_name || 'Seu amigo', target_name: profiles[friendId]?.display_name || 'Seu amigo' };
-    const pairKey = [userId, friendId].sort().join(':');
-    const channel = fibulaSupabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
+    const channel = inboxChannels.current.get(friendId);
+    if (!channel || !connectedInboxFriends.includes(friendId)) {
+      setError('O canal de convites ainda não está conectado. Feche e abra a lista de amigos para tentar novamente.');
+      return;
+    }
     try {
-      await fibulaSupabase.realtime.setAuth();
-      await new Promise<void>((resolve, reject) => channel.subscribe(status => {
-        if (status === 'SUBSCRIBED') resolve();
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reject(new Error('Não foi possível conectar para enviar o convite.'));
-      }));
-      const result = await channel.send({ type: 'broadcast', event: 'lobby_invite', payload: invite });
-      if (result !== 'ok') throw new Error('Não foi possível entregar o convite.');
+      setError('');
       pendingInvite.current = invite;
+      const result = await channel.send({ type: 'broadcast', event: 'lobby_invite', payload: invite });
+      if (result !== 'ok') throw new Error(`O Realtime recusou o envio do convite (resultado: ${String(result)}).`);
       setNotice(`Convite enviado para ${invite.target_name}. Aguardando resposta.`);
     } catch (cause) {
+      pendingInvite.current = null;
       setError(cause instanceof Error ? cause.message : 'Não foi possível enviar o convite.');
-    } finally {
-      await fibulaSupabase.removeChannel(channel);
     }
   };
 
   const answerLobbyInvite = async (status: 'accepted' | 'declined') => {
     if (!fibulaSupabase || !lobbyInvite) return;
     const invite = lobbyInvite;
-    const pairKey = [userId, invite.from].sort().join(':');
-    const channel = fibulaSupabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
+    const channel = inboxChannels.current.get(invite.from);
+    if (!channel || !connectedInboxFriends.includes(invite.from)) {
+      setError('O canal de convites ainda não está conectado. Não foi possível responder.');
+      return;
+    }
     try {
-      await fibulaSupabase.realtime.setAuth();
-      await new Promise<void>((resolve, reject) => channel.subscribe(state => {
-        if (state === 'SUBSCRIBED') resolve();
-        if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') reject(new Error('Não foi possível responder ao convite.'));
-      }));
+      setError('');
       const result = await channel.send({ type: 'broadcast', event: 'lobby_invite_response', payload: { invite_id: invite.invite_id, from: userId, to: invite.from, status } });
-      if (result !== 'ok') throw new Error('Não foi possível entregar sua resposta ao convite.');
+      if (result !== 'ok') throw new Error(`O Realtime recusou a resposta (resultado: ${String(result)}).`);
       setLobbyInvite(null);
       if (status === 'accepted') void joinLobby(invite.room_topic, invite.from, invite.sender_name || 'Seu amigo');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível responder ao convite.');
-    } finally {
-      await fibulaSupabase.removeChannel(channel);
     }
   };
 
@@ -316,7 +338,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(pendingInvite.current)} onClick={() => void sendLobbyInvite(otherId)}>Convidar</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
