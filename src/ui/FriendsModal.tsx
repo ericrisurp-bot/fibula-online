@@ -48,12 +48,12 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const [notice, setNotice] = useState('');
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
   const [lobbyInvite, setLobbyInvite] = useState<any>(null);
-  const lobbyRef = useRef<{ friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null>(null);
+  const lobbyRef = useRef<DuoPeer | null>(null);
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
-  const [selfReady, setSelfReady] = useState(false);
-  const [peerReady, setPeerReady] = useState(false);
+  const [, setSelfReady] = useState(false);
+  const [, setPeerReady] = useState(false);
   const profilesRef = useRef(profiles);
   const identityRef = useRef({ myClassId, myDisplayName });
   const onLobbyChangeRef = useRef(onLobbyChange);
