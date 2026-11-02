@@ -123,7 +123,7 @@ begin
          ready = false
    where p.left_at is null
      and p.role = 'guest'
-     and p.last_seen_at < v_now - v_lobby_heartbeat_timeout
+     and p.last_seen_at < v_now - v_duo_lobby_heartbeat_timeout
      and exists (
        select 1
          from public.fibula_duo_rooms r
@@ -477,8 +477,8 @@ set search_path = ''
 as $function$
 declare
   v_user_id uuid := (select auth.uid());
-  v_lobby_heartbeat_timeout constant interval := interval '45 seconds';
-  v_empty_invite_timeout constant interval := interval '120 seconds';
+  v_duo_lobby_heartbeat_timeout constant interval := interval '45 seconds';
+  v_duo_empty_invite_timeout constant interval := interval '120 seconds';
 begin
   perform public.fibula_duo_expire_stale();
 
@@ -493,7 +493,7 @@ begin
    where r.phase = 'lobby'
      and r.guest_id is null
      and r.invited_user_id = v_user_id
-     and r.created_at >= pg_catalog.now() - v_empty_invite_timeout
+     and r.created_at >= pg_catalog.now() - v_duo_empty_invite_timeout
      and exists (
        select 1
          from public.fibula_duo_room_participants p
@@ -501,7 +501,7 @@ begin
           and p.user_id = r.host_id
           and p.role = 'host'
           and p.left_at is null
-          and p.last_seen_at >= pg_catalog.now() - v_lobby_heartbeat_timeout
+          and p.last_seen_at >= pg_catalog.now() - v_duo_lobby_heartbeat_timeout
      )
      and exists (
        select 1
