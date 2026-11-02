@@ -154,15 +154,19 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     currentLobby.selfReady = nextReady;
     publishLobby();
     const channel = inboxChannels.current.get(currentLobby.friendId);
-    if (!channel) return;
-    const result = await channel.send({
-      type: 'broadcast',
-      event: 'duo_ready_state',
-      payload: { from: userId, to: currentLobby.friendId, ready: nextReady },
-    });
-    if (result !== 'ok' && lobbyRef.current?.friendId === currentLobby.friendId) {
-      currentLobby.selfReady = !nextReady;
-      publishLobby();
+    try {
+      if (!channel) throw new Error('Canal Duo indisponível.');
+      const result = await channel.send({
+        type: 'broadcast',
+        event: 'duo_ready_state',
+        payload: { from: userId, to: currentLobby.friendId, ready: nextReady },
+      });
+      if (result !== 'ok') throw new Error('O Realtime não confirmou a atualização.');
+    } catch {
+      if (lobbyRef.current?.friendId === currentLobby.friendId) {
+        currentLobby.selfReady = !nextReady;
+        publishLobby();
+      }
       setError('Não foi possível atualizar sua prontidão.');
     }
   }
@@ -180,7 +184,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
         onLobbyNoticeRef.current(message);
         return;
       }
-      void channel.send({ type: 'broadcast', event: 'duo_ping', payload: { from: userId, to: friendId } });
+      void channel.send({ type: 'broadcast', event: 'duo_ping', payload: { from: userId, to: friendId } }).catch(() => undefined);
     }, 5000);
   };
 
@@ -200,7 +204,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     onLobbyConnectedRef.current();
     startHeartbeat(friendId, channel);
     if (acknowledge) {
-      void channel.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) });
+      void channel.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(friendId) }).catch(() => undefined);
     }
   };
 
