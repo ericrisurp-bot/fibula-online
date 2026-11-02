@@ -104,7 +104,7 @@ export class DuoCycleSync {
     if (!participant.alive) return this.ignoredTransition();
 
     participant.alive = false;
-    if (this.participants.values().every(item => !item.alive)) {
+    if ([...this.participants.values()].every(item => !item.alive)) {
       this.status = 'finished';
       return this.transition(true, false, false, true);
     }
