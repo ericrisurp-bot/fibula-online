@@ -37,6 +37,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
   const [lobbyInvite, setLobbyInvite] = useState<any>(null);
   const [lobby, setLobby] = useState<any>(null);
+  const [lobbyMembers, setLobbyMembers] = useState<string[]>([]);
   const lobbyChannel = useRef<any>(null);
   const pendingInvite = useRef<any>(null);
 
@@ -83,15 +84,13 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
-  useEffect(() => { pendingInvite.current = pendingInvite.current; }, [userId]);
-
   const joinLobby = async (roomTopic: string, friendId: string, friendName: string) => {
     if (!fibulaSupabase) return;
     if (lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
     const channel = fibulaSupabase.channel(roomTopic, { config: { private: true, presence: { key: userId } } });
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState() as Record<string, Array<{ user_id: string; display_name: string }>>;
-      setLobby(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : member.display_name || friendName));
+      setLobbyMembers(Object.values(state).flat().map(member => member.user_id === userId ? 'Você' : member.display_name || friendName));
     });
     lobbyChannel.current = channel;
     await fibulaSupabase.realtime.setAuth();
@@ -99,7 +98,8 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       if (status !== 'SUBSCRIBED') return;
       await channel.track({ user_id: userId, display_name: 'Jogador' });
     });
-    setLobby({ roomTopic, friendId, friendName, members: [] });
+    setLobby({ roomTopic, friendId, friendName });
+    setLobbyMembers([]);
   };
 
   useEffect(() => {
@@ -198,6 +198,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     if (fibulaSupabase && lobbyChannel.current) await fibulaSupabase.removeChannel(lobbyChannel.current);
     lobbyChannel.current = null;
     setLobby(null);
+    setLobbyMembers([]);
   };
 
   const sendRequest = async (event: FormEvent<HTMLFormElement>) => {
@@ -318,6 +319,6 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     </section>
   </div>}
     {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
-    {lobby && <div className="duo-lobby-backdrop"><section className="duo-lobby-modal" role="dialog" aria-modal="true"><header><strong>Lobby Duo</strong><button type="button" onClick={() => void leaveLobby()}>×</button></header><p>Vocês estão no mesmo lobby compartilhado.</p><div className="duo-lobby-members">{(lobby.members || []).map((name: string, index: number) => <span key={index}>{name}</span>)}{!(lobby.members || []).length && <span>Conectando jogadores...</span>}</div><button type="button" onClick={() => void leaveLobby()}>Sair do lobby</button></section></div>}
+    {lobby && <div className="duo-lobby-backdrop"><section className="duo-lobby-modal" role="dialog" aria-modal="true"><header><strong>Lobby Duo</strong><button type="button" onClick={() => void leaveLobby()}>×</button></header><p>Vocês estão no mesmo lobby compartilhado.</p><div className="duo-lobby-members">{lobbyMembers.map((name, index) => <span key={index}>{name}</span>)}{!lobbyMembers.length && <span>Conectando jogadores...</span>}</div><button type="button" onClick={() => void leaveLobby()}>Sair do lobby</button></section></div>}
   </>;
 }
