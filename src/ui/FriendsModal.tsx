@@ -16,7 +16,14 @@ type FriendProfile = {
   age: number | null;
   sex: string | null;
 };
-type Props = { userId: string; open: boolean; onClose: () => void; onOpenProfile: (userId: string) => void };
+type Props = {
+  userId: string;
+  open: boolean;
+  onClose: () => void;
+  onOpenProfile: (userId: string) => void;
+  onLobbyChange: (peer: { friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null, leave?: (() => void) | null) => void;
+  onLobbyConnected: () => void;
+};
 
 const AVATARS = {
   guerreiro: { label: 'Guerreiro', icon: '⚔️' },
@@ -25,7 +32,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, open, onClose, onOpenProfile }: Props) {
+export default function FriendsModal({ userId, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -36,10 +43,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const [notice, setNotice] = useState('');
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
   const [lobbyInvite, setLobbyInvite] = useState<any>(null);
-  const [lobby, setLobby] = useState<any>(null);
-  const [lobbyMembers, setLobbyMembers] = useState<string[]>([]);
-  const [lobbyStatus, setLobbyStatus] = useState<'connecting' | 'waiting' | 'connected'>('connecting');
-  const lobbyRef = useRef<{ friendId: string; friendName: string } | null>(null);
+  const lobbyRef = useRef<{ friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character'] } | null>(null);
   const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
@@ -87,6 +91,24 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
+  const leaveLobby = async () => {
+    const currentLobby = lobbyRef.current;
+    if (currentLobby) {
+      const channel = inboxChannels.current.get(currentLobby.friendId);
+      if (channel) {
+        try {
+          await channel.send({
+            type: 'broadcast',
+            event: 'duo_left',
+            payload: { from: userId, to: currentLobby.friendId },
+          });
+        } catch { /* The local lobby still closes if the peer is disconnected. */ }
+      }
+    }
+    lobbyRef.current = null;
+    onLobbyChange(null);
+  };
+
   const joinLobby = async (_roomTopic: string, friendId: string, friendName: string) => {
     const channel = inboxChannels.current.get(friendId);
     // This function is called by long-lived Realtime callbacks. The React state
@@ -98,10 +120,9 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       return;
     }
 
-    lobbyRef.current = { friendId, friendName };
-    setLobby({ friendId, friendName });
-    setLobbyMembers(['Você']);
-    setLobbyStatus('waiting');
+    const peer = { friendId, friendName, avatarCharacter: profiles[friendId]?.avatar_character ?? 'guerreiro' };
+    lobbyRef.current = peer;
+    onLobbyChange(peer, leaveLobby);
     setError('');
     try {
       // The accepted-friend inbox is already authorized for private broadcasts.
@@ -115,9 +136,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
       if (result !== 'ok') throw new Error(`O Realtime recusou a entrada no Lobby Duo (resultado: ${String(result)}).`);
     } catch (cause) {
       lobbyRef.current = null;
-      setLobby(null);
-      setLobbyMembers([]);
-      setLobbyStatus('connecting');
+      onLobbyChange(null);
       setError(cause instanceof Error ? cause.message : 'Não foi possível entrar no lobby compartilhado.');
     }
   };
@@ -184,8 +203,7 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
         inbox.on('broadcast', { event: 'duo_ready' }, ({ payload }) => {
           const currentLobby = lobbyRef.current;
           if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
-          setLobbyMembers(['Você', currentLobby.friendName]);
-          setLobbyStatus('connected');
+          onLobbyConnected();
           // Acknowledge the peer's readiness. This completes the handshake even
           // when the first ready event was sent before the other player joined.
           void inbox.send({
@@ -197,14 +215,13 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
         inbox.on('broadcast', { event: 'duo_ready_ack' }, ({ payload }) => {
           const currentLobby = lobbyRef.current;
           if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
-          setLobbyMembers(['Você', currentLobby.friendName]);
-          setLobbyStatus('connected');
+          onLobbyConnected();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
           const currentLobby = lobbyRef.current;
           if (!active || payload?.from !== friendId || payload?.to !== userId || currentLobby?.friendId !== friendId) return;
-          setLobbyMembers(['Você']);
-          setLobbyStatus('waiting');
+          lobbyRef.current = null;
+          onLobbyChange(null);
         });
         channels.set(friendId, inbox);
         inboxChannels.current.set(friendId, inbox);
@@ -280,26 +297,6 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível responder ao convite.');
     }
-  };
-
-  const leaveLobby = async () => {
-    const currentLobby = lobbyRef.current;
-    if (currentLobby) {
-      const channel = inboxChannels.current.get(currentLobby.friendId);
-      if (channel) {
-        try {
-          await channel.send({
-            type: 'broadcast',
-            event: 'duo_left',
-            payload: { from: userId, to: currentLobby.friendId },
-          });
-        } catch { /* The local lobby still closes if the peer is disconnected. */ }
-      }
-    }
-    lobbyRef.current = null;
-    setLobby(null);
-    setLobbyMembers([]);
-    setLobbyStatus('connecting');
   };
 
   const sendRequest = async (event: FormEvent<HTMLFormElement>) => {
@@ -420,6 +417,5 @@ export default function FriendsModal({ userId, open, onClose, onOpenProfile }: P
     </section>
   </div>}
     {lobbyInvite && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite('accepted')}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite('declined')}>Recusar</button></div></div>}
-    {lobby && <div className="duo-lobby-backdrop"><section className="duo-lobby-modal" role="dialog" aria-modal="true"><header><strong>Lobby Duo</strong><button type="button" onClick={() => void leaveLobby()}>×</button></header><p>Vocês estão no mesmo lobby compartilhado.</p><div className="duo-lobby-members">{lobbyMembers.map((name, index) => <span key={index}>{name}</span>)}{lobbyStatus === 'connecting' && !lobbyMembers.length && <span>Conectando ao lobby...</span>}{lobbyStatus === 'waiting' && <span>Aguardando seu amigo entrar...</span>}{lobbyStatus === 'connected' && <span>Lobby conectado!</span>}</div><button type="button" onClick={() => void leaveLobby()}>Sair do lobby</button></section></div>}
   </>;
 }

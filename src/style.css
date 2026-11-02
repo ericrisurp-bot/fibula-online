@@ -4337,3 +4337,14 @@ button, button * {
 .duo-lobby-members{display:flex;min-height:54px;flex-direction:column;gap:8px;padding:12px;border:1px solid #4d554c;border-radius:9px;background:#2b2e2b}
 .duo-lobby-members span{color:#e4e8e1;font-size:13px}
 @media(max-width:520px){.duo-lobby-invite-toast{right:10px;bottom:10px}.duo-lobby-modal{padding:13px}}
+
+
+/* O segundo jogador ocupa o mesmo slot do convite + no lobby principal. */
+.lobby-duo-peer{position:absolute;z-index:6;left:calc(50% + 7vw);top:calc(50% + 15vh);display:flex;align-items:center;gap:7px;max-width:min(42vw,190px);min-height:48px;padding:4px 10px 4px 5px;border:1px solid rgba(190,214,198,.58);border-radius:999px;background:rgba(24,35,29,.82);box-shadow:0 3px 12px rgba(0,0,0,.3),inset 0 1px 2px rgba(255,255,255,.08);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.lobby-duo-peer-avatar{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border:1px solid rgba(190,214,198,.55);border-radius:50%;background:rgba(255,255,255,.1);font-size:21px}
+.lobby-duo-peer-name{overflow:hidden;color:#f0f2e9;font-size:clamp(10px,1.2vw,13px);font-weight:850;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:650px){.lobby-duo-peer{left:calc(50% + 8vw);top:calc(50% + 15vh);min-height:42px;max-width:42vw;gap:5px;padding:3px 8px 3px 4px}.lobby-duo-peer-avatar{flex-basis:34px;width:34px;height:34px;font-size:19px}.lobby-duo-peer-name{font-size:10px}}
+@media(orientation:landscape) and (max-height:520px){.lobby-duo-peer{left:calc(50% + 9vw);top:calc(50% + 10vh);min-height:42px}}
+
+.lobby-duo-peer{font:inherit;color:inherit;text-align:left;cursor:pointer}
+.lobby-duo-peer:focus-visible{outline:2px solid rgba(232,231,220,.85);outline-offset:3px}
