@@ -36,7 +36,7 @@ type RankingEntry = {
 
 let floatingWeaponSide: 1 | -1 = 1;
 
-type LobbyDuoPeer = { friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
+type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 
 registerCombatSounds();
 registerGatherSounds();
