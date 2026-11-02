@@ -107,6 +107,8 @@ begin
 
   if not found or v_guest_id is null
     or v_user_id not in (v_host_id, v_guest_id)
+    or (select count(*) from public.fibula_duo_room_participants p
+         where p.room_id = p_room_id and p.left_at is null) <> 2
     or not exists (
       select 1 from public.fibula_duo_room_participants p
        where p.room_id = p_room_id and p.user_id = v_user_id
@@ -170,8 +172,9 @@ begin
      join public.fibula_duo_room_participants p on p.room_id = r.id
      where r.id = v_trade.room_id and r.phase = 'lobby'
        and p.user_id = v_user_id and p.left_at is null
-  ) then
-    raise exception 'A negociação só pode mudar enquanto você estiver no lobby.';
+  ) or (select count(*) from public.fibula_duo_room_participants p
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2 then
+    raise exception 'A negociação só pode mudar enquanto os dois estiverem no lobby.';
   end if;
 
   -- Release the caller's previous reservation before validating its replacement.
@@ -280,8 +283,9 @@ begin
   if not exists (
     select 1 from public.fibula_duo_rooms r
      where r.id = v_trade.room_id and r.phase = 'lobby'
-  ) then
-    raise exception 'A negociação não está mais no lobby.';
+  ) or (select count(*) from public.fibula_duo_room_participants p
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2 then
+    raise exception 'A negociação não está mais no lobby com os dois participantes.';
   end if;
 
   update public.fibula_duo_trade_sessions
