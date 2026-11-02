@@ -1647,7 +1647,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        {friendsOpen && <FriendsModal userId={session.user.sub} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} />}
+        <FriendsModal open={friendsOpen} userId={session.user.sub} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
