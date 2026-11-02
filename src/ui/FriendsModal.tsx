@@ -62,6 +62,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const onLobbyConnectedRef = useRef(onLobbyConnected);
   const onLobbyNoticeRef = useRef(onLobbyNotice);
   const friendIdsRef = useRef<string[]>([]);
+  const friendListLoadSucceededRef = useRef(false);
   profilesRef.current = profiles;
   identityRef.current = { myClassId, myDisplayName };
   onLobbyChangeRef.current = onLobbyChange;
@@ -95,6 +96,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     }
     setLoading(true);
     setError('');
+    friendListLoadSucceededRef.current = false;
     try {
       const { data, error: requestError } = await fibulaSupabase
         .from('fibula_friend_requests')
@@ -115,7 +117,9 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       } else {
         setProfiles({});
       }
+      friendListLoadSucceededRef.current = true;
     } catch (cause) {
+      friendListLoadSucceededRef.current = false;
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar sua lista de amigos.');
     } finally {
       setLoading(false);
@@ -197,7 +201,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       notify('A sala Duo sem convidado não pôde ser restaurada porque não foi possível recuperar o amigo convidado. ' + (leaveError ? `Falha ao encerrar: ${leaveError}` : invitationLookupError ? `Consulta do convite: ${invitationLookupError}. A sala foi encerrada para evitar ficar órfã.` : 'A sala foi encerrada para evitar ficar órfã.'));
       return;
     }
-    if (!friendIdsRef.current.includes(friendId)) {
+    if (friendListLoadSucceededRef.current && !friendIdsRef.current.includes(friendId)) {
       await leaveDuoRoom(room.id);
       clearLobby();
       notify('A sala Duo foi encerrada porque o outro participante não é mais um amigo aceito.');
@@ -388,6 +392,39 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     const interval = setInterval(() => { void refresh(); }, 10000);
     return () => { active = false; clearInterval(interval); };
   }, [activeDuo?.roomId, friendIdsKey]);
+
+  useEffect(() => {
+    const supabase = fibulaSupabase;
+    if (!supabase) return;
+    let active = true;
+    const channels: any[] = [];
+    const start = async () => {
+      await supabase.realtime.setAuth();
+      for (const friendId of friendIds) {
+        // Each pair shares one private channel, so both clients publish presence
+        // to the exact same topic and can see one another online.
+        const pairKey = [userId, friendId].sort().join(':');
+        const channel = supabase.channel(`fibula:presence:${pairKey}`, { config: { private: true, presence: { key: userId } } });
+        const sync = () => {
+          if (!active) return;
+          const presences = Object.values(channel.presenceState()).flat() as Array<{ user_id?: string }>;
+          const online = presences.some(member => member.user_id === friendId);
+          setOnlineFriends(current => online ? [...new Set([...current, friendId])] : current.filter(id => id !== friendId));
+        };
+        channel.on('presence', { event: 'sync' }, sync);
+        channel.subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            void channel.track({ user_id: userId });
+            sync();
+          }
+        });
+        channels.push(channel);
+      }
+    };
+    setOnlineFriends([]);
+    void start().catch(() => setOnlineFriends([]));
+    return () => { active = false; channels.forEach(channel => void supabase.removeChannel(channel)); };
+  }, [userId, friendIdsKey]);
 
   useEffect(() => {
     const supabase = fibulaSupabase;
