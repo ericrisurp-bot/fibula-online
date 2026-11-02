@@ -51,7 +51,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
   const [lobbyInvite, setLobbyInvite] = useState<{ room_id: string; from: string; sender_name: string } | null>(null);\n  const [activeDuo, setActiveDuo] = useState<DuoPeer | null>(null);
   const lobbyRef = useRef<DuoPeer | null>(null);
-  const pendingInvite = useRef<any>(null);
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
   const profilesRef = useRef(profiles);
@@ -59,28 +58,21 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const onLobbyChangeRef = useRef(onLobbyChange);
   const onLobbyConnectedRef = useRef(onLobbyConnected);
   const onLobbyNoticeRef = useRef(onLobbyNotice);
-  const handshakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastPeerEventAtRef = useRef(0);
+  const friendIdsRef = useRef<string[]>([]);
   profilesRef.current = profiles;
   identityRef.current = { myClassId, myDisplayName };
   onLobbyChangeRef.current = onLobbyChange;
   onLobbyConnectedRef.current = onLobbyConnected;
   onLobbyNoticeRef.current = onLobbyNotice;
-  const clearDuoTimers = () => {
-    if (handshakeTimeoutRef.current) clearTimeout(handshakeTimeoutRef.current);
-    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
-    handshakeTimeoutRef.current = null;
-    heartbeatIntervalRef.current = null;
-    lastPeerEventAtRef.current = 0;
-  };
   const publishLobby = () => {
     const current = lobbyRef.current;
-    onLobbyChangeRef.current(current ? { ...current } : null, current ? leaveLobby : null, current ? toggleReady : null);
+    const next = current ? { ...current } : null;
+    setActiveDuo(next);
+    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null);
   };
   const clearLobby = () => {
-    clearDuoTimers();
     lobbyRef.current = null;
+    setActiveDuo(null);
     onLobbyChangeRef.current(null);
   };
   const validClassId = (value: unknown): FriendProfile['avatar_character'] =>
@@ -474,7 +466,6 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       };
       lobbyRef.current = peer;
       publishLobby();
-      pendingInvite.current = { room_id: roomId, from: userId, to: friendId };
       setNotice(`Convite enviado para ${peer.friendName}. Aguardando resposta.`);
       try {
         const result = await channel.send({
@@ -621,7 +612,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
       <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
         <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
       </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(activeDuo) || Boolean(pendingInvite.current) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
+      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(activeDuo) || !connectedInboxFriends.includes(otherId)} onClick={() => void sendLobbyInvite(otherId)}>{connectedInboxFriends.includes(otherId) ? 'Convidar' : 'Conectando...'}</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
       {mode === 'incoming' && <div className="lobby-friend-actions">
         <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
         <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
