@@ -36,8 +36,7 @@ type RankingEntry = {
 
 let floatingWeaponSide: 1 | -1 = 1;
 
-type LobbyDuoPeer = { friendId: string; friendName: string; avatarCharacter: ClassId };
-const LOBBY_DUO_AVATARS: Record<ClassId, string> = { guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' };
+type LobbyDuoPeer = { friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 
 registerCombatSounds();
 registerGatherSounds();
@@ -273,6 +272,7 @@ export default function App() {
   const { session } = useArenaAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const duoPeerCanvasRef = useRef<HTMLCanvasElement>(null);
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
@@ -370,7 +370,9 @@ export default function App() {
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
+  const [duoNotice, setDuoNotice] = useState('');
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
+  const duoReadyActionRef = useRef<(() => void) | null>(null);
   const [chestOpen, setChestOpen] = useState(false);
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
@@ -646,6 +648,38 @@ export default function App() {
     frame = window.requestAnimationFrame(renderCharacter);
     return () => window.cancelAnimationFrame(frame);
   }, [showStart, characterPreferences]);
+
+  useEffect(() => {
+    if (!showStart || !duoPeer) return;
+    const canvas = duoPeerCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    let frame = 0;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const renderPeer = (now: number) => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const weapon = PROFILE_CLASS_WEAPONS[duoPeer.classId];
+      const time = reducedMotion ? 0 : now / 1000;
+      const scale = Math.min(width / 72, height / 76);
+      ctx.save();
+      ctx.translate(width / 2, height * 0.82);
+      ctx.scale(scale, scale);
+      drawPlayer(ctx, 0, 0, weapon, duoPeer.classId, time, 0, 0, false, 0, false, 0, 1, -Math.PI / 2, false, false);
+      drawFloatingWeapon(ctx, weapon, CONFIG.player.radius, { time, facingX: 1, moving: false, hasEnemies: false, hasTarget: false, aimAngle: -Math.PI / 2, carried: false, swingTimer: 0, swingAngle: 0, forceVisible: true, preferredSide: -1 });
+      ctx.restore();
+      if (!reducedMotion) frame = window.requestAnimationFrame(renderPeer);
+    };
+    renderPeer(performance.now());
+    return () => { if (frame) window.cancelAnimationFrame(frame); };
+  }, [showStart, duoPeer?.classId, duoPeer?.status]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -1238,6 +1272,16 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
+  const handleLobbyPlay = () => {
+    if (duoPeer) {
+      if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
+        setDuoNotice('A partida cooperativa será liberada nas próximas etapas.');
+      }
+      return;
+    }
+    void startGame();
+  };
+
   const startGame = async () => {
     const engine = engineRef.current;
     if (!engine || gameStartedRef.current || gameStartPendingRef.current) return;
@@ -1539,7 +1583,7 @@ export default function App() {
         </div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <button type="button" className="lobby-duo-peer" title={`Sair do Duo com ${duoPeer.friendName}`} aria-label={`Sair do Duo com ${duoPeer.friendName}`} onClick={() => duoLeaveActionRef.current?.()}><span className={`lobby-duo-peer-avatar class-${duoPeer.avatarCharacter}`} aria-hidden="true">{LOBBY_DUO_AVATARS[duoPeer.avatarCharacter]}</span><span className="lobby-duo-peer-name">{duoPeer.friendName}</span></button> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => setFriendsOpen(true)}>+</button>}</div>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <button type="button" className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} title={`Sair do Duo com ${duoPeer.friendName}`} aria-label={`Sair do Duo com ${duoPeer.friendName}`} onClick={() => duoLeaveActionRef.current?.()}><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><span className="lobby-duo-peer-info"><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.role === 'guest' ? 'Anfitrião' : duoPeer.peerReady ? 'Pronto' : 'Aguardando'}</small>{duoPeer.role === 'host' && duoPeer.status === 'connected' && <small className="lobby-duo-peer-role">Você: Anfitrião</small>}</span></button> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => setFriendsOpen(true)}>+</button>}</div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
@@ -1567,9 +1611,12 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">📊</span>
             <span>STATUS</span>
           </button>
-        <button className="lobby-play-trigger" type="button" onClick={startGame} aria-label="Jogar" title="Entrar no mundo">
+        {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
+          {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
+        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={duoPeer ? duoPeer.status !== 'connected' ? 'Aguardando conexão' : `Aguardando ${duoPeer.friendName} ficar pronto` : 'Entrar no mundo'}>
           Jogar
-        </button>
+        </button>}
+        {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
         <nav className="lobby-crafting-stations" aria-label="Estações de criação">
           {LOBBY_CRAFTING_STATIONS.map(station => <button
             key={station.id}
@@ -1652,7 +1699,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; }} onLobbyConnected={() => setFriendsOpen(false)} />
+        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.user_metadata?.display_name || session.user.user_metadata?.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; if (!peer) setDuoNotice(''); }} onLobbyConnected={() => setFriendsOpen(false)} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
