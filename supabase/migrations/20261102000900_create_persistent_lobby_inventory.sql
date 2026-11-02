@@ -210,7 +210,7 @@ begin
   end if;
 
   v_next := v_current + p_delta;
-  if v_next < 0 then
+  if v_next < 0 or v_next > 1000000000 then
     raise exception 'Quantidade insuficiente no armazenamento.';
   end if;
 
@@ -279,6 +279,10 @@ begin
    )
    order by candidate.slot
    limit 1;
+
+  if v_slot is null then
+    raise exception 'O Arsenal atingiu 30 espaços.';
+  end if;
 
   insert into public.fibula_player_equipment
     (user_id, item_id, arsenal_slot, attributes, durability, max_durability)
