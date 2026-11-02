@@ -4318,3 +4318,22 @@ button, button * {
   .lobby-ranking-entry>strong{font-size:10px}
   .lobby-ranking-entry>b{font-size:11px}
 }
+
+
+/* Presença e convites de lobby Duo. */
+.lobby-friend-online-dot{display:inline-block;flex:0 0 9px;width:9px;height:9px;margin:0 2px;border:1px solid #777d75;border-radius:50%;background:#555a55}
+.lobby-friend-online-dot.online{border-color:#72c98a;background:#38b85d;box-shadow:0 0 7px rgba(56,184,93,.45)}
+.duo-lobby-invite-toast{position:fixed;z-index:12000;right:16px;bottom:18px;display:flex;width:min(340px,calc(100vw - 32px));flex-direction:column;gap:12px;padding:14px;border:1px solid #697168;border-radius:12px;background:#222322;color:#f2f3ef;box-shadow:0 16px 48px rgba(0,0,0,.55)}
+.duo-lobby-invite-toast strong{font-size:13px;line-height:1.4}
+.duo-lobby-invite-toast>div{display:flex;gap:8px}
+.duo-lobby-invite-toast button,.duo-lobby-modal>button{min-height:36px;padding:8px 13px;border:1px solid #d0d4ce;border-radius:8px;background:#d0d4ce;color:#222322;font-weight:800}
+.duo-lobby-invite-toast button.secondary{border-color:#62685f;background:#303330;color:#f2f3ef}
+.duo-lobby-backdrop{position:fixed;inset:0;z-index:11900;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.duo-lobby-modal{display:flex;width:min(360px,100%);flex-direction:column;gap:14px;padding:16px;border:1px solid #697168;border-radius:14px;background:#222322;color:#f2f3ef;box-shadow:0 22px 70px rgba(0,0,0,.62)}
+.duo-lobby-modal>header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.duo-lobby-modal>header strong{font-size:18px}
+.duo-lobby-modal>header button{width:32px;height:32px;border:1px solid #555a55;border-radius:8px;background:#303330;color:#f2f3ef;font-size:21px}
+.duo-lobby-modal>p{margin:0;color:#c0c5bd;font-size:12px}
+.duo-lobby-members{display:flex;min-height:54px;flex-direction:column;gap:8px;padding:12px;border:1px solid #4d554c;border-radius:9px;background:#2b2e2b}
+.duo-lobby-members span{color:#e4e8e1;font-size:13px}
+@media(max-width:520px){.duo-lobby-invite-toast{right:10px;bottom:10px}.duo-lobby-modal{padding:13px}}
