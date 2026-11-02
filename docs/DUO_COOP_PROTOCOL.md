@@ -1,138 +1,121 @@
-# Fíbula Online — protocolo cooperativo Duo
+# Fíbula Online — protocolo cooperativo Duo (mundos independentes)
 
-## Objetivo
+## Decisão oficial
 
-O modo Duo será uma partida cooperativa real: duas contas entram no mesmo mundo, controlam personagens distintos e compartilham inimigos, recursos, progressão e ciclo dia/noite. O modo Solo continua independente.
+Este documento substitui o protocolo anterior de mundo compartilhado/host-authoritative.
 
-## Modelo de autoridade da primeira versão
+A modalidade cooperativa terá dois mapas independentes. Cada cliente executa sua própria partida local, com seu próprio personagem, casa, carrinho, inventário, recursos, inimigos, XP, drops e construção.
 
-- O anfitrião executa a simulação do mundo e publica snapshots.
-- O convidado envia somente intenção de controle (movimento e teclas permitidas); não envia posição, dano, vida ou resultado de coleta como verdade.
-- O anfitrião valida remetente, sala, sequência e limites do input antes de aplicar comandos.
-- Os snapshots carregam o estado compartilhado do mundo e os dois personagens.
-- A interface não deve iniciar a partida até receber o estado de sala válido e confirmar que os dois participantes estão prontos.
+O multiplayer compartilha somente o estado mínimo necessário para coordenar a dupla, a pressão das hordas, o encerramento das noites e o resultado cooperativo.
 
-Esse modelo é host-authoritative, não server-authoritative: o navegador do anfitrião continua sendo um cliente e não oferece proteção forte contra trapaça. Uma futura evolução para servidor autoritativo exigiria mover a simulação para infraestrutura confiável.
+## O que NÃO será sincronizado
+
+Durante a partida, não transmitir:
+
+- posição, movimento, direção ou câmera;
+- vida, nível, XP ou atributos em tempo real;
+- inimigos, alvos, ataques, projéteis ou dano;
+- árvores, pedras, algodão, drops ou orbes;
+- casa, carrinho, inventário, construções ou recursos;
+- snapshots do mundo ou inputs do jogador.
+
+Cada mapa continua sendo simulado e salvo individualmente.
+
+## O que será compartilhado
+
+Somente eventos pequenos e pontuais:
+
+- início da sessão e identificação dos dois participantes;
+- morte/abandono de um participante (evento único);
+- conclusão da horda local e estado vivo do participante, ao terminar a noite;
+- número da noite e pressão calculada para a próxima horda;
+- encerramento do resultado cooperativo.
+
+As mensagens carregam versão do protocolo, sala, partida, remetente, sequência e horário. Mensagens duplicadas, antigas, de outra sala/partida ou de remetentes que não pertencem à dupla devem ser rejeitadas.
+
+## Ciclo de noite
+
+1. Os dois clientes iniciam a mesma noite e seus relógios de ciclo ficam alinhados.
+2. Cada cliente gera e combate seus próprios inimigos.
+3. Quando um jogador elimina o último inimigo do próprio mapa, envia um único evento `night_complete`.
+4. Esse jogador continua livre no próprio mapa: pode andar, minerar, coletar, construir e organizar seus itens.
+5. O ciclo desse mapa não avança para o amanhecer e não cria outra horda enquanto aguarda o parceiro.
+6. O outro jogador continua combatendo no próprio mapa.
+7. Quando os dois participantes estiverem resolvidos — cada jogador vivo concluiu sua horda, ou o outro morreu — acontece a sincronização.
+8. Se houver pelo menos um sobrevivente, os clientes avançam juntos para o próximo dia/noite. Se os dois morrerem, a sessão termina.
+
+O primeiro jogador não fica parado nem tem o mundo congelado. Somente a transição do ciclo fica aguardando. A simulação local de movimento, coleta e construção continua ativa.
+
+## Dificuldade cooperativa
+
+A pressão total de cada noite é sempre derivada da configuração atual do Solo:
+
+`pressaoTotal = round(alvoSoloAtual × 1.7)`
+
+Não manter uma tabela de inimigos separada para o modo Duo. Qualquer alteração futura no cálculo do Solo deve refletir automaticamente no Duo.
+
+Exemplos:
+
+| Alvo atual do Solo | Pressão total Duo |
+|---:|---:|
+| 10 | 17 |
+| 20 | 34 |
+| 30 | 51 |
+| 50 | 85 |
+
+Com dois jogadores vivos, dividir a pressão total de forma equilibrada. O primeiro participante na ordem estável da sala recebe o excedente quando o total for ímpar: 17 vira 9 e 8.
+
+Quando um jogador morrer, a noite atual não muda. A partir da próxima noite, o sobrevivente recebe 100% da pressão total de 1,7×. A dificuldade nunca retorna a 1,0× durante aquela sessão.
+
+A função pura que implementa essa regra fica em `src/game/coop/rules.ts`.
+
+## Morte e continuidade
+
+- Morte encerra a participação daquele jogador na sessão.
+- O jogador retorna ao próprio lobby; não existe espectador.
+- O progresso individual permanece no salvamento próprio.
+- O sobrevivente continua no próprio mapa.
+- A nova distribuição da horda só muda na próxima noite.
+- O ranking cooperativo deixa de acumular quando o primeiro jogador morre.
+- O sobrevivente pode continuar sua partida, mas esse trecho posterior não aumenta o resultado cooperativo.
+- Se os dois morrerem, a sessão termina; não existe próxima noite.
+
+## Recursos, XP e itens
+
+Nada é compartilhado automaticamente durante a partida.
+
+XP, abates, drops, materiais, equipamentos, inventário, casa, carrinho e evolução são individuais. A troca de itens acontece somente no lobby, quando os jogadores decidirem enviar algo um ao outro.
+
+## Desconexão e reconexão
+
+Não haverá reconexão à partida.
+
+Não haverá heartbeat de presença, polling ou sinal contínuo de "estou vivo" durante o jogo. A intenção é detectar disponibilidade nos pontos de sincronização e por eventos pontuais, sem tráfego repetitivo.
+
+Um jogador que morrer pode emitir um único evento `player_died`. Se a conexão cair abruptamente e esse evento não chegar, o outro cliente só poderá concluir que o participante está indisponível quando a sincronização de fim de noite não receber a resposta esperada.
+
+**Pendente antes da integração no motor:** definir um prazo máximo para essa resposta de fim de noite. Não reutilizar automaticamente o prazo de reconexão anterior: reconexão foi removida. O prazo de sincronização precisa ser uma regra explícita e separada.
 
 ## Transporte e persistência
 
-- Supabase Realtime Broadcast privado transporta inputs, snapshots e eventos efêmeros da sessão.
-- O banco mantém a fonte persistente de verdade para sala, participantes, anfitrião, estado, prontidão e identificador da partida.
-- O tópico deve ser restrito aos dois membros autorizados; nunca usar tópico público ou confiar apenas no ID informado pelo cliente.
-- Presença/heartbeat serve para detectar conexão, não para declarar que um jogador está pronto ou que a partida começou.
-- Mensagens carregam versão do protocolo, sala, partida, remetente, sequência e horário.
-- Rejeitar mensagens fora da sala/partida, de remetentes não participantes, com sequência repetida/antiga ou payload fora dos limites.
+- Reutilizar a sala persistente existente para convite, participantes, prontidão e início.
+- Durante a partida, usar somente o canal privado da sala para os eventos pequenos descritos acima.
+- Não persistir no banco estado de mapa, posição, inventário, inimigos ou simulação.
+- Não gravar a cada frame, segundo ou movimento.
+- Não usar Presence/heartbeat como transporte do estado da partida.
+- O armazenamento persistente de sala não deve ser confundido com sincronização do mundo.
+- O ranking final precisa ter validação apropriada; não aceitar pontuação enviada livremente pelo cliente como fonte confiável.
 
-## Sequência esperada
+A manutenção da sala no lobby pode continuar usando o mecanismo existente. Ao iniciar a partida, o cliente não deve continuar o polling periódico de lobby nem o heartbeat de sala como se ainda estivesse aguardando convite. O comportamento exato será alterado na etapa de integração do cliente.
 
-1. Convite aceito cria/associa uma sala persistente com anfitrião e convidado.
-2. Os dois aparecem nos slots do lobby principal; cada participante altera sua prontidão.
-3. O anfitrião inicia somente quando os dois estiverem prontos e conectados.
-4. O anfitrião cria uma seed e um match ID; ambos carregam o mesmo mundo.
-5. O convidado envia inputs; o anfitrião aplica os inputs no motor compartilhado e publica snapshots.
-6. Saída, derrota, desconexão e reconexão atualizam o estado sem criar uma segunda partida independente.
+## Segurança e limites
 
-## Limites desta etapa
+Os mapas são locais e independentes; portanto, não há autoridade de servidor sobre cada combate nesta primeira arquitetura. Eventos de sessão precisam ser validados quanto a sala, partida, participante, sequência e noite. Ranking competitivo exige validação adicional no servidor antes de ser considerado confiável.
 
-Este documento e `src/game/coop/protocol.ts` definem o contrato inicial. Ainda não ativam multiplayer, não criam tabelas/policies, não alteram o Lobby principal nem mudam o motor Solo. Essas integrações devem entrar em etapas separadas e testáveis, começando pela persistência/controle de sala e depois pela simulação com dois jogadores.
+## Fora do escopo desta etapa
 
-
-## Persistência das salas — contrato endurecido (migration 00400 + 00500)
-
-A migration-base `20261102000400_create_fibula_duo_rooms.sql` cria as tabelas e as cinco RPCs originais. A migration aditiva `20261102000500_harden_fibula_duo_rooms.sql` endurece o ciclo de vida sem editar a 00400 e pode ser reaplicada sem duplicar colunas, constraints ou policies.
-
-### Estado persistido
-
-- `fibula_duo_rooms`: anfitrião, convidado, usuário convidado, fase, `match_id`, `match_seed` e timestamps.
-- `fibula_duo_room_participants`: papel, prontidão, entrada/saída e `last_seen_at`.
-- Fases: `lobby`, `starting`, `playing`, `finished` e `cancelled`. Esta etapa mantém o início direto em `playing`; `starting` permanece reservado.
-- Para `starting`, `playing` e `finished`, `match_id`, `match_seed` e `started_at` são obrigatórios. Registros antigos recebem uma seed determinística derivada do `match_id` antes da constraint ser reforçada.
-- O acesso de leitura às tabelas continua limitado pelas policies existentes. O convidado ainda não membro descobre o convite somente pela RPC `fibula_list_duo_invites()`.
-
-### RPCs e segurança
-
-Todas as RPCs de cliente são `SECURITY DEFINER`, validam o issuer da Arena, usam `search_path = ''` e ficam com execução concedida a `authenticated` (não a `anon`):
-
-- `fibula_create_duo_room(p_friend_id uuid) returns uuid`: cria sala para amigo aceito e registra o heartbeat inicial do anfitrião.
-- `fibula_list_duo_invites() returns table(room_id uuid, host_id uuid, created_at timestamptz)`: lista convites pendentes endereçados ao usuário, somente se o anfitrião ainda estiver ativo e a amizade continuar aceita.
-- `fibula_join_duo_room(p_room_id uuid) returns uuid`: permite ao convidado designado ocupar a vaga e inicia seu heartbeat.
-- `fibula_set_duo_ready(p_room_id uuid, p_ready boolean) returns boolean`: altera a prontidão do próprio participante e atualiza seu heartbeat.
-- `fibula_start_duo_match(p_room_id uuid) returns uuid`: somente o anfitrião inicia com exatamente dois participantes ativos e exige que apenas o convidado esteja `ready`; a prontidão do anfitrião não é exigida. Grava `match_id` e `match_seed`, mantendo a fase `playing`.
-- `fibula_leave_duo_room(p_room_id uuid) returns boolean`: mantém as regras de saída da sala/lobby e encerra a partida em andamento.
-- `fibula_duo_heartbeat(p_room_id uuid) returns boolean`: atualiza somente o heartbeat da participação ativa do chamador; falha se ele não participa.
-- `fibula_get_my_duo_room() returns jsonb`: retorna a sala ativa do chamador, incluindo `id`, `host_id`, `guest_id`, `phase`, `match_id`, `match_seed` e participantes ativos (`user_id`, `role`, `ready`), ou `null`.
-
-A rotina interna `fibula_duo_expire_stale()` é chamada no início das RPCs de sala e não tem execução concedida aos clientes. O cliente deve enviar `fibula_duo_heartbeat(room_id)` a cada **15 segundos**. Abas em segundo plano podem ter timers throttled pelo navegador; por isso, a janela de tolerância é de **45 segundos no lobby** e **90 segundos durante a partida**. As janelas são:
-
-- Lobby: heartbeat sugerido a cada **15 segundos**; anfitrião sem heartbeat por mais de **45 segundos** cancela a sala e encerra todas as participações.
-- Convite sem convidado: sala em lobby sem `guest_id` por mais de **120 segundos** é cancelada.
-- Convidado em lobby: sem heartbeat por mais de **45 segundos**, sua participação é encerrada, a vaga é liberada e a prontidão do anfitrião volta a `false`.
-- Partida: qualquer participante ativo sem heartbeat por mais de **90 segundos** encerra a sala como `finished` e encerra todas as participações ativas.
-
-### Realtime da sala
-
-Inputs, snapshots e eventos efêmeros usam **Broadcast privado**, no tópico exato `fibula:duo-room:<room_uuid>`. Policies de `SELECT` e `INSERT` em `realtime.messages` exigem extensão `broadcast`, issuer da Arena, UUID válido no tópico e `fibula_is_duo_room_member(room_id)`. Este canal **não usa Presence**. As policies existentes de inbox e presença dos amigos permanecem independentes e não são substituídas.
-
-### Roteiro manual de teste — duas contas Arena
-
-1. Entre com a Conta A e a Conta B, confirme que são amigos aceitos e mantenha ambas conectadas.
-2. Na Conta A, crie uma sala para a Conta B usando `fibula_create_duo_room(friend_id)`; anote o UUID retornado.
-3. Na Conta B, chame `fibula_list_duo_invites()`; confirme que o convite aparece com o mesmo `room_id` e o `host_id` da Conta A. Recarregue a página e repita a leitura para confirmar que o convite continua persistente.
-4. Na Conta B, execute `fibula_join_duo_room(room_id)`; em ambas as contas, consulte `fibula_get_my_duo_room()` e confirme os dois participantes ativos.
-5. Em cada conta, execute `fibula_set_duo_ready(room_id, true)`. Confirme que ambos aparecem como `ready: true`.
-6. Na Conta A, execute `fibula_start_duo_match(room_id)`. Confirme que o retorno é o `match_id` e que `fibula_get_my_duo_room()` mostra fase `playing`, o mesmo `match_id` e uma `match_seed` não nula para ambas as contas.
-7. Em uma sala de teste, pare de enviar `fibula_duo_heartbeat(room_id)` para um participante durante uma partida. Após mais de 90 segundos, faça uma chamada de leitura/RPC de sala para disparar a rotina de expiração e confirme fase `finished` e `left_at` preenchido para ambos.
-8. Repita em lobby: pare o heartbeat do anfitrião por mais de 45 segundos e confirme cancelamento; depois teste um convidado sem heartbeat por mais de 45 segundos e confirme liberação da vaga e reset da prontidão do anfitrião. Para o convite sem convidado, aguarde mais de 120 segundos e confirme cancelamento.
-
-Este roteiro é manual e deve ser executado em ambiente de teste com duas contas. As migrations 00400 e 00500 definem a persistência e o ciclo de vida das salas; a migration 00700 desta etapa acrescenta o limite de capacidade e permanece sujeita à revisão e autorização antes de ser aplicada. Nenhuma alteração de banco, policy ou configuração foi executada nesta etapa. A integração com o lobby principal e com o motor de simulação cooperativa continua sendo trabalho posterior.
-
-## Capacidade (plano Free)
-
-O projeto limita a **4 partidas Duo simultâneas**. Cada partida comporta dois jogadores. O limite é imposto no banco pela RPC `fibula_start_duo_match(p_room_id)`; o cliente não decide nem reserva capacidade localmente.
-
-- A configuração fica na linha única de `public.fibula_duo_settings`. O valor inicial aprovado é `max_active_matches = 4`.
-- A contagem considera somente salas em `starting` ou `playing`. Salas em `lobby`, `finished` ou `cancelled` não ocupam vaga.
-- O início valida anfitrião, dois participantes ativos e convidado pronto; em seguida adquire um advisory transaction lock compartilhado por todos os inícios, executa novamente a expiração de salas paradas e conta as partidas ativas. Assim, inícios concorrentes não conseguem ultrapassar o limite.
-- Sem vaga, a RPC rejeita o início com: **“Todas as % salas Duo estão ocupadas. Tente novamente em alguns minutos.”**
-- `fibula_duo_capacity()` retorna `max`, `in_use` e `free`; chama a rotina de expiração antes de calcular os números.
-- A vaga é liberada quando a sala deixa de estar em `starting/playing`: ao sair/encerrar a partida, ao terminar por derrota e ao expirar uma partida cujo participante ficou sem heartbeat por mais de **90 segundos**. A rotina `fibula_duo_expire_stale()` marca a partida expirada como `finished` e encerra as participações ativas.
-- A tabela de configuração tem RLS, leitura autenticada limitada ao issuer da Arena e nenhuma permissão de escrita para clientes. A RPC de capacidade também valida o issuer e só pode ser executada por `authenticated`. A rotina interna `fibula_duo_expire_stale()` continua sem execução concedida a `authenticated`.
-
-### Alterar o limite futuramente
-
-Somente quem administra o banco deve alterar manualmente a linha de configuração, por exemplo:
-
-```sql
-update public.fibula_duo_settings
-   set max_active_matches = 6,
-       updated_at = pg_catalog.now()
- where id = true;
-```
-
-O valor permitido pela constraint é de 0 a 50. Não conceder escrita dessa tabela ao cliente.
-
-### Orçamento de mensagens Realtime
-
-No plano Free, considerar os limites de **100 mensagens por segundo no projeto inteiro** e **20 mensagens de Presence por segundo**. O transporte da partida deve manter folga para convites e presença de amigos:
-
-- Meta máxima de **8 mensagens ENVIADAS por segundo por sala**.
-- O anfitrião envia estado/snapshot entre **6 e 8 vezes por segundo**.
-- O convidado envia controle somente quando houver mudança de input; não transmitir continuamente controles inalterados.
-- O cenário estático é enviado uma única vez por partida/sala, não repetido em cada snapshot.
-- Presence não deve ser usado para transportar estado de jogo; o canal da partida permanece em Broadcast privado.
-
-Esses números são metas de orçamento para o transporte Duo, não uma ampliação dos limites do plano. O total agregado de todas as salas, convites e demais recursos Realtime do projeto deve permanecer abaixo dos limites do Free.
-
-### Roteiro manual de teste — capacidade
-
-Executar somente depois de revisar e aplicar a migration em ambiente autorizado:
-
-1. Consultar `select public.fibula_duo_capacity();` e confirmar `max = 4`, `in_use = 0` e `free = 4` (ou os valores correspondentes ao ambiente).
-2. Criar quatro salas válidas, cada uma com anfitrião e convidado ativos, convidado pronto, e iniciar as quatro. Confirmar que todas ficam em `playing`.
-3. Consultar `select public.fibula_duo_capacity();` e confirmar `in_use = 4` e `free = 0`.
-4. Tentar iniciar uma quinta sala: confirmar rejeição com a mensagem de capacidade. Uma sexta tentativa também deve ser recusada enquanto as quatro vagas continuarem ocupadas.
-5. Liberar uma vaga encerrando uma das partidas (ou aguardar a expiração por heartbeat acima de 90 segundos); consultar novamente a capacidade e confirmar `in_use = 3` e `free = 1`.
-6. Iniciar a sala que aguardava vaga e confirmar que ela passa para `playing`; consultar a capacidade e confirmar novamente `in_use = 4` e `free = 0`.
-7. Testar inícios concorrentes em salas distintas quando houver somente uma vaga: exatamente um início deve ocupar a vaga; os demais devem receber a mensagem de capacidade.
-
-Este roteiro é manual. **A migration 00700 é somente proposta nesta PR: NÃO foi aplicada nem testada em banco.** Nenhum SQL foi executado em banco nesta etapa.
+- Não alterar migrations, tabelas, policies ou dados do Supabase.
+- Não alterar o lobby, FriendsModal ou App nesta etapa.
+- Não alterar o motor Solo, CONFIG ou balanceamento atual.
+- Não implementar envio de itens nesta etapa.
+- Não transmitir snapshots ou inputs.
