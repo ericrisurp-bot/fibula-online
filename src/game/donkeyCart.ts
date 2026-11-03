@@ -88,7 +88,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 export function constructDonkeyCart(
   state: DonkeyCartState,
   inventory: InventoryStack[],
- ): DonkeyCartConstructionResult {
+): DonkeyCartConstructionResult {
   const cost = getDonkeyCartConstructionCost(state);
   const unchanged = (): DonkeyCartConstructionResult => ({
     built: false,
