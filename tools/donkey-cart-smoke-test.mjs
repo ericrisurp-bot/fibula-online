@@ -26,6 +26,10 @@ try {
   assert.equal(initial.health, 0);
   assert.equal(initial.everBuilt, false);
   assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 10, cotton: 0 });
+  assert.deepEqual(getDonkeyCartConstructionCost(initial, true), { wood: 1, cotton: 0 });
+  const previewBuild = constructDonkeyCart(initial, [{ itemId: 'wood', quantity: 1 }], true);
+  assert.equal(previewBuild.built, true);
+  assert.deepEqual(previewBuild.inventory, []);
 
   const firstBuild = constructDonkeyCart(initial, initialInventory);
   assert.equal(firstBuild.built, true);
