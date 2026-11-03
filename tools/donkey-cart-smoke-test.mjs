@@ -9,6 +9,11 @@ const server = await createServer({
 });
 
 try {
+  const { isPreviewTestMode } = await server.ssrLoadModule('/src/game/previewTestMode.ts');
+  assert.equal(isPreviewTestMode('test-preview.fibula-online.pages.dev'), true);
+  assert.equal(isPreviewTestMode('fibula-online.pages.dev'), false);
+  assert.equal(isPreviewTestMode('fibula.iericris.com.br'), false);
+
   const {
     createDonkeyCartState,
     constructDonkeyCart,
