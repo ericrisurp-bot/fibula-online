@@ -67,14 +67,33 @@ try {
   assert.ok(Math.abs((cart.x - beforeCart.x) - (cart.donkeyX - beforeDonkey.x)) < 1e-6);
   assert.ok(Math.abs((cart.y - beforeCart.y) - (cart.donkeyY - beforeDonkey.y)) < 1e-6);
 
-  // Dentro da distância de descanso e fora do raio de visão, o conjunto para.
-  cart.donkeyX = center + CONFIG.donkey.followDistance - 1;
+  // Entre 30 e 60 unidades, o burrinho mantém a posição e permite aproximação.
+  cart.donkeyX = center + 50;
   cart.donkeyY = playerFeetY;
   cart.x = cart.donkeyX - CONFIG.cart.followDistance;
   cart.y = cart.donkeyY;
   const resting = { x: cart.x, y: cart.y, donkeyX: cart.donkeyX, donkeyY: cart.donkeyY };
   engine.step(0.04);
   assert.deepEqual({ x: cart.x, y: cart.y, donkeyX: cart.donkeyX, donkeyY: cart.donkeyY }, resting);
+
+  // Mesmo se o personagem se aproximar a menos de 30, o burrinho não recua.
+  cart.donkeyX = center + 20;
+  cart.donkeyY = playerFeetY;
+  cart.x = cart.donkeyX - CONFIG.donkey.cartDistance;
+  cart.y = cart.donkeyY;
+  const playerApproaches = { x: cart.x, y: cart.y, donkeyX: cart.donkeyX, donkeyY: cart.donkeyY };
+  engine.step(0.04);
+  assert.deepEqual({ x: cart.x, y: cart.y, donkeyX: cart.donkeyX, donkeyY: cart.donkeyY }, playerApproaches);
+
+  // Ao ultrapassar 60 unidades, o burrinho retoma a aproximação.
+  cart.donkeyX = center + CONFIG.donkey.followTriggerDistance + 1;
+  cart.donkeyY = playerFeetY;
+  cart.x = cart.donkeyX - CONFIG.donkey.cartDistance;
+  cart.y = cart.donkeyY;
+  const beforeTriggerDistance = Math.hypot(center - cart.donkeyX, playerFeetY - cart.donkeyY);
+  engine.step(0.04);
+  const afterTriggerDistance = Math.hypot(center - cart.donkeyX, playerFeetY - cart.donkeyY);
+  assert.ok(afterTriggerDistance < beforeTriggerDistance, 'acima de 60 unidades, burrinho deve avançar em direção ao personagem');
 
   cart.donkeyX = center + CONFIG.donkey.visionRange + 1;
   cart.donkeyY = playerFeetY;
