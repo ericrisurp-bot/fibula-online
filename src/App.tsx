@@ -950,7 +950,7 @@ export default function App() {
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
         const playerGround = playerFeet(s.player);
-        drawCart(ctx, s.cart, Math.hypot(playerGround.x - s.cart.x, playerGround.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving && s.cart.stage === 'built', s.walkPhase);
+        drawCart(ctx, s.cart, Math.hypot(playerGround.x - s.cart.x, playerGround.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, false, s.cart.wheelPhase);
       }});
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
