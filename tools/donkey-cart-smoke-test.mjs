@@ -38,7 +38,7 @@ try {
   engine.step(0.04);
   const donkeyAfter = { x: cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance, y: cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance };
   const traveled = Math.hypot(donkeyAfter.x - donkeyBefore.x, donkeyAfter.y - donkeyBefore.y);
-  assert.ok(Math.abs(traveled - CONFIG.cart.unloadedPullSpeed * 0.04) < 0.02, 'burrinho deve andar a 116 unidades/s');
+  assert.ok(Math.abs(traveled - CONFIG.cart.unloadedPullSpeed * 0.04) < 0.02, 'burrinho deve andar a 87 unidades/s');
   assert.ok(Math.hypot(engine.state.player.x - donkeyAfter.x, feetY - donkeyAfter.y) < distanceBefore, 'burrinho deve aproximar-se do jogador');
   assert.ok(Math.abs(Math.hypot(donkeyAfter.x - cart.x, donkeyAfter.y - cart.y) - CONFIG.donkey.cartDistance) < 1e-6, 'carroça deve manter distância rígida');
   assert.ok(cart.wheelPhase > 0, 'rodas devem girar com o deslocamento');
