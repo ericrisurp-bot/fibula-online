@@ -781,9 +781,10 @@ export class GameEngine {
     const toPlayerY = feet.y - cart.donkeyY;
     const donkeyDistance = Math.hypot(toPlayerX, toPlayerY);
 
-    // O alcance de visão é medido do burrinho até o personagem. A direção é
-    // sempre o vetor burrinho -> personagem, nunca o facing do personagem.
-    if (donkeyDistance <= CONFIG.donkey.visionRange && donkeyDistance > CONFIG.donkey.followDistance) {
+    // O burrinho só reage quando o personagem se afasta além de 60 unidades.
+    // Entre 30 e 60, mantém a posição e permite que o personagem se aproxime.
+    // Ao reagir, aproxima-se até 30 unidades dos pés do personagem.
+    if (donkeyDistance <= CONFIG.donkey.visionRange && donkeyDistance > CONFIG.donkey.followTriggerDistance) {
       const remainingDistance = donkeyDistance - CONFIG.donkey.followDistance;
       const donkeyStep = Math.min(remainingDistance, CONFIG.player.speed * dt);
       const previousDonkeyX = cart.donkeyX;
