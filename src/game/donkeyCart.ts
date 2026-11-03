@@ -114,6 +114,7 @@ export function constructDonkeyCart(
       ...state,
       stage: 'built',
       health: state.maxHealth,
+      following: true,
       everBuilt: true,
       carried: false,
       inventory: state.inventory.map(stack => ({ ...stack })),
@@ -123,19 +124,20 @@ export function constructDonkeyCart(
   };
 }
 
-/** Aplica dano ao conjunto; ao zerar a vida, volta diretamente ao estado quebrado. */
-export function damageDonkeyCart(state: DonkeyCartState, damage: number): DonkeyCartState {
-  if (state.stage !== 'built' || !Number.isFinite(damage) || damage <= 0) {
+/** Cada impacto de slime remove exatamente 1 ponto de vida do conjunto. */
+export function damageDonkeyCart(state: DonkeyCartState): DonkeyCartState {
+  if (state.stage !== 'built') {
     return { ...state, inventory: state.inventory.map(stack => ({ ...stack })) };
   }
 
-  const health = Math.max(0, state.health - damage);
+  const health = Math.max(0, state.health - 1);
   if (health > 0) return { ...state, health };
 
   return {
     ...state,
     stage: 'broken',
     health: 0,
+    following: false,
     carried: false,
   };
 }
