@@ -23,7 +23,7 @@ export type DonkeyCartState = {
 };
 
 export type DonkeyCartConstructionCost = {
-  wood: 10;
+  wood: 1;
   cotton: 0 | 5;
 };
 
@@ -88,7 +88,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 
 /**
  * Constrói ou reconstrói o conjunto de forma atômica.
- * A primeira construção custa 10 madeiras; reconstruções custam 10 madeiras e 5 algodões.
+ * A construção custa 1 madeira; reconstruções também exigem 5 algodões.
  */
 export function constructDonkeyCart(
   state: DonkeyCartState,
