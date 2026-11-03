@@ -715,6 +715,7 @@ export class GameEngine {
     if (!result.built) return;
     this.state.cart = result.state;
     this.state.inventory = result.inventory;
+    const feet = playerFeet(this.state.player);
     const facingX = this.state.player.facingX || 0;
     const facingY = this.state.player.facingY || 1;
     const absX = Math.abs(facingX);
@@ -724,14 +725,17 @@ export class GameEngine {
     const angle = vertical
       ? Math.atan2(Math.sign(facingY) || 1, 0)
       : Math.atan2(0, Math.sign(facingX) || 1);
-    // Replica a posição que o personagem ocupava ao segurar a alça:
-    // à frente da carroça, usando a mesma distância do antigo encaixe.
+    // Reproduz o antigo encaixe: a carroça fica atrás do personagem e
+    // o burrinho ocupa exatamente a posição onde o personagem estava.
+    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     this.state.cart.angle = angle;
-    this.state.cart.donkeyX = this.state.cart.x + Math.cos(angle) * CONFIG.cart.followDistance;
-    this.state.cart.donkeyY = this.state.cart.y + Math.sin(angle) * CONFIG.cart.followDistance;
+    this.state.cart.x = this.clamp(feet.x - Math.cos(angle) * CONFIG.cart.followDistance, margin, this.world - margin);
+    this.state.cart.y = this.clamp(feet.y - Math.sin(angle) * CONFIG.cart.followDistance, margin, this.world - margin);
+    this.state.cart.donkeyX = feet.x;
+    this.state.cart.donkeyY = feet.y;
     this.state.cart.wheelPhase = 0;
-    this.resolveDonkeyBoxCollisions(this.state.cart);
     this.resolveObstacleCollisions(this.state.cart, CONFIG.cart.collisionRadius, true);
+    this.resolveDonkeyBoxCollisions(this.state.cart);
     this.emit();
   }
   private resolveDonkeyBoxCollisions(cart: CartState) {
