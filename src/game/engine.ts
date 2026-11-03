@@ -345,7 +345,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-      cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
+      cart: { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -432,7 +432,7 @@ export class GameEngine {
     if (this.state.dead || refinery.built) return;
     const playerNear = Math.hypot(playerFeet(this.state.player).x - refinery.x, playerFeet(this.state.player).y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const cartCanDeliver = cartNear;
     if (!playerNear) return;
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
@@ -482,7 +482,7 @@ export class GameEngine {
     if (this.state.dead || building.built) return;
     const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const cartCanDeliver = cartNear;
     if (!playerNear) return;
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let toRemove = requested, consumed = 0;
@@ -529,7 +529,7 @@ export class GameEngine {
     if (!building.built || building.cottonStock >= CONFIG.tecelaria.cottonCapacity) return;
     const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const cartCanDeliver = cartNear;
     const transfer = (inventory: InventoryStack[]) => {
       const room = CONFIG.tecelaria.cottonCapacity - building.cottonStock;
       let toRemove = room, moved = 0;
@@ -569,7 +569,7 @@ export class GameEngine {
     if (!refinery.built || refinery.stoneStock >= CONFIG.refinery.stoneCapacity) return;
     const playerNear = Math.hypot(playerFeet(this.state.player).x - refinery.x, playerFeet(this.state.player).y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    const cartCanDeliver = cartNear;
     const transferStones = (inventory: InventoryStack[]) => {
       const room = CONFIG.refinery.stoneCapacity - refinery.stoneStock;
       let toRemove = room;
@@ -623,20 +623,7 @@ export class GameEngine {
   }
 
   toggleCart() {
-    if (this.state.dead || this.state.cart.stage !== 'built') return;
-    const cart = this.state.cart;
-    if (cart.carried) {
-      cart.carried = false;
-      const feet = playerFeet(this.state.player);
-      cart.x = this.clamp(feet.x - this.state.player.facingX * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
-      cart.y = this.clamp(feet.y - this.state.player.facingY * CONFIG.cart.followDistance, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
-      this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
-    } else if (Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) <= CONFIG.cart.interactRadius) {
-      cart.carried = true;
-      cart.angle = Math.atan2(this.state.player.facingY, this.state.player.facingX);
-      this.updateCart(0);
-    } else return;
-    this.emit();
+    // A carroça não pode ser carregada pelo jogador; o burrinho faz a tração.
   }
   storeAllBagToCart() {
     if (this.state.dead || !this.isCartAccessible()) return;
@@ -689,7 +676,7 @@ export class GameEngine {
       return remaining;
     };
     this.state.inventory = store(this.state.inventory);
-    if (this.state.cart.carried || cartNearHouse) this.state.cart.inventory = store(this.state.cart.inventory);
+    if (cartNearHouse) this.state.cart.inventory = store(this.state.cart.inventory);
     persistHouseStorage(house.inventory);
     this.emit();
   }
@@ -728,35 +715,96 @@ export class GameEngine {
     if (!result.built) return;
     this.state.cart = result.state;
     this.state.inventory = result.inventory;
+    const feet = playerFeet(this.state.player);
+    const facingX = this.state.player.facingX || 0;
+    const facingY = this.state.player.facingY || 1;
+    this.state.cart.donkeyX = feet.x - facingX * 68;
+    this.state.cart.donkeyY = feet.y - facingY * 68;
+    this.state.cart.x = this.state.cart.donkeyX - facingX * 76;
+    this.state.cart.y = this.state.cart.donkeyY - facingY * 76;
+    this.state.cart.angle = Math.atan2(facingY, facingX);
+    this.resolveDonkeyBoxCollisions(this.state.cart);
+    this.resolveObstacleCollisions(this.state.cart, CONFIG.cart.collisionRadius, true);
     this.emit();
   }
-  private updateCart(dt: number) {
-    const cart = this.state.cart;
-    if (cart.stage !== 'built' || !cart.carried) return;
-    const p = this.state.player;
-    // O carrinho se orienta pelo eixo dominante do movimento e fica atrás do jogador NESSE eixo,
-    // para a alça sempre ficar nas mãos do personagem. Em diagonais quase exatas mantém o eixo atual.
-    if (Math.hypot(p.facingX, p.facingY) > 0.15) {
-      const ax = Math.abs(p.facingX), ay = Math.abs(p.facingY);
-      const currentlyVertical = Math.abs(Math.cos(cart.angle)) < 0.15;
-      const vertical = ay > ax * 1.2 ? true : ax > ay * 1.2 ? false : currentlyVertical;
-      cart.angle = vertical
-        ? Math.atan2(Math.sign(p.facingY) || 1, 0)
-        : Math.atan2(0, Math.sign(p.facingX) || 1);
+  private resolveDonkeyBoxCollisions(cart: CartState) {
+    const halfWidth = CONFIG.donkey.colliderHalfWidth;
+    const halfHeight = CONFIG.donkey.colliderHalfHeight;
+    const obstacles = [...this.obstacleCircles(true), { x: cart.x, y: cart.y, radius: CONFIG.cart.collisionRadius }];
+    for (let pass = 0; pass < 3; pass++) {
+      for (const obstacle of obstacles) {
+        const nearestX = this.clamp(obstacle.x, cart.donkeyX - halfWidth, cart.donkeyX + halfWidth);
+        const nearestY = this.clamp(obstacle.y, cart.donkeyY - halfHeight, cart.donkeyY + halfHeight);
+        let dx = cart.donkeyX - nearestX;
+        let dy = cart.donkeyY - nearestY;
+        const distance = Math.hypot(dx, dy);
+        if (distance >= obstacle.radius) continue;
+        if (distance === 0) {
+          const overlapX = halfWidth + obstacle.radius - Math.abs(cart.donkeyX - obstacle.x);
+          const overlapY = halfHeight + obstacle.radius - Math.abs(cart.donkeyY - obstacle.y);
+          if (overlapX < overlapY) dx = cart.donkeyX < obstacle.x ? -1 : 1;
+          else dy = cart.donkeyY < obstacle.y ? -1 : 1;
+        }
+        const push = obstacle.radius - distance;
+        const length = Math.hypot(dx, dy) || 1;
+        cart.donkeyX = this.clamp(cart.donkeyX + dx / length * push, CONFIG.map.wall + halfWidth, this.world - CONFIG.map.wall - halfWidth);
+        cart.donkeyY = this.clamp(cart.donkeyY + dy / length * push, CONFIG.map.wall + halfHeight, this.world - CONFIG.map.wall - halfHeight);
+      }
     }
-    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
-    const feet = playerFeet(p);
-    const targetX = this.clamp(feet.x - Math.cos(cart.angle) * CONFIG.cart.followDistance, margin, this.world - margin);
-    const targetY = this.clamp(feet.y - Math.sin(cart.angle) * CONFIG.cart.followDistance, margin, this.world - margin);
-    const dx = targetX - cart.x;
-    const dy = targetY - cart.y;
+  }
+
+  private resolvePlayerDonkeyBoxCollision(feet: Vec) {
+    const cart = this.state.cart;
+    if (cart.stage !== 'built') return;
+    const halfWidth = CONFIG.donkey.colliderHalfWidth;
+    const halfHeight = CONFIG.donkey.colliderHalfHeight;
+    const nearestX = this.clamp(feet.x, cart.donkeyX - halfWidth, cart.donkeyX + halfWidth);
+    const nearestY = this.clamp(feet.y, cart.donkeyY - halfHeight, cart.donkeyY + halfHeight);
+    let dx = feet.x - nearestX;
+    let dy = feet.y - nearestY;
     const distance = Math.hypot(dx, dy);
-    const step = Math.min(distance, CONFIG.cart.followSpeed * dt);
-    if (distance > 0) {
-      cart.x = this.clamp(cart.x + dx / distance * step, margin, this.world - margin);
-      cart.y = this.clamp(cart.y + dy / distance * step, margin, this.world - margin);
+    if (distance >= CONFIG.player.footRadius) return;
+    if (distance === 0) { dx = feet.x < cart.donkeyX ? -1 : 1; dy = 0; }
+    const push = CONFIG.player.footRadius - distance;
+    const length = Math.hypot(dx, dy) || 1;
+    feet.x += dx / length * push;
+    feet.y += dy / length * push;
+  }
+
+  private updateDonkeyCart(dt: number, playerSpeed: number) {
+    const cart = this.state.cart;
+    if (cart.stage !== 'built') return;
+    const feet = playerFeet(this.state.player);
+    const facingX = this.state.player.facingX || 0;
+    const facingY = this.state.player.facingY || 1;
+    const donkeyDistance = Math.hypot(feet.x - cart.donkeyX, feet.y - cart.donkeyY);
+    const canFollow = donkeyDistance <= CONFIG.donkey.visionRange && playerSpeed <= CONFIG.player.speed;
+    if (!canFollow) return;
+
+    const targetDonkeyX = feet.x - facingX * 68;
+    const targetDonkeyY = feet.y - facingY * 68;
+    const donkeyDx = targetDonkeyX - cart.donkeyX;
+    const donkeyDy = targetDonkeyY - cart.donkeyY;
+    const donkeyDistanceToTarget = Math.hypot(donkeyDx, donkeyDy);
+    const donkeyStep = Math.min(donkeyDistanceToTarget, CONFIG.player.speed * dt);
+    if (donkeyDistanceToTarget > 0) {
+      cart.donkeyX += donkeyDx / donkeyDistanceToTarget * donkeyStep;
+      cart.donkeyY += donkeyDy / donkeyDistanceToTarget * donkeyStep;
+      this.resolveDonkeyBoxCollisions(cart);
+    }
+
+    const targetCartX = cart.donkeyX - facingX * 76;
+    const targetCartY = cart.donkeyY - facingY * 76;
+    const cartDx = targetCartX - cart.x;
+    const cartDy = targetCartY - cart.y;
+    const cartDistance = Math.hypot(cartDx, cartDy);
+    const cartStep = Math.min(cartDistance, CONFIG.player.speed * dt);
+    if (cartDistance > 0) {
+      cart.x = this.clamp(cart.x + cartDx / cartDistance * cartStep, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+      cart.y = this.clamp(cart.y + cartDy / cartDistance * cartStep, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
     }
+    cart.angle = Math.atan2(facingY, facingX);
   }
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
@@ -766,10 +814,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.minimumHouseDistance) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < 38 + this.treeFootprintRadius(tree))) continue;
-      this.state.cart = { x, y, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+      this.state.cart = { x, y, donkeyX: x - 68, donkeyY: y, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
       return;
     }
-    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
   }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
@@ -880,25 +928,12 @@ export class GameEngine {
     const cartCapacity = CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot;
     const loadFraction = Math.min(1, cartLoad / cartCapacity);
     const loadPenalty = CONFIG.cart.loadSlowdownMin + (CONFIG.cart.loadSlowdownMax - CONFIG.cart.loadSlowdownMin) * loadFraction;
-    const loadSpeedFactor = this.state.cart.carried ? 1 - loadPenalty : 1;
+    const loadSpeedFactor = 1;
     const speed = (CONFIG.player.speed + this.getLevelStats().speed) * loadSpeedFactor;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
-    this.resolvePlayerObstacles(p, this.state.cart.carried);
+    this.resolvePlayerObstacles(p, false);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
-    this.resolvePlayerObstacles(p, this.state.cart.carried);
-    // Carrinho puxado: o personagem não se afasta além do alcance da alça. Se o carrinho trava
-    // (vão estreito, obstáculo), o personagem trava junto e precisa voltar.
-    if (this.state.cart.carried) {
-      const feet = playerFeet(p);
-      const tx = feet.x - this.state.cart.x, ty = feet.y - this.state.cart.y;
-      const td = Math.hypot(tx, ty);
-      if (td > CONFIG.cart.tetherDistance && td > 0) {
-        const k = CONFIG.cart.tetherDistance / td;
-        p.x = this.state.cart.x + tx * k;
-        p.y = this.state.cart.y + ty * k - CONFIG.player.footOffset;
-        this.resolvePlayerObstacles(p, true);
-      }
-    }
+    this.resolvePlayerObstacles(p, false);
     const playerSpeed = dt > 0 ? Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y) / dt : 0;
     if (this.state.player.moving && !this.state.dead && p.hp > 0) {
       const traveledDistance = Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y);
@@ -913,13 +948,13 @@ export class GameEngine {
         const night = Math.max(0, Math.min(1, stepPhase.isNight
           ? (CONFIG.dayNight.dayDuration - stepPhase.phaseElapsed) / transition
           : (stepPhase.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
-        this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried, night });
+        this.onSound?.({ type: 'step', foot, carrying: false, night });
         this.local.stepTarget = 47 + this.random() * 10;
       }
     } else {
       this.local.stepDistance = this.local.stepTarget * 0.4;
     }
-    this.updateCart(dt);
+    this.updateDonkeyCart(dt, playerSpeed);
 
     if (this.phase === 'night' && this.hordeTarget > 0) {
       const spawnWindow = CONFIG.dayNight.nightSpawnDuration;
@@ -1685,6 +1720,7 @@ export class GameEngine {
     const off = CONFIG.player.footOffset;
     const feet = { x: p.x, y: p.y + off };
     this.resolveObstacleCollisions(feet, CONFIG.player.footRadius, ignoreCart);
+    this.resolvePlayerDonkeyBoxCollision(feet);
     p.x = this.clamp(feet.x, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(feet.y - off, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - off);
   }
