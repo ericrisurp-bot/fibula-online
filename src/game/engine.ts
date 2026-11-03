@@ -345,7 +345,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-      cart: { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
+      cart: { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -715,14 +715,14 @@ export class GameEngine {
     if (!result.built) return;
     this.state.cart = result.state;
     this.state.inventory = result.inventory;
-    const feet = playerFeet(this.state.player);
     const facingX = this.state.player.facingX || 0;
     const facingY = this.state.player.facingY || 1;
-    this.state.cart.donkeyX = feet.x - facingX * 68;
-    this.state.cart.donkeyY = feet.y - facingY * 68;
-    this.state.cart.x = this.state.cart.donkeyX - facingX * 76;
-    this.state.cart.y = this.state.cart.donkeyY - facingY * 76;
+    // A carroça não muda de lugar ao ser construída: o burrinho assume
+    // a posição de tração, 75 passos à frente dela.
+    this.state.cart.donkeyX = this.state.cart.x + facingX * CONFIG.donkey.followDistance;
+    this.state.cart.donkeyY = this.state.cart.y + facingY * CONFIG.donkey.followDistance;
     this.state.cart.angle = Math.atan2(facingY, facingX);
+    this.state.cart.wheelPhase = 0;
     this.resolveDonkeyBoxCollisions(this.state.cart);
     this.resolveObstacleCollisions(this.state.cart, CONFIG.cart.collisionRadius, true);
     this.emit();
@@ -793,8 +793,8 @@ export class GameEngine {
     const canFollow = donkeyDistance <= CONFIG.donkey.visionRange && playerSpeed <= CONFIG.player.speed;
     if (!canFollow) return;
 
-    const targetDonkeyX = feet.x - facingX * 68;
-    const targetDonkeyY = feet.y - facingY * 68;
+    const targetDonkeyX = feet.x - facingX * CONFIG.donkey.followDistance;
+    const targetDonkeyY = feet.y - facingY * CONFIG.donkey.followDistance;
     const donkeyDx = targetDonkeyX - cart.donkeyX;
     const donkeyDy = targetDonkeyY - cart.donkeyY;
     const donkeyDistanceToTarget = Math.hypot(donkeyDx, donkeyDy);
@@ -805,16 +805,20 @@ export class GameEngine {
       this.resolveDonkeyBoxCollisions(cart);
     }
 
-    const targetCartX = cart.donkeyX - facingX * 76;
-    const targetCartY = cart.donkeyY - facingY * 76;
+    const targetCartX = cart.donkeyX - facingX * CONFIG.donkey.followDistance;
+    const targetCartY = cart.donkeyY - facingY * CONFIG.donkey.followDistance;
     const cartDx = targetCartX - cart.x;
     const cartDy = targetCartY - cart.y;
     const cartDistance = Math.hypot(cartDx, cartDy);
     const cartStep = Math.min(cartDistance, CONFIG.player.speed * dt);
     if (cartDistance > 0) {
+      const previousCartX = cart.x;
+      const previousCartY = cart.y;
       cart.x = this.clamp(cart.x + cartDx / cartDistance * cartStep, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       cart.y = this.clamp(cart.y + cartDy / cartDistance * cartStep, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
       this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
+      const actualCartTravel = Math.hypot(cart.x - previousCartX, cart.y - previousCartY);
+      cart.wheelPhase = (cart.wheelPhase + actualCartTravel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
     }
     cart.angle = Math.atan2(facingY, facingX);
   }
@@ -826,10 +830,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.minimumHouseDistance) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < 38 + this.treeFootprintRadius(tree))) continue;
-      this.state.cart = { x, y, donkeyX: x - 68, donkeyY: y, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+      this.state.cart = { x, y, donkeyX: x - 68, donkeyY: y, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
       return;
     }
-    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
   }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
