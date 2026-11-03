@@ -17,15 +17,14 @@ try {
   } = await server.ssrLoadModule('/src/game/donkeyCart.ts');
 
   const initialInventory = [
-    { itemId: 'wood:common', quantity: 6 },
-    { itemId: 'wood', quantity: 4 },
+    { itemId: 'wood:common', quantity: 1 },
     { itemId: 'cotton:uncommon', quantity: 5 },
   ];
   const initial = createDonkeyCartState(120, 240, 100, []);
   assert.equal(initial.stage, 'broken');
   assert.equal(initial.health, 0);
   assert.equal(initial.everBuilt, false);
-  assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 10, cotton: 0 });
+  assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 1, cotton: 0 });
 
   const firstBuild = constructDonkeyCart(initial, initialInventory);
   assert.equal(firstBuild.built, true);
@@ -42,14 +41,14 @@ try {
   assert.equal(broken.stage, 'broken');
   assert.equal(broken.health, 0);
   assert.equal(broken.carried, false);
-  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 10, cotton: 5 });
+  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 1, cotton: 5 });
 
-  const missingCotton = constructDonkeyCart(broken, [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 4 }]);
+  const missingCotton = constructDonkeyCart(broken, [{ itemId: 'wood', quantity: 1 }, { itemId: 'cotton', quantity: 4 }]);
   assert.equal(missingCotton.built, false);
-  assert.deepEqual(missingCotton.inventory, [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 4 }]);
+  assert.deepEqual(missingCotton.inventory, [{ itemId: 'wood', quantity: 1 }, { itemId: 'cotton', quantity: 4 }]);
 
   const rebuilt = constructDonkeyCart(broken, [
-    { itemId: 'wood:rare', quantity: 10 },
+    { itemId: 'wood:rare', quantity: 1 },
     { itemId: 'cotton:common', quantity: 2 },
     { itemId: 'cotton', quantity: 3 },
   ]);
@@ -58,9 +57,9 @@ try {
   assert.equal(rebuilt.state.health, 100);
   assert.deepEqual(rebuilt.inventory, []);
 
-  const alreadyBuilt = constructDonkeyCart(rebuilt.state, [{ itemId: 'wood', quantity: 10 }]);
+  const alreadyBuilt = constructDonkeyCart(rebuilt.state, [{ itemId: 'wood', quantity: 1 }]);
   assert.equal(alreadyBuilt.built, false);
-  assert.deepEqual(alreadyBuilt.inventory, [{ itemId: 'wood', quantity: 10 }]);
+  assert.deepEqual(alreadyBuilt.inventory, [{ itemId: 'wood', quantity: 1 }]);
 
   console.log('OK: estado inicial, construção, dano, quebra e reconstrução do conjunto burrinho-carroça.');
 } finally {
