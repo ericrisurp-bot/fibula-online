@@ -8,7 +8,7 @@ import { CONFIG } from './config';
  */
 export type CartDrawState = {
   x: number; y: number; angle: number;
-  repairWood: number; repaired: boolean; carried: boolean;
+  stage: 'broken' | 'built'; carried: boolean;
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
 
@@ -65,8 +65,8 @@ function wheel(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number,
 
 // ---------- vista lateral (frente = +x; o chamador espelha se o carrinho vai para a esquerda) ----------
 function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) {
-  const f = Math.min(1, c.repairWood / CONFIG.cart.repairCost);
-  const planksOn = c.repaired ? 4 : Math.floor(f * 4 + 0.001);
+  const built = c.stage === 'built';
+  const planksOn = built ? 4 : 0;
   const xl = (y: number) => -40 + (y + 30) * (4 / 26);
   const xr = (y: number) => 30 - (y + 30) * (4 / 26);
   ctx.save();
@@ -83,12 +83,12 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   poly(ctx, [[-37, -39], [28, -39], [31, -35], [-40, -35]], W.d1, W.line, 0.9);
   poly(ctx, [[-36, -35], [29, -35], [30, -30], [-39, -30]], W.d0, null);
 
-  if (c.repaired || planksOn > 0) {
+  if (built || planksOn > 0) {
     // armação visível (quadros) sempre
     // tábuas da parede próxima, de cima para baixo
     const tones = [W.d5, W.d4, W.d5, W.d3];
     for (let i = 0; i < 4; i++) {
-      if (!c.repaired && (3 - i) >= planksOn) continue;
+      if (!built && (3 - i) >= planksOn) continue;
       const y0 = -30 + i * 6.5, y1 = y0 + 6.5;
       poly(ctx, [[xl(y0), y0], [xr(y0), y0], [xr(y1), y1], [xl(y1), y1]], tones[i], W.line, 0.9);
       ctx.strokeStyle = 'rgba(255,225,170,.35)'; ctx.lineWidth = 0.8;
@@ -100,10 +100,10 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   // moldura inferior e montantes (sempre visíveis — é o esqueleto do carrinho)
   poly(ctx, [[-37, -5], [27, -5], [26, -2], [-36, -2]], W.d1, W.line, 0.9);
   for (const px of [-37, 25]) poly(ctx, [[px, -33], [px + 4.2, -33], [px + 3.2, -3], [px - 1, -3]], W.d2, W.line, 0.9);
-  if (c.repaired || planksOn >= 2) {
+  if (built || planksOn >= 2) {
     for (const bx of [-12, 12]) poly(ctx, [[bx, -30], [bx + 4, -30], [bx + 4, -5], [bx, -5]], W.d2, W.line, 0.8);
   }
-  if (c.repaired) {
+  if (built) {
     // faixa de ferro + rebites
     poly(ctx, [[xl(-19), -19], [xr(-19), -19], [xr(-15.5), -15.5], [xl(-15.5), -15.5]], W.m1, W.line, 0.8);
     poly(ctx, [[xl(-19), -19], [xr(-19), -19], [xr(-18), -18], [xl(-18), -18]], W.m2, null);
@@ -124,7 +124,7 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
 
   // carga
   const l = loadFraction(c);
-  if (c.repaired && l > 0) {
+  if (built && l > 0) {
     const h = 6 + 16 * l;
     poly(ctx, [[-34, -34], [-28, -34 - h * 0.7], [-16, -34 - h * 0.95], [-2, -34 - h], [12, -34 - h * 0.85], [22, -34 - h * 0.5], [26, -34]], W.d2, W.line, 0.9);
     poly(ctx, [[-28, -34 - h * 0.7], [-16, -34 - h * 0.95], [-14, -34], [-30, -34]], W.d3, W.line, 0.8);
@@ -148,8 +148,8 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
 
 // ---------- vista de cima (alça para cima se movingUp, para baixo caso contrário) ----------
 function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: boolean, rot: number) {
-  const f = Math.min(1, c.repairWood / CONFIG.cart.repairCost);
-  const planksOn = c.repaired ? 4 : Math.floor(f * 4 + 0.001);
+  const built = c.stage === 'built';
+  const planksOn = built ? 4 : 0;
   const dir = movingUp ? -1 : 1;                 // lado da alça (onde está o jogador)
 
   const handle = () => {
@@ -183,20 +183,20 @@ function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: bool
   const rows = 5;
   for (let i = 0; i < rows; i++) {
     const y0 = -26 + i * (44 / rows), y1 = y0 + 44 / rows;
-    const on = c.repaired || (rows - 1 - i) < planksOn + 1;
+    const on = built || (rows - 1 - i) < planksOn + 1;
     if (!on) continue;
     const l0 = -30 + (y0 + 26) * (2 / 44), l1 = -30 + (y1 + 26) * (2 / 44);
     poly(ctx, [[l0 + 2, y0 + 0.5], [-l0 - 2, y0 + 0.5], [-l1 - 2, y1 - 0.5], [l1 + 2, y1 - 0.5]], i % 2 ? W.d2 : W.d1, W.d0, 0.8);
   }
   // paredes laterais (espessura vista de cima)
   for (const sx of [-1, 1]) {
-    poly(ctx, [[sx * 30, -26], [sx * 24.5, -24], [sx * 23.5, 17], [sx * 28, 18]], c.repaired ? W.d3 : W.d2, W.line, 0.9);
-    poly(ctx, [[sx * 30, -26], [sx * 27.5, -25], [sx * 26.5, 17.5], [sx * 28, 18]], c.repaired ? W.d5 : W.d3, null);
+    poly(ctx, [[sx * 30, -26], [sx * 24.5, -24], [sx * 23.5, 17], [sx * 28, 18]], built ? W.d3 : W.d2, W.line, 0.9);
+    poly(ctx, [[sx * 30, -26], [sx * 27.5, -25], [sx * 26.5, 17.5], [sx * 28, 18]], built ? W.d5 : W.d3, null);
   }
 
   // carga
   const l = loadFraction(c);
-  if (c.repaired && l > 0) {
+  if (built && l > 0) {
     const s = 0.4 + 0.6 * l;
     poly(ctx, [[-20 * s, 8], [-16 * s, -8 * s - 6], [0, -14 * s - 8], [16 * s, -8 * s - 6], [20 * s, 8]], W.d3, W.line, 0.9);
     poly(ctx, [[-16 * s, -8 * s - 6], [0, -14 * s - 8], [0, 8], [-20 * s, 8]], W.d4, W.line, 0.8);
@@ -204,8 +204,8 @@ function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: bool
   }
 
   // parede próxima (face frontal) e borda
-  poly(ctx, [[-30, 18], [30, 18], [27, 31], [-27, 31]], c.repaired ? W.d4 : W.d2, W.line, 1);
-  if (c.repaired) {
+  poly(ctx, [[-30, 18], [30, 18], [27, 31], [-27, 31]], built ? W.d4 : W.d2, W.line, 1);
+  if (built) {
     poly(ctx, [[-30, 18], [30, 18], [29, 21], [-29, 21]], W.d6, null);
     poly(ctx, [[-29, 24.5], [29, 24.5], [28.4, 27], [-28.4, 27]], W.m1, W.line, 0.7);
     for (const rx of [-22, -8, 8, 22]) rivet(ctx, rx, 25.8, 1);
@@ -215,13 +215,36 @@ function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: bool
     ctx.fillStyle = W.d0; ctx.fillRect(-14, 18, 28, 13);                         // rombo (falta tábua)
   }
   // cantoneiras de ferro
-  if (c.repaired) for (const sx of [-1, 1]) poly(ctx, [[sx * 30, -27], [sx * 24, -26], [sx * 24, -21], [sx * 30, -22]], W.m1, W.line, 0.7);
+  if (built) for (const sx of [-1, 1]) poly(ctx, [[sx * 30, -27], [sx * 24, -26], [sx * 24, -21], [sx * 30, -22]], W.m1, W.line, 0.7);
 
   if (!movingUp) handle();
 }
 
+function drawDonkey(ctx: CanvasRenderingContext2D, time: number) {
+  const bob = Math.sin(time * 2.1) * 1.2;
+  ctx.save(); ctx.translate(0, bob);
+  ctx.fillStyle = '#75604a'; ctx.strokeStyle = '#352a20'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.ellipse(-2, 0, 22, 12, -0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  poly(ctx, [[8, -8], [17, -18], [25, -17], [29, -8], [20, -2], [10, 2]], '#8e765b', '#352a20', 1.5);
+  poly(ctx, [[12, -8], [19, -23], [28, -25], [31, -18], [25, -11], [20, -2]], '#9a8060', '#352a20', 1.5);
+  ctx.fillStyle = '#a98c68'; ctx.strokeStyle = '#352a20';
+  ctx.beginPath(); ctx.ellipse(31, -20, 8, 5, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  poly(ctx, [[23, -24], [20, -38], [25, -34], [27, -24]], '#8e765b', '#352a20', 1.2);
+  poly(ctx, [[28, -24], [31, -37], [34, -31], [32, -21]], '#8e765b', '#352a20', 1.2);
+  poly(ctx, [[16, -23], [18, -29], [22, -24], [25, -26], [25, -20]], '#3b3027', '#352a20', 0.8);
+  ctx.fillStyle = '#171512'; ctx.beginPath(); ctx.arc(34, -21, 1.2, 0, Math.PI * 2); ctx.fill();
+  for (const lx of [-15, -5, 8, 15]) {
+    ctx.strokeStyle = '#49392b'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(lx, 7); ctx.lineTo(lx + (lx > 0 ? 1 : -1), 19); ctx.stroke();
+    ctx.strokeStyle = '#b49a75'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(lx, 8); ctx.lineTo(lx + (lx > 0 ? 1 : -1), 18); ctx.stroke();
+  }
+  ctx.strokeStyle = '#3b3027'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-22, -3); ctx.quadraticCurveTo(-31, 1, -29, 9); ctx.stroke();
+  ctx.restore();
+}
+
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
-  const { x, y, angle, repairWood, repaired, carried } = cart;
+  const { x, y, angle, stage, carried } = cart;
   const vertical = Math.abs(Math.cos(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
@@ -237,6 +260,12 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.fillStyle = 'rgba(8,12,9,.26)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
 
+  // O burrinho fica ao lado da carroça quebrada e à frente quando o conjunto é construído.
+  ctx.save(); ctx.rotate(angle);
+  ctx.translate(stage === 'built' ? 70 : -68, 3);
+  drawDonkey(ctx, time);
+  ctx.restore();
+
   if (nearby) {
     const pulse = 0.5 + 0.5 * Math.sin(time * 4);
     ctx.beginPath(); ctx.ellipse(0, 4, 62 + pulse * 4, 38 + pulse * 3, 0, 0, Math.PI * 2);
@@ -249,12 +278,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
 
   ctx.restore();
 
-  if (!repaired) {
-    const bw = 80, by = vertical ? -92 : -70;
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-bw / 2, by, bw, 7);
-    ctx.fillStyle = '#d7b17b'; ctx.fillRect(-bw / 2, by, bw * (repairWood / CONFIG.cart.repairCost), 7);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-bw / 2, by, bw, 7);
-  }
+  // Sem barra de vida ou progresso de reparo: a entidade possui apenas dois estados.
   if (carried) {
     ctx.strokeStyle = 'rgba(235,235,235,.65)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.arc(0, -3, 70, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
