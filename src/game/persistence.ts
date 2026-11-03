@@ -96,23 +96,30 @@ export async function syncHouseInventory(
     try { window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1'); } catch { /* Cache indisponível. */ }
     return false;
   }
+  let error: { message: string } | null;
   try {
-    const { error } = await client.from('fibula_house_storage').upsert({
+    const result = await client.from('fibula_house_storage').upsert({
       user_id: userId,
       inventory: safeInventory,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
-    if (error) {
-      window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1');
-      return false;
-    }
-    window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, JSON.stringify(safeInventory));
-    window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
-    return true;
+    error = result.error;
   } catch {
     try { window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1'); } catch { /* Cache indisponível. */ }
     return false;
   }
+  if (error) {
+    try { window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1'); } catch { /* Cache indisponível. */ }
+    return false;
+  }
+
+  // A gravação remota já foi confirmada. Falha no cache local não deve
+  // reclassificar uma gravação concluída como pendente.
+  try {
+    window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, JSON.stringify(safeInventory));
+    window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
+  } catch { /* O snapshot confirmado também fica protegido em memória no App. */ }
+  return true;
 }
 
 export async function loadCloudHouseInventory(
