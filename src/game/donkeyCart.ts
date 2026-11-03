@@ -65,7 +65,7 @@ export function createDonkeyCartState(
 
 /** Custo da transição para o estado construído. */
 export function getDonkeyCartConstructionCost(state: DonkeyCartState): DonkeyCartConstructionCost {
-  return { wood: 10, cotton: state.everBuilt ? 5 : 0 };
+  return { wood: 1, cotton: state.everBuilt ? 5 : 0 };
 }
 
 function countBaseItem(inventory: InventoryStack[], itemId: string): number {
