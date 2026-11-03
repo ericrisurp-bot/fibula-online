@@ -771,46 +771,43 @@ export class GameEngine {
 
   private updateDonkeyCart(dt: number) {
     const cart = this.state.cart;
+
+    // Quebrado significa parado: o burrinho só traciona depois que a carroça
+    // foi construída. Não há reposicionamento automático da carroça quebrada.
+    if (cart.stage !== 'built') return;
+
     const feet = playerFeet(this.state.player);
     const toPlayerX = feet.x - cart.donkeyX;
     const toPlayerY = feet.y - cart.donkeyY;
     const donkeyDistance = Math.hypot(toPlayerX, toPlayerY);
 
-    // O raio de 300 pertence ao burrinho. Dentro dele, ele sempre se aproxima
-    // do jogador; quando chega à distância de descanso, para. Nunca usa o
-    // sentido do olhar/facing do jogador para escolher para onde andar.
+    // O alcance de visão é medido do burrinho até o personagem. A direção é
+    // sempre o vetor burrinho -> personagem, nunca o facing do personagem.
     if (donkeyDistance <= CONFIG.donkey.visionRange && donkeyDistance > CONFIG.donkey.followDistance) {
       const remainingDistance = donkeyDistance - CONFIG.donkey.followDistance;
       const donkeyStep = Math.min(remainingDistance, CONFIG.player.speed * dt);
+      const previousDonkeyX = cart.donkeyX;
+      const previousDonkeyY = cart.donkeyY;
+
       cart.donkeyX += (toPlayerX / donkeyDistance) * donkeyStep;
       cart.donkeyY += (toPlayerY / donkeyDistance) * donkeyStep;
       this.resolveDonkeyBoxCollisions(cart);
-    }
 
-    // Burrinho e carroça formam uma única entidade de movimento nos dois estados.
-    // A carroça acompanha o burrinho mesmo antes do conserto, mantendo o encaixe.
-
-    const offsetX = cart.donkeyX - feet.x;
-    const offsetY = cart.donkeyY - feet.y;
-    const offsetLength = Math.hypot(offsetX, offsetY);
-    const directionX = offsetLength > 0.001 ? offsetX / offsetLength : Math.cos(cart.angle);
-    const directionY = offsetLength > 0.001 ? offsetY / offsetLength : Math.sin(cart.angle);
-    const targetCartX = cart.donkeyX - directionX * CONFIG.cart.followDistance;
-    const targetCartY = cart.donkeyY - directionY * CONFIG.cart.followDistance;
-    const cartDx = targetCartX - cart.x;
-    const cartDy = targetCartY - cart.y;
-    const cartDistance = Math.hypot(cartDx, cartDy);
-    const cartStep = Math.min(cartDistance, CONFIG.player.speed * dt);
-    if (cartDistance > 0) {
-      const previousCartX = cart.x;
-      const previousCartY = cart.y;
-      cart.x = this.clamp(cart.x + cartDx / cartDistance * cartStep, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
-      cart.y = this.clamp(cart.y + cartDy / cartDistance * cartStep, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
-      this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
-      const actualCartTravel = Math.hypot(cart.x - previousCartX, cart.y - previousCartY);
-      cart.wheelPhase = (cart.wheelPhase + actualCartTravel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
+      // A carroça recebe exatamente o deslocamento real do burrinho. Ela não
+      // persegue um alvo próprio nem se move quando o burrinho está parado.
+      const movedX = cart.donkeyX - previousDonkeyX;
+      const movedY = cart.donkeyY - previousDonkeyY;
+      if (movedX !== 0 || movedY !== 0) {
+        const previousCartX = cart.x;
+        const previousCartY = cart.y;
+        cart.x = this.clamp(cart.x + movedX, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+        cart.y = this.clamp(cart.y + movedY, CONFIG.map.wall + CONFIG.cart.wallMargin, this.world - CONFIG.map.wall - CONFIG.cart.wallMargin);
+        this.resolveObstacleCollisions(cart, CONFIG.cart.collisionRadius, true);
+        const actualCartTravel = Math.hypot(cart.x - previousCartX, cart.y - previousCartY);
+        cart.wheelPhase = (cart.wheelPhase + actualCartTravel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
+        cart.angle = Math.atan2(movedY, movedX);
+      }
     }
-    cart.angle = Math.atan2(directionY, directionX);
   }
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
