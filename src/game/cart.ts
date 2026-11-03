@@ -4,7 +4,7 @@ import { CONFIG } from './config';
  * Carrinho low-poly. Origem = centro do carrinho (cart.x, cart.y), chão em y = +20.
  * Sentido horizontal: vista lateral (alça aponta para o lado em que o carrinho se move,
  * isto é, na direção do jogador que o puxa). Sentido vertical: vista de cima em 3/4.
- * Rodas só giram quando o carrinho está sendo puxado (moving).
+ * As rodas usam a fase acumulada do deslocamento real do conjunto.
  */
 export type CartDrawState = {
   x: number; y: number; angle: number; wheelPhase?: number;
