@@ -43,6 +43,7 @@ export const CONFIG = {
   house: { buildCost: 30, interactRadius: 100, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 100, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
   // Velocidade inicial planejada do burrinho sem carga: 80% dos 145 do jogador = 116 unidades/s.
+  donkey: { visionRange: 300, stopDistance: 75, cartDistance: 70, collisionRadius: 25, wheelRadius: 17, turnSpeed: Math.PI * 4 },
   cart: { interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, unloadedPullSpeed: 116, followDistance: 62, tetherDistance: 76, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [
