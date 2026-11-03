@@ -388,7 +388,7 @@ export class GameEngine {
 
     const playerNearHouse = Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) <= CONFIG.house.interactRadius;
     const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNearHouse : cartNearHouse;
+    const cartCanDeliver = cartNearHouse;
     if (!playerNearHouse) return;
 
     const consumeWood = (inventory: InventoryStack[], requested: number) => {
@@ -706,7 +706,7 @@ export class GameEngine {
     this.emit();
   }
   isCartAccessible() {
-    return this.state.cart.stage === 'built' && (this.state.cart.carried || Math.hypot(playerFeet(this.state.player).x - this.state.cart.x, playerFeet(this.state.player).y - this.state.cart.y) <= CONFIG.cart.interactRadius);
+    return this.state.cart.stage === 'built' && Math.hypot(playerFeet(this.state.player).x - this.state.cart.x, playerFeet(this.state.player).y - this.state.cart.y) <= CONFIG.cart.interactRadius;
   }
   buildCart() {
     const cart = this.state.cart;
@@ -924,12 +924,7 @@ export class GameEngine {
       if (p.facingX < -0.35) this.local.weaponSide = 1;
       else if (p.facingX > 0.35) this.local.weaponSide = -1;
     }
-    const cartLoad = this.state.cart.inventory.reduce((total, stack) => total + stack.quantity, 0);
-    const cartCapacity = CONFIG.cart.capacitySlots * CONFIG.cart.maxPerSlot;
-    const loadFraction = Math.min(1, cartLoad / cartCapacity);
-    const loadPenalty = CONFIG.cart.loadSlowdownMin + (CONFIG.cart.loadSlowdownMax - CONFIG.cart.loadSlowdownMin) * loadFraction;
-    const loadSpeedFactor = 1;
-    const speed = (CONFIG.player.speed + this.getLevelStats().speed) * loadSpeedFactor;
+    const speed = CONFIG.player.speed + this.getLevelStats().speed;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     this.resolvePlayerObstacles(p, false);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
@@ -1812,7 +1807,6 @@ export class GameEngine {
   }
 
   private autoAttack() {
-    if (this.state.cart.carried) return;
     const weapon = CONFIG.weapons[this.state.weapon];
     const speedBonus = this.getLevelStats().attackSpeed;
     if (this.local.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
@@ -1891,7 +1885,7 @@ export class GameEngine {
   }
 
   private autoGather() {
-    if (this.state.cart.carried || this.local.combatLockTimer > 0) return;
+    if (this.local.combatLockTimer > 0) return;
     const weapon = CONFIG.weapons[this.state.weapon];
     const p = this.state.player;
     // Combate tem prioridade, mas sua velocidade não determina a cadência de coleta.
