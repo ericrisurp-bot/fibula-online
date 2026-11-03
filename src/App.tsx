@@ -1291,6 +1291,56 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
+  const refreshLobbyChestFromCloud = async () => {
+    if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para atualizar o Baú.');
+    const inventory = await loadCloudHouseInventory(fibulaSupabase, session.user.sub);
+    lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+    engineRef.current?.setHouseInventory(inventory);
+    setLobbyChestItems(inventory);
+    return inventory;
+  };
+
+  const openLobbyChest = () => {
+    setChestOpen(true);
+    setChestTransferItemId(null);
+    setChestTransferFeedback('');
+    setLobbyChestItems(readSavedHouseStorage());
+    void refreshLobbyChestFromCloud().catch(cause => {
+      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.');
+    });
+  };
+
+  const sendLobbyChestItem = async () => {
+    const peer = duoPeer;
+    const item = lobbyChestItems.find(entry => entry.itemId === chestTransferItemId);
+    const quantity = Number(chestTransferQuantity);
+    if (!peer || peer.status !== 'connected' || peer.matchId || !item) return;
+    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > item.quantity) {
+      setChestTransferFeedback('Informe uma quantidade válida para enviar.');
+      return;
+    }
+    if (!fibulaSupabase) {
+      setChestTransferFeedback('O serviço de armazenamento não está disponível.');
+      return;
+    }
+    setChestTransferBusy(true);
+    setChestTransferFeedback('');
+    try {
+      await transferHouseStackToDuo(fibulaSupabase, peer.roomId, item.itemId, quantity);
+      await refreshLobbyChestFromCloud();
+      setChestTransferItemId(null);
+      setChestTransferFeedback('Enviado: ' + quantity + ' × ' + itemLabel(item.itemId) + ' para ' + peer.friendName + '.');
+      try {
+        await duoHouseNotifyActionRef.current?.();
+      } catch {
+        setChestTransferFeedback('Item enviado para ' + peer.friendName + '. O aviso imediato não chegou; o Baú será atualizado quando ele abrir novamente.');
+      }
+    } catch (cause) {
+      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível enviar o item.');
+    } finally {
+      setChestTransferBusy(false);
+    }
+  };
   const handleLobbyPlay = () => {
     if (duoPeer) {
       if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
