@@ -769,36 +769,34 @@ export class GameEngine {
     }
   }
 
-  private updateDonkeyCart(dt: number, playerSpeed: number) {
+  private updateDonkeyCart(dt: number, _playerSpeed: number) {
     const cart = this.state.cart;
-    if (cart.stage !== 'built') return;
     const feet = playerFeet(this.state.player);
     const toPlayerX = feet.x - cart.donkeyX;
     const toPlayerY = feet.y - cart.donkeyY;
     const donkeyDistance = Math.hypot(toPlayerX, toPlayerY);
-    const canFollow = donkeyDistance <= CONFIG.donkey.visionRange && playerSpeed <= CONFIG.player.speed;
 
-    // O burrinho nunca se afasta para alcançar uma posição baseada na direção do jogador.
-    // Só caminha quando o jogador abre distância, aproximando-se até o limite de acompanhamento.
-    if (canFollow && donkeyDistance > CONFIG.donkey.followDistance) {
+    // O raio de 300 pertence ao burrinho. Dentro dele, ele sempre se aproxima
+    // do jogador; quando chega à distância de descanso, para. Nunca usa o
+    // sentido do olhar/facing do jogador para escolher para onde andar.
+    if (donkeyDistance <= CONFIG.donkey.visionRange && donkeyDistance > CONFIG.donkey.followDistance) {
       const remainingDistance = donkeyDistance - CONFIG.donkey.followDistance;
       const donkeyStep = Math.min(remainingDistance, CONFIG.player.speed * dt);
-      cart.donkeyX += toPlayerX / donkeyDistance * donkeyStep;
-      cart.donkeyY += toPlayerY / donkeyDistance * donkeyStep;
+      cart.donkeyX += (toPlayerX / donkeyDistance) * donkeyStep;
+      cart.donkeyY += (toPlayerY / donkeyDistance) * donkeyStep;
       this.resolveDonkeyBoxCollisions(cart);
     }
 
-    // A carroça permanece atrás do burrinho, no eixo que liga os dois ao jogador.
-    // Se estiverem sobrepostos logo após a construção, usa a direção atual da carroça
-    // para preservar o encaixe sem depender do olhar do personagem.
+    // A carroça só é rebocada quando está consertada. No estado quebrado,
+    // o burrinho continua seguindo o jogador, mas a carroça permanece no chão.
+    if (cart.stage !== 'built') return;
+
+    // A carroça fica atrás do burrinho, no eixo entre ele e o jogador.
     const offsetX = cart.donkeyX - feet.x;
     const offsetY = cart.donkeyY - feet.y;
     const offsetLength = Math.hypot(offsetX, offsetY);
-    const fallbackX = cart.donkeyX - cart.x;
-    const fallbackY = cart.donkeyY - cart.y;
-    const fallbackLength = Math.hypot(fallbackX, fallbackY) || 1;
-    const directionX = offsetLength > 0.001 ? offsetX / offsetLength : fallbackX / fallbackLength;
-    const directionY = offsetLength > 0.001 ? offsetY / offsetLength : fallbackY / fallbackLength;
+    const directionX = offsetLength > 0.001 ? offsetX / offsetLength : Math.cos(cart.angle);
+    const directionY = offsetLength > 0.001 ? offsetY / offsetLength : Math.sin(cart.angle);
     const targetCartX = cart.donkeyX - directionX * CONFIG.cart.followDistance;
     const targetCartY = cart.donkeyY - directionY * CONFIG.cart.followDistance;
     const cartDx = targetCartX - cart.x;
