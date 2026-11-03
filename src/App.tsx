@@ -1292,7 +1292,7 @@ export default function App() {
         const currentFeet = playerFeet(current.player);
         const cartDistanceNow = Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y);
         const houseDistanceNow = Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y);
-        const canUseCart = current.cart.repaired && (current.cart.carried || cartDistanceNow <= CONFIG.cart.interactRadius);
+        const canUseCart = current.cart.stage === 'built' && (current.cart.carried || cartDistanceNow <= CONFIG.cart.interactRadius);
         const canUseHouse = current.house.built && houseDistanceNow <= CONFIG.house.interactRadius;
         if (canUseCart || canUseHouse) {
           if (canUseCart && (!canUseHouse || cartDistanceNow <= houseDistanceNow)) engine.storeAllBagToCart();
@@ -1304,7 +1304,7 @@ export default function App() {
         const current = engine.state;
         const currentFeet = playerFeet(current.player);
         const options: Array<{ distance: number; radius: number; available: boolean; build: () => void }> = [
-          { distance: Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: !current.cart.repaired, build: () => engine.buildCart() },
+          { distance: Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: current.cart.stage === 'broken', build: () => engine.buildCart() },
           { distance: Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y), radius: CONFIG.house.interactRadius, available: !current.house.built, build: () => engine.buildHouse() },
           { distance: Math.hypot(currentFeet.x - current.refinery.x, currentFeet.y - current.refinery.y), radius: CONFIG.refinery.interactRadius, available: !current.refinery.built, build: () => engine.buildRefinery() },
           { distance: Math.hypot(currentFeet.x - current.tecelaria.x, currentFeet.y - current.tecelaria.y), radius: CONFIG.tecelaria.interactRadius, available: !current.tecelaria.built, build: () => engine.buildTecelaria() },
