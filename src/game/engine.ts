@@ -345,7 +345,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-      cart: { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 - 68, donkeyY: this.world * 0.25, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
+      cart: { x: this.world * 0.75, y: this.world * 0.25, donkeyX: this.world * 0.75 + CONFIG.cart.followDistance, donkeyY: this.world * 0.25, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -725,12 +725,11 @@ export class GameEngine {
     const angle = vertical
       ? Math.atan2(Math.sign(facingY) || 1, 0)
       : Math.atan2(0, Math.sign(facingX) || 1);
-    // Reproduz o antigo encaixe: a carroça fica atrás do personagem e
-    // o burrinho ocupa exatamente a posição onde o personagem estava.
+    // O burrinho ocupa a posição de tração; o personagem permanece livre.
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     this.state.cart.angle = angle;
-    this.state.cart.x = this.clamp(feet.x - Math.cos(angle) * CONFIG.donkey.cartDistance, margin, this.world - margin);
-    this.state.cart.y = this.clamp(feet.y - Math.sin(angle) * CONFIG.donkey.cartDistance, margin, this.world - margin);
+    this.state.cart.x = this.clamp(feet.x - Math.cos(angle) * CONFIG.cart.followDistance, margin, this.world - margin);
+    this.state.cart.y = this.clamp(feet.y - Math.sin(angle) * CONFIG.cart.followDistance, margin, this.world - margin);
     this.state.cart.donkeyX = feet.x;
     this.state.cart.donkeyY = feet.y;
     this.state.cart.wheelPhase = 0;
@@ -800,8 +799,8 @@ export class GameEngine {
     const fallbackLength = Math.hypot(fallbackX, fallbackY) || 1;
     const directionX = offsetLength > 0.001 ? offsetX / offsetLength : fallbackX / fallbackLength;
     const directionY = offsetLength > 0.001 ? offsetY / offsetLength : fallbackY / fallbackLength;
-    const targetCartX = cart.donkeyX - directionX * CONFIG.donkey.cartDistance;
-    const targetCartY = cart.donkeyY - directionY * CONFIG.donkey.cartDistance;
+    const targetCartX = cart.donkeyX - directionX * CONFIG.cart.followDistance;
+    const targetCartY = cart.donkeyY - directionY * CONFIG.cart.followDistance;
     const cartDx = targetCartX - cart.x;
     const cartDy = targetCartY - cart.y;
     const cartDistance = Math.hypot(cartDx, cartDy);
@@ -834,7 +833,7 @@ export class GameEngine {
       const x = this.clamp(player.x + Math.cos(direction) * 145, margin, this.world - margin);
       const y = this.clamp(player.y + Math.sin(direction) * 145, margin, this.world - margin);
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.collisionRadius + 80) continue;
-      this.state.cart = { x, y, donkeyX: x - 68, donkeyY: y, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+      this.state.cart = { x, y, donkeyX: x + CONFIG.cart.followDistance, donkeyY: y, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
       return;
     }
     const x = this.clamp(player.x + 145, margin, this.world - margin);
