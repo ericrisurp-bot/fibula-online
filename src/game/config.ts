@@ -42,7 +42,8 @@ export const CONFIG = {
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 30, interactRadius: 100, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 100, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
-  cart: { interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, followDistance: 62, tetherDistance: 76, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
+  // Velocidade inicial planejada do burrinho sem carga: 80% dos 145 do jogador = 116 unidades/s.
+  cart: { interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, unloadedPullSpeed: 116, followDistance: 62, tetherDistance: 76, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
@@ -91,5 +92,3 @@ export const CLASSES = {
   arqueiro: { label: 'Arqueiro', description: 'Precisão e alcance' },
   druida: { label: 'Druida', description: 'Magia natural à distância, regeneração e orbes de cura' },
 } as const;
-
-export type ClassId = keyof typeof CLASSES;
