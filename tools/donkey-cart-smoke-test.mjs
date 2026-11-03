@@ -33,7 +33,10 @@ try {
   const feetY = engine.state.player.y + CONFIG.player.footOffset;
   cart.stage = 'built'; cart.carried = false; cart.angle = Math.PI; cart.following = true;
   // A ordem só funciona quando o jogador está perto do burrinho.
-  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance; cart.y = feetY;
+  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance + CONFIG.cart.interactRadius + 1; cart.y = feetY;
+  engine.toggleCart();
+  assert.equal(cart.following, true, 'fora do alcance o jogador não deve conseguir dar uma ordem');
+  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance;
   engine.toggleCart();
   assert.equal(cart.following, false, 'ordem próxima deve mandar o burrinho ficar');
   const parked = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
