@@ -134,7 +134,57 @@ try {
   assert.equal(engine.state.cart.health, 75);
   assert.deepEqual(engine.state.cart.inventory, [{ itemId: 'stone', quantity: 2 }], 'reparo não deve apagar os itens que ficaram na carroça');
 
-  console.log('OK: durabilidade 75, dano fixo 1 por impacto, inventário preservado, reparo, ordens seguir/parar, velocidade, visão, vínculo rígido e rodas.');
+  const prepareEnemyCartScenario = (following, enemyX) => {
+    const testEngine = new GameEngine(() => {}, { headless: true, seed: 20261103 });
+    testEngine.hordeTarget = 0;
+    testEngine.state.trees = [];
+    testEngine.state.rocks = [];
+    testEngine.state.cottonPlants = [];
+    testEngine.state.house.x = 300; testEngine.state.house.y = 300;
+    testEngine.state.refinery.x = 300; testEngine.state.refinery.y = testEngine.world - 300;
+    testEngine.state.tecelaria.x = testEngine.world - 300; testEngine.state.tecelaria.y = 300;
+    testEngine.state.player.x = 1670;
+    testEngine.state.player.y = 1460; // pés em y=1500
+    testEngine.state.cart.x = 1500;
+    testEngine.state.cart.y = 1500;
+    testEngine.state.cart.angle = 0; // burrinho à direita, em direção ao jogador
+    testEngine.state.cart.stage = 'built';
+    testEngine.state.cart.health = 75;
+    testEngine.state.cart.maxHealth = 75;
+    testEngine.state.cart.following = following;
+    testEngine.state.cart.carried = false;
+    testEngine.state.enemies = [{ id: 9001, x: enemyX, y: 1500, hp: 30, hitWait: 0, wobble: 0 }];
+    return testEngine;
+  };
+
+  const movingCartEngine = prepareEnemyCartScenario(true, 1540);
+  const movingCartStartX = movingCartEngine.state.enemies[0].x;
+  movingCartEngine.step(0.04);
+  assert.equal(movingCartEngine.state.cart.health, 74, 'slime próximo deve retirar 1 ponto da carroça enquanto ela acompanha o jogador');
+  assert.ok(movingCartEngine.state.enemies[0].x > movingCartStartX, 'slime deve continuar se deslocando em direção ao jogador, não perseguir a carroça');
+  movingCartEngine.stop();
+
+  const parkedCartEngine = prepareEnemyCartScenario(false, 1540);
+  parkedCartEngine.step(0.04);
+  assert.equal(parkedCartEngine.state.cart.health, 75, 'carroça parada pelo botão não pode receber dano');
+  parkedCartEngine.stop();
+
+  const playerPriorityEngine = prepareEnemyCartScenario(true, 1638);
+  const playerPriorityStartX = playerPriorityEngine.state.enemies[0].x;
+  playerPriorityEngine.step(0.04);
+  assert.equal(playerPriorityEngine.state.cart.health, 75, 'quando o slime alcança o jogador, a carroça não recebe o impacto');
+  assert.ok(playerPriorityEngine.state.enemies[0].x > playerPriorityStartX, 'movimento do slime deve continuar orientado ao jogador');
+  assert.ok(playerPriorityEngine.state.enemies[0].hitWait > 0, 'contato com o jogador mantém o cooldown normal do slime');
+  playerPriorityEngine.stop();
+
+  const brokenCartEngine = prepareEnemyCartScenario(true, 1540);
+  brokenCartEngine.state.cart.stage = 'broken';
+  brokenCartEngine.state.cart.health = 0;
+  brokenCartEngine.step(0.04);
+  assert.equal(brokenCartEngine.state.cart.health, 0, 'carroça quebrada não pode receber novos impactos');
+  brokenCartEngine.stop();
+
+  console.log('OK: durabilidade 75, dano fixo 1 por impacto, inventário preservado, reparo, seguir/parar, velocidade, visão, vínculo rígido, rodas e contato secundário dos slimes.');
 } finally {
   await server.close();
 }
