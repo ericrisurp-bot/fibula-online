@@ -1,3 +1,4 @@
+import { CONFIG } from './config';
 import { getBaseItemId, type InventoryStack } from './inventory';
 
 /** O burrinho e a carroça formam uma única entidade do mundo. */
