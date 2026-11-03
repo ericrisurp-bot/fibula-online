@@ -740,15 +740,20 @@ export class GameEngine {
         const distance = Math.hypot(dx, dy);
         if (distance >= obstacle.radius) continue;
         if (distance === 0) {
-          const overlapX = halfWidth + obstacle.radius - Math.abs(cart.donkeyX - obstacle.x);
-          const overlapY = halfHeight + obstacle.radius - Math.abs(cart.donkeyY - obstacle.y);
-          if (overlapX < overlapY) dx = cart.donkeyX < obstacle.x ? -1 : 1;
-          else dy = cart.donkeyY < obstacle.y ? -1 : 1;
+          const offsetX = cart.donkeyX - obstacle.x;
+          const offsetY = cart.donkeyY - obstacle.y;
+          const overlapX = halfWidth + obstacle.radius - Math.abs(offsetX);
+          const overlapY = halfHeight + obstacle.radius - Math.abs(offsetY);
+          if (overlapX < overlapY) {
+            cart.donkeyX = this.clamp(cart.donkeyX + (offsetX < 0 ? -overlapX : overlapX), CONFIG.map.wall + halfWidth, this.world - CONFIG.map.wall - halfWidth);
+          } else {
+            cart.donkeyY = this.clamp(cart.donkeyY + (offsetY < 0 ? -overlapY : overlapY), CONFIG.map.wall + halfHeight, this.world - CONFIG.map.wall - halfHeight);
+          }
+          continue;
         }
         const push = obstacle.radius - distance;
-        const length = Math.hypot(dx, dy) || 1;
-        cart.donkeyX = this.clamp(cart.donkeyX + dx / length * push, CONFIG.map.wall + halfWidth, this.world - CONFIG.map.wall - halfWidth);
-        cart.donkeyY = this.clamp(cart.donkeyY + dy / length * push, CONFIG.map.wall + halfHeight, this.world - CONFIG.map.wall - halfHeight);
+        cart.donkeyX = this.clamp(cart.donkeyX + dx / distance * push, CONFIG.map.wall + halfWidth, this.world - CONFIG.map.wall - halfWidth);
+        cart.donkeyY = this.clamp(cart.donkeyY + dy / distance * push, CONFIG.map.wall + halfHeight, this.world - CONFIG.map.wall - halfHeight);
       }
     }
   }
@@ -764,11 +769,18 @@ export class GameEngine {
     let dy = feet.y - nearestY;
     const distance = Math.hypot(dx, dy);
     if (distance >= CONFIG.player.footRadius) return;
-    if (distance === 0) { dx = feet.x < cart.donkeyX ? -1 : 1; dy = 0; }
+    if (distance === 0) {
+      const offsetX = feet.x - cart.donkeyX;
+      const offsetY = feet.y - cart.donkeyY;
+      const overlapX = halfWidth + CONFIG.player.footRadius - Math.abs(offsetX);
+      const overlapY = halfHeight + CONFIG.player.footRadius - Math.abs(offsetY);
+      if (overlapX < overlapY) feet.x += (offsetX < 0 ? -overlapX : overlapX);
+      else feet.y += (offsetY < 0 ? -overlapY : overlapY);
+      return;
+    }
     const push = CONFIG.player.footRadius - distance;
-    const length = Math.hypot(dx, dy) || 1;
-    feet.x += dx / length * push;
-    feet.y += dy / length * push;
+    feet.x += dx / distance * push;
+    feet.y += dy / distance * push;
   }
 
   private updateDonkeyCart(dt: number, playerSpeed: number) {
