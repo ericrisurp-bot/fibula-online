@@ -9,6 +9,7 @@ export type SoloMatchResult = {
 export const SOLO_MATCH_RULESET_VERSION = 'solo-v1';
 
 const HOUSE_STORAGE_KEY = 'fibula-house-storage';
+const HOUSE_STORAGE_CONFIRMED_KEY = 'fibula-house-storage-confirmed';
 const HOUSE_STORAGE_DIRTY_KEY = 'fibula-house-storage-dirty';
 
 function normalizeHouseInventory(value: unknown): PersistedHouseStack[] {
@@ -31,6 +32,21 @@ export function readLocalHouseInventory(): PersistedHouseStack[] {
   }
 }
 
+export function readConfirmedHouseInventory(): PersistedHouseStack[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const confirmed = window.localStorage.getItem(HOUSE_STORAGE_CONFIRMED_KEY);
+    if (confirmed !== null) return normalizeHouseInventory(JSON.parse(confirmed));
+    // Compatibilidade: versões anteriores usavam o cache local como último
+    // estado confirmado e marcavam explicitamente quando havia escrita pendente.
+    return window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1'
+      ? []
+      : readLocalHouseInventory();
+  } catch {
+    return [];
+  }
+}
+
 export async function loadHouseInventory(
   client: SupabaseClient,
   userId: string,
@@ -39,9 +55,6 @@ export async function loadHouseInventory(
     // A sessão e o perfil são provisionados pela RPC segura ao iniciar a partida.
     // Não tente inserir o perfil durante a leitura do baú: o cliente não tem escrita
     // de progressão e essa tentativa fazia a leitura do armazenamento cair no fallback local.
-    if (window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
-      return { inventory: readLocalHouseInventory(), source: 'local' };
-    }
     const { data, error } = await client
       .from('fibula_house_storage')
       .select('inventory')
@@ -50,12 +63,25 @@ export async function loadHouseInventory(
     if (error) throw error;
     if (data) {
       const inventory = normalizeHouseInventory(data.inventory);
-      try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Cache local indisponível. */ }
+      try {
+        const serialized = JSON.stringify(inventory);
+        window.localStorage.setItem(HOUSE_STORAGE_KEY, serialized);
+        window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, serialized);
+        window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
+      } catch { /* Cache local indisponível. */ }
       return { inventory, source: 'cloud' };
     }
   } catch {
-    // A partida solo continua usando o último estado local quando a internet/banco não responde.
+    // A partida solo continua usando o estado local quando a internet/banco não responde.
     return { inventory: readLocalHouseInventory(), source: 'local' };
+  }
+  if (window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
+    try {
+      window.localStorage.setItem(HOUSE_STORAGE_KEY, '[]');
+      window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, '[]');
+      window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
+    } catch { /* Cache local indisponível. */ }
+    return { inventory: [], source: 'cloud' };
   }
   return { inventory: readLocalHouseInventory(), source: 'local' };
 }
@@ -80,6 +106,7 @@ export async function syncHouseInventory(
       window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1');
       return false;
     }
+    window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, JSON.stringify(safeInventory));
     window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
     return true;
   } catch {
@@ -92,9 +119,6 @@ export async function loadCloudHouseInventory(
   client: SupabaseClient,
   userId: string,
 ): Promise<PersistedHouseStack[]> {
-  if (typeof window !== 'undefined' && window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
-    throw new Error('Seu baú ainda tem alterações aguardando sincronização. Aguarde e tente novamente.');
-  }
   const { data, error } = await client
     .from('fibula_house_storage')
     .select('inventory')
@@ -102,13 +126,26 @@ export async function loadCloudHouseInventory(
     .maybeSingle();
   if (error) throw error;
   if (!data) {
-    if (readLocalHouseInventory().length > 0) {
+    const inventory = window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1'
+      ? []
+      : readLocalHouseInventory();
+    if (inventory.length > 0) {
       throw new Error('Seu baú ainda não foi sincronizado com o servidor. Entre no jogo e aguarde a sincronização.');
     }
+    try {
+      window.localStorage.setItem(HOUSE_STORAGE_KEY, '[]');
+      window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, '[]');
+      window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
+    } catch { /* Cache local indisponível. */ }
     return [];
   }
   const inventory = normalizeHouseInventory(data.inventory);
-  try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Cache local indisponível. */ }
+  try {
+    const serialized = JSON.stringify(inventory);
+    window.localStorage.setItem(HOUSE_STORAGE_KEY, serialized);
+    window.localStorage.setItem(HOUSE_STORAGE_CONFIRMED_KEY, serialized);
+    window.localStorage.removeItem(HOUSE_STORAGE_DIRTY_KEY);
+  } catch { /* Cache local indisponível. */ }
   return inventory;
 }
 
