@@ -22,6 +22,8 @@ type ErrorHandler = (error: unknown) => void;
  */
 export class DuoCycleTransport {
   private channel: any = null;
+  private ownsChannel = false;
+  private disposed = false;
   private connecting: Promise<void> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private heartbeatPending = false;
@@ -52,24 +54,52 @@ export class DuoCycleTransport {
   private async connectChannel(): Promise<void> {
     await this.supabase.realtime.setAuth();
     const pairKey = [this.userId, this.peerId].sort().join(':');
-    const channel = this.supabase.channel(`fibula:inbox:${pairKey}`, { config: { private: true } });
-    channel.on('broadcast', { event: 'duo_cycle_signal' }, ({ payload }: { payload: unknown }) => {
+    const topic = 'fibula:inbox:' + pairKey;
+    const existing = this.supabase.getChannels().find(c => c.topic === 'realtime:' + topic);
+    const handler = ({ payload }: { payload: unknown }) => {
+      if (this.disposed) return;
       if (!payload || typeof payload !== 'object') return;
       const signal = payload as Record<string, unknown>;
       if (signal.from !== this.peerId || signal.to !== this.userId || signal.match_id !== this.matchId
         || !Number.isSafeInteger(signal.night_number)
         || (signal.report_status !== 'finished' && signal.report_status !== 'dead')) return;
       void this.refreshState().catch(this.onError);
-    });
-    this.channel = channel;
-    await new Promise<void>((resolve, reject) => {
-      channel.subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') resolve();
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          reject(new Error('Não foi possível conectar a sincronização da partida Duo.'));
+    };
+
+    if (existing) {
+      this.channel = existing;
+      this.ownsChannel = false;
+      existing.on('broadcast', { event: 'duo_cycle_signal' }, handler);
+    } else {
+      const channel = this.supabase.channel(topic, { config: { private: true } });
+      this.channel = channel;
+      this.ownsChannel = true;
+      channel.on('broadcast', { event: 'duo_cycle_signal' }, handler);
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = (warning?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          if (warning) this.onError(warning);
+          resolve();
+        };
+        const timeout = setTimeout(() => {
+          finish(new Error('Aviso imediato indisponível; a partida continua sincronizando pelo servidor.'));
+        }, 10_000);
+        try {
+          channel.subscribe((status: string) => {
+            if (status === 'SUBSCRIBED') finish();
+            else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              finish(new Error('Aviso imediato indisponível; a partida continua sincronizando pelo servidor.'));
+            }
+          });
+        } catch {
+          finish(new Error('Aviso imediato indisponível; a partida continua sincronizando pelo servidor.'));
         }
       });
-    });
+    }
+
     await this.sendHeartbeat();
     this.heartbeatTimer = setInterval(() => {
       if (this.heartbeatPending) return;
@@ -117,19 +147,26 @@ export class DuoCycleTransport {
     }
     await this.refreshState();
     const channel = this.channel;
-    if (!channel) throw new Error('A comunicação da partida Duo foi encerrada.');
-    const result = await channel.send({
-      type: 'broadcast',
-      event: 'duo_cycle_signal',
-      payload: {
-        from: this.userId,
-        to: this.peerId,
-        match_id: this.matchId,
-        night_number: nightNumber,
-        report_status: reportStatus,
-      },
-    });
-    if (result !== 'ok') throw new Error('O servidor salvou seu relato, mas o aviso ao outro jogador não foi entregue.');
+    if (!channel) {
+      this.onError(new Error('Relato salvo; aviso imediato indisponível.'));
+      return;
+    }
+    try {
+      const result = await channel.send({
+        type: 'broadcast',
+        event: 'duo_cycle_signal',
+        payload: {
+          from: this.userId,
+          to: this.peerId,
+          match_id: this.matchId,
+          night_number: nightNumber,
+          report_status: reportStatus,
+        },
+      });
+      if (result !== 'ok') this.onError(new Error('Relato salvo; aviso imediato indisponível.'));
+    } catch {
+      this.onError(new Error('Relato salvo; aviso imediato indisponível.'));
+    }
   }
 
   private async refreshState(): Promise<DuoCycleServerState> {
@@ -165,12 +202,14 @@ export class DuoCycleTransport {
   }
 
   async disconnect(): Promise<void> {
+    this.disposed = true;
     if (this.heartbeatTimer !== null) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
     const channel = this.channel;
     this.channel = null;
-    if (channel) await this.supabase.removeChannel(channel);
+    if (channel && this.ownsChannel) await this.supabase.removeChannel(channel);
+    this.ownsChannel = false;
   }
 }

@@ -1555,7 +1555,7 @@ export default function App() {
         setDuoNotice('Duo conectado. O avanço das noites agora depende da confirmação do servidor.');
       } catch (cause) {
         if (transport) await transport.disconnect();
-        if (!cancelled) window.alert(cause instanceof Error ? cause.message : 'Não foi possível iniciar seu mundo Duo.');
+        if (!cancelled) setDuoNotice(cause instanceof Error ? cause.message : 'Não foi possível iniciar seu mundo Duo.');
       } finally {
         duoMatchStartingRef.current = false;
       }
