@@ -43,7 +43,7 @@ export const CONFIG = {
   house: { buildCost: 30, interactRadius: 100, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 100, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
   cart: { interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, followDistance: 62, tetherDistance: 76, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
-  donkey: { visionRange: 300, colliderHalfWidth: 25, colliderHalfHeight: 17 },
+  donkey: { visionRange: 300, followDistance: 75, wheelRadius: 17, colliderHalfWidth: 25, colliderHalfHeight: 17 },
   flags: {
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },
