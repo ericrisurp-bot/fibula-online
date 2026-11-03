@@ -5,7 +5,6 @@ import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { constructDonkeyCart, type DonkeyCartState } from './donkeyCart';
-import { isPreviewTestMode } from './previewTestMode';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
@@ -347,7 +346,7 @@ export class GameEngine {
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: isPreviewTestMode() ? [{ itemId: 'wood', quantity: 1 }] : [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
+      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -725,7 +724,7 @@ export class GameEngine {
   buildCart() {
     const cart = this.state.cart;
     if (this.state.dead || cart.stage !== 'broken' || Math.hypot(playerFeet(this.state.player).x - cart.x, playerFeet(this.state.player).y - cart.y) > CONFIG.cart.interactRadius) return;
-    const result = constructDonkeyCart(cart, this.state.inventory, isPreviewTestMode());
+    const result = constructDonkeyCart(cart, this.state.inventory);
     if (!result.built) return;
     this.state.cart = result.state;
     this.state.inventory = result.inventory;
@@ -761,11 +760,9 @@ export class GameEngine {
   }
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
-    if (isPreviewTestMode()) {
-      const feet = playerFeet(this.state.player);
-      this.state.cart = { x: this.clamp(this.state.player.x + 75, margin, this.world - margin), y: this.clamp(feet.y, margin, this.world - margin), angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
-      return;
-    }
+    const feet = playerFeet(this.state.player);
+    this.state.cart = { x: this.clamp(feet.x + 60, margin, this.world - margin), y: this.clamp(feet.y, margin, this.world - margin), angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+    return;
     for (let attempt = 0; attempt < 1200; attempt++) {
       const x = margin + this.random() * (this.world - margin * 2);
       const y = margin + this.random() * (this.world - margin * 2);
