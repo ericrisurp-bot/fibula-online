@@ -115,7 +115,7 @@ try {
 
   const engineCart = engine.state.cart;
   engineCart.stage = 'built'; engineCart.health = 75; engineCart.maxHealth = 75; engineCart.following = true;
-  engineCart.inventory = [{ itemId: 'stone', quantity: 2 }];
+  engineCart.inventory = [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }];
   for (let hit = 0; hit < 75; hit++) engine.damageCartFromEnemyHit();
   assert.equal(engine.state.cart.stage, 'broken', '75 impactos do engine devem quebrar a carroça');
   assert.equal(engine.state.cart.health, 0);
