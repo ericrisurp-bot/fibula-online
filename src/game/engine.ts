@@ -719,13 +719,11 @@ export class GameEngine {
     const facingY = this.state.player.facingY || 1;
     const absX = Math.abs(facingX);
     const absY = Math.abs(facingY);
-    const vertical = absY > absX * 1.2;
-    const horizontal = absX > absY * 1.2;
+    const currentlyVertical = Math.abs(Math.cos(this.state.cart.angle)) < 0.15;
+    const vertical = absY > absX * 1.2 ? true : absX > absY * 1.2 ? false : currentlyVertical;
     const angle = vertical
       ? Math.atan2(Math.sign(facingY) || 1, 0)
-      : horizontal
-        ? Math.atan2(0, Math.sign(facingX) || 1)
-        : Math.atan2(facingY, facingX);
+      : Math.atan2(0, Math.sign(facingX) || 1);
     // Replica a posição que o personagem ocupava ao segurar a alça:
     // à frente da carroça, usando a mesma distância do antigo encaixe.
     this.state.cart.angle = angle;
@@ -848,7 +846,7 @@ export class GameEngine {
       const x = this.clamp(player.x + Math.cos(direction) * 145, margin, this.world - margin);
       const y = this.clamp(player.y + Math.sin(direction) * 145, margin, this.world - margin);
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.collisionRadius + 80) continue;
-      this.state.cart = { x, y, donkeyX: x - 68, donkeyY: y, wheelPhase: 0, angle: direction, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+      this.state.cart = { x, y, donkeyX: x - 68, donkeyY: y, wheelPhase: 0, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
       return;
     }
     const x = this.clamp(player.x + 145, margin, this.world - margin);
