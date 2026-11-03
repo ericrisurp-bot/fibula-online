@@ -4346,12 +4346,17 @@ button, button * {
 .lobby-duo-peer-status{display:block;color:#c6d2c4;font-size:9px;font-weight:750;line-height:1.2;white-space:nowrap}
 .lobby-duo-peer-avatar{display:block;flex:0 0 auto;width:clamp(66px,9vw,104px);height:clamp(84px,15vh,116px);border:0;border-radius:0;background:transparent}
 .lobby-duo-peer.connecting{opacity:.62;filter:saturate(.55)}
-.lobby-duo-peer-leave{min-height:22px;margin-top:0;padding:2px 8px;border:1px solid rgba(220,225,216,.3);border-radius:6px;background:rgba(35,40,35,.78);color:#cbd2c8;font:700 9px/1.2 inherit;cursor:pointer}
+.lobby-duo-peer-leave{min-height:22px;margin-top:0;padding:2px 8px;border:1px solid rgba(220,225,216,.3);border-radius:6px;background:rgba(35,40,35,.78);color:#cbd2c8;font:inherit;font-size:9px;font-weight:700;line-height:1.2;cursor:pointer}
 .lobby-duo-peer-leave:hover{border-color:rgba(220,225,216,.58);background:rgba(55,62,55,.9);color:#fff}
 .lobby-duo-peer-leave:focus-visible{outline:2px solid rgba(232,231,220,.85);outline-offset:2px}
 @media(max-width:650px){.lobby-duo-peer{left:calc(50% + 8vw);top:calc(50% + 15vh);min-width:clamp(76px,23vw,112px);max-width:42vw;gap:2px;padding:3px 4px}.lobby-duo-peer-name{font-size:10px}.lobby-duo-peer-status{font-size:8px}.lobby-duo-peer-avatar{width:clamp(58px,17vw,82px);height:clamp(74px,17vh,92px)}.lobby-duo-peer-leave{min-height:20px;padding:2px 7px;font-size:8px}}
 @media(orientation:landscape) and (max-height:520px){.lobby-duo-peer{left:calc(50% + 9vw);top:calc(50% + 10vh);min-width:clamp(72px,12vh,100px)}.lobby-duo-peer-avatar{width:clamp(54px,10vh,76px);height:clamp(62px,24vh,86px)}.lobby-duo-peer-status{font-size:8px}}
 .lobby-duo-peer-ready{color:#8fd39a;font-weight:950;text-shadow:0 0 8px rgba(89,190,111,.3)}
+.lobby-play-trigger:disabled{border-color:#666b65!important;background:#555a55!important;color:#aeb4aa!important;box-shadow:none!important;opacity:.72;cursor:not-allowed}
+.lobby-play-trigger.duo-ready-trigger[aria-pressed="true"]{border-color:#8fc79a;background:#355b3e;color:#f2f3ef}
+.lobby-duo-notice{position:absolute;left:50%;top:calc(90dvh + 48px);z-index:8;width:min(320px,calc(100vw - 32px));margin:0;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(190,214,198,.35);border-radius:8px;background:rgba(24,35,29,.9);color:#d8e2d4;font-size:10px;text-align:center;pointer-events:none}
+@media(max-width:650px){.lobby-duo-notice{top:calc(90dvh + 40px);font-size:9px}}
+
 /* Transferência de itens do Baú durante o lobby Duo. */
 .lobby-chest-send-button{display:block;width:100%;min-height:30px;padding:5px 9px;border:1px solid rgba(220,220,220,.28);border-radius:7px;background:#343634;color:#eee;font-size:11px;font-weight:700}
 .lobby-chest-send-button:disabled{opacity:.55}
