@@ -543,7 +543,7 @@ export default function App() {
   const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const feet = playerFeet(state.player);
   const cartDistance = Math.hypot(feet.x - state.cart.x, feet.y - state.cart.y);
-  const cartAccessible = state.cart.stage === 'built' && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  const cartAccessible = state.cart.stage === 'built' && cartDistance <= CONFIG.cart.interactRadius;
   const houseDistance = Math.hypot(feet.x - state.house.x, feet.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const houseBuildAccessible = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
@@ -552,7 +552,7 @@ export default function App() {
   const tecelariaDistance = Math.hypot(feet.x - state.tecelaria.x, feet.y - state.tecelaria.y);
   const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const cartBuildAccessible = state.cart.stage === 'broken' && cartDistance <= CONFIG.cart.interactRadius;
-  const cartActionVisible = state.cart.stage === 'built' && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  const cartActionVisible = false;
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
