@@ -763,7 +763,7 @@ export class GameEngine {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     if (isPreviewTestMode()) {
       const feet = playerFeet(this.state.player);
-      this.state.cart = { x: this.clamp(this.state.player.x + 160, margin, this.world - margin), y: this.clamp(feet.y, margin, this.world - margin), angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+      this.state.cart = { x: this.clamp(this.state.player.x + 75, margin, this.world - margin), y: this.clamp(feet.y, margin, this.world - margin), angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
       return;
     }
     for (let attempt = 0; attempt < 1200; attempt++) {
