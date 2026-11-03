@@ -7,7 +7,7 @@ import { CONFIG } from './config';
  * Rodas só giram quando o carrinho está sendo puxado (moving).
  */
 export type CartDrawState = {
-  x: number; y: number; angle: number;
+  x: number; y: number; donkeyX: number; donkeyY: number; angle: number;
   stage: 'broken' | 'built'; carried: boolean;
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
@@ -260,9 +260,9 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.fillStyle = 'rgba(8,12,9,.26)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
 
-  // O burrinho fica ao lado da carroça quebrada e à frente quando o conjunto é construído.
-  ctx.save(); ctx.rotate(angle);
-  ctx.translate(stage === 'built' ? 70 : -68, 3);
+  // O burrinho é desenhado na própria posição de mundo, independente da carroça.
+  ctx.save();
+  ctx.translate(cart.donkeyX - x, cart.donkeyY - y);
   drawDonkey(ctx, time);
   ctx.restore();
 
