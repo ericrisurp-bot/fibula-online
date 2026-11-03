@@ -4373,7 +4373,7 @@ button, button * {
 
 
 /* Transferência de itens do Baú durante o lobby Duo. */
-.lobby-chest-send-button{grid-column:1/-1;min-height:30px;padding:5px 9px;border:1px solid rgba(220,220,220,.28);border-radius:7px;background:#343634;color:#eee;font-size:11px;font-weight:700}
+.lobby-chest-send-button{display:block;width:100%;min-height:30px;padding:5px 9px;border:1px solid rgba(220,220,220,.28);border-radius:7px;background:#343634;color:#eee;font-size:11px;font-weight:700}
 .lobby-chest-send-button:disabled{opacity:.55}
 .lobby-chest-transfer{display:grid;gap:9px;margin-top:14px;padding:12px;border:1px solid rgba(220,220,220,.2);border-radius:10px;background:#222322;color:#eee}
 .lobby-chest-transfer strong{font-size:13px}
