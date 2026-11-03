@@ -116,7 +116,7 @@ try {
   assert.equal(first.state.player.x, xBeforeDeath, 'Uma partida encerrada não deve continuar simulando.');
   first.restart();
   assert.equal(first.state.dead, false);
-  assert.equal(first.state.classId, 'mago', 'O reinício deve preservar a classe selecionada.');
+  assert.equal(first.state.classId, 'arqueiro', 'O reinício deve preservar a classe selecionada.');
   assert.equal(first.state.dayNight, 'day');
 
   first.stop();
