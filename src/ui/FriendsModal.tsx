@@ -27,7 +27,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null) => void;
+  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
   onLobbyConnected: () => void;
   onLobbyNotice: (message: string) => void;
   onHouseInventoryChanged: () => void;
