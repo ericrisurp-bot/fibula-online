@@ -729,8 +729,8 @@ export class GameEngine {
     // o burrinho ocupa exatamente a posição onde o personagem estava.
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     this.state.cart.angle = angle;
-    this.state.cart.x = this.clamp(feet.x - Math.cos(angle) * CONFIG.cart.followDistance, margin, this.world - margin);
-    this.state.cart.y = this.clamp(feet.y - Math.sin(angle) * CONFIG.cart.followDistance, margin, this.world - margin);
+    this.state.cart.x = this.clamp(feet.x - Math.cos(angle) * CONFIG.donkey.cartDistance, margin, this.world - margin);
+    this.state.cart.y = this.clamp(feet.y - Math.sin(angle) * CONFIG.donkey.cartDistance, margin, this.world - margin);
     this.state.cart.donkeyX = feet.x;
     this.state.cart.donkeyY = feet.y;
     this.state.cart.wheelPhase = 0;
@@ -741,7 +741,8 @@ export class GameEngine {
   private resolveDonkeyBoxCollisions(cart: CartState) {
     const halfWidth = CONFIG.donkey.colliderHalfWidth;
     const halfHeight = CONFIG.donkey.colliderHalfHeight;
-    const obstacles = [...this.obstacleCircles(true), { x: cart.x, y: cart.y, radius: CONFIG.cart.collisionRadius }];
+    // A carroça é rebocada pelo burrinho: não deve empurrá-lo para longe no próprio encaixe.
+    const obstacles = this.obstacleCircles(true);
     for (let pass = 0; pass < 3; pass++) {
       for (const obstacle of obstacles) {
         const nearestX = this.clamp(obstacle.x, cart.donkeyX - halfWidth, cart.donkeyX + halfWidth);
@@ -816,8 +817,8 @@ export class GameEngine {
       this.resolveDonkeyBoxCollisions(cart);
     }
 
-    const targetCartX = cart.donkeyX - facingX * CONFIG.donkey.followDistance;
-    const targetCartY = cart.donkeyY - facingY * CONFIG.donkey.followDistance;
+    const targetCartX = cart.donkeyX - facingX * CONFIG.donkey.cartDistance;
+    const targetCartY = cart.donkeyY - facingY * CONFIG.donkey.cartDistance;
     const cartDx = targetCartX - cart.x;
     const cartDy = targetCartY - cart.y;
     const cartDistance = Math.hypot(cartDx, cartDy);
