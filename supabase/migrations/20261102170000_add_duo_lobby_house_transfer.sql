@@ -20,7 +20,6 @@ declare
   v_receiver_inventory jsonb;
   v_sender_quantity bigint;
   v_receiver_quantity bigint;
-  v_receiver_types integer;
   v_receiver_has_item boolean;
   v_sender_next jsonb;
   v_receiver_next jsonb;
@@ -126,14 +125,8 @@ begin
      where entry.value ->> 'itemId' = p_item_id
   ) into v_receiver_has_item;
 
-  if not v_receiver_has_item then
-    select count(distinct entry.value ->> 'itemId')
-      into v_receiver_types
-      from jsonb_array_elements(v_receiver_inventory) as entry(value)
-     where nullif(entry.value ->> 'itemId', '') is not null;
-    if v_receiver_types >= 50 then
-      raise exception 'O Baú do outro jogador está cheio.';
-    end if;
+  if not v_receiver_has_item and jsonb_array_length(v_receiver_inventory) >= 50 then
+    raise exception 'O Baú do outro jogador está cheio.';
   end if;
 
   -- Merge duplicate legacy stacks into one entry while preserving every other item.
