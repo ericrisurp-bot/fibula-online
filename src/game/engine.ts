@@ -770,55 +770,38 @@ export class GameEngine {
     }
   }
 
-  private resolvePlayerDonkeyBoxCollision(feet: Vec) {
-    const cart = this.state.cart;
-    if (cart.stage !== 'built') return;
-    const halfWidth = CONFIG.donkey.colliderHalfWidth;
-    const halfHeight = CONFIG.donkey.colliderHalfHeight;
-    const nearestX = this.clamp(feet.x, cart.donkeyX - halfWidth, cart.donkeyX + halfWidth);
-    const nearestY = this.clamp(feet.y, cart.donkeyY - halfHeight, cart.donkeyY + halfHeight);
-    let dx = feet.x - nearestX;
-    let dy = feet.y - nearestY;
-    const distance = Math.hypot(dx, dy);
-    if (distance >= CONFIG.player.footRadius) return;
-    if (distance === 0) {
-      const offsetX = feet.x - cart.donkeyX;
-      const offsetY = feet.y - cart.donkeyY;
-      const overlapX = halfWidth + CONFIG.player.footRadius - Math.abs(offsetX);
-      const overlapY = halfHeight + CONFIG.player.footRadius - Math.abs(offsetY);
-      if (overlapX < overlapY) feet.x += (offsetX < 0 ? -overlapX : overlapX);
-      else feet.y += (offsetY < 0 ? -overlapY : overlapY);
-      return;
-    }
-    const push = CONFIG.player.footRadius - distance;
-    feet.x += dx / distance * push;
-    feet.y += dy / distance * push;
-  }
-
   private updateDonkeyCart(dt: number, playerSpeed: number) {
     const cart = this.state.cart;
     if (cart.stage !== 'built') return;
     const feet = playerFeet(this.state.player);
-    const facingX = this.state.player.facingX || 0;
-    const facingY = this.state.player.facingY || 1;
-    const donkeyDistance = Math.hypot(feet.x - cart.donkeyX, feet.y - cart.donkeyY);
+    const toPlayerX = feet.x - cart.donkeyX;
+    const toPlayerY = feet.y - cart.donkeyY;
+    const donkeyDistance = Math.hypot(toPlayerX, toPlayerY);
     const canFollow = donkeyDistance <= CONFIG.donkey.visionRange && playerSpeed <= CONFIG.player.speed;
-    if (!canFollow) return;
 
-    const targetDonkeyX = feet.x - facingX * CONFIG.donkey.followDistance;
-    const targetDonkeyY = feet.y - facingY * CONFIG.donkey.followDistance;
-    const donkeyDx = targetDonkeyX - cart.donkeyX;
-    const donkeyDy = targetDonkeyY - cart.donkeyY;
-    const donkeyDistanceToTarget = Math.hypot(donkeyDx, donkeyDy);
-    const donkeyStep = Math.min(donkeyDistanceToTarget, CONFIG.player.speed * dt);
-    if (donkeyDistanceToTarget > 0) {
-      cart.donkeyX += donkeyDx / donkeyDistanceToTarget * donkeyStep;
-      cart.donkeyY += donkeyDy / donkeyDistanceToTarget * donkeyStep;
+    // O burrinho nunca se afasta para alcançar uma posição baseada na direção do jogador.
+    // Só caminha quando o jogador abre distância, aproximando-se até o limite de acompanhamento.
+    if (canFollow && donkeyDistance > CONFIG.donkey.followDistance) {
+      const remainingDistance = donkeyDistance - CONFIG.donkey.followDistance;
+      const donkeyStep = Math.min(remainingDistance, CONFIG.player.speed * dt);
+      cart.donkeyX += toPlayerX / donkeyDistance * donkeyStep;
+      cart.donkeyY += toPlayerY / donkeyDistance * donkeyStep;
       this.resolveDonkeyBoxCollisions(cart);
     }
 
-    const targetCartX = cart.donkeyX - facingX * CONFIG.donkey.cartDistance;
-    const targetCartY = cart.donkeyY - facingY * CONFIG.donkey.cartDistance;
+    // A carroça permanece atrás do burrinho, no eixo que liga os dois ao jogador.
+    // Se estiverem sobrepostos logo após a construção, usa a direção atual da carroça
+    // para preservar o encaixe sem depender do olhar do personagem.
+    const offsetX = cart.donkeyX - feet.x;
+    const offsetY = cart.donkeyY - feet.y;
+    const offsetLength = Math.hypot(offsetX, offsetY);
+    const fallbackX = cart.donkeyX - cart.x;
+    const fallbackY = cart.donkeyY - cart.y;
+    const fallbackLength = Math.hypot(fallbackX, fallbackY) || 1;
+    const directionX = offsetLength > 0.001 ? offsetX / offsetLength : fallbackX / fallbackLength;
+    const directionY = offsetLength > 0.001 ? offsetY / offsetLength : fallbackY / fallbackLength;
+    const targetCartX = cart.donkeyX - directionX * CONFIG.donkey.cartDistance;
+    const targetCartY = cart.donkeyY - directionY * CONFIG.donkey.cartDistance;
     const cartDx = targetCartX - cart.x;
     const cartDy = targetCartY - cart.y;
     const cartDistance = Math.hypot(cartDx, cartDy);
@@ -832,7 +815,7 @@ export class GameEngine {
       const actualCartTravel = Math.hypot(cart.x - previousCartX, cart.y - previousCartY);
       cart.wheelPhase = (cart.wheelPhase + actualCartTravel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
     }
-    cart.angle = Math.atan2(facingY, facingX);
+    cart.angle = Math.atan2(directionY, directionX);
   }
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
@@ -1754,7 +1737,6 @@ export class GameEngine {
     const off = CONFIG.player.footOffset;
     const feet = { x: p.x, y: p.y + off };
     this.resolveObstacleCollisions(feet, CONFIG.player.footRadius, ignoreCart);
-    this.resolvePlayerDonkeyBoxCollision(feet);
     p.x = this.clamp(feet.x, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     p.y = this.clamp(feet.y - off, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - off);
   }
