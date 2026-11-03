@@ -21,6 +21,7 @@ declare
   v_sender_quantity bigint;
   v_receiver_quantity bigint;
   v_receiver_types integer;
+  v_receiver_has_item boolean;
   v_sender_next jsonb;
   v_receiver_next jsonb;
 begin
@@ -54,6 +55,13 @@ begin
   end if;
 
   v_receiver_id := case when v_user_id = v_host_id then v_guest_id else v_host_id end;
+
+  if not exists (
+    select 1 from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id and p.user_id = v_receiver_id and p.left_at is null
+  ) then
+    raise exception 'O outro jogador não está mais ativo neste lobby.';
+  end if;
 
   -- Ensure both rows exist, then lock them in a stable order.
   insert into public.fibula_house_storage (user_id, inventory)
@@ -97,7 +105,12 @@ begin
     raise exception 'A quantidade excede o limite permitido no Baú do outro jogador.';
   end if;
 
-  if v_receiver_quantity = 0 then
+  select exists (
+    select 1 from jsonb_array_elements(v_receiver_inventory) as entry(value)
+     where entry.value ->> 'itemId' = p_item_id
+  ) into v_receiver_has_item;
+
+  if not v_receiver_has_item then
     select count(distinct entry.value ->> 'itemId')
       into v_receiver_types
       from jsonb_array_elements(v_receiver_inventory) as entry(value)
