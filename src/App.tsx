@@ -9,7 +9,7 @@ import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
+import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
@@ -281,7 +281,9 @@ export default function App() {
   const houseLoadReadyRef = useRef(false);
   const houseChangedDuringLoadRef = useRef(false);
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
-  const lastSyncedHouseInventoryRef = useRef(initialHouseInventoryRef.current);
+  const lastSyncedHouseInventoryRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
+  const pendingHouseInventoryRef = useRef<string | null>(null);
+  const houseSyncInFlightRef = useRef(false);
   const matchSummaryHandledRef = useRef(false);
   const matchSessionIdRef = useRef<string | null>(null);
   const gameStartPendingRef = useRef(false);
@@ -321,13 +323,36 @@ export default function App() {
       if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
       return;
     }
-    if (houseInventoryJson === lastSyncedHouseInventoryRef.current) return;
-    lastSyncedHouseInventoryRef.current = houseInventoryJson;
-    const inventory = JSON.parse(houseInventoryJson) as Array<{ itemId: string; quantity: number }>;
-    const sync = () => { void syncHouseInventory(supabaseClient, userId, inventory); };
-    sync();
-    window.addEventListener('online', sync);
-    return () => window.removeEventListener('online', sync);
+
+    pendingHouseInventoryRef.current = houseInventoryJson;
+    const syncLatestHouseInventory = async () => {
+      if (houseSyncInFlightRef.current) return;
+      houseSyncInFlightRef.current = true;
+      try {
+        while (pendingHouseInventoryRef.current !== null) {
+          const snapshot = pendingHouseInventoryRef.current;
+          if (snapshot === lastSyncedHouseInventoryRef.current) {
+            pendingHouseInventoryRef.current = null;
+            continue;
+          }
+          const inventory = JSON.parse(snapshot) as Array<{ itemId: string; quantity: number }>;
+          const confirmed = await syncHouseInventory(supabaseClient, userId, inventory);
+          if (!confirmed) break;
+          lastSyncedHouseInventoryRef.current = snapshot;
+          if (pendingHouseInventoryRef.current === snapshot) pendingHouseInventoryRef.current = null;
+        }
+      } finally {
+        houseSyncInFlightRef.current = false;
+      }
+    };
+
+    if (houseInventoryJson !== lastSyncedHouseInventoryRef.current || houseSyncInFlightRef.current) {
+      void syncLatestHouseInventory();
+    } else {
+      pendingHouseInventoryRef.current = null;
+    }
+    window.addEventListener('online', syncLatestHouseInventory);
+    return () => window.removeEventListener('online', syncLatestHouseInventory);
   }, [houseInventoryJson, session.user.sub, houseLoadReady]);
 
   useEffect(() => {
@@ -337,6 +362,14 @@ export default function App() {
     }
     if (matchSummaryHandledRef.current) return;
     matchSummaryHandledRef.current = true;
+
+    // A partida continua offline; ao morrer desconectado, descarta apenas as
+    // alterações da Casa que nunca foram confirmadas pelo servidor.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const confirmedInventory = readConfirmedHouseInventory();
+      pendingHouseInventoryRef.current = null;
+      engineRef.current?.setHouseInventory(confirmedInventory);
+    }
 
     if (duoStartedMatchIdRef.current) {
       void duoTransportRef.current?.reportDeath().catch(cause => {
