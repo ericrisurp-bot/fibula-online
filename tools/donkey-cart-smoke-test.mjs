@@ -46,6 +46,11 @@ try {
   const stopped = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
   assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, stopped, 'a 75 unidades o conjunto deve parar');
+  // Se o personagem se aproxima para dentro dos 75, o burrinho não recua.
+  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - 40; cart.y = feetY; cart.angle = Math.PI;
+  const closeRange = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
+  engine.step(0.04);
+  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, closeRange, 'o burrinho não deve recuar quando o jogador se aproxima');
   cart.x = engine.state.player.x + CONFIG.donkey.visionRange + CONFIG.donkey.cartDistance + 10; cart.y = feetY; cart.angle = Math.PI;
   const outOfSight = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
