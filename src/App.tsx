@@ -393,6 +393,7 @@ export default function App() {
   const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
   const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
   const [chestTransferBusy, setChestTransferBusy] = useState(false);
+  const [chestCloudReady, setChestCloudReady] = useState(false);
   const [chestTransferFeedback, setChestTransferFeedback] = useState('');
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
@@ -1297,6 +1298,7 @@ export default function App() {
     lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
     engineRef.current?.setHouseInventory(inventory);
     setLobbyChestItems(inventory);
+    setChestCloudReady(true);
     return inventory;
   };
 
@@ -1304,8 +1306,10 @@ export default function App() {
     setChestOpen(true);
     setChestTransferItemId(null);
     setChestTransferFeedback('');
+    setChestCloudReady(false);
     setLobbyChestItems(readSavedHouseStorage());
     void refreshLobbyChestFromCloud().catch(cause => {
+      setChestCloudReady(false);
       setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.');
     });
   };
@@ -1314,7 +1318,7 @@ export default function App() {
     const peer = duoPeer;
     const item = lobbyChestItems.find(entry => entry.itemId === chestTransferItemId);
     const quantity = Number(chestTransferQuantity);
-    if (!peer || peer.status !== 'connected' || peer.matchId || !item) return;
+    if (!peer || peer.status !== 'connected' || peer.matchId || !item || !chestCloudReady) return;
     if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > item.quantity) {
       setChestTransferFeedback('Informe uma quantidade válida para enviar.');
       return;
@@ -1887,7 +1891,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud(); }} />
+        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
@@ -1897,7 +1901,7 @@ export default function App() {
             <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
               {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
                 <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>Enviar</button>}
+                {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
               </div>)}
             </div>            {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
               <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
