@@ -7,6 +7,8 @@ export type DonkeyCartState = {
   x: number;
   y: number;
   angle: number;
+  /** Fase acumulada das rodas, baseada na distância real percorrida. */
+  wheelPhase: number;
   stage: DonkeyCartStage;
   /** Vida interna do conjunto; não representa uma barra visual. */
   health: number;
@@ -45,7 +47,8 @@ export function createDonkeyCartState(
   return {
     x,
     y,
-    angle: 0,
+    angle: Math.PI,
+    wheelPhase: 0,
     stage: 'broken',
     health: 0,
     maxHealth,
