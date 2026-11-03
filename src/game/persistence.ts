@@ -35,7 +35,13 @@ export function readLocalHouseInventory(): PersistedHouseStack[] {
 export function readConfirmedHouseInventory(): PersistedHouseStack[] {
   if (typeof window === 'undefined') return [];
   try {
-    return normalizeHouseInventory(JSON.parse(window.localStorage.getItem(HOUSE_STORAGE_CONFIRMED_KEY) ?? '[]'));
+    const confirmed = window.localStorage.getItem(HOUSE_STORAGE_CONFIRMED_KEY);
+    if (confirmed !== null) return normalizeHouseInventory(JSON.parse(confirmed));
+    // Compatibilidade: versões anteriores usavam o cache local como último
+    // estado confirmado e marcavam explicitamente quando havia escrita pendente.
+    return window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1'
+      ? []
+      : readLocalHouseInventory();
   } catch {
     return [];
   }
