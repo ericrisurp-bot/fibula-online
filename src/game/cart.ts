@@ -244,7 +244,7 @@ function drawDonkey(ctx: CanvasRenderingContext2D, time: number) {
 }
 
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
-  const { x, y, angle, stage, carried } = cart;
+  const { x, y, angle, carried } = cart;
   const vertical = Math.abs(Math.cos(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
