@@ -6,6 +6,9 @@ export type DonkeyCartStage = 'broken' | 'built';
 export type DonkeyCartState = {
   x: number;
   y: number;
+  /** Posição própria da entidade burrinho no mundo. */
+  donkeyX: number;
+  donkeyY: number;
   angle: number;
   stage: DonkeyCartStage;
   /** Vida interna do conjunto; não representa uma barra visual. */
@@ -45,6 +48,8 @@ export function createDonkeyCartState(
   return {
     x,
     y,
+    donkeyX: x - 68,
+    donkeyY: y,
     angle: 0,
     stage: 'broken',
     health: 0,
