@@ -71,23 +71,29 @@ try {
   assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, outOfSight, 'fora dos 300 de visão deve parar');
   engine.stop();
 
-  const initial = createDonkeyCartState(120, 240, 100, []);
+  const initial = createDonkeyCartState(120, 240, 75, [{ itemId: 'stone', quantity: 2 }]);
   assert.equal(initial.stage, 'broken');
   assert.equal(initial.health, 0);
   assert.equal(initial.everBuilt, false);
+  assert.equal(initial.maxHealth, 75);
   assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 1, cotton: 0 });
   const firstBuild = constructDonkeyCart(initial, [{ itemId: 'wood', quantity: 1 }]);
   assert.equal(firstBuild.built, true);
   assert.deepEqual(firstBuild.inventory, []);
+  assert.equal(firstBuild.state.health, 75);
+  assert.deepEqual(firstBuild.state.inventory, [{ itemId: 'stone', quantity: 2 }]);
 
-  const damaged = damageDonkeyCart(firstBuild.state, 35);
-  assert.equal(damaged.stage, 'built');
-  assert.equal(damaged.health, 65);
+  let damaged = firstBuild.state;
+  for (let hit = 0; hit < 74; hit++) damaged = damageDonkeyCart(damaged);
+  assert.equal(damaged.stage, 'built', '74 impactos não devem quebrar a carroça');
+  assert.equal(damaged.health, 1, 'cada impacto deve remover exatamente 1 ponto');
 
-  const broken = damageDonkeyCart(damaged, 65);
+  const broken = damageDonkeyCart(damaged);
   assert.equal(broken.stage, 'broken');
   assert.equal(broken.health, 0);
   assert.equal(broken.carried, false);
+  assert.equal(broken.following, false, 'carroça quebrada deve parar de seguir');
+  assert.deepEqual(broken.inventory, [{ itemId: 'stone', quantity: 2 }], 'itens devem permanecer na carroça ao quebrar');
   assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 1, cotton: 0 });
 
   const missingWood = constructDonkeyCart(broken, []);
@@ -99,14 +105,24 @@ try {
   ]);
   assert.equal(rebuilt.built, true);
   assert.equal(rebuilt.state.stage, 'built');
-  assert.equal(rebuilt.state.health, 100);
+  assert.equal(rebuilt.state.health, 75);
+  assert.equal(rebuilt.state.following, true);
   assert.deepEqual(rebuilt.inventory, []);
 
   const alreadyBuilt = constructDonkeyCart(rebuilt.state, [{ itemId: 'wood', quantity: 1 }]);
   assert.equal(alreadyBuilt.built, false);
   assert.deepEqual(alreadyBuilt.inventory, [{ itemId: 'wood', quantity: 1 }]);
 
-  console.log('OK: construção, quebra, ordens seguir/parar, velocidade, visão, vínculo rígido e rodas.');
+  const engineCart = engine.state.cart;
+  engineCart.stage = 'built'; engineCart.health = 75; engineCart.maxHealth = 75; engineCart.following = true;
+  engineCart.inventory = [{ itemId: 'stone', quantity: 2 }];
+  for (let hit = 0; hit < 75; hit++) engine.damageCartFromEnemyHit();
+  assert.equal(engine.state.cart.stage, 'broken', '75 impactos do engine devem quebrar a carroça');
+  assert.equal(engine.state.cart.health, 0);
+  assert.equal(engine.state.cart.following, false);
+  assert.deepEqual(engine.state.cart.inventory, [{ itemId: 'stone', quantity: 2 }]);
+
+  console.log('OK: durabilidade 75, dano fixo 1 por impacto, inventário preservado, reparo, ordens seguir/parar, velocidade, visão, vínculo rígido e rodas.');
 } finally {
   await server.close();
 }
