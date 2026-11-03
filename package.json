@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "test:engine": "node tools/engine-smoke-test.mjs",
     "test:duo-independent-worlds": "node tools/duo-independent-worlds-smoke-test.mjs",
+    "test:donkey-cart": "node tools/donkey-cart-smoke-test.mjs",
     "preview": "vite preview",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android"
