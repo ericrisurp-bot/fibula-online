@@ -82,9 +82,159 @@ begin
     from public.fibula_house_storage s
    where s.user_id = v_receiver_id;
 
-  if jsonb_typeof(v_sender_inventory) <> 'array'
-    or jsonb_typeof(v_receiver_inventory) <> 'array' then
+  if jsonb_typeof(v_sender_inventory) is distinct from 'array'
+    or jsonb_typeof(v_receiver_inventory) is distinct from 'array' then
     raise exception 'Um dos baús possui dados inválidos.';
+  end if;
+
+  if exists (
+    select 1 from jsonb_array_elements(v_sender_inventory) as entry(value)
+     where entry.value ->> 'itemId' = p_item_id
+       and coalesce(entry.value ->> 'quantity', '') !~ '^[1-9][0-9]*
+    from jsonb_array_elements(v_sender_inventory) as entry(value)
+   where entry.value ->> 'itemId' = p_item_id;
+
+  if v_sender_quantity < p_quantity then
+    raise exception 'Quantidade insuficiente no seu Baú. Atualize o Baú e tente novamente.';
+  end if;
+
+  select coalesce(sum((entry.value ->> 'quantity')::bigint), 0)
+    into v_receiver_quantity
+    from jsonb_array_elements(v_receiver_inventory) as entry(value)
+   where entry.value ->> 'itemId' = p_item_id;
+
+  if v_receiver_quantity + p_quantity > 1000000000 then
+    raise exception 'A quantidade excede o limite permitido no Baú do outro jogador.';
+  end if;
+
+  select exists (
+    select 1 from jsonb_array_elements(v_receiver_inventory) as entry(value)
+     where entry.value ->> 'itemId' = p_item_id
+  ) into v_receiver_has_item;
+
+  if not v_receiver_has_item then
+    select count(distinct entry.value ->> 'itemId')
+      into v_receiver_types
+      from jsonb_array_elements(v_receiver_inventory) as entry(value)
+     where nullif(entry.value ->> 'itemId', '') is not null;
+    if v_receiver_types >= 50 then
+      raise exception 'O Baú do outro jogador está cheio.';
+    end if;
+  end if;
+
+  -- Merge duplicate legacy stacks into one entry while preserving every other item.
+  select coalesce(jsonb_agg(entry.value order by entry.ordinality), '[]'::jsonb)
+    into v_sender_next
+    from jsonb_array_elements(v_sender_inventory) with ordinality as entry(value, ordinality)
+   where entry.value ->> 'itemId' is distinct from p_item_id;
+
+  if v_sender_quantity > p_quantity then
+    v_sender_next := v_sender_next || jsonb_build_array(
+      jsonb_build_object('itemId', p_item_id, 'quantity', v_sender_quantity - p_quantity)
+    );
+  end if;
+
+  select coalesce(jsonb_agg(entry.value order by entry.ordinality), '[]'::jsonb)
+    into v_receiver_next
+    from jsonb_array_elements(v_receiver_inventory) with ordinality as entry(value, ordinality)
+   where entry.value ->> 'itemId' is distinct from p_item_id;
+
+  v_receiver_next := v_receiver_next || jsonb_build_array(
+    jsonb_build_object('itemId', p_item_id, 'quantity', v_receiver_quantity + p_quantity)
+  );
+
+  update public.fibula_house_storage
+     set inventory = v_sender_next, updated_at = pg_catalog.now()
+   where user_id = v_user_id;
+
+  update public.fibula_house_storage
+     set inventory = v_receiver_next, updated_at = pg_catalog.now()
+   where user_id = v_receiver_id;
+
+  return true;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_house_transfer(uuid, text, bigint) from public, anon;
+grant execute on function public.fibula_duo_house_transfer(uuid, text, bigint) to authenticated;
+
+  ) then
+    raise exception 'A quantidade deste item no seu Baú está inválida.';
+  end if;
+
+  if exists (
+    select 1 from jsonb_array_elements(v_receiver_inventory) as entry(value)
+     where entry.value ->> 'itemId' = p_item_id
+       and coalesce(entry.value ->> 'quantity', '') !~ '^[1-9][0-9]*
+    from jsonb_array_elements(v_sender_inventory) as entry(value)
+   where entry.value ->> 'itemId' = p_item_id;
+
+  if v_sender_quantity < p_quantity then
+    raise exception 'Quantidade insuficiente no seu Baú. Atualize o Baú e tente novamente.';
+  end if;
+
+  select coalesce(sum((entry.value ->> 'quantity')::bigint), 0)
+    into v_receiver_quantity
+    from jsonb_array_elements(v_receiver_inventory) as entry(value)
+   where entry.value ->> 'itemId' = p_item_id;
+
+  if v_receiver_quantity + p_quantity > 1000000000 then
+    raise exception 'A quantidade excede o limite permitido no Baú do outro jogador.';
+  end if;
+
+  select exists (
+    select 1 from jsonb_array_elements(v_receiver_inventory) as entry(value)
+     where entry.value ->> 'itemId' = p_item_id
+  ) into v_receiver_has_item;
+
+  if not v_receiver_has_item then
+    select count(distinct entry.value ->> 'itemId')
+      into v_receiver_types
+      from jsonb_array_elements(v_receiver_inventory) as entry(value)
+     where nullif(entry.value ->> 'itemId', '') is not null;
+    if v_receiver_types >= 50 then
+      raise exception 'O Baú do outro jogador está cheio.';
+    end if;
+  end if;
+
+  -- Merge duplicate legacy stacks into one entry while preserving every other item.
+  select coalesce(jsonb_agg(entry.value order by entry.ordinality), '[]'::jsonb)
+    into v_sender_next
+    from jsonb_array_elements(v_sender_inventory) with ordinality as entry(value, ordinality)
+   where entry.value ->> 'itemId' is distinct from p_item_id;
+
+  if v_sender_quantity > p_quantity then
+    v_sender_next := v_sender_next || jsonb_build_array(
+      jsonb_build_object('itemId', p_item_id, 'quantity', v_sender_quantity - p_quantity)
+    );
+  end if;
+
+  select coalesce(jsonb_agg(entry.value order by entry.ordinality), '[]'::jsonb)
+    into v_receiver_next
+    from jsonb_array_elements(v_receiver_inventory) with ordinality as entry(value, ordinality)
+   where entry.value ->> 'itemId' is distinct from p_item_id;
+
+  v_receiver_next := v_receiver_next || jsonb_build_array(
+    jsonb_build_object('itemId', p_item_id, 'quantity', v_receiver_quantity + p_quantity)
+  );
+
+  update public.fibula_house_storage
+     set inventory = v_sender_next, updated_at = pg_catalog.now()
+   where user_id = v_user_id;
+
+  update public.fibula_house_storage
+     set inventory = v_receiver_next, updated_at = pg_catalog.now()
+   where user_id = v_receiver_id;
+
+  return true;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_house_transfer(uuid, text, bigint) from public, anon;
+grant execute on function public.fibula_duo_house_transfer(uuid, text, bigint) to authenticated;
+
+  ) then
+    raise exception 'A quantidade deste item no Baú do outro jogador está inválida.';
   end if;
 
   select coalesce(sum((entry.value ->> 'quantity')::bigint), 0)
