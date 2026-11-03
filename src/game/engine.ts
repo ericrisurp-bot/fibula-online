@@ -4,7 +4,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
-import { constructDonkeyCart, type DonkeyCartState } from './donkeyCart';
+import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
@@ -345,7 +345,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-      cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
+      cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
@@ -634,7 +634,7 @@ export class GameEngine {
     this.emit();
   }
   storeAllBagToCart() {
-    if (this.state.dead || !this.isCartAccessible()) return;
+    if (this.state.dead || this.state.cart.stage !== 'built' || !this.isCartAccessible()) return;
     const cart = this.state.cart;
     let cartInventory = cart.inventory;
     const remainingInventory: InventoryStack[] = [];
@@ -658,7 +658,7 @@ export class GameEngine {
     this.emit();
   }
   transferBagToCart(index: number) {
-    if (!this.isCartAccessible()) return;
+    if (this.state.cart.stage !== 'built' || !this.isCartAccessible()) return;
     const stack = this.state.inventory[index];
     if (!stack) return;
     const result = addToInventory(this.state.cart.inventory, stack.itemId, stack.quantity, { maxSlots: CONFIG.cart.capacitySlots, maxPerSlot: CONFIG.cart.maxPerSlot });
@@ -714,7 +714,13 @@ export class GameEngine {
     this.emit();
   }
   isCartAccessible() {
-    return this.state.cart.stage === 'built' && Math.hypot(playerFeet(this.state.player).x - this.state.cart.x, playerFeet(this.state.player).y - this.state.cart.y) <= CONFIG.cart.interactRadius;
+    return Math.hypot(playerFeet(this.state.player).x - this.state.cart.x, playerFeet(this.state.player).y - this.state.cart.y) <= CONFIG.cart.interactRadius;
+  }
+  /** Registra um impacto de slime: sempre 1 ponto, sem depender do dano do inimigo. */
+  damageCartFromEnemyHit() {
+    if (this.state.cart.stage !== 'built') return;
+    this.state.cart = damageDonkeyCart(this.state.cart);
+    this.emit();
   }
   buildCart() {
     const cart = this.state.cart;
@@ -771,7 +777,7 @@ export class GameEngine {
       following: true,
       stage: 'broken',
       health: 0,
-      maxHealth: 0,
+      maxHealth: CONFIG.cart.maxHealth,
       everBuilt: false,
       carried: false,
       inventory: [],
@@ -793,7 +799,7 @@ export class GameEngine {
     return [
       s.player.hp, s.player.maxHp, s.player.level,
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.cottonPlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
-      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
+      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
 
