@@ -385,7 +385,9 @@ export default function App() {
 
       // A confirmação efetiva da gravação, e não navigator.onLine, define
       // qual conteúdo da Casa pode sobreviver à partida.
-      const confirmedInventory = readConfirmedHouseInventory();
+      const confirmedSnapshot = lastSyncedHouseInventoryRef.current
+        || JSON.stringify(readConfirmedHouseInventory());
+      const confirmedInventory = JSON.parse(confirmedSnapshot) as Array<{ itemId: string; quantity: number }>;
       engineRef.current?.setHouseInventory(confirmedInventory);
     };
     houseDeathFinalizeRef.current = finalizeHouseFromConfirmedSnapshot();
