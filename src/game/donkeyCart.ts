@@ -82,7 +82,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 
 /**
  * Constrói ou reconstrói o conjunto de forma atômica.
- * A primeira construção custa 10 madeiras; reconstruções custam 10 madeiras e 5 algodões.
+ * O custo normal é 10 madeiras; na Preview de testes, 1 madeira.
  */
 export function constructDonkeyCart(
   state: DonkeyCartState,
