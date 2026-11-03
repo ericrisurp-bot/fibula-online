@@ -88,6 +88,51 @@ export async function syncHouseInventory(
   }
 }
 
+export async function loadCloudHouseInventory(
+  client: SupabaseClient,
+  userId: string,
+): Promise<PersistedHouseStack[]> {
+  if (typeof window !== 'undefined' && window.localStorage.getItem(HOUSE_STORAGE_DIRTY_KEY) === '1') {
+    throw new Error('Seu baú ainda tem alterações aguardando sincronização. Aguarde e tente novamente.');
+  }
+  const { data, error } = await client
+    .from('fibula_house_storage')
+    .select('inventory')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    if (readLocalHouseInventory().length > 0) {
+      throw new Error('Seu baú ainda não foi sincronizado com o servidor. Entre no jogo e aguarde a sincronização.');
+    }
+    return [];
+  }
+  const inventory = normalizeHouseInventory(data.inventory);
+  try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Cache local indisponível. */ }
+  return inventory;
+}
+
+export async function transferHouseStackToDuo(
+  client: SupabaseClient,
+  roomId: string,
+  itemId: string,
+  quantity: number,
+): Promise<void> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('É necessário estar conectado para enviar itens pelo lobby.');
+  }
+  if (!roomId || !itemId || !Number.isSafeInteger(quantity) || quantity <= 0) {
+    throw new Error('Selecione um item e uma quantidade válida.');
+  }
+  const { data, error } = await client.rpc('fibula_duo_house_transfer', {
+    p_room_id: roomId,
+    p_item_id: itemId,
+    p_quantity: quantity,
+  });
+  if (error) throw error;
+  if (data !== true) throw new Error('O servidor não confirmou a transferência do item.');
+}
+
 export async function startSoloMatchSession(client: SupabaseClient): Promise<string> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     throw new Error('É necessário estar conectado para iniciar uma partida validada.');

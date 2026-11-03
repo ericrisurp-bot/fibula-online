@@ -27,9 +27,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null) => void;
+  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
   onLobbyConnected: () => void;
   onLobbyNotice: (message: string) => void;
+  onHouseInventoryChanged: () => void;
 };
 
 const AVATARS = {
@@ -39,7 +40,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, myClassId, myDisplayName, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice }: Props) {
+export default function FriendsModal({ userId, myClassId, myDisplayName, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -61,6 +62,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   const onLobbyChangeRef = useRef(onLobbyChange);
   const onLobbyConnectedRef = useRef(onLobbyConnected);
   const onLobbyNoticeRef = useRef(onLobbyNotice);
+  const onHouseInventoryChangedRef = useRef(onHouseInventoryChanged);
   const friendIdsRef = useRef<string[]>([]);
   const friendListLoadSucceededRef = useRef(false);
   profilesRef.current = profiles;
@@ -68,11 +70,25 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
   onLobbyChangeRef.current = onLobbyChange;
   onLobbyConnectedRef.current = onLobbyConnected;
   onLobbyNoticeRef.current = onLobbyNotice;
+  onHouseInventoryChangedRef.current = onHouseInventoryChanged;
+  const notifyHouseInventoryChanged = async () => {
+    const current = lobbyRef.current;
+    if (!current || current.status !== 'connected' || current.matchId) {
+      throw new Error('A transferência só pode ser avisada enquanto vocês estiverem no lobby.');
+    }
+    const channel = inboxChannels.current.get(current.friendId);
+    if (!channel) throw new Error('Canal de comunicação com seu amigo indisponível.');
+    const result = await channel.send({
+      type: 'broadcast', event: 'duo_house_inventory_changed',
+      payload: { from: userId, to: current.friendId, room_id: current.roomId },
+    });
+    if (result !== 'ok') throw new Error('O aviso imediato ao seu amigo não foi entregue.');
+  };
   const publishLobby = () => {
     const current = lobbyRef.current;
     const next = current ? { ...current } : null;
     setActiveDuo(next);
-    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null, current?.role === 'host' ? startMatch : null);
+    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null, current?.role === 'host' ? startMatch : null, current ? notifyHouseInventoryChanged : null);
   };
   const clearLobby = () => {
     lobbyRef.current = null;
@@ -472,6 +488,11 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
         inbox.on('broadcast', { event: 'duo_match_started' }, ({ payload }) => {
           if (!validPeerEvent(payload) || payload?.room_id !== lobbyRef.current?.roomId || typeof payload?.match_id !== 'string') return;
           refreshOnDuoSignal();
+        });
+        inbox.on('broadcast', { event: 'duo_house_inventory_changed' }, ({ payload }) => {
+          if (!validPeerEvent(payload) || payload?.room_id !== lobbyRef.current?.roomId
+            || lobbyRef.current?.friendId !== friendId || lobbyRef.current?.matchId) return;
+          onHouseInventoryChangedRef.current();
         });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
           if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;

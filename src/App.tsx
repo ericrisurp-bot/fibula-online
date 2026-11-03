@@ -9,7 +9,7 @@ import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { finishSoloMatchSession, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory } from './game/persistence';
+import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
@@ -383,12 +383,18 @@ export default function App() {
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
   const duoReadyActionRef = useRef<(() => void) | null>(null);
   const duoStartActionRef = useRef<(() => void) | null>(null);
+  const duoHouseNotifyActionRef = useRef<(() => Promise<void>) | null>(null);
   const duoStartedMatchIdRef = useRef<string | null>(null);
   const duoMatchStartingRef = useRef(false);
   const duoTransportRef = useRef<DuoCycleTransport | null>(null);
   const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
+  const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
+  const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
+  const [chestTransferBusy, setChestTransferBusy] = useState(false);
+  const [chestCloudReady, setChestCloudReady] = useState(false);
+  const [chestTransferFeedback, setChestTransferFeedback] = useState('');
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -1286,6 +1292,71 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, []);
 
+  const refreshLobbyChestFromCloud = async () => {
+    if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para atualizar o Baú.');
+    const inventory = await loadCloudHouseInventory(fibulaSupabase, session.user.sub);
+    lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+    engineRef.current?.setHouseInventory(inventory);
+    setLobbyChestItems(inventory);
+    setChestCloudReady(true);
+    return inventory;
+  };
+
+  const openLobbyChest = () => {
+    setChestOpen(true);
+    setChestTransferItemId(null);
+    setChestTransferFeedback('');
+    setChestCloudReady(false);
+    setLobbyChestItems(readSavedHouseStorage());
+    void refreshLobbyChestFromCloud().catch(cause => {
+      setChestCloudReady(false);
+      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.');
+    });
+  };
+
+  const sendLobbyChestItem = async () => {
+    const peer = duoPeer;
+    const item = lobbyChestItems.find(entry => entry.itemId === chestTransferItemId);
+    const quantity = Number(chestTransferQuantity);
+    if (!peer || peer.status !== 'connected' || peer.matchId || !item || !chestCloudReady) return;
+    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > item.quantity) {
+      setChestTransferFeedback('Informe uma quantidade válida para enviar.');
+      return;
+    }
+    if (!fibulaSupabase) {
+      setChestTransferFeedback('O serviço de armazenamento não está disponível.');
+      return;
+    }
+    setChestTransferBusy(true);
+    setChestTransferFeedback('');
+    try {
+      await transferHouseStackToDuo(fibulaSupabase, peer.roomId, item.itemId, quantity);
+      setChestTransferItemId(null);
+      let senderRefreshFailed = false;
+      try {
+        await refreshLobbyChestFromCloud();
+      } catch {
+        setChestCloudReady(false);
+        senderRefreshFailed = true;
+      }
+      let peerNotifyFailed = false;
+      const notifyPeer = duoHouseNotifyActionRef.current;
+      if (notifyPeer) {
+        try { await notifyPeer(); } catch { peerNotifyFailed = true; }
+      } else {
+        peerNotifyFailed = true;
+      }
+      if (senderRefreshFailed || peerNotifyFailed) {
+        setChestTransferFeedback('Item enviado para ' + peer.friendName + '. Um dos Baús não atualizou automaticamente; feche e abra o Baú novamente para sincronizar.');
+      } else {
+        setChestTransferFeedback('Enviado: ' + quantity + ' × ' + itemLabel(item.itemId) + ' para ' + peer.friendName + '.');
+      }
+    } catch (cause) {
+      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível enviar o item.');
+    } finally {
+      setChestTransferBusy(false);
+    }
+  };
   const handleLobbyPlay = () => {
     if (duoPeer) {
       if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
@@ -1726,7 +1797,7 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">👥</span>
             <span>AMIGOS</span>
           </button>
-          <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={() => { setLobbyChestItems(readSavedHouseStorage()); setChestOpen(true); }}>
+          <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
             <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
             <span>BAÚ</span>
           </button>
@@ -1832,7 +1903,7 @@ export default function App() {
             </div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; if (!peer) { duoStartActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} />
+        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
@@ -1842,8 +1913,17 @@ export default function App() {
             <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
               {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
                 <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
               </div>)}
             </div>
+            {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
+              <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
+              <label>Quantidade
+                <input type="number" min="1" max={lobbyChestItems.find(item => item.itemId === chestTransferItemId)?.quantity ?? 1} step="1" value={chestTransferQuantity} onChange={event => setChestTransferQuantity(event.target.value)} />
+              </label>
+              <div><button type="button" disabled={chestTransferBusy} onClick={() => void sendLobbyChestItem()}>{chestTransferBusy ? 'Enviando…' : 'Confirmar envio'}</button><button type="button" className="secondary" disabled={chestTransferBusy} onClick={() => setChestTransferItemId(null)}>Cancelar</button></div>
+            </div>}
+            {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
           </section>
         </div>}
         {statusOpen && <div className="lobby-profile-backdrop lobby-status-backdrop" onClick={() => setStatusOpen(false)}>
