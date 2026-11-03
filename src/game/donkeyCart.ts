@@ -9,6 +9,8 @@ export type DonkeyCartState = {
   /** Posição própria da entidade burrinho no mundo. */
   donkeyX: number;
   donkeyY: number;
+  /** Rotação acumulada das rodas, baseada no deslocamento real da carroça. */
+  wheelPhase: number;
   angle: number;
   stage: DonkeyCartStage;
   /** Vida interna do conjunto; não representa uma barra visual. */
@@ -50,6 +52,7 @@ export function createDonkeyCartState(
     y,
     donkeyX: x - 68,
     donkeyY: y,
+    wheelPhase: 0,
     angle: 0,
     stage: 'broken',
     health: 0,
