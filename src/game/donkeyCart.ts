@@ -7,6 +7,10 @@ export type DonkeyCartState = {
   x: number;
   y: number;
   angle: number;
+  /** Fase acumulada das rodas, baseada na distância real percorrida. */
+  wheelPhase: number;
+  /** Quando falso, o conjunto fica parado até o jogador ordenar que siga. */
+  following: boolean;
   stage: DonkeyCartStage;
   /** Vida interna do conjunto; não representa uma barra visual. */
   health: number;
@@ -18,8 +22,8 @@ export type DonkeyCartState = {
 };
 
 export type DonkeyCartConstructionCost = {
-  wood: 10;
-  cotton: 0 | 5;
+  wood: number;
+  cotton: number;
 };
 
 export type DonkeyCartConstructionResult = {
@@ -45,7 +49,9 @@ export function createDonkeyCartState(
   return {
     x,
     y,
-    angle: 0,
+    angle: Math.PI,
+    wheelPhase: 0,
+    following: true,
     stage: 'broken',
     health: 0,
     maxHealth,
@@ -56,8 +62,8 @@ export function createDonkeyCartState(
 }
 
 /** Custo da transição para o estado construído. */
-export function getDonkeyCartConstructionCost(state: DonkeyCartState): DonkeyCartConstructionCost {
-  return { wood: 10, cotton: state.everBuilt ? 5 : 0 };
+export function getDonkeyCartConstructionCost(_state: DonkeyCartState): DonkeyCartConstructionCost {
+  return { wood: 1, cotton: 0 };
 }
 
 function countBaseItem(inventory: InventoryStack[], itemId: string): number {
@@ -80,7 +86,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 
 /**
  * Constrói ou reconstrói o conjunto de forma atômica.
- * A primeira construção custa 10 madeiras; reconstruções custam 10 madeiras e 5 algodões.
+ * O conserto custa 1 madeira.
  */
 export function constructDonkeyCart(
   state: DonkeyCartState,

@@ -4,10 +4,10 @@ import { CONFIG } from './config';
  * Carrinho low-poly. Origem = centro do carrinho (cart.x, cart.y), chão em y = +20.
  * Sentido horizontal: vista lateral (alça aponta para o lado em que o carrinho se move,
  * isto é, na direção do jogador que o puxa). Sentido vertical: vista de cima em 3/4.
- * Rodas só giram quando o carrinho está sendo puxado (moving).
+ * As rodas usam a fase acumulada do deslocamento real do conjunto.
  */
 export type CartDrawState = {
-  x: number; y: number; angle: number;
+  x: number; y: number; angle: number; wheelPhase?: number;
   stage: 'broken' | 'built'; carried: boolean;
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
@@ -248,7 +248,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const vertical = Math.abs(Math.cos(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
-  const rot = wheelPhase !== undefined ? wheelPhase : moving ? time * 8 : 0;
+  const rot = wheelPhase ?? (moving ? time * 8 : 0);
   ctx.save();
   ctx.translate(x, y);
   ctx.save();

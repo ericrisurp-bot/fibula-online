@@ -50,7 +50,7 @@ const initial: GameSnapshot = {
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-  cart: { x: 1800, y: 600, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
+  cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
   enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
@@ -543,7 +543,7 @@ export default function App() {
   const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
   const feet = playerFeet(state.player);
   const cartDistance = Math.hypot(feet.x - state.cart.x, feet.y - state.cart.y);
-  const cartAccessible = state.cart.stage === 'built' && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  const cartAccessible = state.cart.stage === 'built' && cartDistance <= CONFIG.cart.interactRadius;
   const houseDistance = Math.hypot(feet.x - state.house.x, feet.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const houseBuildAccessible = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
@@ -552,7 +552,10 @@ export default function App() {
   const tecelariaDistance = Math.hypot(feet.x - state.tecelaria.x, feet.y - state.tecelaria.y);
   const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const cartBuildAccessible = state.cart.stage === 'broken' && cartDistance <= CONFIG.cart.interactRadius;
-  const cartActionVisible = state.cart.stage === 'built' && (state.cart.carried || cartDistance <= CONFIG.cart.interactRadius);
+  const donkeyX = state.cart.x + Math.cos(state.cart.angle) * CONFIG.donkey.cartDistance;
+  const donkeyY = state.cart.y + Math.sin(state.cart.angle) * CONFIG.donkey.cartDistance;
+  const donkeyDistance = Math.hypot(feet.x - donkeyX, feet.y - donkeyY);
+  const cartActionVisible = state.cart.stage === 'built' && donkeyDistance <= CONFIG.cart.interactRadius;
   useEffect(() => {
     window.localStorage.setItem('fibula-interface-scale', String(interfaceScale));
   }, [interfaceScale]);
@@ -950,7 +953,7 @@ export default function App() {
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
         const playerGround = playerFeet(s.player);
-        drawCart(ctx, s.cart, Math.hypot(playerGround.x - s.cart.x, playerGround.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, s.player.moving && s.cart.carried, s.cart.carried ? s.walkPhase : undefined);
+        drawCart(ctx, s.cart, Math.hypot(playerGround.x - s.cart.x, playerGround.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, false, s.cart.wheelPhase);
       }});
       for (const plant of s.cottonPlants) {
         const scale = 1.2;
@@ -2200,9 +2203,9 @@ export default function App() {
           </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.' : 'Conclua a construção para usar o armazém.'}</p>}
         </section>}
       </div>}
-      {cartDistance <= CONFIG.cart.interactRadius && state.cart.stage === 'broken' && <div className="cart-repair-status" role="status">BURRINHO E CARROÇA · {state.cart.everBuilt ? '10 MADEIRAS + 5 ALGODÕES' : '10 MADEIRAS'}</div>}
+      {cartDistance <= CONFIG.cart.interactRadius && state.cart.stage === 'broken' && <div className="cart-repair-status" role="status">BURRINHO E CARROÇA · {'1 MADEIRA'}</div>}
 
-{!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartCarried={state.cart.carried} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartAccessible && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.interactRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>;
