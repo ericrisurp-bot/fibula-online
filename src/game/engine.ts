@@ -769,7 +769,7 @@ export class GameEngine {
     }
   }
 
-  private updateDonkeyCart(dt: number, _playerSpeed: number) {
+  private updateDonkeyCart(dt: number) {
     const cart = this.state.cart;
     const feet = playerFeet(this.state.player);
     const toPlayerX = feet.x - cart.donkeyX;
@@ -787,11 +787,9 @@ export class GameEngine {
       this.resolveDonkeyBoxCollisions(cart);
     }
 
-    // A carroça só é rebocada quando está consertada. No estado quebrado,
-    // o burrinho continua seguindo o jogador, mas a carroça permanece no chão.
-    if (cart.stage !== 'built') return;
+    // Burrinho e carroça formam uma única entidade de movimento nos dois estados.
+    // A carroça acompanha o burrinho mesmo antes do conserto, mantendo o encaixe.
 
-    // A carroça fica atrás do burrinho, no eixo entre ele e o jogador.
     const offsetX = cart.donkeyX - feet.x;
     const offsetY = cart.donkeyY - feet.y;
     const offsetLength = Math.hypot(offsetX, offsetY);
@@ -968,7 +966,7 @@ export class GameEngine {
     } else {
       this.local.stepDistance = this.local.stepTarget * 0.4;
     }
-    this.updateDonkeyCart(dt, playerSpeed);
+    this.updateDonkeyCart(dt);
 
     if (this.phase === 'night' && this.hordeTarget > 0) {
       const spawnWindow = CONFIG.dayNight.nightSpawnDuration;
