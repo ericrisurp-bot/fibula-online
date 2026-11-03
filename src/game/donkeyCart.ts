@@ -18,8 +18,8 @@ export type DonkeyCartState = {
 };
 
 export type DonkeyCartConstructionCost = {
-  wood: 10;
-  cotton: 0 | 5;
+  wood: number;
+  cotton: number;
 };
 
 export type DonkeyCartConstructionResult = {
@@ -56,8 +56,10 @@ export function createDonkeyCartState(
 }
 
 /** Custo da transição para o estado construído. */
-export function getDonkeyCartConstructionCost(state: DonkeyCartState): DonkeyCartConstructionCost {
-  return { wood: 10, cotton: state.everBuilt ? 5 : 0 };
+export function getDonkeyCartConstructionCost(state: DonkeyCartState, previewTestMode = false): DonkeyCartConstructionCost {
+  return previewTestMode
+    ? { wood: 1, cotton: 0 }
+    : { wood: 10, cotton: state.everBuilt ? 5 : 0 };
 }
 
 function countBaseItem(inventory: InventoryStack[], itemId: string): number {
@@ -85,8 +87,9 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 export function constructDonkeyCart(
   state: DonkeyCartState,
   inventory: InventoryStack[],
+  previewTestMode = false,
 ): DonkeyCartConstructionResult {
-  const cost = getDonkeyCartConstructionCost(state);
+  const cost = getDonkeyCartConstructionCost(state, previewTestMode);
   const unchanged = (): DonkeyCartConstructionResult => ({
     built: false,
     state: { ...state, inventory: state.inventory.map(stack => ({ ...stack })) },
