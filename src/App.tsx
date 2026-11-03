@@ -1331,13 +1331,25 @@ export default function App() {
     setChestTransferFeedback('');
     try {
       await transferHouseStackToDuo(fibulaSupabase, peer.roomId, item.itemId, quantity);
-      await refreshLobbyChestFromCloud();
       setChestTransferItemId(null);
-      setChestTransferFeedback('Enviado: ' + quantity + ' × ' + itemLabel(item.itemId) + ' para ' + peer.friendName + '.');
+      let senderRefreshFailed = false;
       try {
-        await duoHouseNotifyActionRef.current?.();
+        await refreshLobbyChestFromCloud();
       } catch {
-        setChestTransferFeedback('Item enviado para ' + peer.friendName + '. O aviso imediato não chegou; o Baú será atualizado quando ele abrir novamente.');
+        setChestCloudReady(false);
+        senderRefreshFailed = true;
+      }
+      let peerNotifyFailed = false;
+      const notifyPeer = duoHouseNotifyActionRef.current;
+      if (notifyPeer) {
+        try { await notifyPeer(); } catch { peerNotifyFailed = true; }
+      } else {
+        peerNotifyFailed = true;
+      }
+      if (senderRefreshFailed || peerNotifyFailed) {
+        setChestTransferFeedback('Item enviado para ' + peer.friendName + '. Um dos Baús não atualizou automaticamente; feche e abra o Baú novamente para sincronizar.');
+      } else {
+        setChestTransferFeedback('Enviado: ' + quantity + ' × ' + itemLabel(item.itemId) + ' para ' + peer.friendName + '.');
       }
     } catch (cause) {
       setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível enviar o item.');
