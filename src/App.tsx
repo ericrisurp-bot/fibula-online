@@ -1903,7 +1903,8 @@ export default function App() {
                 <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                 {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
               </div>)}
-            </div>            {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
+            </div>
+            {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
               <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
               <label>Quantidade
                 <input type="number" min="1" max={lobbyChestItems.find(item => item.itemId === chestTransferItemId)?.quantity ?? 1} step="1" value={chestTransferQuantity} onChange={event => setChestTransferQuantity(event.target.value)} />
