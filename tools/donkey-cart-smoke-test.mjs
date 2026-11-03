@@ -31,7 +31,18 @@ try {
   engine.state.tecelaria.x = engine.world - 300; engine.state.tecelaria.y = 300;
   engine.state.player.x = engine.world / 2; engine.state.player.y = engine.world / 2;
   const feetY = engine.state.player.y + CONFIG.player.footOffset;
-  cart.stage = 'built'; cart.carried = false; cart.angle = Math.PI;
+  cart.stage = 'built'; cart.carried = false; cart.angle = Math.PI; cart.following = true;
+  // A ordem só funciona quando o jogador está perto do burrinho.
+  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance; cart.y = feetY;
+  engine.toggleCart();
+  assert.equal(cart.following, false, 'ordem próxima deve mandar o burrinho ficar');
+  const parked = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
+  engine.state.player.x -= 180;
+  engine.step(0.2);
+  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, parked, 'burrinho parado não deve acompanhar o jogador');
+  engine.state.player.x += 180;
+  engine.toggleCart();
+  assert.equal(cart.following, true, 'aproximar e interagir deve chamar o burrinho para seguir');
   cart.x = engine.state.player.x + 270; cart.y = feetY; cart.wheelPhase = 0;
   const donkeyBefore = { x: cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance, y: cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance };
   const distanceBefore = Math.hypot(engine.state.player.x - donkeyBefore.x, feetY - donkeyBefore.y);
@@ -92,7 +103,7 @@ try {
   assert.equal(alreadyBuilt.built, false);
   assert.deepEqual(alreadyBuilt.inventory, [{ itemId: 'wood', quantity: 1 }]);
 
-  console.log('OK: construção, quebra, velocidade, parada, visão, vínculo rígido e rodas.');
+  console.log('OK: construção, quebra, ordens seguir/parar, velocidade, visão, vínculo rígido e rodas.');
 } finally {
   await server.close();
 }
