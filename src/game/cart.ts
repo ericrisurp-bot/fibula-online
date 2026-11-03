@@ -7,7 +7,7 @@ import { CONFIG } from './config';
  * Rodas só giram quando o carrinho está sendo puxado (moving).
  */
 export type CartDrawState = {
-  x: number; y: number; angle: number;
+  x: number; y: number; angle: number; wheelPhase?: number;
   stage: 'broken' | 'built'; carried: boolean;
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
@@ -248,7 +248,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const vertical = Math.abs(Math.cos(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
-  const rot = wheelPhase !== undefined ? wheelPhase : moving ? time * 8 : 0;
+  const rot = wheelPhase ?? (moving ? time * 8 : 0);
   ctx.save();
   ctx.translate(x, y);
   ctx.save();
