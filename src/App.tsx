@@ -9,7 +9,7 @@ import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { finishSoloMatchSession, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory } from './game/persistence';
+import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
 
@@ -383,12 +383,17 @@ export default function App() {
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
   const duoReadyActionRef = useRef<(() => void) | null>(null);
   const duoStartActionRef = useRef<(() => void) | null>(null);
+  const duoHouseNotifyActionRef = useRef<(() => Promise<void>) | null>(null);
   const duoStartedMatchIdRef = useRef<string | null>(null);
   const duoMatchStartingRef = useRef(false);
   const duoTransportRef = useRef<DuoCycleTransport | null>(null);
   const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
+  const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
+  const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
+  const [chestTransferBusy, setChestTransferBusy] = useState(false);
+  const [chestTransferFeedback, setChestTransferFeedback] = useState('');
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
