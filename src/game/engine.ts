@@ -1630,6 +1630,8 @@ export class GameEngine {
     }
     this.separateEnemies();
     for (const enemy of this.state.enemies) {
+      const nearPlayer = Math.hypot(feet.x - enemy.x, feet.y - enemy.y) <= CONFIG.donkey.visionRange;
+      const obstacles = this.obstacleCircles(nearPlayer && this.isCartActivelyFollowing());
       this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false, obstacles);
       this.resolveRockBoxCollisions(enemy);
     }
