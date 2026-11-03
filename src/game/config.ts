@@ -92,3 +92,5 @@ export const CLASSES = {
   arqueiro: { label: 'Arqueiro', description: 'Precisão e alcance' },
   druida: { label: 'Druida', description: 'Magia natural à distância, regeneração e orbes de cura' },
 } as const;
+
+export type ClassId = keyof typeof CLASSES;
