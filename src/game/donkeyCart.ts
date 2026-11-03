@@ -50,7 +50,7 @@ export function createDonkeyCartState(
   return {
     x,
     y,
-    donkeyX: x - 68,
+    donkeyX: x + CONFIG.cart.followDistance,
     donkeyY: y,
     wheelPhase: 0,
     angle: 0,
