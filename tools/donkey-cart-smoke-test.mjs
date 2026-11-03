@@ -52,11 +52,6 @@ try {
   assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, outOfSight, 'fora dos 300 de visão deve parar');
   engine.stop();
 
-  const initialInventory = [
-    { itemId: 'wood:common', quantity: 6 },
-    { itemId: 'wood', quantity: 4 },
-    { itemId: 'cotton:uncommon', quantity: 5 },
-  ];
   const initial = createDonkeyCartState(120, 240, 100, []);
   assert.equal(initial.stage, 'broken');
   assert.equal(initial.health, 0);
