@@ -283,7 +283,9 @@ export default function App() {
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
   const lastSyncedHouseInventoryRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
   const pendingHouseInventoryRef = useRef<string | null>(null);
-  const houseSyncInFlightRef = useRef(false);
+  const houseSyncInFlightRef = useRef<Promise<void> | null>(null);
+  const houseMatchClosedRef = useRef(false);
+  const houseDeathFinalizeRef = useRef<Promise<void> | null>(null);
   const matchSummaryHandledRef = useRef(false);
   const matchSessionIdRef = useRef<string | null>(null);
   const gameStartPendingRef = useRef(false);
@@ -325,11 +327,12 @@ export default function App() {
     }
 
     pendingHouseInventoryRef.current = houseInventoryJson;
-    const syncLatestHouseInventory = async () => {
-      if (houseSyncInFlightRef.current) return;
-      houseSyncInFlightRef.current = true;
-      try {
-        while (pendingHouseInventoryRef.current !== null) {
+    const syncLatestHouseInventory = async (): Promise<void> => {
+      if (houseMatchClosedRef.current) return;
+      if (houseSyncInFlightRef.current) return houseSyncInFlightRef.current;
+
+      const syncPromise = (async () => {
+        while (!houseMatchClosedRef.current && pendingHouseInventoryRef.current !== null) {
           const snapshot = pendingHouseInventoryRef.current;
           if (snapshot === lastSyncedHouseInventoryRef.current) {
             pendingHouseInventoryRef.current = null;
@@ -341,11 +344,20 @@ export default function App() {
           lastSyncedHouseInventoryRef.current = snapshot;
           if (pendingHouseInventoryRef.current === snapshot) pendingHouseInventoryRef.current = null;
         }
+      })();
+
+      houseSyncInFlightRef.current = syncPromise;
+      try {
+        await syncPromise;
       } finally {
-        houseSyncInFlightRef.current = false;
+        if (houseSyncInFlightRef.current === syncPromise) houseSyncInFlightRef.current = null;
       }
     };
 
+    if (houseMatchClosedRef.current) {
+      pendingHouseInventoryRef.current = null;
+      return;
+    }
     if (houseInventoryJson !== lastSyncedHouseInventoryRef.current || houseSyncInFlightRef.current) {
       void syncLatestHouseInventory();
     } else {
@@ -363,13 +375,21 @@ export default function App() {
     if (matchSummaryHandledRef.current) return;
     matchSummaryHandledRef.current = true;
 
-    // A partida continua offline; ao morrer desconectado, descarta apenas as
-    // alterações da Casa que nunca foram confirmadas pelo servidor.
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      const confirmedInventory = readConfirmedHouseInventory();
+    // Fecha a fila antes de finalizar: nenhuma alteração posterior à morte
+    // pode iniciar outra gravação na nuvem.
+    houseMatchClosedRef.current = true;
+    const finalizeHouseFromConfirmedSnapshot = async () => {
+      const inFlightSync = houseSyncInFlightRef.current;
+      if (inFlightSync) await inFlightSync;
       pendingHouseInventoryRef.current = null;
+
+      // A confirmação efetiva da gravação, e não navigator.onLine, define
+      // qual conteúdo da Casa pode sobreviver à partida.
+      const confirmedInventory = readConfirmedHouseInventory();
       engineRef.current?.setHouseInventory(confirmedInventory);
-    }
+    };
+    houseDeathFinalizeRef.current = finalizeHouseFromConfirmedSnapshot();
+    void houseDeathFinalizeRef.current;
 
     if (duoStartedMatchIdRef.current) {
       void duoTransportRef.current?.reportDeath().catch(cause => {
@@ -1408,10 +1428,12 @@ export default function App() {
       if (!fibulaSupabase || !session.user.sub) {
         throw new Error('Entre na sua conta e conecte-se à internet para iniciar uma partida com progresso validado.');
       }
+      if (houseDeathFinalizeRef.current) await houseDeathFinalizeRef.current;
       const sessionId = await startSoloMatchSession(fibulaSupabase);
       engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
       matchSummaryHandledRef.current = false;
+      houseMatchClosedRef.current = false;
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
       engine.start();
@@ -1435,6 +1457,7 @@ export default function App() {
       try {
         const engine = engineRef.current;
         if (!engine) throw new Error('O motor local ainda não está pronto.');
+        if (houseDeathFinalizeRef.current) await houseDeathFinalizeRef.current;
         const { data, error } = await fibulaSupabase.rpc('fibula_start_duo_session', { p_room_id: peer.roomId });
         if (error) throw error;
         if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('O servidor retornou dados inválidos para iniciar o Duo.');
@@ -1523,6 +1546,7 @@ export default function App() {
         duoStartedMatchIdRef.current = peer.matchId;
         matchSessionIdRef.current = null;
         matchSummaryHandledRef.current = false;
+        houseMatchClosedRef.current = false;
         engine.restart();
         gameStartedRef.current = true;
         setShowStart(false);
@@ -1647,10 +1671,12 @@ export default function App() {
       if (!fibulaSupabase || !session.user.sub) {
         throw new Error('Conecte-se à internet para iniciar outra partida com progresso validado.');
       }
+      if (houseDeathFinalizeRef.current) await houseDeathFinalizeRef.current;
       const sessionId = await startSoloMatchSession(fibulaSupabase);
       engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
       matchSummaryHandledRef.current = false;
+      houseMatchClosedRef.current = false;
       flagsRef.current = [];
       setFlags([]);
       setWheel(null);
