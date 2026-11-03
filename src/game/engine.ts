@@ -761,18 +761,17 @@ export class GameEngine {
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const feet = playerFeet(this.state.player);
-    this.state.cart = { x: this.clamp(feet.x + 60, margin, this.world - margin), y: this.clamp(feet.y, margin, this.world - margin), angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
-    return;
-    for (let attempt = 0; attempt < 1200; attempt++) {
-      const x = margin + this.random() * (this.world - margin * 2);
-      const y = margin + this.random() * (this.world - margin * 2);
-      if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.house.playerClearRadius) continue;
-      if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.cart.minimumHouseDistance) continue;
-      if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < 38 + this.treeFootprintRadius(tree))) continue;
-      this.state.cart = { x, y, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
-      return;
-    }
-    this.state.cart = { x: this.world * 0.75, y: this.world * 0.25, angle: 0, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] };
+    this.state.cart = {
+      x: this.clamp(feet.x + 60, margin, this.world - margin),
+      y: this.clamp(feet.y, margin, this.world - margin),
+      angle: 0,
+      stage: 'broken',
+      health: 0,
+      maxHealth: 0,
+      everBuilt: false,
+      carried: false,
+      inventory: [],
+    };
   }
   toggleCamera() { if (this.state.dead) return; this.state.cameraFull = !this.state.cameraFull; this.emit(); }
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
