@@ -731,7 +731,7 @@ export class GameEngine {
     this.state.inventory = result.inventory;
     this.emit();
   }
-  /** O burrinho traciona; a carroça mantém uma ligação rígida e não calcula alvo próprio. */
+  /** O burrinho gira primeiro e só se desloca na direção em que está orientado; a carroça acompanha o eixo dos varais. */
   private updateDonkeyCart(dt: number) {
     const cart = this.state.cart;
     if (cart.stage !== 'built' || !cart.following || dt <= 0) return;
@@ -741,16 +741,22 @@ export class GameEngine {
     const dx = feet.x - donkeyX, dy = feet.y - donkeyY;
     const distance = Math.hypot(dx, dy);
     if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
-    const travel = Math.min(distance - CONFIG.donkey.stopDistance, CONFIG.cart.unloadedPullSpeed * dt);
-    if (travel <= 0) return;
-    const directionX = dx / distance, directionY = dy / distance;
-    const nextDonkeyX = donkeyX + directionX * travel;
-    const nextDonkeyY = donkeyY + directionY * travel;
-    const targetAngle = Math.atan2(directionY, directionX);
-    let angleDelta = ((targetAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+
+    // A direção desejada aponta do burrinho para o jogador. A rotação é limitada
+    // e o deslocamento usa o novo rumo real, nunca o vetor-alvo ainda não alcançado.
+    const targetAngle = Math.atan2(dy, dx);
+    const headingError = ((targetAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     const maxTurn = CONFIG.donkey.turnSpeed * dt;
-    angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
+    const angleDelta = Math.max(-maxTurn, Math.min(maxTurn, headingError));
     const nextAngle = cart.angle + angleDelta;
+
+    // Se o alvo estiver atrás do burrinho, ele gira no lugar em vez de deslizar de lado
+    // ou andar para trás. Ao alinhar, acelera progressivamente na direção para a qual aponta.
+    const alignment = Math.max(0, Math.cos(headingError));
+    const maxTravel = CONFIG.cart.unloadedPullSpeed * dt * alignment;
+    const travel = Math.min(distance - CONFIG.donkey.stopDistance, maxTravel);
+    const nextDonkeyX = donkeyX + Math.cos(nextAngle) * travel;
+    const nextDonkeyY = donkeyY + Math.sin(nextAngle) * travel;
     const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
     const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
     const candidateDonkey = { x: nextDonkeyX, y: nextDonkeyY };
