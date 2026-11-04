@@ -843,7 +843,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
 
   // O burrinho ocupa a mesma posição lógica relativa, mas sua arte nunca é girada.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
-  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
+  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, false, stage === 'broken');
   ctx.restore();
 
 
