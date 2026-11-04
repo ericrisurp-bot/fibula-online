@@ -472,9 +472,11 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  // Mantém a apresentação original da carroça: lateral na horizontal e vista superior na vertical.
-  // O ângulo continua vindo do rumo do burrinho, mas não gira a arte da carroça nas diagonais.
-  const vertical = Math.abs(Math.cos(angle)) < 0.15;
+  // Quantiza o rumo compartilhado em oito direções, como a orientação visual do burrinho.
+  const directionIndex = ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8;
+  const vertical = directionIndex === 2 || directionIndex === 6;
+  const diagonal = directionIndex % 2 === 1;
+  const directionAngle = directionIndex * (Math.PI / 4);
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
@@ -486,9 +488,10 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.save();
   ctx.translate(x, y);
 
-  // Sombra no formato original, apenas redimensionada junto com a carroça.
+  // A sombra acompanha as oito orientações discretas do corpo da carroça.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
+  if (diagonal) ctx.rotate(directionAngle);
   ctx.fillStyle = 'rgba(10,16,12,.20)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
@@ -527,11 +530,16 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  // Corpo e rodas mantêm a orientação discreta original; só mudam entre lateral e superior.
+  // Oito direções: lateral para E/O, superior para N/S e lateral inclinada nas diagonais.
+  // A rotação é quantizada em passos de 45°: acompanha o rumo do burrinho sem girar continuamente.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
-  if (vertical) drawTop(ctx, cart, movingUp, rot);
-  else {
+  if (vertical) {
+    drawTop(ctx, cart, movingUp, rot);
+  } else if (diagonal) {
+    ctx.rotate(directionAngle);
+    drawSide(ctx, cart, rot);
+  } else {
     ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1);
     drawSide(ctx, cart, rot);
     ctx.restore();
