@@ -656,7 +656,6 @@ function buildDonkeyCartRig(
   }
 
   // Burrinho articulado: só estas peças recebem animação e guinada.
-  const donkeyScale = 1.32;
   const p0 = pieces.length;
   const D = dist, F = '#a98258', FD = '#8a6644', FL = '#d2b48a', DK = '#4d3622', FM = '#b78f62';
   const sp = Math.sin(walkPhase), sp2 = Math.sin(walkPhase * 2);
