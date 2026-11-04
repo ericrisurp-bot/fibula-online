@@ -90,6 +90,10 @@ try {
   const obstacleDonkeyY = obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
   assert.ok(Math.hypot(obstacleEngine.state.cart.x - obstacleCartStart.x, obstacleEngine.state.cart.y - obstacleCartStart.y) > 1, 'carroça deve continuar avançando e contornando a casinha em vez de travar no primeiro bloqueio');
   assert.ok(Math.abs(Math.hypot(obstacleDonkeyX - obstacleEngine.state.cart.x, obstacleDonkeyY - obstacleEngine.state.cart.y) - CONFIG.donkey.cartDistance) < 1e-6, 'manobra deve preservar o engate rígido do burrinho');
+  const donkeyHouseClearance = Math.hypot(obstacleDonkeyX - obstacleEngine.state.house.x, obstacleDonkeyY - obstacleEngine.state.house.y) - CONFIG.donkey.collisionRadius - 38;
+  const cartHouseClearance = Math.hypot(obstacleEngine.state.cart.x - obstacleEngine.state.house.x, obstacleEngine.state.cart.y - obstacleEngine.state.house.y) - CONFIG.cart.collisionRadius - 38;
+  assert.ok(donkeyHouseClearance >= CONFIG.donkey.obstacleClearance, 'burrinho deve contornar a casinha mantendo 100 unidades de folga');
+  assert.ok(cartHouseClearance >= CONFIG.donkey.obstacleClearance, 'carroça deve contornar a casinha mantendo 100 unidades de folga');
   assert.ok(obstacleEngine.state.cart.y !== obstacleCartStart.y, 'rota alternativa deve permitir manobra lateral diante do obstáculo');
   obstacleEngine.stop();
 
