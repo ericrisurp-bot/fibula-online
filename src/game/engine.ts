@@ -1579,22 +1579,41 @@ export class GameEngine {
     };
   }
 
+  /** A carroça só fica exposta enquanto o burrinho está efetivamente em deslocamento de acompanhamento. */
+  private isCartActivelyFollowing(): boolean {
+    const cart = this.state.cart;
+    if (cart.stage !== 'built' || !cart.following || cart.carried) return false;
+    const feet = playerFeet(this.state.player);
+    const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
+    const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
+    const distance = Math.hypot(feet.x - donkeyX, feet.y - donkeyY);
+    return distance > CONFIG.donkey.stopDistance && distance <= CONFIG.donkey.visionRange;
+  }
+
   private moveEnemies(dt: number) {
     const p = this.state.player;
     const feet = playerFeet(p);
     const levelStats = this.getLevelStats();
-    const obstacles = this.obstacleCircles(false);
     for (const e of this.state.enemies) {
       const dx = feet.x - e.x, dy = feet.y - e.y;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
       const slowRemaining = e.slowRemaining ?? 0;
       const speedMultiplier = slowRemaining > 0 ? CONFIG.druidSlow.speedMultiplier : 1;
       e.slowRemaining = Math.max(0, slowRemaining - dt);
+
+      // O alvo de movimento continua sendo sempre o jogador. A carroça só deixa de ser
+      // obstáculo para este slime quando ele já está próximo do jogador e ela está seguindo.
+      const nearPlayer = Math.hypot(dx, dy) <= CONFIG.donkey.visionRange;
+      const cartCanBeHit = nearPlayer && this.isCartActivelyFollowing();
+      const obstacles = this.obstacleCircles(cartCanBeHit);
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
       e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
-      const contactDistance = Math.hypot(feet.x - e.x, feet.y - e.y);
-      if (contactDistance <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack && e.hitWait <= 0) {
+
+      const playerContact = Math.hypot(feet.x - e.x, feet.y - e.y)
+        <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack;
+      if (playerContact && e.hitWait <= 0) {
+        // Prioridade absoluta: se alcançou o jogador, aplica-se a regra normal do jogador.
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (this.random() > CONFIG.player.dodge + levelStats.dodge) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
@@ -1602,10 +1621,17 @@ export class GameEngine {
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
+      } else if (cartCanBeHit && e.hitWait <= 0
+        && Math.hypot(this.state.cart.x - e.x, this.state.cart.y - e.y) <= CONFIG.enemy.radius + CONFIG.cart.collisionRadius) {
+        // Contato secundário: cada slime causa exatamente 1 ponto, sem usar o dano da onda.
+        e.hitWait = CONFIG.enemy.contactCooldown;
+        this.damageCartFromEnemyHit();
       }
     }
     this.separateEnemies();
     for (const enemy of this.state.enemies) {
+      const nearPlayer = Math.hypot(feet.x - enemy.x, feet.y - enemy.y) <= CONFIG.donkey.visionRange;
+      const obstacles = this.obstacleCircles(nearPlayer && this.isCartActivelyFollowing());
       this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false, obstacles);
       this.resolveRockBoxCollisions(enemy);
     }
