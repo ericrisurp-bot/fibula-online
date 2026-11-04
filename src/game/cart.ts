@@ -809,11 +809,14 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
 
-  // sombra
-  ctx.fillStyle = 'rgba(10,16,12,.20)';
-  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = 'rgba(8,12,9,.26)';
-  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
+  // A sombra do rig já faz parte da projeção low-poly; a sombra antiga fica
+  // reservada ao desenho legado do estágio quebrado.
+  if (stage === 'broken') {
+    ctx.fillStyle = 'rgba(10,16,12,.20)';
+    ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(8,12,9,.26)';
+    ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
+  }
 
 
   if (stage === 'built') {
