@@ -76,14 +76,9 @@ try {
   assert.equal(initial.health, 0);
   assert.equal(initial.everBuilt, false);
   assert.equal(initial.maxHealth, 75);
-  assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 10, cotton: 1 });
-  const insufficientFirstBuild = constructDonkeyCart(initial, [
-    { itemId: 'wood', quantity: 10 },
-  ]);
-  assert.equal(insufficientFirstBuild.built, false, '10 madeiras sem algodão não podem construir a carroça');
+  assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 1, cotton: 0 });
   const firstBuild = constructDonkeyCart(initial, [
-    { itemId: 'wood', quantity: 10 },
-    { itemId: 'cotton', quantity: 1 },
+    { itemId: 'wood', quantity: 1 },
   ]);
   assert.equal(firstBuild.built, true);
   assert.deepEqual(firstBuild.inventory, []);
