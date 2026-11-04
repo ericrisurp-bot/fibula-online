@@ -471,12 +471,11 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  // A vista lateral serve apenas para deslocamento quase horizontal. Em diagonais e
-  // na vertical, a vista superior gira continuamente para apontar os varais ao burrinho.
-  const horizontal = Math.abs(Math.sin(angle)) < 0.15;
+  // Mantém a apresentação original da carroça: lateral na horizontal e vista superior na vertical.
+  // O ângulo continua vindo do rumo do burrinho, mas não gira a arte da carroça nas diagonais.
+  const vertical = Math.abs(Math.cos(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
-  const topRotation = angle - (movingUp ? -Math.PI / 2 : Math.PI / 2);
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
   const donkeyX = Math.cos(angle) * donkeyDistance;
@@ -485,17 +484,16 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.save();
   ctx.translate(x, y);
 
-  // A sombra acompanha o eixo longitudinal da carroça.
+  // Sombra no formato original, apenas redimensionada junto com a carroça.
   ctx.save();
-  ctx.rotate(horizontal ? 0 : topRotation);
   ctx.scale(CART_SCALE, CART_SCALE);
   ctx.fillStyle = 'rgba(10,16,12,.20)';
-  ctx.beginPath(); ctx.ellipse(1, 21, horizontal ? 50 : 22, horizontal ? 11 : 38, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
-  ctx.beginPath(); ctx.ellipse(1, 21, horizontal ? 40 : 18, horizontal ? 8 : 31, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // Dois varais rígidos e paralelos seguem o eixo real do burrinho.
+  // Varais seguem o eixo carroça→burrinho, independentemente da vista do corpo.
   if (stage === 'built') {
     const ux = Math.cos(angle), uy = Math.sin(angle);
     const px = -uy, py = ux;
@@ -515,7 +513,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     }
   }
 
-  // O burrinho fica no fim dos varais e aponta para a mesma direção de tração.
+  // O burrinho continua apontando para o rumo de tração calculado pela movimentação.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
   drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
   ctx.restore();
@@ -527,13 +525,14 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  // Somente a carroça (corpo, rodas e detalhes) recebe a escala de 80%.
+  // Corpo e rodas mantêm a orientação discreta original; só mudam entre lateral e superior.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
-  if (horizontal) {
-    ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1); drawSide(ctx, cart, rot); ctx.restore();
-  } else {
-    ctx.save(); ctx.rotate(topRotation); drawTop(ctx, cart, movingUp, rot); ctx.restore();
+  if (vertical) drawTop(ctx, cart, movingUp, rot);
+  else {
+    ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1);
+    drawSide(ctx, cart, rot);
+    ctx.restore();
   }
   ctx.restore();
 
