@@ -758,6 +758,36 @@ export class GameEngine {
     });
   }
 
+  /** Bloqueia o acompanhamento quando um obstáculo ocupa o corredor até a distância normal de parada do jogador. */
+  private isDonkeyPathBlocked(donkey: Vec, target: Vec): boolean {
+    const dx = target.x - donkey.x;
+    const dy = target.y - donkey.y;
+    const lengthSquared = dx * dx + dy * dy;
+    if (lengthSquared <= 0) return false;
+
+    // Mantém aproximadamente o mesmo espaço livre entre as bordas que existe
+    // quando o burrinho para a CONFIG.donkey.stopDistance do jogador.
+    const safetyGap = Math.max(
+      0,
+      CONFIG.donkey.stopDistance - CONFIG.player.footRadius - CONFIG.donkey.collisionRadius,
+    );
+
+    return this.obstacleCircles(true).some(obstacle => {
+      const projection = (
+        (obstacle.x - donkey.x) * dx + (obstacle.y - donkey.y) * dy
+      ) / lengthSquared;
+      // Só considera obstáculos à frente do burrinho e antes do ponto de parada.
+      if (projection <= 0 || projection >= 1) return false;
+
+      const closestX = donkey.x + dx * projection;
+      const closestY = donkey.y + dy * projection;
+      const offsetX = obstacle.x - closestX;
+      const offsetY = obstacle.y - closestY;
+      const clearance = CONFIG.donkey.collisionRadius + obstacle.radius + safetyGap;
+      return offsetX * offsetX + offsetY * offsetY < clearance * clearance;
+    });
+  }
+
   /** Atualiza uma única pose rígida: o burrinho é o ponto dianteiro e a carroça o ponto traseiro do mesmo conjunto. */
   private updateDonkeyCartAssembly(dt: number) {
     const cart = this.state.cart;
@@ -779,6 +809,16 @@ export class GameEngine {
     if (Math.abs(dx) > 2) cart.facingLeft = dx < 0;
 
     if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
+
+    // O burrinho só acompanha se houver um corredor livre até o ponto em que
+    // normalmente pararia do jogador. Árvores/pedras removidas deixam de bloquear
+    // automaticamente; construções fixas continuam segurando o conjunto até o
+    // jogador contornar o obstáculo e abrir uma linha livre.
+    const followTarget = {
+      x: feet.x - (dx / distance) * CONFIG.donkey.stopDistance,
+      y: feet.y - (dy / distance) * CONFIG.donkey.stopDistance,
+    };
+    if (this.isDonkeyPathBlocked({ x: donkeyX, y: donkeyY }, followTarget)) return;
 
     // A direção desejada aponta do burrinho para o jogador. A rotação é limitada
     // e o deslocamento usa o novo rumo real, nunca o vetor-alvo ainda não alcançado.
