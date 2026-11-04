@@ -237,11 +237,12 @@ function drawDonkey(
   const facingLeft = Math.cos(angle) < 0;
   const facingDown = Math.sin(angle) > 0;
   const frontView = facingDown;
-  const coat = '#8e765b';
-  const coatLight = '#b49a75';
-  const coatMid = '#9a8060';
-  const coatDark = '#554332';
-  const outline = '#352a20';
+  const coat = W.d3;
+  const coatLight = W.d6;
+  const coatMid = W.d4;
+  const coatDark = W.d1;
+  const outline = W.line;
+  const contour = 0.9;
 
   ctx.save();
   ctx.translate(0, bob);
@@ -261,9 +262,9 @@ function drawDonkey(
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 8;
       const swing = moving && !broken ? Math.sin(gait + i * Math.PI) * 4 : 0;
-      ctx.strokeStyle = '#49392b'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.strokeStyle = W.d0; ctx.lineWidth = 7.5; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(x, 5); ctx.lineTo(x + swing * .55, 17); ctx.stroke();
-      ctx.strokeStyle = '#725b43'; ctx.lineWidth = 1.2;
+      ctx.strokeStyle = W.d2; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(x - 1, 8); ctx.lineTo(x - 1 + swing * .55, 16); ctx.stroke();
     }
     // Pernas próximas, em primeiro plano.
@@ -274,48 +275,48 @@ function drawDonkey(
       ctx.beginPath(); ctx.moveTo(x, 6); ctx.lineTo(x + swing, 19); ctx.stroke();
       ctx.strokeStyle = '#b49a75'; ctx.lineWidth = 1.3;
       ctx.beginPath(); ctx.moveTo(x - 1, 8); ctx.lineTo(x - 1 + swing, 17); ctx.stroke();
-      poly(ctx, [[x + swing - 2.5, 17], [x + swing + 3, 17], [x + swing + 3.5, 20], [x + swing - 2, 20]], '#49372a', outline, .7);
+      poly(ctx, [[x + swing - 2.5, 17], [x + swing + 3, 17], [x + swing + 3.5, 20], [x + swing - 2, 20]], W.d0, outline, .7);
     }
 
     // Cauda, com pequeno balanço ligado ao passo.
     ctx.strokeStyle = coatDark; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(-21, -3); ctx.quadraticCurveTo(-31, 1 + Math.sin(gait) * 1.5, -29, 10); ctx.stroke();
-    ctx.strokeStyle = '#30251e'; ctx.lineWidth = 2.4;
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 2.4;
     ctx.beginPath(); ctx.moveTo(-29, 8); ctx.lineTo(-32, 12); ctx.stroke();
 
     // Corpo volumétrico em três planos de luz.
-    ctx.fillStyle = coatDark; ctx.strokeStyle = outline; ctx.lineWidth = 1.8;
+    ctx.fillStyle = coatDark; ctx.strokeStyle = outline; ctx.lineWidth = contour;
     ctx.beginPath(); ctx.ellipse(-2, 0, 22, 12, -.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = coat; ctx.beginPath(); ctx.ellipse(1, -2, 18, 9.5, -.08, Math.PI * 1.05, Math.PI * 2.02); ctx.fill();
     poly(ctx, [[-13, -6], [-3, -10], [10, -8], [17, -2], [10, 2], [-7, 3]], coatLight, null);
-    poly(ctx, [[-17, 2], [-5, 4], [10, 3], [16, 0], [12, 7], [-8, 9]], '#6e5943', null);
+    poly(ctx, [[-17, 2], [-5, 4], [10, 3], [16, 0], [12, 7], [-8, 9]], W.d2, null);
 
     // Pescoço e cabeça com bochecha/focinho claros.
     const headBob = moving && !broken ? Math.sin(gait * 2) * 1.2 : Math.sin(time * 2.1) * .45;
     ctx.save(); ctx.translate(0, headBob);
-    poly(ctx, [[8, -8], [16, -19], [25, -18], [30, -10], [25, -3], [14, 1]], coatDark, outline, 1.5);
-    poly(ctx, [[10, -9], [18, -21], [27, -19], [29, -11], [22, -5], [13, -2]], coatMid, outline, 1.2);
+    poly(ctx, [[8, -8], [16, -19], [25, -18], [30, -10], [25, -3], [14, 1]], coatDark, outline, contour);
+    poly(ctx, [[10, -9], [18, -21], [27, -19], [29, -11], [22, -5], [13, -2]], coatMid, outline, contour);
     poly(ctx, [[18, -17], [24, -21], [29, -16], [26, -10]], coatLight, null);
-    ctx.fillStyle = '#c1a17a'; ctx.strokeStyle = outline; ctx.lineWidth = 1.1;
+    ctx.fillStyle = W.d6; ctx.strokeStyle = outline; ctx.lineWidth = 1.1;
     ctx.beginPath(); ctx.ellipse(30, -12, 7, 4.5, -.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    poly(ctx, [[24, -18], [21, -34], [26, -31], [29, -18]], coatMid, outline, 1.1);
-    poly(ctx, [[29, -17], [32, -31], [36, -26], [34, -15]], coat, outline, 1.1);
-    poly(ctx, [[23, -23], [24, -31], [26, -27]], '#594334', null);
-    poly(ctx, [[31, -23], [34, -29], [34, -22]], '#594334', null);
+    poly(ctx, [[24, -18], [21, -34], [26, -31], [29, -18]], coatMid, outline, contour);
+    poly(ctx, [[29, -17], [32, -31], [36, -26], [34, -15]], coat, outline, contour);
+    poly(ctx, [[23, -23], [24, -31], [26, -27]], W.d0, null);
+    poly(ctx, [[31, -23], [34, -29], [34, -22]], W.d0, null);
     // Crina curta ao longo da nuca.
-    poly(ctx, [[13, -19], [17, -25], [18, -21], [21, -28], [22, -20], [25, -24], [24, -16]], '#3b3027', outline, .6);
+    poly(ctx, [[13, -19], [17, -25], [18, -21], [21, -28], [22, -20], [25, -24], [24, -16]], W.d0, outline, .6);
     ctx.fillStyle = '#171512'; ctx.beginPath(); ctx.arc(29, -17, 1.35, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#38291f'; ctx.beginPath(); ctx.arc(35, -12, 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = W.d0; ctx.beginPath(); ctx.arc(35, -12, 1.1, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
     // Arreio, peitoral e tiras de couro.
-    ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.moveTo(-14, -9); ctx.quadraticCurveTo(-9, 0, -14, 8); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(11, -11); ctx.quadraticCurveTo(17, -3, 11, 7); ctx.stroke();
-    ctx.strokeStyle = '#c18b50'; ctx.lineWidth = 1.3;
+    ctx.strokeStyle = W.d5; ctx.lineWidth = 1.3;
     ctx.beginPath(); ctx.moveTo(-13, -8); ctx.quadraticCurveTo(-8, 0, -13, 7); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(12, -10); ctx.quadraticCurveTo(18, -2, 12, 6); ctx.stroke();
-    poly(ctx, [[8, -7], [15, -5], [17, 0], [10, 2]], '#70472c', outline, .8);
+    poly(ctx, [[8, -7], [15, -5], [17, 0], [10, 2]], W.d2, outline, .8);
     rivet(ctx, 13, -2, 1);
     ctx.restore();
   } else {
@@ -324,43 +325,44 @@ function drawDonkey(
     ctx.save(); ctx.scale(diagonal && facingLeft ? -depth : depth, 1);
     // Pernas distantes atrás do corpo.
     for (let i = 0; i < 2; i++) {
-      const x = i === 0 ? -8 : 8;
+      const x = i === 0 ? -10 : 10;
       const swing = moving && !broken ? Math.sin(gait + i * Math.PI) * 3.5 : 0;
-      ctx.strokeStyle = '#49392b'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.strokeStyle = W.d0; ctx.lineWidth = 5; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(x, 7); ctx.lineTo(x + swing * .4, 19); ctx.stroke();
     }
     // Corpo: dorso e laterais em planos facetados.
-    ctx.fillStyle = coatDark; ctx.strokeStyle = outline; ctx.lineWidth = 1.8;
-    ctx.beginPath(); ctx.ellipse(0, 0, 13, 22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    poly(ctx, [[-11, -12], [-5, -20], [4, -20], [11, -11], [8, 4], [0, 10], [-8, 4]], coatMid, null);
-    poly(ctx, [[-10, -10], [-4, -18], [0, -17], [0, 8], [-7, 5]], coatLight, null);
-    poly(ctx, [[0, -17], [6, -18], [11, -10], [8, 5], [0, 9]], '#66513e', null);
+    ctx.fillStyle = coatDark; ctx.strokeStyle = outline; ctx.lineWidth = contour;
+    ctx.beginPath(); ctx.ellipse(0, 1, 18, 17, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    poly(ctx, [[-16, -7], [-13, -15], [-7, -18], [7, -18], [14, -12], [17, -3], [15, 10], [8, 16], [-8, 16], [-15, 9]], coatMid, null);
+    poly(ctx, [[-14, -8], [-10, -15], [-2, -16], [0, 13], [-10, 10]], coatLight, null);
+    poly(ctx, [[1, -16], [9, -15], [15, -7], [13, 10], [2, 15]], W.d2, null);
     // Pernas próximas em primeiro plano.
     for (let i = 0; i < 2; i++) {
-      const x = i === 0 ? -7 : 7;
+      const x = i === 0 ? -11 : 11;
       const swing = moving && !broken ? Math.sin(gait + Math.PI + i * Math.PI) * 3.5 : 0;
       ctx.strokeStyle = coatDark; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x + swing, 20); ctx.stroke();
       ctx.strokeStyle = '#b49a75'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x - 1, 10); ctx.lineTo(x - 1 + swing, 18); ctx.stroke();
+      poly(ctx, [[x + swing - 4, 18], [x + swing + 4, 18], [x + swing + 4.5, 22], [x + swing - 3.5, 22]], W.d0, W.line, contour);
     }
 
     // Arreio traseiro recebe os varais; o peitoral aparece na vista frontal.
-    ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 3.5;
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.moveTo(-10, frontView ? -8 : 8); ctx.quadraticCurveTo(0, frontView ? -13 : 13, 10, frontView ? -8 : 8); ctx.stroke();
-    ctx.strokeStyle = '#c18b50'; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = W.d5; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(-9, frontView ? -8 : 8); ctx.quadraticCurveTo(0, frontView ? -12 : 12, 9, frontView ? -8 : 8); ctx.stroke();
 
     // Cauda visível na vista traseira; peito/peitoral na vista frontal.
-    if (!frontView) {
-      ctx.strokeStyle = coatDark; ctx.lineWidth = 3; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(0, 14); ctx.quadraticCurveTo(4 + Math.sin(gait) * 2, 22, 1, 27); ctx.stroke();
-      ctx.strokeStyle = '#30251e'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(1, 25); ctx.lineTo(-2, 29); ctx.stroke();
-    } else {
-      ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 4;
+    // Cauda aparece também de frente, saindo de trás do quadril.
+    ctx.strokeStyle = W.d1; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(frontView ? -12 : 0, 12); ctx.quadraticCurveTo((frontView ? -17 : 4) + Math.sin(gait) * 2, 22, frontView ? -18 : 1, 27); ctx.stroke();
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(frontView ? -18 : 1, 25); ctx.lineTo(frontView ? -21 : -2, 29); ctx.stroke();
+    if (frontView) {
+      ctx.strokeStyle = W.d0; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.moveTo(-10, 5); ctx.quadraticCurveTo(0, 12, 10, 5); ctx.stroke();
-      ctx.strokeStyle = '#c18b50'; ctx.lineWidth = 1.4;
+      ctx.strokeStyle = W.d5; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(-9, 5); ctx.quadraticCurveTo(0, 11, 9, 5); ctx.stroke();
       rivet(ctx, 0, 8, 1);
     }
@@ -370,22 +372,24 @@ function drawDonkey(
     const headTilt = moving && !broken ? Math.sin(gait * 2) * 1.1 : Math.sin(time * 2.1) * .4;
     ctx.save(); ctx.translate(0, headY + headTilt);
     const sign = frontView ? -1 : 1;
-    poly(ctx, [[-9, sign * 1], [-10, sign * -8], [-6, sign * -14], [0, sign * -16], [6, sign * -14], [10, sign * -8], [9, sign * 1]], coatMid, outline, 1.4);
-    poly(ctx, [[-8, sign * -5], [-5, sign * -13], [0, sign * -14], [0, sign * 0], [-7, sign * 1]], coatLight, null);
-    poly(ctx, [[-7, sign * -11], [-12, sign * -29], [-6, sign * -26], [-2, sign * -12]], coatMid, outline, 1.1);
-    poly(ctx, [[3, sign * -12], [7, sign * -28], [12, sign * -24], [9, sign * -9]], coat, outline, 1.1);
-    poly(ctx, [[-9, sign * -22], [-10, sign * -27], [-7, sign * -25]], '#594334', null);
-    poly(ctx, [[7, sign * -21], [10, sign * -25], [9, sign * -19]], '#594334', null);
+    poly(ctx, [[-12, sign * 2], [-14, sign * -6], [-11, sign * -13], [-6, sign * -17], [0, sign * -18], [6, sign * -17], [11, sign * -13], [14, sign * -6], [12, sign * 2]], coatMid, outline, 1.4);
+    poly(ctx, [[-11, sign * -5], [-7, sign * -14], [0, sign * -16], [0, sign * 1], [-9, sign * 1]], coatLight, null);
+    poly(ctx, [[-8, sign * -12], [-15, sign * -30], [-6, sign * -28], [-1, sign * -13]], coatMid, outline, contour);
+    poly(ctx, [[2, sign * -13], [8, sign * -31], [16, sign * -26], [10, sign * -9]], coat, outline, contour);
+    poly(ctx, [[-12, sign * -21], [-10, sign * -28], [-6, sign * -25]], W.d0, null);
+    poly(ctx, [[9, sign * -21], [13, sign * -27], [14, sign * -22]], W.d0, null);
     if (frontView) {
       ctx.fillStyle = '#171512';
-      ctx.beginPath(); ctx.arc(-5, -8, 1.3, 0, Math.PI * 2); ctx.arc(5, -8, 1.3, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#c1a17a'; ctx.strokeStyle = outline; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#38291f'; ctx.beginPath(); ctx.arc(0, 1, 1.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-7, -8, 1.5, 0, Math.PI * 2); ctx.arc(7, -8, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = W.d6; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(0, 0, 9, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = W.d0; ctx.beginPath(); ctx.arc(0, 1, 1.2, 0, Math.PI * 2); ctx.fill();
     } else {
-      poly(ctx, [[-5, sign * -2], [0, sign * 2], [5, sign * -2]], '#6e5943', outline, .8);
+      poly(ctx, [[-5, sign * -2], [0, sign * 2], [5, sign * -2]], W.d2, outline, .8);
     }
-    poly(ctx, [[-5, sign * -14], [-2, sign * -19], [0, sign * -14], [3, sign * -19], [6, sign * -12]], '#3b3027', null);
+    poly(ctx, [[-7, sign * -13], [-3, sign * -20], [0, sign * -14], [4, sign * -21], [8, sign * -12]], W.d0, null);
+    // Crina curta e franja também legíveis na vista frontal e traseira.
+    poly(ctx, [[-5, sign * -14], [-2, sign * -18], [1, sign * -14], [4, sign * -19], [7, sign * -12]], W.d1, W.line, contour);
     ctx.restore();
     ctx.restore();
   }
