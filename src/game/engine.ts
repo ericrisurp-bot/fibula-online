@@ -764,59 +764,78 @@ export class GameEngine {
     );
     // Primeiro tenta avançar na direção mais direta; se o conjunto se aproxima demais
     // de uma árvore, pedra ou construção, procura uma diagonal que preserve espaço para virar.
-    const preferredSide = Math.sin(targetAngle - cart.angle) >= 0 ? 1 : -1;
-    const offsets = [0, preferredSide * 0.35, -preferredSide * 0.35, preferredSide * 0.7, -preferredSide * 0.7,
-      preferredSide * 1.05, -preferredSide * 1.05, preferredSide * 1.35, -preferredSide * 1.35,
-      preferredSide * 1.55, -preferredSide * 1.55];
-    const candidates: Array<{ x: number; y: number; angle: number; cartX: number; cartY: number; clearance: number; progress: number }> = [];
-
-    for (const offset of offsets) {
-      const heading = targetAngle + offset;
-      const moveX = Math.cos(heading), moveY = Math.sin(heading);
-      const progress = moveX * directionX + moveY * directionY;
-      // Nunca recua: até a manobra lateral precisa continuar avançando em direção ao jogador.
-      if (progress < 0.01) continue;
-      const nextDonkeyX = donkeyX + moveX * travel;
-      const nextDonkeyY = donkeyY + moveY * travel;
-      let angleDelta = ((heading - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-      angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
-      const nextAngle = cart.angle + angleDelta;
-      const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
-      const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
-      if (nextDonkeyX < CONFIG.map.wall + CONFIG.donkey.collisionRadius
-        || nextDonkeyY < CONFIG.map.wall + CONFIG.donkey.collisionRadius
-        || nextDonkeyX > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
-        || nextDonkeyY > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
-        || nextCartX < margin || nextCartY < margin
-        || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
-      const clearance = Math.min(
-        clearanceAt(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius),
-        clearanceAt(nextCartX, nextCartY, CONFIG.cart.collisionRadius),
-      );
-      if (clearance < 0) continue;
-      candidates.push({ x: nextDonkeyX, y: nextDonkeyY, angle: nextAngle, cartX: nextCartX, cartY: nextCartY, clearance, progress });
+    // A preferência lateral deriva da posição do obstáculo em relação à rota;
+    // quando está exatamente à frente, mantém o mesmo lado enquanto o jogador segue na mesma direção.
+    let nearestForward = Infinity;
+    let obstacleCross = 0;
+    for (const obstacle of obstacles) {
+      const offsetX = obstacle.x - donkeyX;
+      const offsetY = obstacle.y - donkeyY;
+      const forward = offsetX * directionX + offsetY * directionY;
+      const lateral = Math.abs(offsetX * directionY - offsetY * directionX);
+      if (forward <= 0 || forward >= nearestForward
+        || lateral > CONFIG.donkey.collisionRadius + obstacle.radius + CONFIG.donkey.obstacleClearance) continue;
+      nearestForward = forward;
+      obstacleCross = directionX * offsetY - directionY * offsetX;
     }
+    const preferredSide = Math.abs(obstacleCross) > 1
+      ? obstacleCross > 0 ? -1 : 1
+      : directionX >= 0 ? 1 : -1;
 
-    if (candidates.length === 0) return;
-    const safeCandidates = candidates.filter(candidate => candidate.clearance >= CONFIG.donkey.obstacleClearance);
-    let selected: typeof candidates[number] | undefined;
-    if (safeCandidates.length > 0) {
-      // Entre rotas com folga de 100 unidades, prefere a que mais se aproxima do jogador.
-      selected = safeCandidates.reduce((best, candidate) =>
-        candidate.progress > best.progress + 0.0001
-          || (Math.abs(candidate.progress - best.progress) <= 0.0001 && candidate.clearance > best.clearance)
-          ? candidate : best
-      );
-    } else {
+    const candidatesForSide = (side: number) => {
+      const offsets = [0, side * 0.35, side * 0.7, side * 1.05, side * 1.35, side * 1.55];
+      const candidates: Array<{ x: number; y: number; angle: number; cartX: number; cartY: number; clearance: number; progress: number }> = [];
+      for (const offset of offsets) {
+        const heading = targetAngle + offset;
+        const moveX = Math.cos(heading), moveY = Math.sin(heading);
+        const progress = moveX * directionX + moveY * directionY;
+        // Nunca recua: até a manobra lateral precisa continuar avançando em direção ao jogador.
+        if (progress < 0.01) continue;
+        const nextDonkeyX = donkeyX + moveX * travel;
+        const nextDonkeyY = donkeyY + moveY * travel;
+        let angleDelta = ((heading - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
+        const nextAngle = cart.angle + angleDelta;
+        const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
+        const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
+        if (nextDonkeyX < CONFIG.map.wall + CONFIG.donkey.collisionRadius
+          || nextDonkeyY < CONFIG.map.wall + CONFIG.donkey.collisionRadius
+          || nextDonkeyX > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
+          || nextDonkeyY > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
+          || nextCartX < margin || nextCartY < margin
+          || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
+        const clearance = Math.min(
+          clearanceAt(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius),
+          clearanceAt(nextCartX, nextCartY, CONFIG.cart.collisionRadius),
+        );
+        if (clearance < 0) continue;
+        candidates.push({ x: nextDonkeyX, y: nextDonkeyY, angle: nextAngle, cartX: nextCartX, cartY: nextCartY, clearance, progress });
+      }
+      return candidates;
+    };
+    const chooseCandidate = (candidates: ReturnType<typeof candidatesForSide>) => {
+      const safeCandidates = candidates.filter(candidate => candidate.clearance >= CONFIG.donkey.obstacleClearance);
+      if (safeCandidates.length > 0) {
+        // Entre rotas com folga de 100 unidades, prefere a que mais se aproxima do jogador.
+        return safeCandidates.reduce((best, candidate) =>
+          candidate.progress > best.progress + 0.0001
+            || (Math.abs(candidate.progress - best.progress) <= 0.0001 && candidate.clearance > best.clearance)
+            ? candidate : best
+        );
+      }
       // Na borda da zona de segurança, aceita uma tangente quase lateral que não
       // reduza materialmente a folga; isso permite começar a contornar sem recuar.
-      selected = candidates
+      return candidates
         .filter(candidate => candidate.clearance >= currentClearance - travel * 0.05)
         .reduce<typeof candidates[number] | undefined>((best, candidate) =>
           !best || candidate.clearance > best.clearance
             || (Math.abs(candidate.clearance - best.clearance) <= 0.01 && candidate.progress > best.progress)
             ? candidate : best, undefined);
-    }
+    };
+    let selected = chooseCandidate(candidatesForSide(preferredSide));
+    // Se o lado preferido estiver fisicamente bloqueado, tenta o lado oposto sem oscilar
+    // entre os dois enquanto a primeira rota continuar viável.
+    if (!selected) selected = chooseCandidate(candidatesForSide(-preferredSide));
     if (!selected) return;
     cart.x = selected.cartX;
     cart.y = selected.cartY;
