@@ -1,10 +1,8 @@
 import { CONFIG } from './config';
-import { getDonkeyCartDonkeyPosition } from './donkeyCart';
 
 /**
  * Carrinho low-poly. Origem = centro do carrinho (cart.x, cart.y), chão em y = +20.
- * Sentido horizontal: vista lateral (alça aponta para o lado em que o carrinho se move,
- * isto é, na direção do jogador que o puxa). Sentido vertical: vista de cima em 3/4.
+ * O burrinho e a carroça são renderizados como uma única ilustração lateral integrada.
  * As rodas usam a fase acumulada do deslocamento real do conjunto.
  */
 export type CartDrawState = {
@@ -397,10 +395,11 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   // Teste de perfil lateral permanente: só espelha entre esquerda e direita.
   const facingLeft = cart.facingLeft ?? Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
-  const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
-  const donkeyPosition = getDonkeyCartDonkeyPosition(cart, donkeyDistance);
-  const donkeyX = donkeyPosition.x - x;
-  const donkeyY = donkeyPosition.y - y + 3;
+  // Composição visual única: o burrinho fica à frente e encostado à carroça.
+  // A pose física continua pertencendo ao conjunto; não há eixo/varal desenhado
+  // nem um segundo sprite posicionado por uma distância independente.
+  const donkeyX = 48;
+  const donkeyY = 2;
 
   ctx.save();
   ctx.translate(x, y);
@@ -414,29 +413,10 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.beginPath(); ctx.ellipse(1, 21, 40, 8, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // Varais seguem o eixo carroça→burrinho, independentemente da vista do corpo.
-  if (stage === 'built') {
-    const ux = Math.cos(angle), uy = Math.sin(angle);
-    const px = -uy, py = ux;
-    const rearX = ux * 48 * CART_SCALE, rearY = uy * 48 * CART_SCALE;
-    const frontX = donkeyX - ux * 7, frontY = donkeyY - uy * 7;
-    ctx.lineCap = 'round';
-    for (const side of [-1, 1]) {
-      const sx = rearX + px * side * 8 * CART_SCALE;
-      const sy = rearY + py * side * 8 * CART_SCALE;
-      const ex = frontX + px * side * 7;
-      const ey = frontY + py * side * 7;
-      ctx.strokeStyle = W.d0; ctx.lineWidth = 4.5 * CART_SCALE;
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.strokeStyle = side < 0 ? W.d2 : W.d5; ctx.lineWidth = 1.5 * CART_SCALE;
-      ctx.beginPath(); ctx.moveTo(sx, sy - .5 * CART_SCALE); ctx.lineTo(ex, ey - .5 * CART_SCALE); ctx.stroke();
-      ctx.fillStyle = W.m1; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
-    }
-  }
-
-  // O burrinho continua apontando para o rumo de tração calculado pela movimentação.
+  // O burrinho é desenhado primeiro, parcialmente integrado à frente da carroça.
+  // A carroça é desenhada por cima na área de contato, formando uma única silhueta.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
-  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken', facingLeft);
+  drawDonkey(ctx, time, angle, rot, moving && stage === 'built', stage === 'broken', facingLeft);
   ctx.restore();
 
   if (nearby) {
@@ -446,10 +426,14 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  // Sempre em perfil lateral; o jogador escolhe apenas esquerda ou direita.
+  // Mesmo sistema de coordenadas e mesmo espelhamento para toda a ilustração.
+  // A carroça sobrepõe discretamente a base do burrinho para eliminar a sensação
+  // de duas peças separadas, sem eixo ou varais entre elas.
   ctx.save();
+  ctx.scale(facingLeft ? -1 : 1, 1);
+  ctx.save();
+  ctx.translate(-18, 0);
   ctx.scale(CART_SCALE, CART_SCALE);
-  ctx.save(); ctx.scale(facingLeft ? -1 : 1, 1);
   drawSide(ctx, cart, rot);
   ctx.restore();
   ctx.restore();
