@@ -472,11 +472,10 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  // Quantiza o rumo compartilhado em oito direções, como a orientação visual do burrinho.
-  const directionIndex = ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8;
-  const vertical = directionIndex === 2 || directionIndex === 6;
-  const diagonal = directionIndex % 2 === 1;
-  const directionAngle = directionIndex * (Math.PI / 4);
+  // O carrinho tem somente quatro orientações: esquerda/direita ou cima/baixo.
+  // Qualquer rumo que não seja diretamente horizontal usa a vista de cima,
+  // escolhendo cima/baixo pelo componente vertical do movimento.
+  const horizontal = Math.abs(Math.sin(angle)) < 0.15;
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
@@ -488,14 +487,13 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.save();
   ctx.translate(x, y);
 
-  // A sombra acompanha as oito orientações discretas do corpo da carroça.
+  // A sombra mantém as quatro orientações originais do carrinho.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
-  if (diagonal) ctx.rotate(directionAngle);
   ctx.fillStyle = 'rgba(10,16,12,.20)';
-  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, horizontal ? 50 : 38, horizontal ? 11 : 22, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
-  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, horizontal ? 40 : 30, horizontal ? 8 : 17, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
   // Varais seguem o eixo carroça→burrinho, independentemente da vista do corpo.
@@ -530,19 +528,16 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  // Oito direções: lateral para E/O, superior para N/S e lateral inclinada nas diagonais.
-  // A rotação é quantizada em passos de 45°: acompanha o rumo do burrinho sem girar continuamente.
+  // Vista lateral somente no deslocamento horizontal direto.
+  // Diagonais usam a vista superior, orientada para cima ou para baixo.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
-  if (vertical) {
-    drawTop(ctx, cart, movingUp, rot);
-  } else if (diagonal) {
-    ctx.rotate(directionAngle);
-    drawSide(ctx, cart, rot);
-  } else {
+  if (horizontal) {
     ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1);
     drawSide(ctx, cart, rot);
     ctx.restore();
+  } else {
+    drawTop(ctx, cart, movingUp, rot);
   }
   ctx.restore();
 
