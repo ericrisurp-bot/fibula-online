@@ -403,10 +403,15 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.beginPath(); ctx.ellipse(1, 21, 40, 8, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // O burrinho é desenhado primeiro, parcialmente integrado à frente da carroça.
-  // A carroça é desenhada por cima na área de contato, formando uma única silhueta.
+  // Espelha o conjunto inteiro uma única vez: posição e orientação do burrinho
+  // e da carroça permanecem coerentes nos dois sentidos.
+  ctx.save();
+  ctx.scale(facingLeft ? -1 : 1, 1);
+
+  // O burrinho e a carroça compartilham a mesma transformação visual.
+  // O perfil base aponta para a direita; o espelhamento externo vira ambos.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
-  drawDonkey(ctx, time, angle, rot, moving && stage === 'built', stage === 'broken', facingLeft);
+  drawDonkey(ctx, time, angle, rot, moving && stage === 'built', stage === 'broken', false);
   ctx.restore();
 
   if (nearby) {
@@ -416,11 +421,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  // Mesmo sistema de coordenadas e mesmo espelhamento para toda a ilustração.
-  // A carroça sobrepõe discretamente a base do burrinho para eliminar a sensação
-  // de duas peças separadas, sem eixo ou varais entre elas.
-  ctx.save();
-  ctx.scale(facingLeft ? -1 : 1, 1);
+  // A carroça fica atrás do burrinho nos dois sentidos, sem eixo ou varais.
   ctx.save();
   ctx.translate(-18, 0);
   ctx.scale(CART_SCALE, CART_SCALE);
