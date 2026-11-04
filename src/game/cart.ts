@@ -255,7 +255,8 @@ function drawDonkey(
   if (side) {
     // Perfil: a arte permanece em pé; esquerda é apenas espelhamento horizontal.
     ctx.save();
-    ctx.scale(facingLeft ? -1 : 1, 1);
+    const profileScale = 0.55 + 0.45 * Math.max(0, Math.min(1, (horizontal - 0.72) / 0.28));
+    ctx.scale((facingLeft ? -1 : 1) * profileScale, 1);
     // Pernas distantes primeiro, mais escuras e ligeiramente recuadas.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 8;
@@ -317,8 +318,8 @@ function drawDonkey(
     ctx.restore();
   } else {
     // Vistas frontal/traseira e 3/4: o eixo do corpo fica vertical, sem virar o perfil.
-    const depth = diagonal ? .82 : 1;
-    ctx.save(); ctx.scale(depth, 1);
+    const depth = diagonal ? 0.82 + 0.18 * Math.max(0, Math.min(1, (vertical - 0.69) / 0.25)) : 1;
+    ctx.save(); ctx.scale(diagonal && facingLeft ? -depth : depth, 1);
     // Pernas distantes atrás do corpo.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -8 : 8;
@@ -398,6 +399,10 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
+
+  const donkeyDistance = stage === 'built' ? 70 : -68;
+  const donkeyX = Math.cos(angle) * donkeyDistance;
+  const donkeyY = Math.sin(angle) * donkeyDistance + 3;
 
   // Dois varais de madeira acompanham o eixo carroça→burrinho e terminam no arreio.
   if (stage === 'built') {
