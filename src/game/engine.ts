@@ -1638,6 +1638,7 @@ export class GameEngine {
 
   private spawnHordeEnemy() {
     if (this.state.enemies.length >= CONFIG.dayNight.maxAlive) return false;
+    this.hordeSpawned += 1;
     const player = this.state.player;
     const margin = CONFIG.map.wall + CONFIG.enemy.radius + 8;
     let x = player.x, y = player.y;
@@ -1674,7 +1675,6 @@ export class GameEngine {
       }
     }
     if (isInsideLake(this.state.lake, x, y, CONFIG.enemy.radius + 6)) return false;
-    this.hordeSpawned += 1;
     this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: this.random() * 8 });
     return true;
   }
