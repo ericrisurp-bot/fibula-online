@@ -184,6 +184,40 @@ try {
   assert.equal(brokenCartEngine.state.cart.health, 0, 'carroça quebrada não pode receber novos impactos');
   brokenCartEngine.stop();
 
+  const obstacleEngine = new GameEngine(() => {}, { headless: true, seed: 20261104 });
+  obstacleEngine.hordeTarget = 0;
+  obstacleEngine.state.trees = [];
+  obstacleEngine.state.rocks = [];
+  obstacleEngine.state.cottonPlants = [];
+  obstacleEngine.state.house.x = 1660; obstacleEngine.state.house.y = 1499;
+  obstacleEngine.state.refinery.x = 300; obstacleEngine.state.refinery.y = obstacleEngine.world - 300;
+  obstacleEngine.state.tecelaria.x = obstacleEngine.world - 300; obstacleEngine.state.tecelaria.y = 300;
+  obstacleEngine.state.player.x = 1800; obstacleEngine.state.player.y = 1460;
+  obstacleEngine.state.cart.x = 1500; obstacleEngine.state.cart.y = 1500;
+  obstacleEngine.state.cart.angle = 0;
+  obstacleEngine.state.cart.stage = 'built';
+  obstacleEngine.state.cart.following = true;
+  const blockedPose = {
+    x: obstacleEngine.state.cart.x,
+    y: obstacleEngine.state.cart.y,
+    angle: obstacleEngine.state.cart.angle,
+    wheelPhase: obstacleEngine.state.cart.wheelPhase,
+  };
+  obstacleEngine.step(0.04);
+  assert.deepEqual({
+    x: obstacleEngine.state.cart.x,
+    y: obstacleEngine.state.cart.y,
+    angle: obstacleEngine.state.cart.angle,
+    wheelPhase: obstacleEngine.state.cart.wheelPhase,
+  }, blockedPose, 'construção entre jogador e burrinho deve fazê-lo parar antes de se aproximar');
+  obstacleEngine.state.player.y = 1060; // pés em y=1100: jogador contornou a construção
+  obstacleEngine.step(0.04);
+  assert.ok(
+    Math.hypot(obstacleEngine.state.cart.x - blockedPose.x, obstacleEngine.state.cart.y - blockedPose.y) > 0,
+    'caminho livre após contornar a construção deve retomar o acompanhamento',
+  );
+  obstacleEngine.stop();
+
   console.log('OK: durabilidade 75, dano fixo 1 por impacto, inventário preservado, reparo, seguir/parar, velocidade, visão, vínculo rígido, rodas e contato secundário dos slimes.');
 } finally {
   await server.close();
