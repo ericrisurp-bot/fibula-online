@@ -28,6 +28,7 @@ interface RigPiece {
   v: Vec3[];
   col: string;
   poly?: boolean;
+  oriented?: boolean;
   spoke?: boolean;
   tire?: boolean;
 }
@@ -106,6 +107,43 @@ function rigBox(
   }
   pieces.push({ v: vertices, col: color });
 }
+function rigLoft(
+  pieces: RigPiece[],
+  rings: readonly (readonly Vec3[])[],
+  colorAt: (section: number, side: number) => string,
+  capColor: string,
+): void {
+  const vertexCount = rings[0]?.length ?? 0;
+  if (rings.length < 2 || vertexCount < 3) return;
+  for (let i = 0; i < rings.length - 1; i++) {
+    for (let k = 0; k < vertexCount; k++) {
+      const next = (k + 1) % vertexCount;
+      pieces.push({
+        poly: true,
+        oriented: true,
+        v: [
+          rings[i][k].slice() as Vec3,
+          rings[i][next].slice() as Vec3,
+          rings[i + 1][next].slice() as Vec3,
+          rings[i + 1][k].slice() as Vec3,
+        ],
+        col: colorAt(i, k),
+      });
+    }
+  }
+  pieces.push({
+    poly: true, oriented: true,
+    v: rings[0].map(point => point.slice() as Vec3).reverse(),
+    col: capColor,
+  });
+  const last = rings[rings.length - 1];
+  pieces.push({
+    poly: true, oriented: true,
+    v: last.map(point => point.slice() as Vec3),
+    col: capColor,
+  });
+}
+
 function rigCylinder(
   pieces: RigPiece[], cx: number, cy: number, cz: number,
   radius: number, width: number, color: string, phase: number, segments = 8,
@@ -223,9 +261,9 @@ function buildDonkeyCartRig(
     }
   }
 
-  // Burrinho articulado: só estas peças recebem animação e guinada.
+  // Burrinho: tronco, pescoço e cabeça formam um único loft contínuo.
   const p0 = pieces.length;
-  const D = dist, F = '#a98258', FD = '#8a6644', FL = '#d2b48a', DK = '#4d3622', FM = '#b78f62';
+  const D = dist, F = '#bd9563', FD = '#94704a', FL = '#e0c79c', DK = '#4d3622', FM = '#cba374';
   const sp = Math.sin(walkPhase), sp2 = Math.sin(walkPhase * 2);
   const br = Math.sin(time * 1.9), brA = 0.9 * (1 - 0.55 * m) + 0.35 * m;
   const bob = (sp2 * 1.5 * m) + br * 0.25 * (1 - m);
@@ -244,54 +282,136 @@ function buildDonkeyCartRig(
     rigBox(pieces, D + lx - 3.2, D + lx + 3.2, ly - 2.6, ly + 2.6, 0 + lift, 5.4 + lift, DK,
       { bx: k * 2.7 + lift * 0.4, tx: k * 2.2, sy0: 0.8 });
   }
-  rigBox(pieces, D - 23, D - 9, -7.5, 7.5, 22 + bob + rumpZ, 38 + bob + rumpZ, FM,
-    { sy0: 0.62, sz0: 0.82, sy1: 1, sz1: 1, by: -sway * 0.6, ty: -sway * 0.6 });
-  rigBox(pieces, D - 9, D + 5, -8.6, 8.6, 21 + bob - br * brA * 0.4, 40 + bob + br * brA, F,
-    { sy0: 1 + br * 0.03, sy1: 1 + br * 0.03, by: sway * 0.2, ty: sway * 0.2 });
-  rigBox(pieces, D + 5, D + 17, -8.2, 8.2, 22 + bob + chestZ, 43 + bob + chestZ + br * brA * 0.5, FM,
-    { sy1: 0.8, sz1: 1.0, by: sway * 0.7, ty: sway * 0.7 });
-  rigBox(pieces, D - 16, D + 10, -5.5, 5.5, 17.5 + bob - br * brA * 0.55, 22.5 + bob, FL,
-    { sy0: 0.8 + br * 0.04, sy1: 0.9 + br * 0.04 });
-  rigBox(pieces, D - 21, D + 12, -2.8, 2.8, 38.5 + bob + br * brA, 41.5 + bob + br * brA, DK,
-    { sy0: 0.5, sy1: 0.7, sz0: 0.6 });
+
+  const SEC: readonly (readonly [number, number, number, number])[] = [
+    [-24, 25, 37.5, 5.6], [-17, 20.5, 41, 8.8], [-4, 19, 41.5, 9.4],
+    [9, 20, 43.5, 9.0], [16, 26, 47, 7.6], [21, 32, 52.5, 6.2],
+    [26.5, 41, 58, 5.4], [33, 41.5, 54, 4.6], [42, 41, 49, 3.3],
+  ];
+  type DonkeySection = { x: number; zb: number; zt: number; w: number; yc: number };
+  const sections: DonkeySection[] = SEC.map(([x, zb, zt, w]) => ({
+    x: D + x, zb: zb + bob, zt: zt + bob, w, yc: 0,
+  }));
   const nod = sp2 * 1.7 * m + Math.sin(walkPhase + 0.9) * 0.8 * m - br * 0.35 * (1 - m);
   const headLift = sp * 1.6 * m;
-  rigBox(pieces, D + 13, D + 22, -5.2, 5.2, 34 + bob + chestZ, 46 + bob + nod * 0.6, FM,
-    { sy1: 0.62, sz1: 0.85, tx: 6 + nod * 0.35, by: sway * 0.7, ty: headLift * 0.5 });
-  rigBox(pieces, D + 16, D + 27, -1.4, 1.4, 45 + bob + nod * 0.4, 55 + bob + nod, DK,
-    { sy0: 0.9, tx: 4 + nod * 0.35, sy1: 0.4, by: headLift * 0.4, ty: headLift * 0.5 });
-  rigBox(pieces, D + 25, D + 37, -4.6, 4.6, 45 + bob + nod, 56 + bob + nod, F,
-    { sy0: 1, sy1: 0.62, sz0: 1, sz1: 0.55, tx: 0, by: headLift * 0.6, ty: headLift * 0.7 });
-  rigBox(pieces, D + 36, D + 44, -3.1, 3.1, 42 + bob + nod, 50 + bob + nod, FL,
-    { sy0: 1, sy1: 0.78, sz0: 1, sz1: 0.7, by: headLift * 0.7, ty: headLift * 0.8 });
-  rigBox(pieces, D + 43.2, D + 44.4, -1.1, 1.1, 44.5 + bob + nod, 46.5 + bob + nod, DK,
-    { by: headLift * 0.8, ty: headLift * 0.8 });
-  const pulse = (x: number) => Math.pow(Math.max(0, Math.sin(x)), 12);
-  const earLeft = -2.5 + Math.sin(time * 9) * pulse(time * 0.9 + 1) * 2.4 + sp2 * 1.3 * m;
-  const earRight = -2.5 + Math.sin(time * 9 + 1.7) * pulse(time * 0.7 + 2.2) * 2.4 - sp2 * 1.3 * m + Math.sin(walkPhase + 1) * 0.6 * m;
+  const up = (index: number, dz: number): void => {
+    sections[index].zb += dz;
+    sections[index].zt += dz;
+  };
+  up(0, rumpZ);
+  up(1, rumpZ * 0.6);
+  up(3, chestZ * 0.6);
+  up(4, chestZ);
+  sections[2].zt += br * brA;
+  sections[2].zb -= br * brA * 0.4;
+  sections[2].w *= 1 + br * 0.03;
+  sections[1].zt += br * brA * 0.5;
+  sections[1].w *= 1 + br * 0.015;
+  sections[3].zt += br * brA * 0.5;
+  sections[3].w *= 1 + br * 0.015;
+  sections[3].zb -= br * brA * 0.2;
+  const lateral: readonly number[] = [
+    -sway * 0.6, -sway * 0.3, sway * 0.2, sway * 0.6, sway * 0.7,
+    sway * 0.7 + headLift * 0.4, headLift * 0.8, headLift, headLift * 1.1,
+  ];
+  sections.forEach((section, index) => { section.yc = lateral[index]; });
+  up(5, nod * 0.4);
+  up(6, nod * 0.9);
+  up(7, nod);
+  up(8, nod);
+  const ringAt = (section: DonkeySection, scale = 1, dz = 0): Vec3[] => {
+    const middle = section.zb + (section.zt - section.zb) * 0.45;
+    return [
+      [section.x, section.yc - section.w * 0.55 * scale, section.zb - dz],
+      [section.x, section.yc + section.w * 0.55 * scale, section.zb - dz],
+      [section.x, section.yc + section.w * scale, middle],
+      [section.x, section.yc + section.w * 0.62 * scale, section.zt + dz],
+      [section.x, section.yc - section.w * 0.62 * scale, section.zt + dz],
+      [section.x, section.yc - section.w * scale, middle],
+    ];
+  };
+  const segmentColors = [FM, F, F, FM, FM, FM, F, FL];
+  rigLoft(
+    pieces,
+    sections.map(section => ringAt(section)),
+    (section, side) => (side === 0 && section >= 1 && section <= 3)
+      ? FL
+      : (side === 3 && section <= 3 ? F : segmentColors[section]),
+    FD,
+  );
+
+  // Crina restrita ao pescoço e à nuca (seções 4 a 7); não percorre o lombo.
+  const maneHeights = [3.2, 3.8, 3.4, 1.4];
+  const maneRings: Vec3[][] = [4, 5, 6, 7].map((sectionIndex, index) => {
+    const section = sections[sectionIndex];
+    return [
+      [section.x, section.yc - 1.1, section.zt - 0.4],
+      [section.x, section.yc + 1.1, section.zt - 0.4],
+      [section.x, section.yc, section.zt + maneHeights[index]],
+    ];
+  });
+  rigLoft(pieces, maneRings, () => DK, DK);
+
+  const earSection = sections[6], headSection = sections[7], muzzleSection = sections[8];
+  const pulse = (value: number): number => Math.pow(Math.max(0, Math.sin(value)), 12);
+  const earLeft = -1.2 + Math.sin(time * 9) * pulse(time * 0.9 + 1) * 2.4 + sp2 * 1.3 * m;
+  const earRight = -1.2 + Math.sin(time * 9 + 1.7) * pulse(time * 0.7 + 2.2) * 2.4
+    - sp2 * 1.3 * m + Math.sin(walkPhase + 1) * 0.6 * m;
   const earSwayLeft = -pulse(time * 0.9 + 1) * 1.6 - sp * 1.2 * m;
   const earSwayRight = pulse(time * 0.7 + 2.2) * 1.6 + sp * 1.2 * m;
-  rigBox(pieces, D + 28, D + 31, -4.2, -1.2, 55 + bob + nod, 67 + bob + nod, FD,
-    { sy1: 0.25, sz1: 0.9, tx: earLeft, by: headLift * 0.6, ty: headLift * 0.6 + earSwayLeft });
-  rigBox(pieces, D + 28, D + 31, 1.2, 4.2, 55 + bob + nod, 67 + bob + nod, FD,
-    { sy1: 0.25, sz1: 0.9, tx: earRight, by: headLift * 0.6, ty: headLift * 0.6 + earSwayRight });
-  rigBox(pieces, D + 34.5, D + 36, -5, -4, 51 + bob + nod, 53 + bob + nod, '#1b130c',
-    { by: headLift * 0.7, ty: headLift * 0.7 });
-  rigBox(pieces, D + 34.5, D + 36, 4, 5, 51 + bob + nod, 53 + bob + nod, '#1b130c',
-    { by: headLift * 0.7, ty: headLift * 0.7 });
-  const tail = Math.sin(walkPhase + 0.6) * 4.2 * m + Math.sin(time * 1.7) * 1.0 * (1 - m);
-  const tailTip = Math.sin(walkPhase - 0.2) * 6.5 * m + Math.sin(time * 1.7 - 0.7) * 1.8 * (1 - m);
-  rigBox(pieces, D - 27, D - 22, -1.6, 1.6, 32 + bob + rumpZ, 41 + bob + rumpZ, DK,
-    { sy0: 0.7, by: tail * 0.5, ty: -sway * 0.6, bx: -1 });
-  rigBox(pieces, D - 28.5, D - 23, -1.4, 1.4, 21, 32 + bob * 0.5, DK,
-    { sy0: 0.6, sy1: 0.9, by: tailTip, ty: tail * 0.5, bx: -1.5 - Math.abs(tailTip) * 0.15, tx: -1 });
+  rigBox(pieces, earSection.x - 1.2, earSection.x + 1.8,
+    earSection.yc - earSection.w * 0.75 - 1.6, earSection.yc - earSection.w * 0.75 + 1.4,
+    earSection.zt - 3, earSection.zt + 9, FD,
+    { sy1: 0.25, sz1: 0.9, tx: earLeft - 1.2, ty: earSwayLeft });
+  rigBox(pieces, earSection.x - 1.2, earSection.x + 1.8,
+    earSection.yc + earSection.w * 0.75 - 1.4, earSection.yc + earSection.w * 0.75 + 1.6,
+    earSection.zt - 3, earSection.zt + 9, FD,
+    { sy1: 0.25, sz1: 0.9, tx: earRight - 1.2, ty: earSwayRight });
+  const eyeZ = (headSection.zb + headSection.zt) / 2 + 1.6;
+  rigBox(pieces, headSection.x - 1, headSection.x + 0.5,
+    headSection.yc - headSection.w - 0.6, headSection.yc - headSection.w + 0.3,
+    eyeZ - 0.8, eyeZ + 0.8, '#1b130c');
+  rigBox(pieces, headSection.x - 1, headSection.x + 0.5,
+    headSection.yc + headSection.w - 0.3, headSection.yc + headSection.w + 0.6,
+    eyeZ - 0.8, eyeZ + 0.8, '#1b130c');
+  rigBox(pieces, muzzleSection.x - 0.2, muzzleSection.x + 1.2,
+    muzzleSection.yc - 1.1, muzzleSection.yc + 1.1,
+    (muzzleSection.zb + muzzleSection.zt) / 2 - 0.2,
+    (muzzleSection.zb + muzzleSection.zt) / 2 + 1.8, DK);
+
+  const tail = Math.sin(walkPhase + 0.6) * 4.2 * m + Math.sin(time * 1.7) * (1 - m);
+  const tailTip = Math.sin(walkPhase - 0.2) * 6.5 * m
+    + Math.sin(time * 1.7 - 0.7) * 1.8 * (1 - m);
+  rigBox(pieces, sections[0].x - 3.5, sections[0].x + 1, -1.6, 1.6,
+    sections[0].zt - 5, sections[0].zt + 3, DK,
+    { sy0: 0.7, by: sections[0].yc + tail * 0.5, ty: sections[0].yc, bx: -1 });
+  rigBox(pieces, sections[0].x - 5, sections[0].x - 0.5, -1.4, 1.4,
+    21, sections[0].zt - 5, DK,
+    { sy0: 0.6, sy1: 0.9, by: sections[0].yc + tailTip,
+      ty: sections[0].yc + tail * 0.5, bx: -1.5 - Math.abs(tailTip) * 0.15, tx: -1 });
+
   if (!broken) {
-    rigBox(pieces, D + 14.5, D + 18.5, -9, 9, 27 + bob + chestZ, 40 + bob + chestZ, '#4a3320',
-      { sy1: 0.9, by: sway * 0.7, ty: sway * 0.7 });
-    rigBox(pieces, D + 14, D + 19.5, -9.6, -8, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
-      { by: sway * 0.7, ty: sway * 0.7 });
-    rigBox(pieces, D + 14, D + 19.5, 8, 9.6, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
-      { by: sway * 0.7, ty: sway * 0.7 });
+    const sectionAt = (x: number): DonkeySection => {
+      for (let index = 0; index < sections.length - 1; index++) {
+        if (x <= sections[index + 1].x) {
+          const amount = (x - sections[index].x) / (sections[index + 1].x - sections[index].x);
+          const interpolate = (field: 'zb' | 'zt' | 'w' | 'yc'): number =>
+            sections[index][field] + (sections[index + 1][field] - sections[index][field]) * amount;
+          return { x, zb: interpolate('zb'), zt: interpolate('zt'), w: interpolate('w'), yc: interpolate('yc') };
+        }
+      }
+      return sections[sections.length - 1];
+    };
+    const harnessStart = sectionAt(D + 13.5), harnessEnd = sectionAt(D + 17.5);
+    rigLoft(pieces, [ringAt(harnessStart, 1.09, 0.7), ringAt(harnessEnd, 1.09, 0.7)],
+      () => '#4a3320', '#4a3320');
+    for (const side of [-1, 1]) {
+      const section = sectionAt(D + 15.5);
+      rigBox(pieces, section.x - 2.2, section.x + 2.2,
+        section.yc + side * section.w * 1.09 - 0.7 + (side > 0 ? 0.5 : 0),
+        section.yc + side * section.w * 1.09 + 0.7 + (side > 0 ? 0.5 : 0),
+        (section.zb + section.zt) / 2 - 1.5, (section.zb + section.zt) / 2 + 1.5, '#b9bec2');
+    }
   }
 
   const yaw = sp * 0.05 * m, cyw = Math.cos(yaw), syw = Math.sin(yaw), pivot = dist - 8;
@@ -350,10 +470,10 @@ function drawDonkeyCartRig(
       if (!piece.poly && rigDot(normal, rigSub(faceCenter, center)) < 0) {
         normal = normal.map(value => -value) as Vec3;
       }
-      if (piece.poly && rigDot(normal, [0, RIG_CE, RIG_SE]) < 0) {
+      if (piece.poly && !piece.oriented && rigDot(normal, [0, RIG_CE, RIG_SE]) < 0) {
         normal = normal.map(value => -value) as Vec3;
       }
-      if (rigDot(normal, [0, RIG_CE, RIG_SE]) <= 0.0001 && !piece.poly) continue;
+      if (rigDot(normal, [0, RIG_CE, RIG_SE]) <= 0.0001 && (!piece.poly || piece.oriented)) continue;
       faces.push({
         pts: points, normal,
         depth: faceCenter[1] * RIG_CE + faceCenter[2] * RIG_SE,
