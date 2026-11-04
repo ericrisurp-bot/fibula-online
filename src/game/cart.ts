@@ -8,7 +8,7 @@ import { getDonkeyCartDonkeyPosition } from './donkeyCart';
  * As rodas usam a fase acumulada do deslocamento real do conjunto.
  */
 export type CartDrawState = {
-  x: number; y: number; angle: number; wheelPhase?: number;
+  x: number; y: number; angle: number; facingLeft?: boolean; wheelPhase?: number;
   stage: 'broken' | 'built'; carried: boolean;
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
@@ -228,12 +228,13 @@ function drawDonkey(
   wheelPhase: number,
   moving: boolean,
   broken: boolean,
+  facingLeftOverride?: boolean,
 ) {
   const bob = moving && !broken ? Math.sin(wheelPhase * 2) * 1.1 : Math.sin(time * 2.1) * 1.2;
   const gait = moving && !broken ? wheelPhase : 0;
   // Quatro orientações: perfil apenas na horizontal direta; diagonais escolhem cima/baixo.
-  const side = Math.abs(Math.sin(angle)) < 0.15;
-  const facingLeft = Math.cos(angle) < 0;
+  const side = true;
+  const facingLeft = facingLeftOverride ?? Math.cos(angle) < 0;
   const facingDown = Math.sin(angle) > 0;
   const frontView = facingDown;
   const coat = W.d3;
@@ -467,12 +468,8 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  // O carrinho tem somente quatro orientações: esquerda/direita ou cima/baixo.
-  // Qualquer rumo que não seja diretamente horizontal usa a vista de cima,
-  // escolhendo cima/baixo pelo componente vertical do movimento.
-  const horizontal = Math.abs(Math.sin(angle)) < 0.15;
-  const movingUp = Math.sin(angle) < 0;
-  const movingLeft = Math.cos(angle) < 0;
+  // Teste de perfil lateral permanente: só espelha entre esquerda e direita.
+  const facingLeft = cart.facingLeft ?? Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
   const donkeyPosition = getDonkeyCartDonkeyPosition(cart, donkeyDistance);
@@ -482,13 +479,13 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.save();
   ctx.translate(x, y);
 
-  // A sombra mantém as quatro orientações originais do carrinho.
+  // A sombra acompanha a silhueta lateral fixa do conjunto.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
   ctx.fillStyle = 'rgba(10,16,12,.20)';
-  ctx.beginPath(); ctx.ellipse(1, 21, horizontal ? 50 : 38, horizontal ? 11 : 22, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, 50, 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
-  ctx.beginPath(); ctx.ellipse(1, 21, horizontal ? 40 : 30, horizontal ? 8 : 17, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, 40, 8, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
   // Varais seguem o eixo carroça→burrinho, independentemente da vista do corpo.
@@ -513,7 +510,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
 
   // O burrinho continua apontando para o rumo de tração calculado pela movimentação.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
-  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
+  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken', facingLeft);
   ctx.restore();
 
   if (nearby) {
@@ -523,17 +520,12 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  // Vista lateral somente no deslocamento horizontal direto.
-  // Diagonais usam a vista superior, orientada para cima ou para baixo.
+  // Sempre em perfil lateral; o jogador escolhe apenas esquerda ou direita.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
-  if (horizontal) {
-    ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1);
-    drawSide(ctx, cart, rot);
-    ctx.restore();
-  } else {
-    drawTop(ctx, cart, movingUp, rot);
-  }
+  ctx.save(); ctx.scale(facingLeft ? -1 : 1, 1);
+  drawSide(ctx, cart, rot);
+  ctx.restore();
   ctx.restore();
 
   if (carried) {
