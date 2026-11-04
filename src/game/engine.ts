@@ -770,18 +770,13 @@ export class GameEngine {
     const distance = Math.hypot(dx, dy);
     const distanceFromCart = Math.hypot(feet.x - cart.x, feet.y - cart.y);
 
-    // A orientação visual acompanha suavemente a posição do jogador, mesmo quando
-    // ele está perto. O conjunto gira no próprio centro, sem deslocar a carroça.
-    const relativeX = feet.x - cart.x;
-    if (Math.abs(relativeX) > 8) cart.facingLeft = relativeX < 0;
-    const targetFacingAngle = cart.facingLeft ? Math.PI : 0;
-    const currentFacingAngle = cart.facingAngle ?? (cart.facingLeft ? Math.PI : 0);
-    const facingError = ((targetFacingAngle - currentFacingAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-    const facingStep = Math.PI * dt;
-    cart.facingAngle = currentFacingAngle + Math.max(-facingStep, Math.min(facingStep, facingError));
-
-    // Perto do conjunto, só anima a virada visual: posição e pose física ficam intactas.
+    // A carroça só inicia/continua o acompanhamento quando o jogador se afasta
+    // do conjunto inteiro. Aproximar-se ou circular ao redor dela não provoca giro.
     if (distanceFromCart <= CONFIG.donkey.cartDistance + CONFIG.donkey.stopDistance) return;
+
+    // A orientação visual depende da posição real do jogador em relação ao burrinho,
+    // nunca do facingX do personagem. Virar parado não muda o alvo nem o lado do conjunto.
+    if (Math.abs(dx) > 2) cart.facingLeft = dx < 0;
 
     if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
 
