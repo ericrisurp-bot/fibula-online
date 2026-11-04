@@ -804,6 +804,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
+  const rigWheelPhase = cart.wheelPhase ?? rot;
   ctx.save();
   ctx.translate(x, y);
   ctx.save();
@@ -830,8 +831,8 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
       ctx,
       angle,
       CONFIG.donkey.cartDistance,
-      rot * 0.9,
-      rot,
+      rigWheelPhase * 0.9,
+      rigWheelPhase,
       time,
       loadFraction(cart),
     );
