@@ -337,7 +337,14 @@ function drawDonkey(
     poly(ctx, [[-14, -10], [-10, -17], [-2, -18], [0, 10], [-10, 8]], coatLight, null);
     poly(ctx, [[1, -18], [9, -16], [15, -8], [13, 9], [2, 13]], W.d2, null);
 
-    // 3) Pernas traseiras nas laterais do tronco.
+    // 3) Peitoral restrito à junção peito/pescoço; não atravessa a face.
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.quadraticCurveTo(0, 7, 11, 0); ctx.stroke();
+    ctx.strokeStyle = W.d5; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(0, 6, 10, 0); ctx.stroke();
+    rivet(ctx, 0, 4, 1);
+
+    // 4) Pernas traseiras nas laterais do tronco.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 12;
       const swing = moving && !broken ? Math.sin(gait + i * Math.PI) * 3 : 0;
@@ -346,7 +353,7 @@ function drawDonkey(
       poly(ctx, [[x + swing - 3.5, 11], [x + swing + 3.5, 11], [x + swing + 4, 15], [x + swing - 3, 15]], W.d0, outline, contour);
     }
 
-    // 4) Pernas dianteiras saem do peito, abertas nas laterais da cabeça.
+    // 5) Pernas dianteiras saem do peito, abertas nas laterais da cabeça.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 12;
       const swing = moving && !broken ? Math.sin(gait + Math.PI + i * Math.PI) * 3.5 : 0;
@@ -356,13 +363,6 @@ function drawDonkey(
       ctx.beginPath(); ctx.moveTo(x - 1, 5); ctx.lineTo(x - 1 + swing, 17); ctx.stroke();
       poly(ctx, [[x + swing - 4, 18], [x + swing + 4, 18], [x + swing + 4.5, 22], [x + swing - 3.5, 22]], W.d0, outline, contour);
     }
-
-    // 5) Peitoral restrito à junção peito/pescoço; não atravessa a face.
-    ctx.strokeStyle = W.d0; ctx.lineWidth = 3.5;
-    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.quadraticCurveTo(0, 7, 11, 0); ctx.stroke();
-    ctx.strokeStyle = W.d5; ctx.lineWidth = 1.3;
-    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(0, 6, 10, 0); ctx.stroke();
-    rivet(ctx, 0, 4, 1);
 
     // 6) Pescoço e cabeça são desenhados por cima das pernas e do peitoral.
     const headBob = moving && !broken ? Math.sin(gait * 2) * 1.1 : Math.sin(time * 2.1) * .4;
