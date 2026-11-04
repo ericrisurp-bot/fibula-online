@@ -111,7 +111,7 @@ export function drawLake(ctx: CanvasRenderingContext2D, lake: Lake, elapsed: num
   const pulseX = pulseAxis ? pulseOffset : 0;
   const pulseY = pulseAxis ? 0 : pulseOffset;
   const pulseRadius = 0.035 + pulseProgress * 0.19;
-  const pulseAlpha = Math.sin(Math.PI * pulseProgress) * 0.42;
+  const pulseAlpha = Math.pow(1 - pulseProgress, 1.25) * 0.5;
 
   ctx.beginPath();
   ctx.ellipse(pulseX, pulseY, pulseRadius, pulseRadius * 0.62, 0, 0, Math.PI * 2);
