@@ -477,6 +477,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const verticalAmount = Math.abs(Math.sin(angle));
   const smooth = verticalAmount * verticalAmount * (3 - 2 * verticalAmount);
   const movingUp = Math.sin(angle) < 0;
+  const movingDown = Math.sin(angle) > 0;
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   ctx.save();
@@ -486,9 +487,9 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
 
   // sombra
   ctx.fillStyle = 'rgba(10,16,12,.20)';
-  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, 50 - 12 * smooth, 11 + 11 * smooth, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
-  ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(1, 21, 40 - 10 * smooth, 8 + 9 * smooth, 0, 0, Math.PI * 2); ctx.fill();
 
   const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
   const donkeyX = Math.cos(angle) * donkeyDistance;
