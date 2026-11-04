@@ -1736,6 +1736,10 @@ export class GameEngine {
     // A lista de desvio depende apenas do cenário e do estado da carroça neste frame.
     // Reutilizá-la evita reconstruir os obstáculos para cada slime.
     const cartActivelyFollowing = this.isCartActivelyFollowing();
+    // Círculos estreitos para resolver colisão física após o movimento.
+    const obstaclesWithCart = this.obstacleCircles(false);
+    const obstaclesWithoutCart = cartActivelyFollowing ? this.obstacleCircles(true) : obstaclesWithCart;
+    // Círculos largos usados somente para orientar o desvio dos slimes.
     const steeringWithCart = this.obstacleCircles(false, true);
     const steeringWithoutCart = cartActivelyFollowing ? this.obstacleCircles(true, true) : steeringWithCart;
     for (const e of this.state.enemies) {
