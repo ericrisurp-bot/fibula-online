@@ -191,6 +191,16 @@ try {
   assert.ok(cartTargetEngine.state.enemies[0].x < cartTargetStartX, 'slime selecionado deve se mover em direção à carroça, não ao jogador');
   cartTargetEngine.stop();
 
+  const cartTargetPriorityEngine = prepareEnemyCartScenario(true, 1638);
+  cartTargetPriorityEngine.randomState = 1;
+  const playerHealthBeforeCartTarget = cartTargetPriorityEngine.state.player.hp;
+  const cartTargetPriorityStartX = cartTargetPriorityEngine.state.enemies[0].x;
+  cartTargetPriorityEngine.step(0.04);
+  assert.equal(cartTargetPriorityEngine.state.enemies[0].cartTarget, true, 'slime sorteado deve manter o foco na carroça mesmo ao passar perto do jogador');
+  assert.equal(cartTargetPriorityEngine.state.player.hp, playerHealthBeforeCartTarget, 'slime focado na carroça não deve atacar o personagem');
+  assert.ok(cartTargetPriorityEngine.state.enemies[0].x < cartTargetPriorityStartX, 'slime focado na carroça deve se afastar do jogador em direção à carroça');
+  cartTargetPriorityEngine.stop();
+
   const probabilityProbe = new GameEngine(() => {}, { headless: true, seed: 20261104 });
   probabilityProbe.randomState = 0x12345678;
   let cartSelections = 0;
@@ -231,7 +241,7 @@ try {
   assert.equal(brokenCartEngine.state.cart.health, 0, 'carroça quebrada não pode receber novos impactos');
   brokenCartEngine.stop();
 
-  console.log('OK: durabilidade 75, dano fixo 1 por impacto, inventário preservado, reparo, seguir/parar, velocidade, visão, vínculo rígido, rodas e contato secundário dos slimes.');
+  console.log('OK: durabilidade 75, reparo, inventário, seguir/parar, velocidade, visão, vínculo rígido, rodas e seleção de alvo 90/10 dos slimes.');
 } finally {
   await server.close();
 }
