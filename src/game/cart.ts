@@ -17,6 +17,9 @@ type Pt = readonly [number, number];
 /** Fator de escala de todo o desenho (arte autorada em px a 1,0). */
 export const CART_SCALE = 1.05;
 
+let lastWheel: number | null = null;
+let moveAmt = 0;
+
 const W = {
   d0: '#3b2416', d1: '#5a3a22', d2: '#7a4f2d', d3: '#94653a', d4: '#ad7a45', d5: '#c8935a', d6: '#e0b077',
   line: '#27170d',
@@ -480,7 +483,7 @@ interface RigPiece {
 }
 interface BoxOptions {
   sy0?: number; sz0?: number; sy1?: number; sz1?: number;
-  bx?: number; tx?: number;
+  bx?: number; tx?: number; by?: number; ty?: number;
 }
 const RIG_EL = 42 * Math.PI / 180;
 const RIG_SE = Math.sin(RIG_EL);
@@ -536,6 +539,8 @@ function rigBox(
   const hz = (z1 - z0) / 2;
   const bx = options.bx ?? 0;
   const tx = options.tx ?? 0;
+  const by = options.by ?? 0;
+  const ty = options.ty ?? 0;
   const vertices: Vec3[] = [];
   for (const zz of [0, 1]) {
     for (const [xi, yi] of [[0, 0], [1, 0], [1, 1], [0, 1]] as const) {
@@ -544,7 +549,7 @@ function rigBox(
       const sz = xi ? sz1 : sz0;
       vertices.push([
         x,
-        cy + (yi ? 1 : -1) * hy * sy,
+        cy + (yi ? 1 : -1) * hy * sy + (zz ? ty : by),
         cz + (zz ? 1 : -1) * hz * sz,
       ]);
     }
@@ -575,7 +580,7 @@ function rigCylinder(
 }
 
 function buildDonkeyCartRig(
-  dist: number, walkPhase: number, wheelPhase: number, time: number, load: number,
+  dist: number, walkPhase: number, wheelPhase: number, time: number, load: number, m: number,
 ): RigPiece[] {
   const pieces: RigPiece[] = [];
   const zf = 12;
@@ -650,64 +655,84 @@ function buildDonkeyCartRig(
     }
   }
 
-  // Burrinho (as partes são escalonadas pelo mesmo fator do protótipo).
-  const donkeyStart = pieces.length;
-  const bob = Math.sin(time * 2.2) * 0.4;
-  const fur = '#a98258';
-  const furDark = '#8a6644';
-  const furLight = '#d2b48a';
-  const dark = '#4d3622';
-  const furMid = '#b78f62';
-  const g1 = Math.sin(walkPhase);
-  const g2 = Math.sin(walkPhase + Math.PI);
+  // Burrinho articulado: só estas peças recebem animação e guinada.
+  const donkeyScale = 1.32;
+  const p0 = pieces.length;
+  const D = dist, F = '#a98258', FD = '#8a6644', FL = '#d2b48a', DK = '#4d3622', FM = '#b78f62';
+  const sp = Math.sin(walkPhase), sp2 = Math.sin(walkPhase * 2);
+  const br = Math.sin(time * 1.9), brA = 0.9 * (1 - 0.55 * m) + 0.35 * m;
+  const bob = (sp2 * 1.5 * m) + br * 0.25 * (1 - m);
+  const sway = sp * 1.1 * m;
+  const rumpZ = sp * 0.9 * m, chestZ = -sp * 0.9 * m;
   const legs: readonly (readonly [number, number, number])[] = [
-    [12, -5.8, g1], [12, 5.8, g2], [-13, -5.8, g2], [-13, 5.8, g1],
+    [12, -5.8, 0], [12, 5.8, Math.PI], [-13, -5.8, Math.PI], [-13, 5.8, 0],
   ];
-  for (const [lx, ly, swing] of legs) {
-    const side = ly < 0;
-    const color = side ? furDark : fur;
-    rigBox(pieces, dist + lx - 3.4, dist + lx + 3.4, ly - 3, ly + 3, 15, 26, color,
-      { bx: swing * 0.35, sy0: 0.78, sz0: 1, sy1: 1, sz1: 1 });
-    rigBox(pieces, dist + lx - 2.4, dist + lx + 2.4, ly - 2.2, ly + 2.2, 5, 15.4,
-      side ? '#7a5a3a' : '#9a7650',
-      { bx: swing * 0.8, tx: swing * 0.35, sy0: 0.8, sy1: 0.85 });
-    rigBox(pieces, dist + lx - 3.2, dist + lx + 3.2, ly - 2.6, ly + 2.6, 0, 5.4, dark,
-      { bx: swing * 1.1, tx: swing * 0.8, sy0: 0.8 });
+  for (const [lx, ly, off] of legs) {
+    const side = ly < 0, color = side ? FD : F, phase = walkPhase + off;
+    const swing = Math.sin(phase), lift = Math.max(0, Math.cos(phase)) * 3.0 * m, k = swing * m;
+    rigBox(pieces, D + lx - 3.4, D + lx + 3.4, ly - 3, ly + 3, 15 + lift * 0.5, 26 + bob * 0.4, color,
+      { bx: k * 0.9, tx: 0, sy0: 0.78, sz0: 1, sy1: 1, sz1: 1 });
+    rigBox(pieces, D + lx - 2.4, D + lx + 2.4, ly - 2.2, ly + 2.2, 5 + lift, 15.4 + lift * 0.5, side ? '#7a5a3a' : '#9a7650',
+      { bx: k * 2.2, tx: k * 0.9, sy0: 0.8, sy1: 0.85 });
+    rigBox(pieces, D + lx - 3.2, D + lx + 3.2, ly - 2.6, ly + 2.6, 0 + lift, 5.4 + lift, DK,
+      { bx: k * 2.7 + lift * 0.4, tx: k * 2.2, sy0: 0.8 });
   }
-  rigBox(pieces, dist - 23, dist - 9, -7.5, 7.5, 22 + bob, 38 + bob, furMid,
-    { sy0: 0.62, sz0: 0.82 });
-  rigBox(pieces, dist - 9, dist + 5, -8.6, 8.6, 21 + bob, 40 + bob, fur);
-  rigBox(pieces, dist + 5, dist + 17, -8.2, 8.2, 22 + bob, 43 + bob, furMid,
-    { sy1: 0.8, sz1: 1 });
-  rigBox(pieces, dist - 16, dist + 10, -5.5, 5.5, 17.5 + bob, 22.5 + bob, furLight,
-    { sy0: 0.8, sy1: 0.9 });
-  rigBox(pieces, dist - 21, dist + 12, -2.8, 2.8, 38.5 + bob, 41.5 + bob, dark,
+  rigBox(pieces, D - 23, D - 9, -7.5, 7.5, 22 + bob + rumpZ, 38 + bob + rumpZ, FM,
+    { sy0: 0.62, sz0: 0.82, sy1: 1, sz1: 1, by: -sway * 0.6, ty: -sway * 0.6 });
+  rigBox(pieces, D - 9, D + 5, -8.6, 8.6, 21 + bob - br * brA * 0.4, 40 + bob + br * brA, F,
+    { sy0: 1 + br * 0.03, sy1: 1 + br * 0.03, by: sway * 0.2, ty: sway * 0.2 });
+  rigBox(pieces, D + 5, D + 17, -8.2, 8.2, 22 + bob + chestZ, 43 + bob + chestZ + br * brA * 0.5, FM,
+    { sy1: 0.8, sz1: 1.0, by: sway * 0.7, ty: sway * 0.7 });
+  rigBox(pieces, D - 16, D + 10, -5.5, 5.5, 17.5 + bob - br * brA * 0.55, 22.5 + bob, FL,
+    { sy0: 0.8 + br * 0.04, sy1: 0.9 + br * 0.04 });
+  rigBox(pieces, D - 21, D + 12, -2.8, 2.8, 38.5 + bob + br * brA, 41.5 + bob + br * brA, DK,
     { sy0: 0.5, sy1: 0.7, sz0: 0.6 });
-  rigBox(pieces, dist + 13, dist + 22, -5.2, 5.2, 34 + bob, 46 + bob, furMid,
-    { sy1: 0.62, sz1: 0.85, tx: 6 });
-  rigBox(pieces, dist + 16, dist + 27, -1.4, 1.4, 45 + bob, 55 + bob, dark,
-    { sy0: 0.9, tx: 4, sy1: 0.4 });
-  rigBox(pieces, dist + 25, dist + 37, -4.6, 4.6, 45 + bob, 56 + bob, fur,
-    { sy0: 1, sy1: 0.62, sz0: 1, sz1: 0.55 });
-  rigBox(pieces, dist + 36, dist + 44, -3.1, 3.1, 42 + bob, 50 + bob, furLight,
-    { sy0: 1, sy1: 0.78, sz0: 1, sz1: 0.7 });
-  rigBox(pieces, dist + 43.2, dist + 44.4, -1.1, 1.1, 44.5 + bob, 46.5 + bob, dark);
-  rigBox(pieces, dist + 28, dist + 31, -4.2, -1.2, 55 + bob, 67 + bob, furDark,
-    { sy1: 0.25, sz1: 0.9, tx: -2.5 });
-  rigBox(pieces, dist + 28, dist + 31, 1.2, 4.2, 55 + bob, 67 + bob, furDark,
-    { sy1: 0.25, sz1: 0.9, tx: -2.5 });
-  rigBox(pieces, dist + 34.5, dist + 36, -5, -4, 51 + bob, 53 + bob, '#1b130c');
-  rigBox(pieces, dist + 34.5, dist + 36, 4, 5, 51 + bob, 53 + bob, '#1b130c');
-  rigBox(pieces, dist - 27, dist - 22, -1.6, 1.6, 26 + bob, 40 + bob, dark,
-    { bx: -Math.sin(walkPhase) * 2, sy0: 0.6 });
-  rigBox(pieces, dist + 14.5, dist + 18.5, -9, 9, 27 + bob, 40 + bob, '#4a3320',
-    { sy1: 0.9 });
-  rigBox(pieces, dist + 14, dist + 19.5, -9.6, -8, 32 + bob, 37 + bob, '#b9bec2');
-  rigBox(pieces, dist + 14, dist + 19.5, 8, 9.6, 32 + bob, 37 + bob, '#b9bec2');
-  for (let i = donkeyStart; i < pieces.length; i++) {
+  const nod = sp2 * 1.7 * m + Math.sin(walkPhase + 0.9) * 0.8 * m - br * 0.35 * (1 - m);
+  const headLift = sp * 1.6 * m;
+  rigBox(pieces, D + 13, D + 22, -5.2, 5.2, 34 + bob + chestZ, 46 + bob + nod * 0.6, FM,
+    { sy1: 0.62, sz1: 0.85, tx: 6 + nod * 0.35, by: sway * 0.7, ty: headLift * 0.5 });
+  rigBox(pieces, D + 16, D + 27, -1.4, 1.4, 45 + bob + nod * 0.4, 55 + bob + nod, DK,
+    { sy0: 0.9, tx: 4 + nod * 0.35, sy1: 0.4, by: headLift * 0.4, ty: headLift * 0.5 });
+  rigBox(pieces, D + 25, D + 37, -4.6, 4.6, 45 + bob + nod, 56 + bob + nod, F,
+    { sy0: 1, sy1: 0.62, sz0: 1, sz1: 0.55, tx: 0, by: headLift * 0.6, ty: headLift * 0.7 });
+  rigBox(pieces, D + 36, D + 44, -3.1, 3.1, 42 + bob + nod, 50 + bob + nod, FL,
+    { sy0: 1, sy1: 0.78, sz0: 1, sz1: 0.7, by: headLift * 0.7, ty: headLift * 0.8 });
+  rigBox(pieces, D + 43.2, D + 44.4, -1.1, 1.1, 44.5 + bob + nod, 46.5 + bob + nod, DK,
+    { by: headLift * 0.8, ty: headLift * 0.8 });
+  const pulse = (x: number) => Math.pow(Math.max(0, Math.sin(x)), 12);
+  const earLeft = -2.5 + Math.sin(time * 9) * pulse(time * 0.9 + 1) * 2.4 + sp2 * 1.3 * m;
+  const earRight = -2.5 + Math.sin(time * 9 + 1.7) * pulse(time * 0.7 + 2.2) * 2.4 - sp2 * 1.3 * m + Math.sin(walkPhase + 1) * 0.6 * m;
+  const earSwayLeft = -pulse(time * 0.9 + 1) * 1.6 - sp * 1.2 * m;
+  const earSwayRight = pulse(time * 0.7 + 2.2) * 1.6 + sp * 1.2 * m;
+  rigBox(pieces, D + 28, D + 31, -4.2, -1.2, 55 + bob + nod, 67 + bob + nod, FD,
+    { sy1: 0.25, sz1: 0.9, tx: earLeft, by: headLift * 0.6, ty: headLift * 0.6 + earSwayLeft });
+  rigBox(pieces, D + 28, D + 31, 1.2, 4.2, 55 + bob + nod, 67 + bob + nod, FD,
+    { sy1: 0.25, sz1: 0.9, tx: earRight, by: headLift * 0.6, ty: headLift * 0.6 + earSwayRight });
+  rigBox(pieces, D + 34.5, D + 36, -5, -4, 51 + bob + nod, 53 + bob + nod, '#1b130c',
+    { by: headLift * 0.7, ty: headLift * 0.7 });
+  rigBox(pieces, D + 34.5, D + 36, 4, 5, 51 + bob + nod, 53 + bob + nod, '#1b130c',
+    { by: headLift * 0.7, ty: headLift * 0.7 });
+  const tail = Math.sin(walkPhase + 0.6) * 4.2 * m + Math.sin(time * 1.7) * 1.0 * (1 - m);
+  const tailTip = Math.sin(walkPhase - 0.2) * 6.5 * m + Math.sin(time * 1.7 - 0.7) * 1.8 * (1 - m);
+  rigBox(pieces, D - 27, D - 22, -1.6, 1.6, 32 + bob + rumpZ, 41 + bob + rumpZ, DK,
+    { sy0: 0.7, by: tail * 0.5, ty: -sway * 0.6, bx: -1 });
+  rigBox(pieces, D - 28.5, D - 23, -1.4, 1.4, 21, 32 + bob * 0.5, DK,
+    { sy0: 0.6, sy1: 0.9, by: tailTip, ty: tail * 0.5, bx: -1.5 - Math.abs(tailTip) * 0.15, tx: -1 });
+  rigBox(pieces, D + 14.5, D + 18.5, -9, 9, 27 + bob + chestZ, 40 + bob + chestZ, '#4a3320',
+    { sy1: 0.9, by: sway * 0.7, ty: sway * 0.7 });
+  rigBox(pieces, D + 14, D + 19.5, -9.6, -8, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
+    { by: sway * 0.7, ty: sway * 0.7 });
+  rigBox(pieces, D + 14, D + 19.5, 8, 9.6, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
+    { by: sway * 0.7, ty: sway * 0.7 });
+
+  const yaw = sp * 0.05 * m, cyw = Math.cos(yaw), syw = Math.sin(yaw), pivot = dist - 8;
+  for (let i = p0; i < pieces.length; i++) {
     for (const vertex of pieces[i].v) {
-      vertex[0] = dist + (vertex[0] - dist) * donkeyScale;
-      vertex[1] *= donkeyScale;
+      const x = dist + (vertex[0] - dist) * donkeyScale;
+      const y = vertex[1] * donkeyScale;
+      const dx = x - pivot;
+      vertex[0] = pivot + dx * cyw - y * syw;
+      vertex[1] = dx * syw + y * cyw;
       vertex[2] *= donkeyScale;
     }
   }
@@ -722,8 +747,9 @@ function drawDonkeyCartRig(
   wheelPhase: number,
   time: number,
   load: number,
+  m: number,
 ): void {
-  const pieces = buildDonkeyCartRig(dist, walkPhase, wheelPhase, time, load);
+  const pieces = buildDonkeyCartRig(dist, walkPhase, wheelPhase, time, load, m);
   const faces: {
     pts: Vec3[]; normal: Vec3; depth: number; color: string;
     spoke?: boolean; tire?: boolean;
@@ -768,13 +794,13 @@ function drawDonkeyCartRig(
   faces.sort((a, b) => a.depth - b.depth);
   ctx.save();
   ctx.translate(0, 20);
-  ctx.fillStyle = 'rgba(8,14,9,.28)';
+  ctx.fillStyle = 'rgba(8,14,9,.22)';
   ctx.beginPath();
   ctx.ellipse(
     dist * 0.45 * cosine,
     dist * 0.45 * sine * RIG_SE + 2,
-    Math.abs(cosine) * 54 + Math.abs(sine) * 30 + 28,
-    Math.abs(sine) * 26 + Math.abs(cosine) * 14 + 10,
+    (Math.abs(cosine) * 54 + Math.abs(sine) * 30 + 28) * 0.72,
+    (Math.abs(sine) * 26 + Math.abs(cosine) * 14 + 10) * 0.62,
     0, 0, Math.PI * 2,
   );
   ctx.fill();
@@ -805,6 +831,23 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   const rigWheelPhase = cart.wheelPhase ?? rot;
+  let donkeyMove = moving ? 1 : 0;
+  if (stage === 'built') {
+    const motionPhase = wheelPhase ?? cart.wheelPhase;
+    if (motionPhase !== undefined) {
+      const delta = lastWheel === null
+        ? 0
+        : Math.abs(Math.atan2(Math.sin(motionPhase - lastWheel), Math.cos(motionPhase - lastWheel)));
+      const target = delta > 1e-4 || moving ? 1 : 0;
+      moveAmt += (target - moveAmt) * 0.2;
+      lastWheel = motionPhase;
+      donkeyMove = moveAmt;
+    } else {
+      moveAmt = moving ? 1 : 0;
+      donkeyMove = moveAmt;
+      lastWheel = null;
+    }
+  }
   ctx.save();
   ctx.translate(x, y);
   ctx.save();
@@ -835,6 +878,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
       rigWheelPhase,
       time,
       loadFraction(cart),
+      donkeyMove,
     );
   } else {
     const donkeyDistance = -68;
