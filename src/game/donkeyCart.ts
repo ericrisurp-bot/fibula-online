@@ -63,7 +63,7 @@ export function createDonkeyCartState(
 
 /** Custo da transição para o estado construído. */
 export function getDonkeyCartConstructionCost(_state: DonkeyCartState): DonkeyCartConstructionCost {
-  return { wood: 1, cotton: 0 };
+  return { wood: 10, cotton: 1 };
 }
 
 function countBaseItem(inventory: InventoryStack[], itemId: string): number {
@@ -86,7 +86,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 
 /**
  * Constrói ou reconstrói o conjunto de forma atômica.
- * O conserto custa 1 madeira.
+ * O conserto custa 10 madeiras e 1 algodão.
  */
 export function constructDonkeyCart(
   state: DonkeyCartState,
