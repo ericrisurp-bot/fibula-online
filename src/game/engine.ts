@@ -768,6 +768,11 @@ export class GameEngine {
     const donkeyY = donkeyPosition.y;
     const dx = feet.x - donkeyX, dy = feet.y - donkeyY;
     const distance = Math.hypot(dx, dy);
+    const distanceFromCart = Math.hypot(feet.x - cart.x, feet.y - cart.y);
+
+    // A carroça só inicia/continua o acompanhamento quando o jogador se afasta
+    // do conjunto inteiro. Aproximar-se ou circular ao redor dela não provoca giro.
+    if (distanceFromCart <= CONFIG.donkey.cartDistance + CONFIG.donkey.stopDistance) return;
 
     // A orientação visual depende da posição real do jogador em relação ao burrinho,
     // nunca do facingX do personagem. Virar parado não muda o alvo nem o lado do conjunto.
