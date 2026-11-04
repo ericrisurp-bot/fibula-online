@@ -77,7 +77,9 @@ try {
   assert.equal(initial.everBuilt, false);
   assert.equal(initial.maxHealth, 75);
   assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 1, cotton: 0 });
-  const firstBuild = constructDonkeyCart(initial, [{ itemId: 'wood', quantity: 1 }]);
+  const firstBuild = constructDonkeyCart(initial, [
+    { itemId: 'wood', quantity: 1 },
+  ]);
   assert.equal(firstBuild.built, true);
   assert.deepEqual(firstBuild.inventory, []);
   assert.equal(firstBuild.state.health, 75);
@@ -94,14 +96,17 @@ try {
   assert.equal(broken.carried, false);
   assert.equal(broken.following, false, 'carroça quebrada deve parar de seguir');
   assert.deepEqual(broken.inventory, [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }], 'todos os itens devem permanecer na carroça ao quebrar');
-  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 1, cotton: 0 });
+  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 10, cotton: 1 });
 
-  const missingWood = constructDonkeyCart(broken, []);
-  assert.equal(missingWood.built, false);
-  assert.deepEqual(missingWood.inventory, []);
+  const missingRepairMaterials = constructDonkeyCart(broken, [
+    { itemId: 'wood', quantity: 10 },
+  ]);
+  assert.equal(missingRepairMaterials.built, false, 'conserto exige também 1 algodão');
+  assert.deepEqual(missingRepairMaterials.inventory, [{ itemId: 'wood', quantity: 10 }]);
 
   const rebuilt = constructDonkeyCart(broken, [
-    { itemId: 'wood:rare', quantity: 1 },
+    { itemId: 'wood:rare', quantity: 10 },
+    { itemId: 'cotton', quantity: 1 },
   ]);
   assert.equal(rebuilt.built, true);
   assert.equal(rebuilt.state.stage, 'built');
@@ -114,7 +119,7 @@ try {
   assert.deepEqual(alreadyBuilt.inventory, [{ itemId: 'wood', quantity: 1 }]);
 
   const engineCart = engine.state.cart;
-  engineCart.stage = 'built'; engineCart.health = 75; engineCart.maxHealth = 75; engineCart.following = true;
+  engineCart.stage = 'built'; engineCart.health = 75; engineCart.maxHealth = 75; engineCart.everBuilt = true; engineCart.following = true;
   engineCart.inventory = [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }];
   for (let hit = 0; hit < 75; hit++) engine.damageCartFromEnemyHit();
   assert.equal(engine.state.cart.stage, 'broken', '75 impactos do engine devem quebrar a carroça');
@@ -124,13 +129,24 @@ try {
 
   engine.state.player.x = engine.state.cart.x;
   engine.state.player.y = engine.state.cart.y - CONFIG.player.footOffset;
+  engine.state.inventory = [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 1 }];
+  engine.storeAllBagToCart();
+  assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 1 }], 'não pode guardar itens na carroça quebrada');
+  engine.transferBagToCart(0);
+  assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 1 }], 'transferência individual também deve ser bloqueada com a carroça quebrada');
   engine.state.inventory = [];
   engine.buildCart();
-  assert.equal(engine.state.cart.stage, 'broken', 'madeira dentro da carroça não pode consertá-la');
+  assert.equal(engine.state.cart.stage, 'broken', 'itens dentro da carroça não podem consertá-la');
   engine.transferCartToBag(1);
   assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 1 }], 'jogador deve retirar madeira da carroça quebrada');
+  engine.transferCartToBag(0);
+  assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 1 }, { itemId: 'stone', quantity: 2 }], 'jogador pode retirar itens da carroça quebrada');
+  engine.state.inventory = [
+    { itemId: 'wood', quantity: 10 },
+    { itemId: 'cotton', quantity: 1 },
+  ];
   engine.buildCart();
-  assert.equal(engine.state.cart.stage, 'built', 'madeira transferida para a mochila permite reparar');
+  assert.equal(engine.state.cart.stage, 'built', '10 madeiras e 1 algodão permitem reparar');
   assert.equal(engine.state.cart.health, 75);
   assert.deepEqual(engine.state.cart.inventory, [{ itemId: 'stone', quantity: 2 }], 'reparo não deve apagar os itens que ficaram na carroça');
 
@@ -158,20 +174,61 @@ try {
   };
 
   const movingCartEngine = prepareEnemyCartScenario(true, 1540);
+  movingCartEngine.randomState = 0x12345678; // valor determinístico acima do limiar de 10%
   const movingCartStartX = movingCartEngine.state.enemies[0].x;
   movingCartEngine.step(0.04);
-  assert.equal(movingCartEngine.state.cart.health, 74, 'slime próximo deve retirar 1 ponto da carroça enquanto ela acompanha o jogador');
-  assert.ok(movingCartEngine.state.enemies[0].x > movingCartStartX, 'slime deve continuar se deslocando em direção ao jogador, não perseguir a carroça');
+  assert.equal(movingCartEngine.state.enemies[0].cartTarget, false, 'este slime deve permanecer no grupo de 90% focado no jogador');
+  assert.equal(movingCartEngine.state.cart.health, 74, 'até um slime focado no jogador pode causar contato incidental com a carroça');
+  assert.ok(movingCartEngine.state.enemies[0].x > movingCartStartX, 'slime dos 90% deve continuar se deslocando em direção ao jogador');
   movingCartEngine.stop();
+
+  const cartTargetEngine = prepareEnemyCartScenario(true, 1540);
+  cartTargetEngine.randomState = 1; // primeiro valor pseudoaleatório fica abaixo de 10%
+  const cartTargetStartX = cartTargetEngine.state.enemies[0].x;
+  cartTargetEngine.step(0.04);
+  assert.equal(cartTargetEngine.state.enemies[0].cartTarget, true, 'um sorteio de 10% deve selecionar a carroça como alvo');
+  assert.equal(cartTargetEngine.state.cart.health, 74, 'slime selecionado deve causar 1 ponto de dano ao alcançar a carroça');
+  assert.ok(cartTargetEngine.state.enemies[0].x < cartTargetStartX, 'slime selecionado deve se mover em direção à carroça, não ao jogador');
+  cartTargetEngine.stop();
+
+  const cartTargetPriorityEngine = prepareEnemyCartScenario(true, 1638);
+  cartTargetPriorityEngine.randomState = 1;
+  const playerHealthBeforeCartTarget = cartTargetPriorityEngine.state.player.hp;
+  const cartTargetPriorityStartX = cartTargetPriorityEngine.state.enemies[0].x;
+  cartTargetPriorityEngine.step(0.04);
+  assert.equal(cartTargetPriorityEngine.state.enemies[0].cartTarget, true, 'slime sorteado deve manter o foco na carroça mesmo ao passar perto do jogador');
+  assert.equal(cartTargetPriorityEngine.state.player.hp, playerHealthBeforeCartTarget, 'slime focado na carroça não deve atacar o personagem');
+  assert.ok(cartTargetPriorityEngine.state.enemies[0].x < cartTargetPriorityStartX, 'slime focado na carroça deve se afastar do jogador em direção à carroça');
+  cartTargetPriorityEngine.stop();
+
+  const probabilityProbe = new GameEngine(() => {}, { headless: true, seed: 20261104 });
+  probabilityProbe.randomState = 0x12345678;
+  let cartSelections = 0;
+  for (let sample = 0; sample < 1000; sample++) {
+    if (probabilityProbe.random() < 0.1) cartSelections += 1;
+  }
+  assert.ok(cartSelections >= 70 && cartSelections <= 130, 'a seleção deve ficar próxima de 10% em uma amostra de 1000 sorteios');
+  probabilityProbe.stop();
 
   const parkedCartEngine = prepareEnemyCartScenario(false, 1540);
   parkedCartEngine.step(0.04);
   assert.equal(parkedCartEngine.state.cart.health, 75, 'carroça parada pelo botão não pode receber dano');
   parkedCartEngine.stop();
 
+  const distantFollowingCartEngine = prepareEnemyCartScenario(true, 1540);
+  distantFollowingCartEngine.state.player.x = 2050; // jogador longe: burrinho não começa a seguir
+  distantFollowingCartEngine.step(0.04);
+  assert.equal(distantFollowingCartEngine.state.cart.health, 75, 'carroça em seguir, mas longe do jogador, não pode ser alvo');
+  distantFollowingCartEngine.state.player.x = 1670; // aproximação ativa o deslocamento do burrinho
+  distantFollowingCartEngine.step(0.04);
+  assert.equal(distantFollowingCartEngine.state.cart.health, 74, 'ao se aproximar e o burrinho começar a seguir, a carroça volta a ser alvo secundário');
+  distantFollowingCartEngine.stop();
+
   const playerPriorityEngine = prepareEnemyCartScenario(true, 1638);
+  playerPriorityEngine.randomState = 0x12345678;
   const playerPriorityStartX = playerPriorityEngine.state.enemies[0].x;
   playerPriorityEngine.step(0.04);
+  assert.equal(playerPriorityEngine.state.enemies[0].cartTarget, false, 'slime não sorteado mantém o jogador como alvo');
   assert.equal(playerPriorityEngine.state.cart.health, 75, 'quando o slime alcança o jogador, a carroça não recebe o impacto');
   assert.ok(playerPriorityEngine.state.enemies[0].x > playerPriorityStartX, 'movimento do slime deve continuar orientado ao jogador');
   assert.ok(playerPriorityEngine.state.enemies[0].hitWait > 0, 'contato com o jogador mantém o cooldown normal do slime');
@@ -184,7 +241,7 @@ try {
   assert.equal(brokenCartEngine.state.cart.health, 0, 'carroça quebrada não pode receber novos impactos');
   brokenCartEngine.stop();
 
-  console.log('OK: durabilidade 75, dano fixo 1 por impacto, inventário preservado, reparo, seguir/parar, velocidade, visão, vínculo rígido, rodas e contato secundário dos slimes.');
+  console.log('OK: durabilidade 75, reparo, inventário, seguir/parar, velocidade, visão, vínculo rígido, rodas e seleção de alvo 90/10 dos slimes.');
 } finally {
   await server.close();
 }

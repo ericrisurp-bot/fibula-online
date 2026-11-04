@@ -62,8 +62,9 @@ export function createDonkeyCartState(
 }
 
 /** Custo da transição para o estado construído. */
-export function getDonkeyCartConstructionCost(_state: DonkeyCartState): DonkeyCartConstructionCost {
-  return { wood: 1, cotton: 0 };
+export function getDonkeyCartConstructionCost(state: DonkeyCartState): DonkeyCartConstructionCost {
+  // A primeira montagem mantém o custo original; reconstruções após quebrar exigem reparo completo.
+  return state.everBuilt ? { wood: 10, cotton: 1 } : { wood: 1, cotton: 0 };
 }
 
 function countBaseItem(inventory: InventoryStack[], itemId: string): number {
@@ -86,7 +87,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 
 /**
  * Constrói ou reconstrói o conjunto de forma atômica.
- * O conserto custa 1 madeira.
+ * A primeira montagem custa 1 madeira; reconstruções custam 10 madeiras e 1 algodão.
  */
 export function constructDonkeyCart(
   state: DonkeyCartState,
