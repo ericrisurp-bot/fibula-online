@@ -538,7 +538,8 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   if (sideWeight > 0.001) {
     ctx.save();
     ctx.globalAlpha *= sideWeight;
-    ctx.scale(movingLeft ? -1 : 1, 1);
+    const obliqueWidth = 1 - verticalAmount * 0.12;
+    ctx.scale((movingLeft ? -1 : 1) * obliqueWidth, 1);
     ctx.transform(1, Math.sin(angle) * 0.34, 0, 1, 0, 0);
     drawSide(ctx, cart, rot);
     ctx.restore();
