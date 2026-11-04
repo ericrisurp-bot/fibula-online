@@ -76,8 +76,9 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   poly(ctx, [[-34.5, -4], [-31.5, -4], [-31.5, 16], [-34.5, 16]], W.d1, W.line, 0.9);
   poly(ctx, [[-37, 14.5], [-29, 14.5], [-29, 17], [-37, 17]], W.d0, W.line, 0.9);
 
-  // varal distante (mais escuro)
-  poly(ctx, [[-30, -12], [50, -8], [50, -5], [-30, -8]], W.d0, W.line, 0.8);
+  // O varal longitudinal do lado do burrinho é substituído pelos dois varais rígidos
+  // projetados em drawCart. O cabo traseiro do jogador permanece no desenho superior.
+  if (!built) poly(ctx, [[-30, -12], [50, -8], [50, -5], [-30, -8]], W.d0, W.line, 0.8);
 
   // caixa: parede distante (interior)
   poly(ctx, [[-37, -39], [28, -39], [31, -35], [-40, -35]], W.d1, W.line, 0.9);
@@ -136,13 +137,15 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   // roda (frente da parede), sempre visível
   wheel(ctx, -2, 0, 17, rot);
 
-  // varal próximo (à frente da roda) e punho
-  poly(ctx, [[-32, -9], [51, -4], [51, 0], [-32, -5]], W.d3, W.line, 0.9);
-  poly(ctx, [[-32, -9], [51, -4], [51, -3], [-32, -8]], W.d5, null);
-  poly(ctx, [[46, -10], [54, -10], [54, 4], [46, 4]], W.m0, W.line, 0.8);           // garra de ferro
-  poly(ctx, [[47, -9], [53, -9], [53, 3], [47, 3]], W.d4, W.line, 0.7);              // barra do punho
-  poly(ctx, [[47, -9], [53, -9], [53, -7], [47, -7]], W.d6, null);
-  rivet(ctx, 50, -4.5, 1);
+  // Punho/varal longitudinal voltado ao burrinho: substituído pelos varais rígidos.
+  if (!built) {
+    poly(ctx, [[-32, -9], [51, -4], [51, 0], [-32, -5]], W.d3, W.line, 0.9);
+    poly(ctx, [[-32, -9], [51, -4], [51, -3], [-32, -8]], W.d5, null);
+    poly(ctx, [[46, -10], [54, -10], [54, 4], [46, 4]], W.m0, W.line, 0.8);
+    poly(ctx, [[47, -9], [53, -9], [53, 3], [47, 3]], W.d4, W.line, 0.7);
+    poly(ctx, [[47, -9], [53, -9], [53, -7], [47, -7]], W.d6, null);
+    rivet(ctx, 50, -4.5, 1);
+  }
   ctx.restore();
 }
 
@@ -471,7 +474,8 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  const vertical = Math.abs(Math.cos(angle)) < 0.15;
+  const verticalAmount = Math.abs(Math.sin(angle));
+  const smooth = verticalAmount * verticalAmount * (3 - 2 * verticalAmount);
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
@@ -486,32 +490,37 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.fillStyle = 'rgba(8,12,9,.26)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
 
-  const donkeyDistance = stage === 'built' ? 70 : -68;
+  const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
   const donkeyX = Math.cos(angle) * donkeyDistance;
   const donkeyY = Math.sin(angle) * donkeyDistance + 3;
 
-  // Dois varais de madeira acompanham o eixo carroça→burrinho e terminam no arreio.
-  if (stage === 'built') {
+  // Varais ficam atrás do burrinho nas vistas laterais/subindo e à frente ao descer,
+  // respeitando a profundidade sem atravessar a face.
+  const drawShafts = () => {
+    if (stage !== 'built') return;
     const ux = Math.cos(angle), uy = Math.sin(angle);
     const px = -uy, py = ux;
-    const rearX = ux * 48, rearY = uy * 48;
-    const frontX = donkeyX - ux * 7, frontY = donkeyY - uy * 7;
-    ctx.lineCap = 'round';
+    const startX = ux * 43, startY = uy * 43;
+    const endX = donkeyX - ux * 18, endY = donkeyY - uy * 18;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (const side of [-1, 1]) {
-      const sx = rearX + px * side * 8, sy = rearY + py * side * 8;
-      const ex = frontX + px * side * 7, ey = frontY + py * side * 7;
-      ctx.strokeStyle = W.d0; ctx.lineWidth = 4.5;
+      const sx = startX + px * side * 8, sy = startY + py * side * 8;
+      const ex = endX + px * side * 8, ey = endY + py * side * 8;
+      ctx.strokeStyle = W.line; ctx.lineWidth = 7;
       ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.strokeStyle = side < 0 ? W.d2 : W.d5; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sx, sy - .5); ctx.lineTo(ex, ey - .5); ctx.stroke();
-      ctx.fillStyle = W.m1; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = W.d2; ctx.lineWidth = 4.8;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+      ctx.strokeStyle = W.d6; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(sx, sy - .7); ctx.lineTo(ex, ey - .7); ctx.stroke();
     }
-  }
+  };
+  if (!movingDown) drawShafts();
 
-  // O burrinho ocupa a mesma posição lógica relativa, mas sua arte nunca é girada.
+  // O burrinho ocupa a mesma posição lógica relativa; a arte mantém as vistas direcionais.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
   drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
   ctx.restore();
+  if (movingDown) drawShafts();
 
   if (nearby) {
     const pulse = 0.5 + 0.5 * Math.sin(time * 4);
@@ -520,8 +529,25 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
-  if (vertical) drawTop(ctx, cart, movingUp, rot);
-  else { ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1); drawSide(ctx, cart, rot); ctx.restore(); }
+  // A carroça transita continuamente entre perfil lateral e vista superior.
+  // A projeção lateral recebe cisalhamento nas diagonais; a vista superior ganha
+  // presença progressiva conforme o eixo se aproxima da vertical.
+  const sideWeight = 1 - smooth;
+  const topWeight = smooth;
+  if (sideWeight > 0.001) {
+    ctx.save();
+    ctx.globalAlpha *= sideWeight;
+    ctx.scale(movingLeft ? -1 : 1, 1);
+    ctx.transform(1, Math.sin(angle) * 0.34, 0, 1, 0, 0);
+    drawSide(ctx, cart, rot);
+    ctx.restore();
+  }
+  if (topWeight > 0.001) {
+    ctx.save();
+    ctx.globalAlpha *= topWeight;
+    drawTop(ctx, cart, movingUp, rot);
+    ctx.restore();
+  }
 
 
 
