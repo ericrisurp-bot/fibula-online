@@ -75,9 +75,6 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   poly(ctx, [[-34.5, -4], [-31.5, -4], [-31.5, 16], [-34.5, 16]], W.d1, W.line, 0.9);
   poly(ctx, [[-37, 14.5], [-29, 14.5], [-29, 17], [-37, 17]], W.d0, W.line, 0.9);
 
-  // varal distante (mais escuro)
-  poly(ctx, [[-30, -12], [50, -8], [50, -5], [-30, -8]], W.d0, W.line, 0.8);
-
   // caixa: parede distante (interior)
   poly(ctx, [[-37, -39], [28, -39], [31, -35], [-40, -35]], W.d1, W.line, 0.9);
   poly(ctx, [[-36, -35], [29, -35], [30, -30], [-39, -30]], W.d0, null);
@@ -135,13 +132,6 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   // roda (frente da parede), sempre visível
   wheel(ctx, -2, 0, 17, rot);
 
-  // varal próximo (à frente da roda) e punho
-  poly(ctx, [[-32, -9], [51, -4], [51, 0], [-32, -5]], W.d3, W.line, 0.9);
-  poly(ctx, [[-32, -9], [51, -4], [51, -3], [-32, -8]], W.d5, null);
-  poly(ctx, [[46, -10], [54, -10], [54, 4], [46, 4]], W.m0, W.line, 0.8);           // garra de ferro
-  poly(ctx, [[47, -9], [53, -9], [53, 3], [47, 3]], W.d4, W.line, 0.7);              // barra do punho
-  poly(ctx, [[47, -9], [53, -9], [53, -7], [47, -7]], W.d6, null);
-  rivet(ctx, 50, -4.5, 1);
   ctx.restore();
 }
 
@@ -398,7 +388,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   // Composição visual única: o burrinho fica à frente e encostado à carroça.
   // A pose física continua pertencendo ao conjunto; não há eixo/varal desenhado
   // nem um segundo sprite posicionado por uma distância independente.
-  const donkeyX = 48;
+  const donkeyX = 30;
   const donkeyY = 2;
 
   ctx.save();
