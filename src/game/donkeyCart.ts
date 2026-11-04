@@ -152,3 +152,27 @@ export function getDonkeyCartDonkeyPosition(
     y: state.y + Math.sin(state.angle) * distance,
   };
 }
+
+/** Peças de colisão internas de um único corpo rígido; nenhuma delas tem estado próprio. */
+export type DonkeyCartAssemblyCollisionPart = {
+  x: number;
+  y: number;
+  radius: number;
+};
+
+/**
+ * Descreve a área ocupada pelo conjunto a partir de uma única pose.
+ * Os círculos são apenas a forma composta do colisor, não entidades simuladas.
+ */
+export function getDonkeyCartAssemblyCollisionParts(
+  pose: Pick<DonkeyCartState, 'x' | 'y' | 'angle'>,
+  donkeyDistance: number,
+  donkeyRadius: number,
+  cartRadius: number,
+): DonkeyCartAssemblyCollisionPart[] {
+  const donkey = getDonkeyCartDonkeyPosition(pose, donkeyDistance);
+  return [
+    { x: pose.x, y: pose.y, radius: cartRadius },
+    { x: donkey.x, y: donkey.y, radius: donkeyRadius },
+  ];
+}
