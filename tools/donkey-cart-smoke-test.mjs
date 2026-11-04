@@ -210,7 +210,7 @@ try {
     angle: obstacleEngine.state.cart.angle,
     wheelPhase: obstacleEngine.state.cart.wheelPhase,
   }, blockedPose, 'construção entre jogador e burrinho deve fazê-lo parar antes de se aproximar');
-  obstacleEngine.state.player.y = 1060; // pés em y=1100: jogador contornou a construção
+  obstacleEngine.state.player.x = 1700; obstacleEngine.state.player.y = 1200; // jogador contornou a construção, ainda dentro do alcance de visão
   obstacleEngine.step(0.04);
   assert.ok(
     Math.hypot(obstacleEngine.state.cart.x - blockedPose.x, obstacleEngine.state.cart.y - blockedPose.y) > 0,
