@@ -6,7 +6,7 @@ import { CONFIG } from './config';
  * As rodas usam a fase acumulada do deslocamento real do conjunto.
  */
 export type CartDrawState = {
-  x: number; y: number; angle: number; facingLeft?: boolean; wheelPhase?: number;
+  x: number; y: number; angle: number; facingLeft?: boolean; facingAngle?: number; wheelPhase?: number;
   stage: 'broken' | 'built'; carried: boolean;
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
@@ -170,7 +170,7 @@ function drawDonkey(
   if (side) {
     // Perfil: a arte permanece em pé; esquerda é apenas espelhamento horizontal.
     ctx.save();
-    ctx.scale(facingLeft ? -1 : 1, 1);
+    ctx.scale(facingScaleX, 1);
     // Pernas distantes primeiro, mais escuras e ligeiramente recuadas.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 8;
@@ -382,8 +382,10 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  // Teste de perfil lateral permanente: só espelha entre esquerda e direita.
-  const facingLeft = cart.facingLeft ?? Math.cos(angle) < 0;
+  // A escala horizontal interpolada faz o perfil virar no próprio eixo sem
+  // mover a composição nem desenhar um arco de reposicionamento.
+  const facingAngle = cart.facingAngle ?? ((cart.facingLeft ?? Math.cos(angle) < 0) ? Math.PI : 0);
+  const facingScaleX = Math.cos(facingAngle);
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   // Composição visual única: o burrinho fica à frente e encostado à carroça.
   // A pose física continua pertencendo ao conjunto; não há eixo/varal desenhado
