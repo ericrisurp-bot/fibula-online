@@ -513,7 +513,7 @@ function rigShade(hex: string, k: number): string {
   r = Math.max(0, Math.min(255, r * factor)) | 0;
   g = Math.max(0, Math.min(255, g * factor)) | 0;
   b = Math.max(0, Math.min(255, b * factor)) | 0;
-  return \`rgb(\${r},\${g},\${b})\`;
+  return `rgb(${r},${g},${b})`;
 }
 
 // Coordenadas locais: +x frente (burrinho), +y direita, +z cima.
