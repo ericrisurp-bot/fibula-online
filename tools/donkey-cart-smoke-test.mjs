@@ -76,8 +76,15 @@ try {
   assert.equal(initial.health, 0);
   assert.equal(initial.everBuilt, false);
   assert.equal(initial.maxHealth, 75);
-  assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 1, cotton: 0 });
-  const firstBuild = constructDonkeyCart(initial, [{ itemId: 'wood', quantity: 1 }]);
+  assert.deepEqual(getDonkeyCartConstructionCost(initial), { wood: 10, cotton: 1 });
+  const insufficientFirstBuild = constructDonkeyCart(initial, [
+    { itemId: 'wood', quantity: 10 },
+  ]);
+  assert.equal(insufficientFirstBuild.built, false, '10 madeiras sem algodão não podem construir a carroça');
+  const firstBuild = constructDonkeyCart(initial, [
+    { itemId: 'wood', quantity: 10 },
+    { itemId: 'cotton', quantity: 1 },
+  ]);
   assert.equal(firstBuild.built, true);
   assert.deepEqual(firstBuild.inventory, []);
   assert.equal(firstBuild.state.health, 75);
@@ -94,14 +101,17 @@ try {
   assert.equal(broken.carried, false);
   assert.equal(broken.following, false, 'carroça quebrada deve parar de seguir');
   assert.deepEqual(broken.inventory, [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }], 'todos os itens devem permanecer na carroça ao quebrar');
-  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 1, cotton: 0 });
+  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 10, cotton: 1 });
 
-  const missingWood = constructDonkeyCart(broken, []);
-  assert.equal(missingWood.built, false);
-  assert.deepEqual(missingWood.inventory, []);
+  const missingRepairMaterials = constructDonkeyCart(broken, [
+    { itemId: 'wood', quantity: 10 },
+  ]);
+  assert.equal(missingRepairMaterials.built, false, 'conserto exige também 1 algodão');
+  assert.deepEqual(missingRepairMaterials.inventory, [{ itemId: 'wood', quantity: 10 }]);
 
   const rebuilt = constructDonkeyCart(broken, [
-    { itemId: 'wood:rare', quantity: 1 },
+    { itemId: 'wood:rare', quantity: 10 },
+    { itemId: 'cotton', quantity: 1 },
   ]);
   assert.equal(rebuilt.built, true);
   assert.equal(rebuilt.state.stage, 'built');
@@ -124,13 +134,24 @@ try {
 
   engine.state.player.x = engine.state.cart.x;
   engine.state.player.y = engine.state.cart.y - CONFIG.player.footOffset;
+  engine.state.inventory = [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 1 }];
+  engine.storeAllBagToCart();
+  assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 1 }], 'não pode guardar itens na carroça quebrada');
+  engine.transferBagToCart(0);
+  assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 1 }], 'transferência individual também deve ser bloqueada com a carroça quebrada');
   engine.state.inventory = [];
   engine.buildCart();
-  assert.equal(engine.state.cart.stage, 'broken', 'madeira dentro da carroça não pode consertá-la');
+  assert.equal(engine.state.cart.stage, 'broken', 'itens dentro da carroça não podem consertá-la');
   engine.transferCartToBag(1);
   assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 1 }], 'jogador deve retirar madeira da carroça quebrada');
+  engine.transferCartToBag(0);
+  assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 1 }, { itemId: 'stone', quantity: 2 }], 'jogador pode retirar itens da carroça quebrada');
+  engine.state.inventory = [
+    { itemId: 'wood', quantity: 10 },
+    { itemId: 'cotton', quantity: 1 },
+  ];
   engine.buildCart();
-  assert.equal(engine.state.cart.stage, 'built', 'madeira transferida para a mochila permite reparar');
+  assert.equal(engine.state.cart.stage, 'built', '10 madeiras e 1 algodão permitem reparar');
   assert.equal(engine.state.cart.health, 75);
   assert.deepEqual(engine.state.cart.inventory, [{ itemId: 'stone', quantity: 2 }], 'reparo não deve apagar os itens que ficaram na carroça');
 
@@ -168,6 +189,15 @@ try {
   parkedCartEngine.step(0.04);
   assert.equal(parkedCartEngine.state.cart.health, 75, 'carroça parada pelo botão não pode receber dano');
   parkedCartEngine.stop();
+
+  const distantFollowingCartEngine = prepareEnemyCartScenario(true, 1540);
+  distantFollowingCartEngine.state.player.x = 2050; // jogador longe: burrinho não começa a seguir
+  distantFollowingCartEngine.step(0.04);
+  assert.equal(distantFollowingCartEngine.state.cart.health, 75, 'carroça em seguir, mas longe do jogador, não pode ser alvo');
+  distantFollowingCartEngine.state.player.x = 1670; // aproximação ativa o deslocamento do burrinho
+  distantFollowingCartEngine.step(0.04);
+  assert.equal(distantFollowingCartEngine.state.cart.health, 74, 'ao se aproximar e o burrinho começar a seguir, a carroça volta a ser alvo secundário');
+  distantFollowingCartEngine.stop();
 
   const playerPriorityEngine = prepareEnemyCartScenario(true, 1638);
   const playerPriorityStartX = playerPriorityEngine.state.enemies[0].x;
