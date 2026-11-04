@@ -1076,8 +1076,8 @@ export class GameEngine {
       // varrida do canto superior esquerdo ao inferior direito; preserva as folgas rígidas.
       const { rx, ry } = axes('small');
       const margin = CONFIG.map.wall + CONFIG.lake.wallClearance;
-      for (let y = margin + ry; y <= this.world - margin - ry && !lake; y += 80) {
-        for (let x = margin + rx; x <= this.world - margin - rx && !lake; x += 80) {
+      for (let y = margin + ry; y <= this.world - margin - ry && !lake; y += CONFIG.lake.fallbackGridStep) {
+        for (let x = margin + rx; x <= this.world - margin - rx && !lake; x += CONFIG.lake.fallbackGridStep) {
           const candidate = candidateAt('small', x, y);
           if (valid(candidate)) lake = candidate;
         }
