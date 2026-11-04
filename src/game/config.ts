@@ -13,6 +13,14 @@ export const RESOURCE_RARITY_RULES = {
 
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
+  lake: {
+    sizes: { small: { rx: 120, ry: 85 }, medium: { rx: 200, ry: 145 }, large: { rx: 320, ry: 230 } },
+    sizeWeights: { small: 1 / 3, medium: 1 / 3, large: 1 / 3 },
+    wallClearance: 120, structureClearance: 90, playerClearance: 220, placementAttempts: 400,
+    edgeBiasWorldFraction: 0.25, structurePreferenceDistance: 600, structureMinimumWeight: 0.25,
+    colliderStepMinimum: 12, colliderStepMinorAxisFactor: 0.18, colliderRadiusInset: 0.95,
+    colliderMinimumRadius: 10, steeringCircleRadiusFactor: 1.12, fallbackGridStep: 80,
+  },
   player: { radius: 18, footOffset: 40, footRadius: 12, // footOffset ≈ ladinoFeetY(player.radius)
     auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   interaction: { margin: 28, dropPickupRadius: 30 },
