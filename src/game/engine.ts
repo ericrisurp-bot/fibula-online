@@ -768,6 +768,11 @@ export class GameEngine {
     const donkeyY = donkeyPosition.y;
     const dx = feet.x - donkeyX, dy = feet.y - donkeyY;
     const distance = Math.hypot(dx, dy);
+
+    // A orientação visual depende da posição real do jogador em relação ao burrinho,
+    // nunca do facingX do personagem. Virar parado não muda o alvo nem o lado do conjunto.
+    if (Math.abs(dx) > 2) cart.facingLeft = dx < 0;
+
     if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
 
     // A direção desejada aponta do burrinho para o jogador. A rotação é limitada
@@ -909,10 +914,6 @@ export class GameEngine {
       const directionLength = Math.hypot(dx, dy) || 1;
       this.state.player.facingX = dx / directionLength;
       this.state.player.facingY = dy / directionLength;
-      // O conjunto mantém o último lado horizontal durante movimentos verticais.
-      if (Math.abs(this.state.player.facingX) > 0.12) {
-        this.state.cart.facingLeft = this.state.player.facingX < 0;
-      }
     }
     // A arma e o ponto de saída ficam no mesmo lado enquanto houver um alvo ao alcance.
     const rangedWeapon = CONFIG.weapons[this.state.weapon];
