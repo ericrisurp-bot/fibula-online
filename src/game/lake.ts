@@ -1,3 +1,5 @@
+import { CONFIG } from './config';
+
 export type LakeSize = 'small' | 'medium' | 'large';
 export type Lake = { x: number; y: number; rx: number; ry: number; size: LakeSize };
 export type LakeCircle = { x: number; y: number; radius: number };
@@ -41,12 +43,12 @@ export function distanceToLakeEdge(lake: Lake, x: number, y: number): number {
 export function lakeColliderCircles(lake: Lake): LakeCircle[] {
   const horizontal = lake.rx >= lake.ry;
   const a = Math.max(lake.rx, lake.ry), b = Math.min(lake.rx, lake.ry);
-  const step = Math.max(12, b * 0.18);
+  const step = Math.max(CONFIG.lake.colliderStepMinimum, b * CONFIG.lake.colliderStepMinorAxisFactor);
   const circles: LakeCircle[] = [];
   for (let t = -a + step; t <= a - step; t += step) {
     const radial = b * Math.sqrt(Math.max(0, 1 - (t / a) ** 2));
-    const radius = Math.min(radial, a - Math.abs(t)) * 0.95;
-    if (radius < 10) continue;
+    const radius = Math.min(radial, a - Math.abs(t)) * CONFIG.lake.colliderRadiusInset;
+    if (radius < CONFIG.lake.colliderMinimumRadius) continue;
     circles.push({ x: lake.x + (horizontal ? t : 0), y: lake.y + (horizontal ? 0 : t), radius });
   }
   return circles;
@@ -55,7 +57,7 @@ export function lakeColliderCircles(lake: Lake): LakeCircle[] {
 export function lakeSteeringCircles(lake: Lake): LakeCircle[] {
   const horizontal = lake.rx >= lake.ry;
   const a = Math.max(lake.rx, lake.ry), b = Math.min(lake.rx, lake.ry);
-  const radius = b * 1.12;
+  const radius = b * CONFIG.lake.steeringCircleRadiusFactor;
   return [-0.72, 0, 0.72].map(fraction => ({
     x: lake.x + (horizontal ? a * fraction : 0),
     y: lake.y + (horizontal ? 0 : a * fraction),
