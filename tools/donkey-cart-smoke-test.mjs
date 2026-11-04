@@ -189,7 +189,7 @@ try {
   obstacleEngine.state.trees = [];
   obstacleEngine.state.rocks = [];
   obstacleEngine.state.cottonPlants = [];
-  obstacleEngine.state.house.x = 1660; obstacleEngine.state.house.y = 1499;
+  obstacleEngine.state.house.x = 1680; obstacleEngine.state.house.y = 1499;
   obstacleEngine.state.refinery.x = 300; obstacleEngine.state.refinery.y = obstacleEngine.world - 300;
   obstacleEngine.state.tecelaria.x = obstacleEngine.world - 300; obstacleEngine.state.tecelaria.y = 300;
   obstacleEngine.state.player.x = 1800; obstacleEngine.state.player.y = 1460;
