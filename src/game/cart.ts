@@ -389,7 +389,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   // A pose física continua pertencendo ao conjunto; não há eixo/varal desenhado
   // nem um segundo sprite posicionado por uma distância independente.
   const donkeyX = 30;
-  const donkeyY = 2;
+  const donkeyY = -5;
 
   ctx.save();
   ctx.translate(x, y);
