@@ -777,7 +777,7 @@ export class GameEngine {
     const targetFacingAngle = cart.facingLeft ? Math.PI : 0;
     const currentFacingAngle = cart.facingAngle ?? (cart.facingLeft ? Math.PI : 0);
     const facingError = ((targetFacingAngle - currentFacingAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-    const facingStep = CONFIG.donkey.turnSpeed * dt;
+    const facingStep = Math.PI * dt;
     cart.facingAngle = currentFacingAngle + Math.max(-facingStep, Math.min(facingStep, facingError));
 
     // Perto do conjunto, só anima a virada visual: posição e pose física ficam intactas.
