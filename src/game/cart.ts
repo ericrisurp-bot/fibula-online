@@ -255,8 +255,7 @@ function drawDonkey(
   if (side) {
     // Perfil: a arte permanece em pé; esquerda é apenas espelhamento horizontal.
     ctx.save();
-    const profileScale = 0.55 + 0.45 * Math.max(0, Math.min(1, (horizontal - 0.72) / 0.28));
-    ctx.scale((facingLeft ? -1 : 1) * profileScale, 1);
+    ctx.scale(facingLeft ? -1 : 1, 1);
     // Pernas distantes primeiro, mais escuras e ligeiramente recuadas.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 8;
