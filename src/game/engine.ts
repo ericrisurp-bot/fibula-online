@@ -766,7 +766,8 @@ export class GameEngine {
     // de uma árvore, pedra ou construção, procura uma diagonal que preserve espaço para virar.
     const preferredSide = Math.sin(targetAngle - cart.angle) >= 0 ? 1 : -1;
     const offsets = [0, preferredSide * 0.35, -preferredSide * 0.35, preferredSide * 0.7, -preferredSide * 0.7,
-      preferredSide * 1.05, -preferredSide * 1.05, preferredSide * 1.35, -preferredSide * 1.35];
+      preferredSide * 1.05, -preferredSide * 1.05, preferredSide * 1.35, -preferredSide * 1.35,
+      preferredSide * 1.55, -preferredSide * 1.55];
     const candidates: Array<{ x: number; y: number; angle: number; cartX: number; cartY: number; clearance: number; progress: number }> = [];
 
     for (const offset of offsets) {
@@ -774,7 +775,7 @@ export class GameEngine {
       const moveX = Math.cos(heading), moveY = Math.sin(heading);
       const progress = moveX * directionX + moveY * directionY;
       // Nunca recua: até a manobra lateral precisa continuar avançando em direção ao jogador.
-      if (progress < 0.15) continue;
+      if (progress < 0.01) continue;
       const nextDonkeyX = donkeyX + moveX * travel;
       const nextDonkeyY = donkeyY + moveY * travel;
       let angleDelta = ((heading - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
@@ -806,13 +807,14 @@ export class GameEngine {
           || (Math.abs(candidate.progress - best.progress) <= 0.0001 && candidate.clearance > best.clearance)
           ? candidate : best
       );
-    } else if (currentClearance < CONFIG.donkey.obstacleClearance) {
-      // Se já estava encurralado, permite apenas uma manobra sem colisão que aumente a folga.
+    } else {
+      // Na borda da zona de segurança, aceita uma tangente quase lateral que não
+      // reduza materialmente a folga; isso permite começar a contornar sem recuar.
       selected = candidates
-        .filter(candidate => candidate.clearance > currentClearance + 0.01)
+        .filter(candidate => candidate.clearance >= currentClearance - travel * 0.05)
         .reduce<typeof candidates[number] | undefined>((best, candidate) =>
           !best || candidate.clearance > best.clearance
-            || (candidate.clearance === best.clearance && candidate.progress > best.progress)
+            || (Math.abs(candidate.clearance - best.clearance) <= 0.01 && candidate.progress > best.progress)
             ? candidate : best, undefined);
     }
     if (!selected) return;
