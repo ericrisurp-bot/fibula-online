@@ -147,80 +147,6 @@ function drawSide(ctx: CanvasRenderingContext2D, c: CartDrawState, rot: number) 
   ctx.restore();
 }
 
-// ---------- vista de cima (alça para cima se movingUp, para baixo caso contrário) ----------
-function drawTop(ctx: CanvasRenderingContext2D, c: CartDrawState, movingUp: boolean, rot: number) {
-  const built = c.stage === 'built';
-  const planksOn = built ? 4 : 0;
-  const dir = movingUp ? -1 : 1;                 // lado da alça (onde está o jogador)
-
-  const handle = () => {
-    for (const sx of [-1, 1]) {
-      poly(ctx, [[sx * 14 - 2.2, dir * 28], [sx * 14 + 2.2, dir * 28], [sx * 13 + 2.2, dir * 50], [sx * 13 - 2.2, dir * 50]], W.d3, W.line, 0.9);
-      poly(ctx, [[sx * 14 - 2.2, dir * 28], [sx * 14 - 0.6, dir * 28], [sx * 13 - 0.6, dir * 50], [sx * 13 - 2.2, dir * 50]], W.d5, null);
-    }
-    poly(ctx, [[-17, dir * 50 - 2.6], [17, dir * 50 - 2.6], [17, dir * 50 + 2.6], [-17, dir * 50 + 2.6]], W.d4, W.line, 0.9);
-    poly(ctx, [[-17, dir * 50 - 2.6], [17, dir * 50 - 2.6], [17, dir * 50 - 1], [-17, dir * 50 - 1]], W.d6, null);
-    for (const sx of [-1, 1]) poly(ctx, [[sx * 17 - 2, dir * 50 - 3], [sx * 17 + 2, dir * 50 - 3], [sx * 17 + 2, dir * 50 + 3], [sx * 17 - 2, dir * 50 + 3]], W.m1, W.line, 0.7);
-  };
-  if (movingUp) handle();
-
-  // rodas laterais (lâminas finas com banda de rodagem animada)
-  for (const sx of [-1, 1]) {
-    const cx = sx * 35;
-    poly(ctx, [[cx - 4.5, -10], [cx + 4.5, -10], [cx + 4.5, 20], [cx - 4.5, 20]], W.m0, W.line, 1);
-    poly(ctx, [[cx - 3, -9], [cx + 3, -9], [cx + 3, 19], [cx - 3, 19]], W.d1, null);
-    ctx.save(); ctx.beginPath(); ctx.rect(cx - 3, -9, 6, 28); ctx.clip();
-    const phase = ((rot * 17) % 7 + 7) % 7;
-    ctx.strokeStyle = W.d4; ctx.lineWidth = 1.5;
-    for (let y = -9 + phase - 7; y < 19; y += 7) { ctx.beginPath(); ctx.moveTo(cx - 3, y); ctx.lineTo(cx + 3, y); ctx.stroke(); }
-    ctx.restore();
-    poly(ctx, [[cx - 1.2, -11], [cx + 1.2, -11], [cx + 1.2, 21], [cx - 1.2, 21]], W.m1, null);
-  }
-
-  // parede distante (lado oposto ao da alça fica atrás; usamos a de cima como "fundo")
-  poly(ctx, [[-27, -31], [27, -31], [30, -26], [-30, -26]], W.d3, W.line, 0.9);
-  // interior da caixa
-  poly(ctx, [[-30, -26], [30, -26], [28, 18], [-28, 18]], W.d0, W.line, 0.9);
-  const rows = 5;
-  for (let i = 0; i < rows; i++) {
-    const y0 = -26 + i * (44 / rows), y1 = y0 + 44 / rows;
-    const on = built || (rows - 1 - i) < planksOn + 1;
-    if (!on) continue;
-    const l0 = -30 + (y0 + 26) * (2 / 44), l1 = -30 + (y1 + 26) * (2 / 44);
-    poly(ctx, [[l0 + 2, y0 + 0.5], [-l0 - 2, y0 + 0.5], [-l1 - 2, y1 - 0.5], [l1 + 2, y1 - 0.5]], i % 2 ? W.d2 : W.d1, W.d0, 0.8);
-  }
-  // paredes laterais (espessura vista de cima)
-  for (const sx of [-1, 1]) {
-    poly(ctx, [[sx * 30, -26], [sx * 24.5, -24], [sx * 23.5, 17], [sx * 28, 18]], built ? W.d3 : W.d2, W.line, 0.9);
-    poly(ctx, [[sx * 30, -26], [sx * 27.5, -25], [sx * 26.5, 17.5], [sx * 28, 18]], built ? W.d5 : W.d3, null);
-  }
-
-  // carga
-  const l = loadFraction(c);
-  if (built && l > 0) {
-    const s = 0.4 + 0.6 * l;
-    poly(ctx, [[-20 * s, 8], [-16 * s, -8 * s - 6], [0, -14 * s - 8], [16 * s, -8 * s - 6], [20 * s, 8]], W.d3, W.line, 0.9);
-    poly(ctx, [[-16 * s, -8 * s - 6], [0, -14 * s - 8], [0, 8], [-20 * s, 8]], W.d4, W.line, 0.8);
-    poly(ctx, [[0, -14 * s - 8], [16 * s, -8 * s - 6], [20 * s, 8], [0, 8]], W.d2, W.line, 0.8);
-  }
-
-  // parede próxima (face frontal) e borda
-  poly(ctx, [[-30, 18], [30, 18], [27, 31], [-27, 31]], built ? W.d4 : W.d2, W.line, 1);
-  if (built) {
-    poly(ctx, [[-30, 18], [30, 18], [29, 21], [-29, 21]], W.d6, null);
-    poly(ctx, [[-29, 24.5], [29, 24.5], [28.4, 27], [-28.4, 27]], W.m1, W.line, 0.7);
-    for (const rx of [-22, -8, 8, 22]) rivet(ctx, rx, 25.8, 1);
-    ctx.strokeStyle = 'rgba(40,22,10,.55)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-10, 19); ctx.lineTo(-10, 31); ctx.moveTo(10, 19); ctx.lineTo(10, 31); ctx.stroke();
-  } else if (planksOn < 4) {
-    ctx.fillStyle = W.d0; ctx.fillRect(-14, 18, 28, 13);                         // rombo (falta tábua)
-  }
-  // cantoneiras de ferro
-  if (built) for (const sx of [-1, 1]) poly(ctx, [[sx * 30, -27], [sx * 24, -26], [sx * 24, -21], [sx * 30, -22]], W.m1, W.line, 0.7);
-
-  if (!movingUp) handle();
-}
-
 function drawDonkey(
   ctx: CanvasRenderingContext2D,
   time: number,
@@ -232,7 +158,7 @@ function drawDonkey(
 ) {
   const bob = moving && !broken ? Math.sin(wheelPhase * 2) * 1.1 : Math.sin(time * 2.1) * 1.2;
   const gait = moving && !broken ? wheelPhase : 0;
-  // Quatro orientações: perfil apenas na horizontal direta; diagonais escolhem cima/baixo.
+  // Perfil lateral permanente; o conjunto só espelha entre esquerda e direita.
   const side = true;
   const facingLeft = facingLeftOverride ?? Math.cos(angle) < 0;
   const facingDown = Math.sin(angle) > 0;
