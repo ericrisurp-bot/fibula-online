@@ -803,6 +803,7 @@ export class GameEngine {
       x: this.clamp(feet.x + 60, margin, this.world - margin),
       y: this.clamp(feet.y, margin, this.world - margin),
       angle: Math.PI,
+      facingLeft: this.state.player.facingX < 0,
       wheelPhase: 0,
       following: true,
       stage: 'broken',
