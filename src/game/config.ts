@@ -40,10 +40,10 @@ export const CONFIG = {
   gathering: { baseInterval: 0.9, toolAnimationDuration: 0.55, rangeAspect: 1.4 },
   tecelaria: { buildCostBronze: 2, buildCostWood: 50, buildCostCotton: 10, buildCostStone: 10, interactRadius: 104, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03 },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
-  house: { buildCost: 30, interactRadius: 100, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
+  house: { buildCost: 30, interactRadius: 100, cartDeliveryRadius: 260, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   refinery: { buildCostWood: 40, buildCostStone: 30, interactRadius: 100, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, bronzeChance: 0.02, processInterval: 2, stoneCapacity: 10, stoneSlotCapacity: 5 },
   // O burrinho mantém velocidade fixa de 60% da velocidade-base do jogador: 87 unidades/s.
-  donkey: { visionRange: 300, stopDistance: 75, cartDistance: 60, collisionRadius: 25, wheelRadius: 17, turnSpeed: Math.PI * 4 },
+  donkey: { visionRange: 300, stopDistance: 100, obstacleClearance: 100, cartDistance: 60, collisionRadius: 25, wheelRadius: 17, turnSpeed: Math.PI * 4 },
   cart: { maxHealth: 75, interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, unloadedPullSpeed: 87, followDistance: 62, tetherDistance: 76, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
   flags: {
     colors: [

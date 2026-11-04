@@ -387,7 +387,9 @@ export class GameEngine {
     if (this.state.dead || house.built) return;
 
     const playerNearHouse = Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) <= CONFIG.house.interactRadius;
-    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
+    // O jogador continua interagindo a 100 unidades; a carroça pode entregar
+    // materiais a 260 (100 de interação + 100 de parada do burrinho + 60 do engate).
+    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.cartDeliveryRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNearHouse : cartNearHouse;
     if (!playerNearHouse) return;
 
@@ -672,7 +674,7 @@ export class GameEngine {
     if (this.state.dead || !this.state.house.built) return;
     const house = this.state.house;
     if (Math.hypot(playerFeet(this.state.player).x - house.x, playerFeet(this.state.player).y - house.y) > CONFIG.house.interactRadius) return;
-    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.interactRadius;
+    const cartNearHouse = Math.hypot(this.state.cart.x - house.x, this.state.cart.y - house.y) <= CONFIG.house.cartDeliveryRadius;
     const store = (items: InventoryStack[]) => {
       const remaining: InventoryStack[] = [];
       for (const stack of items) {
@@ -731,7 +733,7 @@ export class GameEngine {
     this.state.inventory = result.inventory;
     this.emit();
   }
-  /** O burrinho traciona; a carroça mantém uma ligação rígida e não calcula alvo próprio. */
+  /** O burrinho traciona; a carroça mantém ligação rígida e contorna obstáculos com folga. */
   private updateDonkeyCart(dt: number) {
     const cart = this.state.cart;
     if (cart.stage !== 'built' || !cart.following || dt <= 0) return;
@@ -743,28 +745,73 @@ export class GameEngine {
     if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
     const travel = Math.min(distance - CONFIG.donkey.stopDistance, CONFIG.cart.unloadedPullSpeed * dt);
     if (travel <= 0) return;
+
     const directionX = dx / distance, directionY = dy / distance;
-    const nextDonkeyX = donkeyX + directionX * travel;
-    const nextDonkeyY = donkeyY + directionY * travel;
-    const targetAngle = Math.atan2(directionY, directionX);
-    let angleDelta = ((targetAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+    let steerX = directionX;
+    let steerY = directionY;
+    const obstacles = this.obstacleCircles(true);
+    // O sensor inclui a folga desejada e o comprimento do engate, para iniciar a curva
+    // antes de a carroça chegar perto demais da casinha, árvores, pedras ou plantas.
+    for (const obstacle of obstacles) {
+      const offsetX = obstacle.x - donkeyX;
+      const offsetY = obstacle.y - donkeyY;
+      const forward = offsetX * directionX + offsetY * directionY;
+      const lateral = Math.abs(offsetX * directionY - offsetY * directionX);
+      const requiredClearance = CONFIG.donkey.collisionRadius + obstacle.radius + CONFIG.donkey.obstacleClearance;
+      const sensorDistance = requiredClearance + CONFIG.donkey.cartDistance;
+      if (forward <= 0 || forward > sensorDistance || lateral > requiredClearance) continue;
+
+      const cross = directionX * offsetY - directionY * offsetX;
+      // Se o obstáculo está exatamente à frente, escolhe um lado determinístico
+      // e mantém a curva pelo sinal da posição relativa nos quadros seguintes.
+      const side = Math.abs(cross) > 1 ? (cross > 0 ? -1 : 1) : (directionX >= 0 ? 1 : -1);
+      const urgency = 1 - forward / sensorDistance;
+      const strength = 3 + urgency * 2;
+      steerX += -directionY * side * strength;
+      steerY += directionX * side * strength;
+    }
+
+    const steerMagnitude = Math.hypot(steerX, steerY) || 1;
+    steerX /= steerMagnitude;
+    steerY /= steerMagnitude;
+    const targetAngle = Math.atan2(steerY, steerX);
     const maxTurn = CONFIG.donkey.turnSpeed * dt;
-    angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
-    const nextAngle = cart.angle + angleDelta;
-    const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
-    const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
-    const candidateDonkey = { x: nextDonkeyX, y: nextDonkeyY };
-    const candidateCart = { x: nextCartX, y: nextCartY };
-    this.resolveObstacleCollisions(candidateDonkey, CONFIG.donkey.collisionRadius, true);
-    this.resolveObstacleCollisions(candidateCart, CONFIG.cart.collisionRadius, true);
-    if (Math.hypot(candidateDonkey.x - nextDonkeyX, candidateDonkey.y - nextDonkeyY) > 0.01
-      || Math.hypot(candidateCart.x - nextCartX, candidateCart.y - nextCartY) > 0.01) return;
+    const obstaclesWithoutCart = obstacles;
+    const clearanceAt = (x: number, y: number, radius: number) => {
+      let clearance = Infinity;
+      for (const obstacle of obstaclesWithoutCart) {
+        clearance = Math.min(clearance, Math.hypot(x - obstacle.x, y - obstacle.y) - radius - obstacle.radius);
+      }
+      return clearance;
+    };
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
-    if (nextCartX < margin || nextCartY < margin || nextCartX > this.world - margin || nextCartY > this.world - margin) return;
-    cart.x = nextCartX;
-    cart.y = nextCartY;
-    cart.angle = nextAngle;
-    cart.wheelPhase = (cart.wheelPhase + travel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
+
+    // Tenta o passo completo; se o giro do engate ainda tocar algo, reduz o passo
+    // para parar suavemente antes da colisão em vez de travar o conjunto para sempre.
+    for (const fraction of [1, 0.5, 0.25, 0.125]) {
+      const actualTravel = travel * fraction;
+      const nextDonkeyX = donkeyX + steerX * actualTravel;
+      const nextDonkeyY = donkeyY + steerY * actualTravel;
+      let angleDelta = ((targetAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
+      const nextAngle = cart.angle + angleDelta;
+      const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
+      const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
+      if (nextDonkeyX < CONFIG.map.wall + CONFIG.donkey.collisionRadius
+        || nextDonkeyY < CONFIG.map.wall + CONFIG.donkey.collisionRadius
+        || nextDonkeyX > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
+        || nextDonkeyY > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
+        || nextCartX < margin || nextCartY < margin
+        || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
+      if (clearanceAt(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius) < 0
+        || clearanceAt(nextCartX, nextCartY, CONFIG.cart.collisionRadius) < 0) continue;
+
+      cart.x = nextCartX;
+      cart.y = nextCartY;
+      cart.angle = nextAngle;
+      cart.wheelPhase = (cart.wheelPhase + actualTravel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
+      return;
+    }
   }
   private placeCart() {
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;

@@ -59,8 +59,8 @@ try {
   cart.angle = Math.PI; cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - CONFIG.donkey.stopDistance; cart.y = feetY;
   const stopped = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
-  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, stopped, 'a 75 unidades o conjunto deve parar');
-  // Se o personagem se aproxima para dentro dos 75, o burrinho não recua.
+  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, stopped, 'a 100 unidades o conjunto deve parar');
+  // Se o personagem se aproxima para dentro dos 100, o burrinho não recua.
   cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - 40; cart.y = feetY; cart.angle = Math.PI;
   const closeRange = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
@@ -70,6 +70,58 @@ try {
   engine.step(0.04);
   assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, outOfSight, 'fora dos 300 de visão deve parar');
   engine.stop();
+
+  assert.equal(CONFIG.donkey.stopDistance, 100, 'burrinho deve manter 100 unidades de distância do jogador');
+  assert.equal(CONFIG.donkey.obstacleClearance, 100, 'rota deve preservar 100 unidades de folga dos obstáculos');
+
+  const obstacleEngine = new GameEngine(() => {}, { headless: true, seed: 20261104 });
+  obstacleEngine.hordeTarget = 0;
+  obstacleEngine.state.trees = []; obstacleEngine.state.rocks = []; obstacleEngine.state.cottonPlants = [];
+  obstacleEngine.state.house.x = 1100; obstacleEngine.state.house.y = 1000;
+  obstacleEngine.state.refinery.x = 300; obstacleEngine.state.refinery.y = 300;
+  obstacleEngine.state.tecelaria.x = obstacleEngine.world - 300; obstacleEngine.state.tecelaria.y = obstacleEngine.world - 300;
+  obstacleEngine.state.player.x = 1200; obstacleEngine.state.player.y = 960;
+  obstacleEngine.state.cart.x = 840; obstacleEngine.state.cart.y = 1000;
+  obstacleEngine.state.cart.angle = 0; obstacleEngine.state.cart.stage = 'built';
+  obstacleEngine.state.cart.health = 75; obstacleEngine.state.cart.following = true; obstacleEngine.state.cart.carried = false;
+  const obstacleCartStart = { x: obstacleEngine.state.cart.x, y: obstacleEngine.state.cart.y };
+  for (let frame = 0; frame < 40; frame++) obstacleEngine.step(0.04);
+  const obstacleDonkeyX = obstacleEngine.state.cart.x + Math.cos(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
+  const obstacleDonkeyY = obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
+  assert.ok(Math.hypot(obstacleEngine.state.cart.x - obstacleCartStart.x, obstacleEngine.state.cart.y - obstacleCartStart.y) > 1, 'carroça deve continuar avançando e contornando a casinha em vez de travar no primeiro bloqueio');
+  assert.ok(Math.abs(Math.hypot(obstacleDonkeyX - obstacleEngine.state.cart.x, obstacleDonkeyY - obstacleEngine.state.cart.y) - CONFIG.donkey.cartDistance) < 1e-6, 'manobra deve preservar o engate rígido do burrinho');
+  const donkeyHouseClearance = Math.hypot(obstacleDonkeyX - obstacleEngine.state.house.x, obstacleDonkeyY - obstacleEngine.state.house.y) - CONFIG.donkey.collisionRadius - 38;
+  const cartHouseClearance = Math.hypot(obstacleEngine.state.cart.x - obstacleEngine.state.house.x, obstacleEngine.state.cart.y - obstacleEngine.state.house.y) - CONFIG.cart.collisionRadius - 38;
+  assert.ok(donkeyHouseClearance >= CONFIG.donkey.obstacleClearance, 'burrinho deve contornar a casinha mantendo 100 unidades de folga');
+  assert.ok(cartHouseClearance >= CONFIG.donkey.obstacleClearance, 'carroça deve contornar a casinha mantendo 100 unidades de folga');
+  assert.ok(obstacleEngine.state.cart.y !== obstacleCartStart.y, 'rota alternativa deve permitir manobra lateral diante do obstáculo');
+  obstacleEngine.stop();
+
+  const houseBuildEngine = new GameEngine(() => {}, { headless: true, seed: 20261104 });
+  houseBuildEngine.hordeTarget = 0;
+  houseBuildEngine.state.house.built = false;
+  houseBuildEngine.state.house.woodDelivered = 0;
+  houseBuildEngine.state.house.x = houseBuildEngine.state.player.x + 50;
+  houseBuildEngine.state.house.y = houseBuildEngine.state.player.y + CONFIG.player.footOffset;
+  houseBuildEngine.state.player.x = houseBuildEngine.state.house.x - 50;
+  houseBuildEngine.state.player.y = houseBuildEngine.state.house.y - CONFIG.player.footOffset;
+  houseBuildEngine.state.inventory = [];
+  houseBuildEngine.state.cart.stage = 'built';
+  houseBuildEngine.state.cart.carried = false;
+  houseBuildEngine.state.cart.x = houseBuildEngine.state.house.x + CONFIG.house.cartDeliveryRadius - 1;
+  houseBuildEngine.state.cart.y = houseBuildEngine.state.house.y;
+  houseBuildEngine.state.cart.inventory = [{ itemId: 'wood', quantity: CONFIG.house.buildCost }];
+  houseBuildEngine.buildHouse();
+  assert.equal(houseBuildEngine.state.house.built, true, 'materiais da carroça devem construir a casa dentro do alcance ampliado de entrega');
+  assert.deepEqual(houseBuildEngine.state.cart.inventory, [], 'madeira usada na construção deve ser consumida da carroça');
+  houseBuildEngine.state.house.built = false;
+  houseBuildEngine.state.house.woodDelivered = 0;
+  houseBuildEngine.state.cart.x = houseBuildEngine.state.house.x + CONFIG.house.cartDeliveryRadius + 1;
+  houseBuildEngine.state.cart.inventory = [{ itemId: 'wood', quantity: CONFIG.house.buildCost }];
+  houseBuildEngine.buildHouse();
+  assert.equal(houseBuildEngine.state.house.built, false, 'carroça além do alcance de entrega não deve fornecer materiais');
+  assert.equal(houseBuildEngine.state.cart.inventory[0].quantity, CONFIG.house.buildCost, 'materiais fora do alcance devem permanecer na carroça');
+  houseBuildEngine.stop();
 
   const initial = createDonkeyCartState(120, 240, 75, [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }]);
   assert.equal(initial.stage, 'broken');
