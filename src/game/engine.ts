@@ -4,7 +4,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
-import { constructDonkeyCart, damageDonkeyCart, getDonkeyCartDonkeyPosition, type DonkeyCartState } from './donkeyCart';
+import { constructDonkeyCart, damageDonkeyCart, getDonkeyCartAssemblyCollisionParts, getDonkeyCartDonkeyPosition, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
@@ -732,6 +732,32 @@ export class GameEngine {
     this.state.inventory = result.inventory;
     this.emit();
   }
+  /** Valida o colisor composto sem deslocar peças: ou a pose inteira cabe, ou nada se move. */
+  private canPlaceDonkeyCartAssembly(pose: Pick<DonkeyCartState, 'x' | 'y' | 'angle'>): boolean {
+    const parts = getDonkeyCartAssemblyCollisionParts(
+      pose,
+      CONFIG.donkey.cartDistance,
+      CONFIG.donkey.collisionRadius,
+      CONFIG.cart.collisionRadius,
+    );
+    const cartMargin = CONFIG.map.wall + CONFIG.cart.wallMargin;
+    const obstacles = this.obstacleCircles(true);
+
+    return parts.every((part, index) => {
+      const margin = index === 0 ? cartMargin : CONFIG.map.wall + part.radius;
+      if (
+        part.x < margin
+        || part.y < margin
+        || part.x > this.world - margin
+        || part.y > this.world - margin
+      ) return false;
+
+      return obstacles.every(obstacle =>
+        Math.hypot(part.x - obstacle.x, part.y - obstacle.y) >= part.radius + obstacle.radius
+      );
+    });
+  }
+
   /** Atualiza uma única pose rígida: o burrinho é o ponto dianteiro e a carroça o ponto traseiro do mesmo conjunto. */
   private updateDonkeyCartAssembly(dt: number) {
     const cart = this.state.cart;
@@ -761,17 +787,13 @@ export class GameEngine {
     const nextDonkeyY = donkeyY + Math.sin(nextAngle) * travel;
     const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
     const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
-    const candidateDonkey = { x: nextDonkeyX, y: nextDonkeyY };
-    const candidateCart = { x: nextCartX, y: nextCartY };
-    this.resolveObstacleCollisions(candidateDonkey, CONFIG.donkey.collisionRadius, true);
-    this.resolveObstacleCollisions(candidateCart, CONFIG.cart.collisionRadius, true);
-    if (Math.hypot(candidateDonkey.x - nextDonkeyX, candidateDonkey.y - nextDonkeyY) > 0.01
-      || Math.hypot(candidateCart.x - nextCartX, candidateCart.y - nextCartY) > 0.01) return;
-    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
-    if (nextCartX < margin || nextCartY < margin || nextCartX > this.world - margin || nextCartY > this.world - margin) return;
-    cart.x = nextCartX;
-    cart.y = nextCartY;
-    cart.angle = nextAngle;
+    const nextPose = { x: nextCartX, y: nextCartY, angle: nextAngle };
+    if (!this.canPlaceDonkeyCartAssembly(nextPose)) return;
+
+    // A única pose é aplicada de uma vez; os dois círculos abaixo são só o colisor composto.
+    cart.x = nextPose.x;
+    cart.y = nextPose.y;
+    cart.angle = nextPose.angle;
     cart.wheelPhase = (cart.wheelPhase + travel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
   }
   private placeCart() {
