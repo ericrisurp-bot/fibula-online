@@ -119,7 +119,7 @@ try {
   assert.deepEqual(alreadyBuilt.inventory, [{ itemId: 'wood', quantity: 1 }]);
 
   const engineCart = engine.state.cart;
-  engineCart.stage = 'built'; engineCart.health = 75; engineCart.maxHealth = 75; engineCart.following = true;
+  engineCart.stage = 'built'; engineCart.health = 75; engineCart.maxHealth = 75; engineCart.everBuilt = true; engineCart.following = true;
   engineCart.inventory = [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }];
   for (let hit = 0; hit < 75; hit++) engine.damageCartFromEnemyHit();
   assert.equal(engine.state.cart.stage, 'broken', '75 impactos do engine devem quebrar a carroça');
