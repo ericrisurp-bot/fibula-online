@@ -319,8 +319,77 @@ function drawDonkey(
     poly(ctx, [[8, -7], [15, -5], [17, 0], [10, 2]], W.d2, outline, .8);
     rivet(ctx, 13, -2, 1);
     ctx.restore();
+  } else if (frontView) {
+    // Vista frontal e 3/4 descendo: quadril junto à carroça, cabeça voltada para baixo.
+    const depth = diagonal ? 0.82 + 0.18 * Math.max(0, Math.min(1, (vertical - 0.69) / 0.25)) : 1;
+    ctx.save(); ctx.scale(diagonal && facingLeft ? -depth : depth, 1);
+
+    // 1) Cauda e quadril ficam no alto, atrás do tronco.
+    ctx.strokeStyle = W.d1; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-11, -11); ctx.quadraticCurveTo(-17 + Math.sin(gait) * 2, -18, -18, -23); ctx.stroke();
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-18, -21); ctx.lineTo(-21, -25); ctx.stroke();
+
+    // 2) Tronco largo, com luz superior e planos laterais.
+    ctx.fillStyle = coatDark; ctx.strokeStyle = outline; ctx.lineWidth = contour;
+    ctx.beginPath(); ctx.ellipse(0, -2, 18, 17, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    poly(ctx, [[-16, -9], [-13, -16], [-7, -19], [7, -19], [14, -13], [17, -4], [14, 8], [7, 14], [-8, 14], [-15, 8]], coatMid, null);
+    poly(ctx, [[-14, -10], [-10, -17], [-2, -18], [0, 10], [-10, 8]], coatLight, null);
+    poly(ctx, [[1, -18], [9, -16], [15, -8], [13, 9], [2, 13]], W.d2, null);
+
+    // 3) Pernas traseiras nas laterais do tronco.
+    for (let i = 0; i < 2; i++) {
+      const x = i === 0 ? -12 : 12;
+      const swing = moving && !broken ? Math.sin(gait + i * Math.PI) * 3 : 0;
+      ctx.strokeStyle = W.d0; ctx.lineWidth = 5.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, -1); ctx.lineTo(x + swing * .4, 13); ctx.stroke();
+      poly(ctx, [[x + swing - 3.5, 11], [x + swing + 3.5, 11], [x + swing + 4, 15], [x + swing - 3, 15]], W.d0, outline, contour);
+    }
+
+    // 4) Pernas dianteiras saem do peito, abertas nas laterais da cabeça.
+    for (let i = 0; i < 2; i++) {
+      const x = i === 0 ? -12 : 12;
+      const swing = moving && !broken ? Math.sin(gait + Math.PI + i * Math.PI) * 3.5 : 0;
+      ctx.strokeStyle = coatDark; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + swing, 20); ctx.stroke();
+      ctx.strokeStyle = '#b49a75'; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(x - 1, 5); ctx.lineTo(x - 1 + swing, 17); ctx.stroke();
+      poly(ctx, [[x + swing - 4, 18], [x + swing + 4, 18], [x + swing + 4.5, 22], [x + swing - 3.5, 22]], W.d0, outline, contour);
+    }
+
+    // 5) Peitoral restrito à junção peito/pescoço; não atravessa a face.
+    ctx.strokeStyle = W.d0; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.quadraticCurveTo(0, 7, 11, 0); ctx.stroke();
+    ctx.strokeStyle = W.d5; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(0, 6, 10, 0); ctx.stroke();
+    rivet(ctx, 0, 4, 1);
+
+    // 6) Pescoço e cabeça são desenhados por cima das pernas e do peitoral.
+    const headBob = moving && !broken ? Math.sin(gait * 2) * 1.1 : Math.sin(time * 2.1) * .4;
+    ctx.save(); ctx.translate(0, 10 + headBob);
+
+    // Orelhas pertencem à cabeça: nascem acima da testa e ficam visíveis.
+    poly(ctx, [[-8, -7], [-14, -24], [-7, -21], [-2, -8]], coatMid, outline, contour);
+    poly(ctx, [[3, -8], [9, -24], [16, -19], [10, -5]], coat, outline, contour);
+    poly(ctx, [[-10, -11], [-12, -21], [-8, -18]], W.d0, null);
+    poly(ctx, [[9, -12], [13, -20], [13, -14]], W.d0, null);
+
+    // Crina entre as orelhas e descendo pelo pescoço.
+    poly(ctx, [[-5, -12], [-2, -18], [1, -13], [4, -20], [7, -12], [9, -5], [5, 1], [1, -4], [-3, 2]], W.d0, outline, contour);
+
+    // Cabeça: testa, olhos e focinho claro na extremidade inferior.
+    poly(ctx, [[-11, -10], [-13, -3], [-11, 5], [-7, 10], [0, 12], [7, 10], [11, 5], [13, -3], [10, -10], [5, -14], [-5, -14]], coatMid, outline, 1.4);
+    poly(ctx, [[-10, -8], [-6, -13], [0, -13], [0, 8], [-8, 7]], coatLight, null);
+    poly(ctx, [[1, -13], [7, -12], [11, -7], [9, 7], [2, 9]], W.d2, null);
+    ctx.fillStyle = '#171512';
+    ctx.beginPath(); ctx.arc(-6, -3, 1.5, 0, Math.PI * 2); ctx.arc(6, -3, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = W.d6; ctx.strokeStyle = outline; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(0, 7, 9, 5.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = W.d0; ctx.beginPath(); ctx.arc(0, 8, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.restore();
   } else {
-    // Vistas frontal/traseira e 3/4: o eixo do corpo fica vertical, sem virar o perfil.
+    // Vista traseira e 3/4 subindo: bloco original preservado.
     const depth = diagonal ? 0.82 + 0.18 * Math.max(0, Math.min(1, (vertical - 0.69) / 0.25)) : 1;
     ctx.save(); ctx.scale(diagonal && facingLeft ? -depth : depth, 1);
     // Pernas distantes atrás do corpo.
