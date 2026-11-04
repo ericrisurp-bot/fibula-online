@@ -6,6 +6,7 @@ import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } fr
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
+import { isInsideLake, lakeColliderCircles, lakeSteeringCircles, type Lake, type LakeCircle } from './lake';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -58,6 +59,7 @@ export type GameSnapshot = {
   house: Vec & { woodDelivered: number; built: boolean; inventory: InventoryStack[] };
   refinery: RefineryState;
   tecelaria: TecelariaState;
+  lake: Lake;
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; cottonPlants: CottonPlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
@@ -269,6 +271,8 @@ export class GameEngine {
   private headless: boolean;
   private cooperativeOptions: GameEngineOptions['cooperative'];
   private waitingForCooperativeNightRelease = false;
+  private lakeCollisionCircles: LakeCircle[] = [];
+  private lakeAvoidanceCircles: LakeCircle[] = [];
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -284,6 +288,7 @@ export class GameEngine {
     this.placeCart();
     this.placeRefinery();
     this.placeTecelaria();
+    this.placeLake();
     this.spawnInitialTrees();
     this.treeSpawnCountdown = CONFIG.trees.spawnInterval;
     this.spawnInitialRocks();
@@ -345,6 +350,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
+      lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
@@ -836,9 +842,9 @@ export class GameEngine {
     const classId = this.state.classId;
     this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
-    this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.start(); this.emit();
+    this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -1012,6 +1018,77 @@ export class GameEngine {
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
   }
 
+  private placeLake() {
+    const sizeRoll = this.random();
+    const size: Lake['size'] = sizeRoll < CONFIG.lake.sizeWeights.small ? 'small'
+      : sizeRoll < CONFIG.lake.sizeWeights.small + CONFIG.lake.sizeWeights.medium ? 'medium' : 'large';
+    const vertical = this.random() >= 0.5;
+    const structures = [
+      { x: this.state.house.x, y: this.state.house.y, radius: 38 },
+      { x: this.state.cart.x, y: this.state.cart.y, radius: 38 },
+      { x: this.state.refinery.x, y: this.state.refinery.y, radius: 38 },
+      { x: this.state.tecelaria.x, y: this.state.tecelaria.y, radius: 42 },
+    ];
+    const axes = (lakeSize: Lake['size']) => {
+      const configured = CONFIG.lake.sizes[lakeSize];
+      return { rx: vertical ? configured.ry : configured.rx, ry: vertical ? configured.rx : configured.ry };
+    };
+    const candidateAt = (lakeSize: Lake['size'], x: number, y: number): Lake => ({ x, y, ...axes(lakeSize), size: lakeSize });
+    const valid = (lake: Lake) => {
+      const margin = CONFIG.map.wall + CONFIG.lake.wallClearance;
+      if (lake.x - lake.rx < margin || lake.y - lake.ry < margin
+        || lake.x + lake.rx > this.world - margin || lake.y + lake.ry > this.world - margin) return false;
+      for (const structure of structures) {
+        const expandedX = lake.rx + structure.radius + CONFIG.lake.structureClearance;
+        const expandedY = lake.ry + structure.radius + CONFIG.lake.structureClearance;
+        const dx = (structure.x - lake.x) / expandedX, dy = (structure.y - lake.y) / expandedY;
+        if (dx * dx + dy * dy <= 1) return false;
+      }
+      return !isInsideLake(lake, this.state.player.x, this.state.player.y, CONFIG.lake.playerClearance);
+    };
+    const sample = (lakeSize: Lake['size'], weighted: boolean): Lake | null => {
+      const { rx, ry } = axes(lakeSize);
+      const margin = CONFIG.map.wall + CONFIG.lake.wallClearance;
+      const minX = margin + rx, maxX = this.world - margin - rx;
+      const minY = margin + ry, maxY = this.world - margin - ry;
+      for (let attempt = 0; attempt < CONFIG.lake.placementAttempts; attempt++) {
+        const candidate = candidateAt(lakeSize, minX + this.random() * (maxX - minX), minY + this.random() * (maxY - minY));
+        if (!valid(candidate)) continue;
+        if (weighted) {
+          const edgeDistance = Math.min(candidate.x, candidate.y, this.world - candidate.x, this.world - candidate.y);
+          const edgeT = Math.max(0, Math.min(1, 1 - edgeDistance / (CONFIG.lake.edgeBiasWorldFraction * this.world)));
+          const edgeWeight = 1 + 2 * edgeT;
+          let nearestStructure = Infinity;
+          for (const structure of structures) nearestStructure = Math.min(nearestStructure,
+            Math.hypot(candidate.x - structure.x, candidate.y - structure.y) - structure.radius);
+          const structureT = Math.max(0, Math.min(1, nearestStructure / CONFIG.lake.structurePreferenceDistance));
+          const structureWeight = CONFIG.lake.structureMinimumWeight + (1 - CONFIG.lake.structureMinimumWeight) * structureT;
+          if (this.random() >= edgeWeight * structureWeight / 3) continue;
+        }
+        return candidate;
+      }
+      return null;
+    };
+    let lake = sample(size, true) ?? sample(size, false);
+    if (!lake) lake = sample('small', false);
+    if (!lake) {
+      // Fallback determinístico: primeira célula válida de uma grade fixa de 80 unidades,
+      // varrida do canto superior esquerdo ao inferior direito; preserva as folgas rígidas.
+      const { rx, ry } = axes('small');
+      const margin = CONFIG.map.wall + CONFIG.lake.wallClearance;
+      for (let y = margin + ry; y <= this.world - margin - ry && !lake; y += 80) {
+        for (let x = margin + rx; x <= this.world - margin - rx && !lake; x += 80) {
+          const candidate = candidateAt('small', x, y);
+          if (valid(candidate)) lake = candidate;
+        }
+      }
+    }
+    if (!lake) throw new Error('Não foi possível posicionar o lago sem sobrepor uma estrutura.');
+    this.state.lake = lake;
+    this.lakeCollisionCircles = lakeColliderCircles(lake);
+    this.lakeAvoidanceCircles = lakeSteeringCircles(lake);
+  }
+
   private placeRefinery() {
     const margin = CONFIG.map.wall + CONFIG.refinery.wallMargin;
     const span = this.world - margin * 2;
@@ -1110,6 +1187,7 @@ export class GameEngine {
     if (Math.hypot(x - this.state.tecelaria.x, y - this.state.tecelaria.y) < CONFIG.tecelaria.clearRadius + 24) return false;
     if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 62) return false;
     const radius = size === 'small' ? 12 : size === 'medium' ? 18 : 24;
+    if (isInsideLake(this.state.lake, x, y, radius + 6)) return false;
     if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < radius + this.treeFootprintRadius(tree))) return false;
     if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < radius + this.rockFootprintRadius(rock))) return false;
     return this.state.cottonPlants.every(plant => {
@@ -1168,6 +1246,7 @@ export class GameEngine {
     const candidate = { x, y, size } as Tree;
     const candidateBase = this.treeBase(candidate);
     const candidateFootprint = this.treeFootprintRadius(candidate);
+    if (isInsideLake(this.state.lake, candidateBase.x, candidateBase.y, candidateFootprint + 6)) return false;
     if (this.state.rocks.some(rock => Math.hypot(candidateBase.x - rock.x, candidateBase.y - rock.y) < candidateFootprint + this.rockFootprintRadius(rock))) return false;
     const houseDistance = Math.hypot(candidateBase.x - this.state.house.x, candidateBase.y - this.state.house.y);
     if (allowNearHouse) {
@@ -1288,6 +1367,7 @@ export class GameEngine {
     if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
     if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.rocks.noSpawnRadius) return false;
     const radius = size === 'small' ? 16 : size === 'medium' ? 23 : 31;
+    if (isInsideLake(this.state.lake, x, y, radius + 6)) return false;
     if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + radius) return false;
     const refineryDistance = Math.hypot(x - this.state.refinery.x, y - this.state.refinery.y);
     if (!allowNearRefinery && refineryDistance < CONFIG.refinery.rockClearRadius + radius) return false;
@@ -1558,7 +1638,6 @@ export class GameEngine {
 
   private spawnHordeEnemy() {
     if (this.state.enemies.length >= CONFIG.dayNight.maxAlive) return false;
-    this.hordeSpawned += 1;
     const player = this.state.player;
     const margin = CONFIG.map.wall + CONFIG.enemy.radius + 8;
     let x = player.x, y = player.y;
@@ -1570,6 +1649,7 @@ export class GameEngine {
       const candidateX = player.x + Math.cos(angle) * distance;
       const candidateY = player.y + Math.sin(angle) * distance;
       if (candidateX < margin || candidateX > this.world - margin || candidateY < margin || candidateY > this.world - margin) continue;
+      if (isInsideLake(this.state.lake, candidateX, candidateY, CONFIG.enemy.radius + 6)) continue;
       x = candidateX;
       y = candidateY;
       placed = true;
@@ -1582,7 +1662,19 @@ export class GameEngine {
       const distance = Math.hypot(dx, dy) || 1;
       x = this.clamp(player.x + dx / distance * CONFIG.dayNight.spawnMinDistance, margin, this.world - margin);
       y = this.clamp(player.y + dy / distance * CONFIG.dayNight.spawnMinDistance, margin, this.world - margin);
+      if (isInsideLake(this.state.lake, x, y, CONFIG.enemy.radius + 6)) {
+        placed = false;
+        for (let scanY = margin; scanY <= this.world - margin && !placed; scanY += 80) {
+          for (let scanX = margin; scanX <= this.world - margin && !placed; scanX += 80) {
+            if (Math.hypot(scanX - player.x, scanY - player.y) < CONFIG.dayNight.spawnMinDistance
+              || isInsideLake(this.state.lake, scanX, scanY, CONFIG.enemy.radius + 6)) continue;
+            x = scanX; y = scanY; placed = true;
+          }
+        }
+      }
     }
+    if (isInsideLake(this.state.lake, x, y, CONFIG.enemy.radius + 6)) return false;
+    this.hordeSpawned += 1;
     this.state.enemies.push({ id: this.nextId++, x, y, hp: CONFIG.enemy.health + (this.state.wave - 1) * CONFIG.enemy.healthPerWave, hitWait: 0, wobble: this.random() * 8 });
     return true;
   }
@@ -1646,6 +1738,8 @@ export class GameEngine {
     const cartActivelyFollowing = this.isCartActivelyFollowing();
     const obstaclesWithCart = this.obstacleCircles(false);
     const obstaclesWithoutCart = cartActivelyFollowing ? this.obstacleCircles(true) : obstaclesWithCart;
+    const steeringWithCart = this.obstacleCircles(false, true);
+    const steeringWithoutCart = cartActivelyFollowing ? this.obstacleCircles(true, true) : steeringWithCart;
     for (const e of this.state.enemies) {
       const dx = feet.x - e.x, dy = feet.y - e.y;
       const distanceToPlayer = Math.hypot(dx, dy);
@@ -1666,7 +1760,8 @@ export class GameEngine {
       const nearPlayer = distanceToPlayer <= CONFIG.donkey.visionRange;
       const cartCanBeHit = cartActivelyFollowing && (targetsCart || nearPlayer);
       const obstacles = cartCanBeHit ? obstaclesWithoutCart : obstaclesWithCart;
-      const direction = this.enemyMovementDirection(e, targetX, targetY, obstacles);
+      const steeringObstacles = cartCanBeHit ? steeringWithoutCart : steeringWithCart;
+      const direction = this.enemyMovementDirection(e, targetX, targetY, steeringObstacles);
       e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
 
@@ -1733,7 +1828,7 @@ export class GameEngine {
     return 20 * this.treeScale(tree);
   }
 
-  private obstacleCircles(ignoreCart = false) {
+  private obstacleCircles(ignoreCart = false, useLakeSteering = false) {
     const circles: Array<Vec & { radius: number }> = this.state.trees.map(tree => ({
       ...this.treeBase(tree),
       radius: 9.6 * this.treeScale(tree),
@@ -1743,6 +1838,7 @@ export class GameEngine {
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
     circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
+    circles.push(...(useLakeSteering ? this.lakeAvoidanceCircles : this.lakeCollisionCircles));
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius });
     return circles;
   }
