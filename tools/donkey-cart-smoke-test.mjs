@@ -60,7 +60,7 @@ try {
   const stopped = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
   assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, stopped, 'a 100 unidades o conjunto deve parar');
-  // Se o personagem se aproxima para dentro dos 75, o burrinho não recua.
+  // Se o personagem se aproxima para dentro dos 100, o burrinho não recua.
   cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - 40; cart.y = feetY; cart.angle = Math.PI;
   const closeRange = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
@@ -80,7 +80,7 @@ try {
   obstacleEngine.state.house.x = 1100; obstacleEngine.state.house.y = 1000;
   obstacleEngine.state.refinery.x = 300; obstacleEngine.state.refinery.y = 300;
   obstacleEngine.state.tecelaria.x = obstacleEngine.world - 300; obstacleEngine.state.tecelaria.y = obstacleEngine.world - 300;
-  obstacleEngine.state.player.x = 1140; obstacleEngine.state.player.y = 960;
+  obstacleEngine.state.player.x = 1200; obstacleEngine.state.player.y = 960;
   obstacleEngine.state.cart.x = 840; obstacleEngine.state.cart.y = 1000;
   obstacleEngine.state.cart.angle = 0; obstacleEngine.state.cart.stage = 'built';
   obstacleEngine.state.cart.health = 75; obstacleEngine.state.cart.following = true; obstacleEngine.state.cart.carried = false;
