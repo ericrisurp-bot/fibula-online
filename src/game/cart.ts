@@ -170,7 +170,7 @@ function drawDonkey(
   if (side) {
     // Perfil: a arte permanece em pé; esquerda é apenas espelhamento horizontal.
     ctx.save();
-    ctx.scale(facingScaleX, 1);
+    ctx.scale(facingLeft ? -1 : 1, 1);
     // Pernas distantes primeiro, mais escuras e ligeiramente recuadas.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 8;
@@ -408,7 +408,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   // Espelha o conjunto inteiro uma única vez: posição e orientação do burrinho
   // e da carroça permanecem coerentes nos dois sentidos.
   ctx.save();
-  ctx.scale(facingLeft ? -1 : 1, 1);
+  ctx.scale(facingScaleX, 1);
 
   // O burrinho e a carroça compartilham a mesma transformação visual.
   // O perfil base aponta para a direita; o espelhamento externo vira ambos.
