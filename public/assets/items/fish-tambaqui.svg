@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" shape-rendering="crispEdges">
+  <g stroke="#24292a" stroke-width="4" stroke-linejoin="miter">
+    <path d="M96 64 121 42 119 64 121 86Z" fill="#887d62"/>
+    <path d="m42 39 12-18 13 13 17-7 10 23Z" fill="#c4a85e"/>
+    <path d="m45 88 8 19 16-13 15 12 10-25Z" fill="#9d8753"/>
+    <path d="M16 64 27 43 47 29 72 25 94 35 106 53 109 68 99 88 78 101 52 99 30 86Z" fill="#a99b7b"/>
+    <path d="M17 64 28 44 48 30 55 48 42 65 29 86Z" fill="#d2c39a" stroke="none"/>
+    <path d="M48 30 72 25 94 35 84 49 60 50Z" fill="#c7b47e" stroke="none"/>
+    <path d="M48 91 58 69 80 66 99 87 78 101 52 99Z" fill="#877c67" stroke="none"/>
+    <path d="M35 47 46 39 53 47 45 58Z M57 37 68 34 74 44 64 53Z M78 42 89 42 94 52 83 58Z" fill="#e1c46e" stroke="none"/>
+    <path d="M42 66 54 58 63 69 51 79Z M70 69 82 61 91 72 81 83Z" fill="#b7a06c" stroke="none"/>
+    <path d="M20 68 30 70 38 68" fill="none" stroke="#403c34" stroke-width="3"/>
+    <circle cx="31" cy="57" r="5" fill="#f1e5bd"/>
+    <circle cx="32" cy="57" r="2.5" fill="#1b2426" stroke="none"/>
+    <path d="M18 72 29 75" fill="none" stroke="#403c34" stroke-width="2"/>
+    <path d="M94 45 105 64 98 82" fill="none" stroke="#d1b36b" stroke-width="3"/>
+  </g>
+</svg>
