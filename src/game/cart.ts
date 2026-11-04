@@ -399,6 +399,24 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   ctx.fillStyle = 'rgba(8,12,9,.26)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
 
+  // Dois varais de madeira acompanham o eixo carroça→burrinho e terminam no arreio.
+  if (stage === 'built') {
+    const ux = Math.cos(angle), uy = Math.sin(angle);
+    const px = -uy, py = ux;
+    const rearX = ux * 48, rearY = uy * 48;
+    const frontX = donkeyX + ux * 7, frontY = donkeyY + uy * 7;
+    ctx.lineCap = 'round';
+    for (const side of [-1, 1]) {
+      const sx = rearX + px * side * 8, sy = rearY + py * side * 8;
+      const ex = frontX + px * side * 7, ey = frontY + py * side * 7;
+      ctx.strokeStyle = W.d0; ctx.lineWidth = 4.5;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+      ctx.strokeStyle = side < 0 ? W.d2 : W.d5; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(sx, sy - .5); ctx.lineTo(ex, ey - .5); ctx.stroke();
+      ctx.fillStyle = W.m1; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
   // O burrinho ocupa a mesma posição lógica relativa, mas sua arte nunca é girada.
   const donkeyDistance = stage === 'built' ? 70 : -68;
   const donkeyX = Math.cos(angle) * donkeyDistance;
@@ -417,23 +435,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   if (vertical) drawTop(ctx, cart, movingUp, rot);
   else { ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1); drawSide(ctx, cart, rot); ctx.restore(); }
 
-  // Dois varais de madeira acompanham o eixo carroça→burrinho e terminam no arreio.
-  if (stage === 'built') {
-    const ux = Math.cos(angle), uy = Math.sin(angle);
-    const px = -uy, py = ux;
-    const rearX = ux * 48, rearY = uy * 48;
-    const frontX = donkeyX - ux * 17, frontY = donkeyY - uy * 17;
-    ctx.lineCap = 'round';
-    for (const side of [-1, 1]) {
-      const sx = rearX + px * side * 8, sy = rearY + py * side * 8;
-      const ex = frontX + px * side * 7, ey = frontY + py * side * 7;
-      ctx.strokeStyle = W.d0; ctx.lineWidth = 4.5;
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.strokeStyle = side < 0 ? W.d2 : W.d5; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sx, sy - .5); ctx.lineTo(ex, ey - .5); ctx.stroke();
-      ctx.fillStyle = W.m1; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
-    }
-  }
+
 
   ctx.restore();
 
