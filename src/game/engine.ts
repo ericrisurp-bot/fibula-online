@@ -1594,6 +1594,11 @@ export class GameEngine {
     const p = this.state.player;
     const feet = playerFeet(p);
     const levelStats = this.getLevelStats();
+    // A lista de obstáculos depende apenas do cenário e do estado do carrinho neste frame.
+    // Reutilizá-la evita reconstruir árvores/pedras/plantas para cada slime.
+    const cartActivelyFollowing = this.isCartActivelyFollowing();
+    const obstaclesWithCart = this.obstacleCircles(false);
+    const obstaclesWithoutCart = cartActivelyFollowing ? this.obstacleCircles(true) : obstaclesWithCart;
     for (const e of this.state.enemies) {
       const dx = feet.x - e.x, dy = feet.y - e.y;
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
@@ -1604,8 +1609,8 @@ export class GameEngine {
       // O alvo de movimento continua sendo sempre o jogador. A carroça só deixa de ser
       // obstáculo para este slime quando ele já está próximo do jogador e ela está seguindo.
       const nearPlayer = Math.hypot(dx, dy) <= CONFIG.donkey.visionRange;
-      const cartCanBeHit = nearPlayer && this.isCartActivelyFollowing();
-      const obstacles = this.obstacleCircles(cartCanBeHit);
+      const cartCanBeHit = nearPlayer && cartActivelyFollowing;
+      const obstacles = cartCanBeHit ? obstaclesWithoutCart : obstaclesWithCart;
       const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
       e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
@@ -1631,7 +1636,7 @@ export class GameEngine {
     this.separateEnemies();
     for (const enemy of this.state.enemies) {
       const nearPlayer = Math.hypot(feet.x - enemy.x, feet.y - enemy.y) <= CONFIG.donkey.visionRange;
-      const obstacles = this.obstacleCircles(nearPlayer && this.isCartActivelyFollowing());
+      const obstacles = nearPlayer && cartActivelyFollowing ? obstaclesWithoutCart : obstaclesWithCart;
       this.resolveObstacleCollisions(enemy, CONFIG.enemy.radius, false, obstacles);
       this.resolveRockBoxCollisions(enemy);
     }
