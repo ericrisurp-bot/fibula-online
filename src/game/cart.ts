@@ -817,6 +817,12 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
 
 
   if (stage === 'built') {
+    if (nearby) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 4);
+      ctx.beginPath(); ctx.ellipse(0, 4, 62 + pulse * 4, 38 + pulse * 3, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(210,180,125,${0.07 + pulse * 0.06})`; ctx.fill();
+      ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
+    }
     drawDonkeyCartRig(
       ctx,
       angle,
