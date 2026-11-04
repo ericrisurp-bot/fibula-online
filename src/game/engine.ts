@@ -4,7 +4,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
-import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
+import { constructDonkeyCart, damageDonkeyCart, getDonkeyCartDonkeyPosition, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 
 type Vec = { x: number; y: number };
@@ -626,8 +626,9 @@ export class GameEngine {
   toggleCart() {
     const cart = this.state.cart;
     if (this.state.dead || cart.stage !== 'built') return;
-    const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
-    const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
+    const donkeyPosition = getDonkeyCartDonkeyPosition(cart, CONFIG.donkey.cartDistance);
+    const donkeyX = donkeyPosition.x;
+    const donkeyY = donkeyPosition.y;
     const feet = playerFeet(this.state.player);
     if (Math.hypot(feet.x - donkeyX, feet.y - donkeyY) > CONFIG.cart.interactRadius) return;
     cart.following = !cart.following;
@@ -731,13 +732,14 @@ export class GameEngine {
     this.state.inventory = result.inventory;
     this.emit();
   }
-  /** O burrinho gira primeiro e só se desloca na direção em que está orientado; a carroça acompanha o eixo dos varais. */
-  private updateDonkeyCart(dt: number) {
+  /** Atualiza uma única pose rígida: o burrinho é o ponto dianteiro e a carroça o ponto traseiro do mesmo conjunto. */
+  private updateDonkeyCartAssembly(dt: number) {
     const cart = this.state.cart;
     if (cart.stage !== 'built' || !cart.following || dt <= 0) return;
     const feet = playerFeet(this.state.player);
-    const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
-    const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
+    const donkeyPosition = getDonkeyCartDonkeyPosition(cart, CONFIG.donkey.cartDistance);
+    const donkeyX = donkeyPosition.x;
+    const donkeyY = donkeyPosition.y;
     const dx = feet.x - donkeyX, dy = feet.y - donkeyY;
     const distance = Math.hypot(dx, dy);
     if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
@@ -919,7 +921,7 @@ export class GameEngine {
     } else {
       this.local.stepDistance = this.local.stepTarget * 0.4;
     }
-    this.updateDonkeyCart(dt);
+    this.updateDonkeyCartAssembly(dt);
 
     if (this.phase === 'night' && this.hordeTarget > 0) {
       const spawnWindow = CONFIG.dayNight.nightSpawnDuration;
@@ -1590,8 +1592,9 @@ export class GameEngine {
     const cart = this.state.cart;
     if (cart.stage !== 'built' || !cart.following || cart.carried) return false;
     const feet = playerFeet(this.state.player);
-    const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
-    const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
+    const donkeyPosition = getDonkeyCartDonkeyPosition(cart, CONFIG.donkey.cartDistance);
+    const donkeyX = donkeyPosition.x;
+    const donkeyY = donkeyPosition.y;
     const distance = Math.hypot(feet.x - donkeyX, feet.y - donkeyY);
     return distance > CONFIG.donkey.stopDistance && distance <= CONFIG.donkey.visionRange;
   }
