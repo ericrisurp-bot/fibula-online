@@ -501,8 +501,8 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     if (stage !== 'built') return;
     const ux = Math.cos(angle), uy = Math.sin(angle);
     const px = -uy, py = ux;
-    const startX = ux * 43, startY = uy * 43;
-    const endX = donkeyX - ux * 18, endY = donkeyY - uy * 18;
+    const startX = ux * 26, startY = uy * 26;
+    const endX = donkeyX - ux * 12, endY = donkeyY - uy * 12;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const sx = startX + px * side * 8, sy = startY + py * side * 8;
