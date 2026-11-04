@@ -9,8 +9,6 @@ export type DonkeyCartState = {
   angle: number;
   /** Último lado horizontal escolhido pelo jogador; persiste durante movimento vertical. */
   facingLeft: boolean;
-  /** Ângulo visual horizontal interpolado durante a virada no próprio eixo. */
-  facingAngle?: number;
   /** Fase acumulada das rodas, baseada na distância real percorrida. */
   wheelPhase: number;
   /** Quando falso, o conjunto fica parado até o jogador ordenar que siga. */
