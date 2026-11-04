@@ -1,4 +1,5 @@
 import { CONFIG } from './config';
+import { getDonkeyCartDonkeyPosition } from './donkeyCart';
 
 /**
  * Carrinho low-poly. Origem = centro do carrinho (cart.x, cart.y), chão em y = +20.
@@ -478,8 +479,9 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
-  const donkeyX = Math.cos(angle) * donkeyDistance;
-  const donkeyY = Math.sin(angle) * donkeyDistance + 3;
+  const donkeyPosition = getDonkeyCartDonkeyPosition(cart, donkeyDistance);
+  const donkeyX = donkeyPosition.x - x;
+  const donkeyY = donkeyPosition.y - y + 3;
 
   ctx.save();
   ctx.translate(x, y);
