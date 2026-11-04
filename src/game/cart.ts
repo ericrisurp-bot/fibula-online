@@ -310,8 +310,10 @@ function drawDonkey(
 
     // Arreio, peitoral e tiras de couro.
     ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(-14, -9); ctx.quadraticCurveTo(-9, 0, -14, 8); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(11, -11); ctx.quadraticCurveTo(17, -3, 11, 7); ctx.stroke();
     ctx.strokeStyle = '#c18b50'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(-13, -8); ctx.quadraticCurveTo(-8, 0, -13, 7); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(12, -10); ctx.quadraticCurveTo(18, -2, 12, 6); ctx.stroke();
     poly(ctx, [[8, -7], [15, -5], [17, 0], [10, 2]], '#70472c', outline, .8);
     rivet(ctx, 13, -2, 1);
@@ -342,6 +344,12 @@ function drawDonkey(
       ctx.strokeStyle = '#b49a75'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x - 1, 10); ctx.lineTo(x - 1 + swing, 18); ctx.stroke();
     }
+
+    // Arreio traseiro recebe os varais; o peitoral aparece na vista frontal.
+    ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.moveTo(-10, frontView ? -8 : 8); ctx.quadraticCurveTo(0, frontView ? -13 : 13, 10, frontView ? -8 : 8); ctx.stroke();
+    ctx.strokeStyle = '#c18b50'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-9, frontView ? -8 : 8); ctx.quadraticCurveTo(0, frontView ? -12 : 12, 9, frontView ? -8 : 8); ctx.stroke();
 
     // Cauda visível na vista traseira; peito/peitoral na vista frontal.
     if (!frontView) {
@@ -409,7 +417,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     const ux = Math.cos(angle), uy = Math.sin(angle);
     const px = -uy, py = ux;
     const rearX = ux * 48, rearY = uy * 48;
-    const frontX = donkeyX + ux * 7, frontY = donkeyY + uy * 7;
+    const frontX = donkeyX - ux * 7, frontY = donkeyY - uy * 7;
     ctx.lineCap = 'round';
     for (const side of [-1, 1]) {
       const sx = rearX + px * side * 8, sy = rearY + py * side * 8;
