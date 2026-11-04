@@ -174,11 +174,31 @@ try {
   };
 
   const movingCartEngine = prepareEnemyCartScenario(true, 1540);
+  movingCartEngine.randomState = 0x12345678; // valor determinístico acima do limiar de 10%
   const movingCartStartX = movingCartEngine.state.enemies[0].x;
   movingCartEngine.step(0.04);
-  assert.equal(movingCartEngine.state.cart.health, 74, 'slime próximo deve retirar 1 ponto da carroça enquanto ela acompanha o jogador');
-  assert.ok(movingCartEngine.state.enemies[0].x > movingCartStartX, 'slime deve continuar se deslocando em direção ao jogador, não perseguir a carroça');
+  assert.equal(movingCartEngine.state.enemies[0].cartTarget, false, 'este slime deve permanecer no grupo de 90% focado no jogador');
+  assert.equal(movingCartEngine.state.cart.health, 74, 'até um slime focado no jogador pode causar contato incidental com a carroça');
+  assert.ok(movingCartEngine.state.enemies[0].x > movingCartStartX, 'slime dos 90% deve continuar se deslocando em direção ao jogador');
   movingCartEngine.stop();
+
+  const cartTargetEngine = prepareEnemyCartScenario(true, 1540);
+  cartTargetEngine.randomState = 1; // primeiro valor pseudoaleatório fica abaixo de 10%
+  const cartTargetStartX = cartTargetEngine.state.enemies[0].x;
+  cartTargetEngine.step(0.04);
+  assert.equal(cartTargetEngine.state.enemies[0].cartTarget, true, 'um sorteio de 10% deve selecionar a carroça como alvo');
+  assert.equal(cartTargetEngine.state.cart.health, 74, 'slime selecionado deve causar 1 ponto de dano ao alcançar a carroça');
+  assert.ok(cartTargetEngine.state.enemies[0].x < cartTargetStartX, 'slime selecionado deve se mover em direção à carroça, não ao jogador');
+  cartTargetEngine.stop();
+
+  const probabilityProbe = new GameEngine(() => {}, { headless: true, seed: 20261104 });
+  probabilityProbe.randomState = 0x12345678;
+  let cartSelections = 0;
+  for (let sample = 0; sample < 1000; sample++) {
+    if (probabilityProbe.random() < 0.1) cartSelections += 1;
+  }
+  assert.ok(cartSelections >= 70 && cartSelections <= 130, 'a seleção deve ficar próxima de 10% em uma amostra de 1000 sorteios');
+  probabilityProbe.stop();
 
   const parkedCartEngine = prepareEnemyCartScenario(false, 1540);
   parkedCartEngine.step(0.04);
@@ -195,8 +215,10 @@ try {
   distantFollowingCartEngine.stop();
 
   const playerPriorityEngine = prepareEnemyCartScenario(true, 1638);
+  playerPriorityEngine.randomState = 0x12345678;
   const playerPriorityStartX = playerPriorityEngine.state.enemies[0].x;
   playerPriorityEngine.step(0.04);
+  assert.equal(playerPriorityEngine.state.enemies[0].cartTarget, false, 'slime não sorteado mantém o jogador como alvo');
   assert.equal(playerPriorityEngine.state.cart.health, 75, 'quando o slime alcança o jogador, a carroça não recebe o impacto');
   assert.ok(playerPriorityEngine.state.enemies[0].x > playerPriorityStartX, 'movimento do slime deve continuar orientado ao jogador');
   assert.ok(playerPriorityEngine.state.enemies[0].hitWait > 0, 'contato com o jogador mantém o cooldown normal do slime');
