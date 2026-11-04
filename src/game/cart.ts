@@ -14,7 +14,7 @@ export type CartDrawState = {
 
 type Pt = readonly [number, number];
 
-/** Fator de escala de todo o desenho (arte autorada em px a 1,0). */
+/** Escala da carroça (corpo, rodas e detalhes); o burrinho mantém escala própria. */
 export const CART_SCALE = 0.84;
 
 const W = {
