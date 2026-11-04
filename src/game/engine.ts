@@ -33,7 +33,7 @@ function persistHouseStorage(inventory: InventoryStack[]) {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Armazenamento local indisponível. */ }
 }
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
@@ -1601,24 +1601,34 @@ export class GameEngine {
     const obstaclesWithoutCart = cartActivelyFollowing ? this.obstacleCircles(true) : obstaclesWithCart;
     for (const e of this.state.enemies) {
       const dx = feet.x - e.x, dy = feet.y - e.y;
+      const distanceToPlayer = Math.hypot(dx, dy);
       const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
       const slowRemaining = e.slowRemaining ?? 0;
       const speedMultiplier = slowRemaining > 0 ? CONFIG.druidSlow.speedMultiplier : 1;
       e.slowRemaining = Math.max(0, slowRemaining - dt);
 
-      // O alvo de movimento continua sendo sempre o jogador. A carroça só deixa de ser
-      // obstáculo para este slime quando ele já está próximo do jogador e ela está seguindo.
-      const nearPlayer = Math.hypot(dx, dy) <= CONFIG.donkey.visionRange;
-      const cartCanBeHit = nearPlayer && cartActivelyFollowing;
+      // A escolha é feita uma vez por slime enquanto a carroça está efetivamente seguindo.
+      // 90% continuam focados no jogador; 10% passam a perseguir a carroça.
+      if (!cartActivelyFollowing) e.cartTarget = undefined;
+      else if (e.cartTarget === undefined && distanceToPlayer <= CONFIG.donkey.visionRange) {
+        e.cartTarget = this.random() < 0.1;
+      }
+      const targetsCart = cartActivelyFollowing && e.cartTarget === true;
+      const targetX = targetsCart ? this.state.cart.x - e.x : dx;
+      const targetY = targetsCart ? this.state.cart.y - e.y : dy;
+      const nearPlayer = distanceToPlayer <= CONFIG.donkey.visionRange;
+      const cartCanBeHit = cartActivelyFollowing && (targetsCart || nearPlayer);
       const obstacles = cartCanBeHit ? obstaclesWithoutCart : obstaclesWithCart;
-      const direction = this.enemyMovementDirection(e, dx, dy, obstacles);
+      const direction = this.enemyMovementDirection(e, targetX, targetY, obstacles);
       e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
 
       const playerContact = Math.hypot(feet.x - e.x, feet.y - e.y)
         <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack;
-      if (playerContact && e.hitWait <= 0) {
-        // Prioridade absoluta: se alcançou o jogador, aplica-se a regra normal do jogador.
+      const cartContact = cartCanBeHit && Math.hypot(this.state.cart.x - e.x, this.state.cart.y - e.y)
+        <= CONFIG.enemy.radius + CONFIG.cart.collisionRadius;
+      if (!targetsCart && playerContact && e.hitWait <= 0) {
+        // Slimes que não escolheram a carroça mantêm a regra normal de dano ao jogador.
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (this.random() > CONFIG.player.dodge + levelStats.dodge) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
@@ -1626,9 +1636,8 @@ export class GameEngine {
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
-      } else if (cartCanBeHit && e.hitWait <= 0
-        && Math.hypot(this.state.cart.x - e.x, this.state.cart.y - e.y) <= CONFIG.enemy.radius + CONFIG.cart.collisionRadius) {
-        // Contato secundário: cada slime causa exatamente 1 ponto, sem usar o dano da onda.
+      } else if (cartContact && e.hitWait <= 0) {
+        // Cada contato com a carroça remove exatamente 1 ponto, independentemente do dano da onda.
         e.hitWait = CONFIG.enemy.contactCooldown;
         this.damageCartFromEnemyHit();
       }
@@ -2169,4 +2178,3 @@ export class GameEngine {
   }
   private clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
 }
-
