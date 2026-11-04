@@ -12,33 +12,6 @@ export type CartDrawState = {
   inventory?: ReadonlyArray<{ quantity: number }>;
 };
 
-type Pt = readonly [number, number];
-
-/** Fator de escala de todo o desenho (arte autorada em px a 1,0). */
-export const CART_SCALE = 1.05;
-
-let lastWheel: number | null = null;
-let moveAmt = 0;
-
-const W = {
-  d0: '#3b2416', d1: '#5a3a22', d2: '#7a4f2d', d3: '#94653a', d4: '#ad7a45', d5: '#c8935a', d6: '#e0b077',
-  line: '#27170d',
-  m0: '#4b535b', m1: '#6d7780', m2: '#98a2ab', m3: '#c5ccd2',
-};
-
-function poly(ctx: CanvasRenderingContext2D, pts: readonly Pt[], fill: string, stroke: string | null = W.line, lw = 1) {
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = fill; ctx.fill();
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.stroke(); }
-}
-function rivet(ctx: CanvasRenderingContext2D, x: number, y: number, r = 1.3) {
-  ctx.fillStyle = W.m3; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = W.m0; ctx.lineWidth = 0.5; ctx.stroke();
-}
-
 function loadFraction(c: CartDrawState): number {
   if (!c.inventory) return 0;
   const total = c.inventory.reduce((t, s) => t + s.quantity, 0);
@@ -580,37 +553,50 @@ function rigCylinder(
 }
 
 function buildDonkeyCartRig(
-  dist: number, walkPhase: number, wheelPhase: number, time: number, load: number, m: number,
+  dist: number, walkPhase: number, wheelPhase: number, time: number, load: number, m: number, broken: boolean,
 ): RigPiece[] {
   const pieces: RigPiece[] = [];
-  const zf = 12;
-  rigBox(pieces, -37, 30, -17, 17, zf, zf + 3, '#9a6b38');
-  const wallColors = ['#c28d4f', '#d9a766', '#c28d4f', '#d9a766'];
-  for (let i = 0; i < 4; i++) {
-    const z0 = zf + 3 + i * 6.2;
-    const z1 = z0 + 6.2;
-    rigBox(pieces, -37, 30, -17, -14, z0, z1, wallColors[i]);
-    rigBox(pieces, -37, 30, 14, 17, z0, z1, wallColors[i]);
-    rigBox(pieces, -37, -34, -14, 14, z0, z1, wallColors[(i + 1) % 4]);
-    rigBox(pieces, 27, 30, -14, 14, z0, z1, wallColors[(i + 1) % 4]);
+  const zf = 12, X0 = -31, X1 = 25, HW = 21;
+  rigBox(pieces, X0, X1, -HW, HW, zf, zf + 3, '#9a6b38');
+  const wallC = ['#c28d4f', '#d9a766', '#c28d4f', '#d9a766'];
+  if (!broken) {
+    for (let i = 0; i < 4; i++) {
+      const z0 = zf + 3 + i * 6.2, z1 = z0 + 6.2;
+      rigBox(pieces, X0, X1, -HW, -HW + 3, z0, z1, wallC[i]);
+      rigBox(pieces, X0, X1, HW - 3, HW, z0, z1, wallC[i]);
+      rigBox(pieces, X0, X0 + 3, -HW + 3, HW - 3, z0, z1, wallC[(i + 1) % 4]);
+      rigBox(pieces, X1 - 3, X1, -HW + 3, HW - 3, z0, z1, wallC[(i + 1) % 4]);
+    }
+    rigBox(pieces, X0 - 1, X1 + 1, -HW - 1, -HW + 4, zf + 25, zf + 28, '#e8c088');
+    rigBox(pieces, X0 - 1, X1 + 1, HW - 4, HW + 1, zf + 25, zf + 28, '#e8c088');
+    rigBox(pieces, X0 - 1, X0 + 4, -HW - 1, HW + 1, zf + 25, zf + 28, '#e8c088');
+    rigBox(pieces, X1 - 4, X1 + 1, -HW - 1, HW + 1, zf + 25, zf + 28, '#e8c088');
+    for (const y of [-HW - 0.2, HW - 3]) {
+      rigBox(pieces, X0, X1, y, y + 3.2, zf + 12, zf + 14.5, '#6f7378');
+    }
+  } else {
+    const posts: readonly (readonly [number, number])[] = [
+      [X0, -HW], [X0, HW - 3.4], [X1 - 3.4, -HW], [X1 - 3.4, HW - 3.4],
+    ];
+    for (const [px, py] of posts) {
+      rigBox(pieces, px, px + 3.4, py, py + 3.4, zf + 3, zf + 26, '#8e6234');
+    }
+    rigBox(pieces, X0, X1, -HW, -HW + 3, zf + 3, zf + 9.2, wallC[0]);
+    rigBox(pieces, X0, X0 + 3, -HW + 3, HW - 3, zf + 3, zf + 9.2, wallC[1]);
+    rigBox(pieces, X0, X1 - 14, HW - 3, HW, zf + 3, zf + 9.2, wallC[2], { sz1: 0.8 });
+    rigBox(pieces, X0 - 1, X1 - 12, -HW - 1, -HW + 4, zf + 25, zf + 28, '#e8c088');
+    rigBox(pieces, X0 + 8, X0 + 30, HW + 6, HW + 9.6, 0, 2.4, '#c28d4f');
+    rigBox(pieces, X0 + 14, X0 + 34, HW + 12, HW + 15.6, 0, 2.4, '#d9a766', { ty: 2 });
   }
-  rigBox(pieces, -38, 31, -18, -13, zf + 25, zf + 28, '#e8c088');
-  rigBox(pieces, -38, 31, 13, 18, zf + 25, zf + 28, '#e8c088');
-  rigBox(pieces, -38, -33, -18, 18, zf + 25, zf + 28, '#e8c088');
-  rigBox(pieces, 26, 31, -18, 18, zf + 25, zf + 28, '#e8c088');
-  for (const y of [-17.2, 14.2]) {
-    rigBox(pieces, -37, 30, y, y + 3, zf + 12, zf + 14.5, '#6f7378');
-  }
-  rigBox(pieces, -5, 1, -24, 24, 16, 19, '#4a3320');
-  rigCylinder(pieces, -2, -23, 17, 17, 5, '#8a5c2c', wheelPhase);
-  rigCylinder(pieces, -2, 23, 17, 17, 5, '#8a5c2c', wheelPhase);
-  for (const side of [-1, 1]) {
-    const y = side * 23 + side * 3.2;
+  const WY = HW + 6;
+  rigBox(pieces, -5, 1, -WY, broken ? WY - 5 : WY, 16, 19, '#4a3320');
+  rigCylinder(pieces, -2, -WY, 17, 17, 5, '#8a5c2c', wheelPhase);
+  if (!broken) rigCylinder(pieces, -2, WY, 17, 17, 5, '#8a5c2c', wheelPhase);
+  for (const sy of (broken ? [-1] : [-1, 1])) {
+    const y = sy * WY + sy * 3.2;
     for (let i = 0; i < 6; i++) {
       const angle = wheelPhase + i * Math.PI / 3;
-      const cosine = Math.cos(angle);
-      const sine = Math.sin(angle);
-      const t = 0.9;
+      const cosine = Math.cos(angle), sine = Math.sin(angle), t = 0.9;
       pieces.push({
         v: [
           [-2 - sine * t + cosine, y - 0.6, 17 + cosine * t + sine],
@@ -621,21 +607,25 @@ function buildDonkeyCartRig(
         poly: true, col: '#c99a5c', spoke: true,
       });
     }
-    rigBox(pieces, -4, 0, side * 23 + side * 2.6 - 1, side * 23 + side * 2.6 + 1, 15, 19, '#6f7378');
+    rigBox(pieces, -4, 0, sy * WY + sy * 2.6 - 1, sy * WY + sy * 2.6 + 1, 15, 19, '#6f7378');
   }
-  rigBox(pieces, -33, -29, -12, -8, 0, zf, '#5a3d1e');
-  rigBox(pieces, -33, -29, 8, 12, 0, zf, '#5a3d1e');
-  rigBox(pieces, -64, -37, -14, -11, zf + 14, zf + 17, '#b07f45');
-  rigBox(pieces, -64, -37, 11, 14, zf + 14, zf + 17, '#b07f45');
-  rigBox(pieces, -66, -62, -14, 14, zf + 13, zf + 18, '#d9a766');
-  const donkeyScale = 1.32;
-  const headX = dist + 14 * donkeyScale;
-  rigBox(pieces, -12, headX, -10.5, -8, zf + 20, zf + 23, '#c28d4f');
-  rigBox(pieces, -12, headX, 8, 10.5, zf + 20, zf + 23, '#c28d4f');
-  rigBox(pieces, 0, 4, -10.5, 10.5, zf + 20, zf + 23, '#a2723d');
+  rigBox(pieces, X0 + 3, X0 + 7, -12, -8, 0, zf, '#5a3d1e');
+  rigBox(pieces, X0 + 3, X0 + 7, 8, 12, 0, zf, '#5a3d1e');
+  rigBox(pieces, X0 - 27, X0, -HW + 4, -HW + 7, zf + 14, zf + 17, '#b07f45');
+  rigBox(pieces, X0 - 27, X0, HW - 7, HW - 4, zf + 14, zf + 17, '#b07f45');
+  rigBox(pieces, X0 - 29, X0 - 25, -HW + 4, HW - 4, zf + 13, zf + 18, '#d9a766');
+  const hx = dist + 14 * DS;
+  if (!broken) {
+    rigBox(pieces, -12, hx, -10.5, -8, zf + 20, zf + 23, '#c28d4f');
+    rigBox(pieces, -12, hx, 8, 10.5, zf + 20, zf + 23, '#c28d4f');
+    rigBox(pieces, 0, 4, -10.5, 10.5, zf + 20, zf + 23, '#a2723d');
+  } else {
+    rigBox(pieces, -6, dist - 4, -12.5, -10, 0.4, 3, '#c28d4f', { ty: -1.5 });
+    rigBox(pieces, -6, dist - 4, 10, 12.5, 0.4, 3, '#c28d4f', { ty: 1.5 });
+  }
 
   // Carga em 3–5 volumes low-poly dentro da caçamba; altura acompanha load.
-  if (load > 0) {
+  if (!broken && load > 0) {
     const count = 3 + Math.min(2, Math.floor(load * 3));
     const loadHeight = 3 + 13 * load;
     const cargo: readonly { x: number; y: number; w: number; d: number; color: string }[] = [
@@ -717,22 +707,24 @@ function buildDonkeyCartRig(
     { sy0: 0.7, by: tail * 0.5, ty: -sway * 0.6, bx: -1 });
   rigBox(pieces, D - 28.5, D - 23, -1.4, 1.4, 21, 32 + bob * 0.5, DK,
     { sy0: 0.6, sy1: 0.9, by: tailTip, ty: tail * 0.5, bx: -1.5 - Math.abs(tailTip) * 0.15, tx: -1 });
-  rigBox(pieces, D + 14.5, D + 18.5, -9, 9, 27 + bob + chestZ, 40 + bob + chestZ, '#4a3320',
-    { sy1: 0.9, by: sway * 0.7, ty: sway * 0.7 });
-  rigBox(pieces, D + 14, D + 19.5, -9.6, -8, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
-    { by: sway * 0.7, ty: sway * 0.7 });
-  rigBox(pieces, D + 14, D + 19.5, 8, 9.6, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
-    { by: sway * 0.7, ty: sway * 0.7 });
+  if (!broken) {
+    rigBox(pieces, D + 14.5, D + 18.5, -9, 9, 27 + bob + chestZ, 40 + bob + chestZ, '#4a3320',
+      { sy1: 0.9, by: sway * 0.7, ty: sway * 0.7 });
+    rigBox(pieces, D + 14, D + 19.5, -9.6, -8, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
+      { by: sway * 0.7, ty: sway * 0.7 });
+    rigBox(pieces, D + 14, D + 19.5, 8, 9.6, 32 + bob + chestZ, 37 + bob + chestZ, '#b9bec2',
+      { by: sway * 0.7, ty: sway * 0.7 });
+  }
 
   const yaw = sp * 0.05 * m, cyw = Math.cos(yaw), syw = Math.sin(yaw), pivot = dist - 8;
   for (let i = p0; i < pieces.length; i++) {
     for (const vertex of pieces[i].v) {
-      const x = dist + (vertex[0] - dist) * donkeyScale;
-      const y = vertex[1] * donkeyScale;
+      const x = dist + (vertex[0] - dist) * DS;
+      const y = vertex[1] * DS * DW;
       const dx = x - pivot;
       vertex[0] = pivot + dx * cyw - y * syw;
       vertex[1] = dx * syw + y * cyw;
-      vertex[2] *= donkeyScale;
+      vertex[2] *= DS;
     }
   }
   return pieces;
@@ -747,8 +739,9 @@ function drawDonkeyCartRig(
   time: number,
   load: number,
   m: number,
+  broken: boolean,
 ): void {
-  const pieces = buildDonkeyCartRig(dist, walkPhase, wheelPhase, time, load, m);
+  const pieces = buildDonkeyCartRig(dist, walkPhase, wheelPhase, time, load, m, broken);
   const faces: {
     pts: Vec3[]; normal: Vec3; depth: number; color: string;
     spoke?: boolean; tire?: boolean;
@@ -823,15 +816,20 @@ function drawDonkeyCartRig(
   ctx.restore();
 }
 
-export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
+export function drawCart(
+  ctx: CanvasRenderingContext2D,
+  cart: CartDrawState,
+  nearby: boolean,
+  time: number,
+  moving: boolean,
+  wheelPhase?: number,
+): void {
   const { x, y, angle, stage, carried } = cart;
-  const vertical = Math.abs(Math.cos(angle)) < 0.15;
-  const movingUp = Math.sin(angle) < 0;
-  const movingLeft = Math.cos(angle) < 0;
+  const broken = stage === 'broken';
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
-  const rigWheelPhase = cart.wheelPhase ?? rot;
-  let donkeyMove = moving ? 1 : 0;
-  if (stage === 'built') {
+  const rigWheelPhase = broken ? 0 : (cart.wheelPhase ?? rot);
+  let donkeyMove = 0;
+  if (!broken) {
     const motionPhase = wheelPhase ?? cart.wheelPhase;
     if (motionPhase !== undefined) {
       const delta = lastWheel === null
@@ -847,69 +845,40 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
       lastWheel = null;
     }
   }
+
   ctx.save();
   ctx.translate(x, y);
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
 
-  // A sombra do rig já faz parte da projeção low-poly; a sombra antiga fica
-  // reservada ao desenho legado do estágio quebrado.
-  if (stage === 'broken') {
-    ctx.fillStyle = 'rgba(10,16,12,.20)';
-    ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(8,12,9,.26)';
-    ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
-  }
-
-
-  if (stage === 'built') {
-    if (nearby) {
-      const pulse = 0.5 + 0.5 * Math.sin(time * 4);
-      ctx.beginPath(); ctx.ellipse(0, 4, 62 + pulse * 4, 38 + pulse * 3, 0, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(210,180,125,${0.07 + pulse * 0.06})`; ctx.fill();
-      ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
-    }
-    drawDonkeyCartRig(
-      ctx,
-      angle,
-      CONFIG.donkey.cartDistance,
-      rigWheelPhase * 0.9,
-      rigWheelPhase,
-      time,
-      loadFraction(cart),
-      donkeyMove,
-    );
-  } else {
-    const donkeyDistance = -68;
-    const donkeyX = Math.cos(angle) * donkeyDistance;
-    const donkeyY = Math.sin(angle) * donkeyDistance + 3;
-
-  // O burrinho ocupa a mesma posição lógica relativa, mas sua arte nunca é girada.
-  ctx.save(); ctx.translate(donkeyX, donkeyY);
-  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, false, stage === 'broken');
-  ctx.restore();
-
-
   if (nearby) {
     const pulse = 0.5 + 0.5 * Math.sin(time * 4);
-    ctx.beginPath(); ctx.ellipse(0, 4, 62 + pulse * 4, 38 + pulse * 3, 0, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(210,180,125,${0.07 + pulse * 0.06})`; ctx.fill();
-    ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 62 + pulse * 4, 38 + pulse * 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(210,180,125,${0.07 + pulse * 0.06})`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
 
-
-  if (vertical) drawTop(ctx, cart, movingUp, rot);
-  else { ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1); drawSide(ctx, cart, rot); ctx.restore(); }
-
-  }
-
+  drawDonkeyCartRig(
+    ctx, angle, CONFIG.donkey.cartDistance,
+    broken ? 0 : rigWheelPhase * 0.9,
+    rigWheelPhase, time, broken ? 0 : loadFraction(cart),
+    donkeyMove, broken,
+  );
 
   ctx.restore();
 
-  // Sem barra de vida ou progresso de reparo: a entidade possui apenas dois estados.
   if (carried) {
-    ctx.strokeStyle = 'rgba(235,235,235,.65)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.arc(0, -3, 70, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(235,235,235,.65)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.arc(0, -3, 70, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
   ctx.restore();
 }
