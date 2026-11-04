@@ -96,17 +96,17 @@ try {
   assert.equal(broken.carried, false);
   assert.equal(broken.following, false, 'carroça quebrada deve parar de seguir');
   assert.deepEqual(broken.inventory, [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 1 }], 'todos os itens devem permanecer na carroça ao quebrar');
-  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 10, cotton: 1 });
+  assert.deepEqual(getDonkeyCartConstructionCost(broken), { wood: 10, cotton: 5 });
 
   const missingRepairMaterials = constructDonkeyCart(broken, [
     { itemId: 'wood', quantity: 10 },
   ]);
-  assert.equal(missingRepairMaterials.built, false, 'conserto exige também 1 algodão');
+  assert.equal(missingRepairMaterials.built, false, 'conserto exige também 5 algodões');
   assert.deepEqual(missingRepairMaterials.inventory, [{ itemId: 'wood', quantity: 10 }]);
 
   const rebuilt = constructDonkeyCart(broken, [
     { itemId: 'wood:rare', quantity: 10 },
-    { itemId: 'cotton', quantity: 1 },
+    { itemId: 'cotton', quantity: 5 },
   ]);
   assert.equal(rebuilt.built, true);
   assert.equal(rebuilt.state.stage, 'built');
@@ -143,10 +143,10 @@ try {
   assert.deepEqual(engine.state.inventory, [{ itemId: 'wood', quantity: 1 }, { itemId: 'stone', quantity: 2 }], 'jogador pode retirar itens da carroça quebrada');
   engine.state.inventory = [
     { itemId: 'wood', quantity: 10 },
-    { itemId: 'cotton', quantity: 1 },
+    { itemId: 'cotton', quantity: 5 },
   ];
   engine.buildCart();
-  assert.equal(engine.state.cart.stage, 'built', '10 madeiras e 1 algodão permitem reparar');
+  assert.equal(engine.state.cart.stage, 'built', '10 madeiras e 5 algodões permitem reparar');
   assert.equal(engine.state.cart.health, 75);
   assert.deepEqual(engine.state.cart.inventory, [{ itemId: 'stone', quantity: 2 }], 'reparo não deve apagar os itens que ficaram na carroça');
 
