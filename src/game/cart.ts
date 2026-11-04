@@ -269,18 +269,34 @@ function buildDonkeyCartRig(
   const bob = (sp2 * 1.5 * m) + br * 0.25 * (1 - m);
   const sway = sp * 1.1 * m;
   const rumpZ = sp * 0.9 * m, chestZ = -sp * 0.9 * m;
-  const legs: readonly (readonly [number, number, number])[] = [
-    [12, -5.8, 0], [12, 5.8, Math.PI], [-13, -5.8, Math.PI], [-13, 5.8, 0],
+  const legDefinitions: readonly (readonly [number, number, number, number])[] = [
+    [12, -5.8, 0, 1], [12, 5.8, Math.PI, 1],
+    [-13, -5.8, Math.PI, -1], [-13, 5.8, 0, -1],
   ];
-  for (const [lx, ly, off] of legs) {
-    const side = ly < 0, color = side ? FD : F, phase = walkPhase + off;
-    const swing = Math.sin(phase), lift = Math.max(0, Math.cos(phase)) * 3.0 * m, k = swing * m;
-    rigBox(pieces, D + lx - 3.4, D + lx + 3.4, ly - 3, ly + 3, 15 + lift * 0.5, 26 + bob * 0.4, color,
-      { bx: k * 0.9, tx: 0, sy0: 0.78, sz0: 1, sy1: 1, sz1: 1 });
-    rigBox(pieces, D + lx - 2.4, D + lx + 2.4, ly - 2.2, ly + 2.2, 5 + lift, 15.4 + lift * 0.5, side ? '#7a5a3a' : '#9a7650',
-      { bx: k * 2.2, tx: k * 0.9, sy0: 0.8, sy1: 0.85 });
-    rigBox(pieces, D + lx - 3.2, D + lx + 3.2, ly - 2.6, ly + 2.6, 0 + lift, 5.4 + lift, DK,
-      { bx: k * 2.7 + lift * 0.4, tx: k * 2.2, sy0: 0.8 });
+  for (const [lx, ly, offset, frontRear] of legDefinitions) {
+    const side = ly < 0, color = side ? FD : F, lowerColor = side ? '#7a5a3a' : '#9a7650';
+    const phase = walkPhase + offset;
+    const sn = Math.sin(phase);
+    const lift = Math.max(0, Math.cos(phase)) * 3.0 * m;
+    const k = sn * m;
+    const yy = ly + sway * 0.3, X = D + lx;
+    const bend = frontRear > 0 ? 0.9 * lift : -1.3 * lift;
+    const legSections: readonly (readonly [number, number, number])[] = [
+      [X + k * 0.4, 26 + bob * 0.4, 4.4],
+      [X + k * 1.1 + bend, 15 + lift * 0.5, 3.2],
+      [X + k * 2.2 + lift * 0.3, 6.8 + lift, 2.5],
+      [X + k * 2.5 + lift * 0.4, 5.4 + lift, 3.5],
+      [X + k * 2.9 + lift * 0.5, 0 + lift, 3.9],
+    ];
+    const legRings: Vec3[][] = legSections.map(([x, z, width]) => [
+      [x - width, yy - width * 0.9, z],
+      [x - width, yy + width * 0.9, z],
+      [x + width, yy + width * 0.9, z],
+      [x + width, yy - width * 0.9, z],
+    ]);
+    rigLoft(pieces, legRings,
+      (section) => section >= 3 ? DK : (section === 0 ? color : lowerColor),
+      DK);
   }
 
   const SEC: readonly (readonly [number, number, number, number])[] = [
