@@ -141,3 +141,14 @@ export function damageDonkeyCart(state: DonkeyCartState): DonkeyCartState {
     carried: false,
   };
 }
+
+/** Posição do burrinho derivada da pose única do conjunto; nunca é simulada separadamente. */
+export function getDonkeyCartDonkeyPosition(
+  state: Pick<DonkeyCartState, 'x' | 'y' | 'angle'>,
+  distance: number,
+): { x: number; y: number } {
+  return {
+    x: state.x + Math.cos(state.angle) * distance,
+    y: state.y + Math.sin(state.angle) * distance,
+  };
+}
