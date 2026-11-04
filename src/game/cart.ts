@@ -382,10 +382,8 @@ function drawDonkey(
 }
 export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nearby: boolean, time: number, moving: boolean, wheelPhase?: number) {
   const { x, y, angle, stage, carried } = cart;
-  // A escala horizontal interpolada faz o perfil virar no próprio eixo sem
-  // mover a composição nem desenhar um arco de reposicionamento.
-  const facingAngle = cart.facingAngle ?? ((cart.facingLeft ?? Math.cos(angle) < 0) ? Math.PI : 0);
-  const facingScaleX = Math.cos(facingAngle);
+  // Perfil lateral: a orientação é definida pelo lado real do jogador.
+  const facingLeft = cart.facingLeft ?? Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
   // Composição visual única: o burrinho fica à frente e encostado à carroça.
   // A pose física continua pertencendo ao conjunto; não há eixo/varal desenhado
@@ -408,7 +406,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   // Espelha o conjunto inteiro uma única vez: posição e orientação do burrinho
   // e da carroça permanecem coerentes nos dois sentidos.
   ctx.save();
-  ctx.scale(facingScaleX, 1);
+  ctx.scale(facingLeft ? -1 : 1, 1);
 
   // O burrinho e a carroça compartilham a mesma transformação visual.
   // O perfil base aponta para a direita; o espelhamento externo vira ambos.
