@@ -15,7 +15,7 @@ export type CartDrawState = {
 type Pt = readonly [number, number];
 
 /** Fator de escala de todo o desenho (arte autorada em px a 1,0). */
-export const CART_SCALE = 1.05;
+export const CART_SCALE = 0.84;
 
 const W = {
   d0: '#3b2416', d1: '#5a3a22', d2: '#7a4f2d', d3: '#94653a', d4: '#ad7a45', d5: '#c8935a', d6: '#e0b077',
@@ -475,40 +475,44 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const movingUp = Math.sin(angle) < 0;
   const movingLeft = Math.cos(angle) < 0;
   const rot = wheelPhase ?? (moving ? time * 8 : 0);
+  const donkeyDistance = stage === 'built' ? CONFIG.donkey.cartDistance : -68;
+  const donkeyX = Math.cos(angle) * donkeyDistance;
+  const donkeyY = Math.sin(angle) * donkeyDistance + 3;
+
   ctx.save();
   ctx.translate(x, y);
+
+  // A sombra da carroça acompanha a escala; o burrinho permanece no tamanho original.
   ctx.save();
   ctx.scale(CART_SCALE, CART_SCALE);
-
-  // sombra
   ctx.fillStyle = 'rgba(10,16,12,.20)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 38 : 50, vertical ? 22 : 11, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(8,12,9,.26)';
   ctx.beginPath(); ctx.ellipse(1, 21, vertical ? 30 : 40, vertical ? 17 : 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 
-  const donkeyDistance = stage === 'built' ? 70 : -68;
-  const donkeyX = Math.cos(angle) * donkeyDistance;
-  const donkeyY = Math.sin(angle) * donkeyDistance + 3;
-
-  // Dois varais de madeira acompanham o eixo carroça→burrinho e terminam no arreio.
+  // Varais rígidos: a ponta da carroça acompanha a escala; a ponta externa chega ao arreio.
+  // São desenhados antes do burrinho para não atravessar sua face nem causar sobreposição de vistas.
   if (stage === 'built') {
     const ux = Math.cos(angle), uy = Math.sin(angle);
     const px = -uy, py = ux;
-    const rearX = ux * 48, rearY = uy * 48;
+    const rearX = ux * 48 * CART_SCALE, rearY = uy * 48 * CART_SCALE;
     const frontX = donkeyX - ux * 7, frontY = donkeyY - uy * 7;
     ctx.lineCap = 'round';
     for (const side of [-1, 1]) {
-      const sx = rearX + px * side * 8, sy = rearY + py * side * 8;
-      const ex = frontX + px * side * 7, ey = frontY + py * side * 7;
-      ctx.strokeStyle = W.d0; ctx.lineWidth = 4.5;
+      const sx = rearX + px * side * 8 * CART_SCALE;
+      const sy = rearY + py * side * 8 * CART_SCALE;
+      const ex = frontX + px * side * 7;
+      const ey = frontY + py * side * 7;
+      ctx.strokeStyle = W.d0; ctx.lineWidth = 4.5 * CART_SCALE;
       ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.strokeStyle = side < 0 ? W.d2 : W.d5; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(sx, sy - .5); ctx.lineTo(ex, ey - .5); ctx.stroke();
+      ctx.strokeStyle = side < 0 ? W.d2 : W.d5; ctx.lineWidth = 1.5 * CART_SCALE;
+      ctx.beginPath(); ctx.moveTo(sx, sy - .5 * CART_SCALE); ctx.lineTo(ex, ey - .5 * CART_SCALE); ctx.stroke();
       ctx.fillStyle = W.m1; ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  // O burrinho ocupa a mesma posição lógica relativa, mas sua arte nunca é girada.
+  // A distância do burrinho é mantida em coordenadas do mundo, sem reduzir sua arte.
   ctx.save(); ctx.translate(donkeyX, donkeyY);
   drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
   ctx.restore();
@@ -520,11 +524,11 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
     ctx.strokeStyle = `rgba(230,200,150,${0.3 + pulse * 0.35})`; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
+  // Somente a carroça (corpo, rodas e detalhes) recebe a redução de 20%.
+  ctx.save();
+  ctx.scale(CART_SCALE, CART_SCALE);
   if (vertical) drawTop(ctx, cart, movingUp, rot);
   else { ctx.save(); ctx.scale(movingLeft ? -1 : 1, 1); drawSide(ctx, cart, rot); ctx.restore(); }
-
-
-
   ctx.restore();
 
   // Sem barra de vida ou progresso de reparo: a entidade possui apenas dois estados.
