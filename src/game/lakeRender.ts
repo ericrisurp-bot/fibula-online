@@ -69,9 +69,10 @@ export function drawLake(ctx: CanvasRenderingContext2D, lake: Lake, elapsed: num
     const radius = 1.025 + random() * 0.115;
     const x = Math.cos(angle) * radius;
     const y = Math.sin(angle) * radius;
+    const rotation = random() * Math.PI;
     ctx.fillStyle = random() > 0.5 ? '#c0ad80' : '#4d5942';
     ctx.beginPath();
-    ctx.ellipse(x, y, 0.008 + random() * 0.012, 0.004 + random() * 0.008, angle, 0, Math.PI * 2);
+    ctx.ellipse(x, y, 0.009 + random() * 0.009, 0.007 + random() * 0.006, rotation, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -97,7 +98,8 @@ export function drawLake(ctx: CanvasRenderingContext2D, lake: Lake, elapsed: num
     const y = Math.sin(angle) * radius;
     ctx.fillStyle = i % 2 === 0 ? '#b6d0b5' : '#173e4b';
     ctx.beginPath();
-    ctx.ellipse(x, y, 0.035 + (i % 3) * 0.012, 0.009, angle, 0, Math.PI * 2);
+    ctx.ellipse(x, y, 0.022 + (i % 3) * 0.008, 0.014 + (i % 2) * 0.004,
+      ((i * 17) % 13) * Math.PI / 13, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
