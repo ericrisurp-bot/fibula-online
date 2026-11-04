@@ -423,9 +423,6 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   }
 
   // O burrinho ocupa a mesma posição lógica relativa, mas sua arte nunca é girada.
-  const donkeyDistance = stage === 'built' ? 70 : -68;
-  const donkeyX = Math.cos(angle) * donkeyDistance;
-  const donkeyY = Math.sin(angle) * donkeyDistance + 3;
   ctx.save(); ctx.translate(donkeyX, donkeyY);
   drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
   ctx.restore();
