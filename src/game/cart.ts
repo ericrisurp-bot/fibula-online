@@ -368,6 +368,11 @@ function drawDonkey(
     const headBob = moving && !broken ? Math.sin(gait * 2) * 1.1 : Math.sin(time * 2.1) * .4;
     ctx.save(); ctx.translate(0, 10 + headBob);
 
+    // Pescoço liga o peito à cabeça; fica por cima das pernas e atrás da face.
+    poly(ctx, [[-8, -8], [-8, -15], [-4, -19], [4, -19], [8, -15], [8, -8], [7, 5], [5, 11], [-5, 11], [-7, 5]], coatMid, outline, contour);
+    poly(ctx, [[-6, -9], [-4, -16], [0, -17], [0, 8], [-5, 7]], coatLight, null);
+    poly(ctx, [[1, -17], [5, -15], [7, -7], [5, 8], [1, 9]], W.d2, null);
+
     // Orelhas pertencem à cabeça: nascem acima da testa e ficam visíveis.
     poly(ctx, [[-8, -7], [-14, -24], [-7, -21], [-2, -8]], coatMid, outline, contour);
     poly(ctx, [[3, -8], [9, -24], [16, -19], [10, -5]], coat, outline, contour);
