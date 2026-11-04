@@ -231,10 +231,8 @@ function drawDonkey(
 ) {
   const bob = moving && !broken ? Math.sin(wheelPhase * 2) * 1.1 : Math.sin(time * 2.1) * 1.2;
   const gait = moving && !broken ? wheelPhase : 0;
-  const horizontal = Math.abs(Math.cos(angle));
-  const vertical = Math.abs(Math.sin(angle));
-  const side = horizontal > 0.72;
-  const diagonal = !side && vertical < 0.94;
+  // Quatro orientações: perfil apenas na horizontal direta; diagonais escolhem cima/baixo.
+  const side = Math.abs(Math.sin(angle)) < 0.15;
   const facingLeft = Math.cos(angle) < 0;
   const facingDown = Math.sin(angle) > 0;
   const frontView = facingDown;
@@ -322,8 +320,7 @@ function drawDonkey(
     ctx.restore();
   } else if (frontView) {
     // Vista frontal e 3/4 descendo: quadril junto à carroça, cabeça voltada para baixo.
-    const depth = diagonal ? 0.82 + 0.18 * Math.max(0, Math.min(1, (vertical - 0.69) / 0.25)) : 1;
-    ctx.save(); ctx.scale(diagonal && facingLeft ? -depth : depth, 1);
+    ctx.save();
 
     // 1) Cauda e quadril ficam no alto, atrás do tronco.
     ctx.strokeStyle = W.d1; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
@@ -396,8 +393,7 @@ function drawDonkey(
     ctx.restore();
   } else {
     // Vista traseira e 3/4 subindo: bloco original preservado.
-    const depth = diagonal ? 0.82 + 0.18 * Math.max(0, Math.min(1, (vertical - 0.69) / 0.25)) : 1;
-    ctx.save(); ctx.scale(diagonal && facingLeft ? -depth : depth, 1);
+    ctx.save();
     // Pernas distantes atrás do corpo.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -10 : 10;
