@@ -256,8 +256,6 @@ function drawDonkey(
     // Perfil: a arte permanece em pé; esquerda é apenas espelhamento horizontal.
     ctx.save();
     ctx.scale(facingLeft ? -1 : 1, 1);
-    const lean = diagonal ? 0 : 0;
-    ctx.translate(0, lean);
     // Pernas distantes primeiro, mais escuras e ligeiramente recuadas.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -12 : 8;
@@ -321,7 +319,6 @@ function drawDonkey(
     // Vistas frontal/traseira e 3/4: o eixo do corpo fica vertical, sem virar o perfil.
     const depth = diagonal ? .82 : 1;
     ctx.save(); ctx.scale(depth, 1);
-    const bodyY = frontView ? -1 : 1;
     // Pernas distantes atrás do corpo.
     for (let i = 0; i < 2; i++) {
       const x = i === 0 ? -8 : 8;
@@ -360,7 +357,7 @@ function drawDonkey(
     }
 
     // Cabeça alinhada ao eixo vertical, com duas orelhas e focinho claro.
-    const headY = frontView ? -19 : 19;
+    const headY = frontView ? 19 : -19;
     const headTilt = moving && !broken ? Math.sin(gait * 2) * 1.1 : Math.sin(time * 2.1) * .4;
     ctx.save(); ctx.translate(0, headY + headTilt);
     const sign = frontView ? -1 : 1;
@@ -407,7 +404,7 @@ export function drawCart(ctx: CanvasRenderingContext2D, cart: CartDrawState, nea
   const donkeyX = Math.cos(angle) * donkeyDistance;
   const donkeyY = Math.sin(angle) * donkeyDistance + 3;
   ctx.save(); ctx.translate(donkeyX, donkeyY);
-  drawDonkey(ctx, time, angle, rot, moving && stage === 'built', stage === 'broken');
+  drawDonkey(ctx, time, stage === 'broken' ? 0 : angle, rot, moving && stage === 'built', stage === 'broken');
   ctx.restore();
 
   if (nearby) {
