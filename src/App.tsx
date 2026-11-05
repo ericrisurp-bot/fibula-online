@@ -2645,7 +2645,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   if (fishing) {
     // A puxada usa a mesma duração visual das ferramentas de coleta.
     const pullCycle = Math.max(0, Math.min(1, fishingProgress));
-    const pullWindow = Math.min(1, CONFIG.gathering.toolAnimationDuration / CONFIG.lake.fishingInterval);
+    const pullWindow = Math.min(1, CONFIG.gathering.toolAnimationDuration / CONFIG.lake.fishingVisibleDuration);
     const pullProgress = pullCycle >= 1 - pullWindow ? (pullCycle - (1 - pullWindow)) / pullWindow : 0;
     const pull = pullProgress > 0 ? Math.sin(Math.min(1, pullProgress) * Math.PI) : 0;
     const tipX = facingX * (43 - pull * 8);
