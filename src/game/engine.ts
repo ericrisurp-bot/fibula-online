@@ -6,7 +6,7 @@ import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } fr
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
-import { isInsideLake, lakeColliderCircles, lakeSteeringCircles, type Lake, type LakeCircle } from './lake';
+import { isInsideLake, lakeColliderCircles, lakeSteeringCircles, lakeSlideDirection, pushOutOfLake, type Lake, type LakeCircle } from './lake';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -1762,7 +1762,10 @@ export class GameEngine {
       const nearPlayer = distanceToPlayer <= CONFIG.donkey.visionRange;
       const cartCanBeHit = cartActivelyFollowing && (targetsCart || nearPlayer);
       const steeringObstacles = cartCanBeHit ? steeringWithoutCart : steeringWithCart;
-      const direction = this.enemyMovementDirection(e, targetX, targetY, steeringObstacles);
+      let direction = this.enemyMovementDirection(e, targetX, targetY, steeringObstacles);
+      { const td = Math.hypot(targetX, targetY) || 1;
+        const slide = lakeSlideDirection(this.state.lake, e.x, e.y, targetX / td, targetY / td, e.id % 2 === 0 ? 1 : -1, CONFIG.enemy.radius + 20);
+        if (slide) direction = slide; }
       e.x += direction.x * speed * speedMultiplier * dt; e.y += direction.y * speed * speedMultiplier * dt;
       e.hitWait -= dt;
 
@@ -1886,6 +1889,7 @@ export class GameEngine {
         entity.y = this.clamp(entity.y + dy / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
       }
     }
+    pushOutOfLake(this.state.lake, entity, radius);
   }
 
   private isPlayerAtTreeShadow(tree: Tree) {
