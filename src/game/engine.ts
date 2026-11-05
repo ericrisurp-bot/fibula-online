@@ -1530,7 +1530,9 @@ export class GameEngine {
   private spawnVegetable() {
     if (this.state.vegetablePlants.length >= CONFIG.vegetables.max) return false;
     const roll = this.random();
-    const size: VegetablePlant['size'] = roll < 0.5 ? 'small' : roll < 0.82 ? 'medium' : 'large';
+    const weights = CONFIG.vegetables.plantSizeWeights;
+    const size: VegetablePlant['size'] = roll < weights.small ? 'small'
+      : roll < weights.small + weights.medium ? 'medium' : 'large';
     const kinds: VegetableKind[] = ['tomato', 'cabbage', 'herbs'];
     const kind = kinds[Math.floor(this.random() * kinds.length)];
     let position: Vec | null = null;
@@ -1553,14 +1555,15 @@ export class GameEngine {
     plant.hits -= 1;
     if (this.random() < CONFIG.vegetables.dropChance) {
       const angle = this.random() * Math.PI * 2;
-      const radius = plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24;
+      const radius = this.vegetableFootprintRadius(plant);
       this.state.vegetableDrops.push({ id: this.nextId++, kind: plant.kind, x: plant.x + Math.cos(angle) * (radius + 5), y: plant.y + Math.sin(angle) * (radius + 5), age: 0, rarity: plant.rarity });
     }
     if (plant.hits <= 0) this.state.vegetablePlants = this.state.vegetablePlants.filter(value => value.id !== id);
   }
+  private vegetableFootprintRadius(plant: VegetablePlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
+
   private isPlayerAtVegetable(plant: VegetablePlant) {
-    const radius = plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24;
-    return this.gatherDist(plant.x, plant.y) <= 46 + radius;
+    return this.gatherDist(plant.x, plant.y) <= 46 + this.vegetableFootprintRadius(plant);
   }
 
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
@@ -1906,6 +1909,7 @@ export class GameEngine {
     }));
     circles.push(...this.state.rocks.map(rock => ({ x: rock.x, y: rock.y, radius: this.rockFootprintRadius(rock) })));
     circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
+    circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
     circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
@@ -2149,7 +2153,7 @@ export class GameEngine {
       this.hitCottonPlant(cottonTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
     } else if (vegetableTarget) {
-      this.state.cottonHarvestAngle = this.anchorGatherTool(vegetableTarget.plant.x, vegetableTarget.plant.y - 6, vegetableTarget.plant.y + 25);
+      this.state.cottonHarvestAngle = this.anchorGatherTool(vegetableTarget.plant.x, vegetableTarget.plant.y - 6, vegetableTarget.plant.y + 13 * 1.2 + 1);
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
       this.hitVegetable(vegetableTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: vegetableTarget.plant.hits <= 1 });
