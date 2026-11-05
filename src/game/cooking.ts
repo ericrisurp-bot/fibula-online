@@ -9,10 +9,14 @@ export type CookingMeal = {
   ingredients: Array<{ itemId: string; quantity: number }>;
   durationSeconds?: number;
   herbExtended?: boolean;
+  productionStartedAt?: number;
+  productionReadyAt?: number;
 };
 export type ActiveCookingMeal = CookingMeal & { remainingSeconds: number };
 
 const STORAGE_KEY = 'fibula-prepared-meals';
+const READY_STORAGE_KEY = 'fibula-ready-meals';
+export const COOKING_PRODUCTION_MS = 30 * 60 * 1000;
 const RARITY_INDEX: Record<ItemRarity | 'normal', number> = { normal: 0, common: 1, uncommon: 2, rare: 3, legendary: 4 };
 const RARITY_STATS = {
   normal: { damage: 6, utility: 3 }, common: { damage: 12, utility: 6 },
@@ -36,21 +40,41 @@ export function isCookingIngredient(itemId: string): boolean {
 export function getCookingCapacity(varietyCount: number): number {
   return Math.max(0, Math.min(4, varietyCount)) * 10;
 }
-export function readPreparedMeals(): CookingMeal[] {
+function isStoredCookingMeal(meal: unknown): meal is CookingMeal {
+  return !!meal && typeof meal === 'object'
+    && ((meal as CookingMeal).slot === 'quick' || (meal as CookingMeal).slot === 'pan')
+    && typeof (meal as CookingMeal).id === 'string'
+    && typeof (meal as CookingMeal).name === 'string'
+    && typeof (meal as CookingMeal).icon === 'string'
+    && Array.isArray((meal as CookingMeal).ingredients)
+    && !!(meal as CookingMeal).effects && typeof (meal as CookingMeal).effects === 'object';
+}
+function readCookingStorage(key: string): CookingMeal[] {
   if (typeof window === 'undefined') return [];
   try {
-    const saved: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]');
+    const saved: unknown = JSON.parse(window.localStorage.getItem(key) ?? '[]');
     if (!Array.isArray(saved)) return [];
-    return saved.filter((meal): meal is CookingMeal =>
-      !!meal && typeof meal === 'object' && (meal.slot === 'quick' || meal.slot === 'pan')
-      && typeof meal.id === 'string' && typeof meal.name === 'string'
-      && Array.isArray(meal.ingredients) && !!meal.effects && typeof meal.effects === 'object',
-    ).slice(0, 3);
+    return saved.filter(isStoredCookingMeal).map(meal => ({
+      ...meal,
+      // Receitas antigas, preparadas antes da fila de produção, são tratadas como prontas.
+      productionStartedAt: Number.isFinite(meal.productionStartedAt) ? meal.productionStartedAt : 0,
+      productionReadyAt: Number.isFinite(meal.productionReadyAt) ? meal.productionReadyAt : 0,
+    }));
   } catch { return []; }
+}
+export function readPreparedMeals(): CookingMeal[] {
+  return readCookingStorage(STORAGE_KEY).slice(0, 3);
 }
 export function writePreparedMeals(meals: CookingMeal[]): void {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(meals.slice(0, 3))); } catch { /* Armazenamento local indisponível. */ }
+}
+export function readReadyMeals(): CookingMeal[] {
+  return readCookingStorage(READY_STORAGE_KEY);
+}
+export function writeReadyMeals(meals: CookingMeal[]): void {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(READY_STORAGE_KEY, JSON.stringify(meals)); } catch { /* Armazenamento local indisponível. */ }
 }
 export function getCookingIngredientStacks(inventory: InventoryStack[]): InventoryStack[] {
   return inventory.filter(stack => isCookingIngredient(stack.itemId) && stack.quantity > 0);
