@@ -858,12 +858,6 @@ export class GameEngine {
       sideObstacle ??= { x: donkeyX + directionX * CONFIG.donkey.cartDistance, y: donkeyY + directionY * CONFIG.donkey.cartDistance, radius: CONFIG.donkey.obstacleClearance };
     }
 
-    if (sideObstacle && this.donkeyAvoidTimer <= 0) {
-      const cross = directionX * (sideObstacle.y - donkeyY) - directionY * (sideObstacle.x - donkeyX);
-      this.donkeyAvoidSide = cross >= 0 ? -1 : 1;
-      this.donkeyAvoidTimer = CONFIG.donkey.avoidSideDuration;
-    }
-
     const rigidClear = (x: number, y: number, radius: number) => {
       const wall = CONFIG.map.wall;
       if (x < wall + radius || y < wall + radius || x > this.world - wall - radius || y > this.world - wall - radius) return false;
@@ -873,6 +867,24 @@ export class GameEngine {
       }
       return true;
     };
+    if (sideObstacle && this.donkeyAvoidTimer <= 0) {
+      const straightDonkeyX = donkeyX + directionX * travel;
+      const straightDonkeyY = donkeyY + directionY * travel;
+      let straightTurn = ((Math.atan2(directionY, directionX) - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      straightTurn = Math.max(-CONFIG.donkey.turnSpeed * dt, Math.min(CONFIG.donkey.turnSpeed * dt, straightTurn));
+      const straightAngle = cart.angle + straightTurn;
+      const straightCartX = straightDonkeyX - Math.cos(straightAngle) * CONFIG.donkey.cartDistance;
+      const straightCartY = straightDonkeyY - Math.sin(straightAngle) * CONFIG.donkey.cartDistance;
+      const straightPathFree = rigidClear(straightDonkeyX, straightDonkeyY, CONFIG.donkey.collisionRadius)
+        && rigidClear(straightCartX, straightCartY, CONFIG.cart.collisionRadius)
+        && straightCartX >= margin && straightCartY >= margin
+        && straightCartX <= this.world - margin && straightCartY <= this.world - margin;
+      if (straightPathFree) {
+        const cross = directionX * (sideObstacle.y - donkeyY) - directionY * (sideObstacle.x - donkeyX);
+        this.donkeyAvoidSide = cross >= 0 ? -1 : 1;
+        this.donkeyAvoidTimer = CONFIG.donkey.avoidSideDuration;
+      }
+    }
     const angleOffsets: number[] = [0];
     for (let degrees = CONFIG.donkey.candidateAngleStep; degrees <= CONFIG.donkey.maxCandidateAngle; degrees += CONFIG.donkey.candidateAngleStep) {
       const radians = degrees * Math.PI / 180;
