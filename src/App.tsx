@@ -321,7 +321,7 @@ function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot[
   } else {
     const chickenStride = moving ? Math.sin(phase * (fleeing ? 2 : 1)) * 0.5 : 0;
     const peck = moving ? Math.sin(phase * 2) * 2 : Math.pow(Math.max(0, Math.sin(elapsed * 1.9 + wobble)), 12) * 2.2;
-    const wingBeat = Math.sin(elapsed * Math.PI * 28 + wobble);
+    const wingBeat = Math.sin(elapsed * Math.PI * 2 * 9 + wobble);
     ctx.strokeStyle = '#b68b43'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
     for (const leg of [{ x: -5, angle: chickenStride }, { x: 5, angle: -chickenStride }]) {
       ctx.save(); ctx.translate(leg.x, 6); ctx.rotate(leg.angle);
@@ -330,14 +330,24 @@ function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot[
     ctx.save();
     if (fleeing) ctx.rotate(-0.15);
     ctx.translate(0, walkBob); ctx.scale(1, breath);
-    if (fleeing) {
-      ctx.save(); ctx.translate(-5, -2); ctx.rotate(-0.4 + wingBeat * 0.5);
-      ctx.fillStyle = '#eee5d5'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.1;
-      ctx.beginPath(); ctx.ellipse(-2, 0, 8, 4.5, -0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
-    }
     ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.ellipse(-1, 1, 13, 10, -0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#e9e1d2'; ctx.beginPath(); ctx.ellipse(-4, 1, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (fleeing) {
+      const wingAngle = -0.5 + wingBeat * 0.6;
+      ctx.save(); ctx.translate(-3, -1); ctx.rotate(wingAngle);
+      ctx.fillStyle = '#e4d8c3'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.1; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.quadraticCurveTo(-5, -3.5, -13, -1);
+      ctx.quadraticCurveTo(-11, 3.5, -5, 4); ctx.quadraticCurveTo(-1, 3, 0, 0);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-10, -0.8); ctx.lineTo(-13, -1.4);
+      ctx.moveTo(-9, 0.4); ctx.lineTo(-12.5, 0.2);
+      ctx.moveTo(-8, 1.6); ctx.lineTo(-11.5, 2.2);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.save(); ctx.translate(8 + peck + (fleeing ? 3 : 0), fleeing ? -10 : -8);
     ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.ellipse(0, 0, 6, fleeing ? 8 : 7, 0.1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
