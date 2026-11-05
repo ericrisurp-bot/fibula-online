@@ -68,6 +68,7 @@ export type GameSnapshot = {
   tecelaria: TecelariaState;
   lake: Lake;
   fishing: boolean;
+  fishingProgress: number;
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; jabuticabaTree: JabuticabaTree | null; jabuticabaDrops: JabuticabaDrop[]; rocks: Rock[]; cottonPlants: CottonPlant[]; vegetablePlants: VegetablePlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; vegetableDrops: VegetableDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; wildlifeDrops: WildlifeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
@@ -377,7 +378,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-      lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false,
+      lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
@@ -878,7 +879,7 @@ export class GameEngine {
     const s = this.state;
     return [
       s.player.hp, s.player.maxHp, s.player.level,
-      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.showRange,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange,
       Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
@@ -1062,6 +1063,7 @@ export class GameEngine {
     if (!canFish) {
       this.fishingTimer = 0;
       this.state.fishing = false;
+      this.state.fishingProgress = 0;
       return;
     }
     if (!this.state.fishing) {
@@ -1086,6 +1088,7 @@ export class GameEngine {
       const result = addToInventory(this.state.inventory, caughtFish.itemId, 1, CONFIG.inventory);
       if (result.added > 0) this.state.inventory = result.inventory;
     }
+    this.state.fishingProgress = this.fishingTimer / CONFIG.lake.fishingInterval;
   }
 
   private placeLake() {
