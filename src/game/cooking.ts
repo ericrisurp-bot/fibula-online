@@ -45,12 +45,12 @@ export function readPreparedMeals(): CookingMeal[] {
       !!meal && typeof meal === 'object' && (meal.slot === 'quick' || meal.slot === 'pan')
       && typeof meal.id === 'string' && typeof meal.name === 'string'
       && Array.isArray(meal.ingredients) && !!meal.effects && typeof meal.effects === 'object',
-    ).slice(0, 2);
+    ).slice(0, 3);
   } catch { return []; }
 }
 export function writePreparedMeals(meals: CookingMeal[]): void {
   if (typeof window === 'undefined') return;
-  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(meals.slice(0, 2))); } catch { /* Armazenamento local indisponível. */ }
+  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(meals.slice(0, 3))); } catch { /* Armazenamento local indisponível. */ }
 }
 export function getCookingIngredientStacks(inventory: InventoryStack[]): InventoryStack[] {
   return inventory.filter(stack => isCookingIngredient(stack.itemId) && stack.quantity > 0);
