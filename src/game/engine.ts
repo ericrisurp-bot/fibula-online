@@ -894,6 +894,22 @@ export class GameEngine {
       if (nextCartX < margin || nextCartY < margin || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
       if (!rigidClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
         || !rigidClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius)) continue;
+      const softClear = (x: number, y: number, radius: number) => {
+        if (!wallSoftBypassed && (
+          x < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
+          || y < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
+          || x > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
+          || y > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
+        )) return false;
+        if (!lakeSoftBypassed && isInsideLake(this.state.lake, x, y, radius + CONFIG.donkey.obstacleClearance)) return false;
+        for (const obstacle of obstacles) {
+          if (playerInsideSoftObstacle(obstacle)) continue;
+          if (Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius + CONFIG.donkey.obstacleClearance) return false;
+        }
+        return true;
+      };
+      if (!softClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
+        || !softClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius)) continue;
 
       cart.x = nextCartX;
       cart.y = nextCartY;
@@ -903,15 +919,15 @@ export class GameEngine {
       break;
     }
 
-    if (!moved) {
-      // Sem candidato legal, mantém posição e orientação para tentar novamente no próximo passo.
-      return;
-    }
-
-    if (!this.state.player.moving) {
+    if (moved && !this.state.player.moving) {
       const progress = (cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance - donkeyX) * directionX
         + (cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance - donkeyY) * directionY;
       this.donkeyProgressSamples.push({ time: this.donkeyClock, progress });
+    } else if (!this.state.player.moving) {
+      this.donkeyProgressSamples.push({ time: this.donkeyClock, progress: 0 });
+    }
+
+    if (!this.state.player.moving) {
       const cutoff = this.donkeyClock - CONFIG.donkey.stallWindow;
       this.donkeyProgressSamples = this.donkeyProgressSamples.filter(sample => sample.time >= cutoff);
       if (this.donkeyClock >= CONFIG.donkey.stallWindow) {

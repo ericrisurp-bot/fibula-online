@@ -61,10 +61,10 @@ try {
   engine.step(0.04);
   assert.ok(Math.hypot(cart.x - stopped.x, cart.y - stopped.y) < 1e-6 && cart.angle === stopped.angle, 'dentro de playerStopDistance o conjunto deve permanecer estacionado');
   // Se o personagem se aproxima para dentro de playerStopDistance, o burrinho não recua.
-  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - 40; cart.y = feetY; cart.angle = Math.PI;
+  cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - 20; cart.y = feetY; cart.angle = Math.PI;
   const closeRange = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
-  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, closeRange, 'o burrinho não deve recuar quando o jogador se aproxima');
+  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, closeRange, 'dentro de playerStopDistance o burrinho não deve recuar');
   cart.x = engine.state.player.x + CONFIG.donkey.visionRange + CONFIG.donkey.cartDistance + 10; cart.y = feetY; cart.angle = Math.PI;
   const outOfSight = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
