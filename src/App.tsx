@@ -2078,6 +2078,14 @@ export default function App() {
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
       <div className="hud-top" aria-label="Status da partida">
+        {state.house.built && (preparedCookingMeals.length > 0 || state.activeMeals.length > 0) && <div className="cooking-match-actions" aria-label="Refeições">
+          {preparedCookingMeals.map(meal => <button key={meal.id} type="button" onClick={() => activatePreparedCookingMeal(meal)} title={meal.name}>
+            <span>{meal.icon}</span><strong>{meal.slot === 'quick' ? 'FOGÃO' : 'PANELA'}</strong><small>ATIVAR</small>
+          </button>)}
+          {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
+            <span>{meal.icon}</span><strong>{meal.name}</strong><small>{Math.floor(meal.remainingSeconds / 60)}:{String(Math.ceil(meal.remainingSeconds % 60)).padStart(2, '0')}</small>
+          </div>)}
+        </div>}
         <div className="hud-left-stack">
           <div className="hud-vitals-panel">
             <div className="hud-level">NÍVEL <strong>{state.player.level}</strong></div>
