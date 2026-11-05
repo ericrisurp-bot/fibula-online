@@ -2301,7 +2301,7 @@ export default function App() {
                           onClick={() => addCookingIngredientUnit(item.itemId)}
                           disabled={selected >= item.quantity || (selected === 0 && panCookingSelections.length >= 4)
                             || cookingSelectedTotal >= nextCapacity}>
-                          <span style={itemRarityGlow(item.itemId)}>{itemIcon(item.itemId)}</span>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                           <small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                           {selected > 0 && <em>Panela ×{selected}</em>}
                         </button>;
