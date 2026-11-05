@@ -116,6 +116,12 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   if (ingredients.some(item => getCookingRarity(item.itemId) !== rarity)) return null;
 
   const bonusIngredients = ingredients.filter(item => getBaseItemId(item.itemId) !== 'herbs');
+  const hasMeat = bonusIngredients.some(item => MEAT_ITEMS.includes(getBaseItemId(item.itemId)));
+  const hasOtherProtein = bonusIngredients.some(item => {
+    const base = getBaseItemId(item.itemId);
+    return base === 'chicken_meat' || FISH_ITEMS.includes(base);
+  });
+  if (hasMeat && hasOtherProtein) return null;
   const divisor = bonusIngredients.length;
   const effects: CookingEffects = {};
   const caps: CookingEffects = {};
