@@ -291,6 +291,13 @@ export class GameEngine {
   private lakeCollisionCircles: LakeCircle[] = [];
   private lakeAvoidanceCircles: LakeCircle[] = [];
   private fishingTimer = 0;
+  private donkeySpeed = 0;
+  private donkeyAvoidSide: 1 | -1 = 1;
+  private donkeyAvoidTimer = 0;
+  private donkeyProgressSamples: Array<{ time: number; progress: number }> = [];
+  private donkeyStalled = false;
+  private donkeyStallDistance = 0;
+  private donkeyClock = 0;
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -767,84 +774,189 @@ export class GameEngine {
     this.state.inventory = result.inventory;
     this.emit();
   }
-  /** O burrinho traciona; a carroça mantém ligação rígida e contorna obstáculos com folga. */
+  /** O burrinho traciona; a carroça mantém ligação rígida e navega por candidatos legais. */
   private updateDonkeyCart(dt: number) {
     const cart = this.state.cart;
-    if (cart.stage !== 'built' || !cart.following || dt <= 0) return;
+    if (cart.stage !== 'built' || !cart.following || dt <= 0) {
+      this.donkeySpeed = Math.max(0, this.donkeySpeed - CONFIG.donkey.deceleration * dt);
+      return;
+    }
+    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
+
     const feet = playerFeet(this.state.player);
     const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
     const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
     const dx = feet.x - donkeyX, dy = feet.y - donkeyY;
     const distance = Math.hypot(dx, dy);
-    if (distance <= CONFIG.donkey.stopDistance || distance > CONFIG.donkey.visionRange) return;
-    const travel = Math.min(distance - CONFIG.donkey.stopDistance, CONFIG.cart.unloadedPullSpeed * dt);
-    if (travel <= 0) return;
+    this.donkeyClock += dt;
+    this.donkeyAvoidTimer = Math.max(0, this.donkeyAvoidTimer - dt);
 
-    const directionX = dx / distance, directionY = dy / distance;
-    let steerX = directionX;
-    let steerY = directionY;
-    const obstacles = this.obstacleCircles(true);
-    // O sensor inclui a folga desejada e o comprimento do engate, para iniciar a curva
-    // antes de a carroça chegar perto demais da casinha, árvores, pedras ou plantas.
-    for (const obstacle of obstacles) {
-      const offsetX = obstacle.x - donkeyX;
-      const offsetY = obstacle.y - donkeyY;
-      const forward = offsetX * directionX + offsetY * directionY;
-      const lateral = Math.abs(offsetX * directionY - offsetY * directionX);
-      const requiredClearance = CONFIG.donkey.collisionRadius + obstacle.radius + CONFIG.donkey.obstacleClearance;
-      const sensorDistance = requiredClearance + CONFIG.donkey.cartDistance;
-      if (forward <= 0 || forward > sensorDistance || lateral > requiredClearance) continue;
-
-      const cross = directionX * offsetY - directionY * offsetX;
-      // Se o obstáculo está exatamente à frente, escolhe um lado determinístico
-      // e mantém a curva pelo sinal da posição relativa nos quadros seguintes.
-      const side = Math.abs(cross) > 1 ? (cross > 0 ? -1 : 1) : (directionX >= 0 ? 1 : -1);
-      const urgency = 1 - forward / sensorDistance;
-      const strength = 3 + urgency * 2;
-      steerX += -directionY * side * strength;
-      steerY += directionX * side * strength;
+    if (distance > CONFIG.donkey.visionRange || distance <= CONFIG.donkey.playerStopDistance) {
+      this.donkeySpeed = Math.max(0, this.donkeySpeed - CONFIG.donkey.deceleration * dt);
+      this.donkeyProgressSamples = [];
+      return;
     }
 
-    const steerMagnitude = Math.hypot(steerX, steerY) || 1;
-    steerX /= steerMagnitude;
-    steerY /= steerMagnitude;
-    const targetAngle = Math.atan2(steerY, steerX);
-    const maxTurn = CONFIG.donkey.turnSpeed * dt;
-    const obstaclesWithoutCart = obstacles;
-    const clearanceAt = (x: number, y: number, radius: number) => {
-      let clearance = Infinity;
-      for (const obstacle of obstaclesWithoutCart) {
-        clearance = Math.min(clearance, Math.hypot(x - obstacle.x, y - obstacle.y) - radius - obstacle.radius);
+    const directionX = dx / distance, directionY = dy / distance;
+    const movingSpeed = this.state.player.moving
+      ? CONFIG.cart.unloadedPullSpeed
+      : CONFIG.cart.unloadedPullSpeed * CONFIG.donkey.idleSpeedFactor;
+    const targetSpeed = Math.min(
+      movingSpeed,
+      (distance - CONFIG.donkey.playerStopDistance) * CONFIG.donkey.approachSpeedFactor + CONFIG.donkey.approachSpeedFloor,
+    );
+
+    if (this.donkeyStalled) {
+      if (this.state.player.moving || Math.abs(distance - this.donkeyStallDistance) > CONFIG.donkey.stallResumeDistance) {
+        this.donkeyStalled = false;
+        this.donkeyProgressSamples = [];
+      } else {
+        this.donkeySpeed = Math.max(0, this.donkeySpeed - CONFIG.donkey.deceleration * dt);
+        return;
       }
-      return clearance;
+    }
+
+    const acceleration = targetSpeed > this.donkeySpeed ? CONFIG.donkey.acceleration : CONFIG.donkey.deceleration;
+    this.donkeySpeed += Math.sign(targetSpeed - this.donkeySpeed) * Math.min(Math.abs(targetSpeed - this.donkeySpeed), acceleration * dt);
+    const travel = Math.min(distance - CONFIG.donkey.playerStopDistance, this.donkeySpeed * dt);
+    if (travel <= 0) return;
+
+    // obstacleCircles(true) contém primeiro os obstáculos do mundo e, ao final,
+    // os círculos aproximados do lago. O lago é validado separadamente pela elipse exata.
+    const allObstacles = this.obstacleCircles(true);
+    const obstacles = allObstacles.slice(0, Math.max(0, allObstacles.length - this.lakeCollisionCircles.length));
+    const playerInsideSoftObstacle = (obstacle: Vec & { radius: number }) =>
+      Math.hypot(feet.x - obstacle.x, feet.y - obstacle.y)
+        <= obstacle.radius + CONFIG.donkey.collisionRadius + CONFIG.donkey.obstacleClearance;
+    const lakeSoftBypassed = isInsideLake(
+      this.state.lake, feet.x, feet.y,
+      CONFIG.donkey.collisionRadius + CONFIG.donkey.obstacleClearance,
+    );
+    const wallSoftBypassed = feet.x <= CONFIG.map.wall + CONFIG.donkey.wallSoftDistance
+      || feet.y <= CONFIG.map.wall + CONFIG.donkey.wallSoftDistance
+      || feet.x >= this.world - CONFIG.map.wall - CONFIG.donkey.wallSoftDistance
+      || feet.y >= this.world - CONFIG.map.wall - CONFIG.donkey.wallSoftDistance;
+
+    let sideObstacle: (Vec & { radius: number }) | undefined;
+    let nearestForward = Infinity;
+    for (const obstacle of obstacles) {
+      if (playerInsideSoftObstacle(obstacle)) continue;
+      const ox = obstacle.x - donkeyX, oy = obstacle.y - donkeyY;
+      const forward = ox * directionX + oy * directionY;
+      const lateral = Math.abs(ox * directionY - oy * directionX);
+      const softRadius = CONFIG.donkey.collisionRadius + obstacle.radius + CONFIG.donkey.obstacleClearance;
+      if (forward > 0 && forward <= softRadius + CONFIG.donkey.cartDistance && lateral <= softRadius && forward < nearestForward) {
+        nearestForward = forward;
+        sideObstacle = obstacle;
+      }
+    }
+    if (!lakeSoftBypassed && isInsideLake(
+      this.state.lake,
+      donkeyX + directionX * (CONFIG.donkey.cartDistance + CONFIG.donkey.obstacleClearance),
+      donkeyY + directionY * (CONFIG.donkey.cartDistance + CONFIG.donkey.obstacleClearance),
+      CONFIG.donkey.collisionRadius + CONFIG.donkey.obstacleClearance,
+    )) {
+      sideObstacle ??= { x: donkeyX + directionX * CONFIG.donkey.cartDistance, y: donkeyY + directionY * CONFIG.donkey.cartDistance, radius: CONFIG.donkey.obstacleClearance };
+    }
+
+    const rigidClear = (x: number, y: number, radius: number) => {
+      const wall = CONFIG.map.wall;
+      if (x < wall + radius || y < wall + radius || x > this.world - wall - radius || y > this.world - wall - radius) return false;
+      if (isInsideLake(this.state.lake, x, y, radius)) return false;
+      for (const obstacle of obstacles) {
+        if (Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius) return false;
+      }
+      return true;
     };
-    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
+    if (sideObstacle && this.donkeyAvoidTimer <= 0) {
+      const straightDonkeyX = donkeyX + directionX * travel;
+      const straightDonkeyY = donkeyY + directionY * travel;
+      let straightTurn = ((Math.atan2(directionY, directionX) - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+      straightTurn = Math.max(-CONFIG.donkey.turnSpeed * dt, Math.min(CONFIG.donkey.turnSpeed * dt, straightTurn));
+      const straightAngle = cart.angle + straightTurn;
+      const straightCartX = straightDonkeyX - Math.cos(straightAngle) * CONFIG.donkey.cartDistance;
+      const straightCartY = straightDonkeyY - Math.sin(straightAngle) * CONFIG.donkey.cartDistance;
+      const straightPathFree = rigidClear(straightDonkeyX, straightDonkeyY, CONFIG.donkey.collisionRadius)
+        && rigidClear(straightCartX, straightCartY, CONFIG.cart.collisionRadius)
+        && straightCartX >= margin && straightCartY >= margin
+        && straightCartX <= this.world - margin && straightCartY <= this.world - margin;
+      if (straightPathFree) {
+        const cross = directionX * (sideObstacle.y - donkeyY) - directionY * (sideObstacle.x - donkeyX);
+        this.donkeyAvoidSide = cross >= 0 ? -1 : 1;
+        this.donkeyAvoidTimer = CONFIG.donkey.avoidSideDuration;
+      }
+    }
+    const angleOffsets: number[] = [0];
+    for (let degrees = CONFIG.donkey.candidateAngleStep; degrees <= CONFIG.donkey.maxCandidateAngle; degrees += CONFIG.donkey.candidateAngleStep) {
+      const radians = degrees * Math.PI / 180;
+      angleOffsets.push(this.donkeyAvoidSide * radians, -this.donkeyAvoidSide * radians);
+    }
+    const maxTurn = CONFIG.donkey.turnSpeed * dt;
+    const softClear = (x: number, y: number, radius: number) => {
+      if (!wallSoftBypassed && (
+        x < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
+        || y < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
+        || x > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
+        || y > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
+      )) return false;
+      if (!lakeSoftBypassed && isInsideLake(this.state.lake, x, y, radius + CONFIG.donkey.obstacleClearance)) return false;
+      for (const obstacle of obstacles) {
+        if (playerInsideSoftObstacle(obstacle)) continue;
+        if (Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius + CONFIG.donkey.obstacleClearance) return false;
+      }
+      return true;
+    };
+    let moved = false;
+    // Primeiro tenta preservar a zona de contorno; se ela bloquear todos os caminhos,
+    // aceita qualquer candidato fora da zona rígida para não deixar a carroça imobilizar o burrinho.
+    for (const enforceSoftClearance of [true, false]) {
+      for (const offset of angleOffsets) {
+        const candidateAngle = Math.atan2(directionY, directionX) + offset;
+        const moveX = Math.cos(candidateAngle), moveY = Math.sin(candidateAngle);
+        const nextDonkeyX = donkeyX + moveX * travel;
+        const nextDonkeyY = donkeyY + moveY * travel;
+        let angleDelta = ((candidateAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
+        const nextAngle = cart.angle + angleDelta;
+        const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
+        const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
+        if (nextCartX < margin || nextCartY < margin || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
+        if (!rigidClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
+          || !rigidClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius)) continue;
+        if (enforceSoftClearance && (!softClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
+          || !softClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius))) continue;
 
-    // Tenta o passo completo; se o giro do engate ainda tocar algo, reduz o passo
-    // para parar suavemente antes da colisão em vez de travar o conjunto para sempre.
-    for (const fraction of [1, 0.5, 0.25, 0.125]) {
-      const actualTravel = travel * fraction;
-      const nextDonkeyX = donkeyX + steerX * actualTravel;
-      const nextDonkeyY = donkeyY + steerY * actualTravel;
-      let angleDelta = ((targetAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-      angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
-      const nextAngle = cart.angle + angleDelta;
-      const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
-      const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
-      if (nextDonkeyX < CONFIG.map.wall + CONFIG.donkey.collisionRadius
-        || nextDonkeyY < CONFIG.map.wall + CONFIG.donkey.collisionRadius
-        || nextDonkeyX > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
-        || nextDonkeyY > this.world - CONFIG.map.wall - CONFIG.donkey.collisionRadius
-        || nextCartX < margin || nextCartY < margin
-        || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
-      if (clearanceAt(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius) < 0
-        || clearanceAt(nextCartX, nextCartY, CONFIG.cart.collisionRadius) < 0) continue;
+        cart.x = nextCartX;
+        cart.y = nextCartY;
+        cart.angle = nextAngle;
+        cart.wheelPhase = (cart.wheelPhase + travel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
+        moved = true;
+        break;
+      }
+      if (moved) break;
+    }
+    if (moved && !this.state.player.moving) {
+      const progress = (cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance - donkeyX) * directionX
+        + (cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance - donkeyY) * directionY;
+      this.donkeyProgressSamples.push({ time: this.donkeyClock, progress });
+    } else if (!this.state.player.moving) {
+      this.donkeyProgressSamples.push({ time: this.donkeyClock, progress: 0 });
+    }
 
-      cart.x = nextCartX;
-      cart.y = nextCartY;
-      cart.angle = nextAngle;
-      cart.wheelPhase = (cart.wheelPhase + actualTravel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
-      return;
+    if (!this.state.player.moving) {
+      const cutoff = this.donkeyClock - CONFIG.donkey.stallWindow;
+      this.donkeyProgressSamples = this.donkeyProgressSamples.filter(sample => sample.time >= cutoff);
+      if (this.donkeyClock >= CONFIG.donkey.stallWindow) {
+        const recentProgress = this.donkeyProgressSamples.reduce((sum, sample) => sum + sample.progress, 0);
+        const threshold = targetSpeed * CONFIG.donkey.stallWindow * CONFIG.donkey.stallProgressRatio;
+        if (recentProgress < threshold && this.donkeyProgressSamples[0]?.time <= cutoff + dt) {
+          this.donkeyStalled = true;
+          this.donkeyStallDistance = distance;
+          this.donkeySpeed = 0;
+        }
+      }
+    } else {
+      this.donkeyProgressSamples = [];
     }
   }
   private placeCart() {
@@ -869,6 +981,7 @@ export class GameEngine {
   restart() {
     const classId = this.state.classId;
     this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
+    this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
@@ -2069,7 +2182,7 @@ export class GameEngine {
     const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
     const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
     const distance = Math.hypot(feet.x - donkeyX, feet.y - donkeyY);
-    return distance > CONFIG.donkey.stopDistance && distance <= CONFIG.donkey.visionRange;
+    return distance > CONFIG.donkey.playerStopDistance && distance <= CONFIG.donkey.visionRange;
   }
 
   private moveEnemies(dt: number) {
