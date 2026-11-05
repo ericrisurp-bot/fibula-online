@@ -48,16 +48,12 @@ export const ATTRIBUTE_USAGE: Record<ClassId, Record<AttributeKey, number>> = {
 
 const DAMAGE_ATTRIBUTES = ['forca', 'inteligencia', 'destreza'] as const;
 
-export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLevel = 1, baseBonuses: Partial<Record<AttributeKey, number>> = {}): number {
+export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLevel = 1): number {
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
   const multipliers = classMultipliers[classId];
   const usage = ATTRIBUTE_USAGE[classId];
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
-  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => {
-    const adjustedBase = baseValue + Math.max(0, baseBonuses[key] ?? 0);
-    const levelGain = gainedLevels * multipliers[key] * (adjustedBase / baseValue);
-    return sum + usage[key] * (adjustedBase + levelGain);
-  }, 0);
+  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + gainedLevels * multipliers[key]), 0);
 
   return damageAttributeValue / baseValue;
 }
