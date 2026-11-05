@@ -1629,6 +1629,7 @@ export default function App() {
     if (!Number.isSafeInteger(quantity) || quantity <= 0 || !Number.isSafeInteger(herbs) || herbs < 0) {
       setCookingFeedback('Informe quantidades inteiras válidas.'); return;
     }
+    if (preparedCookingMeals.some(item => item.slot === 'quick')) { setCookingFeedback('O espaço do Fogão já tem uma receita pronta. Ative-a na partida antes de preparar outra.'); return; }
     const meal = getQuickRecipe(quickCookingItem, quantity, herbs);
     if (!meal) { setCookingFeedback('Escolha um ingrediente válido para a receita.'); return; }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
@@ -1638,6 +1639,7 @@ export default function App() {
     setCookingFeedback(`${meal.name} preparada e guardada no espaço de receita rápida.`);
   };
   const preparePanCookingMeal = () => {
+    if (preparedCookingMeals.some(item => item.slot === 'pan')) { setCookingFeedback('O espaço da Panela já tem uma refeição pronta. Ative-a na partida antes de preparar outra.'); return; }
     const ingredients = panCookingSelections.filter(item => item.itemId && Number(item.quantity) > 0)
       .map(item => ({ itemId: item.itemId, quantity: Number(item.quantity) }));
     const meal = getPanMeal(ingredients);
