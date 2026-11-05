@@ -1026,9 +1026,16 @@ export default function App() {
             leaf(-8, -13, -0.8, '#4e963d'); leaf(7, -12, 0.8, '#65a844'); leaf(-11, -4, -1.2, '#3f8538'); leaf(10, -4, 1.1, '#55963d');
             for (const [x,y] of [[-9,-8],[9,-13],[1,-20]] as const) { ctx.fillStyle = '#d9362b'; ctx.strokeStyle = '#8f241f'; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4d8a37'; ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x-3,y-8); ctx.lineTo(x,y-7); ctx.lineTo(x+3,y-9); ctx.fill(); }
           } else if (plant.kind === 'cabbage') {
-            leaf(-7, 3, -1.1, '#4f963e'); leaf(8, 3, 1.1, '#438735'); leaf(-5, -5, -0.5, '#65a94d'); leaf(6, -5, 0.5, '#5b9c43');
-            ctx.fillStyle = '#83bd55'; ctx.strokeStyle = '#3d7132'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0,-8,10,11,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
-            ctx.strokeStyle = '#c2df8a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0,1); ctx.quadraticCurveTo(-3,-8,0,-17); ctx.moveTo(0,0); ctx.quadraticCurveTo(7,-8,7,-13); ctx.stroke();
+            // O repolho nasce rente ao solo: folhas externas encostam na linha da sombra.
+            leaf(-8, 10, -1.15, '#4f963e'); leaf(8, 10, 1.15, '#438735');
+            leaf(-6, 6, -0.7, '#65a94d'); leaf(6, 6, 0.7, '#5b9c43');
+            ctx.fillStyle = '#83bd55'; ctx.strokeStyle = '#3d7132'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.ellipse(0, -3, 10, 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.strokeStyle = '#c2df8a'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 8); ctx.quadraticCurveTo(-3, -3, 0, -12);
+            ctx.moveTo(0, 8); ctx.quadraticCurveTo(7, -3, 7, -8);
+            ctx.stroke();
           } else {
             ctx.strokeStyle = '#467c36'; ctx.lineWidth = 2.4; for(let n=-2;n<=2;n++){ctx.beginPath();ctx.moveTo(0,12);ctx.quadraticCurveTo(n*3,-5,n*5-3,-20-Math.abs(n)*2);ctx.stroke();leaf(n*4,-10,n*.25,n%2?'#79ad4d':'#4c963e');}
           }
