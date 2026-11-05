@@ -2083,7 +2083,7 @@ export default function App() {
             <span>{meal.icon}</span><strong>{meal.slot === 'quick' ? 'FOGÃO' : 'PANELA'}</strong><small>ATIVAR</small>
           </button>)}
           {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
-            <span>{meal.icon}</span><strong>{meal.name}</strong><small>{Math.floor(meal.remainingSeconds / 60)}:{String(Math.ceil(meal.remainingSeconds % 60)).padStart(2, '0')}</small>
+            <span>{meal.icon}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
           </div>)}
         </div>}
         <div className="hud-left-stack">
