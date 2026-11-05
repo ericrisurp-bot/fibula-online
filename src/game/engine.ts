@@ -1074,7 +1074,7 @@ export class GameEngine {
     }
     this.state.fishing = true;
     this.fishingTimer += dt;
-    while (this.fishingTimer >= CONFIG.lake.fishingInterval) {
+    if (this.fishingTimer >= CONFIG.lake.fishingInterval) {
       this.fishingTimer -= CONFIG.lake.fishingInterval;
       // Uma única rolagem por puxada: as faixas são cumulativas e o restante é sem captura.
       const fishRoll = this.random() * 100;
