@@ -4395,3 +4395,5 @@ button, button * {
 .cooking-match-actions strong,.cooking-active-meal strong{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
 .cooking-match-actions small,.cooking-active-meal small{color:#c5c9c5;font-size:8px}
 @media(max-width:650px){.cooking-match-actions{top:74px;right:7px;max-width:58vw;gap:4px}.cooking-match-actions button,.cooking-active-meal{min-width:48px;min-height:46px;padding:4px}.cooking-match-actions button>span,.cooking-active-meal>span{font-size:15px}}
+
+.lobby-crafting-content{overflow-y:auto}
