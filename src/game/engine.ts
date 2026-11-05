@@ -1064,6 +1064,12 @@ export class GameEngine {
       this.state.fishing = false;
       return;
     }
+    if (!this.state.fishing) {
+      const dx = this.state.lake.x - feet.x, dy = this.state.lake.y - feet.y;
+      const length = Math.hypot(dx, dy) || 1;
+      this.state.player.facingX = dx / length;
+      this.state.player.facingY = dy / length;
+    }
     this.state.fishing = true;
     this.fishingTimer += dt;
     while (this.fishingTimer >= CONFIG.lake.fishingInterval) {
