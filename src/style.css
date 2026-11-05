@@ -4585,3 +4585,14 @@ button, button * {
   .house-meals-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .house-meals-trigger { bottom: 126px; }
 }
+
+
+/* Ilustrações próprias dos itens e refeições nos slots do inventário. */
+.cooking-meal-artwork{position:relative;display:inline-flex;width:36px;height:32px;align-items:center;justify-content:center;vertical-align:middle}
+.cooking-meal-artwork>svg{display:block;flex:0 0 auto}
+.cooking-meal-ingredient{position:absolute;left:50%;top:0;display:grid;width:18px;height:18px;place-items:center;transform:translateX(-50%);filter:drop-shadow(0 1px 1px #222)}
+.cooking-meal-ingredient>svg,.cooking-meal-ingredient>img{width:18px!important;height:18px!important}
+.cooking-production-icon .cooking-meal-artwork{width:40px;height:36px}
+.cooking-production-icon .cooking-meal-artwork>svg{width:38px;height:34px}
+.cooking-production-icon .cooking-meal-ingredient{width:20px;height:20px}
+.cooking-production-icon .cooking-meal-ingredient>svg,.cooking-production-icon .cooking-meal-ingredient>img{width:20px!important;height:20px!important}
