@@ -53,7 +53,7 @@ const initial: GameSnapshot = {
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' },
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
@@ -143,16 +143,17 @@ function readSavedLoadouts(): ClassEquipmentLoadouts {
 const isProfileClassId = (value: unknown): value is ClassId =>
   typeof value === 'string' && PROFILE_CLASS_IDS.includes(value as ClassId);
 
-function ProfileClassStats({ classId }: { classId: ClassId }) {
-  const attributes = getPlayerAttributes(classId, 0);
+function ProfileClassStats({ classId, accountLevel }: { classId: ClassId; accountLevel: number }) {
+  const pointsPerLevel = 1 + accountLevel * 0.05;
+  const attributes = getPlayerAttributes(classId, 0, pointsPerLevel);
   const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
-  const hpPerLevel = getAttributeEffectPerLevel(classId, 1, 'vida');
-  const damagePerLevel = (getDamageMultiplier(classId, 1) - 1) * 100;
-  const movementPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeMovimento');
-  const armorPerLevel = getAttributeEffectPerLevel(classId, 1, 'armadura');
-  const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque') * 100;
-  const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva') * 100;
-  const nextLevelAttributes = getPlayerAttributes(classId, 1);
+  const hpPerLevel = getAttributeEffectPerLevel(classId, 1, 'vida', pointsPerLevel);
+  const damagePerLevel = (getDamageMultiplier(classId, 1, pointsPerLevel) - 1) * 100;
+  const movementPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeMovimento', pointsPerLevel);
+  const armorPerLevel = getAttributeEffectPerLevel(classId, 1, 'armadura', pointsPerLevel);
+  const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque', pointsPerLevel) * 100;
+  const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva', pointsPerLevel) * 100;
+  const nextLevelAttributes = getPlayerAttributes(classId, 1, pointsPerLevel);
   const attributeKeyByLabel: Record<string, AttributeKey> = {
     'Força': 'forca', 'Inteligência': 'inteligencia', 'Destreza': 'destreza', 'Armadura': 'armadura', 'Resistência mágica': 'resistenciaMagica',
     'Velocidade de movimento': 'velocidadeMovimento', 'Velocidade de ataque': 'velocidadeAtaque', 'Alcance de ataque': 'alcanceAtaque', 'Esquiva': 'esquiva', 'Área de ataque': 'areaAtaque',
@@ -171,7 +172,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   ] as const;
   const growthRows = ([['forca', 'Força', '💪'], ['armadura', 'Armadura', '🛡️'], ['inteligencia', 'Inteligência', '🧠'], ['destreza', 'Destreza', '🎯']] as const).map(([key, label, icon]) => {
     const gain = nextLevelAttributes[key] - attributes[key];
-    const best = Math.max(0.0001, ...PROFILE_CLASS_IDS.map(id => getPlayerAttributes(id, 1)[key] - getPlayerAttributes(id, 0)[key]));
+    const best = Math.max(0.0001, ...PROFILE_CLASS_IDS.map(id => getPlayerAttributes(id, 1, pointsPerLevel)[key] - getPlayerAttributes(id, 0, pointsPerLevel)[key]));
     return { label, icon, gain, percent: Math.max(0, Math.min(100, Math.round(gain / best * 100))), unused: ATTRIBUTE_USAGE[classId][key] === 0 };
   });
   const ability = {
@@ -222,7 +223,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   </div>;
 }
 
-const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : '📦';
+const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : '📦';
 const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
     <g fill="#fffaf0" stroke="#c8c3b6" strokeWidth="1" strokeLinejoin="round">
@@ -254,7 +255,7 @@ const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton'
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
-  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base;
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base;
   const rarity = getItemRarity(itemId);
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
@@ -263,6 +264,12 @@ const itemRarityGlow = (itemId: string): React.CSSProperties => {
   const rarity = getItemRarity(itemId);
   const color = rarity === 'common' ? '#36d66f' : rarity === 'uncommon' ? '#348cff' : rarity === 'rare' ? '#a34be8' : rarity === 'legendary' ? '#ff8a24' : 'transparent';
   return rarity ? { filter: `drop-shadow(0 0 5px ${color})` } : {};
+};
+
+const jabuticabaLevelCost = (level: number) => {
+  let cost = 4;
+  for (let current = 0; current < Math.max(0, Math.floor(level)); current++) cost = Math.ceil(cost * 1.25);
+  return cost;
 };
 
 const LOBBY_CRAFTING_STATIONS = [
@@ -449,6 +456,10 @@ export default function App() {
     });
   }, [state.dead, state.kills, state.nightNumber, state.dayNight]);
   const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
+  const [accountLevel, setAccountLevel] = useState(0);
+  const [jabuticabaProgress, setJabuticabaProgress] = useState(0);
+  const [jabuticabaBusy, setJabuticabaBusy] = useState(false);
+  const [jabuticabaFeedback, setJabuticabaFeedback] = useState('');
   const [characterPreferences, setCharacterPreferences] = useState<[ClassId | null, ClassId | null]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -642,10 +653,16 @@ export default function App() {
 
   useEffect(() => {
     if (!fibulaSupabase || !session.user.sub) return;
-    void fibulaSupabase.from('fibula_profiles').upsert(
-      { user_id: session.user.sub },
-      { onConflict: 'user_id', ignoreDuplicates: true },
-    );
+    let active = true;
+    void (async () => {
+      const data = await loadAccountProgress();
+      if (!active) return;
+      const level = Math.max(0, Number(data.level) || 0);
+      setAccountLevel(level);
+      setJabuticabaProgress(Math.max(0, Number(data.jabuticaba_progress) || 0));
+      engineRef.current?.setAccountLevel(level);
+    })().catch(() => undefined);
+    return () => { active = false; };
   }, [session.user.sub]);
 
   useEffect(() => {
@@ -833,7 +850,7 @@ export default function App() {
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const engine = new GameEngine((next) => setState(next)); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
+    const engine = new GameEngine((next) => setState(next), { accountLevel }); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
     let frame = 0;
     const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
     let fpsDisplay: HTMLDivElement | null = null;
@@ -1076,9 +1093,27 @@ export default function App() {
         const scale = tree.size === 'small' ? 1.75 : tree.size === 'medium' ? 2.45 : 3.25;
         worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => { drawResourceRarityAura(ctx, tree.x, tree.y + 29 * scale, tree.size === 'large' ? 64 : tree.size === 'medium' ? 50 : 38, tree.rarity); drawTree(ctx, tree.x, tree.y, tree.size); } });
       }
+      if (s.jabuticabaTree) {
+        const tree = s.jabuticabaTree;
+        worldDrawables.push({ depth: tree.y + 98, draw: () => {
+          drawTree(ctx, tree.x, tree.y, 'large');
+          ctx.save(); ctx.translate(tree.x, tree.y); ctx.scale(3.25, 3.25);
+          for (const [x, y] of [[-12,-18],[-3,-27],[9,-22],[15,-9],[-16,-5],[1,-12],[5,0]] as const) {
+            ctx.fillStyle = '#342044'; ctx.strokeStyle = '#1e1729'; ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.arc(x, y, 2.7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = 'rgba(224,197,239,.75)'; ctx.beginPath(); ctx.arc(x - 0.8, y - 0.9, 0.8, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+        } });
+      }
       for (const rock of s.rocks) {
         const scale = rock.size === 'small' ? 1.22 : rock.size === 'medium' ? 1.5 : 1.85;
         worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => { drawResourceRarityAura(ctx, rock.x, rock.y + 12 * scale, rock.size === 'large' ? 46 : rock.size === 'medium' ? 36 : 28, rock.rarity); drawRock(ctx, rock.x, rock.y, rock.size); } });
+      }
+      for (const drop of s.jabuticabaDrops) {
+        worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          ctx.fillStyle = '#342044'; ctx.beginPath(); ctx.arc(drop.x, drop.y, 5, 0, Math.PI * 2); ctx.fill();
+        } });
       }
       for (const drop of s.vegetableDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
@@ -1448,6 +1483,45 @@ export default function App() {
     return inventory;
   };
 
+  const loadAccountProgress = async () => {
+    if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para carregar o progresso.');
+    const current = await fibulaSupabase.from('fibula_profiles').select('level,jabuticaba_progress')
+      .eq('user_id', session.user.sub).single();
+    if (!current.error && current.data) return current.data;
+    const fallback = await fibulaSupabase.from('fibula_profiles').select('level')
+      .eq('user_id', session.user.sub).single();
+    if (fallback.error || !fallback.data) throw fallback.error ?? new Error('Perfil não encontrado.');
+    return { level: fallback.data.level, jabuticaba_progress: 0 };
+  };
+
+  const consumeJabuticaba = async () => {
+    if (jabuticabaBusy || !fibulaSupabase) return;
+    setJabuticabaBusy(true);
+    setJabuticabaFeedback('');
+    try {
+      const { data, error } = await fibulaSupabase.rpc('fibula_consume_jabuticaba');
+      if (error) throw error;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Resposta inválida do servidor.');
+      const result = data as Record<string, unknown>;
+      const level = Number(result.level);
+      const progress = Number(result.progress);
+      if (!Number.isSafeInteger(level) || level < 0 || !Number.isSafeInteger(progress) || progress < 0) {
+        throw new Error('O servidor retornou um progresso inválido.');
+      }
+      setAccountLevel(level);
+      setJabuticabaProgress(progress);
+      engineRef.current?.setAccountLevel(level);
+      await refreshLobbyChestFromCloud();
+      setJabuticabaFeedback(result.leveled_up === true
+        ? `Nível geral aumentado para ${level}! O progresso da próxima etapa começou do zero.`
+        : `Jabuticaba consumida: ${progress}/${Number(result.next_cost) || jabuticabaLevelCost(level)} para o próximo nível.`);
+    } catch (cause) {
+      setJabuticabaFeedback(cause instanceof Error ? cause.message : 'Não foi possível consumir a jabuticaba.');
+    } finally {
+      setJabuticabaBusy(false);
+    }
+  };
+
   const openLobbyChest = () => {
     setChestOpen(true);
     setChestTransferItemId(null);
@@ -1523,6 +1597,11 @@ export default function App() {
       }
       if (houseDeathFinalizeRef.current) await houseDeathFinalizeRef.current;
       const sessionId = await startSoloMatchSession(fibulaSupabase);
+      const accountProfile = await loadAccountProgress();
+      const currentAccountLevel = Math.max(0, Number(accountProfile.level) || 0);
+      setAccountLevel(currentAccountLevel);
+      setJabuticabaProgress(Math.max(0, Number(accountProfile.jabuticaba_progress) || 0));
+      engine.setAccountLevel(currentAccountLevel);
       engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
       matchSummaryHandledRef.current = false;
@@ -1620,6 +1699,11 @@ export default function App() {
           return;
         }
 
+        const duoAccountProfile = await loadAccountProgress();
+        const duoAccountLevel = Math.max(0, Number(duoAccountProfile.level) || 0);
+        setAccountLevel(duoAccountLevel);
+        setJabuticabaProgress(Math.max(0, Number(duoAccountProfile.jabuticaba_progress) || 0));
+        engine.setAccountLevel(duoAccountLevel);
         engine.setClass(characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro');
         engine.configureCooperativeMatch(playerSeed as number, {
           waitForNightRelease: true,
@@ -2062,6 +2146,9 @@ export default function App() {
               <div><h2 id="lobby-chest-title">Baú</h2><p>Sua coleção de itens</p></div>
               <button type="button" className="lobby-chest-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
             </header>
+            <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
+            {lobbyChestItems.some(item => item.itemId === 'jabuticaba' && item.quantity > 0) && <button type="button" className="lobby-chest-send-button" style={{ margin: '8px 14px 0', width: 'calc(100% - 28px)' }} disabled={!chestCloudReady || jabuticabaBusy} onClick={() => void consumeJabuticaba()}>{jabuticabaBusy ? 'Usando…' : 'Consumir 1 jabuticaba'}</button>}
+            {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
             <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
               {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
                 <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
@@ -2090,11 +2177,11 @@ export default function App() {
                   <span>{index === 0 ? 'PRINCIPAL' : 'SECUNDÁRIA'}</span>
                   <strong>Nenhuma classe selecionada</strong>
                 </section>;
-                const attributes = getPlayerAttributes(classId, state.player.level);
+                const attributes = getPlayerAttributes(classId, state.player.level, 1 + accountLevel * 0.05);
                 const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
-                const powerDamage = weapon.damage * getDamageMultiplier(classId, state.player.level);
-                const classPower = getClassPower(classId, state.player.level).total;
-                const classPowerAt10 = getClassPower(classId, 10).total;
+                const powerDamage = weapon.damage * getDamageMultiplier(classId, state.player.level, 1 + accountLevel * 0.05);
+                const classPower = getClassPower(classId, state.player.level, 1 + accountLevel * 0.05).total;
+                const classPowerAt10 = getClassPower(classId, 10, 1 + accountLevel * 0.05).total;
                 const loadout = equipmentLoadouts[classId] ?? {};
                 const equippedItems = Object.values(loadout).flatMap(itemId => {
                   const item = arsenalItems.find(candidate => candidate.id === itemId);
@@ -2170,7 +2257,7 @@ export default function App() {
                   })}><b>2</b> Secundário</button>
                   {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Toque em 1 ou 2 para escolher. Toque de novo para desligar.</small>}
                 </div>
-                <ProfileClassStats classId={profileClassTab} />
+                <ProfileClassStats classId={profileClassTab} accountLevel={accountLevel} />
               </section>
               <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
             </div>

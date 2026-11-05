@@ -53,6 +53,7 @@ export const CONFIG = {
   rocks: { max: 40, startCount: 10, spawnBase: 20, spawnReductionPerRock: 0, spawnMin: 20, noSpawnRadius: 600, mineRange: 45, dropChance: 0.07, attractionRadius: 300, attractionMaxNearby: 15, attractionMaxChance: 0.8, northEastSpawnChance: 0.7, northEastMinX: 0.55, northEastMaxY: 0.45, hitsToBreak: { small: 7, medium: 12, large: 22 }, sizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   cotton: { max: 25, startCount: 7, spawnInterval: 20, minSpacing: 600, dropChance: 0.07, plantPlayerClearRadius: 220, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   vegetables: { max: 30, startCount: 7, spawnInterval: 20, minSpacing: 600, dropChance: 0.07, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 }, hitsToBreak: { small: 7, medium: 12, large: 22 } },
+  jabuticaba: { spawnChancePercent: 0.04, hitsToHarvest: 7, dropChancePercent: RESOURCE_RARITY_RULES.legendary.chancePercent },
   wildlife: {
     chickens: { initial: 2, max: 5, groupSize: 5, spawnInterval: 40, speed: 26, radius: 13, wanderInterval: 2.8 },
     wolves: { initial: 1, max: 3, groupSize: 3, spawnInterval: 40, speed: 66, radius: 16, wanderInterval: 4.2, visionRange: 760, playerVisionRange: 520, contactDamage: 4, contactCooldown: 1.2 },

@@ -16,10 +16,10 @@ export type AttributeKey =
 export type EffectAttribute = 'vida' | 'armadura' | 'velocidadeMovimento' | 'velocidadeAtaque' | 'esquiva';
 export type PlayerAttributes = Record<AttributeKey, number>;
 
-export function getPlayerAttributes(classId: ClassId, level: number): PlayerAttributes {
+export function getPlayerAttributes(classId: ClassId, level: number, pointsPerLevel = 1): PlayerAttributes {
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
   const multipliers = classMultipliers[classId];
-  const gainedLevels = Math.max(0, level) * gainPerLevel;
+  const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
 
   return {
     vida: baseValue + gainedLevels * multipliers.vida,
@@ -48,26 +48,26 @@ export const ATTRIBUTE_USAGE: Record<ClassId, Record<AttributeKey, number>> = {
 
 const DAMAGE_ATTRIBUTES = ['forca', 'inteligencia', 'destreza'] as const;
 
-export function getDamageMultiplier(classId: ClassId, level: number): number {
+export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLevel = 1): number {
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
   const multipliers = classMultipliers[classId];
   const usage = ATTRIBUTE_USAGE[classId];
-  const gainedLevels = Math.max(0, level) * gainPerLevel;
+  const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
   const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + gainedLevels * multipliers[key]), 0);
 
   return damageAttributeValue / baseValue;
 }
 
-export function getAttributeEffectPerLevel(classId: ClassId, level: number, attribute: EffectAttribute): number {
-  const current = getPlayerAttributes(classId, level)[attribute];
-  const previous = getPlayerAttributes(classId, Math.max(0, level - 1))[attribute];
+export function getAttributeEffectPerLevel(classId: ClassId, level: number, attribute: EffectAttribute, pointsPerLevel = 1): number {
+  const current = getPlayerAttributes(classId, level, pointsPerLevel)[attribute];
+  const previous = getPlayerAttributes(classId, Math.max(0, level - 1), pointsPerLevel)[attribute];
   return (current - previous) * CONFIG.attributes.effectPerPointGained[attribute];
 }
 
-export function getAttributeBonus(classId: ClassId, level: number, attribute: EffectAttribute): number {
+export function getAttributeBonus(classId: ClassId, level: number, attribute: EffectAttribute, pointsPerLevel = 1): number {
   let total = 0;
   for (let currentLevel = 1; currentLevel <= Math.max(0, level); currentLevel++) {
-    total += getAttributeEffectPerLevel(classId, currentLevel, attribute);
+    total += getAttributeEffectPerLevel(classId, currentLevel, attribute, pointsPerLevel);
   }
   return total;
 }

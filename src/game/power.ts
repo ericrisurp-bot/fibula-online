@@ -24,19 +24,19 @@ const COVERED_ATTRIBUTES: Record<AttributeKey, boolean> = {
 
 const WEAPON_BY_CLASS = { guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao' } as const;
 
-function usedBonus(classId: ClassId, level: number, attribute: EffectAttribute): number {
-  return ATTRIBUTE_USAGE[classId][attribute] * getAttributeBonus(classId, level, attribute);
+function usedBonus(classId: ClassId, level: number, attribute: EffectAttribute, pointsPerLevel = 1): number {
+  return ATTRIBUTE_USAGE[classId][attribute] * getAttributeBonus(classId, level, attribute, pointsPerLevel);
 }
 
-export function getClassPower(classId: ClassId, level: number): PowerBreakdown {
+export function getClassPower(classId: ClassId, level: number, pointsPerLevel = 1): PowerBreakdown {
   const weapon = CONFIG.weapons[WEAPON_BY_CLASS[classId]];
   const stats: Record<PowerPart, number> = {
-    vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida'),
-    armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura'),
-    esquiva: 1 / (1 - Math.min(0.35, CONFIG.player.dodge + usedBonus(classId, level, 'esquiva'))),
-    velocidadeAtaque: weapon.attackSpeed * (1 + usedBonus(classId, level, 'velocidadeAtaque')),
-    velocidadeMovimento: CONFIG.player.speed + usedBonus(classId, level, 'velocidadeMovimento'),
-    dano: weapon.damage * getDamageMultiplier(classId, level),
+    vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel),
+    armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel),
+    esquiva: 1 / (1 - Math.min(0.35, CONFIG.player.dodge + usedBonus(classId, level, 'esquiva', pointsPerLevel))),
+    velocidadeAtaque: weapon.attackSpeed * (1 + usedBonus(classId, level, 'velocidadeAtaque', pointsPerLevel)),
+    velocidadeMovimento: CONFIG.player.speed + usedBonus(classId, level, 'velocidadeMovimento', pointsPerLevel),
+    dano: weapon.damage * getDamageMultiplier(classId, level, pointsPerLevel),
   };
   const parts = {} as Record<PowerPart, number>;
   let total = 0;
