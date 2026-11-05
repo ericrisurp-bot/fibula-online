@@ -130,8 +130,13 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   for (const key of Object.keys(effects) as Array<keyof CookingEffects>) {
     effects[key] = Math.min(effects[key]! * herbMultiplier, quickRecipeCaps[key] ?? 0);
   }
+  const bases = valid.map(item => getBaseItemId(item.itemId));
+  const hasFish = bases.some(base => FISH_ITEMS.includes(base));
+  const hasMeat = bases.some(base => MEAT_ITEMS.includes(base) || base === 'chicken_meat');
+  const name = hasFish ? 'Ensopado' : hasMeat ? 'Guisado' : 'Sopa';
+  const icon = hasFish ? '🐟' : hasMeat ? '🍲' : '🥣';
   return {
-    id: `pan-${Date.now()}`, slot: 'pan', name: 'Refeição da panela', icon: '🍲', rarity,
+    id: `pan-${Date.now()}`, slot: 'pan', name, icon, rarity,
     effects, ingredients: valid.map(item => ({ ...item })),
   };
 }
