@@ -53,7 +53,7 @@ const initial: GameSnapshot = {
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' },
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
@@ -222,7 +222,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   </div>;
 }
 
-const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : '📦';
+const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : '📦';
 const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
     <g fill="#fffaf0" stroke="#c8c3b6" strokeWidth="1" strokeLinejoin="round">
@@ -254,7 +254,7 @@ const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton'
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
-  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base;
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base;
   const rarity = getItemRarity(itemId);
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
@@ -271,6 +271,36 @@ const LOBBY_CRAFTING_STATIONS = [
   { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Bancada para criar acessórios que complementam os atributos do personagem.', products: 'Colares e pulseiras' },
   { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão', description: 'Estação culinária para preparar refeições e cozidos com ingredientes coletados.', products: 'Cozidos e refeições com efeitos' },
 ] as const;
+
+function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot['enemies'][number], elapsed: number) {
+  const wolf = animal.animalKind === 'wolf';
+  const bob = Math.sin(elapsed * 7 + animal.wobble) * 1.2;
+  ctx.save(); ctx.translate(animal.x, animal.y + bob);
+  ctx.fillStyle = 'rgba(0,0,0,.24)'; ctx.beginPath(); ctx.ellipse(0, 11, wolf ? 19 : 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+  if (wolf) {
+    ctx.strokeStyle = '#59483b'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-13, 3); ctx.lineTo(-16, 10); ctx.moveTo(-5, 5); ctx.lineTo(-7, 11); ctx.moveTo(8, 5); ctx.lineTo(7, 11); ctx.moveTo(14, 2); ctx.lineTo(17, 9); ctx.stroke();
+    ctx.fillStyle = '#8c7865'; ctx.strokeStyle = '#4d4036'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, 17, 9, -0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#74604f'; ctx.beginPath(); ctx.moveTo(-13, -2); ctx.quadraticCurveTo(-25, -13, -24, -3); ctx.quadraticCurveTo(-20, 5, -12, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#9b8773'; ctx.beginPath(); ctx.ellipse(13, -5, 9, 7, 0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#675546'; ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(9, -20); ctx.lineTo(16, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(17, -10); ctx.lineTo(22, -17); ctx.lineTo(23, -7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f0d8a8'; ctx.beginPath(); ctx.ellipse(19, -2, 5, 3, 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.arc(18, -7, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(23, -3, 1.6, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.strokeStyle = '#b68b43'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-5, 6); ctx.lineTo(-6, 13); ctx.moveTo(5, 6); ctx.lineTo(6, 13); ctx.stroke();
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(-1, 1, 13, 10, -0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e9e1d2'; ctx.beginPath(); ctx.ellipse(-4, 1, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.ellipse(8, -8, 6, 7, 0.1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#d84b43'; ctx.beginPath(); ctx.arc(6, -15, 2.5, 0, Math.PI * 2); ctx.arc(10, -16, 2.5, 0, Math.PI * 2); ctx.arc(13, -13, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e5a63a'; ctx.beginPath(); ctx.moveTo(13, -8); ctx.lineTo(20, -6); ctx.lineTo(13, -4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#27231f'; ctx.beginPath(); ctx.arc(10, -10, 1.1, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
 
 export default function App() {
   const { session } = useArenaAuth();
@@ -1126,6 +1156,16 @@ export default function App() {
           ctx.restore();
         }});
       }
+      for (const drop of s.wildlifeDrops) {
+        worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 17, drop.rarity);
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.font = '21px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(itemIcon(drop.kind), 0, 0);
+          if (drop.amount > 1) { ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), 0, -12); }
+          ctx.restore();
+        }});
+      }
       for (const drop of s.woodDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
           drawResourceRarityAura(ctx, drop.x, drop.y + 3, 22, drop.rarity);
@@ -1139,7 +1179,10 @@ export default function App() {
         }});
       }
       for (const enemy of s.enemies) {
-        worldDrawables.push({ depth: enemy.y + CONFIG.enemy.radius * 0.7, draw: () => drawSlime(ctx, enemy.x, enemy.y, CONFIG.enemy.radius, '#70d78d', '#397e58', enemy.wobble) });
+        worldDrawables.push({ depth: enemy.y + CONFIG.enemy.radius * 0.7, draw: () => {
+          if (enemy.animalKind) { drawResourceRarityAura(ctx, enemy.x, enemy.y + 4, enemy.animalKind === 'wolf' ? 26 : 22, enemy.rarity); drawWildlifeSprite(ctx, enemy, s.elapsed); }
+          else drawSlime(ctx, enemy.x, enemy.y, CONFIG.enemy.radius, '#70d78d', '#397e58', enemy.wobble);
+        }});
       }
       for (const enemy of s.dyingEnemies) {
         const progress = Math.min(1, enemy.deathAge / 0.48);
@@ -1147,7 +1190,8 @@ export default function App() {
           ctx.save(); ctx.globalAlpha = 1 - progress;
           ctx.translate(enemy.x, enemy.y + progress * CONFIG.enemy.radius * 0.65);
           ctx.scale(1 + progress * 0.38, Math.max(0.06, 1 - progress * 0.92));
-          drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', enemy.wobble);
+          if (enemy.animalKind) drawWildlifeSprite(ctx, { ...enemy, x: 0, y: 0 }, s.elapsed);
+          else drawSlime(ctx, 0, 0, CONFIG.enemy.radius, '#70d78d', '#397e58', enemy.wobble);
           ctx.restore();
         }});
       }
