@@ -2514,7 +2514,7 @@ export class GameEngine {
       if (this.state.classId === 'mago') this.local.mageAttackCount = (this.local.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
       const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
-      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel()), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * this.getCookingDamageMultiplier(), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       if (rangedId === 'arco') markArrowReleased(this.state.elapsed);
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
