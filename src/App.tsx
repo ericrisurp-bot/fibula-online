@@ -1013,10 +1013,12 @@ export default function App() {
         }});
       }
       for (const plant of s.vegetablePlants) {
-        const scale = plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22;
-        worldDrawables.push({ depth: plant.y + 22 * scale, draw: () => {
-          drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 38 : plant.size === 'medium' ? 31 : 24, plant.rarity);
-          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scale, scale);
+        const sizeScale = plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22;
+        const scaleX = 1.2 * 0.9 * sizeScale;
+        const scaleY = 1.2 * 1.15 * sizeScale;
+        worldDrawables.push({ depth: plant.y + 13 * 1.2, draw: () => {
+          drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
+          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scaleX, scaleY);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17, 6, 0, 0, Math.PI * 2); ctx.fill();
           const leaf = (x: number, y: number, angle: number, color: string) => { ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = color; ctx.strokeStyle = '#315c2d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-13, -9, -4, -19); ctx.quadraticCurveTo(8, -14, 0, 0); ctx.fill(); ctx.stroke(); ctx.restore(); };
           if (plant.kind === 'tomato') {
