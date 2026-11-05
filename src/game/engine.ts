@@ -2,7 +2,8 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
+import { getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
+import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
@@ -71,6 +72,7 @@ export type GameSnapshot = {
   fishingProgress: number;
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; jabuticabaTree: JabuticabaTree | null; jabuticabaDrops: JabuticabaDrop[]; rocks: Rock[]; cottonPlants: CottonPlant[]; vegetablePlants: VegetablePlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; vegetableDrops: VegetableDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; wildlifeDrops: WildlifeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
+  activeMeals: ActiveCookingMeal[];
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
@@ -366,6 +368,28 @@ export class GameEngine {
     return true;
   }
 
+  activateCookingMeal(meal: CookingMeal): boolean {
+    if (this.state.dead || !this.state.house.built || !meal || (meal.slot !== 'quick' && meal.slot !== 'pan')) return false;
+    const active: ActiveCookingMeal = { ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })), remainingSeconds: COOKING_DURATION_SECONDS };
+    this.state.activeMeals = [...this.state.activeMeals.filter(current => current.slot !== meal.slot), active];
+    this.emit();
+    return true;
+  }
+
+  private cookingBaseBonuses() {
+    const bonuses: Record<'forca' | 'destreza' | 'inteligencia' | 'velocidadeAtaque' | 'velocidadeMovimento', number> = {
+      forca: 0, destreza: 0, inteligencia: 0, velocidadeAtaque: 0, velocidadeMovimento: 0,
+    };
+    for (const meal of this.state.activeMeals) {
+      for (const key of Object.keys(bonuses) as Array<keyof typeof bonuses>) bonuses[key] += meal.effects[key] ?? 0;
+    }
+    return bonuses;
+  }
+
+  private getCookingDamageMultiplier() {
+    return getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel(), this.cookingBaseBonuses());
+  }
+
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
     persistHouseStorage(this.state.house.inventory);
@@ -381,6 +405,7 @@ export class GameEngine {
     };
     const startingHealth = CONFIG.attributes.classStartHealth[classId];
     return {
+      activeMeals: [],
       player: { x: this.world / 2, y: this.world / 2, hp: startingHealth, maxHp: startingHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
@@ -985,13 +1010,13 @@ export class GameEngine {
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
     const s = this.state;
     return [
-      s.player.hp, s.player.maxHp, s.player.level,
+      s.player.hp, s.player.maxHp, s.player.level, s.activeMeals.map(meal => `${meal.id}:${Math.ceil(meal.remainingSeconds)}`).join(','),
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange,
       Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
@@ -1005,6 +1030,13 @@ export class GameEngine {
     this.animation = requestAnimationFrame(this.loop);
   };
   private update(dt: number) {
+    this.state.activeMeals = this.state.activeMeals
+      .map(meal => ({ ...meal, remainingSeconds: Math.max(0, meal.remainingSeconds - dt) }))
+      .filter(meal => meal.remainingSeconds > 0);
+    if (this.phase !== 'night') {
+      const healingPerSecond = this.state.activeMeals.reduce((sum, meal) => sum + (meal.effects.healingPerSecond ?? 0), 0);
+      if (healingPerSecond > 0) this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + healingPerSecond * dt);
+    }
     this.elapsed = (this.elapsed + dt) % CONFIG.dayNight.cycle;
     this.state.elapsed = this.elapsed;
     if (this.phase === 'day') {
@@ -2167,10 +2199,10 @@ export class GameEngine {
   private getLevelStats() {
     const { classId, player } = this.state;
     return {
-      speed: getAttributeBonus(classId, player.level, 'velocidadeMovimento', this.pointsPerLevel()),
+      speed: getAttributeBonus(classId, player.level, 'velocidadeMovimento', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento, this.pointsPerLevel()),
       armor: getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
       dodge: getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
-      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()),
+      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeAtaque', this.cookingBaseBonuses().velocidadeAtaque, this.pointsPerLevel()),
     };
   }
 
@@ -2445,7 +2477,7 @@ export class GameEngine {
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
       for (const enemy of hits) {
         const vulnerability = this.getDayNightState().vulnerability;
-        const damage = weapon.damage * getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel()) * (1 + vulnerability);
+        const damage = weapon.damage * this.getCookingDamageMultiplier() * (1 + vulnerability);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         this.registerDruidBasicHit();
