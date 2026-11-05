@@ -2453,7 +2453,7 @@ button, button * {
   width:auto;
   max-width:none;
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(5,minmax(0,1fr));
   justify-items:center;
   align-items:center;
   gap:0;
@@ -2481,7 +2481,7 @@ button, button * {
     right:110px;
     width:auto;
     max-width:none;
-    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-columns:repeat(5,minmax(0,1fr));
   }
   .lobby-crafting-trigger{width:52px;height:52px;min-width:52px;min-height:52px}
   .lobby-top-emoji,
@@ -4374,3 +4374,24 @@ button, button * {
 .lobby-jabuticaba-progress{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 14px 0;padding:10px 12px;border:1px solid var(--fb-modal-border-soft);border-radius:8px;background:var(--fb-modal-card);color:var(--fb-modal-text);font-size:11px}
 .lobby-jabuticaba-progress strong{font-size:11px;letter-spacing:.04em}
 .lobby-jabuticaba-progress span{color:var(--fb-modal-muted);text-align:right;font-variant-numeric:tabular-nums}
+
+
+/* Cozinha: preparação no lobby e ativação direta após construir a casa. */
+.cooking-station-form{display:flex;flex-direction:column;gap:9px;width:100%;text-align:left}
+.cooking-station-form label{display:flex;flex-direction:column;gap:4px;color:#d6d8d6;font-size:11px;font-weight:800}
+.cooking-station-form select,.cooking-station-form input{width:100%;min-height:36px;padding:7px 9px;border:1px solid #666b67;border-radius:7px;background:#292c29;color:#f2f2f2;font:inherit}
+.cooking-stock-line{color:#c7cbc7;font-size:11px}
+.cooking-note{margin:0!important;color:#b9beb9!important;font-size:10px!important;line-height:1.45}
+.cooking-pan-row{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:7px}
+.cooking-prepare-button{min-height:38px;padding:8px 12px;border:1px solid #777d78;border-radius:8px;background:#353a36;color:#fff;font-size:11px;font-weight:900;cursor:pointer}
+.cooking-prepare-button:disabled{opacity:.45;cursor:not-allowed}
+.cooking-feedback{color:#e0e2df;font-size:10px;line-height:1.4}
+.cooking-prepared-list{display:flex;flex-direction:column;gap:5px;padding:9px;border:1px solid #555b56;border-radius:8px;background:#292c29;color:#e8eae8;font-size:10px}
+.cooking-prepared-list>small{color:#aeb4ae}
+.cooking-match-actions{position:absolute;z-index:24;top:76px;right:12px;display:flex;align-items:flex-start;gap:6px;max-width:min(55vw,480px);flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
+.cooking-match-actions button,.cooking-active-meal{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:56px;min-height:52px;padding:5px 7px;border:1px solid #858b85;border-radius:8px;background:rgba(34,35,34,.94);color:#f2f2f2;box-shadow:0 2px 8px #0006}
+.cooking-match-actions button{cursor:pointer}
+.cooking-match-actions button>span,.cooking-active-meal>span{font-size:17px;line-height:1}
+.cooking-match-actions strong,.cooking-active-meal strong{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
+.cooking-match-actions small,.cooking-active-meal small{color:#c5c9c5;font-size:8px}
+@media(max-width:650px){.cooking-match-actions{top:74px;right:7px;max-width:58vw;gap:4px}.cooking-match-actions button,.cooking-active-meal{min-width:48px;min-height:46px;padding:4px}.cooking-match-actions button>span,.cooking-active-meal>span{font-size:15px}}
