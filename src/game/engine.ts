@@ -1,4 +1,4 @@
-import { CONFIG, RESOURCE_RARITY_RULES, type ClassId, type ResourceRarity, type WeaponId } from './config';
+import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, type ResourceRarity, type WeaponId } from './config';
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
