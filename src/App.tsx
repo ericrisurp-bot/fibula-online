@@ -1060,31 +1060,54 @@ export default function App() {
         }});
       }
       for (const plant of s.vegetablePlants) {
-        const sizeScale = plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22;
+        // O crescimento aumenta um pouco o porte, mas principalmente a quantidade de partes da planta.
+        const sizeScale = plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1;
         const scaleX = 1.2 * 0.9 * sizeScale;
         const scaleY = 1.2 * 1.15 * sizeScale;
-        worldDrawables.push({ depth: plant.y + 13 * 1.2, draw: () => {
+        const isSmall = plant.size === 'small';
+        const isLarge = plant.size === 'large';
+        worldDrawables.push({ depth: plant.y + 13 * 1.2 * sizeScale, draw: () => {
           drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
           ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scaleX, scaleY);
-          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17, 6, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17 * sizeScale, 6 * sizeScale, 0, 0, Math.PI * 2); ctx.fill();
           const leaf = (x: number, y: number, angle: number, color: string) => { ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = color; ctx.strokeStyle = '#315c2d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-13, -9, -4, -19); ctx.quadraticCurveTo(8, -14, 0, 0); ctx.fill(); ctx.stroke(); ctx.restore(); };
           if (plant.kind === 'tomato') {
-            ctx.strokeStyle = '#52783a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(0, -12); ctx.lineTo(-10, -19); ctx.moveTo(0, -7); ctx.lineTo(11, -17); ctx.stroke();
-            leaf(-8, -13, -0.8, '#4e963d'); leaf(7, -12, 0.8, '#65a844'); leaf(-11, -4, -1.2, '#3f8538'); leaf(10, -4, 1.1, '#55963d');
-            for (const [x,y] of [[-9,-8],[9,-13],[1,-20]] as const) { ctx.fillStyle = '#d9362b'; ctx.strokeStyle = '#8f241f'; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4d8a37'; ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x-3,y-8); ctx.lineTo(x,y-7); ctx.lineTo(x+3,y-9); ctx.fill(); }
+            ctx.strokeStyle = '#52783a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(0, -12); ctx.lineTo(-10, -19); ctx.moveTo(0, -7); ctx.lineTo(11, -17); ctx.moveTo(0, 1); ctx.lineTo(-14, -5); ctx.moveTo(0, -1); ctx.lineTo(14, -8); ctx.stroke();
+            const tomatoLeaves = [[-8,-13,-0.8,'#4e963d'],[7,-12,0.8,'#65a844'],[-11,-4,-1.2,'#3f8538'],[10,-4,1.1,'#55963d'],[-15,-7,-1.3,'#4b8f3b'],[14,-10,1.2,'#5a9d42'],[-2,-19,-0.2,'#70aa49']] as const;
+            const leafCount = isSmall ? 4 : isLarge ? 7 : 6;
+            for (let i = 0; i < leafCount; i++) { const [x,y,a,c] = tomatoLeaves[i]; leaf(x,y,a,c); }
+            const fruits = [[-9,-8],[9,-13],[1,-20],[-15,-3],[14,-6],[0,-5]] as const;
+            const fruitCount = isSmall ? 2 : isLarge ? 6 : 4;
+            for (let i = 0; i < fruitCount; i++) {
+              const [x,y] = fruits[i];
+              ctx.fillStyle = '#d9362b'; ctx.strokeStyle = '#8f241f'; ctx.beginPath(); ctx.arc(x,y,4.2,0,Math.PI*2); ctx.fill(); ctx.stroke();
+              ctx.fillStyle = '#4d8a37'; ctx.beginPath(); ctx.moveTo(x,y-4); ctx.lineTo(x-3,y-7); ctx.lineTo(x,y-6); ctx.lineTo(x+3,y-8); ctx.fill();
+            }
           } else if (plant.kind === 'cabbage') {
-            // O repolho nasce rente ao solo: folhas externas encostam na linha da sombra.
-            leaf(-8, 10, -1.15, '#4f963e'); leaf(8, 10, 1.15, '#438735');
-            leaf(-6, 6, -0.7, '#65a94d'); leaf(6, 6, 0.7, '#5b9c43');
+            // O repolho cresce rente ao solo; plantas maiores ganham camadas de folhas largas.
+            const outerLeaves = [[-12,10,-1.25,'#4f963e'],[12,10,1.25,'#438735'],[-10,5,-0.9,'#65a94d'],[10,5,0.9,'#5b9c43'],[-5,2,-0.45,'#4b913d'],[5,2,0.45,'#70ad4e'],[-15,9,-1.45,'#438735'],[15,9,1.45,'#4f963e']] as const;
+            const leafCount = isSmall ? 4 : isLarge ? 8 : 6;
+            for (let i = 0; i < leafCount; i++) { const [x,y,a,c] = outerLeaves[i]; leaf(x,y,a,c); }
             ctx.fillStyle = '#83bd55'; ctx.strokeStyle = '#3d7132'; ctx.lineWidth = 1.2;
-            ctx.beginPath(); ctx.ellipse(0, -3, 10, 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(0, -3, isSmall ? 8 : isLarge ? 12 : 10, isSmall ? 9 : isLarge ? 13 : 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
             ctx.strokeStyle = '#c2df8a'; ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(0, 8); ctx.quadraticCurveTo(-3, -3, 0, -12);
             ctx.moveTo(0, 8); ctx.quadraticCurveTo(7, -3, 7, -8);
             ctx.stroke();
           } else {
-            ctx.strokeStyle = '#467c36'; ctx.lineWidth = 2.4; for(let n=-2;n<=2;n++){ctx.beginPath();ctx.moveTo(0,12);ctx.quadraticCurveTo(n*3,-5,n*5-3,-20-Math.abs(n)*2);ctx.stroke();leaf(n*4,-10,n*.25,n%2?'#79ad4d':'#4c963e');}
+            // Ervas: touceira de hastes finas; o porte maior acrescenta hastes e pares de folhas.
+            const stemCount = isSmall ? 3 : isLarge ? 7 : 5;
+            ctx.strokeStyle = '#467c36'; ctx.lineWidth = 2.1;
+            for (let i = 0; i < stemCount; i++) {
+              const n = i - Math.floor(stemCount / 2);
+              const topX = n * 5 - 3;
+              const topY = -18 - (isLarge ? Math.abs(n) * 2 : isSmall ? 0 : Math.abs(n));
+              ctx.beginPath(); ctx.moveTo(0,12); ctx.quadraticCurveTo(n*3,-5,topX,topY); ctx.stroke();
+              leaf(n*4,-10,n*.25,n%2?'#79ad4d':'#4c963e');
+              if (!isSmall) leaf(n*3+3,-4,n*.3+0.7,'#65a94d');
+              if (isLarge) leaf(n*3-3,-14,n*.3-0.7,'#5a9b42');
+            }
           }
           ctx.restore();
         }});
@@ -1116,12 +1139,13 @@ export default function App() {
         } });
       }
       for (const drop of s.vegetableDrops) {
-        worldDrawables.push({ depth: drop.y + 6, draw: () => {
-          drawResourceRarityAura(ctx, drop.x, drop.y + 4, 15, drop.rarity);
+        worldDrawables.push({ depth: drop.y + 5, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 10, drop.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y);
-          if (drop.kind === 'tomato') { ctx.fillStyle = '#df392e'; ctx.strokeStyle = '#85251e'; ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4c8a36'; ctx.fillRect(-1,-7,2,3); }
-          else if (drop.kind === 'cabbage') { ctx.fillStyle = '#8fbd59'; ctx.strokeStyle = '#426d35'; ctx.beginPath(); ctx.ellipse(0,0,7,5,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
-          else { ctx.strokeStyle = '#4f963e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0,5); ctx.lineTo(-3,-5); ctx.moveTo(0,5); ctx.lineTo(4,-6); ctx.stroke(); }
+          // O item no chão representa uma unidade colhida, não o tamanho da planta de origem.
+          if (drop.kind === 'tomato') { ctx.fillStyle = '#df392e'; ctx.strokeStyle = '#85251e'; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4c8a36'; ctx.beginPath(); ctx.moveTo(0,-3); ctx.lineTo(-2,-5); ctx.lineTo(0,-4); ctx.lineTo(2,-5); ctx.fill(); }
+          else if (drop.kind === 'cabbage') { ctx.fillStyle = '#8fbd59'; ctx.strokeStyle = '#426d35'; ctx.beginPath(); ctx.ellipse(0,0,5,3.8,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.strokeStyle = '#c2df8a'; ctx.beginPath(); ctx.moveTo(0,3); ctx.lineTo(0,-3); ctx.stroke(); }
+          else { ctx.strokeStyle = '#4f963e'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0,4); ctx.lineTo(-2,-3); ctx.moveTo(0,4); ctx.lineTo(2,-4); ctx.moveTo(0,2); ctx.lineTo(-4,-1); ctx.moveTo(0,2); ctx.lineTo(4,-1); ctx.stroke(); }
           ctx.restore();
         }});
       }
