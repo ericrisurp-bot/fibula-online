@@ -8,6 +8,7 @@ export type CookingMeal = {
   rarity: ItemRarity | 'normal'; effects: CookingEffects;
   ingredients: Array<{ itemId: string; quantity: number }>;
   durationSeconds?: number;
+  herbExtended?: boolean;
 };
 export type ActiveCookingMeal = CookingMeal & { remainingSeconds: number };
 
@@ -112,14 +113,32 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   const herbs = ingredients.find(item => getBaseItemId(item.itemId) === 'herbs');
   const durationSeconds = QUICK_MEAL_SECONDS + (herbs ? HERB_MINUTES_PER_UNIT[rarity] * herbs.quantity * 60 : 0);
   const bases = bonusIngredients.map(item => getBaseItemId(item.itemId));
-  const hasFish = bases.some(base => FISH_ITEMS.includes(base));
-  const hasMeat = bases.some(base => MEAT_ITEMS.includes(base) || base === 'chicken_meat');
+  const proteins = bases.filter(base => FISH_ITEMS.includes(base) || MEAT_ITEMS.includes(base) || base === 'chicken_meat');
+  const vegetables = bases.filter(base => base === 'tomato' || base === 'cabbage');
+  const protein = proteins[0];
+  const sauce = vegetables[0];
   const single = divisor === 1 ? getQuickRecipe(bonusIngredients[0].itemId, 10) : null;
+
+  let name = single?.name ?? 'Sopa mista';
+  let icon = single?.icon ?? '🥣';
+  if (!single && protein) {
+    const proteinName = FISH_ITEMS.includes(protein) ? 'peixe'
+      : protein === 'chicken_meat' ? 'frango' : 'carne';
+    const sauceName = sauce === 'tomato' ? 'ao tomate'
+      : sauce === 'cabbage' ? 'com repolho' : '';
+    name = proteins.length > 1
+      ? (sauceName ? 'Ensopado misto ' + sauceName : 'Ensopado misto')
+      : 'Ensopado de ' + proteinName + (sauceName ? ' ' + sauceName : '');
+    icon = sauce === 'tomato' ? '🍲🍅' : sauce === 'cabbage' ? '🍲🥬' : '🍲';
+  } else if (!single && vegetables.length > 1) {
+    name = 'Sopa mista de tomate e repolho';
+    icon = '🥣🍅🥬';
+  }
+
   return {
     id: 'cooking-' + Date.now(), slot: divisor === 1 ? 'quick' : 'pan',
-    name: single?.name ?? (hasFish ? 'Ensopado' : hasMeat ? 'Guisado' : 'Sopa mista'),
-    icon: single?.icon ?? (hasFish ? '🐟' : hasMeat ? '🍲' : '🥣'),
-    rarity, effects, ingredients: ingredients.map(item => ({ ...item })), durationSeconds,
+    name, icon, rarity, effects, ingredients: ingredients.map(item => ({ ...item })),
+    durationSeconds, herbExtended: !!herbs,
   };
 }
 export function consumeCookingIngredients(inventory: InventoryStack[], meal: CookingMeal): InventoryStack[] | null {
