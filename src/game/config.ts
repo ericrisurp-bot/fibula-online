@@ -27,7 +27,7 @@ export const CONFIG = {
     edgeBiasWorldFraction: 0.25, structurePreferenceDistance: 600, structureMinimumWeight: 0.25,
     colliderStepMinimum: 12, colliderStepMinorAxisFactor: 0.18, colliderRadiusInset: 0.95,
     colliderMinimumRadius: 10, steeringCircleRadiusFactor: 1.12, fallbackGridStep: 80,
-    fishingRange: 58, fishingInterval: 2,
+    fishingRange: 58, fishingInterval: 4,
     fishByLakeSize: {
       small: [
         { itemId: 'tilapia', chancePercent: 20 },
