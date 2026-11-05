@@ -103,7 +103,8 @@ export function getQuickRecipe(itemId: string, quantity: number, herbs = 0): Coo
 
 export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number }>): CookingMeal | null {
   const valid = ingredients.filter(item => isCookingIngredient(item.itemId) && Number.isSafeInteger(item.quantity) && item.quantity > 0);
-  if (valid.length < 1 || valid.length > 4 || valid.reduce((sum, item) => sum + item.quantity, 0) > 40) return null;
+  if (valid.length < 1 || valid.length > 4 || valid.reduce((sum, item) => sum + item.quantity, 0) > 40
+    || new Set(valid.map(item => getBaseItemId(item.itemId))).size !== valid.length) return null;
   const rarity = getCookingRarity(valid[0].itemId);
   if (valid.some(item => getCookingRarity(item.itemId) !== rarity)) return null;
   const effects: CookingEffects = {};
