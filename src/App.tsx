@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, readPreparedMeals, writePreparedMeals, type CookingMeal } from './game/cooking';
+import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, readPreparedMeals, readReadyMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -489,6 +489,8 @@ export default function App() {
   const duoTransportRef = useRef<DuoCycleTransport | null>(null);
   const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
+  const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
+  const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
   const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
@@ -560,12 +562,18 @@ export default function App() {
 
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
   const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>(readPreparedMeals);
+  const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>(readReadyMeals);
   const [panCookingSelections, setPanCookingSelections] = useState<Array<{ itemId: string; quantity: number }>>([]);
   const [cookingFeedback, setCookingFeedback] = useState('');
+  const [cookingClock, setCookingClock] = useState(() => Date.now());
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
+  useEffect(() => {
+    const timer = window.setInterval(() => setCookingClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1555,6 +1563,7 @@ export default function App() {
   };
 
   const openLobbyChest = () => {
+    setChestTab('resources');
     setChestOpen(true);
     setChestTransferItemId(null);
     setChestTransferFeedback('');
@@ -1610,7 +1619,13 @@ export default function App() {
     }
   };
   const storePreparedCookingMeal = (meal: CookingMeal) => {
-    const nextMeals = [...preparedCookingMeals, meal].slice(0, 3);
+    const startedAt = Date.now();
+    const queuedMeal: CookingMeal = {
+      ...meal,
+      productionStartedAt: startedAt,
+      productionReadyAt: startedAt + COOKING_PRODUCTION_MS,
+    };
+    const nextMeals = [...preparedCookingMeals, queuedMeal].slice(0, 3);
     setPreparedCookingMeals(nextMeals);
     writePreparedMeals(nextMeals);
   };
@@ -1646,14 +1661,14 @@ export default function App() {
   };
   const prepareCookingMeal = () => {
     if (preparedCookingMeals.length >= 3) {
-      setCookingFeedback('Limite de 3 receitas prontas atingido. Ative uma durante a partida para liberar um espaço.');
+      setCookingFeedback('Os três espaços de produção estão ocupados.');
       return;
     }
-    if (!panCookingSelections.length) { setCookingFeedback('Escolha os ingredientes do Baú para preencher a panela.'); return; }
+    if (!panCookingSelections.length) { setCookingFeedback('Escolha os ingredientes para a receita.'); return; }
     const ingredients = panCookingSelections.map(item => ({ itemId: item.itemId, quantity: item.quantity }));
     const meal = getPanMeal(ingredients);
     if (!meal) {
-      setCookingFeedback('Use pelo menos 10 unidades. A capacidade é de 10 unidades por variedade, até 4 variedades, e todos os ingredientes precisam ter a mesma raridade.');
+      setCookingFeedback('Combinação inválida. Use pelo menos 10 unidades e ingredientes da mesma raridade.');
       return;
     }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
@@ -1661,14 +1676,24 @@ export default function App() {
     applyCookingInventory(nextInventory);
     storePreparedCookingMeal(meal);
     setPanCookingSelections([]);
-    setCookingFeedback(meal.name + ' preparada com ' + cookingSelectedTotal + ' unidades.');
+    setCookingFeedback('Produção iniciada: ' + meal.name + '.');
   };
-  const activatePreparedCookingMeal = (meal: CookingMeal) => {
+  const collectPreparedCookingMeal = (meal: CookingMeal) => {
+    if ((meal.productionReadyAt ?? 0) > Date.now()) return;
+    const nextQueue = preparedCookingMeals.filter(item => item.id !== meal.id);
+    const nextReady = [...readyCookingMeals, meal];
+    setPreparedCookingMeals(nextQueue);
+    writePreparedMeals(nextQueue);
+    setReadyCookingMeals(nextReady);
+    writeReadyMeals(nextReady);
+    setCookingFeedback(meal.name + ' foi para a aba Refeições do Baú.');
+  };
+  const consumeReadyCookingMeal = (meal: CookingMeal) => {
     const engine = engineRef.current;
-    if (!engine?.activateCookingMeal(meal)) return;
-    const nextMeals = preparedCookingMeals.filter(item => item.id !== meal.id);
-    setPreparedCookingMeals(nextMeals);
-    writePreparedMeals(nextMeals);
+    if (!houseAccessible || !engine?.activateCookingMeal(meal)) return;
+    const nextMeals = readyCookingMeals.filter(item => item.id !== meal.id);
+    setReadyCookingMeals(nextMeals);
+    writeReadyMeals(nextMeals);
   };
 
   const handleLobbyPlay = () => {
@@ -2093,10 +2118,7 @@ export default function App() {
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
       <div className="hud-top" aria-label="Status da partida">
-        {state.house.built && (preparedCookingMeals.length > 0 || state.activeMeals.length > 0) && <div className="cooking-match-actions" aria-label="Refeições">
-          {preparedCookingMeals.map(meal => <button key={meal.id} type="button" onClick={() => activatePreparedCookingMeal(meal)} title={meal.name}>
-            <span>{meal.icon}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.slot === 'quick' ? 'FOGÃO' : 'PANELA'}</strong><small>ATIVAR</small>
-          </button>)}
+        {state.house.built && state.activeMeals.length > 0 && <div className="cooking-match-actions" aria-label="Refeições ativas">
           {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
             <span>{meal.icon}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
           </div>)}
@@ -2180,13 +2202,29 @@ export default function App() {
             </header>
             <div className="lobby-crafting-content">
               <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
-              <p>{activeCraftingStation.description}</p>
+              {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
               {activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form">
-                  <div className="cooking-stock-line">Ingredientes culinários no Baú: <strong>{cookingIngredientStacks.reduce((sum, item) => sum + item.quantity, 0)}</strong></div>
-                  <p className="cooking-note">A panela tem quatro espaços para variedades diferentes. Cada clique adiciona 1 unidade. A capacidade cresce 10 unidades por variedade; mínimo de 10 unidades para preparar.</p>
+                  <div className="cooking-production-panel">
+                    <div className="cooking-pot-heading"><strong>🥘 Produção</strong><span>{preparedCookingMeals.length}/3</span></div>
+                    <div className="cooking-production-slots">
+                      {Array.from({ length: 3 }, (_, index) => {
+                        const meal = preparedCookingMeals[index];
+                        const remaining = meal ? Math.max(0, Math.ceil(((meal.productionReadyAt ?? 0) - cookingClock) / 1000)) : 0;
+                        return <div className={meal ? remaining > 0 ? 'cooking-production-slot cooking-in-progress' : 'cooking-production-slot cooking-ready' : 'cooking-production-slot'} key={meal?.id ?? 'production-' + index}>
+                          <strong>Produção {index + 1}</strong>
+                          {meal ? <>
+                            <span className="cooking-production-icon">{meal.icon}</span>
+                            <b>{meal.name}</b>
+                            {remaining > 0 ? <small>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</small>
+                              : <button type="button" onClick={() => collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
+                          </> : <small>Livre</small>}
+                        </div>;
+                      })}
+                    </div>
+                  </div>
                   <div className="cooking-pot-panel">
-                    <div className="cooking-pot-heading"><strong>🥘 Panela</strong><span>{cookingSelectedTotal}/{cookingCapacity} unidades · {panCookingSelections.length}/4 variedades</span></div>
+                    <div className="cooking-pot-heading"><strong>Ingredientes</strong><span>{cookingSelectedTotal}/{cookingCapacity} · {panCookingSelections.length}/4</span></div>
                     <div className="cooking-pot-slots" aria-label="Quatro espaços de ingredientes">
                       {Array.from({ length: 4 }, (_, index) => {
                         const item = panCookingSelections[index];
@@ -2196,18 +2234,17 @@ export default function App() {
                         </div>;
                       })}
                     </div>
-                    <div className="cooking-chest-heading"><strong>🧰 Baú de ingredientes</strong><small>Somente ingredientes disponíveis no Baú da casa</small></div>
-                    <div className="cooking-ingredient-grid">
+                    <div className="lobby-chest-grid cooking-ingredient-grid" aria-label="Ingredientes disponíveis no Baú">
                       {cookingIngredientStacks.map(item => {
                         const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
                         const nextCapacity = getCookingCapacity(panCookingSelections.length + (selected === 0 ? 1 : 0));
-                        return <button type="button" className={selected > 0 ? 'cooking-ingredient selected' : 'cooking-ingredient'} key={item.itemId}
+                        return <button type="button" className={selected > 0 ? 'quick-slot filled lobby-chest-slot cooking-ingredient selected' : 'quick-slot filled lobby-chest-slot cooking-ingredient'} key={item.itemId}
                           onClick={() => addCookingIngredientUnit(item.itemId)}
                           disabled={selected >= item.quantity || (selected === 0 && panCookingSelections.length >= 4)
                             || cookingSelectedTotal >= nextCapacity}>
-                          <span className="cooking-ingredient-icon">{itemIcon(item.itemId)}</span>
-                          <strong>{itemLabel(item.itemId)}</strong><small>No Baú: {item.quantity}</small>
-                          {selected > 0 && <b>Na panela: {selected}</b>}
+                          <span style={itemRarityGlow(item.itemId)}>{itemIcon(item.itemId)}</span>
+                          <small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                          {selected > 0 && <em>Panela ×{selected}</em>}
                         </button>;
                       })}
                     </div>
@@ -2224,10 +2261,9 @@ export default function App() {
                       })}
                     </div>}
                     <button type="button" className="cooking-prepare-button" onClick={prepareCookingMeal}
-                      disabled={!panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Preparar refeição</button>
+                      disabled={preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
                   </div>
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
-                  <div className="cooking-prepared-list"><strong>Receitas prontas · {preparedCookingMeals.length}/3</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon}{meal.herbExtended ? ' ✨' : ''} {meal.name} · {Math.ceil((meal.durationSeconds ?? 1800) / 60)} min</span>) : <small>Nenhuma refeição preparada.</small>}</div>
                 </div>
               </> : <>
                 <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
@@ -2299,14 +2335,24 @@ export default function App() {
               <button type="button" className="lobby-chest-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
             </header>
             <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
-            {lobbyChestItems.some(item => item.itemId === 'jabuticaba' && item.quantity > 0) && <button type="button" className="lobby-chest-send-button" style={{ margin: '8px 14px 0', width: 'calc(100% - 28px)' }} disabled={!chestCloudReady || jabuticabaBusy} onClick={() => void consumeJabuticaba()}>{jabuticabaBusy ? 'Usando…' : 'Consumir 1 jabuticaba'}</button>}
-            {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-            <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
-              {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
-                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
-              </div>)}
-            </div>
+            <nav className="lobby-chest-tabs" role="tablist" aria-label="Conteúdo do Baú">
+              <button type="button" role="tab" aria-selected={chestTab === 'resources'} className={chestTab === 'resources' ? 'active' : ''} onClick={() => setChestTab('resources')}>Recursos</button>
+              <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
+            </nav>
+            {chestTab === 'resources' ? <>
+              {lobbyChestItems.some(item => item.itemId === 'jabuticaba' && item.quantity > 0) && <button type="button" className="lobby-chest-send-button" style={{ margin: '8px 14px 0', width: 'calc(100% - 28px)' }} disabled={!chestCloudReady || jabuticabaBusy} onClick={() => void consumeJabuticaba()}>{jabuticabaBusy ? 'Usando…' : 'Consumir 1 jabuticaba'}</button>}
+              {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
+              <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
+                {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
+                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
+                </div>)}
+              </div>
+            </> : <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
+              {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot">
+                <span>{meal.icon}</span><small>{meal.name}</small><b>{meal.slot === 'quick' ? 'Receita simples' : 'Receita sofisticada'}</b>
+              </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
+            </div>}
             {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
               <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
               <label>Quantidade
@@ -2522,14 +2568,29 @@ export default function App() {
           </div>
         </section>
         {state.house.built && <section className="house-storage-section">
-          <h3>Armazém da casa <small>{state.house.inventory.length} tipos</small></h3>
-          {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
+          <h3>Armazém da casa</h3>
+          <nav className="house-storage-tabs" role="tablist" aria-label="Armazém da casa">
+            <button type="button" role="tab" aria-selected={houseStorageTab === 'resources'} className={houseStorageTab === 'resources' ? 'active' : ''} onClick={() => setHouseStorageTab('resources')}>Materiais</button>
+            <button type="button" role="tab" aria-selected={houseStorageTab === 'meals'} className={houseStorageTab === 'meals' ? 'active' : ''} onClick={() => setHouseStorageTab('meals')}>Refeições · {readyCookingMeals.length}</button>
+          </nav>
+          {houseStorageTab === 'resources' ? state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
             {state.house.inventory.map(item => <button key={item.itemId} type="button" className="quick-slot filled inventory-transfer-slot" disabled={!houseAccessible} onClick={(event) => { event.stopPropagation(); transferHouseToBag(item.itemId); }} aria-label={`Retirar ${item.itemId} x${item.quantity} da casa para a mochila`} title={houseAccessible ? "Retirar para a mochila (até 5 por clique)" : "Aproxime-se da casa para retirar"}>
               <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
             </button>)}
-          </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.' : 'Conclua a construção para usar o armazém.'}</p>}
+          </div> : <p className="house-storage-empty">A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.</p>
+            : <div className="house-meals-grid">
+              {readyCookingMeals.length ? readyCookingMeals.map(meal => {
+                const slotOccupied = state.activeMeals.some(active => active.slot === meal.slot);
+                return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || slotOccupied}
+                  onClick={(event) => { event.stopPropagation(); consumeReadyCookingMeal(meal); }}
+                  title={!houseAccessible ? 'Aproxime-se da casa para consumir' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
+                  <span>{meal.icon}</span><small>{meal.name}</small><b>Consumir</b>
+                </button>;
+              }) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
+            </div>}
         </section>}
       </div>}
+      {houseAccessible && !showStart && !state.dead && <button type="button" className="house-meals-trigger" onClick={() => { closeFlagMenu(); setHouseStorageTab('meals'); inventoryPanelOpenRef.current = true; setInventoryPanelOpen(true); }}>🏠 CASA · REFEIÇÕES</button>}
       {cartDistance <= CONFIG.cart.interactRadius && state.cart.stage === 'broken' && <div className="cart-repair-status" role="status">BURRINHO E CARROÇA · {state.cart.everBuilt ? '10 MADEIRAS + 5 ALGODÕES' : '1 MADEIRA'}</div>}
 
 {!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
