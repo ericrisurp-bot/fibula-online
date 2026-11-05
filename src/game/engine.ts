@@ -1084,9 +1084,10 @@ export class GameEngine {
         cumulativeChance += fish.chancePercent;
         return fishRoll < cumulativeChance;
       });
-      if (!caughtFish) continue;
-      const result = addToInventory(this.state.inventory, caughtFish.itemId, 1, CONFIG.inventory);
-      if (result.added > 0) this.state.inventory = result.inventory;
+      if (caughtFish) {
+        const result = addToInventory(this.state.inventory, caughtFish.itemId, 1, CONFIG.inventory);
+        if (result.added > 0) this.state.inventory = result.inventory;
+      }
     }
     this.state.fishingProgress = this.fishingTimer / CONFIG.lake.fishingInterval;
   }
