@@ -2190,7 +2190,7 @@ export default function App() {
                       return <button type="button" className={selected > 0 ? 'cooking-ingredient selected' : 'cooking-ingredient'} key={item.itemId}
                         onClick={() => addCookingIngredientUnit(item.itemId)}
                         disabled={selected >= item.quantity || panCookingSelections.reduce((sum, entry) => sum + entry.quantity, 0) >= 40}>
-                        <span className="cooking-ingredient-icon">{itemLabel(item.itemId).split(' ')[0]}</span>
+                        <span className="cooking-ingredient-icon">{itemIcon(item.itemId)}</span>
                         <strong>{itemLabel(item.itemId)}</strong><small>No Baú: {item.quantity}</small>
                         {selected > 0 && <b>Na panela: {selected}</b>}
                       </button>;
