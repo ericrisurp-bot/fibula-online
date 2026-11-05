@@ -121,7 +121,6 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   for (const key of Object.keys(effects) as Array<keyof CookingEffects>) {
     effects[key] = Math.min(effects[key]!, (effects[key]! * herbMultiplier));
   }
-  const names = valid.map(item => getBaseItemId(item.itemId));
   return {
     id: `pan-${Date.now()}`, slot: 'pan', name: 'Refeição da panela', icon: '🍲', rarity,
     effects, ingredients: valid.map(item => ({ ...item })),
