@@ -4488,7 +4488,8 @@ button, button * {
 }
 .cooking-production-slot > button:hover { background: #596159; }
 .lobby-chest-grid.cooking-ingredient-grid {
-  grid-template-columns: repeat(10,minmax(0,1fr));
+  /* Herda a mesma quantidade de colunas do Baú: 8 no desktop e 5 no celular. */
+  grid-template-columns: repeat(8,minmax(0,1fr));
   gap: 7px;
   margin: 10px 0;
   padding: 14px;
@@ -4502,7 +4503,8 @@ button, button * {
   background: rgba(48,52,48,.88);
   color: #e7ebe5;
 }
-.cooking-ingredient.lobby-chest-slot > span { display: grid; min-height: 24px; place-items: center; font-size: 22px; }
+.cooking-ingredient.lobby-chest-slot > span { display: grid; min-height: 30px; place-items: center; font-size: 30px; line-height: 1; }
+.cooking-ingredient.lobby-chest-slot > span svg { width: 30px; height: 30px; }
 .cooking-ingredient.lobby-chest-slot > small { max-width: 100%; font-size: 9px; line-height: 1.1; }
 .cooking-ingredient.lobby-chest-slot > b { font-size: 10px; }
 .cooking-ingredient.lobby-chest-slot > em { color: #d2d8d0; font-size: 8px; font-style: normal; }
@@ -4573,7 +4575,9 @@ button, button * {
   box-shadow: 0 3px 12px #0008;
 }
 @media(max-width:650px) {
-  .lobby-chest-grid.cooking-ingredient-grid { grid-template-columns: repeat(10,minmax(0,1fr)); gap: 7px; padding: 14px; }
+  .lobby-chest-grid.cooking-ingredient-grid { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 6px; padding: 10px; }
+  .cooking-ingredient.lobby-chest-slot > span { min-height: 28px; font-size: 28px; }
+  .cooking-ingredient.lobby-chest-slot > span svg { width: 28px; height: 28px; }
   .cooking-production-slots { gap: 5px; }
   .cooking-production-slot { min-height: 104px; padding: 6px 3px; }
   .cooking-production-slot > strong { font-size: 9px; }
