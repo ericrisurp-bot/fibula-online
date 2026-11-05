@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { consumeCookingIngredients, getCookingIngredientStacks, getPanMeal, getQuickRecipe, readPreparedMeals, writePreparedMeals, type CookingMeal } from './game/cooking';
+import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, readPreparedMeals, writePreparedMeals, type CookingMeal } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -564,6 +564,8 @@ export default function App() {
   const [cookingFeedback, setCookingFeedback] = useState('');
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
+  const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
+  const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1620,48 +1622,48 @@ export default function App() {
   const addCookingIngredientUnit = (itemId: string) => {
     const stack = cookingIngredientStacks.find(item => item.itemId === itemId);
     if (!stack) return;
-    const selectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
-    const selectedOfType = panCookingSelections.find(item => item.itemId === itemId)?.quantity ?? 0;
-    if (selectedTotal >= 40 || selectedOfType >= stack.quantity) return;
+    const existing = panCookingSelections.find(item => item.itemId === itemId);
+    const nextVarieties = panCookingSelections.length + (existing ? 0 : 1);
+    if ((!existing && panCookingSelections.length >= 4)
+      || cookingSelectedTotal >= getCookingCapacity(nextVarieties)
+      || (existing?.quantity ?? 0) >= stack.quantity) return;
     setPanCookingSelections(current => {
-      const existing = current.find(item => item.itemId === itemId);
-      return existing ? current.map(item => item.itemId === itemId ? { ...item, quantity: item.quantity + 1 } : item)
+      const selected = current.find(item => item.itemId === itemId);
+      return selected ? current.map(item => item.itemId === itemId ? { ...item, quantity: item.quantity + 1 } : item)
         : [...current, { itemId, quantity: 1 }];
     });
     setCookingFeedback('');
   };
   const removeCookingIngredientUnit = (itemId: string) => {
+    const selected = panCookingSelections.find(item => item.itemId === itemId);
+    if (!selected) return;
+    const nextTotal = cookingSelectedTotal - 1;
+    const nextVarieties = panCookingSelections.length - (selected.quantity === 1 ? 1 : 0);
+    if (nextTotal > getCookingCapacity(nextVarieties)) return;
     setPanCookingSelections(current => current.flatMap(item => item.itemId !== itemId ? [item]
       : item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []));
+    setCookingFeedback('');
   };
   const prepareCookingMeal = () => {
-    if (!panCookingSelections.length) { setCookingFeedback('Clique nos ingredientes do Baú para colocar unidades na panela.'); return; }
+    if (!panCookingSelections.length) { setCookingFeedback('Escolha os ingredientes do Baú para preencher a panela.'); return; }
     const ingredients = panCookingSelections.map(item => ({ itemId: item.itemId, quantity: item.quantity }));
-    const totalUnits = ingredients.reduce((sum, item) => sum + item.quantity, 0);
-    if (totalUnits > 1 && totalUnits < 10) { setCookingFeedback('A panela precisa de pelo menos 10 unidades para preparar uma refeição.'); return; }
-    if (totalUnits === 1) {
-      const ingredient = ingredients[0];
-      if (getBaseItemId(ingredient.itemId) === 'herbs') { setCookingFeedback('Ervas potencializam a receita, mas não formam um prato sozinhas.'); return; }
-      if (preparedCookingMeals.some(item => item.slot === 'quick')) { setCookingFeedback('Já existe uma refeição individual pronta. Ative-a na partida antes de preparar outra.'); return; }
-      const meal = getQuickRecipe(ingredient.itemId, 1);
-      if (!meal) { setCookingFeedback('Esse ingrediente não forma uma receita individual.'); return; }
-      const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
-      if (!nextInventory) { setCookingFeedback('Você não tem esse ingrediente disponível no Baú.'); return; }
-      applyCookingInventory(nextInventory);
-      storePreparedCookingMeal(meal);
-      setPanCookingSelections([]);
-      setCookingFeedback(`${meal.name} preparada com 1 unidade.`);
+    const meal = getPanMeal(ingredients);
+    if (!meal) {
+      setCookingFeedback('Use pelo menos 10 unidades. A capacidade é de 10 unidades por variedade, até 4 variedades, e todos os ingredientes precisam ter a mesma raridade.');
       return;
     }
-    if (preparedCookingMeals.some(item => item.slot === 'pan')) { setCookingFeedback('Já existe uma refeição da panela pronta. Ative-a na partida antes de preparar outra.'); return; }
-    const meal = getPanMeal(ingredients);
-    if (!meal) { setCookingFeedback('A panela precisa ter de 10 a 40 unidades, respeitando os limites de ingredientes e raridade. Ervas não formam um prato sozinhas.'); return; }
+    if (preparedCookingMeals.some(item => item.slot === meal.slot)) {
+      setCookingFeedback(meal.slot === 'quick'
+        ? 'Já existe uma receita individual pronta. Ative-a na partida antes de preparar outra.'
+        : 'Já existe uma refeição de panela pronta. Ative-a na partida antes de preparar outra.');
+      return;
+    }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
     if (!nextInventory) { setCookingFeedback('Você não tem todas essas unidades disponíveis no Baú.'); return; }
     applyCookingInventory(nextInventory);
     storePreparedCookingMeal(meal);
     setPanCookingSelections([]);
-    setCookingFeedback(`${meal.name} preparada com ${totalUnits} unidades.`);
+    setCookingFeedback(meal.name + ' preparada com ' + cookingSelectedTotal + ' unidades.');
   };
   const activatePreparedCookingMeal = (meal: CookingMeal) => {
     const engine = engineRef.current;
@@ -2184,26 +2186,47 @@ export default function App() {
               {activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form">
                   <div className="cooking-stock-line">Ingredientes culinários no Baú: <strong>{cookingIngredientStacks.reduce((sum, item) => sum + item.quantity, 0)}</strong></div>
-                  <p className="cooking-note">Cada clique coloca 1 unidade na panela. Clique novamente para adicionar outra unidade. Uma unidade prepara a receita individual; para receitas de panela, use de 10 a 40 unidades no total.</p>
-                  <div className="cooking-ingredient-grid">
-                    {cookingIngredientStacks.map(item => {
-                      const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
-                      return <button type="button" className={selected > 0 ? 'cooking-ingredient selected' : 'cooking-ingredient'} key={item.itemId}
-                        onClick={() => addCookingIngredientUnit(item.itemId)}
-                        disabled={selected >= item.quantity || panCookingSelections.reduce((sum, entry) => sum + entry.quantity, 0) >= 40}>
-                        <span className="cooking-ingredient-icon">{itemIcon(item.itemId)}</span>
-                        <strong>{itemLabel(item.itemId)}</strong><small>No Baú: {item.quantity}</small>
-                        {selected > 0 && <b>Na panela: {selected}</b>}
-                      </button>;
-                    })}
-                  </div>
+                  <p className="cooking-note">A panela tem quatro espaços para variedades diferentes. Cada clique adiciona 1 unidade. A capacidade cresce 10 unidades por variedade; mínimo de 10 unidades para preparar.</p>
                   <div className="cooking-pot-panel">
-                    <div className="cooking-pot-heading"><strong>🥘 Panela</strong><span>{panCookingSelections.reduce((sum, item) => sum + item.quantity, 0)}/40 unidades · mínimo 10</span></div>
-                    {panCookingSelections.length ? panCookingSelections.map(item => <div className="cooking-pot-item" key={item.itemId}>
-                      <span>{itemLabel(item.itemId)}</span><strong>×{item.quantity}</strong>
-                      <button type="button" aria-label={`Retirar uma unidade de ${itemLabel(item.itemId)}`} onClick={() => removeCookingIngredientUnit(item.itemId)}>−</button>
-                    </div>) : <small>A panela está vazia. Escolha ingredientes acima.</small>}
-                    <button type="button" className="cooking-prepare-button" onClick={prepareCookingMeal} disabled={!panCookingSelections.length || (panCookingSelections.reduce((sum, item) => sum + item.quantity, 0) > 1 && panCookingSelections.reduce((sum, item) => sum + item.quantity, 0) < 10)}>Preparar refeição</button>
+                    <div className="cooking-pot-heading"><strong>🥘 Panela</strong><span>{cookingSelectedTotal}/{cookingCapacity} unidades · {panCookingSelections.length}/4 variedades</span></div>
+                    <div className="cooking-pot-slots" aria-label="Quatro espaços de ingredientes">
+                      {Array.from({ length: 4 }, (_, index) => {
+                        const item = panCookingSelections[index];
+                        return <div className={item ? 'cooking-pot-slot filled' : 'cooking-pot-slot'} key={item ? item.itemId : 'empty-' + index}>
+                          {item ? <><span>{itemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b></>
+                            : <><span>＋</span><small>Espaço {index + 1}</small></>}
+                        </div>;
+                      })}
+                    </div>
+                    <div className="cooking-chest-heading"><strong>🧰 Baú de ingredientes</strong><small>Somente ingredientes disponíveis no Baú da casa</small></div>
+                    <div className="cooking-ingredient-grid">
+                      {cookingIngredientStacks.map(item => {
+                        const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
+                        const nextCapacity = getCookingCapacity(panCookingSelections.length + (selected === 0 ? 1 : 0));
+                        return <button type="button" className={selected > 0 ? 'cooking-ingredient selected' : 'cooking-ingredient'} key={item.itemId}
+                          onClick={() => addCookingIngredientUnit(item.itemId)}
+                          disabled={selected >= item.quantity || (selected === 0 && panCookingSelections.length >= 4)
+                            || cookingSelectedTotal >= nextCapacity}>
+                          <span className="cooking-ingredient-icon">{itemIcon(item.itemId)}</span>
+                          <strong>{itemLabel(item.itemId)}</strong><small>No Baú: {item.quantity}</small>
+                          {selected > 0 && <b>Na panela: {selected}</b>}
+                        </button>;
+                      })}
+                    </div>
+                    {panCookingSelections.length > 0 && <div className="cooking-pot-quantities">
+                      {panCookingSelections.map(item => {
+                        const nextTotal = cookingSelectedTotal - 1;
+                        const nextVarieties = panCookingSelections.length - (item.quantity === 1 ? 1 : 0);
+                        const cannotRemove = nextTotal > getCookingCapacity(nextVarieties);
+                        return <div className="cooking-pot-item" key={item.itemId}>
+                          <span>{itemLabel(item.itemId)}</span><strong>×{item.quantity}</strong>
+                          <button type="button" aria-label={'Retirar uma unidade de ' + itemLabel(item.itemId)}
+                            onClick={() => removeCookingIngredientUnit(item.itemId)} disabled={cannotRemove}>−</button>
+                        </div>;
+                      })}
+                    </div>}
+                    <button type="button" className="cooking-prepare-button" onClick={prepareCookingMeal}
+                      disabled={!panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Preparar refeição</button>
                   </div>
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
                   <div className="cooking-prepared-list"><strong>Receitas prontas</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon} {meal.name} · {meal.slot === 'quick' ? 'Individual' : 'Panela'}</span>) : <small>Nenhuma refeição preparada.</small>}</div>
