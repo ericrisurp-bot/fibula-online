@@ -2644,19 +2644,26 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
   if (fishing) {
+    // Uma puxada curta no fim de cada ciclo de pesca de 2 segundos.
+    const pullCycle = (time % CONFIG.lake.fishingInterval) / CONFIG.lake.fishingInterval;
+    const pull = pullCycle >= 0.82 ? Math.sin(((pullCycle - 0.82) / 0.18) * Math.PI) : 0;
+    const tipX = facingX * (43 - pull * 8);
+    const tipY = -r * 0.25 + facingY * 28 - 18 - pull * 7;
+    const hookX = facingX * (48 - pull * 10);
+    const hookY = facingY * 38 + 5 - pull * 10;
     ctx.save();
     ctx.strokeStyle = '#6b4930'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(facingX * 7, -r * 0.25);
-    ctx.lineTo(facingX * 43, -r * 0.25 + facingY * 28 - 18);
+    ctx.lineTo(tipX, tipY);
     ctx.stroke();
     ctx.strokeStyle = '#d8c7a1'; ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(facingX * 43, -r * 0.25 + facingY * 28 - 18);
-    ctx.lineTo(facingX * 48, facingY * 38 + 5);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(hookX, hookY);
     ctx.stroke();
     ctx.fillStyle = '#e7e2d5';
-    ctx.beginPath(); ctx.arc(facingX * 48, facingY * 38 + 5, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hookX, hookY, 3, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   if (showWeapon && (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao')))) {
