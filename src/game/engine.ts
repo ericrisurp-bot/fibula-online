@@ -34,7 +34,7 @@ function persistHouseStorage(inventory: InventoryStack[]) {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Armazenamento local indisponível. */ }
 }
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number; animalKind?: 'wolf' | 'chicken'; rarity?: ResourceRarity; wanderAngle?: number; wanderTimer?: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number; animalKind?: 'wolf' | 'chicken'; rarity?: ResourceRarity; wanderAngle?: number; wanderTimer?: number; facingX?: 1 | -1; walkPhase?: number; moving?: boolean; fleeing?: boolean; fleeTimer?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
@@ -985,7 +985,7 @@ export class GameEngine {
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => ({ ...enemy })), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -1807,6 +1807,7 @@ export class GameEngine {
     animal.wanderTimer = wanderTimer;
     let targetX = Math.cos(animal.wanderAngle ?? 0);
     let targetY = Math.sin(animal.wanderAngle ?? 0);
+    let movementSpeed = rules.speed;
     let huntingChicken: Enemy | undefined;
 
     if (kind === 'wolf') {
@@ -1831,20 +1832,77 @@ export class GameEngine {
           targetY = Math.sin(animal.wanderAngle);
         }
       }
-    } else if (wanderTimer <= 0) {
-      animal.wanderAngle = this.random() * Math.PI * 2;
-      wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
-      animal.wanderTimer = wanderTimer;
-      targetX = Math.cos(animal.wanderAngle);
-      targetY = Math.sin(animal.wanderAngle);
+    } else {
+      const chickenRules = CONFIG.wildlife.chickens;
+      const feet = playerFeet(this.state.player);
+      const wolf = this.state.enemies
+        .filter(candidate => candidate.animalKind === 'wolf')
+        .map(candidate => ({ candidate, distance: Math.hypot(candidate.x - animal.x, candidate.y - animal.y) }))
+        .sort((left, right) => left.distance - right.distance)[0];
+      const wolfDistance = wolf?.distance ?? Infinity;
+      const playerDistance = Math.hypot(feet.x - animal.x, feet.y - animal.y);
+      const wolfThreat = wolfDistance <= chickenRules.fleeFromWolfRange;
+      const playerThreat = playerDistance <= chickenRules.fleeFromPlayerRange;
+      const wasFleeing = animal.fleeing === true;
+      let fleeing = wolfThreat || playerThreat;
+      if (wasFleeing) {
+        const threatsBeyondHysteresis = wolfDistance > chickenRules.fleeFromWolfRange * 1.3
+          && playerDistance > chickenRules.fleeFromPlayerRange * 1.3;
+        fleeing = !(threatsBeyondHysteresis && (animal.fleeTimer ?? 0) >= chickenRules.fleeMinDuration);
+      }
+      animal.fleeing = fleeing;
+      if (fleeing) {
+        animal.fleeTimer = wasFleeing ? (animal.fleeTimer ?? 0) + dt : dt;
+        let fleeX = 0;
+        let fleeY = 0;
+        if (wolfThreat && wolf) {
+          const weight = 1 - wolfDistance / chickenRules.fleeFromWolfRange;
+          fleeX -= (wolf.candidate.x - animal.x) / (wolfDistance || 1) * weight;
+          fleeY -= (wolf.candidate.y - animal.y) / (wolfDistance || 1) * weight;
+        }
+        if (playerThreat) {
+          const weight = 1 - playerDistance / chickenRules.fleeFromPlayerRange;
+          fleeX -= (feet.x - animal.x) / (playerDistance || 1) * weight;
+          fleeY -= (feet.y - animal.y) / (playerDistance || 1) * weight;
+        }
+        const wallRange = 150;
+        const wall = CONFIG.map.wall;
+        if (animal.x - wall < wallRange) fleeX += 1 - (animal.x - wall) / wallRange;
+        if (this.world - wall - animal.x < wallRange) fleeX -= 1 - (this.world - wall - animal.x) / wallRange;
+        if (animal.y - wall < wallRange) fleeY += 1 - (animal.y - wall) / wallRange;
+        if (this.world - wall - animal.y < wallRange) fleeY -= 1 - (this.world - wall - animal.y) / wallRange;
+        if (Math.hypot(fleeX, fleeY) > 0.001) animal.wanderAngle = Math.atan2(fleeY, fleeX);
+        targetX = Math.cos(animal.wanderAngle ?? 0);
+        targetY = Math.sin(animal.wanderAngle ?? 0);
+        movementSpeed = rules.speed * chickenRules.fleeSpeedFactor;
+      } else {
+        animal.fleeTimer = 0;
+        if (wasFleeing) animal.wanderTimer = 0;
+        if (wanderTimer <= 0 || wasFleeing) {
+          animal.wanderAngle = this.random() * Math.PI * 2;
+          wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
+          animal.wanderTimer = wanderTimer;
+          targetX = Math.cos(animal.wanderAngle);
+          targetY = Math.sin(animal.wanderAngle);
+        }
+      }
     }
 
+    const startX = animal.x;
+    const startY = animal.y;
     const direction = this.enemyMovementDirection(animal, targetX, targetY, obstacles);
-    animal.x += direction.x * rules.speed * dt;
-    animal.y += direction.y * rules.speed * dt;
+    animal.x += direction.x * movementSpeed * dt;
+    animal.y += direction.y * movementSpeed * dt;
     this.resolveObstacleCollisions(animal, rules.radius, false, obstacles);
     animal.x = this.clamp(animal.x, CONFIG.map.wall + rules.radius, this.world - CONFIG.map.wall - rules.radius);
     animal.y = this.clamp(animal.y, CONFIG.map.wall + rules.radius, this.world - CONFIG.map.wall - rules.radius);
+    const actualX = animal.x - startX;
+    const actualY = animal.y - startY;
+    const actualDistance = Math.hypot(actualX, actualY);
+    animal.facingX = animal.facingX ?? 1;
+    if (actualDistance > 0.0001 && Math.abs(actualX / actualDistance) > 0.15) animal.facingX = actualX > 0 ? 1 : -1;
+    animal.moving = actualDistance > 0.05 * movementSpeed * dt;
+    animal.walkPhase = (animal.walkPhase ?? 0) + actualDistance / 9;
     animal.hitWait -= dt;
 
     if (kind === 'wolf' && huntingChicken && this.state.enemies.includes(huntingChicken)
