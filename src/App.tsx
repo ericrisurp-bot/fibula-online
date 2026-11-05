@@ -2097,10 +2097,10 @@ export default function App() {
       <div className="hud-top" aria-label="Status da partida">
         {state.house.built && (preparedCookingMeals.length > 0 || state.activeMeals.length > 0) && <div className="cooking-match-actions" aria-label="Refeições">
           {preparedCookingMeals.map(meal => <button key={meal.id} type="button" onClick={() => activatePreparedCookingMeal(meal)} title={meal.name}>
-            <span>{meal.icon}</span><strong>{meal.slot === 'quick' ? 'FOGÃO' : 'PANELA'}</strong><small>ATIVAR</small>
+            <span>{meal.icon}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.slot === 'quick' ? 'FOGÃO' : 'PANELA'}</strong><small>ATIVAR</small>
           </button>)}
           {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
-            <span>{meal.icon}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
+            <span>{meal.icon}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
           </div>)}
         </div>}
         <div className="hud-left-stack">
@@ -2229,7 +2229,7 @@ export default function App() {
                       disabled={!panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Preparar refeição</button>
                   </div>
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
-                  <div className="cooking-prepared-list"><strong>Receitas prontas</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon} {meal.name} · {meal.slot === 'quick' ? 'Individual' : 'Panela'}</span>) : <small>Nenhuma refeição preparada.</small>}</div>
+                  <div className="cooking-prepared-list"><strong>Receitas prontas</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon}{meal.herbExtended ? ' ✨' : ''} {meal.name} · {meal.slot === 'quick' ? 'Individual' : 'Panela'}</span>) : <small>Nenhuma refeição preparada.</small>}</div>
                 </div>
               </> : <>
                 <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
