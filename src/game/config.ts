@@ -27,7 +27,25 @@ export const CONFIG = {
     edgeBiasWorldFraction: 0.25, structurePreferenceDistance: 600, structureMinimumWeight: 0.25,
     colliderStepMinimum: 12, colliderStepMinorAxisFactor: 0.18, colliderRadiusInset: 0.95,
     colliderMinimumRadius: 10, steeringCircleRadiusFactor: 1.12, fallbackGridStep: 80,
-    fishingRange: 58, fishingInterval: 2, fishingCatchChance: 0.7,
+    fishingRange: 58, fishingInterval: 2,
+    fishByLakeSize: {
+      small: [
+        { itemId: 'tilapia', chancePercent: 20 },
+        { itemId: 'tambaqui', chancePercent: 8 },
+      ],
+      medium: [
+        { itemId: 'tilapia', chancePercent: 20 },
+        { itemId: 'tambaqui', chancePercent: 8 },
+        { itemId: 'pintado_surubim', chancePercent: 6 },
+      ],
+      large: [
+        { itemId: 'tilapia', chancePercent: 20 },
+        { itemId: 'tambaqui', chancePercent: 8 },
+        { itemId: 'pintado_surubim', chancePercent: 6 },
+        { itemId: 'lambari', chancePercent: 3 },
+        { itemId: 'tucunare', chancePercent: 1 },
+      ],
+    },
   },
   player: { radius: 18, footOffset: 40, footRadius: 12, // footOffset ≈ ladinoFeetY(player.radius)
     auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
