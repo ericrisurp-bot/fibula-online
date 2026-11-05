@@ -4428,3 +4428,5 @@ button, button * {
 .cooking-pot-quantities{display:flex;flex-direction:column;gap:5px}
 .cooking-pot-item button:disabled{opacity:.25;cursor:not-allowed}
 @media(max-width:420px){.cooking-pot-slots{gap:4px}.cooking-pot-slot{min-height:68px;padding:5px 2px}.cooking-pot-slot>strong{font-size:8px}}
+
+.cooking-herb-sparkle{display:inline-block;margin-left:2px;color:#e8dfb8;font-size:10px;font-style:normal;vertical-align:top;text-shadow:0 0 5px rgba(232,223,184,.8)}
