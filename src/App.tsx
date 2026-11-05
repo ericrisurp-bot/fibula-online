@@ -571,9 +571,11 @@ export default function App() {
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   useEffect(() => {
+    if (craftingStationId !== 'fogao') return;
+    setCookingClock(Date.now());
     const timer = window.setInterval(() => setCookingClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [craftingStationId]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
