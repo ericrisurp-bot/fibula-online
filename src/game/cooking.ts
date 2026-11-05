@@ -111,19 +111,24 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   const rarity = getCookingRarity(valid[0].itemId);
   if (valid.some(item => getCookingRarity(item.itemId) !== rarity)) return null;
   const effects: CookingEffects = {};
+  const quickRecipeCaps: CookingEffects = {};
   let herbs = 0;
   for (const item of valid) {
     const base = getBaseItemId(item.itemId);
     if (base === 'herbs') { herbs += item.quantity; continue; }
     const meal = getQuickRecipe(item.itemId, item.quantity);
-    if (!meal) continue;
+    const quickBaseline = getQuickRecipe(item.itemId, 10);
+    if (!meal || !quickBaseline) continue;
     for (const [key, value] of Object.entries(meal.effects) as Array<[keyof CookingEffects, number]>) {
       effects[key] = (effects[key] ?? 0) + value * PAN_FACTOR_PER_UNIT * 10;
+    }
+    for (const [key, value] of Object.entries(quickBaseline.effects) as Array<[keyof CookingEffects, number]>) {
+      quickRecipeCaps[key] = Math.max(quickRecipeCaps[key] ?? 0, value);
     }
   }
   const herbMultiplier = 1 + Math.min(MAX_HERB_BONUS, herbs * HERB_BONUS_PER_UNIT);
   for (const key of Object.keys(effects) as Array<keyof CookingEffects>) {
-    effects[key] = Math.min(effects[key]!, (effects[key]! * herbMultiplier));
+    effects[key] = Math.min(effects[key]! * herbMultiplier, quickRecipeCaps[key] ?? 0);
   }
   return {
     id: `pan-${Date.now()}`, slot: 'pan', name: 'Refeição da panela', icon: '🍲', rarity,
