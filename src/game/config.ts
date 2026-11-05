@@ -4,6 +4,13 @@ const SWORD_REACH_BEYOND_AURA = 32;
 
 export type ResourceRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
+export const VEGETABLE_RARITY_RULES = {
+  common: { chancePercent: 0.18, minNight: 1 },
+  uncommon: { chancePercent: 0.16, minNight: 8 },
+  rare: { chancePercent: 0.15, minNight: 15 },
+  legendary: { chancePercent: 0.12, minNight: 30 },
+} as const;
+
 export const RESOURCE_RARITY_RULES = {
   common: { chancePercent: 0.09, minNight: 1 },
   uncommon: { chancePercent: 0.07, minNight: 8 },
@@ -45,6 +52,7 @@ export const CONFIG = {
   trees: { max: 50, startCount: 15, spawnInterval: 15, spawnBatch: 2, spawnBase: 25, spawnReductionPerTree: 1.2, spawnMin: 15, noSpawnRadius: 600, attractionRadius: 300, attractionMaxNearby: 20, attractionMaxChance: 0.8, rareHouseSpawnChance: 0.009, rareHouseRadius: 220, cutRange: 50, hitsToCut: 5, sizeWeights: { small: 0.6, medium: 0.3, large: 0.1 } },
   rocks: { max: 40, startCount: 10, spawnBase: 20, spawnReductionPerRock: 0, spawnMin: 20, noSpawnRadius: 600, mineRange: 45, dropChance: 0.07, attractionRadius: 300, attractionMaxNearby: 15, attractionMaxChance: 0.8, northEastSpawnChance: 0.7, northEastMinX: 0.55, northEastMaxY: 0.45, hitsToBreak: { small: 7, medium: 12, large: 22 }, sizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
   cotton: { max: 25, startCount: 7, spawnInterval: 20, minSpacing: 600, dropChance: 0.07, plantPlayerClearRadius: 220, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 } },
+  vegetables: { max: 30, startCount: 7, spawnInterval: 20, minSpacing: 420, dropChance: 0.07, plantSizeWeights: { small: 0.5, medium: 0.32, large: 0.18 }, hitsToBreak: { small: 7, medium: 12, large: 22 } },
   gathering: { baseInterval: 0.9, toolAnimationDuration: 0.55, rangeAspect: 1.4 },
   tecelaria: { buildCostBronze: 2, buildCostWood: 50, buildCostCotton: 10, buildCostStone: 10, interactRadius: 104, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03 },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
