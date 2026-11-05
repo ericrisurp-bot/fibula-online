@@ -4371,3 +4371,6 @@ button, button * {
 .lobby-chest-transfer button.secondary{background:transparent;color:#d0d0ca}
 .lobby-chest-transfer button:disabled{opacity:.55}
 .lobby-chest-feedback{margin:10px 0 0;padding:9px 10px;border:1px solid rgba(220,220,220,.2);border-radius:8px;background:#292b29;color:#ddd;font-size:11px;line-height:1.45}
+.lobby-jabuticaba-progress{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 14px 0;padding:10px 12px;border:1px solid var(--fb-modal-border-soft);border-radius:8px;background:var(--fb-modal-card);color:var(--fb-modal-text);font-size:11px}
+.lobby-jabuticaba-progress strong{font-size:11px;letter-spacing:.04em}
+.lobby-jabuticaba-progress span{color:var(--fb-modal-muted);text-align:right;font-variant-numeric:tabular-nums}
