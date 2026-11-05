@@ -2,7 +2,7 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
+import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
@@ -387,7 +387,13 @@ export class GameEngine {
   }
 
   private getCookingDamageMultiplier() {
-    return getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel(), this.cookingBaseBonuses());
+    const weaponDamage = CONFIG.weapons[this.state.weapon].damage;
+    const bonuses = this.cookingBaseBonuses();
+    const baseDamageBonus = (['forca', 'inteligencia', 'destreza'] as const)
+      .reduce((sum, attribute) => sum + ATTRIBUTE_USAGE[this.state.classId][attribute] * bonuses[attribute], 0);
+    // A comida altera o dano-base antes de aplicar o multiplicador de nível/classe.
+    return getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel())
+      * (1 + baseDamageBonus / weaponDamage);
   }
 
   setHouseInventory(inventory: InventoryStack[]) {
