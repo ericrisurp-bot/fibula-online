@@ -6,7 +6,7 @@ import { getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } fr
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
-import { isInsideLake, lakeColliderCircles, lakeSteeringCircles, type Lake, type LakeCircle } from './lake';
+import { distanceToLakeEdge, isInsideLake, lakeColliderCircles, lakeSteeringCircles, type Lake, type LakeCircle } from './lake';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -67,6 +67,7 @@ export type GameSnapshot = {
   refinery: RefineryState;
   tecelaria: TecelariaState;
   lake: Lake;
+  fishing: boolean;
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; jabuticabaTree: JabuticabaTree | null; jabuticabaDrops: JabuticabaDrop[]; rocks: Rock[]; cottonPlants: CottonPlant[]; vegetablePlants: VegetablePlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; vegetableDrops: VegetableDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; wildlifeDrops: WildlifeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
@@ -288,6 +289,7 @@ export class GameEngine {
   private waitingForCooperativeNightRelease = false;
   private lakeCollisionCircles: LakeCircle[] = [];
   private lakeAvoidanceCircles: LakeCircle[] = [];
+  private fishingTimer = 0;
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -375,7 +377,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
-      lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' },
+      lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false,
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
@@ -867,7 +869,7 @@ export class GameEngine {
     const classId = this.state.classId;
     this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
-    this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
+    this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
   private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
@@ -1015,7 +1017,7 @@ export class GameEngine {
       // Só conta como nascimento agendado quando o inimigo realmente entra no mapa.
       if (this.hordeScheduled < targetScheduled && this.spawnHordeEnemy()) this.hordeScheduled += 1;
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectBronze(); this.collectWildlifeDrops(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectBronze(); this.collectWildlifeDrops(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
     if (this.state.classId === 'druida') {
       this.local.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.local.druidOrbHealTimer <= 0) {
@@ -1049,6 +1051,27 @@ export class GameEngine {
     this.state.phaseElapsed = this.getDayNightState().phaseElapsed;
     this.state.nightNumber = this.nightNumber;
     if (p.hp <= 0) { p.hp = 0; this.state.dead = true; }
+  }
+
+  private updateFishing(dt: number) {
+    const feet = playerFeet(this.state.player);
+    const edgeDistance = distanceToLakeEdge(this.state.lake, feet.x, feet.y);
+    const nearShore = edgeDistance >= -12 && edgeDistance <= CONFIG.lake.fishingRange;
+    const threatened = this.state.enemies.some(enemy => !enemy.animalKind && Math.hypot(enemy.x - this.state.player.x, enemy.y - this.state.player.y) <= CONFIG.weapons[this.state.weapon].range);
+    const canFish = nearShore && !this.state.player.moving && !this.state.cart.carried && !threatened;
+    if (!canFish) {
+      this.fishingTimer = 0;
+      this.state.fishing = false;
+      return;
+    }
+    this.state.fishing = true;
+    this.fishingTimer += dt;
+    while (this.fishingTimer >= CONFIG.lake.fishingInterval) {
+      this.fishingTimer -= CONFIG.lake.fishingInterval;
+      if (this.random() >= CONFIG.lake.fishingCatchChance) continue;
+      const result = addToInventory(this.state.inventory, 'fish', 1, CONFIG.inventory);
+      if (result.added > 0) this.state.inventory = result.inventory;
+    }
   }
 
   private placeLake() {
