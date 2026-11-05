@@ -1595,7 +1595,8 @@ export class GameEngine {
   private moveWildlife(animal: Enemy, dt: number, obstacles: Array<Vec & { radius: number }>) {
     const kind = animal.animalKind!;
     const rules = kind === 'wolf' ? CONFIG.wildlife.wolves : CONFIG.wildlife.chickens;
-    animal.wanderTimer = (animal.wanderTimer ?? 0) - dt;
+    let wanderTimer = (animal.wanderTimer ?? 0) - dt;
+    animal.wanderTimer = wanderTimer;
     let targetX = Math.cos(animal.wanderAngle ?? 0);
     let targetY = Math.sin(animal.wanderAngle ?? 0);
     let huntingChicken: Enemy | undefined;
@@ -1614,16 +1615,18 @@ export class GameEngine {
         if (Math.hypot(feet.x - animal.x, feet.y - animal.y) <= CONFIG.wildlife.wolves.playerVisionRange) {
           targetX = feet.x - animal.x;
           targetY = feet.y - animal.y;
-        } else if (animal.wanderTimer <= 0) {
+        } else if (wanderTimer <= 0) {
           animal.wanderAngle = this.random() * Math.PI * 2;
-          animal.wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
+          wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
+          animal.wanderTimer = wanderTimer;
           targetX = Math.cos(animal.wanderAngle);
           targetY = Math.sin(animal.wanderAngle);
         }
       }
-    } else if (animal.wanderTimer <= 0) {
+    } else if (wanderTimer <= 0) {
       animal.wanderAngle = this.random() * Math.PI * 2;
-      animal.wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
+      wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
+      animal.wanderTimer = wanderTimer;
       targetX = Math.cos(animal.wanderAngle);
       targetY = Math.sin(animal.wanderAngle);
     }
