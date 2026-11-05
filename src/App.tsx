@@ -281,30 +281,70 @@ const LOBBY_CRAFTING_STATIONS = [
 
 function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot['enemies'][number], elapsed: number) {
   const wolf = animal.animalKind === 'wolf';
-  const bob = Math.sin(elapsed * 7 + animal.wobble) * 1.2;
-  ctx.save(); ctx.translate(animal.x, animal.y + bob);
-  ctx.fillStyle = 'rgba(0,0,0,.24)'; ctx.beginPath(); ctx.ellipse(0, 11, wolf ? 19 : 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+  const moving = animal.moving === true;
+  const phase = animal.walkPhase ?? 0;
+  const wobble = animal.wobble;
+  const fleeing = !wolf && animal.fleeing === true;
+  const walkBob = moving ? Math.sin(phase * 2 + wobble) * (wolf ? 1.5 : 1.1) : 0;
+  const breath = moving ? 1 : 1 + Math.sin(elapsed * 2.4 + wobble) * 0.02;
+
+  ctx.save();
+  ctx.translate(animal.x, animal.y);
+  ctx.fillStyle = 'rgba(0,0,0,.24)';
+  ctx.beginPath(); ctx.ellipse(0, 11, wolf ? 19 : 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.scale(animal.facingX ?? 1, 1);
+
   if (wolf) {
+    const stride = moving ? Math.sin(phase) * 0.5 : 0;
+    const tailSwing = Math.sin(elapsed * (moving ? 9 : 2.2) + wobble) * (moving ? 0.34 : 0.12);
+    ctx.save(); ctx.translate(0, walkBob); ctx.scale(1, breath);
+    ctx.save(); ctx.translate(-13, -1); ctx.rotate(tailSwing);
     ctx.strokeStyle = '#59483b'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-13, 3); ctx.lineTo(-16, 10); ctx.moveTo(-5, 5); ctx.lineTo(-7, 11); ctx.moveTo(8, 5); ctx.lineTo(7, 11); ctx.moveTo(14, 2); ctx.lineTo(17, 9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-11, -10, -12, -4); ctx.stroke(); ctx.restore();
+    ctx.strokeStyle = '#59483b'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    for (const leg of [{ x: -10, angle: stride }, { x: -3, angle: -stride }, { x: 8, angle: -stride }, { x: 14, angle: stride }]) {
+      ctx.save(); ctx.translate(leg.x, 4); ctx.rotate(leg.angle);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 6); ctx.lineTo(1, 7); ctx.stroke(); ctx.restore();
+    }
     ctx.fillStyle = '#8c7865'; ctx.strokeStyle = '#4d4036'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.ellipse(0, 0, 17, 9, -0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#74604f'; ctx.beginPath(); ctx.moveTo(-13, -2); ctx.quadraticCurveTo(-25, -13, -24, -3); ctx.quadraticCurveTo(-20, 5, -12, 4); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#9b8773'; ctx.beginPath(); ctx.ellipse(13, -5, 9, 7, 0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#675546'; ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(9, -20); ctx.lineTo(16, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(17, -10); ctx.lineTo(22, -17); ctx.lineTo(23, -7); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#f0d8a8'; ctx.beginPath(); ctx.ellipse(19, -2, 5, 3, 0.1, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.arc(18, -7, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(23, -3, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(13, -5 + Math.sin(phase * 2 + wobble) * (moving ? 0.7 : 0.15));
+    ctx.rotate(moving ? Math.sin(phase) * 0.035 : Math.sin(elapsed * 1.8 + wobble) * 0.015);
+    ctx.fillStyle = '#9b8773'; ctx.strokeStyle = '#4d4036'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, 9, 7, 0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#675546';
+    ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(-4, -15); ctx.lineTo(3, -7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(9, -12); ctx.lineTo(10, -2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f0d8a8'; ctx.beginPath(); ctx.ellipse(6, 3, 5, 3, 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.arc(5, -2, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.restore();
   } else {
+    const chickenStride = moving ? Math.sin(phase * (fleeing ? 2 : 1)) * 0.5 : 0;
+    const peck = moving ? Math.sin(phase * 2) * 2 : Math.pow(Math.max(0, Math.sin(elapsed * 1.9 + wobble)), 12) * 2.2;
+    const wingBeat = Math.sin(elapsed * Math.PI * 28 + wobble);
     ctx.strokeStyle = '#b68b43'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-5, 6); ctx.lineTo(-6, 13); ctx.moveTo(5, 6); ctx.lineTo(6, 13); ctx.stroke();
+    for (const leg of [{ x: -5, angle: chickenStride }, { x: 5, angle: -chickenStride }]) {
+      ctx.save(); ctx.translate(leg.x, 6); ctx.rotate(leg.angle);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 7); ctx.lineTo(leg.angle * 2, 7); ctx.stroke(); ctx.restore();
+    }
+    ctx.save();
+    if (fleeing) ctx.rotate(-0.15);
+    ctx.translate(0, walkBob); ctx.scale(1, breath);
+    if (fleeing) {
+      ctx.save(); ctx.translate(-5, -2); ctx.rotate(-0.4 + wingBeat * 0.5);
+      ctx.fillStyle = '#eee5d5'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.ellipse(-2, 0, 8, 4.5, -0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
     ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.ellipse(-1, 1, 13, 10, -0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#e9e1d2'; ctx.beginPath(); ctx.ellipse(-4, 1, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.ellipse(8, -8, 6, 7, 0.1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#d84b43'; ctx.beginPath(); ctx.arc(6, -15, 2.5, 0, Math.PI * 2); ctx.arc(10, -16, 2.5, 0, Math.PI * 2); ctx.arc(13, -13, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#e5a63a'; ctx.beginPath(); ctx.moveTo(13, -8); ctx.lineTo(20, -6); ctx.lineTo(13, -4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#27231f'; ctx.beginPath(); ctx.arc(10, -10, 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(8 + peck + (fleeing ? 3 : 0), fleeing ? -10 : -8);
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(0, 0, 6, fleeing ? 8 : 7, 0.1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#d84b43'; ctx.beginPath(); ctx.arc(-2, -7, 2.5, 0, Math.PI * 2); ctx.arc(2, -8, 2.5, 0, Math.PI * 2); ctx.arc(5, -5, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e5a63a'; ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(12, 2); ctx.lineTo(5, 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#27231f'; ctx.beginPath(); ctx.arc(2, -2, 1.1, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.restore();
   }
   ctx.restore();
 }
