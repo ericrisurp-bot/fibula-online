@@ -151,13 +151,14 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
     const sauceName = sauce === 'tomato' ? 'ao tomate'
       : sauce === 'cabbage' ? 'com repolho'
         : sauce === 'mixed' ? 'com molho misto' : '';
+    const stewName = protein === 'wolf_meat' ? 'Guisado de carne' : 'Ensopado de ' + proteinName;
     name = proteins.length > 1
       ? (sauceName ? 'Ensopado misto ' + sauceName : 'Ensopado misto')
-      : 'Ensopado de ' + proteinName + (sauceName ? ' ' + sauceName : '');
+      : stewName + (sauceName ? ' ' + sauceName : '');
     icon = sauce === 'tomato' ? '🍲🍅' : sauce === 'cabbage' ? '🍲🥬'
       : sauce === 'mixed' ? '🍲🍅🥬' : '🍲';
   } else if (!single && vegetables.length > 1) {
-    name = 'Sopa mista de tomate e repolho';
+    name = 'Sopa de tomate e repolho';
     icon = '🥣🍅🥬';
   }
 
