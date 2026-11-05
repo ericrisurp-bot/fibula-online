@@ -2208,20 +2208,6 @@ export default function App() {
                   <div className="cooking-prepared-list"><strong>Receitas prontas</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon} {meal.name} · {meal.slot === 'quick' ? 'Individual' : 'Panela'}</span>) : <small>Nenhuma refeição preparada.</small>}</div>
                 </div>
               </> : <>
-                    <p className="cooking-note">Escolha até quatro ingredientes diferentes. Todos precisam ter a mesma raridade; o total não pode passar de 40 unidades.</p>
-                    {panCookingSelections.map((selection, index) => <div className="cooking-pan-row" key={index}>
-                      <select aria-label={`Ingrediente ${index + 1}`} value={selection.itemId} onChange={event => setPanCookingSelections(current => current.map((item, i) => i === index ? { ...item, itemId: event.target.value } : item))}>
-                        <option value="">Não usar</option>
-                        {cookingIngredientStacks.map(item => <option key={item.itemId} value={item.itemId}>{itemLabel(item.itemId)} · {item.quantity}</option>)}
-                      </select>
-                      <input aria-label={`Quantidade do ingrediente ${index + 1}`} type="number" min="1" max="40" step="1" value={selection.quantity} onChange={event => setPanCookingSelections(current => current.map((item, i) => i === index ? { ...item, quantity: event.target.value } : item))} />
-                    </div>)}
-                    <button type="button" className="cooking-prepare-button" onClick={preparePanCookingMeal} disabled={!cookingIngredientStacks.length}>Preparar refeição na panela</button>
-                  </>}
-                  {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
-                  <div className="cooking-prepared-list"><strong>Receitas prontas</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon} {meal.name} · {meal.slot === 'quick' ? 'Fogão' : 'Panela'}</span>) : <small>Nenhuma refeição preparada.</small>}</div>
-                </div>
-              </> : <>
                 <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
                 <small>Os recursos disponíveis no Baú são usados diretamente na fabricação.</small>
               </>}
