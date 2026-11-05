@@ -1283,9 +1283,9 @@ export default function App() {
         ctx.lineJoin = 'round';
         ctx.lineWidth = 4.5;
         ctx.strokeStyle = 'rgba(8, 12, 14, 0.92)';
-        ctx.strokeText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
+        ctx.strokeText(damage.label ?? (Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.fillStyle = damage.color;
-        ctx.fillText((Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
+        ctx.fillText(damage.label ?? (Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.restore();
       }
       const transition = CONFIG.dayNight.transitionDuration;
