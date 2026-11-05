@@ -116,7 +116,7 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   const proteins = bases.filter(base => FISH_ITEMS.includes(base) || MEAT_ITEMS.includes(base) || base === 'chicken_meat');
   const vegetables = bases.filter(base => base === 'tomato' || base === 'cabbage');
   const protein = proteins[0];
-  const sauce = vegetables[0];
+  const sauce = vegetables.length > 1 ? 'mixed' : vegetables[0];
   const single = divisor === 1 ? getQuickRecipe(bonusIngredients[0].itemId, 10) : null;
 
   let name = single?.name ?? 'Sopa mista';
@@ -125,11 +125,13 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
     const proteinName = FISH_ITEMS.includes(protein) ? 'peixe'
       : protein === 'chicken_meat' ? 'frango' : 'carne';
     const sauceName = sauce === 'tomato' ? 'ao tomate'
-      : sauce === 'cabbage' ? 'com repolho' : '';
+      : sauce === 'cabbage' ? 'com repolho'
+        : sauce === 'mixed' ? 'com molho misto' : '';
     name = proteins.length > 1
       ? (sauceName ? 'Ensopado misto ' + sauceName : 'Ensopado misto')
       : 'Ensopado de ' + proteinName + (sauceName ? ' ' + sauceName : '');
-    icon = sauce === 'tomato' ? '🍲🍅' : sauce === 'cabbage' ? '🍲🥬' : '🍲';
+    icon = sauce === 'tomato' ? '🍲🍅' : sauce === 'cabbage' ? '🍲🥬'
+      : sauce === 'mixed' ? '🍲🍅🥬' : '🍲';
   } else if (!single && vegetables.length > 1) {
     name = 'Sopa mista de tomate e repolho';
     icon = '🥣🍅🥬';
