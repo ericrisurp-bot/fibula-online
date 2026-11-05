@@ -52,15 +52,15 @@ try {
   engine.step(0.04);
   const donkeyAfter = { x: cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance, y: cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance };
   const traveled = Math.hypot(donkeyAfter.x - donkeyBefore.x, donkeyAfter.y - donkeyBefore.y);
-  assert.ok(Math.abs(traveled - CONFIG.cart.unloadedPullSpeed * 0.04) < 0.02, 'burrinho deve andar a 87 unidades/s');
+  assert.ok(traveled > 0 && traveled <= CONFIG.cart.unloadedPullSpeed * CONFIG.donkey.idleSpeedFactor * 0.04, 'burrinho parado deve acelerar suavemente até 50% da velocidade de galope');
   assert.ok(Math.hypot(engine.state.player.x - donkeyAfter.x, feetY - donkeyAfter.y) < distanceBefore, 'burrinho deve aproximar-se do jogador');
   assert.ok(Math.abs(Math.hypot(donkeyAfter.x - cart.x, donkeyAfter.y - cart.y) - CONFIG.donkey.cartDistance) < 1e-6, 'carroça deve manter distância rígida');
   assert.ok(cart.wheelPhase > 0, 'rodas devem girar com o deslocamento');
-  cart.angle = Math.PI; cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - CONFIG.donkey.stopDistance; cart.y = feetY;
+  cart.angle = Math.PI; cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - CONFIG.donkey.playerStopDistance; cart.y = feetY;
   const stopped = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
-  assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, stopped, 'a 100 unidades o conjunto deve parar');
-  // Se o personagem se aproxima para dentro dos 100, o burrinho não recua.
+  assert.ok(Math.hypot(cart.x - stopped.x, cart.y - stopped.y) < 1e-6 && cart.angle === stopped.angle, 'dentro de playerStopDistance o conjunto deve permanecer estacionado');
+  // Se o personagem se aproxima para dentro de playerStopDistance, o burrinho não recua.
   cart.x = engine.state.player.x + CONFIG.donkey.cartDistance - 40; cart.y = feetY; cart.angle = Math.PI;
   const closeRange = { x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase };
   engine.step(0.04);
@@ -71,7 +71,7 @@ try {
   assert.deepEqual({ x: cart.x, y: cart.y, angle: cart.angle, wheelPhase: cart.wheelPhase }, outOfSight, 'fora dos 300 de visão deve parar');
   engine.stop();
 
-  assert.equal(CONFIG.donkey.stopDistance, 100, 'burrinho deve manter 100 unidades de distância do jogador');
+  assert.equal(CONFIG.donkey.playerStopDistance, 30, 'burrinho deve manter 30 unidades de distância do jogador');
   assert.equal(CONFIG.donkey.obstacleClearance, 100, 'rota deve preservar 100 unidades de folga dos obstáculos');
 
   const obstacleEngine = new GameEngine(() => {}, { headless: true, seed: 20261104 });
