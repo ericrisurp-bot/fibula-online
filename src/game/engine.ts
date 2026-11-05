@@ -370,7 +370,7 @@ export class GameEngine {
 
   activateCookingMeal(meal: CookingMeal): boolean {
     if (this.state.dead || !this.state.house.built || !meal || (meal.slot !== 'quick' && meal.slot !== 'pan')) return false;
-    const active: ActiveCookingMeal = { ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })), remainingSeconds: COOKING_DURATION_SECONDS };
+    const active: ActiveCookingMeal = { ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })), remainingSeconds: meal.durationSeconds ?? COOKING_DURATION_SECONDS };
     this.state.activeMeals = [...this.state.activeMeals.filter(current => current.slot !== meal.slot), active];
     this.emit();
     return true;
