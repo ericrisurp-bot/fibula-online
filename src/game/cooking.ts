@@ -105,7 +105,8 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   if (ingredients.length < 1 || ingredients.length > 4
     || ingredients.some(item => !isCookingIngredient(item.itemId) || !Number.isSafeInteger(item.quantity) || item.quantity <= 0)) return null;
   const valid = ingredients;
-  if (valid.reduce((sum, item) => sum + item.quantity, 0) > 40
+  const totalUnits = valid.reduce((sum, item) => sum + item.quantity, 0);
+  if (totalUnits < 10 || totalUnits > 40
     || new Set(valid.map(item => getBaseItemId(item.itemId))).size !== valid.length
     || valid.every(item => getBaseItemId(item.itemId) === 'herbs')) return null;
   const rarity = getCookingRarity(valid[0].itemId);
