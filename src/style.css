@@ -2427,7 +2427,7 @@ button, button * {
 .lobby-crafting-content>small{color:#8a949f;font-size:10px;line-height:1.45}
 @media(max-width:650px){
   .lobby-crafting-stations{left:12px;top:90%;gap:4px;max-width:calc(100% - 112px)}
-  .lobby-crafting-trigger{width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px;gap:2px;padding:2px}
+  .lobby-crafting-trigger{width:clamp(44px,8vw,54px);height:52px;min-width:44px;min-height:52px;border-radius:9px;gap:2px;padding:2px}
   .lobby-crafting-icon{font-size:19px}
   .lobby-crafting-trigger>span:last-child{font-size:7px}
   .lobby-crafting-backdrop{padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}
@@ -2437,7 +2437,7 @@ button, button * {
 }
 @media(max-width:360px){
   .lobby-crafting-stations{left:8px;gap:3px}
-  .lobby-crafting-trigger{width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-crafting-trigger{width:42px;height:48px;min-width:42px;min-height:48px}
   .lobby-crafting-icon{font-size:17px}
   .lobby-crafting-trigger>span:last-child{font-size:6px}
 }
