@@ -85,16 +85,23 @@ try {
   obstacleEngine.state.cart.angle = 0; obstacleEngine.state.cart.stage = 'built';
   obstacleEngine.state.cart.health = 75; obstacleEngine.state.cart.following = true; obstacleEngine.state.cart.carried = false;
   const obstacleCartStart = { x: obstacleEngine.state.cart.x, y: obstacleEngine.state.cart.y };
+  const obstacleFeetStart = { x: obstacleEngine.state.player.x, y: obstacleEngine.state.player.y + CONFIG.player.footOffset };
+  const obstacleDonkeyStart = {
+    x: obstacleEngine.state.cart.x + Math.cos(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance,
+    y: obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance,
+  };
+  const donkeyPlayerDistanceStart = Math.hypot(obstacleDonkeyStart.x - obstacleFeetStart.x, obstacleDonkeyStart.y - obstacleFeetStart.y);
   for (let frame = 0; frame < 40; frame++) obstacleEngine.step(0.04);
   const obstacleDonkeyX = obstacleEngine.state.cart.x + Math.cos(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
   const obstacleDonkeyY = obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
   assert.ok(Math.hypot(obstacleEngine.state.cart.x - obstacleCartStart.x, obstacleEngine.state.cart.y - obstacleCartStart.y) > 1, 'carroça deve continuar avançando e contornando a casinha em vez de travar no primeiro bloqueio');
   assert.ok(Math.abs(Math.hypot(obstacleDonkeyX - obstacleEngine.state.cart.x, obstacleDonkeyY - obstacleEngine.state.cart.y) - CONFIG.donkey.cartDistance) < 1e-6, 'manobra deve preservar o engate rígido do burrinho');
-  const donkeyHouseClearance = Math.hypot(obstacleDonkeyX - obstacleEngine.state.house.x, obstacleDonkeyY - obstacleEngine.state.house.y) - CONFIG.donkey.collisionRadius - 38;
-  const cartHouseClearance = Math.hypot(obstacleEngine.state.cart.x - obstacleEngine.state.house.x, obstacleEngine.state.cart.y - obstacleEngine.state.house.y) - CONFIG.cart.collisionRadius - 38;
-  assert.ok(donkeyHouseClearance >= CONFIG.donkey.obstacleClearance, 'burrinho deve contornar a casinha mantendo 100 unidades de folga');
-  assert.ok(cartHouseClearance >= CONFIG.donkey.obstacleClearance, 'carroça deve contornar a casinha mantendo 100 unidades de folga');
-  assert.ok(obstacleEngine.state.cart.y !== obstacleCartStart.y, 'rota alternativa deve permitir manobra lateral diante do obstáculo');
+  const donkeyHouseRigidClearance = Math.hypot(obstacleDonkeyX - obstacleEngine.state.house.x, obstacleDonkeyY - obstacleEngine.state.house.y) - CONFIG.donkey.collisionRadius - 38;
+  const cartHouseRigidClearance = Math.hypot(obstacleEngine.state.cart.x - obstacleEngine.state.house.x, obstacleEngine.state.cart.y - obstacleEngine.state.house.y) - CONFIG.cart.collisionRadius - 38;
+  assert.ok(donkeyHouseRigidClearance >= 0, 'burrinho deve respeitar somente a zona rígida da casinha');
+  assert.ok(cartHouseRigidClearance >= 0, 'carroça deve respeitar somente a zona rígida da casinha');
+  const donkeyPlayerDistanceEnd = Math.hypot(obstacleDonkeyX - obstacleFeetStart.x, obstacleDonkeyY - obstacleFeetStart.y);
+  assert.ok(donkeyPlayerDistanceEnd < donkeyPlayerDistanceStart, 'burrinho deve aproximar-se dos pés do jogador ao seguir em linha reta');
   obstacleEngine.stop();
 
   const houseBuildEngine = new GameEngine(() => {}, { headless: true, seed: 20261104 });

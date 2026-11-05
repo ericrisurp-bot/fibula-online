@@ -781,6 +781,7 @@ export class GameEngine {
       this.donkeySpeed = Math.max(0, this.donkeySpeed - CONFIG.donkey.deceleration * dt);
       return;
     }
+    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
 
     const feet = playerFeet(this.state.player);
     const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
@@ -891,7 +892,6 @@ export class GameEngine {
       angleOffsets.push(this.donkeyAvoidSide * radians, -this.donkeyAvoidSide * radians);
     }
     const maxTurn = CONFIG.donkey.turnSpeed * dt;
-    const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
     const softClear = (x: number, y: number, radius: number) => {
       if (!wallSoftBypassed && (
         x < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
@@ -2182,7 +2182,7 @@ export class GameEngine {
     const donkeyX = cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance;
     const donkeyY = cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance;
     const distance = Math.hypot(feet.x - donkeyX, feet.y - donkeyY);
-    return distance > CONFIG.donkey.stopDistance && distance <= CONFIG.donkey.visionRange;
+    return distance > CONFIG.donkey.playerStopDistance && distance <= CONFIG.donkey.visionRange;
   }
 
   private moveEnemies(dt: number) {
