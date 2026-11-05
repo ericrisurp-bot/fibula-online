@@ -4397,3 +4397,19 @@ button, button * {
 @media(max-width:650px){.cooking-match-actions{top:74px;right:7px;max-width:58vw;gap:4px}.cooking-match-actions button,.cooking-active-meal{min-width:48px;min-height:46px;padding:4px}.cooking-match-actions button>span,.cooking-active-meal>span{font-size:15px}}
 
 .lobby-crafting-content{overflow-y:auto}
+
+
+/* Seleção unitária de ingredientes no Fogão/Panela unificados. */
+.cooking-ingredient-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:8px; margin:12px 0; }
+.cooking-ingredient { display:flex; min-width:0; min-height:92px; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:9px 6px; border:1px solid rgba(220,220,220,.2); border-radius:10px; background:rgba(255,255,255,.045); color:inherit; cursor:pointer; }
+.cooking-ingredient.selected { border-color:rgba(210,210,210,.65); background:rgba(255,255,255,.11); }
+.cooking-ingredient:disabled { opacity:.45; cursor:not-allowed; }
+.cooking-ingredient-icon { font-size:22px; }
+.cooking-ingredient strong,.cooking-ingredient small,.cooking-ingredient b { text-align:center; overflow-wrap:anywhere; }
+.cooking-ingredient small { opacity:.7; }
+.cooking-ingredient b { font-size:11px; }
+.cooking-pot-panel { display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid rgba(220,220,220,.24); border-radius:12px; background:rgba(0,0,0,.16); }
+.cooking-pot-heading,.cooking-pot-item { display:flex; align-items:center; gap:8px; }
+.cooking-pot-heading { justify-content:space-between; }
+.cooking-pot-item span { flex:1; }
+.cooking-pot-item button { width:30px; height:30px; border:1px solid rgba(220,220,220,.25); border-radius:8px; background:rgba(255,255,255,.08); color:inherit; }
