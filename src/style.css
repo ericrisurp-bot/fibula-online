@@ -4430,3 +4430,154 @@ button, button * {
 @media(max-width:420px){.cooking-pot-slots{gap:4px}.cooking-pot-slot{min-height:68px;padding:5px 2px}.cooking-pot-slot>strong{font-size:8px}}
 
 .cooking-herb-sparkle{display:inline-block;margin-left:2px;color:#e8dfb8;font-size:10px;font-style:normal;vertical-align:top;text-shadow:0 0 5px rgba(232,223,184,.8)}
+
+
+/* Fogão: três filas de produção com relógio real e transferência manual ao Baú. */
+.cooking-production-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 13px;
+  border: 1px solid #686e68;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at 50% 35%, rgba(112, 119, 111, .24), transparent 72%), linear-gradient(145deg, #353a35, #202320 72%);
+  box-shadow: inset 0 0 28px rgba(0,0,0,.42);
+}
+.cooking-production-panel::before {
+  content: "🥘";
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  opacity: .09;
+  font-size: 72px;
+  pointer-events: none;
+}
+.cooking-production-panel .cooking-pot-heading { position: relative; z-index: 1; margin-bottom: 10px; color: #f0f1ed; }
+.cooking-production-slots { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.cooking-production-slot {
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 5px;
+  border: 1px dashed #777e77;
+  border-radius: 10px;
+  background: rgba(18,21,18,.72);
+  color: #c9cec8;
+  text-align: center;
+}
+.cooking-production-slot > strong { color: #d9ded8; font-size: 10px; }
+.cooking-production-slot > small { color: #aeb5ad; font-size: 12px; font-variant-numeric: tabular-nums; }
+.cooking-production-slot > b { max-width: 100%; overflow-wrap: anywhere; color: #f1f2ee; font-size: 10px; }
+.cooking-production-icon { font-size: 22px; line-height: 1; }
+.cooking-production-slot.cooking-in-progress { border-style: solid; border-color: #858d85; }
+.cooking-production-slot.cooking-in-progress > small { font-size: 17px; font-weight: 700; }
+.cooking-production-slot.cooking-ready { border-style: solid; border-color: #b2b9b1; background: rgba(76,82,75,.8); }
+.cooking-production-slot > button {
+  width: 100%;
+  padding: 7px 4px;
+  border: 1px solid #aeb6ad;
+  border-radius: 7px;
+  background: #454b45;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cooking-production-slot > button:hover { background: #596159; }
+.lobby-chest-grid.cooking-ingredient-grid {
+  grid-template-columns: repeat(10,minmax(0,1fr));
+  gap: 7px;
+  margin: 10px 0;
+  padding: 14px;
+}
+.cooking-ingredient.lobby-chest-slot {
+  min-height: 0;
+  aspect-ratio: 1;
+  gap: 3px;
+  padding: 4px 2px;
+  border-radius: 9px;
+  background: rgba(48,52,48,.88);
+  color: #e7ebe5;
+}
+.cooking-ingredient.lobby-chest-slot > span { display: grid; min-height: 24px; place-items: center; font-size: 22px; }
+.cooking-ingredient.lobby-chest-slot > small { max-width: 100%; font-size: 9px; line-height: 1.1; }
+.cooking-ingredient.lobby-chest-slot > b { font-size: 10px; }
+.cooking-ingredient.lobby-chest-slot > em { color: #d2d8d0; font-size: 8px; font-style: normal; }
+.cooking-ingredient.lobby-chest-slot.selected { border-color: #c2c9c0; background: #454b45; }
+.cooking-ingredient.lobby-chest-slot:disabled { opacity: .42; }
+.lobby-chest-tabs,.house-storage-tabs {
+  display: flex;
+  gap: 7px;
+  margin: 10px 14px;
+}
+.lobby-chest-tabs button,.house-storage-tabs button {
+  flex: 1;
+  min-height: 36px;
+  border: 1px solid #555d55;
+  border-radius: 8px;
+  background: #292e29;
+  color: #c9cec8;
+  font-size: 11px;
+  font-weight: 700;
+}
+.lobby-chest-tabs button.active,.house-storage-tabs button.active {
+  border-color: #b7beb5;
+  background: #454b45;
+  color: #fff;
+}
+.lobby-chest-meals { align-content: start; }
+.lobby-chest-meals > .house-storage-empty { grid-column: 1 / -1; }
+.house-meals-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 7px;
+  padding: 8px 0;
+}
+.house-meal-slot {
+  display: flex;
+  min-width: 0;
+  min-height: 78px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 4px;
+  border: 1px solid #626a62;
+  border-radius: 9px;
+  background: #303630;
+  color: #f0f2ed;
+  cursor: pointer;
+}
+.house-meal-slot > span { font-size: 23px; }
+.house-meal-slot > small { max-width: 100%; overflow-wrap: anywhere; text-align: center; font-size: 9px; }
+.house-meal-slot > b { font-size: 9px; }
+.house-meal-slot:disabled { opacity: .42; cursor: not-allowed; }
+.house-storage-tabs { margin: 8px 0; }
+.house-meals-trigger {
+  position: absolute;
+  z-index: 22;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  padding: 9px 14px;
+  border: 1px solid #aeb6ad;
+  border-radius: 999px;
+  background: rgba(34,35,34,.94);
+  color: #f1f3ef;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  box-shadow: 0 3px 12px #0008;
+}
+@media(max-width:650px) {
+  .lobby-chest-grid.cooking-ingredient-grid { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 6px; padding: 10px; }
+  .cooking-production-slots { gap: 5px; }
+  .cooking-production-slot { min-height: 104px; padding: 6px 3px; }
+  .cooking-production-slot > strong { font-size: 9px; }
+  .cooking-production-slot > b { font-size: 9px; }
+  .house-meals-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .house-meals-trigger { bottom: 126px; }
+}
