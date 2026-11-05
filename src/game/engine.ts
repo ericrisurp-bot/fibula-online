@@ -1074,8 +1074,16 @@ export class GameEngine {
     this.fishingTimer += dt;
     while (this.fishingTimer >= CONFIG.lake.fishingInterval) {
       this.fishingTimer -= CONFIG.lake.fishingInterval;
-      if (this.random() >= CONFIG.lake.fishingCatchChance) continue;
-      const result = addToInventory(this.state.inventory, 'fish', 1, CONFIG.inventory);
+      // Uma única rolagem por puxada: as faixas são cumulativas e o restante é sem captura.
+      const fishRoll = this.random() * 100;
+      let cumulativeChance = 0;
+      const species = CONFIG.lake.fishByLakeSize[this.state.lake.size];
+      const caughtFish = species.find(fish => {
+        cumulativeChance += fish.chancePercent;
+        return fishRoll < cumulativeChance;
+      });
+      if (!caughtFish) continue;
+      const result = addToInventory(this.state.inventory, caughtFish.itemId, 1, CONFIG.inventory);
       if (result.added > 0) this.state.inventory = result.inventory;
     }
   }
