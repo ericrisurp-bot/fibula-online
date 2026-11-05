@@ -1610,7 +1610,7 @@ export default function App() {
     }
   };
   const storePreparedCookingMeal = (meal: CookingMeal) => {
-    const nextMeals = [...preparedCookingMeals.filter(item => item.slot !== meal.slot), meal];
+    const nextMeals = [...preparedCookingMeals, meal].slice(0, 3);
     setPreparedCookingMeals(nextMeals);
     writePreparedMeals(nextMeals);
   };
@@ -1645,17 +1645,15 @@ export default function App() {
     setCookingFeedback('');
   };
   const prepareCookingMeal = () => {
+    if (preparedCookingMeals.length >= 3) {
+      setCookingFeedback('Limite de 3 receitas prontas atingido. Ative uma durante a partida para liberar um espaço.');
+      return;
+    }
     if (!panCookingSelections.length) { setCookingFeedback('Escolha os ingredientes do Baú para preencher a panela.'); return; }
     const ingredients = panCookingSelections.map(item => ({ itemId: item.itemId, quantity: item.quantity }));
     const meal = getPanMeal(ingredients);
     if (!meal) {
       setCookingFeedback('Use pelo menos 10 unidades. A capacidade é de 10 unidades por variedade, até 4 variedades, e todos os ingredientes precisam ter a mesma raridade.');
-      return;
-    }
-    if (preparedCookingMeals.some(item => item.slot === meal.slot)) {
-      setCookingFeedback(meal.slot === 'quick'
-        ? 'Já existe uma receita individual pronta. Ative-a na partida antes de preparar outra.'
-        : 'Já existe uma refeição de panela pronta. Ative-a na partida antes de preparar outra.');
       return;
     }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
@@ -1668,7 +1666,7 @@ export default function App() {
   const activatePreparedCookingMeal = (meal: CookingMeal) => {
     const engine = engineRef.current;
     if (!engine?.activateCookingMeal(meal)) return;
-    const nextMeals = preparedCookingMeals.filter(item => item.slot !== meal.slot);
+    const nextMeals = preparedCookingMeals.filter(item => item.id !== meal.id);
     setPreparedCookingMeals(nextMeals);
     writePreparedMeals(nextMeals);
   };
@@ -2229,7 +2227,7 @@ export default function App() {
                       disabled={!panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Preparar refeição</button>
                   </div>
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
-                  <div className="cooking-prepared-list"><strong>Receitas prontas</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon}{meal.herbExtended ? ' ✨' : ''} {meal.name} · {meal.slot === 'quick' ? 'Individual' : 'Panela'}</span>) : <small>Nenhuma refeição preparada.</small>}</div>
+                  <div className="cooking-prepared-list"><strong>Receitas prontas · {preparedCookingMeals.length}/3</strong>{preparedCookingMeals.length ? preparedCookingMeals.map(meal => <span key={meal.id}>{meal.icon}{meal.herbExtended ? ' ✨' : ''} {meal.name} · {Math.ceil((meal.durationSeconds ?? 1800) / 60)} min</span>) : <small>Nenhuma refeição preparada.</small>}</div>
                 </div>
               </> : <>
                 <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
