@@ -1,4 +1,4 @@
-import { CONFIG, RESOURCE_RARITY_RULES, type ClassId, type ResourceRarity, type WeaponId } from './config';
+import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, type ResourceRarity, type WeaponId } from './config';
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
@@ -38,12 +38,15 @@ type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; ca
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
+type VegetableKind = 'tomato' | 'cabbage' | 'herbs';
+type VegetablePlant = Vec & { id: number; kind: VegetableKind; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
+type VegetableDrop = Vec & { id: number; kind: VegetableKind; age: number; rarity?: ResourceRarity };
 type WoodDrop = Vec & { id: number; amount: number; age: number; rarity?: ResourceRarity };
 type StoneDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
 type CottonDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
 type LinenDrop = Vec & { id: number; age: number };
 type BronzeDrop = Vec & { id: number; age: number };
-type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | LinenDrop | BronzeDrop;
+type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | VegetableDrop | LinenDrop | BronzeDrop;
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; explosive?: boolean; hitEnemyIds?: number[] };
@@ -61,7 +64,7 @@ export type GameSnapshot = {
   tecelaria: TecelariaState;
   lake: Lake;
   cart: CartState;
-  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; cottonPlants: CottonPlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
+  enemies: Enemy[]; trees: Tree[]; rocks: Rock[]; cottonPlants: CottonPlant[]; vegetablePlants: VegetablePlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; vegetableDrops: VegetableDrop[]; linenDrops: LinenDrop[]; bronzeDrops: BronzeDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
@@ -261,6 +264,7 @@ export class GameEngine {
   private treeSpawnCountdown = 0;
   private rockSpawnCountdown = 0;
   private cottonSpawnCountdown = 0;
+  private vegetableSpawnCountdown = 0;
   private nextRockClusterId = 1;
   private elapsed = 0;
   private lastTime = 0;
@@ -295,6 +299,8 @@ export class GameEngine {
     this.rockSpawnCountdown = this.rockSpawnDuration();
     this.spawnInitialCottonPlants();
     this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval;
+    this.spawnInitialVegetables();
+    this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval;
 
   }
 
@@ -352,7 +358,7 @@ export class GameEngine {
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
       lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' },
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
-      enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
+      enemies: [], trees: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -842,16 +848,16 @@ export class GameEngine {
     const classId = this.state.classId;
     this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
-    this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.start(); this.emit();
+    this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.start(); this.emit();
   }
-  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: [...this.state.enemies], trees: [...this.state.trees], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: [...this.state.dyingEnemies] }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
     const s = this.state;
     return [
       s.player.hp, s.player.maxHp, s.player.level,
-      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.cottonPlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.trees.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.showRange,
       Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
@@ -983,7 +989,7 @@ export class GameEngine {
       // Só conta como nascimento agendado quando o inimigo realmente entra no mapa.
       if (this.hordeScheduled < targetScheduled && this.spawnHordeEnemy()) this.hordeScheduled += 1;
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectBronze(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.processTecelaria(dt);
     if (this.state.classId === 'druida') {
       this.local.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.local.druidOrbHealTimer <= 0) {
@@ -1507,6 +1513,59 @@ export class GameEngine {
     }
   }
 
+  private vegetableRarity() {
+    const rules = VEGETABLE_RARITY_RULES;
+    const eligible = (Object.entries(rules) as [ResourceRarity, { chancePercent: number; minNight: number }][]).filter(([, rule]) => this.state.nightNumber >= rule.minNight);
+    for (const [rarity, rule] of eligible) if (this.random() < rule.chancePercent / 100) return rarity;
+    return undefined;
+  }
+
+  private spawnInitialVegetables() { for (let i = 0; i < CONFIG.vegetables.startCount; i++) this.spawnVegetable(); }
+  private updateVegetableSpawner(dt: number) {
+    this.vegetableSpawnCountdown -= dt;
+    if (this.vegetableSpawnCountdown > 0) return;
+    if (this.state.vegetablePlants.length < CONFIG.vegetables.max) this.spawnVegetable();
+    this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval;
+  }
+  private spawnVegetable() {
+    if (this.state.vegetablePlants.length >= CONFIG.vegetables.max) return false;
+    const roll = this.random();
+    const weights = CONFIG.vegetables.plantSizeWeights;
+    const size: VegetablePlant['size'] = roll < weights.small ? 'small'
+      : roll < weights.small + weights.medium ? 'medium' : 'large';
+    const kinds: VegetableKind[] = ['tomato', 'cabbage', 'herbs'];
+    const kind = kinds[Math.floor(this.random() * kinds.length)];
+    let position: Vec | null = null;
+    for (let attempt = 0; attempt < 600 && !position; attempt++) {
+      const margin = CONFIG.map.wall + 80;
+      const x = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
+      const y = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
+      if (!this.validCottonPosition(x, y, size, 0)) continue;
+      const radius = size === 'small' ? 12 : size === 'medium' ? 18 : 24;
+      if (this.state.vegetablePlants.some(plant => Math.hypot(x - plant.x, y - plant.y) < radius + (plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24) + CONFIG.vegetables.minSpacing)) continue;
+      position = { x, y };
+    }
+    if (!position) return false;
+    this.state.vegetablePlants.push({ id: this.nextId++, ...position, kind, size, hits: CONFIG.vegetables.hitsToBreak[size], rarity: this.vegetableRarity() });
+    return true;
+  }
+  private hitVegetable(id: number) {
+    const plant = this.state.vegetablePlants.find(value => value.id === id);
+    if (!plant) return;
+    plant.hits -= 1;
+    if (this.random() < CONFIG.vegetables.dropChance) {
+      const angle = this.random() * Math.PI * 2;
+      const radius = this.vegetableFootprintRadius(plant);
+      this.state.vegetableDrops.push({ id: this.nextId++, kind: plant.kind, x: plant.x + Math.cos(angle) * (radius + 5), y: plant.y + Math.sin(angle) * (radius + 5), age: 0, rarity: plant.rarity });
+    }
+    if (plant.hits <= 0) this.state.vegetablePlants = this.state.vegetablePlants.filter(value => value.id !== id);
+  }
+  private vegetableFootprintRadius(plant: VegetablePlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
+
+  private isPlayerAtVegetable(plant: VegetablePlant) {
+    return this.gatherDist(plant.x, plant.y) <= 46 + this.vegetableFootprintRadius(plant);
+  }
+
   private cottonFootprintRadius(plant: CottonPlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
   private isPlayerAtCottonPlant(plant: CottonPlant) {
@@ -1522,6 +1581,18 @@ export class GameEngine {
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
       this.state.cottonDrops = this.state.cottonDrops.filter(value => value.id !== drop.id);
+    }
+  }
+
+  private collectVegetables() {
+    for (const drop of [...this.state.vegetableDrops]) {
+      if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
+      const feet = playerFeet(this.state.player);
+      if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
+      const result = addToInventory(this.state.inventory, getRarityItemId(drop.kind, drop.rarity), 1, CONFIG.inventory);
+      if (result.added === 0) continue;
+      this.state.inventory = result.inventory;
+      this.state.vegetableDrops = this.state.vegetableDrops.filter(value => value.id !== drop.id);
     }
   }
 
@@ -1554,6 +1625,7 @@ export class GameEngine {
       ...this.state.woodDrops.map(drop => ({ drop, itemId: getRarityItemId('wood', drop.rarity), amount: drop.amount })),
       ...this.state.stoneDrops.map(drop => ({ drop, itemId: getRarityItemId('stone', drop.rarity), amount: 1 })),
       ...this.state.cottonDrops.map(drop => ({ drop, itemId: getRarityItemId('cotton', drop.rarity), amount: 1 })),
+      ...this.state.vegetableDrops.map(drop => ({ drop, itemId: getRarityItemId(drop.kind, drop.rarity), amount: 1 })),
       ...this.state.linenDrops.map(drop => ({ drop, itemId: 'linen', amount: 1 })),
       ...this.state.bronzeDrops.map(drop => ({ drop, itemId: 'bronze', amount: 1 })),
     ];
@@ -1576,6 +1648,7 @@ export class GameEngine {
     this.state.woodDrops = this.state.woodDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
     this.state.stoneDrops = this.state.stoneDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
     this.state.cottonDrops = this.state.cottonDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
+    this.state.vegetableDrops = this.state.vegetableDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
     this.state.linenDrops = this.state.linenDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
     this.state.bronzeDrops = this.state.bronzeDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
   }
@@ -1836,6 +1909,7 @@ export class GameEngine {
     }));
     circles.push(...this.state.rocks.map(rock => ({ x: rock.x, y: rock.y, radius: this.rockFootprintRadius(rock) })));
     circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
+    circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
     circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
@@ -2048,14 +2122,15 @@ export class GameEngine {
       .filter(rock => this.isPlayerAtRock(rock))
       .map(rock => ({ rock, d: this.rockGatherDist(rock.x, rock.y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
+    const vegetableTarget = this.state.vegetablePlants.filter(plant => this.isPlayerAtVegetable(plant)).map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y) })).sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
       .map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y), centerD: Math.hypot(plant.x - p.x, plant.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
-    if (!treeTarget && !rockTarget && !cottonTarget) return;
+    if (!treeTarget && !rockTarget && !cottonTarget && !vegetableTarget) return;
 
     this.local.gatheringTimer = 0;
-    if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d)) {
+    if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d) && (!vegetableTarget || treeTarget.d <= vegetableTarget.d)) {
       this.state.treeChopAngle = this.anchorGatherTool(
         treeTarget.tree.x,
         treeTarget.tree.y + 6 * this.treeScale(treeTarget.tree),
@@ -2067,16 +2142,21 @@ export class GameEngine {
       treeTarget.tree.hits -= 1;
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
-    } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d)) {
+    } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d) && (!vegetableTarget || rockTarget.d <= vegetableTarget.d)) {
       this.state.rockMineAngle = this.anchorGatherTool(rockTarget.rock.x, rockTarget.rock.y - 6 * this.rockDrawScale(rockTarget.rock), rockTarget.rock.y + 12 * this.rockDrawScale(rockTarget.rock) + 1);
       this.state.rockMineTimer = CONFIG.gathering.toolAnimationDuration;
       this.hitRock(rockTarget.rock.id);
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
-    } else if (cottonTarget) {
+    } else if (cottonTarget && (!vegetableTarget || cottonTarget.d <= vegetableTarget.d)) {
       this.state.cottonHarvestAngle = this.anchorGatherTool(cottonTarget.plant.x, cottonTarget.plant.y - 6, cottonTarget.plant.y + 13 * 1.2 + 1);
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
       this.hitCottonPlant(cottonTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
+    } else if (vegetableTarget) {
+      this.state.cottonHarvestAngle = this.anchorGatherTool(vegetableTarget.plant.x, vegetableTarget.plant.y - 6, vegetableTarget.plant.y + 13 * 1.2 + 1);
+      this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
+      this.hitVegetable(vegetableTarget.plant.id);
+      this.onSound?.({ type: 'gather', kind: 'cotton', done: vegetableTarget.plant.hits <= 1 });
     }
   }
 

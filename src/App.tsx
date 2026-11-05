@@ -53,7 +53,7 @@ const initial: GameSnapshot = {
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' },
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], rocks: [], cottonPlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
@@ -222,7 +222,7 @@ function ProfileClassStats({ classId }: { classId: ClassId }) {
   </div>;
 }
 
-const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'linen' ? '🧵' : '📦';
+const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : '📦';
 const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
     <g fill="#fffaf0" stroke="#c8c3b6" strokeWidth="1" strokeLinejoin="round">
@@ -254,7 +254,7 @@ const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton'
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
-  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'linen' ? 'Linho' : base;
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base;
   const rarity = getItemRarity(itemId);
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
@@ -1012,6 +1012,36 @@ export default function App() {
           ctx.restore();
         }});
       }
+      for (const plant of s.vegetablePlants) {
+        const sizeScale = plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22;
+        const scaleX = 1.2 * 0.9 * sizeScale;
+        const scaleY = 1.2 * 1.15 * sizeScale;
+        worldDrawables.push({ depth: plant.y + 13 * 1.2, draw: () => {
+          drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
+          ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scaleX, scaleY);
+          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17, 6, 0, 0, Math.PI * 2); ctx.fill();
+          const leaf = (x: number, y: number, angle: number, color: string) => { ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = color; ctx.strokeStyle = '#315c2d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-13, -9, -4, -19); ctx.quadraticCurveTo(8, -14, 0, 0); ctx.fill(); ctx.stroke(); ctx.restore(); };
+          if (plant.kind === 'tomato') {
+            ctx.strokeStyle = '#52783a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(0, -12); ctx.lineTo(-10, -19); ctx.moveTo(0, -7); ctx.lineTo(11, -17); ctx.stroke();
+            leaf(-8, -13, -0.8, '#4e963d'); leaf(7, -12, 0.8, '#65a844'); leaf(-11, -4, -1.2, '#3f8538'); leaf(10, -4, 1.1, '#55963d');
+            for (const [x,y] of [[-9,-8],[9,-13],[1,-20]] as const) { ctx.fillStyle = '#d9362b'; ctx.strokeStyle = '#8f241f'; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4d8a37'; ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x-3,y-8); ctx.lineTo(x,y-7); ctx.lineTo(x+3,y-9); ctx.fill(); }
+          } else if (plant.kind === 'cabbage') {
+            // O repolho nasce rente ao solo: folhas externas encostam na linha da sombra.
+            leaf(-8, 10, -1.15, '#4f963e'); leaf(8, 10, 1.15, '#438735');
+            leaf(-6, 6, -0.7, '#65a94d'); leaf(6, 6, 0.7, '#5b9c43');
+            ctx.fillStyle = '#83bd55'; ctx.strokeStyle = '#3d7132'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.ellipse(0, -3, 10, 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.strokeStyle = '#c2df8a'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 8); ctx.quadraticCurveTo(-3, -3, 0, -12);
+            ctx.moveTo(0, 8); ctx.quadraticCurveTo(7, -3, 7, -8);
+            ctx.stroke();
+          } else {
+            ctx.strokeStyle = '#467c36'; ctx.lineWidth = 2.4; for(let n=-2;n<=2;n++){ctx.beginPath();ctx.moveTo(0,12);ctx.quadraticCurveTo(n*3,-5,n*5-3,-20-Math.abs(n)*2);ctx.stroke();leaf(n*4,-10,n*.25,n%2?'#79ad4d':'#4c963e');}
+          }
+          ctx.restore();
+        }});
+      }
       for (const tree of s.trees) {
         const scale = tree.size === 'small' ? 1.75 : tree.size === 'medium' ? 2.45 : 3.25;
         worldDrawables.push({ depth: tree.y + 30 * scale, draw: () => { drawResourceRarityAura(ctx, tree.x, tree.y + 29 * scale, tree.size === 'large' ? 64 : tree.size === 'medium' ? 50 : 38, tree.rarity); drawTree(ctx, tree.x, tree.y, tree.size); } });
@@ -1019,6 +1049,16 @@ export default function App() {
       for (const rock of s.rocks) {
         const scale = rock.size === 'small' ? 1.22 : rock.size === 'medium' ? 1.5 : 1.85;
         worldDrawables.push({ depth: rock.y + 12 * scale, draw: () => { drawResourceRarityAura(ctx, rock.x, rock.y + 12 * scale, rock.size === 'large' ? 46 : rock.size === 'medium' ? 36 : 28, rock.rarity); drawRock(ctx, rock.x, rock.y, rock.size); } });
+      }
+      for (const drop of s.vegetableDrops) {
+        worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 4, 15, drop.rarity);
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          if (drop.kind === 'tomato') { ctx.fillStyle = '#df392e'; ctx.strokeStyle = '#85251e'; ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4c8a36'; ctx.fillRect(-1,-7,2,3); }
+          else if (drop.kind === 'cabbage') { ctx.fillStyle = '#8fbd59'; ctx.strokeStyle = '#426d35'; ctx.beginPath(); ctx.ellipse(0,0,7,5,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+          else { ctx.strokeStyle = '#4f963e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0,5); ctx.lineTo(-3,-5); ctx.moveTo(0,5); ctx.lineTo(4,-6); ctx.stroke(); }
+          ctx.restore();
+        }});
       }
       for (const drop of s.cottonDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
