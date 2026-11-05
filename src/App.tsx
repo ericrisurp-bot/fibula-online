@@ -2403,7 +2403,6 @@ export default function App() {
         </section>}
       </div>}
       {cartDistance <= CONFIG.cart.interactRadius && state.cart.stage === 'broken' && <div className="cart-repair-status" role="status">BURRINHO E CARROÇA · {state.cart.everBuilt ? '10 MADEIRAS + 5 ALGODÕES' : '1 MADEIRA'}</div>}
-      {state.fishing && <div role="status" style={{ position: 'absolute', left: '50%', bottom: 92, transform: 'translateX(-50%)', zIndex: 8, padding: '8px 14px', borderRadius: 10, background: 'rgba(34,35,34,.92)', border: '1px solid rgba(210,210,210,.45)', color: '#f1eee7', fontWeight: 800, letterSpacing: '.06em', whiteSpace: 'nowrap', pointerEvents: 'none' }}>🎣 PESCANDO · 1 TENTATIVA A CADA 2s</div>}
 
 {!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
@@ -2644,9 +2643,11 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
   if (fishing) {
-    // Uma puxada curta no fim de cada ciclo de pesca de 2 segundos.
+    // A puxada usa a mesma duração visual das ferramentas de coleta.
     const pullCycle = Math.max(0, Math.min(1, fishingProgress));
-    const pull = pullCycle >= 0.82 ? Math.sin(((pullCycle - 0.82) / 0.18) * Math.PI) : 0;
+    const pullWindow = Math.min(1, CONFIG.gathering.toolAnimationDuration / CONFIG.lake.fishingInterval);
+    const pullProgress = pullCycle >= 1 - pullWindow ? (pullCycle - (1 - pullWindow)) / pullWindow : 0;
+    const pull = pullProgress > 0 ? Math.sin(Math.min(1, pullProgress) * Math.PI) : 0;
     const tipX = facingX * (43 - pull * 8);
     const tipY = -r * 0.25 + facingY * 28 - 18 - pull * 7;
     const hookX = facingX * (48 - pull * 10);
