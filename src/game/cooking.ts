@@ -169,7 +169,7 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   }
 
   return {
-    id: 'cooking-' + Date.now(), slot: divisor === 1 ? 'quick' : 'pan',
+    id: 'cooking-' + Date.now(), slot: divisor === 1 || (!protein && vegetables.length > 0) ? 'quick' : 'pan',
     name, icon, rarity, effects, ingredients: ingredients.map(item => ({ ...item })),
     durationSeconds, herbExtended: !!herbs,
   };
