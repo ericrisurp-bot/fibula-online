@@ -55,7 +55,7 @@ type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; explosive?: boolean; hitEnemyIds?: number[] };
 type ExplosionEffect = Vec & { id: number; age: number; duration: number };
-type FloatingDamage = Vec & { id: number; amount: number; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
+type FloatingDamage = Vec & { id: number; amount: number; label?: string; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = DonkeyCartState;
 type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
@@ -1066,17 +1066,17 @@ export class GameEngine {
       this.state.fishingProgress = 0;
       return;
     }
-    if (!this.state.fishing) {
+    if (this.fishingTimer === 0) {
       const dx = this.state.lake.x - feet.x, dy = this.state.lake.y - feet.y;
       const length = Math.hypot(dx, dy) || 1;
       this.state.player.facingX = dx / length;
       this.state.player.facingY = dy / length;
     }
-    this.state.fishing = true;
+    const previousTimer = this.fishingTimer;
     this.fishingTimer += dt;
-    if (this.fishingTimer >= CONFIG.lake.fishingInterval) {
-      this.fishingTimer -= CONFIG.lake.fishingInterval;
-      // Uma única rolagem por puxada: as faixas são cumulativas e o restante é sem captura.
+    const pullAt = CONFIG.lake.fishingVisibleDuration;
+    if (previousTimer < pullAt && this.fishingTimer >= pullAt) {
+      // Uma única rolagem ao recolher a vara; no máximo um peixe por ciclo.
       const fishRoll = this.random() * 100;
       let cumulativeChance = 0;
       const species = CONFIG.lake.fishByLakeSize[this.state.lake.size];
@@ -1086,10 +1086,15 @@ export class GameEngine {
       });
       if (caughtFish) {
         const result = addToInventory(this.state.inventory, caughtFish.itemId, 1, CONFIG.inventory);
-        if (result.added > 0) this.state.inventory = result.inventory;
+        if (result.added > 0) {
+          this.state.inventory = result.inventory;
+          this.addFloatingLabel(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, '+1', '#d7b66e');
+        }
       }
     }
-    this.state.fishingProgress = this.fishingTimer / CONFIG.lake.fishingInterval;
+    if (this.fishingTimer >= CONFIG.lake.fishingInterval) this.fishingTimer %= CONFIG.lake.fishingInterval;
+    this.state.fishing = this.fishingTimer < pullAt;
+    this.state.fishingProgress = this.state.fishing ? this.fishingTimer / pullAt : 0;
   }
 
   private placeLake() {
@@ -2664,6 +2669,10 @@ export class GameEngine {
 
   private addFloatingDamage(x: number, y: number, amount: number, color: FloatingDamage['color'], scale = 1) {
     this.state.floatingDamage.push({ id: this.nextId++, x, y, amount, color, scale, age: 0, duration: 0.72 });
+  }
+
+  private addFloatingLabel(x: number, y: number, label: string, color: FloatingDamage['color']) {
+    this.state.floatingDamage.push({ id: this.nextId++, x, y, amount: 0, label, color, scale: 1, age: 0, duration: 0.72 });
   }
 
   private collectXp(dt: number, playerSpeed: number) {
