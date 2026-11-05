@@ -880,45 +880,49 @@ export class GameEngine {
     }
     const maxTurn = CONFIG.donkey.turnSpeed * dt;
     const margin = CONFIG.map.wall + CONFIG.cart.wallMargin;
+    const softClear = (x: number, y: number, radius: number) => {
+      if (!wallSoftBypassed && (
+        x < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
+        || y < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
+        || x > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
+        || y > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
+      )) return false;
+      if (!lakeSoftBypassed && isInsideLake(this.state.lake, x, y, radius + CONFIG.donkey.obstacleClearance)) return false;
+      for (const obstacle of obstacles) {
+        if (playerInsideSoftObstacle(obstacle)) continue;
+        if (Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius + CONFIG.donkey.obstacleClearance) return false;
+      }
+      return true;
+    };
     let moved = false;
-    for (const offset of angleOffsets) {
-      const candidateAngle = Math.atan2(directionY, directionX) + offset;
-      const moveX = Math.cos(candidateAngle), moveY = Math.sin(candidateAngle);
-      const nextDonkeyX = donkeyX + moveX * travel;
-      const nextDonkeyY = donkeyY + moveY * travel;
-      let angleDelta = ((candidateAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-      angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
-      const nextAngle = cart.angle + angleDelta;
-      const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
-      const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
-      if (nextCartX < margin || nextCartY < margin || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
-      if (!rigidClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
-        || !rigidClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius)) continue;
-      const softClear = (x: number, y: number, radius: number) => {
-        if (!wallSoftBypassed && (
-          x < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
-          || y < CONFIG.map.wall + radius + CONFIG.donkey.wallSoftDistance
-          || x > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
-          || y > this.world - CONFIG.map.wall - radius - CONFIG.donkey.wallSoftDistance
-        )) return false;
-        if (!lakeSoftBypassed && isInsideLake(this.state.lake, x, y, radius + CONFIG.donkey.obstacleClearance)) return false;
-        for (const obstacle of obstacles) {
-          if (playerInsideSoftObstacle(obstacle)) continue;
-          if (Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius + CONFIG.donkey.obstacleClearance) return false;
-        }
-        return true;
-      };
-      if (!softClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
-        || !softClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius)) continue;
+    // Primeiro tenta preservar a zona de contorno; se ela bloquear todos os caminhos,
+    // aceita qualquer candidato fora da zona rígida para não deixar a carroça imobilizar o burrinho.
+    for (const enforceSoftClearance of [true, false]) {
+      for (const offset of angleOffsets) {
+        const candidateAngle = Math.atan2(directionY, directionX) + offset;
+        const moveX = Math.cos(candidateAngle), moveY = Math.sin(candidateAngle);
+        const nextDonkeyX = donkeyX + moveX * travel;
+        const nextDonkeyY = donkeyY + moveY * travel;
+        let angleDelta = ((candidateAngle - cart.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        angleDelta = Math.max(-maxTurn, Math.min(maxTurn, angleDelta));
+        const nextAngle = cart.angle + angleDelta;
+        const nextCartX = nextDonkeyX - Math.cos(nextAngle) * CONFIG.donkey.cartDistance;
+        const nextCartY = nextDonkeyY - Math.sin(nextAngle) * CONFIG.donkey.cartDistance;
+        if (nextCartX < margin || nextCartY < margin || nextCartX > this.world - margin || nextCartY > this.world - margin) continue;
+        if (!rigidClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
+          || !rigidClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius)) continue;
+        if (enforceSoftClearance && (!softClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
+          || !softClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius))) continue;
 
-      cart.x = nextCartX;
-      cart.y = nextCartY;
-      cart.angle = nextAngle;
-      cart.wheelPhase = (cart.wheelPhase + travel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
-      moved = true;
-      break;
+        cart.x = nextCartX;
+        cart.y = nextCartY;
+        cart.angle = nextAngle;
+        cart.wheelPhase = (cart.wheelPhase + travel / CONFIG.donkey.wheelRadius) % (Math.PI * 2);
+        moved = true;
+        break;
+      }
+      if (moved) break;
     }
-
     if (moved && !this.state.player.moving) {
       const progress = (cart.x + Math.cos(cart.angle) * CONFIG.donkey.cartDistance - donkeyX) * directionX
         + (cart.y + Math.sin(cart.angle) * CONFIG.donkey.cartDistance - donkeyY) * directionY;
