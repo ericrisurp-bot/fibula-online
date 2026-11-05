@@ -7,6 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
+import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, readPreparedMeals, readReadyMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -47,6 +48,7 @@ registerStepSounds();
 
 const initial: GameSnapshot = {
   walkPhase: 0,
+  activeMeals: [],
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
@@ -224,35 +226,92 @@ function ProfileClassStats({ classId, accountLevel }: { classId: ClassId; accoun
 }
 
 const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
-const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton' ? (
-  <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
-    <g fill="#fffaf0" stroke="#c8c3b6" strokeWidth="1" strokeLinejoin="round">
-      <polygon points="3,12 5,7 9,6 12,9 11,15 6,16" />
-      <polygon points="8,9 9,4 14,3 18,6 17,12 12,14" />
-      <polygon points="13,13 17,10 21,12 20,17 16,18 13,16" />
-    </g>
-    <g fill="none" stroke="#ffffff" strokeWidth="1" strokeLinecap="round">
-      <path d="M5.5 10 7.5 8 M11.5 6 13.5 5" />
-    </g>
-  </svg>
-) : getBaseItemId(itemId) === 'stone' ? (
-  <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
-    <g stroke="#454d53" strokeWidth="0.9" strokeLinejoin="round">
-      <polygon points="2,14 3,9 7,5 11,2 15,3 19,7 22,12 20,17 16,20 10,21 5,19" fill="#788188" />
-      <polygon points="2,14 3,9 7,5 8,11 6,15 5,19" fill="#929ba1" stroke="none" />
-      <polygon points="3,9 7,5 11,2 13,8 8,11" fill="#aab2b7" stroke="none" />
-      <polygon points="11,2 15,3 16,8 13,8" fill="#c0c6ca" stroke="none" />
-      <polygon points="15,3 19,7 16,10 13,8" fill="#aeb7bd" stroke="none" />
-      <polygon points="19,7 22,12 18,13 16,10" fill="#89939a" stroke="none" />
-      <polygon points="8,11 13,8 16,10 14,14 9,15" fill="#9ca6ac" stroke="none" />
-      <polygon points="16,10 18,13 16,17 14,14" fill="#737e85" stroke="none" />
-      <polygon points="5,19 6,15 9,15 9,19" fill="#7e898f" stroke="none" />
-      <polygon points="9,15 14,14 16,17 12,20 9,19" fill="#a2abb0" stroke="none" />
-      <polygon points="16,17 18,13 20,17 16,20 12,20" fill="#68737a" stroke="none" />
-      <path d="M5 8 7 6 M14 4 15 5" fill="none" stroke="#e6ebee" strokeWidth="0.8" />
-    </g>
-  </svg>
-) : itemIcon(itemId);
+const inventoryItemIcon = (itemId: string) => {
+  const base = getBaseItemId(itemId);
+  const fishFile: Record<string, string> = {
+    tilapia: 'fish-tilapia.png', tambaqui: 'fish-tambaqui.png',
+    pintado_surubim: 'fish-pintado-surubim.png', lambari: 'fish-lambari.png',
+    tucunare: 'fish-tucunare.png',
+  };
+  if (fishFile[base]) return <img src={`/assets/items/${fishFile[base]}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'auto' }} />;
+  const palette: Record<string, { fill: string; shade: string; line: string }> = {
+    wood: { fill: '#bd8950', shade: '#80552f', line: '#4b3324' },
+    stone: { fill: '#aab3b8', shade: '#68737a', line: '#3e474d' },
+    bronze: { fill: '#d39a4e', shade: '#88552b', line: '#51351f' },
+    cotton: { fill: '#fff8e9', shade: '#d8d0c1', line: '#938b7e' },
+    tomato: { fill: '#e65c4f', shade: '#a93230', line: '#6d2825' },
+    cabbage: { fill: '#83b96b', shade: '#477d4a', line: '#31533a' },
+    herbs: { fill: '#8dbb62', shade: '#477b43', line: '#31533a' },
+    linen: { fill: '#e3d4ad', shade: '#aa9870', line: '#695d45' },
+    wolf_meat: { fill: '#bd6b5d', shade: '#80433e', line: '#542d2b' },
+    wolf_hide: { fill: '#a98768', shade: '#69503d', line: '#47372c' },
+    chicken_meat: { fill: '#d89a62', shade: '#9b5c3b', line: '#663b2c' },
+    feather: { fill: '#e8e2d1', shade: '#a9a18f', line: '#696354' },
+    jabuticaba: { fill: '#75508f', shade: '#422c62', line: '#30213f' },
+  };
+  const colors = palette[base] ?? { fill: '#9da49b', shade: '#626a62', line: '#3b403b' };
+  return <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" focusable="false">
+    {base === 'wood' ? <>
+      <path d="M5 10 22 4 27 8 10 14Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2"/>
+      <path d="M5 10 10 14 10 27 5 23Z" fill={colors.shade} stroke={colors.line} strokeWidth="1.2"/>
+      <path d="M10 14 27 8 27 21 10 27Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2"/>
+      <path d="m13 17 11-4m-11 8 11-4" stroke="#f0c58d" strokeWidth="1.1" opacity=".8"/>
+    </> : base === 'stone' ? <>
+      <path d="m3 21 2-10 8-7 9 2 7 9-4 11-13 2Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="m5 11 8-7 3 9-7 6-6 2Z" fill="#d0d6d8"/>
+      <path d="m13 4 9 2 7 9-13-2Z" fill="#c1c9cd"/>
+      <path d="m9 19 7-6 13 2-4 11-13 2Z" fill={colors.shade}/>
+    </> : base === 'bronze' ? <>
+      <path d="M7 8h18v16H7z" rx="2" fill={colors.fill} stroke={colors.line} strokeWidth="1.4"/>
+      <path d="M7 12h18M7 20h18" stroke={colors.shade} strokeWidth="2"/>
+      <path d="M11 8v16m10-16v16" stroke="#f0c17b" strokeWidth="1" opacity=".8"/>
+    </> : base === 'cotton' ? <>
+      <g fill={colors.fill} stroke={colors.line} strokeWidth="1"><circle cx="10" cy="17" r="6"/><circle cx="16" cy="11" r="7"/><circle cx="22" cy="18" r="6"/></g>
+      <path d="M9 23 16 27 23 23" fill="none" stroke="#73905d" strokeWidth="2"/>
+    </> : base === 'tomato' ? <>
+      <path d="M16 8c-8-1-12 5-10 13 2 8 18 8 20 0 2-8-2-14-10-13Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.3"/>
+      <path d="m16 9 1-5m-1 5-6-3m6 3 6-4m-6 4 7 1" stroke="#6c9b48" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M9 16c1-3 3-4 5-4" fill="none" stroke="#ffb0a1" strokeWidth="1.5" strokeLinecap="round"/>
+    </> : base === 'cabbage' ? <>
+      <path d="M16 5c-4-4-11 1-9 7-6 3-3 13 4 13 3 5 12 4 13-2 7-4 3-13-3-13 1-5-2-7-5-5Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2"/>
+      <path d="M16 6c-5 5-7 12-5 18m5-18c4 5 5 11 4 17M7 12c5 0 8 4 9 12m9-2c-4-4-7-6-9-6" fill="none" stroke={colors.shade} strokeWidth="1.4"/>
+    </> : base === 'herbs' ? <>
+      <path d="M16 27V8m0 12C8 22 5 16 6 11c6 0 10 3 10 9Zm0-5c0-7 5-11 11-10 0 6-4 11-11 12Zm0 8c-5 1-9-1-10-5 5-1 8 1 10 5Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2" strokeLinejoin="round"/>
+    </> : base === 'linen' ? <>
+      <path d="m7 5 18 2 2 20-18-2Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2"/>
+      <path d="m10 8 1 15m4-14 1 15m4-14 1 15M8 13l18 2M9 19l18 2" stroke={colors.shade} strokeWidth="1"/>
+    </> : base === 'wolf_meat' || base === 'chicken_meat' ? <>
+      <path d="M6 17c0-6 6-10 13-8 5 1 8 6 6 11-2 6-11 8-16 4-2-2-3-4-3-7Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.4"/>
+      <path d="M8 16c4-4 10-5 15-1M10 21c4 2 8 1 11-2" fill="none" stroke="#f3c2a0" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="m22 9 4-3 2 3-3 4" fill={colors.shade} stroke={colors.line} strokeWidth="1"/>
+    </> : base === 'wolf_hide' ? <>
+      <path d="M7 5 13 8 19 5 25 9 23 15 26 23 18 27 12 24 5 26 7 18 4 12Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="m10 10 5 4 6-4m-10 9 8 3" fill="none" stroke={colors.shade} strokeWidth="1.5"/>
+    </> : base === 'feather' ? <>
+      <path d="M7 26C4 13 12 4 26 4c0 12-6 21-19 22Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2"/>
+      <path d="M7 26 24 7M11 21l-1-7m5 2-1-7m2 12 7-1m-3-5 6-1" stroke={colors.shade} strokeWidth="1.1" strokeLinecap="round"/>
+    </> : base === 'jabuticaba' ? <>
+      <g fill={colors.fill} stroke={colors.line} strokeWidth="1"><circle cx="11" cy="17" r="7"/><circle cx="20" cy="13" r="7"/><circle cx="21" cy="22" r="6"/></g>
+      <path d="m16 7 1-3m0 3 4-2" stroke="#71934d" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="9" cy="15" r="1.5" fill="#c5a5dc"/>
+    </> : <>
+      <path d="M5 8h22v17H5z" fill={colors.fill} stroke={colors.line} strokeWidth="1.3"/>
+      <path d="M5 13h22" stroke={colors.shade} strokeWidth="2"/>
+    </>}
+  </svg>;
+};
+const cookingMealArtwork = (meal: CookingMeal) => {
+  const mainIngredient = meal.ingredients.find(item => getBaseItemId(item.itemId) !== 'herbs')?.itemId ?? meal.ingredients[0]?.itemId ?? 'cabbage';
+  return <span className="cooking-meal-artwork" aria-hidden="true">
+    <svg viewBox="0 0 36 32" width="34" height="30" focusable="false">
+      <path d="M5 15h26l-3 11H8Z" fill="#777f78" stroke="#c2c9c0" strokeWidth="1.3"/>
+      <path d="M8 14c1-6 19-6 20 0" fill="#b7a17b" stroke="#e4d4b5" strokeWidth="1.2"/>
+      <path d="M3 16h30" stroke="#e4d4b5" strokeWidth="1.2" strokeLinecap="round"/>
+      <path d="M11 24h14" stroke="#414941" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+    <span className="cooking-meal-ingredient">{inventoryItemIcon(mainIngredient)}</span>
+  </span>;
+};
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
@@ -276,7 +335,7 @@ const LOBBY_CRAFTING_STATIONS = [
   { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
   { id: 'costura', label: 'COSTURA', icon: '🧵', title: 'Alfaiataria', description: 'Mesa de costura para trabalhar tecidos e materiais flexíveis.', products: 'Luvas, botas e peças de tecido' },
   { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Bancada para criar acessórios que complementam os atributos do personagem.', products: 'Colares e pulseiras' },
-  { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão', description: 'Estação culinária para preparar refeições e cozidos com ingredientes coletados.', products: 'Cozidos e refeições com efeitos' },
+  { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão e Panela', description: 'Escolha os ingredientes do Baú e coloque cada unidade na panela para preparar sua refeição.', products: 'Sopas, grelhados, guisados e ensopados' },
 ] as const;
 
 function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot['enemies'][number], elapsed: number) {
@@ -537,6 +596,8 @@ export default function App() {
   const duoTransportRef = useRef<DuoCycleTransport | null>(null);
   const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
+  const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
+  const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
   const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
@@ -607,7 +668,21 @@ export default function App() {
   }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
 
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
+  const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>(readPreparedMeals);
+  const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>(readReadyMeals);
+  const [panCookingSelections, setPanCookingSelections] = useState<Array<{ itemId: string; quantity: number }>>([]);
+  const [cookingFeedback, setCookingFeedback] = useState('');
+  const [cookingClock, setCookingClock] = useState(() => Date.now());
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
+  const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
+  const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
+  const cookingCapacity = getCookingCapacity(panCookingSelections.length);
+  useEffect(() => {
+    if (craftingStationId !== 'fogao') return;
+    setCookingClock(Date.now());
+    const timer = window.setInterval(() => setCookingClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [craftingStationId]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1597,6 +1672,7 @@ export default function App() {
   };
 
   const openLobbyChest = () => {
+    setChestTab('resources');
     setChestOpen(true);
     setChestTransferItemId(null);
     setChestTransferFeedback('');
@@ -1651,6 +1727,84 @@ export default function App() {
       setChestTransferBusy(false);
     }
   };
+  const storePreparedCookingMeal = (meal: CookingMeal) => {
+    const startedAt = Date.now();
+    const queuedMeal: CookingMeal = {
+      ...meal,
+      productionStartedAt: startedAt,
+      productionReadyAt: startedAt + COOKING_PRODUCTION_MS,
+    };
+    const nextMeals = [...preparedCookingMeals, queuedMeal].slice(0, 3);
+    setPreparedCookingMeals(nextMeals);
+    writePreparedMeals(nextMeals);
+  };
+  const applyCookingInventory = (nextInventory: HouseStorageStack[]) => {
+    setLobbyChestItems(nextInventory);
+    engineRef.current?.setHouseInventory(nextInventory);
+    try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
+  };
+  const addCookingIngredientUnit = (itemId: string) => {
+    const stack = cookingIngredientStacks.find(item => item.itemId === itemId);
+    if (!stack) return;
+    const existing = panCookingSelections.find(item => item.itemId === itemId);
+    const nextVarieties = panCookingSelections.length + (existing ? 0 : 1);
+    if ((!existing && panCookingSelections.length >= 4)
+      || cookingSelectedTotal >= getCookingCapacity(nextVarieties)
+      || (existing?.quantity ?? 0) >= stack.quantity) return;
+    setPanCookingSelections(current => {
+      const selected = current.find(item => item.itemId === itemId);
+      return selected ? current.map(item => item.itemId === itemId ? { ...item, quantity: item.quantity + 1 } : item)
+        : [...current, { itemId, quantity: 1 }];
+    });
+    setCookingFeedback('');
+  };
+  const removeCookingIngredientUnit = (itemId: string) => {
+    const selected = panCookingSelections.find(item => item.itemId === itemId);
+    if (!selected) return;
+    const nextTotal = cookingSelectedTotal - 1;
+    const nextVarieties = panCookingSelections.length - (selected.quantity === 1 ? 1 : 0);
+    if (nextTotal > getCookingCapacity(nextVarieties)) return;
+    setPanCookingSelections(current => current.flatMap(item => item.itemId !== itemId ? [item]
+      : item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []));
+    setCookingFeedback('');
+  };
+  const prepareCookingMeal = () => {
+    if (preparedCookingMeals.length >= 3) {
+      setCookingFeedback('Os três espaços de produção estão ocupados.');
+      return;
+    }
+    if (!panCookingSelections.length) { setCookingFeedback('Escolha os ingredientes para a receita.'); return; }
+    const ingredients = panCookingSelections.map(item => ({ itemId: item.itemId, quantity: item.quantity }));
+    const meal = getPanMeal(ingredients);
+    if (!meal) {
+      setCookingFeedback('Combinação inválida. Use pelo menos 10 unidades e ingredientes da mesma raridade.');
+      return;
+    }
+    const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
+    if (!nextInventory) { setCookingFeedback('Você não tem todas essas unidades disponíveis no Baú.'); return; }
+    applyCookingInventory(nextInventory);
+    storePreparedCookingMeal(meal);
+    setPanCookingSelections([]);
+    setCookingFeedback('Produção iniciada: ' + meal.name + '.');
+  };
+  const collectPreparedCookingMeal = (meal: CookingMeal) => {
+    if ((meal.productionReadyAt ?? 0) > Date.now()) return;
+    const nextQueue = preparedCookingMeals.filter(item => item.id !== meal.id);
+    const nextReady = [...readyCookingMeals, meal];
+    setPreparedCookingMeals(nextQueue);
+    writePreparedMeals(nextQueue);
+    setReadyCookingMeals(nextReady);
+    writeReadyMeals(nextReady);
+    setCookingFeedback(meal.name + ' foi para a aba Refeições do Baú.');
+  };
+  const consumeReadyCookingMeal = (meal: CookingMeal) => {
+    const engine = engineRef.current;
+    if (!houseAccessible || !engine?.activateCookingMeal(meal)) return;
+    const nextMeals = readyCookingMeals.filter(item => item.id !== meal.id);
+    setReadyCookingMeals(nextMeals);
+    writeReadyMeals(nextMeals);
+  };
+
   const handleLobbyPlay = () => {
     if (duoPeer) {
       if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
@@ -2073,6 +2227,11 @@ export default function App() {
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
       <div className="hud-top" aria-label="Status da partida">
+        {state.house.built && state.activeMeals.length > 0 && <div className="cooking-match-actions" aria-label="Refeições ativas">
+          {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
+            <span>{cookingMealArtwork(meal)}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
+          </div>)}
+        </div>}
         <div className="hud-left-stack">
           <div className="hud-vitals-panel">
             <div className="hud-level">NÍVEL <strong>{state.player.level}</strong></div>
@@ -2152,9 +2311,73 @@ export default function App() {
             </header>
             <div className="lobby-crafting-content">
               <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
-              <p>{activeCraftingStation.description}</p>
-              <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
-              <small>Esta estação está sendo preparada. As receitas e a fabricação serão ativadas em uma próxima etapa.</small>
+              {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
+              {activeCraftingStation.id === 'fogao' ? <>
+                <div className="cooking-station-form">
+                  <div className="cooking-production-panel">
+                    <div className="cooking-pot-heading"><strong>🥘 Produção</strong><span>{preparedCookingMeals.length}/3</span></div>
+                    <div className="cooking-production-slots">
+                      {Array.from({ length: 3 }, (_, index) => {
+                        const meal = preparedCookingMeals[index];
+                        const remaining = meal ? Math.max(0, Math.ceil(((meal.productionReadyAt ?? 0) - cookingClock) / 1000)) : 0;
+                        return <div className={meal ? remaining > 0 ? 'cooking-production-slot cooking-in-progress' : 'cooking-production-slot cooking-ready' : 'cooking-production-slot'} key={meal?.id ?? 'production-' + index}>
+                          <strong>Produção {index + 1}</strong>
+                          {meal ? <>
+                            <span className="cooking-production-icon">{cookingMealArtwork(meal)}</span>
+                            <b>{meal.name}</b>
+                            {remaining > 0 ? <small>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</small>
+                              : <button type="button" onClick={() => collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
+                          </> : <small>Livre</small>}
+                        </div>;
+                      })}
+                    </div>
+                  </div>
+                  <div className="cooking-pot-panel">
+                    <div className="cooking-pot-heading"><strong>Ingredientes</strong><span>{cookingSelectedTotal}/{cookingCapacity} · {panCookingSelections.length}/4</span></div>
+                    <div className="cooking-pot-slots" aria-label="Quatro espaços de ingredientes">
+                      {Array.from({ length: 4 }, (_, index) => {
+                        const item = panCookingSelections[index];
+                        return <div className={item ? 'cooking-pot-slot filled' : 'cooking-pot-slot'} key={item ? item.itemId : 'empty-' + index}>
+                          {item ? <><span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b></>
+                            : <><span>＋</span><small>Espaço {index + 1}</small></>}
+                        </div>;
+                      })}
+                    </div>
+                    <div className="lobby-chest-grid cooking-ingredient-grid" aria-label="Ingredientes disponíveis no Baú">
+                      {cookingIngredientStacks.map(item => {
+                        const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
+                        const nextCapacity = getCookingCapacity(panCookingSelections.length + (selected === 0 ? 1 : 0));
+                        return <button type="button" className={selected > 0 ? 'quick-slot filled lobby-chest-slot cooking-ingredient selected' : 'quick-slot filled lobby-chest-slot cooking-ingredient'} key={item.itemId}
+                          onClick={() => addCookingIngredientUnit(item.itemId)}
+                          disabled={selected >= item.quantity || (selected === 0 && panCookingSelections.length >= 4)
+                            || cookingSelectedTotal >= nextCapacity}>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                          <small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                          {selected > 0 && <em>Panela ×{selected}</em>}
+                        </button>;
+                      })}
+                    </div>
+                    {panCookingSelections.length > 0 && <div className="cooking-pot-quantities">
+                      {panCookingSelections.map(item => {
+                        const nextTotal = cookingSelectedTotal - 1;
+                        const nextVarieties = panCookingSelections.length - (item.quantity === 1 ? 1 : 0);
+                        const cannotRemove = nextTotal > getCookingCapacity(nextVarieties);
+                        return <div className="cooking-pot-item" key={item.itemId}>
+                          <span>{itemLabel(item.itemId)}</span><strong>×{item.quantity}</strong>
+                          <button type="button" aria-label={'Retirar uma unidade de ' + itemLabel(item.itemId)}
+                            onClick={() => removeCookingIngredientUnit(item.itemId)} disabled={cannotRemove}>−</button>
+                        </div>;
+                      })}
+                    </div>}
+                    <button type="button" className="cooking-prepare-button" onClick={prepareCookingMeal}
+                      disabled={preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
+                  </div>
+                  {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
+                </div>
+              </> : <>
+                <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
+                <small>Os recursos disponíveis no Baú são usados diretamente na fabricação.</small>
+              </>}
             </div>
           </section>
         </div>}
@@ -2221,14 +2444,24 @@ export default function App() {
               <button type="button" className="lobby-chest-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
             </header>
             <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
-            {lobbyChestItems.some(item => item.itemId === 'jabuticaba' && item.quantity > 0) && <button type="button" className="lobby-chest-send-button" style={{ margin: '8px 14px 0', width: 'calc(100% - 28px)' }} disabled={!chestCloudReady || jabuticabaBusy} onClick={() => void consumeJabuticaba()}>{jabuticabaBusy ? 'Usando…' : 'Consumir 1 jabuticaba'}</button>}
-            {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-            <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
-              {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
-                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
-              </div>)}
-            </div>
+            <nav className="lobby-chest-tabs" role="tablist" aria-label="Conteúdo do Baú">
+              <button type="button" role="tab" aria-selected={chestTab === 'resources'} className={chestTab === 'resources' ? 'active' : ''} onClick={() => setChestTab('resources')}>Recursos</button>
+              <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
+            </nav>
+            {chestTab === 'resources' ? <>
+              {lobbyChestItems.some(item => item.itemId === 'jabuticaba' && item.quantity > 0) && <button type="button" className="lobby-chest-send-button" style={{ margin: '8px 14px 0', width: 'calc(100% - 28px)' }} disabled={!chestCloudReady || jabuticabaBusy} onClick={() => void consumeJabuticaba()}>{jabuticabaBusy ? 'Usando…' : 'Consumir 1 jabuticaba'}</button>}
+              {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
+              <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
+                {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
+                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
+                </div>)}
+              </div>
+            </> : <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
+              {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot">
+                <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><b>{meal.slot === 'quick' ? 'Receita simples' : 'Receita sofisticada'}</b>
+              </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
+            </div>}
             {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
               <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
               <label>Quantidade
@@ -2444,14 +2677,29 @@ export default function App() {
           </div>
         </section>
         {state.house.built && <section className="house-storage-section">
-          <h3>Armazém da casa <small>{state.house.inventory.length} tipos</small></h3>
-          {state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
+          <h3>Armazém da casa</h3>
+          <nav className="house-storage-tabs" role="tablist" aria-label="Armazém da casa">
+            <button type="button" role="tab" aria-selected={houseStorageTab === 'resources'} className={houseStorageTab === 'resources' ? 'active' : ''} onClick={() => setHouseStorageTab('resources')}>Materiais</button>
+            <button type="button" role="tab" aria-selected={houseStorageTab === 'meals'} className={houseStorageTab === 'meals' ? 'active' : ''} onClick={() => setHouseStorageTab('meals')}>Refeições · {readyCookingMeals.length}</button>
+          </nav>
+          {houseStorageTab === 'resources' ? state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
             {state.house.inventory.map(item => <button key={item.itemId} type="button" className="quick-slot filled inventory-transfer-slot" disabled={!houseAccessible} onClick={(event) => { event.stopPropagation(); transferHouseToBag(item.itemId); }} aria-label={`Retirar ${item.itemId} x${item.quantity} da casa para a mochila`} title={houseAccessible ? "Retirar para a mochila (até 5 por clique)" : "Aproxime-se da casa para retirar"}>
               <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
             </button>)}
-          </div> : <p className="house-storage-empty">{state.house.built ? 'A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.' : 'Conclua a construção para usar o armazém.'}</p>}
+          </div> : <p className="house-storage-empty">A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.</p>
+            : <div className="house-meals-grid">
+              {readyCookingMeals.length ? readyCookingMeals.map(meal => {
+                const slotOccupied = state.activeMeals.some(active => active.slot === meal.slot);
+                return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || slotOccupied}
+                  onClick={(event) => { event.stopPropagation(); consumeReadyCookingMeal(meal); }}
+                  title={!houseAccessible ? 'Aproxime-se da casa para consumir' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
+                  <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><b>Consumir</b>
+                </button>;
+              }) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
+            </div>}
         </section>}
       </div>}
+      {houseAccessible && !showStart && !state.dead && <button type="button" className="house-meals-trigger" onClick={() => { closeFlagMenu(); setHouseStorageTab('meals'); inventoryPanelOpenRef.current = true; setInventoryPanelOpen(true); }}>🏠 CASA · REFEIÇÕES</button>}
       {cartDistance <= CONFIG.cart.interactRadius && state.cart.stage === 'broken' && <div className="cart-repair-status" role="status">BURRINHO E CARROÇA · {state.cart.everBuilt ? '10 MADEIRAS + 5 ALGODÕES' : '1 MADEIRA'}</div>}
 
 {!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
