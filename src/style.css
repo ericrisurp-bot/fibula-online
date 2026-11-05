@@ -4573,7 +4573,7 @@ button, button * {
   box-shadow: 0 3px 12px #0008;
 }
 @media(max-width:650px) {
-  .lobby-chest-grid.cooking-ingredient-grid { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 6px; padding: 10px; }
+  .lobby-chest-grid.cooking-ingredient-grid { grid-template-columns: repeat(10,minmax(0,1fr)); gap: 7px; padding: 14px; }
   .cooking-production-slots { gap: 5px; }
   .cooking-production-slot { min-height: 104px; padding: 6px 3px; }
   .cooking-production-slot > strong { font-size: 9px; }
