@@ -223,7 +223,7 @@ function ProfileClassStats({ classId, accountLevel }: { classId: ClassId; accoun
   </div>;
 }
 
-const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'fish' ? '🐟' : '📦';
+const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
 const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton' ? (
   <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
     <g fill="#fffaf0" stroke="#c8c3b6" strokeWidth="1" strokeLinejoin="round">
@@ -255,7 +255,7 @@ const inventoryItemIcon = (itemId: string) => getBaseItemId(itemId) === 'cotton'
 ) : itemIcon(itemId);
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
-  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'fish' ? 'Peixe' : base;
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
