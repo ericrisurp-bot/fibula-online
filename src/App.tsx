@@ -2642,6 +2642,22 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   ctx.save(); ctx.scale(facingScaleX, 1);
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
+  if (fishing) {
+    ctx.save();
+    ctx.strokeStyle = '#6b4930'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(facingX * 7, -r * 0.25);
+    ctx.lineTo(facingX * 43, -r * 0.25 + facingY * 28 - 18);
+    ctx.stroke();
+    ctx.strokeStyle = '#d8c7a1'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(facingX * 43, -r * 0.25 + facingY * 28 - 18);
+    ctx.lineTo(facingX * 48, facingY * 38 + 5);
+    ctx.stroke();
+    ctx.fillStyle = '#e7e2d5';
+    ctx.beginPath(); ctx.arc(facingX * 48, facingY * 38 + 5, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
   if (showWeapon && (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao')))) {
     if (weapon === 'espada') {
       const duration = 0.24;
