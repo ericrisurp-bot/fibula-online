@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, readPreparedMeals, readReadyMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
+import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, readPreparedMeals, readReadyMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -1777,7 +1777,7 @@ export default function App() {
     const ingredients = panCookingSelections.map(item => ({ itemId: item.itemId, quantity: item.quantity }));
     const meal = getPanMeal(ingredients);
     if (!meal) {
-      setCookingFeedback('Combinação inválida. Use pelo menos 10 unidades e ingredientes da mesma raridade.');
+      setCookingFeedback(getPanMealError(ingredients) ?? 'Combinação inválida.');
       return;
     }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
