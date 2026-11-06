@@ -90,8 +90,10 @@ export async function syncHouseInventory(
   client: SupabaseClient,
   userId: string,
   inventory: PersistedHouseStack[],
+  options: { allowEmpty?: boolean } = {},
 ): Promise<boolean> {
   const safeInventory = normalizeHouseInventory(inventory);
+  if (safeInventory.length === 0 && options.allowEmpty !== true) return false;
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     try { window.localStorage.setItem(HOUSE_STORAGE_DIRTY_KEY, '1'); } catch { /* Cache indisponível. */ }
     return false;
