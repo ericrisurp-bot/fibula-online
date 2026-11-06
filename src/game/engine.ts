@@ -1997,6 +1997,7 @@ export class GameEngine {
       const y = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
       if (!this.validCottonPosition(x, y, size, 0)) continue;
       const isShore = distanceToLakeEdge(this.state.lake, x, y) <= CONFIG.lake.shoreBand;
+      if (isShore && shoreCount >= shoreQuota) continue;
       if (this.isVegetablePositionTooClose(x, y, size, isShore)) continue;
       position = { x, y };
     }
