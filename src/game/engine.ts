@@ -1985,19 +1985,54 @@ export class GameEngine {
       : roll < weights.small + weights.medium ? 'medium' : 'large';
     const kinds: VegetableKind[] = ['tomato', 'cabbage', 'herbs'];
     const kind = kinds[Math.floor(this.random() * kinds.length)];
+    const shoreQuota = CONFIG.lake.shoreVegetationPerKind[this.state.lake.size];
+    const shoreCount = this.state.vegetablePlants.filter(plant => plant.kind === kind && this.isShoreVegetable(plant)).length;
     let position: Vec | null = null;
+    if (shoreCount < shoreQuota && this.random() < CONFIG.lake.shoreAttractChance) {
+      position = this.trySpawnShoreVegetable(size);
+    }
     for (let attempt = 0; attempt < 600 && !position; attempt++) {
       const margin = CONFIG.map.wall + 80;
       const x = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
       const y = this.world / 2 + (this.random() + this.random() - 1) * (this.world / 2 - margin);
       if (!this.validCottonPosition(x, y, size, 0)) continue;
-      const radius = size === 'small' ? 12 : size === 'medium' ? 18 : 24;
-      if (this.state.vegetablePlants.some(plant => Math.hypot(x - plant.x, y - plant.y) < radius + (plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24) + CONFIG.vegetables.minSpacing)) continue;
+      const isShore = distanceToLakeEdge(this.state.lake, x, y) <= CONFIG.lake.shoreBand;
+      if (this.isVegetablePositionTooClose(x, y, size, isShore)) continue;
       position = { x, y };
     }
     if (!position) return false;
     this.state.vegetablePlants.push({ id: this.nextId++, ...position, kind, size, hits: CONFIG.vegetables.hitsToBreak[size], rarity: this.vegetableRarity() });
     return true;
+  }
+
+  private isShoreVegetable(plant: VegetablePlant) {
+    return distanceToLakeEdge(this.state.lake, plant.x, plant.y) <= CONFIG.lake.shoreBand;
+  }
+
+  private isVegetablePositionTooClose(x: number, y: number, size: VegetablePlant['size'], isShore: boolean) {
+    const radius = size === 'small' ? 12 : size === 'medium' ? 18 : 24;
+    return this.state.vegetablePlants.some(plant => {
+      if (this.isShoreVegetable(plant) !== isShore) return false;
+      const otherRadius = this.vegetableFootprintRadius(plant);
+      const spacing = isShore ? CONFIG.lake.shoreSpacing : CONFIG.vegetables.minSpacing;
+      return Math.hypot(x - plant.x, y - plant.y) < radius + otherRadius + spacing;
+    });
+  }
+
+  private trySpawnShoreVegetable(size: VegetablePlant['size']): Vec | null {
+    const radius = size === 'small' ? 12 : size === 'medium' ? 18 : 24;
+    const minGap = radius + CONFIG.lake.shoreMinGap;
+    for (let attempt = 0; attempt < CONFIG.lake.shoreAttempts; attempt++) {
+      const angle = this.random() * Math.PI * 2;
+      const gap = minGap + this.random() * (CONFIG.lake.shoreMaxGap - minGap);
+      const x = this.state.lake.x + Math.cos(angle) * (this.state.lake.rx + gap);
+      const y = this.state.lake.y + Math.sin(angle) * (this.state.lake.ry + gap);
+      if (!this.validCottonPosition(x, y, size, 0)) continue;
+      if (distanceToLakeEdge(this.state.lake, x, y) > CONFIG.lake.shoreBand) continue;
+      if (this.isVegetablePositionTooClose(x, y, size, true)) continue;
+      return { x, y };
+    }
+    return null;
   }
   private hitVegetable(id: number) {
     const plant = this.state.vegetablePlants.find(value => value.id === id);
