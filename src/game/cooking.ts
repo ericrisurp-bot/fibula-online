@@ -16,12 +16,7 @@ export type ActiveCookingMeal = CookingMeal & { remainingSeconds: number };
 
 export const COOKING_PRODUCTION_MS = 30 * 60 * 1000;
 
-type CookingRpcClient = {
-  rpc(name: string, args?: Record<string, unknown>): Promise<{
-    data: unknown;
-    error: { message?: string } | null;
-  }>;
-};
+type CookingRpcClient = unknown;
 export type CookingServerState = {
   now_ms: number;
   prepared: CookingMeal[];
@@ -91,7 +86,8 @@ function readCookingState(data: unknown): CookingServerState {
   };
 }
 async function callCookingRpc(client: CookingRpcClient, name: string, args?: Record<string, unknown>): Promise<unknown> {
-  const { data, error } = await client.rpc(name, args);
+  const rpcClient = client as { rpc: (rpcName: string, rpcArgs?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message?: string } | null }> };
+  const { data, error } = await rpcClient.rpc(name, args);
   if (error) throw new Error(error.message || 'O servidor recusou a operação de cozinha.');
   return data;
 }
