@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
+import { coreFromItemId, coreRarityLabel } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
@@ -55,7 +56,7 @@ const initial: GameSnapshot = {
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const cookingRarityLabel = (rarity: CookingMeal['rarity']) => ({
   normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
@@ -228,9 +229,10 @@ function ProfileClassStats({ classId, accountLevel }: { classId: ClassId; accoun
   </div>;
 }
 
-const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
+const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'core' ? '💎' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
 const inventoryItemIcon = (itemId: string) => {
   const base = getBaseItemId(itemId);
+  if (base === 'core') return <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>💎</span>;
   const fishFile: Record<string, string> = {
     tilapia: 'fish-tilapia.png', tambaqui: 'fish-tambaqui.png',
     pintado_surubim: 'fish-pintado-surubim.png', lambari: 'fish-lambari.png',
@@ -317,6 +319,11 @@ const cookingMealArtwork = (meal: CookingMeal) => {
 };
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
+  if (base === 'core') {
+    const core = coreFromItemId(itemId);
+    const category = core?.category === 'weapon' ? 'de arma' : core?.category === 'armor' ? 'de armadura' : core?.category === 'accessory' ? 'de acessório' : '';
+    return core ? `Núcleo ${category} · ${coreRarityLabel(core.rarity)}` : 'Núcleo';
+  }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
@@ -1392,6 +1399,15 @@ export default function App() {
           ctx.font = '21px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(itemIcon(drop.kind), 0, 0);
           if (drop.amount > 1) { ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), 0, -12); }
+          ctx.restore();
+        }});
+      }
+      for (const drop of s.coreDrops) {
+        worldDrawables.push({ depth: drop.y + 7, draw: () => {
+          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 20, drop.core.rarity === 'normal' ? undefined : drop.core.rarity);
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.font = '24px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('💎', 0, 0);
           ctx.restore();
         }});
       }
