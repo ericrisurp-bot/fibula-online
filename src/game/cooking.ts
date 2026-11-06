@@ -137,7 +137,6 @@ export function getPanMealError(ingredients: Array<{ itemId: string; quantity: n
 
 export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number }>): CookingMeal | null {
   if (getPanMealError(ingredients) !== null) return null;
-  const totalUnits = ingredients.reduce((sum, item) => sum + item.quantity, 0);
   const rarity = getCookingRarity(ingredients[0].itemId);
   const bonusIngredients = ingredients.filter(item => getBaseItemId(item.itemId) !== 'herbs');
   const divisor = bonusIngredients.length;
