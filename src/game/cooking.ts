@@ -226,20 +226,3 @@ export function consumeCookingIngredients(inventory: InventoryStack[], meal: Coo
 }
 export const COOKING_DURATION_SECONDS = QUICK_MEAL_SECONDS;
 export const COOKING_RARITY_TIER = RARITY_INDEX;
-
-export function describeCookingMeal(meal: CookingMeal): string {
-  const format = (value: number) => Number.isInteger(value) ? String(value) : value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
-  const effects: string[] = [];
-  const addEffect = (label: string, value: number | undefined, suffix = '') => {
-    if (value !== undefined && value !== 0) effects.push(label + ' +' + format(value) + suffix);
-  };
-  addEffect('Cura', meal.effects.healingPerSecond, '/s');
-  addEffect('Força', meal.effects.forca);
-  addEffect('Destreza', meal.effects.destreza);
-  addEffect('Inteligência', meal.effects.inteligencia);
-  addEffect('Vel. de ataque', meal.effects.velocidadeAtaque);
-  addEffect('Vel. de movimento', meal.effects.velocidadeMovimento);
-  effects.push(Math.round((meal.durationSeconds ?? COOKING_DURATION_SECONDS) / 60) + ' min');
-  if (meal.herbExtended) effects[effects.length - 1] += ' ✦';
-  return effects.join(' · ');
-}
