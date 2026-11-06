@@ -696,10 +696,16 @@ export default function App() {
   const [panCookingSelections, setPanCookingSelections] = useState<Array<{ itemId: string; quantity: number }>>([]);
   const [cookingFeedback, setCookingFeedback] = useState('');
   const [cookingClock, setCookingClock] = useState(() => Date.now());
+  const [selectedAnvilCoreId, setSelectedAnvilCoreId] = useState<string | null>(null);
+  const [selectedAnvilPrimary, setSelectedAnvilPrimary] = useState<{ itemId: string; quantity: number } | null>(null);
+  const [selectedAnvilSecondary, setSelectedAnvilSecondary] = useState<{ itemId: string; quantity: number } | null>(null);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
+  const anvilCoreStacks: HouseStorageStack[] = []; // O inventário ainda não possui itens de núcleo definidos.
+  const anvilPrimaryStacks = lobbyChestItems.filter(item => ['stone', 'bronze'].includes(getBaseItemId(item.itemId)));
+  const anvilSecondaryStacks = lobbyChestItems.filter(item => ['wood', 'wolf_hide', 'linen', 'cotton'].includes(getBaseItemId(item.itemId)));
   useEffect(() => {
     window.localStorage.removeItem('fibula-prepared-meals');
     window.localStorage.removeItem('fibula-ready-meals');
@@ -1772,6 +1778,23 @@ export default function App() {
     engineRef.current?.setHouseInventory(nextInventory);
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
   };
+  const addAnvilMaterialUnit = (itemId: string, slot: 'primary' | 'secondary') => {
+    const source = lobbyChestItems.find(item => item.itemId === itemId);
+    if (!source) return;
+    const current = slot === 'primary' ? selectedAnvilPrimary : selectedAnvilSecondary;
+    const limit = slot === 'primary' ? 10 : 5;
+    if ((current && current.itemId !== itemId) || (current?.quantity ?? 0) >= Math.min(limit, source.quantity)) return;
+    const next = current ? { ...current, quantity: current.quantity + 1 } : { itemId, quantity: 1 };
+    if (slot === 'primary') setSelectedAnvilPrimary(next);
+    else setSelectedAnvilSecondary(next);
+  };
+  const removeAnvilMaterialUnit = (slot: 'primary' | 'secondary') => {
+    const current = slot === 'primary' ? selectedAnvilPrimary : selectedAnvilSecondary;
+    if (!current) return;
+    const next = current.quantity > 1 ? { ...current, quantity: current.quantity - 1 } : null;
+    if (slot === 'primary') setSelectedAnvilPrimary(next);
+    else setSelectedAnvilSecondary(next);
+  };
   const addCookingIngredientUnit = (itemId: string) => {
     const stack = cookingIngredientStacks.find(item => item.itemId === itemId);
     if (!stack) return;
@@ -2419,7 +2442,7 @@ export default function App() {
             type="button"
             aria-label={`Abrir estação: ${station.title}`}
             title={station.title}
-            onClick={() => { setCraftingStationId(station.id); if (!cookingOnline) setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
+            onClick={() => { setCraftingStationId(station.id); if (station.id === 'bigorna') { setSelectedAnvilCoreId(null); setSelectedAnvilPrimary(null); setSelectedAnvilSecondary(null); } if (!cookingOnline && station.id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
           >
             <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
             <span>{station.label}</span>
@@ -2434,7 +2457,71 @@ export default function App() {
             <div className="lobby-crafting-content">
               <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
               {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
-              {activeCraftingStation.id === 'fogao' ? <>
+              {activeCraftingStation.id === 'bigorna' ? <>
+                <div className="anvil-station-form">
+                  <section className="anvil-core-panel">
+                    <div className="anvil-section-heading"><strong>① NÚCLEO</strong><span>Escolha o núcleo que define o equipamento</span></div>
+                    <div className={selectedAnvilCoreId ? 'anvil-core-slot filled' : 'anvil-core-slot'}>
+                      {selectedAnvilCoreId
+                        ? <><span>💠</span><strong>{itemLabel(selectedAnvilCoreId)}</strong><b>×1</b><button type="button" onClick={() => setSelectedAnvilCoreId(null)}>Remover</button></>
+                        : <><span>＋</span><strong>Coloque o núcleo aqui</strong><small>Espaço exclusivo do núcleo</small></>}
+                    </div>
+                    <div className="anvil-material-grid" aria-label="Núcleos disponíveis no Baú">
+                      {anvilCoreStacks.map(item => <button type="button" key={item.itemId}
+                        className={selectedAnvilCoreId === item.itemId ? 'anvil-material-option selected' : 'anvil-material-option'}
+                        disabled={item.quantity < 1 || (!!selectedAnvilCoreId && selectedAnvilCoreId !== item.itemId)}
+                        onClick={() => setSelectedAnvilCoreId(item.itemId)}>
+                        <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                      </button>)}
+                      {anvilCoreStacks.length === 0 && <p className="anvil-empty-inventory">Nenhum núcleo disponível no Baú.</p>}
+                    </div>
+                  </section>
+                  <section className="anvil-materials-panel">
+                    <div className="anvil-section-heading"><strong>② MATERIAIS</strong><span>Selecione cada unidade; os espaços são independentes do núcleo</span></div>
+                    <div className="anvil-material-slot-group">
+                      <div className="anvil-material-slot-heading"><strong>Material principal</strong><b>{selectedAnvilPrimary?.quantity ?? 0}/10</b></div>
+                      <div className={selectedAnvilPrimary ? 'anvil-material-slot filled' : 'anvil-material-slot'}>
+                        {selectedAnvilPrimary
+                          ? <><span>{inventoryItemIcon(selectedAnvilPrimary.itemId)}</span><strong>{itemLabel(selectedAnvilPrimary.itemId)}</strong><b>×{selectedAnvilPrimary.quantity}</b><button type="button" onClick={() => removeAnvilMaterialUnit('primary')}>−</button><button type="button" onClick={() => setSelectedAnvilPrimary(null)}>Trocar</button></>
+                          : <><span>＋</span><small>Escolha 10 unidades</small></>}
+                      </div>
+                      <div className="anvil-material-grid" aria-label="Materiais principais disponíveis no Baú">
+                        {anvilPrimaryStacks.map(item => <button type="button" key={item.itemId}
+                          className={selectedAnvilPrimary?.itemId === item.itemId ? 'anvil-material-option selected' : 'anvil-material-option'}
+                          disabled={!!selectedAnvilPrimary && selectedAnvilPrimary.itemId !== item.itemId || (selectedAnvilPrimary?.quantity ?? 0) >= Math.min(10, item.quantity)}
+                          onClick={() => addAnvilMaterialUnit(item.itemId, 'primary')}>
+                          <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>Baú ×{item.quantity}</b>
+                          {selectedAnvilPrimary?.itemId === item.itemId && <em>Selecionado ×{selectedAnvilPrimary.quantity}</em>}
+                        </button>)}
+                        {anvilPrimaryStacks.length === 0 && <p className="anvil-empty-inventory">Sem pedra ou bronze no Baú.</p>}
+                      </div>
+                    </div>
+                    <div className="anvil-material-slot-group">
+                      <div className="anvil-material-slot-heading"><strong>Material secundário</strong><b>{selectedAnvilSecondary?.quantity ?? 0}/5</b></div>
+                      <div className={selectedAnvilSecondary ? 'anvil-material-slot filled' : 'anvil-material-slot'}>
+                        {selectedAnvilSecondary
+                          ? <><span>{inventoryItemIcon(selectedAnvilSecondary.itemId)}</span><strong>{itemLabel(selectedAnvilSecondary.itemId)}</strong><b>×{selectedAnvilSecondary.quantity}</b><button type="button" onClick={() => removeAnvilMaterialUnit('secondary')}>−</button><button type="button" onClick={() => setSelectedAnvilSecondary(null)}>Trocar</button></>
+                          : <><span>＋</span><small>Escolha 5 unidades</small></>}
+                      </div>
+                      <div className="anvil-material-grid" aria-label="Materiais secundários disponíveis no Baú">
+                        {anvilSecondaryStacks.map(item => <button type="button" key={item.itemId}
+                          className={selectedAnvilSecondary?.itemId === item.itemId ? 'anvil-material-option selected' : 'anvil-material-option'}
+                          disabled={!!selectedAnvilSecondary && selectedAnvilSecondary.itemId !== item.itemId || (selectedAnvilSecondary?.quantity ?? 0) >= Math.min(5, item.quantity)}
+                          onClick={() => addAnvilMaterialUnit(item.itemId, 'secondary')}>
+                          <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>Baú ×{item.quantity}</b>
+                          {selectedAnvilSecondary?.itemId === item.itemId && <em>Selecionado ×{selectedAnvilSecondary.quantity}</em>}
+                        </button>)}
+                        {anvilSecondaryStacks.length === 0 && <p className="anvil-empty-inventory">Sem madeira, couro, linho ou algodão no Baú.</p>}
+                      </div>
+                    </div>
+                  </section>
+                  <div className="anvil-craft-footer">
+                    <p>O núcleo define o equipamento. Os materiais compõem a estrutura: 10 unidades principais e 5 secundárias.</p>
+                    <button type="button" disabled>Fabricar equipamento</button>
+                    <small>A fabricação será habilitada quando os núcleos e a integração do equipamento estiverem disponíveis.</small>
+                  </div>
+                </div>
+              </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form">
                   <div className="cooking-production-panel">
                     <div className="cooking-pot-heading"><strong>🥘 Produção</strong><span>{preparedCookingMeals.length}/3</span></div>

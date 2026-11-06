@@ -4669,3 +4669,68 @@ button, button * {
 .cooking-production-icon .cooking-meal-artwork>svg{width:38px;height:34px}
 .cooking-production-icon .cooking-meal-ingredient{width:20px;height:20px}
 .cooking-production-icon .cooking-meal-ingredient>svg,.cooking-production-icon .cooking-meal-ingredient>img{width:20px!important;height:20px!important}
+
+
+/* Bigorna: núcleo separado e seleção unitária dos dois grupos de materiais. */
+.anvil-station-form { display:flex; flex-direction:column; gap:14px; width:100%; }
+.anvil-core-panel,.anvil-materials-panel {
+  padding:13px; border:1px solid #626a62; border-radius:13px;
+  background:linear-gradient(145deg,rgba(55,60,55,.96),rgba(29,32,29,.98));
+  box-shadow:inset 0 0 24px rgba(0,0,0,.28);
+}
+.anvil-section-heading,.anvil-material-slot-heading {
+  display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px;
+  color:#edf0eb; font-size:11px;
+}
+.anvil-section-heading span { color:#aeb6ad; font-size:10px; text-align:right; }
+.anvil-core-slot,.anvil-material-slot {
+  display:flex; min-height:76px; align-items:center; justify-content:center; gap:9px;
+  padding:10px; border:1px dashed #858d84; border-radius:10px;
+  background:rgba(14,17,14,.7); color:#d9ded7; text-align:center;
+}
+.anvil-core-slot { min-height:94px; flex-direction:column; }
+.anvil-core-slot > span { font-size:30px; line-height:1; }
+.anvil-core-slot > strong,.anvil-material-slot > strong { color:#f1f3ef; font-size:12px; }
+.anvil-core-slot > small,.anvil-material-slot > small { color:#aeb6ad; font-size:10px; }
+.anvil-core-slot > b,.anvil-material-slot > b { color:#f2f4f0; font-size:12px; }
+.anvil-core-slot > button,.anvil-material-slot > button {
+  min-height:27px; padding:4px 9px; border:1px solid #727b71; border-radius:7px;
+  background:#3c433c; color:#edf0eb; font-size:10px; font-weight:700;
+}
+.anvil-core-slot.filled,.anvil-material-slot.filled { border-style:solid; border-color:#9ba59a; background:rgba(67,74,66,.8); }
+.anvil-material-slot-group { margin-top:12px; }
+.anvil-material-slot-heading { margin:0 1px 7px; }
+.anvil-material-slot-heading b { color:#f0f2ed; font-variant-numeric:tabular-nums; }
+.anvil-material-slot { min-height:58px; justify-content:flex-start; }
+.anvil-material-slot > span { display:grid; width:34px; height:34px; place-items:center; font-size:27px; }
+.anvil-material-slot > strong { flex:1; text-align:left; }
+.anvil-material-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(76px,1fr)); gap:7px;
+  margin-top:8px; max-height:190px; overflow-y:auto; overscroll-behavior:contain; align-content:start;
+}
+.anvil-material-option {
+  position:relative; display:flex; min-width:0; min-height:82px; flex-direction:column;
+  align-items:center; justify-content:center; gap:4px; padding:7px 4px;
+  border:1px solid #596159; border-radius:9px; background:#303630; color:#e9ede7;
+}
+.anvil-material-option > span { display:grid; min-height:30px; place-items:center; font-size:27px; }
+.anvil-material-option > small { max-width:100%; overflow-wrap:anywhere; font-size:10px; text-align:center; }
+.anvil-material-option > b { color:#d4dbd2; font-size:10px; }
+.anvil-material-option > em { color:#fff; font-size:9px; font-style:normal; }
+.anvil-material-option.selected { border-color:#c3cbc0; background:#485048; }
+.anvil-material-option:disabled { opacity:.4; }
+.anvil-empty-inventory { grid-column:1/-1; margin:5px 0; color:#aeb6ad; font-size:11px; text-align:center; }
+.anvil-craft-footer { display:flex; flex-direction:column; align-items:stretch; gap:7px; padding:0 3px 4px; }
+.anvil-craft-footer p,.anvil-craft-footer small { margin:0; color:#b8c0b6; font-size:10px; line-height:1.45; text-align:center; }
+.anvil-craft-footer > button {
+  min-height:42px; border:1px solid #656d64; border-radius:9px; background:#343a34;
+  color:#aeb6ad; font-size:12px; font-weight:800;
+}
+.anvil-craft-footer > button:disabled { opacity:.55; cursor:not-allowed; }
+@media(max-width:520px) {
+  .anvil-core-panel,.anvil-materials-panel { padding:10px; }
+  .anvil-section-heading { align-items:flex-start; }
+  .anvil-section-heading span { max-width:48%; }
+  .anvil-material-grid { grid-template-columns:repeat(auto-fill,minmax(68px,1fr)); }
+  .anvil-material-slot { gap:6px; padding:8px 6px; }
+}
