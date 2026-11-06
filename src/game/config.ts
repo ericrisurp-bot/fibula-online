@@ -30,7 +30,7 @@ export const CONFIG = {
     shoreVegetationPerKind: { small: 1, medium: 2, large: 3 },
     shoreBand: 150, shoreAttractChance: 0.65, shoreMinGap: 28, shoreMaxGap: 130,
     shoreSpacing: 80, shoreAttempts: 200,
-    fishingRange: 58, fishingInterval: 8.5, fishingVisibleDuration: 7,
+    fishingRange: 58, fishingInterval: 8.5, fishingVisibleDuration: 7, fishDropLifetime: 60,
     fishByLakeSize: {
       small: [
         { itemId: 'tilapia', chancePercent: 10 },
