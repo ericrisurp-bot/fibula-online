@@ -120,6 +120,19 @@ export async function takePendingCookingMeals(client: CookingRpcClient): Promise
   }
   return { now_ms: readCookingClock(payload), meals: meals as CookingMeal[] };
 }
+export function getCookingRarity(itemId: string): ItemRarity | 'normal' {
+  const base = getBaseItemId(itemId);
+  if (FISH_ITEMS.includes(base)) return FISH_RARITY[base] ?? 'normal';
+  return getItemRarity(itemId) ?? 'normal';
+}
+export function isCookingIngredient(itemId: string): boolean {
+  const base = getBaseItemId(itemId);
+  return base === 'tomato' || base === 'cabbage' || base === 'herbs'
+    || MEAT_ITEMS.includes(base) || base === 'chicken_meat' || FISH_ITEMS.includes(base);
+}
+export function getCookingCapacity(varietyCount: number): number {
+  return Math.max(0, Math.min(4, varietyCount)) * 10;
+}
 export function getCookingIngredientStacks(inventory: InventoryStack[]): InventoryStack[] {
   return inventory.filter(stack => isCookingIngredient(stack.itemId) && stack.quantity > 0);
 }
