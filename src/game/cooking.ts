@@ -131,26 +131,36 @@ export function getQuickRecipe(itemId: string, quantity: number): CookingMeal | 
   };
 }
 export function getPanMealError(ingredients: Array<{ itemId: string; quantity: number }>): string | null {
-  if (ingredients.length < 1 || ingredients.length > 4
-    || ingredients.some(item => !isCookingIngredient(item.itemId) || !Number.isSafeInteger(item.quantity) || item.quantity <= 0)) {
-    return 'Escolha de 1 a 4 ingredientes.';
+  if (ingredients.length > 4) return 'A receita aceita no máximo 4 ingredientes diferentes.';
+  if (ingredients.length === 0) return 'Escolha pelo menos um ingrediente principal.';
+  if (ingredients.some(item => !isCookingIngredient(item.itemId)
+    || !Number.isSafeInteger(item.quantity) || item.quantity <= 0)) {
+    return 'Confira os ingredientes e suas quantidades.';
   }
+
   const bases = ingredients.map(item => getBaseItemId(item.itemId));
+  const principalIngredients = ingredients.filter(item => getBaseItemId(item.itemId) !== 'herbs');
+  if (principalIngredients.length === 0) return 'Só ervas não formam uma receita. Adicione um ingrediente principal.';
+
   const varietyCount = new Set(bases).size;
   if (varietyCount !== ingredients.length) {
-    return 'Use no máximo uma unidade de cada tipo de ingrediente por espaço.';
+    return 'Use apenas uma entrada de cada tipo de ingrediente na receita.';
   }
+
   const totalUnits = ingredients.reduce((sum, item) => sum + item.quantity, 0);
+  if (totalUnits > 40) return 'A receita aceita no máximo 40 unidades.';
   if (totalUnits < 10) return 'Use pelo menos 10 unidades no total.';
-  const capacity = getCookingCapacity(varietyCount);
-  if (totalUnits > capacity) return 'Esta receita aceita no máximo ' + capacity + ' unidades.';
-  if (bases.every(base => base === 'herbs')) return 'Só ervas não faz uma receita.';
+
   const fishTypes = new Set(bases.filter(base => FISH_ITEMS.includes(base)));
-  if (fishTypes.size > 1) return 'Dois tipos de peixe não podem ser combinados.';
-  const rarity = getCookingRarity(ingredients[0].itemId);
-  if (ingredients.some(item => getCookingRarity(item.itemId) !== rarity)) {
-    return 'Não misture raridades diferentes. Cada peixe tem a sua raridade.';
+  if (fishTypes.size > 1) return 'Duas espécies diferentes de peixe não podem ser misturadas na mesma receita.';
+
+  const rarity = getCookingRarity(principalIngredients[0].itemId);
+  if (principalIngredients.some(item => getCookingRarity(item.itemId) !== rarity)) {
+    return 'Todos os ingredientes principais precisam ter a mesma raridade.';
   }
+
+  const capacity = getCookingCapacity(varietyCount);
+  if (totalUnits > capacity) return 'Com esses ingredientes, a receita aceita no máximo ' + capacity + ' unidades.';
   return null;
 }
 
