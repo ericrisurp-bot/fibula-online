@@ -47,8 +47,8 @@ type StoneDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
 type CottonDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
 type LinenDrop = Vec & { id: number; age: number };
 type BronzeDrop = Vec & { id: number; age: number };
-type WildlifeDropKind = 'wolf_meat' | 'wolf_hide' | 'chicken_meat' | 'feather';
-type WildlifeDrop = Vec & { id: number; kind: WildlifeDropKind; amount: number; age: number; rarity?: ResourceRarity };
+type WildlifeDropKind = 'wolf_meat' | 'wolf_hide' | 'chicken_meat' | 'feather' | 'tilapia' | 'tambaqui' | 'pintado_surubim' | 'lambari' | 'tucunare';
+type WildlifeDrop = Vec & { id: number; kind: WildlifeDropKind; amount: number; age: number; lifetime?: number; rarity?: ResourceRarity };
 type JabuticabaTree = Vec & { id: number; hits: number };
 type JabuticabaDrop = Vec & { id: number; age: number };
 type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | VegetableDrop | LinenDrop | BronzeDrop | WildlifeDrop | JabuticabaDrop;
@@ -1210,7 +1210,7 @@ export class GameEngine {
     const feet = playerFeet(this.state.player);
     const edgeDistance = distanceToLakeEdge(this.state.lake, feet.x, feet.y);
     const nearShore = edgeDistance >= -12 && edgeDistance <= CONFIG.lake.fishingRange;
-    const threatened = this.state.enemies.some(enemy => !enemy.animalKind && Math.hypot(enemy.x - this.state.player.x, enemy.y - this.state.player.y) <= CONFIG.weapons[this.state.weapon].range);
+    const threatened = this.state.enemies.some(enemy => (!enemy.animalKind || enemy.animalKind === 'wolf') && Math.hypot(enemy.x - this.state.player.x, enemy.y - this.state.player.y) <= CONFIG.weapons[this.state.weapon].range);
     const canFish = nearShore && !this.state.player.moving && !this.state.cart.carried && !threatened;
     if (!canFish) {
       this.fishingTimer = 0;
@@ -1241,6 +1241,9 @@ export class GameEngine {
         if (result.added > 0) {
           this.state.inventory = result.inventory;
           this.addFloatingLabel(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, '+1', '#d7b66e');
+        } else {
+          this.state.wildlifeDrops.push({ id: this.nextId++, kind: caughtFish.itemId as WildlifeDropKind, amount: 1, x: feet.x + (this.random() - 0.5) * 16, y: feet.y + (this.random() - 0.5) * 16, age: 0, lifetime: CONFIG.lake.fishDropLifetime });
+          this.addFloatingLabel(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, 'Mochila cheia', '#ff4545');
         }
       }
     }
@@ -2152,7 +2155,7 @@ export class GameEngine {
     this.state.vegetableDrops = this.state.vegetableDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
     this.state.linenDrops = this.state.linenDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
     this.state.bronzeDrops = this.state.bronzeDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
-    this.state.wildlifeDrops = this.state.wildlifeDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
+    this.state.wildlifeDrops = this.state.wildlifeDrops.filter(drop => drop.age < (drop.lifetime ?? MATERIAL_DROP_LIFETIME));
     this.state.jabuticabaDrops = this.state.jabuticabaDrops.filter(drop => drop.age < MATERIAL_DROP_LIFETIME);
   }
 
