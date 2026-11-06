@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { COOKING_PRODUCTION_MS, consumeCookingIngredients, describeCookingMeal, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, readPendingMeals, readPreparedMeals, readReadyMeals, writePendingMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
+import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, readPendingMeals, readPreparedMeals, readReadyMeals, writePendingMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -2496,7 +2496,6 @@ export default function App() {
                   const slotOccupied = pendingCookingMeals.some(item => item.slot === meal.slot);
                   return <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
                     <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                    <small className="cooking-meal-description">{describeCookingMeal(meal)}</small>
                     <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                     <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                     <button type="button" className="cooking-meal-action" disabled={slotOccupied}
@@ -2514,7 +2513,6 @@ export default function App() {
                       <b>{slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                       {meal ? <>
                         <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                        <small className="cooking-meal-description">{describeCookingMeal(meal)}</small>
                         <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                         <button type="button" className="cooking-meal-action secondary" onClick={() => returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
                       </> : <small className="cooking-pending-empty">Vazio</small>}
@@ -2755,7 +2753,6 @@ export default function App() {
                   onClick={(event) => { event.stopPropagation(); consumeReadyCookingMeal(meal); }}
                   title={!houseAccessible ? 'Aproxime-se da casa para consumir' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
                   <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                  <small className="cooking-meal-description">{describeCookingMeal(meal)}</small>
                   <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b><b>Consumir</b>
                 </button>;
