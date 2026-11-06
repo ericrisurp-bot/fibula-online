@@ -35,6 +35,12 @@ export type CoreDrop = {
 
 export const CORE_DROP_CHANCE = 0.12;
 
+export const CORE_CATEGORY_CHANCES: ReadonlyArray<{ category: CoreCategory; chance: number }> = [
+  { category: 'weapon', chance: 1 / 3 },
+  { category: 'armor', chance: 1 / 3 },
+  { category: 'accessory', chance: 1 / 3 },
+];
+
 export const CORE_RARITY_CHANCES: ReadonlyArray<{ rarity: CoreRarity; chance: number }> = [
   { rarity: 'normal', chance: 50 },
   { rarity: 'common', chance: 25 },
@@ -63,9 +69,11 @@ const ACCESSORY_ATTRIBUTES: CoreAttributeKey[] = [
 
 export function createCore(random: () => number, id: string): Core {
   const categoryRoll = random();
-  const category: CoreCategory = categoryRoll < 1 / 3
-    ? 'weapon'
-    : categoryRoll < 2 / 3 ? 'armor' : 'accessory';
+  let cumulativeCategoryChance = 0;
+  const category = CORE_CATEGORY_CHANCES.find(entry => {
+    cumulativeCategoryChance += entry.chance;
+    return categoryRoll < cumulativeCategoryChance;
+  })?.category ?? 'accessory';
 
   const rarityRoll = random() * 100;
   let cumulativeChance = 0;
