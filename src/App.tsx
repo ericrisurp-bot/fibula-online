@@ -684,6 +684,11 @@ export default function App() {
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   useEffect(() => {
+    window.localStorage.removeItem('fibula-prepared-meals');
+    window.localStorage.removeItem('fibula-ready-meals');
+    window.localStorage.removeItem('fibula-pending-meals');
+  }, []);
+  useEffect(() => {
     const updateOnline = () => setCookingOnline(navigator.onLine);
     window.addEventListener('online', updateOnline);
     window.addEventListener('offline', updateOnline);
