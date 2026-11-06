@@ -2946,8 +2946,9 @@ export class GameEngine {
     this.state.dyingEnemies.push({ ...e, deathAge: 0 });
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
     if (this.random() < CORE_DROP_CHANCE) {
-      const coreId = globalThis.crypto?.randomUUID?.()
-        ?? `core-${this.seed.toString(36)}-${this.randomState.toString(36)}-${this.nextId}`;
+      const coreId = this.headless
+        ? `core-${this.seed.toString(36)}-${this.randomState.toString(36)}-${this.nextId}`
+        : globalThis.crypto?.randomUUID?.() ?? `core-${Date.now().toString(36)}-${this.nextId}`;
       const core = createCore(() => this.random(), coreId);
       this.state.coreDrops.push({ id: this.nextId++, x: e.x, y: e.y, age: 0, core });
     }
