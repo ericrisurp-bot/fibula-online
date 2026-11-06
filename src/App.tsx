@@ -1779,8 +1779,10 @@ export default function App() {
     setPreparedCookingMeals(result.prepared);
     setReadyCookingMeals(result.ready);
     setPendingCookingMeals(result.pending);
-    setCookingClockOffset(result.now_ms - Date.now());
-    setCookingClock(Date.now() + (result.now_ms - Date.now()));
+    const receivedAt = Date.now();
+    const offset = result.now_ms - receivedAt;
+    setCookingClockOffset(offset);
+    setCookingClock(receivedAt + offset);
   };
   const requireCookingConnection = () => {
     if (!cookingOnline || !fibulaSupabase) {
@@ -1888,8 +1890,10 @@ export default function App() {
     }
     try {
       const result = await takePendingCookingMeals(fibulaSupabase);
-      setCookingClockOffset(result.now_ms - Date.now());
-      setCookingClock(Date.now() + (result.now_ms - Date.now()));
+      const receivedAt = Date.now();
+      const offset = result.now_ms - receivedAt;
+      setCookingClockOffset(offset);
+      setCookingClock(receivedAt + offset);
       engine.activateStartingMeals(result.meals);
       setPendingCookingMeals([]);
     } catch (cause) {
@@ -2809,6 +2813,7 @@ export default function App() {
             </button>)}
           </div> : <p className="house-storage-empty">A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.</p>
             : <div className="house-meals-grid">
+              {!cookingOnline && <p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
               {readyCookingMeals.length ? readyCookingMeals.map(meal => {
                 const slotOccupied = state.activeMeals.some(active => active.slot === meal.slot);
                 return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || !cookingOnline || slotOccupied}
