@@ -2268,6 +2268,10 @@ button, button * {
   color:#a78a97;
 }
 .lobby-chest-slot.filled{border-color:#eab8cd;background:linear-gradient(145deg,#fff,#fff0f6);color:#573344}
+.lobby-chest-slot-consumable{cursor:pointer;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease,opacity .15s ease}
+.lobby-chest-slot-consumable:hover,.lobby-chest-slot-consumable:focus-visible{border-color:#b8a6c9;background:linear-gradient(145deg,#f8f4fb,#eee6f5);box-shadow:0 0 0 2px rgba(184,166,201,.22);outline:none}
+.lobby-chest-slot-consumable[aria-disabled="true"]{cursor:wait;opacity:.45}
+.lobby-chest-slot-consumable[aria-disabled="true"]:hover{border-color:#eab8cd;background:linear-gradient(145deg,#fff,#fff0f6);box-shadow:none}
 .lobby-chest-slot>span:first-child{display:grid;place-items:center;min-height:24px;font-size:22px}
 .lobby-chest-slot>span:first-child svg{width:23px;height:23px}
 .lobby-chest-slot small{max-width:100%;overflow:hidden;padding:0 2px;color:#9b6b80;font-size:clamp(6px,.85vw,9px);font-weight:800;text-overflow:ellipsis;white-space:nowrap}

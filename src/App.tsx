@@ -2550,13 +2550,35 @@ export default function App() {
               <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
             </nav>
             {chestTab === 'resources' ? <>
-              {lobbyChestItems.some(item => item.itemId === 'jabuticaba' && item.quantity > 0) && <button type="button" className="lobby-chest-send-button" style={{ margin: '8px 14px 0', width: 'calc(100% - 28px)' }} disabled={!chestCloudReady || jabuticabaBusy} onClick={() => void consumeJabuticaba()}>{jabuticabaBusy ? 'Usando…' : 'Consumir 1 jabuticaba'}</button>}
               {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
               <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
-                {lobbyChestItems.map(item => <div key={item.itemId} className="quick-slot filled lobby-chest-slot" aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}>
-                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
-                </div>)}
+                {lobbyChestItems.map(item => {
+                  const isJabuticaba = item.itemId === 'jabuticaba';
+                  const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
+                  const consumeJabuticabaFromSlot = () => {
+                    if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba();
+                  };
+                  return <div key={item.itemId}
+                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
+                    aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}
+                    role={isJabuticaba ? 'button' : undefined}
+                    tabIndex={isJabuticaba ? 0 : undefined}
+                    aria-disabled={isJabuticaba ? jabuticabaDisabled : undefined}
+                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : undefined}
+                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : undefined}
+                    onKeyDown={isJabuticaba ? event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        consumeJabuticabaFromSlot();
+                      }
+                    } : undefined}>
+                    <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                    {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
+                      event.stopPropagation();
+                      setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
+                    }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
+                  </div>;
+                })}
               </div>
             </> : <>
               <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
