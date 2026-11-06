@@ -451,7 +451,10 @@ export default function App() {
     void loadHouseInventory(fibulaSupabase, userId).then(({ inventory, source }) => {
       if (cancelled) return;
       const changedWhileLoading = houseChangedDuringLoadRef.current;
-      if (source === 'cloud' && !changedWhileLoading) {
+      const currentHouseInventory = engineRef.current?.state.house.inventory;
+      const shouldApplyCloudInventory = source === 'cloud'
+        && (!changedWhileLoading || currentHouseInventory?.length === 0);
+      if (shouldApplyCloudInventory) {
         engineRef.current?.setHouseInventory(inventory);
         lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
       } else {
@@ -490,7 +493,18 @@ export default function App() {
             continue;
           }
           const inventory = JSON.parse(snapshot) as Array<{ itemId: string; quantity: number }>;
-          const confirmed = await syncHouseInventory(supabaseClient, userId, inventory);
+          const confirmedServerSnapshot = lastSyncedHouseInventoryRef.current;
+          let serverHasConfirmedNonEmptyInventory = false;
+          if (confirmedServerSnapshot) {
+            try {
+              const confirmedInventory = JSON.parse(confirmedServerSnapshot) as unknown;
+              serverHasConfirmedNonEmptyInventory = Array.isArray(confirmedInventory)
+                && confirmedInventory.length > 0;
+            } catch { /* Estado do servidor desconhecido: não autoriza limpar o baú. */ }
+          }
+          const confirmed = await syncHouseInventory(supabaseClient, userId, inventory, {
+            allowEmpty: serverHasConfirmedNonEmptyInventory,
+          });
           if (!confirmed) break;
           lastSyncedHouseInventoryRef.current = snapshot;
           if (pendingHouseInventoryRef.current === snapshot) pendingHouseInventoryRef.current = null;
