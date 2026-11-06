@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, readPendingMeals, readPreparedMeals, readReadyMeals, writePendingMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
+import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -671,9 +671,11 @@ export default function App() {
   }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
 
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
-  const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>(readPreparedMeals);
-  const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>(readReadyMeals);
-  const [pendingCookingMeals, setPendingCookingMeals] = useState<CookingMeal[]>(readPendingMeals);
+  const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>([]);
+  const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>([]);
+  const [pendingCookingMeals, setPendingCookingMeals] = useState<CookingMeal[]>([]);
+  const [cookingClockOffset, setCookingClockOffset] = useState(0);
+  const [cookingOnline, setCookingOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [panCookingSelections, setPanCookingSelections] = useState<Array<{ itemId: string; quantity: number }>>([]);
   const [cookingFeedback, setCookingFeedback] = useState('');
   const [cookingClock, setCookingClock] = useState(() => Date.now());
@@ -682,11 +684,17 @@ export default function App() {
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   useEffect(() => {
+    const updateOnline = () => setCookingOnline(navigator.onLine);
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => { window.removeEventListener('online', updateOnline); window.removeEventListener('offline', updateOnline); };
+  }, []);
+  useEffect(() => {
     if (craftingStationId !== 'fogao') return;
-    setCookingClock(Date.now());
-    const timer = window.setInterval(() => setCookingClock(Date.now()), 1000);
+    setCookingClock(Date.now() + cookingClockOffset);
+    const timer = window.setInterval(() => setCookingClock(Date.now() + cookingClockOffset), 1000);
     return () => window.clearInterval(timer);
-  }, [craftingStationId]);
+  }, [craftingStationId, cookingClockOffset]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1682,6 +1690,7 @@ export default function App() {
     setChestTransferFeedback('');
     setChestCloudReady(false);
     setLobbyChestItems(readSavedHouseStorage());
+    if (!cookingOnline) setCookingFeedback('Sem conexão: cozinhar exige internet.');
     void refreshLobbyChestFromCloud().catch(cause => {
       setChestCloudReady(false);
       setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.');
@@ -1731,17 +1740,6 @@ export default function App() {
       setChestTransferBusy(false);
     }
   };
-  const storePreparedCookingMeal = (meal: CookingMeal) => {
-    const startedAt = Date.now();
-    const queuedMeal: CookingMeal = {
-      ...meal,
-      productionStartedAt: startedAt,
-      productionReadyAt: startedAt + COOKING_PRODUCTION_MS,
-    };
-    const nextMeals = [...preparedCookingMeals, queuedMeal].slice(0, 3);
-    setPreparedCookingMeals(nextMeals);
-    writePreparedMeals(nextMeals);
-  };
   const applyCookingInventory = (nextInventory: HouseStorageStack[]) => {
     setLobbyChestItems(nextInventory);
     engineRef.current?.setHouseInventory(nextInventory);
@@ -1772,7 +1770,40 @@ export default function App() {
       : item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []));
     setCookingFeedback('');
   };
-  const prepareCookingMeal = () => {
+  const applyCookingServerState = (result: CookingServerState) => {
+    setPreparedCookingMeals(result.prepared);
+    setReadyCookingMeals(result.ready);
+    setPendingCookingMeals(result.pending);
+    setCookingClockOffset(result.now_ms - Date.now());
+    setCookingClock(Date.now() + (result.now_ms - Date.now()));
+  };
+  const requireCookingConnection = () => {
+    if (!cookingOnline || !fibulaSupabase) {
+      setCookingFeedback('Sem conexão: cozinhar exige internet.');
+      return false;
+    }
+    return true;
+  };
+  const refreshCookingState = async () => {
+    if (!cookingOnline || !fibulaSupabase) {
+      setCookingFeedback('Sem conexão: cozinhar exige internet.');
+      throw new Error('Sem conexão: cozinhar exige internet.');
+    }
+    const result = await getCookingServerState(fibulaSupabase);
+    applyCookingServerState(result);
+    return result;
+  };
+  useEffect(() => {
+    if (!showStart && craftingStationId !== 'fogao' && !chestOpen) return;
+    let active = true;
+    void refreshCookingState().catch(cause => {
+      if (active) setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível sincronizar a cozinha.');
+    });
+    return () => { active = false; };
+  }, [showStart, craftingStationId, chestOpen, cookingOnline, session.user.sub]);
+
+  const prepareCookingMeal = async () => {
+    if (!requireCookingConnection()) return;
     if (preparedCookingMeals.length >= 3) {
       setCookingFeedback('Os três espaços de produção estão ocupados.');
       return;
@@ -1791,60 +1822,75 @@ export default function App() {
     }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
     if (!nextInventory) { setCookingFeedback('Você não tem todas essas unidades disponíveis no Baú.'); return; }
-    applyCookingInventory(nextInventory);
-    storePreparedCookingMeal(meal);
-    setPanCookingSelections([]);
-    setCookingFeedback('Produção iniciada: ' + meal.name + '.');
+    try {
+      const result = await startCookingProduction(fibulaSupabase!, meal);
+      applyCookingInventory(nextInventory);
+      applyCookingServerState(result);
+      setPanCookingSelections([]);
+      setCookingFeedback('Produção iniciada: ' + meal.name + '.');
+    } catch (cause) {
+      setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível iniciar a produção.');
+    }
   };
-  const collectPreparedCookingMeal = (meal: CookingMeal) => {
-    if ((meal.productionReadyAt ?? 0) > Date.now()) return;
-    const nextQueue = preparedCookingMeals.filter(item => item.id !== meal.id);
-    const nextReady = [...readyCookingMeals, meal];
-    setPreparedCookingMeals(nextQueue);
-    writePreparedMeals(nextQueue);
-    setReadyCookingMeals(nextReady);
-    writeReadyMeals(nextReady);
-    setCookingFeedback(meal.name + ' foi para a aba Refeições do Baú.');
+  const collectPreparedCookingMeal = async (meal: CookingMeal) => {
+    if (!requireCookingConnection()) return;
+    if ((meal.productionReadyAt ?? 0) > Date.now() + cookingClockOffset) return;
+    try {
+      applyCookingServerState(await collectCookingMeal(fibulaSupabase!, meal.id));
+      setCookingFeedback(meal.name + ' foi para a aba Refeições do Baú.');
+    } catch (cause) {
+      setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível coletar a refeição.');
+    }
   };
-  const consumeReadyCookingMeal = (meal: CookingMeal) => {
+  const queueReadyCookingMeal = async (meal: CookingMeal) => {
+    if (!requireCookingConnection()) return;
+    try {
+      applyCookingServerState(await queueCookingMeal(fibulaSupabase!, meal.id));
+    } catch (cause) {
+      setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível reservar a refeição.');
+    }
+  };
+  const returnPendingCookingMeal = async (meal: CookingMeal) => {
+    if (!requireCookingConnection()) return;
+    try {
+      applyCookingServerState(await returnCookingMeal(fibulaSupabase!, meal.id));
+    } catch (cause) {
+      setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível devolver a refeição.');
+    }
+  };
+  const consumeReadyCookingMeal = async (meal: CookingMeal) => {
+    if (!requireCookingConnection()) return;
     const engine = engineRef.current;
-    if (!houseAccessible || !engine?.activateCookingMeal(meal)) return;
-    const nextMeals = readyCookingMeals.filter(item => item.id !== meal.id);
-    setReadyCookingMeals(nextMeals);
-    writeReadyMeals(nextMeals);
+    if (!houseAccessible || !engine) return;
+    if (engine.state.activeMeals.some(active => active.slot === meal.slot)) {
+      window.alert('Você já tem uma refeição deste tipo ativa.');
+      return;
+    }
+    try {
+      const result = await consumeReadyCookingMealOnServer(fibulaSupabase!, meal.id);
+      if (!engine.activateCookingMeal(result.meal)) {
+        window.alert('Não foi possível ativar a refeição. O espaço pode já estar ocupado.');
+      }
+      applyCookingServerState(result);
+    } catch (cause) {
+      setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível consumir a refeição.');
+    }
   };
-  const queueReadyCookingMeal = (meal: CookingMeal) => {
-    const replacedMeal = pendingCookingMeals.find(item => item.slot === meal.slot);
-    const nextReady = [
-      ...readyCookingMeals.filter(item => item.id !== meal.id),
-      ...(replacedMeal ? [replacedMeal] : []),
-    ];
-    setReadyCookingMeals(nextReady);
-    writeReadyMeals(nextReady);
-
-    const nextPending = [
-      ...pendingCookingMeals.filter(item => item.slot !== meal.slot),
-      meal,
-    ].slice(0, 2);
-    setPendingCookingMeals(nextPending);
-    writePendingMeals(nextPending);
-  };
-  const returnPendingCookingMeal = (meal: CookingMeal) => {
-    const nextPending = pendingCookingMeals.filter(item => item.id !== meal.id);
-    const nextReady = [...readyCookingMeals.filter(item => item.id !== meal.id), meal];
-    setPendingCookingMeals(nextPending);
-    writePendingMeals(nextPending);
-    setReadyCookingMeals(nextReady);
-    writeReadyMeals(nextReady);
-  };
-  const activatePendingCookingMeals = (engine: GameEngine) => {
-    const pending = readPendingMeals();
-    const activated = engine.activateStartingMeals(pending);
-    if (!activated.length) return;
-    const activatedIds = new Set(activated.map(meal => meal.id));
-    const remaining = pending.filter(meal => !activatedIds.has(meal.id));
-    setPendingCookingMeals(remaining);
-    writePendingMeals(remaining);
+  const activatePendingCookingMeals = async (engine: GameEngine) => {
+    if (!cookingOnline || !fibulaSupabase) {
+      window.alert('Sem conexão: cozinhar exige internet. A partida continuará sem refeições.');
+      return;
+    }
+    try {
+      const result = await takePendingCookingMeals(fibulaSupabase);
+      setCookingClockOffset(result.now_ms - Date.now());
+      setCookingClock(Date.now() + (result.now_ms - Date.now()));
+      engine.activateStartingMeals(result.meals);
+      setPendingCookingMeals([]);
+    } catch (cause) {
+      window.alert((cause instanceof Error ? cause.message : 'Não foi possível carregar as refeições pendentes.')
+        + ' A partida continuará sem refeições; elas permanecem no servidor.');
+    }
   };
 
   const handleLobbyPlay = () => {
@@ -1879,7 +1925,7 @@ export default function App() {
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
       engine.start();
-      activatePendingCookingMeals(engine);
+      await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
       setShowStart(false);
     } catch (error) {
@@ -1996,7 +2042,7 @@ export default function App() {
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
         engine.restart();
-        activatePendingCookingMeals(engine);
+        await activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
         setShowStart(false);
         setDuoNotice('Duo conectado. O avanço das noites agora depende da confirmação do servidor.');
@@ -2132,7 +2178,7 @@ export default function App() {
       closeFlagMenu();
       closeInventoryPanel();
       engine.restart();
-      activatePendingCookingMeals(engine);
+      await activatePendingCookingMeals(engine);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Não foi possível registrar o início da nova partida.');
     } finally {
@@ -2342,7 +2388,7 @@ export default function App() {
             type="button"
             aria-label={`Abrir estação: ${station.title}`}
             title={station.title}
-            onClick={() => setCraftingStationId(station.id)}
+            onClick={() => { setCraftingStationId(station.id); if (!cookingOnline) setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
           >
             <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
             <span>{station.label}</span>
@@ -2371,7 +2417,7 @@ export default function App() {
                             <span className="cooking-production-icon">{cookingMealArtwork(meal)}</span>
                             <b>{meal.name}</b>
                             {remaining > 0 ? <small>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</small>
-                              : <button type="button" onClick={() => collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
+                              : <button type="button" disabled={!cookingOnline} onClick={() => void collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
                           </> : <small>Livre</small>}
                         </div>;
                       })}
@@ -2414,9 +2460,10 @@ export default function App() {
                         </div>;
                       })}
                     </div>}
-                    <button type="button" className="cooking-prepare-button" onClick={prepareCookingMeal}
-                      disabled={preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
+                    <button type="button" className="cooking-prepare-button" onClick={() => void prepareCookingMeal()}
+                      disabled={!cookingOnline || preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
                   </div>
+                  {!cookingOnline && <small className="cooking-feedback" role="status">Sem conexão: cozinhar exige internet.</small>}
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
                 </div>
               </> : <>
@@ -2509,7 +2556,7 @@ export default function App() {
                   <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                   <button type="button" className="cooking-meal-action" title="Consumir"
-                    onClick={() => queueReadyCookingMeal(meal)}>Consumir</button>
+                    disabled={!cookingOnline} onClick={() => void queueReadyCookingMeal(meal)}>Consumir</button>
                 </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
               </div>
               <section className="cooking-pending-panel" aria-label="Refeições para a próxima partida">
@@ -2522,7 +2569,7 @@ export default function App() {
                       {meal ? <>
                         <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
                         <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
-                        <button type="button" className="cooking-meal-action secondary" onClick={() => returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
+                        <button type="button" className="cooking-meal-action secondary" disabled={!cookingOnline} onClick={() => void returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
                       </> : <small className="cooking-pending-empty">Vazio</small>}
                     </div>;
                   })}
@@ -2537,6 +2584,8 @@ export default function App() {
               <div><button type="button" disabled={chestTransferBusy} onClick={() => void sendLobbyChestItem()}>{chestTransferBusy ? 'Enviando…' : 'Confirmar envio'}</button><button type="button" className="secondary" disabled={chestTransferBusy} onClick={() => setChestTransferItemId(null)}>Cancelar</button></div>
             </div>}
             {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
+            {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
+            {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
           </section>
         </div>}
         {statusOpen && <div className="lobby-profile-backdrop lobby-status-backdrop" onClick={() => setStatusOpen(false)}>
@@ -2757,9 +2806,9 @@ export default function App() {
             : <div className="house-meals-grid">
               {readyCookingMeals.length ? readyCookingMeals.map(meal => {
                 const slotOccupied = state.activeMeals.some(active => active.slot === meal.slot);
-                return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || slotOccupied}
-                  onClick={(event) => { event.stopPropagation(); consumeReadyCookingMeal(meal); }}
-                  title={!houseAccessible ? 'Aproxime-se da casa para consumir' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
+                return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || !cookingOnline || slotOccupied}
+                  onClick={(event) => { event.stopPropagation(); void consumeReadyCookingMeal(meal); }}
+                  title={!houseAccessible ? 'Aproxime-se da casa para consumir' : !cookingOnline ? 'Sem conexão: cozinhar exige internet.' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
                   <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
                   <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b><b>Consumir</b>
