@@ -14,10 +14,23 @@ export type CookingMeal = {
 };
 export type ActiveCookingMeal = CookingMeal & { remainingSeconds: number };
 
-const STORAGE_KEY = 'fibula-prepared-meals';
-const READY_STORAGE_KEY = 'fibula-ready-meals';
-const PENDING_STORAGE_KEY = 'fibula-pending-meals';
 export const COOKING_PRODUCTION_MS = 30 * 60 * 1000;
+
+type CookingRpcClient = {
+  rpc(name: string, args?: Record<string, unknown>): Promise<{
+    data: unknown;
+    error: { message?: string } | null;
+  }>;
+};
+export type CookingServerState = {
+  now_ms: number;
+  prepared: CookingMeal[];
+  ready: CookingMeal[];
+  pending: CookingMeal[];
+};
+export type CookingPendingResult = { now_ms: number; meals: CookingMeal[] };
+export type CookingConsumeResult = CookingServerState & { meal: CookingMeal };
+
 const RARITY_INDEX: Record<ItemRarity | 'normal', number> = { normal: 0, common: 1, uncommon: 2, rare: 3, legendary: 4 };
 const RARITY_STATS = {
   normal: { damage: 6, utility: 3 }, common: { damage: 12, utility: 6 },
@@ -34,72 +47,82 @@ export const FISH_RARITY: Record<string, ItemRarity | 'normal'> = {
 const MEAT_ITEMS = ['wolf_meat'];
 const QUICK_MEAL_SECONDS = 30 * 60;
 
-export function getCookingRarity(itemId: string): ItemRarity | 'normal' {
-  const base = getBaseItemId(itemId);
-  if (FISH_ITEMS.includes(base)) return FISH_RARITY[base] ?? 'normal';
-  return getItemRarity(itemId) ?? 'normal';
-}
-export function isCookingIngredient(itemId: string): boolean {
-  const base = getBaseItemId(itemId);
-  return base === 'tomato' || base === 'cabbage' || base === 'herbs'
-    || MEAT_ITEMS.includes(base) || base === 'chicken_meat' || FISH_ITEMS.includes(base);
-}
-export function getCookingCapacity(varietyCount: number): number {
-  return Math.max(0, Math.min(4, varietyCount)) * 10;
-}
 function isStoredCookingMeal(meal: unknown): meal is CookingMeal {
-  return !!meal && typeof meal === 'object'
-    && ((meal as CookingMeal).slot === 'quick' || (meal as CookingMeal).slot === 'pan')
-    && typeof (meal as CookingMeal).id === 'string'
-    && typeof (meal as CookingMeal).name === 'string'
-    && typeof (meal as CookingMeal).icon === 'string'
-    && Array.isArray((meal as CookingMeal).ingredients)
-    && !!(meal as CookingMeal).effects && typeof (meal as CookingMeal).effects === 'object';
+  if (!meal || typeof meal !== 'object' || Array.isArray(meal)) return false;
+  const value = meal as Record<string, unknown>;
+  return (value.slot === 'quick' || value.slot === 'pan')
+    && typeof value.id === 'string' && value.id.length > 0
+    && typeof value.name === 'string' && typeof value.icon === 'string'
+    && (typeof value.rarity === 'string')
+    && Array.isArray(value.ingredients)
+    && value.ingredients.every(item => !!item && typeof item === 'object'
+      && typeof (item as Record<string, unknown>).itemId === 'string'
+      && Number.isSafeInteger((item as Record<string, unknown>).quantity)
+      && ((item as Record<string, unknown>).quantity as number) > 0)
+    && !!value.effects && typeof value.effects === 'object' && !Array.isArray(value.effects);
 }
-function readCookingStorage(key: string): CookingMeal[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const saved: unknown = JSON.parse(window.localStorage.getItem(key) ?? '[]');
-    if (!Array.isArray(saved)) return [];
-    return saved.filter(isStoredCookingMeal).map(meal => ({
-      ...meal,
-      // Receitas antigas, preparadas antes da fila de produção, são tratadas como prontas.
-      productionStartedAt: Number.isFinite(meal.productionStartedAt) ? meal.productionStartedAt : 0,
-      productionReadyAt: Number.isFinite(meal.productionReadyAt) ? meal.productionReadyAt : 0,
-    }));
-  } catch { return []; }
+function invalidCookingResponse(detail: string): Error {
+  return new Error('O servidor retornou dados inválidos para a cozinha: ' + detail);
 }
-export function readPreparedMeals(): CookingMeal[] {
-  return readCookingStorage(STORAGE_KEY).slice(0, 3);
+function readCookingObject(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw invalidCookingResponse('resposta não é um objeto.');
+  return data as Record<string, unknown>;
 }
-export function writePreparedMeals(meals: CookingMeal[]): void {
-  if (typeof window === 'undefined') return;
-  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(meals.slice(0, 3))); } catch { /* Armazenamento local indisponível. */ }
+function readCookingClock(payload: Record<string, unknown>): number {
+  if (typeof payload.now_ms !== 'number' || !Number.isFinite(payload.now_ms)) {
+    throw invalidCookingResponse('o relógio do servidor está ausente ou inválido.');
+  }
+  return payload.now_ms;
 }
-export function readReadyMeals(): CookingMeal[] {
-  return readCookingStorage(READY_STORAGE_KEY);
+function readCookingMeals(payload: Record<string, unknown>, key: 'prepared' | 'ready' | 'pending'): CookingMeal[] {
+  const value = payload[key];
+  if (!Array.isArray(value) || !value.every(isStoredCookingMeal)) {
+    throw invalidCookingResponse('a lista "' + key + '" está ausente ou contém refeições inválidas.');
+  }
+  return value as CookingMeal[];
 }
-export function writeReadyMeals(meals: CookingMeal[]): void {
-  if (typeof window === 'undefined') return;
-  try { window.localStorage.setItem(READY_STORAGE_KEY, JSON.stringify(meals)); } catch { /* Armazenamento local indisponível. */ }
+function readCookingState(data: unknown): CookingServerState {
+  const payload = readCookingObject(data);
+  return {
+    now_ms: readCookingClock(payload),
+    prepared: readCookingMeals(payload, 'prepared'),
+    ready: readCookingMeals(payload, 'ready'),
+    pending: readCookingMeals(payload, 'pending'),
+  };
 }
-export function readPendingMeals(): CookingMeal[] {
-  const slots = new Set<CookingSlot>();
-  return readCookingStorage(PENDING_STORAGE_KEY).filter(meal => {
-    if (slots.has(meal.slot) || slots.size >= 2) return false;
-    slots.add(meal.slot);
-    return true;
-  });
+async function callCookingRpc(client: CookingRpcClient, name: string, args?: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await client.rpc(name, args);
+  if (error) throw new Error(error.message || 'O servidor recusou a operação de cozinha.');
+  return data;
 }
-export function writePendingMeals(meals: CookingMeal[]): void {
-  if (typeof window === 'undefined') return;
-  const slots = new Set<CookingSlot>();
-  const pending = meals.filter(meal => {
-    if (!isStoredCookingMeal(meal) || slots.has(meal.slot) || slots.size >= 2) return false;
-    slots.add(meal.slot);
-    return true;
-  });
-  try { window.localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(pending)); } catch { /* Armazenamento local indisponível. */ }
+export async function getCookingServerState(client: CookingRpcClient): Promise<CookingServerState> {
+  return readCookingState(await callCookingRpc(client, 'fibula_cooking_get'));
+}
+export async function startCookingProduction(client: CookingRpcClient, meal: CookingMeal): Promise<CookingServerState> {
+  return readCookingState(await callCookingRpc(client, 'fibula_cooking_start', { p_meal: meal }));
+}
+export async function collectCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingServerState> {
+  return readCookingState(await callCookingRpc(client, 'fibula_cooking_collect', { p_meal_id: mealId }));
+}
+export async function queueCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingServerState> {
+  return readCookingState(await callCookingRpc(client, 'fibula_cooking_queue', { p_meal_id: mealId }));
+}
+export async function returnCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingServerState> {
+  return readCookingState(await callCookingRpc(client, 'fibula_cooking_return', { p_meal_id: mealId }));
+}
+export async function consumeReadyCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingConsumeResult> {
+  const payload = readCookingObject(await callCookingRpc(client, 'fibula_cooking_consume_ready', { p_meal_id: mealId }));
+  const state = readCookingState(payload);
+  if (!isStoredCookingMeal(payload.meal)) throw invalidCookingResponse('a refeição consumida está ausente ou inválida.');
+  return { ...state, meal: payload.meal };
+}
+export async function takePendingCookingMeals(client: CookingRpcClient): Promise<CookingPendingResult> {
+  const payload = readCookingObject(await callCookingRpc(client, 'fibula_cooking_take_pending'));
+  const meals = payload.meals;
+  if (!Array.isArray(meals) || !meals.every(isStoredCookingMeal)) {
+    throw invalidCookingResponse('a lista de refeições pendentes está ausente ou contém refeições inválidas.');
+  }
+  return { now_ms: readCookingClock(payload), meals: meals as CookingMeal[] };
 }
 export function getCookingIngredientStacks(inventory: InventoryStack[]): InventoryStack[] {
   return inventory.filter(stack => isCookingIngredient(stack.itemId) && stack.quantity > 0);
