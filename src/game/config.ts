@@ -27,6 +27,9 @@ export const CONFIG = {
     edgeBiasWorldFraction: 0.25, structurePreferenceDistance: 600, structureMinimumWeight: 0.25,
     colliderStepMinimum: 12, colliderStepMinorAxisFactor: 0.18, colliderRadiusInset: 0.95,
     colliderMinimumRadius: 10, steeringCircleRadiusFactor: 1.12, fallbackGridStep: 80,
+    shoreVegetationPerKind: { small: 1, medium: 2, large: 3 },
+    shoreBand: 150, shoreAttractChance: 0.65, shoreMinGap: 28, shoreMaxGap: 130,
+    shoreSpacing: 80, shoreAttempts: 200,
     fishingRange: 58, fishingInterval: 8.5, fishingVisibleDuration: 7,
     fishByLakeSize: {
       small: [
