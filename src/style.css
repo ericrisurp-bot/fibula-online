@@ -4623,15 +4623,21 @@ button, button * {
   box-shadow: 0 3px 12px #0008;
 }
 @media(max-width:650px) {
-  .lobby-chest-grid.cooking-ingredient-grid { grid-template-columns: repeat(auto-fill,minmax(70px,1fr)); gap: 8px; padding: 10px; }
-  .cooking-ingredient.lobby-chest-slot > span { min-height: 34px; font-size: 34px; }
-  .cooking-ingredient.lobby-chest-slot > span svg { width: 34px; height: 34px; }
   .cooking-production-slots { gap: 5px; }
   .cooking-production-slot { min-height: 104px; padding: 6px 3px; }
   .cooking-production-slot > strong { font-size: 9px; }
   .cooking-production-slot > b { font-size: 9px; }
   .house-meals-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .house-meals-trigger { bottom: 126px; }
+}
+
+
+@media(max-width:420px) {
+  .lobby-chest-grid.cooking-ingredient-grid {
+    grid-template-columns: repeat(auto-fill,minmax(70px,1fr));
+    gap: 8px;
+    padding: 10px;
+  }
 }
 
 
