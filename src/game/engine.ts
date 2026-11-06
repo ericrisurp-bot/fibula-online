@@ -1040,7 +1040,7 @@ export class GameEngine {
     this.state.activeMeals = this.state.activeMeals
       .map(meal => ({ ...meal, remainingSeconds: Math.max(0, meal.remainingSeconds - dt) }))
       .filter(meal => meal.remainingSeconds > 0);
-    if (this.phase !== 'night') {
+    if (this.phase === 'day') {
       const healingPerSecond = this.state.activeMeals.reduce((sum, meal) => sum + (meal.effects.healingPerSecond ?? 0), 0);
       if (healingPerSecond > 0) this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + healingPerSecond * dt);
     }
