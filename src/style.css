@@ -4388,6 +4388,23 @@ button, button * {
 .cooking-feedback{color:#e0e2df;font-size:10px;line-height:1.4}
 .cooking-prepared-list{display:flex;flex-direction:column;gap:5px;padding:9px;border:1px solid #555b56;border-radius:8px;background:#292c29;color:#e8eae8;font-size:10px}
 .cooking-prepared-list>small{color:#aeb4ae}
+.lobby-chest-meal-card{display:flex;min-height:150px;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;padding:10px 7px;text-align:center}
+.cooking-meal-description{color:#c1c8c0!important;font-size:9px!important;line-height:1.3;text-align:center;overflow-wrap:anywhere}
+.cooking-meal-rarity{color:#e1e4df!important;font-size:9px!important;font-weight:800}
+.cooking-meal-action{width:100%;min-height:30px;padding:6px 8px;border:1px solid #858d85;border-radius:7px;background:#454b45;color:#f2f3ef;font-size:10px;font-weight:800;cursor:pointer}
+.cooking-meal-action:disabled{opacity:.4;cursor:not-allowed}
+.cooking-meal-action.secondary{border-color:#666d66;background:#303530;color:#dce1da}
+.cooking-pending-panel{display:flex;flex-direction:column;gap:9px;margin:10px 12px;padding:11px;border:1px solid #596159;border-radius:10px;background:#252925;color:#eef0eb}
+.cooking-pending-panel>strong{font-size:12px}
+.cooking-pending-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cooking-pending-slot{display:flex;min-width:0;min-height:112px;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:9px 7px;border:1px dashed #687068;border-radius:8px;background:#202420;text-align:center}
+.cooking-pending-slot>span{font-size:22px}
+.cooking-pending-slot>b{font-size:10px}
+.cooking-pending-slot>small{max-width:100%;overflow-wrap:anywhere}
+.cooking-pending-empty{color:#9fa79e;font-size:10px}
+.house-meal-slot{min-height:126px}
+.house-meal-slot>.cooking-meal-description{font-size:8px!important}
+.house-meal-slot>.cooking-meal-rarity{font-size:8px!important}
 .cooking-match-actions{position:absolute;z-index:24;top:76px;right:12px;display:flex;align-items:flex-start;gap:6px;max-width:min(55vw,480px);flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
 .cooking-match-actions button,.cooking-active-meal{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:56px;min-height:52px;padding:5px 7px;border:1px solid #858b85;border-radius:8px;background:rgba(34,35,34,.94);color:#f2f2f2;box-shadow:0 2px 8px #0006}
 .cooking-match-actions button{cursor:pointer}
