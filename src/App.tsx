@@ -1779,9 +1779,14 @@ export default function App() {
     }
     if (!panCookingSelections.length) { setCookingFeedback('Escolha os ingredientes para a receita.'); return; }
     const ingredients = panCookingSelections.map(item => ({ itemId: item.itemId, quantity: item.quantity }));
+    const recipeError = getPanMealError(ingredients);
+    if (recipeError) {
+      setCookingFeedback(recipeError);
+      return;
+    }
     const meal = getPanMeal(ingredients);
     if (!meal) {
-      setCookingFeedback(getPanMealError(ingredients) ?? 'Combinação inválida.');
+      setCookingFeedback('Não foi possível preparar esta receita.');
       return;
     }
     const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
