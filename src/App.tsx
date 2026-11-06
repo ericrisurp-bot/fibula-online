@@ -1814,13 +1814,20 @@ export default function App() {
     writeReadyMeals(nextMeals);
   };
   const queueReadyCookingMeal = (meal: CookingMeal) => {
-    if (pendingCookingMeals.some(item => item.slot === meal.slot)) return;
-    const nextPending = [...pendingCookingMeals, meal].slice(0, 2);
-    const nextReady = readyCookingMeals.filter(item => item.id !== meal.id);
-    setPendingCookingMeals(nextPending);
-    writePendingMeals(nextPending);
+    const replacedMeal = pendingCookingMeals.find(item => item.slot === meal.slot);
+    const nextReady = [
+      ...readyCookingMeals.filter(item => item.id !== meal.id),
+      ...(replacedMeal ? [replacedMeal] : []),
+    ];
     setReadyCookingMeals(nextReady);
     writeReadyMeals(nextReady);
+
+    const nextPending = [
+      ...pendingCookingMeals.filter(item => item.slot !== meal.slot),
+      meal,
+    ].slice(0, 2);
+    setPendingCookingMeals(nextPending);
+    writePendingMeals(nextPending);
   };
   const returnPendingCookingMeal = (meal: CookingMeal) => {
     const nextPending = pendingCookingMeals.filter(item => item.id !== meal.id);
@@ -2497,17 +2504,13 @@ export default function App() {
               </div>
             </> : <>
               <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
-                {readyCookingMeals.length ? readyCookingMeals.map(meal => {
-                  const slotOccupied = pendingCookingMeals.some(item => item.slot === meal.slot);
-                  return <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
-                    <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                    <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
-                    <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
-                    <button type="button" className="cooking-meal-action" disabled={slotOccupied}
-                      title={slotOccupied ? 'Já há uma refeição deste tipo para a próxima partida' : 'Consumir'}
-                      onClick={() => queueReadyCookingMeal(meal)}>Consumir</button>
-                  </div>;
-                }) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
+                {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
+                  <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
+                  <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
+                  <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
+                  <button type="button" className="cooking-meal-action" title="Consumir"
+                    onClick={() => queueReadyCookingMeal(meal)}>Consumir</button>
+                </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
               </div>
               <section className="cooking-pending-panel" aria-label="Refeições para a próxima partida">
                 <strong>Para a próxima partida</strong>
