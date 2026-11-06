@@ -321,7 +321,8 @@ const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
   if (base === 'core') {
     const core = coreFromItemId(itemId);
-    return core ? `Núcleo · ${coreRarityLabel(core.rarity)}` : 'Núcleo';
+    const category = core?.category === 'weapon' ? 'de arma' : core?.category === 'armor' ? 'de armadura' : core?.category === 'accessory' ? 'de acessório' : '';
+    return core ? `Núcleo ${category} · ${coreRarityLabel(core.rarity)}` : 'Núcleo';
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
@@ -1397,7 +1398,7 @@ export default function App() {
       }
       for (const drop of s.coreDrops) {
         worldDrawables.push({ depth: drop.y + 7, draw: () => {
-          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 20, drop.core.rarity);
+          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 20, drop.core.rarity === 'normal' ? undefined : drop.core.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y);
           ctx.font = '24px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText('💎', 0, 0);
