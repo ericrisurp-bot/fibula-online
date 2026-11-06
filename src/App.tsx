@@ -433,6 +433,7 @@ export default function App() {
   const houseChangedDuringLoadRef = useRef(false);
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
   const lastSyncedHouseInventoryRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
+  const pendingCloudHouseInventoryRef = useRef<Array<{ itemId: string; quantity: number }> | null>(null);
   const pendingHouseInventoryRef = useRef<string | null>(null);
   const houseSyncInFlightRef = useRef<Promise<void> | null>(null);
   const houseMatchClosedRef = useRef(false);
@@ -451,8 +452,12 @@ export default function App() {
     void loadHouseInventory(fibulaSupabase, userId).then(({ inventory, source }) => {
       if (cancelled) return;
       const changedWhileLoading = houseChangedDuringLoadRef.current;
-      if (source === 'cloud' && !changedWhileLoading) {
-        engineRef.current?.setHouseInventory(inventory);
+      const currentHouseInventory = engineRef.current?.state.house.inventory;
+      const shouldApplyCloudInventory = source === 'cloud'
+        && (!changedWhileLoading || currentHouseInventory?.length === 0 || !engineRef.current);
+      if (shouldApplyCloudInventory) {
+        if (engineRef.current) engineRef.current.setHouseInventory(inventory);
+        else pendingCloudHouseInventoryRef.current = inventory;
         lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
       } else {
         lastSyncedHouseInventoryRef.current = '';
@@ -476,6 +481,7 @@ export default function App() {
       if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
       return;
     }
+    if (pendingCloudHouseInventoryRef.current !== null) return;
 
     pendingHouseInventoryRef.current = houseInventoryJson;
     const syncLatestHouseInventory = async (): Promise<void> => {
@@ -490,7 +496,12 @@ export default function App() {
             continue;
           }
           const inventory = JSON.parse(snapshot) as Array<{ itemId: string; quantity: number }>;
-          const confirmed = await syncHouseInventory(supabaseClient, userId, inventory);
+          let allowEmpty = false;
+          try {
+            const confirmedSnapshot = JSON.parse(lastSyncedHouseInventoryRef.current);
+            allowEmpty = Array.isArray(confirmedSnapshot) && confirmedSnapshot.length > 0;
+          } catch { /* Snapshot desconhecido nunca autoriza limpar o servidor. */ }
+          const confirmed = await syncHouseInventory(supabaseClient, userId, inventory, { allowEmpty });
           if (!confirmed) break;
           lastSyncedHouseInventoryRef.current = snapshot;
           if (pendingHouseInventoryRef.current === snapshot) pendingHouseInventoryRef.current = null;
@@ -993,6 +1004,11 @@ export default function App() {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const engine = new GameEngine((next) => setState(next), { accountLevel }); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
+    const pendingCloudInventory = pendingCloudHouseInventoryRef.current;
+    if (pendingCloudInventory !== null) {
+      engine.setHouseInventory(pendingCloudInventory);
+      pendingCloudHouseInventoryRef.current = null;
+    }
     let frame = 0;
     const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
     let fpsDisplay: HTMLDivElement | null = null;
