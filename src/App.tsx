@@ -7,7 +7,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { COOKING_PRODUCTION_MS, consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, readPreparedMeals, readReadyMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
+import { COOKING_PRODUCTION_MS, consumeCookingIngredients, describeCookingMeal, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, readPendingMeals, readPreparedMeals, readReadyMeals, writePendingMeals, writePreparedMeals, writeReadyMeals, type CookingMeal } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -57,6 +57,9 @@ const initial: GameSnapshot = {
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
   enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
+const cookingRarityLabel = (rarity: CookingMeal['rarity']) => ({
+  normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
+}[rarity]);
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
 const attributeUnusedClass = (classId: ClassId, key: AttributeKey) => ATTRIBUTE_USAGE[classId][key] > 0 ? '' : ' attr-unused';
@@ -670,6 +673,7 @@ export default function App() {
   const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
   const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>(readPreparedMeals);
   const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>(readReadyMeals);
+  const [pendingCookingMeals, setPendingCookingMeals] = useState<CookingMeal[]>(readPendingMeals);
   const [panCookingSelections, setPanCookingSelections] = useState<Array<{ itemId: string; quantity: number }>>([]);
   const [cookingFeedback, setCookingFeedback] = useState('');
   const [cookingClock, setCookingClock] = useState(() => Date.now());
@@ -1804,6 +1808,32 @@ export default function App() {
     setReadyCookingMeals(nextMeals);
     writeReadyMeals(nextMeals);
   };
+  const queueReadyCookingMeal = (meal: CookingMeal) => {
+    if (pendingCookingMeals.some(item => item.slot === meal.slot)) return;
+    const nextPending = [...pendingCookingMeals, meal].slice(0, 2);
+    const nextReady = readyCookingMeals.filter(item => item.id !== meal.id);
+    setPendingCookingMeals(nextPending);
+    writePendingMeals(nextPending);
+    setReadyCookingMeals(nextReady);
+    writeReadyMeals(nextReady);
+  };
+  const returnPendingCookingMeal = (meal: CookingMeal) => {
+    const nextPending = pendingCookingMeals.filter(item => item.id !== meal.id);
+    const nextReady = [...readyCookingMeals.filter(item => item.id !== meal.id), meal];
+    setPendingCookingMeals(nextPending);
+    writePendingMeals(nextPending);
+    setReadyCookingMeals(nextReady);
+    writeReadyMeals(nextReady);
+  };
+  const activatePendingCookingMeals = (engine: GameEngine) => {
+    const pending = readPendingMeals();
+    const activated = engine.activateStartingMeals(pending);
+    if (!activated.length) return;
+    const activatedIds = new Set(activated.map(meal => meal.id));
+    const remaining = pending.filter(meal => !activatedIds.has(meal.id));
+    setPendingCookingMeals(remaining);
+    writePendingMeals(remaining);
+  };
 
   const handleLobbyPlay = () => {
     if (duoPeer) {
@@ -1837,6 +1867,7 @@ export default function App() {
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
       engine.start();
+      activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
       setShowStart(false);
     } catch (error) {
@@ -1953,6 +1984,7 @@ export default function App() {
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
         engine.restart();
+        activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
         setShowStart(false);
         setDuoNotice('Duo conectado. O avanço das noites agora depende da confirmação do servidor.');
@@ -2088,6 +2120,7 @@ export default function App() {
       closeFlagMenu();
       closeInventoryPanel();
       engine.restart();
+      activatePendingCookingMeals(engine);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Não foi possível registrar o início da nova partida.');
     } finally {
@@ -2227,7 +2260,7 @@ export default function App() {
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
       <div className="hud-top" aria-label="Status da partida">
-        {state.house.built && state.activeMeals.length > 0 && <div className="cooking-match-actions" aria-label="Refeições ativas">
+        {state.activeMeals.length > 0 && <div className="cooking-match-actions" aria-label="Refeições ativas">
           {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
             <span>{cookingMealArtwork(meal)}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
           </div>)}
@@ -2457,11 +2490,39 @@ export default function App() {
                   {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={() => { setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback(''); }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
                 </div>)}
               </div>
-            </> : <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
-              {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot">
-                <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><b>{meal.slot === 'quick' ? 'Receita simples' : 'Receita sofisticada'}</b>
-              </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
-            </div>}
+            </> : <>
+              <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
+                {readyCookingMeals.length ? readyCookingMeals.map(meal => {
+                  const slotOccupied = pendingCookingMeals.some(item => item.slot === meal.slot);
+                  return <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
+                    <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
+                    <small className="cooking-meal-description">{describeCookingMeal(meal)}</small>
+                    <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
+                    <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
+                    <button type="button" className="cooking-meal-action" disabled={slotOccupied}
+                      title={slotOccupied ? 'Já há uma refeição deste tipo para a próxima partida' : 'Consumir'}
+                      onClick={() => queueReadyCookingMeal(meal)}>Consumir</button>
+                  </div>;
+                }) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
+              </div>
+              <section className="cooking-pending-panel" aria-label="Refeições para a próxima partida">
+                <strong>Para a próxima partida</strong>
+                <div className="cooking-pending-slots">
+                  {(['quick', 'pan'] as const).map(slot => {
+                    const meal = pendingCookingMeals.find(item => item.slot === slot);
+                    return <div key={slot} className="cooking-pending-slot">
+                      <b>{slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
+                      {meal ? <>
+                        <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
+                        <small className="cooking-meal-description">{describeCookingMeal(meal)}</small>
+                        <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
+                        <button type="button" className="cooking-meal-action secondary" onClick={() => returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
+                      </> : <small className="cooking-pending-empty">Vazio</small>}
+                    </div>;
+                  })}
+                </div>
+              </section>
+            </>}
             {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
               <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
               <label>Quantidade
@@ -2693,7 +2754,10 @@ export default function App() {
                 return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || slotOccupied}
                   onClick={(event) => { event.stopPropagation(); consumeReadyCookingMeal(meal); }}
                   title={!houseAccessible ? 'Aproxime-se da casa para consumir' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
-                  <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><b>Consumir</b>
+                  <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
+                  <small className="cooking-meal-description">{describeCookingMeal(meal)}</small>
+                  <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
+                  <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b><b>Consumir</b>
                 </button>;
               }) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
             </div>}
