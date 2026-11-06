@@ -376,6 +376,26 @@ export class GameEngine {
     return true;
   }
 
+  activateStartingMeals(meals: CookingMeal[]): CookingMeal[] {
+    if (this.state.dead || !Array.isArray(meals)) return [];
+    const occupiedSlots = new Set(this.state.activeMeals.map(meal => meal.slot));
+    const activated: CookingMeal[] = [];
+    for (const meal of meals) {
+      if (!meal || (meal.slot !== 'quick' && meal.slot !== 'pan') || occupiedSlots.has(meal.slot)) continue;
+      const active: ActiveCookingMeal = {
+        ...meal,
+        effects: { ...meal.effects },
+        ingredients: meal.ingredients.map(item => ({ ...item })),
+        remainingSeconds: meal.durationSeconds ?? COOKING_DURATION_SECONDS,
+      };
+      this.state.activeMeals = [...this.state.activeMeals, active];
+      activated.push(meal);
+      occupiedSlots.add(meal.slot);
+    }
+    if (activated.length) this.emit();
+    return activated;
+  }
+
   private cookingBaseBonuses() {
     const bonuses: Record<'forca' | 'destreza' | 'inteligencia' | 'velocidadeAtaque' | 'velocidadeMovimento', number> = {
       forca: 0, destreza: 0, inteligencia: 0, velocidadeAtaque: 0, velocidadeMovimento: 0,

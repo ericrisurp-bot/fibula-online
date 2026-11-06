@@ -16,6 +16,7 @@ export type ActiveCookingMeal = CookingMeal & { remainingSeconds: number };
 
 const STORAGE_KEY = 'fibula-prepared-meals';
 const READY_STORAGE_KEY = 'fibula-ready-meals';
+const PENDING_STORAGE_KEY = 'fibula-pending-meals';
 export const COOKING_PRODUCTION_MS = 30 * 60 * 1000;
 const RARITY_INDEX: Record<ItemRarity | 'normal', number> = { normal: 0, common: 1, uncommon: 2, rare: 3, legendary: 4 };
 const RARITY_STATS = {
@@ -81,6 +82,24 @@ export function readReadyMeals(): CookingMeal[] {
 export function writeReadyMeals(meals: CookingMeal[]): void {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(READY_STORAGE_KEY, JSON.stringify(meals)); } catch { /* Armazenamento local indisponível. */ }
+}
+export function readPendingMeals(): CookingMeal[] {
+  const slots = new Set<CookingSlot>();
+  return readCookingStorage(PENDING_STORAGE_KEY).filter(meal => {
+    if (slots.has(meal.slot) || slots.size >= 2) return false;
+    slots.add(meal.slot);
+    return true;
+  });
+}
+export function writePendingMeals(meals: CookingMeal[]): void {
+  if (typeof window === 'undefined') return;
+  const slots = new Set<CookingSlot>();
+  const pending = meals.filter(meal => {
+    if (!isStoredCookingMeal(meal) || slots.has(meal.slot) || slots.size >= 2) return false;
+    slots.add(meal.slot);
+    return true;
+  });
+  try { window.localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(pending)); } catch { /* Armazenamento local indisponível. */ }
 }
 export function getCookingIngredientStacks(inventory: InventoryStack[]): InventoryStack[] {
   return inventory.filter(stack => isCookingIngredient(stack.itemId) && stack.quantity > 0);
