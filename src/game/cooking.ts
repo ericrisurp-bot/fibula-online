@@ -23,13 +23,19 @@ const RARITY_STATS = {
   uncommon: { damage: 18, utility: 9 }, rare: { damage: 24, utility: 12 },
   legendary: { damage: 30, utility: 15 },
 } as const;
-const RARITY_HEAL = { normal: 0.5, common: 1, uncommon: 1.8, rare: 2.2, legendary: 5 } as const;
+const RARITY_HEAL = { normal: 0.5, common: 1, uncommon: 1.5, rare: 2, legendary: 2.5 } as const;
 const HERB_MINUTES_PER_UNIT = { normal: 2, common: 4, uncommon: 6, rare: 8, legendary: 10 } as const;
 const FISH_ITEMS = ['tilapia', 'tambaqui', 'pintado_surubim', 'lambari', 'tucunare'];
+export const FISH_RARITY: Record<string, ItemRarity | 'normal'> = {
+  tilapia: 'normal', tambaqui: 'common', pintado_surubim: 'uncommon',
+  lambari: 'rare', tucunare: 'legendary',
+};
 const MEAT_ITEMS = ['wolf_meat'];
 const QUICK_MEAL_SECONDS = 30 * 60;
 
 export function getCookingRarity(itemId: string): ItemRarity | 'normal' {
+  const base = getBaseItemId(itemId);
+  if (FISH_ITEMS.includes(base)) return FISH_RARITY[base] ?? 'normal';
   return getItemRarity(itemId) ?? 'normal';
 }
 export function isCookingIngredient(itemId: string): boolean {
@@ -105,23 +111,34 @@ export function getQuickRecipe(itemId: string, quantity: number): CookingMeal | 
     effects, ingredients: [{ itemId, quantity }], durationSeconds: QUICK_MEAL_SECONDS,
   };
 }
-export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number }>): CookingMeal | null {
+export function getPanMealError(ingredients: Array<{ itemId: string; quantity: number }>): string | null {
   if (ingredients.length < 1 || ingredients.length > 4
-    || ingredients.some(item => !isCookingIngredient(item.itemId) || !Number.isSafeInteger(item.quantity) || item.quantity <= 0)) return null;
+    || ingredients.some(item => !isCookingIngredient(item.itemId) || !Number.isSafeInteger(item.quantity) || item.quantity <= 0)) {
+    return 'Escolha de 1 a 4 ingredientes.';
+  }
+  const bases = ingredients.map(item => getBaseItemId(item.itemId));
+  const varietyCount = new Set(bases).size;
+  if (varietyCount !== ingredients.length) {
+    return 'Use no máximo uma unidade de cada tipo de ingrediente por espaço.';
+  }
   const totalUnits = ingredients.reduce((sum, item) => sum + item.quantity, 0);
-  const varietyCount = new Set(ingredients.map(item => getBaseItemId(item.itemId))).size;
-  if (varietyCount !== ingredients.length || totalUnits < 10 || totalUnits > getCookingCapacity(varietyCount)
-    || ingredients.every(item => getBaseItemId(item.itemId) === 'herbs')) return null;
+  if (totalUnits < 10) return 'Use pelo menos 10 unidades no total.';
+  const capacity = getCookingCapacity(varietyCount);
+  if (totalUnits > capacity) return 'Esta receita aceita no máximo ' + capacity + ' unidades.';
+  if (bases.every(base => base === 'herbs')) return 'Só ervas não faz uma receita.';
+  const fishTypes = new Set(bases.filter(base => FISH_ITEMS.includes(base)));
+  if (fishTypes.size > 1) return 'Dois tipos de peixe não podem ser combinados.';
   const rarity = getCookingRarity(ingredients[0].itemId);
-  if (ingredients.some(item => getCookingRarity(item.itemId) !== rarity)) return null;
+  if (ingredients.some(item => getCookingRarity(item.itemId) !== rarity)) {
+    return 'Não misture raridades diferentes. Cada peixe tem a sua raridade.';
+  }
+  return null;
+}
 
+export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number }>): CookingMeal | null {
+  if (getPanMealError(ingredients) !== null) return null;
+  const rarity = getCookingRarity(ingredients[0].itemId);
   const bonusIngredients = ingredients.filter(item => getBaseItemId(item.itemId) !== 'herbs');
-  const hasMeat = bonusIngredients.some(item => MEAT_ITEMS.includes(getBaseItemId(item.itemId)));
-  const hasOtherProtein = bonusIngredients.some(item => {
-    const base = getBaseItemId(item.itemId);
-    return base === 'chicken_meat' || FISH_ITEMS.includes(base);
-  });
-  if (hasMeat && hasOtherProtein) return null;
   const divisor = bonusIngredients.length;
   const effects: CookingEffects = {};
   const caps: CookingEffects = {};
@@ -169,7 +186,7 @@ export function getPanMeal(ingredients: Array<{ itemId: string; quantity: number
   }
 
   return {
-    id: 'cooking-' + Date.now(), slot: divisor === 1 || (!protein && vegetables.length > 0) ? 'quick' : 'pan',
+    id: 'cooking-' + Date.now(), slot: bonusIngredients.length === 1 ? 'quick' : 'pan',
     name, icon, rarity, effects, ingredients: ingredients.map(item => ({ ...item })),
     durationSeconds, herbExtended: !!herbs,
   };
