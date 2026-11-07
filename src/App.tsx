@@ -2742,6 +2742,7 @@ export default function App() {
                 const tiers = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' };
                 return <section className="core-detail-panel" aria-label="Atributos do núcleo revelado">
                   <strong>{itemLabel(selectedItemId)}</strong>{parsed.core.surp && <small>SURP</small>}
+                  {parsed.core.category === 'weapon' && parsed.core.affinity && <p>Afinidade: {parsed.core.affinity === 'dano' ? 'Dano' : 'Natureza'}</p>}
                   <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}><span>{labels[attribute.key]}</span><b>{tiers[coreAttributeTier(attribute.value, parsed.core.rarity)]}</b></li>)}</ul>
                 </section>;
               })()}
