@@ -332,6 +332,10 @@ const itemLabel = (itemId: string) => {
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
 const weaponModelLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' };
+const weaponAttributeLabels: Record<CoreAttributeKey, string> = {
+  forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
+  vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
+};
 const itemRarityGlow = (itemId: string): React.CSSProperties => {
   const parsedCore = parseCoreItemId(itemId);
   const rarity = parsedCore ? (parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity) : getItemRarity(itemId);
@@ -1875,6 +1879,7 @@ export default function App() {
     let active = true;
     if (!fibulaSupabase) {
       setCraftedWeapons([]);
+      setWeaponsLoading(false);
       setWeaponFeedback('Entre na sua conta para carregar as armas fabricadas.');
       return;
     }
@@ -2664,17 +2669,13 @@ export default function App() {
                         const core = parsed.core;
                         const selected = selectedWeaponCoreId === item.itemId;
                         const tierLabels = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' };
-                        const attributeLabels: Record<CoreAttributeKey, string> = {
-                          forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
-                          vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
-                        };
                         return <button type="button" key={item.itemId}
                           className={selected ? 'weapon-anvil-core selected' : 'weapon-anvil-core'}
                           aria-pressed={selected}
                           onClick={() => { setSelectedWeaponCoreId(selected ? null : item.itemId); setWeaponFeedback(''); }}>
                           <span>💠</span><strong>{coreRarityLabel(core.rarity)}{core.surp ? ' · SURP' : ''}</strong>
                           <small>{core.affinity ? 'Afinidade: ' + (core.affinity === 'dano' ? 'Dano' : 'Natureza') : 'Sem afinidade'}</small>
-                          <ul>{core.attributes.map(attribute => <li key={attribute.key}>{attributeLabels[attribute.key]} · {tierLabels[coreAttributeTier(attribute.value, core.rarity)]}</li>)}</ul>
+                          <ul>{core.attributes.map(attribute => <li key={attribute.key}>{weaponAttributeLabels[attribute.key]} · {tierLabels[coreAttributeTier(attribute.value, core.rarity)]}</li>)}</ul>
                           <b>×{item.quantity}</b>
                         </button>;
                       })}
@@ -2702,14 +2703,14 @@ export default function App() {
                     {!selectedWeaponCore ? <p className="weapon-anvil-muted">Selecione um núcleo para conferir os materiais necessários.</p> :
                       <div className="weapon-anvil-recipe">
                         {weaponRecipeRows.map(row => <div key={row.itemId} className="weapon-anvil-recipe-row">
-                          <span>{itemLabel(row.itemId)}</span><strong className={row.available >= row.required ? 'enough' : 'missing'}>{row.available}/{row.required}</strong>
+                          <span>{itemLabel(row.itemId)}{selectedWeaponCore?.rarity === 'normal' ? ' · Normal' : ''}</span><strong className={row.available >= row.required ? 'enough' : 'missing'}>{row.available}/{row.required}</strong>
                         </div>)}
                       </div>}
                     {weaponCompatibilityError && <p className="weapon-anvil-warning" role="alert">{weaponCompatibilityError}</p>}
                     {selectedWeaponCore && inactiveWeaponAttributes.length > 0 && <p className={inactiveWeaponAttributes.length === selectedWeaponCore.attributes.length ? 'weapon-anvil-warning strong' : 'weapon-anvil-muted'}>
                       {inactiveWeaponAttributes.length === selectedWeaponCore.attributes.length
                         ? 'Este núcleo não dará bônus a esta arma.'
-                        : 'Atributos não ativos para este modelo: ' + inactiveWeaponAttributes.map(attribute => attribute.key).join(', ') + '.'}
+                        : 'Atributos não ativos para este modelo: ' + inactiveWeaponAttributes.map(attribute => weaponAttributeLabels[attribute.key]).join(', ') + '.'}
                     </p>}
                   </section>
                   <div className="weapon-anvil-footer">
@@ -2731,11 +2732,7 @@ export default function App() {
                           <ul>{weapon.attributes.map((attribute, index) => {
                             const active = WEAPON_ACTIVE_ATTRIBUTES[weapon.model].includes(attribute.key);
                             const tier = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' }[coreAttributeTier(attribute.value, weapon.rarity)];
-                            const label: Record<CoreAttributeKey, string> = {
-                              forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
-                              vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
-                            };
-                            return <li key={attribute.key + '-' + index} className={active ? '' : 'weapon-attribute-inactive'}><span>{label[attribute.key]}{active ? '' : ' · não ativo'}</span><b>{tier}</b></li>;
+                            return <li key={attribute.key + '-' + index} className={active ? '' : 'weapon-attribute-inactive'}><span>{weaponAttributeLabels[attribute.key]}{active ? '' : ' · não ativo'}</span><b>{tier}</b></li>;
                           })}</ul>
                         </article>)}</div>}
                   </section>
