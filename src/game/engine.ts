@@ -2,13 +2,14 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
+import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 import { distanceToLakeEdge, isInsideLake, lakeColliderCircles, lakeSteeringCircles, lakeSlideDirection, pushOutOfLake, type Lake, type LakeCircle } from './lake';
+import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon, type WeaponModel } from './weapons';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -290,6 +291,7 @@ export class GameEngine {
   private randomState: number;
   private headless: boolean;
   private cooperativeOptions: GameEngineOptions['cooperative'];
+  private equippedWeapon: EquippedWeapon | null = null;
   private waitingForCooperativeNightRelease = false;
   private lakeCollisionCircles: LakeCircle[] = [];
   private lakeAvoidanceCircles: LakeCircle[] = [];
@@ -407,14 +409,54 @@ export class GameEngine {
     return bonuses;
   }
 
+  private getActiveEquippedWeapon(): EquippedWeapon | null {
+    const weapon = this.equippedWeapon;
+    return weapon && WEAPON_CLASS_BY_MODEL[weapon.model] === this.state.classId ? weapon : null;
+  }
+
+  private getWeaponBaseDamage(): number {
+    return CONFIG.weapons[this.state.weapon].damage + (this.getActiveEquippedWeapon()?.damage ?? 0);
+  }
+
+  private getWeaponAttributeBonuses(): AttributeBaseBonuses {
+    const weapon = this.getActiveEquippedWeapon();
+    if (!weapon) return {};
+    const activeAttributes = WEAPON_ACTIVE_ATTRIBUTES[weapon.model];
+    const bonuses: AttributeBaseBonuses = {};
+    for (const attribute of weapon.attributes) {
+      if (!activeAttributes.includes(attribute.key) || ATTRIBUTE_USAGE[this.state.classId][attribute.key] <= 0) continue;
+      bonuses[attribute.key] = (bonuses[attribute.key] ?? 0) + attribute.value * WEAPON_CORE_POINTS_PER_VALUE;
+    }
+    return bonuses;
+  }
+
   private getCookingDamageMultiplier() {
-    const weaponDamage = CONFIG.weapons[this.state.weapon].damage;
+    const weaponDamage = this.getWeaponBaseDamage();
     const bonuses = this.cookingBaseBonuses();
     const baseDamageBonus = (['forca', 'inteligencia', 'destreza'] as const)
       .reduce((sum, attribute) => sum + ATTRIBUTE_USAGE[this.state.classId][attribute] * bonuses[attribute], 0);
-    // A comida altera o dano-base antes de aplicar o multiplicador de nível/classe.
-    return getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel())
+    // Atributos da arma entram no valor-base; cozinha continua somando antes do multiplicador.
+    return getDamageMultiplier(this.state.classId, this.state.player.level, this.pointsPerLevel(), this.getWeaponAttributeBonuses())
       * (1 + baseDamageBonus / weaponDamage);
+  }
+
+  setEquippedWeapon(weapon: EquippedWeapon | null): void {
+    if (weapon === null) {
+      this.equippedWeapon = null;
+      return;
+    }
+    const models: readonly WeaponModel[] = ['espada', 'arco', 'cajado', 'bastao'];
+    const attributeKeys = ['forca', 'inteligencia', 'destreza', 'velocidadeAtaque'] as const;
+    if (!models.includes(weapon.model) || typeof weapon.damage !== 'number' || !Number.isFinite(weapon.damage)
+      || weapon.damage <= 0 || !Array.isArray(weapon.attributes)
+      || !weapon.attributes.every(attribute => attributeKeys.includes(attribute.key as typeof attributeKeys[number])
+        && Number.isFinite(attribute.value) && attribute.value >= 0)) {
+      this.equippedWeapon = null;
+      return;
+    }
+    this.equippedWeapon = { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes.map(attribute => ({ ...attribute })) };
+    // A compatibilidade é consultada novamente pelo getter após qualquer troca de classe.
+    this.getActiveEquippedWeapon();
   }
 
   setHouseInventory(inventory: InventoryStack[]) {
@@ -2341,7 +2383,7 @@ export class GameEngine {
       speed: getAttributeBonus(classId, player.level, 'velocidadeMovimento', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento, this.pointsPerLevel()),
       armor: getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
       dodge: getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
-      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeAtaque', this.cookingBaseBonuses().velocidadeAtaque, this.pointsPerLevel()),
+      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeAtaque', this.cookingBaseBonuses().velocidadeAtaque + (this.getWeaponAttributeBonuses().velocidadeAtaque ?? 0), this.pointsPerLevel()),
     };
   }
 
@@ -2616,7 +2658,7 @@ export class GameEngine {
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
       for (const enemy of hits) {
         const vulnerability = this.getDayNightState().vulnerability;
-        const damage = weapon.damage * this.getCookingDamageMultiplier() * (1 + vulnerability);
+        const damage = this.getWeaponBaseDamage() * this.getCookingDamageMultiplier() * (1 + vulnerability);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         this.registerDruidBasicHit();
@@ -2653,7 +2695,7 @@ export class GameEngine {
       if (this.state.classId === 'mago') this.local.mageAttackCount = (this.local.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
       const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
-      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: weapon.damage * this.getCookingDamageMultiplier(), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: this.getWeaponBaseDamage() * this.getCookingDamageMultiplier(), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       if (rangedId === 'arco') markArrowReleased(this.state.elapsed);
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
