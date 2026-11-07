@@ -69,6 +69,12 @@ export function getAttributeEffectPerLevel(classId: ClassId, level: number, attr
 /** Converte um bônus temporário aplicado ao atributo-base em seu efeito de jogo,
  * preservando a escala de progressão por nível e classe.
  */
+/** Efeito direto de pontos adicionados ao valor-base, sem aplicar novamente o multiplicador de classe/nível. */
+export function getAttributeBaseValueEffect(attribute: EffectAttribute, baseBonus: number): number {
+  if (!Number.isFinite(baseBonus) || baseBonus <= 0) return 0;
+  return baseBonus * CONFIG.attributes.effectPerPointGained[attribute];
+}
+
 export function getAttributeBaseBonusEffect(
   classId: ClassId,
   level: number,
