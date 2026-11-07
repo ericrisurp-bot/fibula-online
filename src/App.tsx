@@ -13,7 +13,7 @@ import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
-import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible } from './game/weapons';
+import { drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, craftWeapon, listMyWeapons, WEAPON_ACTIVE_ATTRIBUTES, WEAPON_RECIPES, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -711,13 +711,63 @@ export default function App() {
   const [selectedAnvilCoreId, setSelectedAnvilCoreId] = useState<string | null>(null);
   const [selectedAnvilPrimary, setSelectedAnvilPrimary] = useState<{ itemId: string; quantity: number } | null>(null);
   const [selectedAnvilSecondary, setSelectedAnvilSecondary] = useState<{ itemId: string; quantity: number } | null>(null);
+  const [anvilTab, setAnvilTab] = useState<'weapons' | 'armor'>('weapons');
+  const [weaponModel, setWeaponModel] = useState<WeaponModel>('espada');
+  const [weaponTier, setWeaponTier] = useState<1 | 2>(1);
+  const [weaponBusy, setWeaponBusy] = useState(false);
+  const [weaponFeedback, setWeaponFeedback] = useState('');
+  const [lastCraftedWeapon, setLastCraftedWeapon] = useState<CraftedWeapon | null>(null);
+  const [myWeapons, setMyWeapons] = useState<CraftedWeapon[]>([]);
+  const [myWeaponsLoading, setMyWeaponsLoading] = useState(false);
+  const [myWeaponsError, setMyWeaponsError] = useState('');
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
-  const anvilCoreStacks: HouseStorageStack[] = []; // O inventário ainda não possui itens de núcleo definidos.
+  const anvilCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((result, item) => {
+    const parsed = parseCoreItemId(item.itemId);
+    if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return result;
+    const existing = result.find(stack => stack.itemId === item.itemId);
+    if (existing) existing.quantity += item.quantity;
+    else result.push({ ...item });
+    return result;
+  }, []);
+  const selectedWeaponCoreItem = selectedAnvilCoreId ? anvilCoreStacks.find(item => item.itemId === selectedAnvilCoreId) ?? null : null;
+  const selectedWeaponCoreParsed = selectedWeaponCoreItem ? parseCoreItemId(selectedWeaponCoreItem.itemId) : null;
+  const selectedWeaponCore = selectedWeaponCoreParsed?.kind === 'revealed' ? selectedWeaponCoreParsed.core : null;
+  const weaponRecipeItems = selectedWeaponCore ? WEAPON_RECIPES[weaponModel].map(material => {
+    const base = material.base === 'mineral' ? (weaponTier === 1 ? 'stone' : 'bronze') : material.base;
+    const itemId = weaponMaterialItemId(base, selectedWeaponCore.rarity);
+    const have = lobbyChestItems.reduce((sum, stack) => stack.itemId === itemId ? sum + stack.quantity : sum, 0);
+    const label = base === 'wood' ? 'Madeira' : base === 'linen' ? 'Linho' : base === 'stone' ? 'Pedra' : 'Bronze';
+    return { itemId, quantity: material.quantity, have, label };
+  }) : [];
+  const weaponMaterialsReady = !!selectedWeaponCore && weaponRecipeItems.every(item => item.have >= item.quantity);
+  const weaponAffinityError = selectedWeaponCore ? weaponCoreCompatibility(weaponModel, selectedWeaponCore) : null;
+  const weaponActiveAttributes = WEAPON_ACTIVE_ATTRIBUTES[weaponModel];
+  const weaponInactiveAttributes = selectedWeaponCore?.attributes.filter(attribute => !weaponActiveAttributes.includes(attribute.key)) ?? [];
+  const weaponHasActiveAttribute = (selectedWeaponCore?.attributes.some(attribute => weaponActiveAttributes.includes(attribute.key)) ?? false);
   const anvilPrimaryStacks = lobbyChestItems.filter(item => ['stone', 'bronze'].includes(getBaseItemId(item.itemId)));
   const anvilSecondaryStacks = lobbyChestItems.filter(item => ['wood', 'wolf_hide', 'linen', 'cotton'].includes(getBaseItemId(item.itemId)));
+  useEffect(() => {
+    if (craftingStationId !== 'bigorna' || anvilTab !== 'weapons') return;
+    let active = true;
+    if (!fibulaSupabase) {
+      setMyWeapons([]);
+      setMyWeaponsError('O serviço de armas não está disponível.');
+      return () => { active = false; };
+    }
+    setMyWeaponsLoading(true);
+    setMyWeaponsError('');
+    void listMyWeapons(fibulaSupabase).then(items => {
+      if (active) setMyWeapons(items);
+    }).catch(cause => {
+      if (active) setMyWeaponsError(cause instanceof Error ? cause.message : 'Não foi possível carregar as armas fabricadas.');
+    }).finally(() => {
+      if (active) setMyWeaponsLoading(false);
+    });
+    return () => { active = false; };
+  }, [craftingStationId, anvilTab, session.user.sub]);
   useEffect(() => {
     window.localStorage.removeItem('fibula-prepared-meals');
     window.localStorage.removeItem('fibula-ready-meals');
@@ -1799,6 +1849,33 @@ export default function App() {
     engineRef.current?.setHouseInventory(nextInventory);
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
   };
+  const craftSelectedWeapon = async () => {
+    if (!cookingOnline || !fibulaSupabase) {
+      setWeaponFeedback('Sem conexão: fabricar exige internet.');
+      return;
+    }
+    if (!selectedAnvilCoreId || !selectedWeaponCore || !weaponMaterialsReady || weaponAffinityError || weaponBusy) return;
+    setWeaponBusy(true);
+    setWeaponFeedback('');
+    setLastCraftedWeapon(null);
+    try {
+      const result = await craftWeapon(fibulaSupabase, weaponModel, weaponTier, selectedAnvilCoreId);
+      applyCookingInventory(result.inventory);
+      setLastCraftedWeapon(result.weapon);
+      setSelectedAnvilCoreId(null);
+      setWeaponFeedback('Arma fabricada com sucesso.');
+      try {
+        setMyWeapons(await listMyWeapons(fibulaSupabase));
+        setMyWeaponsError('');
+      } catch (cause) {
+        setMyWeaponsError(cause instanceof Error ? cause.message : 'A arma foi fabricada, mas não foi possível atualizar a lista.');
+      }
+    } catch (cause) {
+      setWeaponFeedback(cause instanceof Error ? cause.message : 'Não foi possível fabricar a arma.');
+    } finally {
+      setWeaponBusy(false);
+    }
+  };
   const revealChestCore = (itemId: string) => {
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
     if (sourceIndex < 0) return;
@@ -2481,7 +2558,7 @@ export default function App() {
             type="button"
             aria-label={`Abrir estação: ${station.title}`}
             title={station.title}
-            onClick={() => { setCraftingStationId(station.id); if (station.id === 'bigorna') { setSelectedAnvilCoreId(null); setSelectedAnvilPrimary(null); setSelectedAnvilSecondary(null); } if (!cookingOnline && station.id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
+            onClick={() => { setCraftingStationId(station.id); if (station.id === 'bigorna') { setAnvilTab('weapons'); setSelectedAnvilCoreId(null); setSelectedAnvilPrimary(null); setSelectedAnvilSecondary(null); setWeaponFeedback(''); setLastCraftedWeapon(null); } if (!cookingOnline && station.id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
           >
             <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
             <span>{station.label}</span>
@@ -2497,7 +2574,65 @@ export default function App() {
               <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
               {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
               {activeCraftingStation.id === 'bigorna' ? <>
-                <div className="anvil-station-form">
+                <div className="anvil-tabs" role="tablist" aria-label="Tipos de fabricação na Bigorna">
+                  <button type="button" role="tab" aria-selected={anvilTab === 'weapons'} className={anvilTab === 'weapons' ? 'active' : ''} onClick={() => setAnvilTab('weapons')}>Armas</button>
+                  <button type="button" role="tab" aria-selected={anvilTab === 'armor'} className={anvilTab === 'armor' ? 'active' : ''} onClick={() => setAnvilTab('armor')}>Armaduras</button>
+                </div>
+                {anvilTab === 'weapons' ? <div className="weapon-anvil-form">
+                  <section className="weapon-anvil-panel">
+                    <div className="weapon-anvil-heading"><strong>① Núcleo revelado de arma</strong><span>Escolha 1 núcleo do Baú</span></div>
+                    <div className="weapon-core-list">
+                      {anvilCoreStacks.map(item => {
+                        const parsed = parseCoreItemId(item.itemId);
+                        if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
+                        const core = parsed.core;
+                        return <button type="button" key={item.itemId} className={selectedAnvilCoreId === item.itemId ? 'weapon-core-choice selected' : 'weapon-core-choice'} onClick={() => { setSelectedAnvilCoreId(item.itemId); setWeaponFeedback(''); }}>
+                          <span className="weapon-core-choice-top"><b>💠 {coreRarityLabel(core.rarity)}</b><small>{core.affinity === 'dano' ? 'Afinidade: Dano' : core.affinity === 'natureza' ? 'Afinidade: Natureza' : 'Sem afinidade'}</small></span>
+                          <span className="weapon-core-attributes">{core.attributes.map(attribute => <span key={attribute.key}>{({ forca: 'Força', velocidadeAtaque: 'Vel. de ataque', inteligencia: 'Inteligência', destreza: 'Destreza', vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resist. mágica', velocidadeMovimento: 'Vel. movimento', esquiva: 'Esquiva' } as Record<CoreAttributeKey, string>)[attribute.key]} · {({ ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' })[coreAttributeTier(attribute.value, core.rarity)]}</span>)}</span>
+                          {core.surp && <em>SURP</em>}
+                        </button>;
+                      })}
+                      {anvilCoreStacks.length === 0 && <p className="anvil-empty-inventory">Nenhum núcleo revelado de arma no Baú.</p>}
+                    </div>
+                    {selectedWeaponCore && <div className="weapon-core-selected"><strong>Núcleo selecionado · {coreRarityLabel(selectedWeaponCore.rarity)}</strong><span>{selectedWeaponCore.affinity === 'dano' ? 'Afinidade Dano' : selectedWeaponCore.affinity === 'natureza' ? 'Afinidade Natureza' : 'Sem afinidade'}</span></div>}
+                  </section>
+                  <section className="weapon-anvil-panel">
+                    <div className="weapon-anvil-heading"><strong>② Modelo e material principal</strong><span>As quantidades usam a raridade do núcleo</span></div>
+                    <div className="weapon-model-grid">
+                      {([{ id: 'espada', label: 'Espada', icon: '⚔️' }, { id: 'arco', label: 'Arco', icon: '🏹' }, { id: 'cajado', label: 'Cajado', icon: '🪄' }, { id: 'bastao', label: 'Bastão da Natureza', icon: '🌿' }] as const).map(option => <button type="button" key={option.id} className={weaponModel === option.id ? 'selected' : ''} onClick={() => setWeaponModel(option.id)}><span>{option.icon}</span><b>{option.label}</b></button>)}
+                    </div>
+                    <div className="weapon-tier-toggle" aria-label="Tipo de material principal">
+                      <button type="button" className={weaponTier === 1 ? 'selected' : ''} onClick={() => setWeaponTier(1)}>Tipo 1 · Pedra</button>
+                      <button type="button" className={weaponTier === 2 ? 'selected' : ''} onClick={() => setWeaponTier(2)}>Tipo 2 · Bronze</button>
+                    </div>
+                    <div className="weapon-recipe-list">
+                      <strong>Receita · {selectedWeaponCore ? coreRarityLabel(selectedWeaponCore.rarity) : 'selecione um núcleo'}</strong>
+                      {selectedWeaponCore ? weaponRecipeItems.map(item => <div key={item.itemId}><span>{item.label} · {coreRarityLabel(selectedWeaponCore.rarity)}</span><b>{item.have}/{item.quantity}</b></div>) : <small>Selecione um núcleo revelado para conferir os materiais exatos.</small>}
+                    </div>
+                  </section>
+                  {selectedWeaponCore && <section className="weapon-anvil-panel weapon-core-warnings">
+                    <strong>③ Compatibilidade do núcleo</strong>
+                    {weaponAffinityError && <p className="weapon-warning">{weaponAffinityError}</p>}
+                    {weaponInactiveAttributes.length > 0 && <p className={weaponHasActiveAttribute ? 'weapon-warning' : 'weapon-warning strong'}>{!weaponHasActiveAttribute ? 'Este núcleo não dará bônus a esta arma.' : 'Atributos não utilizados por este modelo: ' + weaponInactiveAttributes.map(attribute => ({ forca: 'Força', velocidadeAtaque: 'Vel. de ataque', inteligencia: 'Inteligência', destreza: 'Destreza', vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resist. mágica', velocidadeMovimento: 'Vel. movimento', esquiva: 'Esquiva' } as Record<CoreAttributeKey, string>)[attribute.key]).join(', ') + '.'}</p>}
+                  </section>}
+                  <div className="weapon-anvil-footer">
+                    {!cookingOnline && <p className="weapon-warning">Sem conexão: fabricar exige internet</p>}
+                    {weaponFeedback && <p role="status">{weaponFeedback}</p>}
+                    {lastCraftedWeapon && <div className="weapon-crafted-result"><strong>{({ espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' } as Record<WeaponModel, string>)[lastCraftedWeapon.model]} · {coreRarityLabel(lastCraftedWeapon.rarity)}</strong><span>Dano: {lastCraftedWeapon.damage}{lastCraftedWeapon.surp ? ' · SURP' : ''}</span></div>}
+                    <button type="button" disabled={!selectedWeaponCore || !weaponMaterialsReady || !!weaponAffinityError || !cookingOnline || !fibulaSupabase || weaponBusy} onClick={() => void craftSelectedWeapon()}>{weaponBusy ? 'Fabricando…' : 'Fabricar'}</button>
+                  </div>
+                  <section className="weapon-anvil-panel weapon-crafted-list">
+                    <div className="weapon-anvil-heading"><strong>Armas fabricadas</strong><span>Últimas 50</span></div>
+                    {myWeaponsLoading && <p>Carregando armas…</p>}
+                    {myWeaponsError && <p className="weapon-warning" role="status">{myWeaponsError}</p>}
+                    {!myWeaponsLoading && !myWeaponsError && myWeapons.length === 0 && <p>Nenhuma arma fabricada ainda.</p>}
+                    {myWeapons.map(weapon => <article className="weapon-crafted-card" key={weapon.id}>
+                      <div><strong>{({ espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' } as Record<WeaponModel, string>)[weapon.model]} · {coreRarityLabel(weapon.rarity)}</strong><b>Dano {weapon.damage}{weapon.surp ? ' · SURP' : ''}</b></div>
+                      <small>{weapon.coreAffinity === 'dano' ? 'Afinidade Dano' : weapon.coreAffinity === 'natureza' ? 'Afinidade Natureza' : 'Sem afinidade'}</small>
+                      <ul>{weapon.attributes.map((attribute, index) => <li key={attribute.key + '-' + index} className={WEAPON_ACTIVE_ATTRIBUTES[weapon.model].includes(attribute.key) ? '' : 'inactive'}><span>{({ forca: 'Força', velocidadeAtaque: 'Vel. de ataque', inteligencia: 'Inteligência', destreza: 'Destreza', vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resist. mágica', velocidadeMovimento: 'Vel. movimento', esquiva: 'Esquiva' } as Record<CoreAttributeKey, string>)[attribute.key]}</span><b>{({ ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' })[coreAttributeTier(attribute.value, weapon.rarity)]}</b>{!WEAPON_ACTIVE_ATTRIBUTES[weapon.model].includes(attribute.key) && <em>não ativo</em>}</li>)}</ul>
+                    </article>)}
+                  </section>
+                </div> : <div className="anvil-station-form">
                   <section className="anvil-core-panel">
                     <div className="anvil-section-heading"><strong>① NÚCLEO</strong><span>Escolha o núcleo que define o equipamento</span></div>
                     <div className={selectedAnvilCoreId ? 'anvil-core-slot filled' : 'anvil-core-slot'}>
@@ -2559,7 +2694,7 @@ export default function App() {
                     <button type="button" disabled>Fabricar equipamento</button>
                     <small>A fabricação será habilitada quando os núcleos e a integração do equipamento estiverem disponíveis.</small>
                   </div>
-                </div>
+                </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form">
                   <div className="cooking-production-panel">
