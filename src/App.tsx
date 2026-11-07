@@ -13,7 +13,7 @@ import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
-import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_ACTIVE_ATTRIBUTES, WEAPON_RECIPES, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
+import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -332,6 +332,29 @@ const itemLabel = (itemId: string) => {
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
 const weaponModelLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' };
+type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
+const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
+function readEquippedWeaponSelections(userId: string): EquippedWeaponSelections {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(equippedWeaponStorageKey(userId)) ?? '{}');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const selections: EquippedWeaponSelections = {};
+    for (const classId of ['guerreiro', 'mago', 'arqueiro', 'druida'] as const) {
+      const id = (parsed as Record<string, unknown>)[classId];
+      if (typeof id === 'string' && id.length > 0) selections[classId] = id;
+    }
+    return selections;
+  } catch { return {}; }
+}
+function writeEquippedWeaponSelections(userId: string, selections: EquippedWeaponSelections): void {
+  try { window.localStorage.setItem(equippedWeaponStorageKey(userId), JSON.stringify(selections)); } catch { /* Armazenamento local indisponível. */ }
+}
+function selectedWeaponForClass(weapons: CraftedWeapon[], selections: EquippedWeaponSelections, classId: ClassId): CraftedWeapon | null {
+  const id = selections[classId];
+  if (!id) return null;
+  const weapon = weapons.find(item => item.id === id);
+  return weapon && WEAPON_CLASS_BY_MODEL[weapon.model] === classId ? weapon : null;
+}
 const weaponAttributeLabels: Record<CoreAttributeKey, string> = {
   forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
   vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
@@ -719,6 +742,7 @@ export default function App() {
   const [selectedWeaponModel, setSelectedWeaponModel] = useState<WeaponModel>('espada');
   const [selectedWeaponTier, setSelectedWeaponTier] = useState<1 | 2>(1);
   const [craftedWeapons, setCraftedWeapons] = useState<CraftedWeapon[]>([]);
+  const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
@@ -1875,22 +1899,37 @@ export default function App() {
     }
   };
   useEffect(() => {
-    if (craftingStationId !== 'bigorna' || anvilTab !== 'armas') return;
     let active = true;
-    if (!fibulaSupabase) {
-      setCraftedWeapons([]);
+    const savedSelections = readEquippedWeaponSelections(session.user.sub);
+    setEquippedWeaponIds(savedSelections);
+    engineRef.current?.setEquippedWeapon(null);
+    if (!fibulaSupabase || !cookingOnline) {
       setWeaponsLoading(false);
-      setWeaponFeedback('Entre na sua conta para carregar as armas fabricadas.');
-      return;
+      return () => { active = false; };
     }
     setWeaponsLoading(true);
     void listMyWeapons(fibulaSupabase).then(items => {
-      if (active) { setCraftedWeapons(items); setWeaponFeedback(''); }
+      if (!active) return;
+      const validSelections: EquippedWeaponSelections = {};
+      for (const classId of ['guerreiro', 'mago', 'arqueiro', 'druida'] as const) {
+        const selected = selectedWeaponForClass(items, savedSelections, classId);
+        if (selected) validSelections[classId] = selected.id;
+      }
+      setCraftedWeapons(items);
+      setEquippedWeaponIds(validSelections);
+      writeEquippedWeaponSelections(session.user.sub, validSelections);
+      const activeClass = engineRef.current?.state.classId ?? characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
+      const equipped = selectedWeaponForClass(items, validSelections, activeClass);
+      engineRef.current?.setEquippedWeapon(equipped ? { model: equipped.model, damage: equipped.damage, attributes: equipped.attributes } : null);
+      setWeaponFeedback('');
     }).catch(cause => {
-      if (active) setWeaponFeedback(cause instanceof Error ? cause.message : 'Não foi possível carregar as armas fabricadas.');
+      if (active) {
+        engineRef.current?.setEquippedWeapon(null);
+        setWeaponFeedback(cause instanceof Error ? cause.message : 'Não foi possível carregar as armas fabricadas.');
+      }
     }).finally(() => { if (active) setWeaponsLoading(false); });
     return () => { active = false; };
-  }, [craftingStationId, anvilTab, session.user.sub]);
+  }, [session.user.sub, cookingOnline]);
 
   const revealChestCore = (itemId: string) => {
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
@@ -2110,6 +2149,8 @@ export default function App() {
       houseMatchClosedRef.current = false;
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
+      const selectedWeapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, selectedClass);
+      engine.setEquippedWeapon(selectedWeapon ? { model: selectedWeapon.model, damage: selectedWeapon.damage, attributes: selectedWeapon.attributes } : null);
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
@@ -2207,7 +2248,10 @@ export default function App() {
         setAccountLevel(duoAccountLevel);
         setJabuticabaProgress(Math.max(0, Number(duoAccountProfile.jabuticaba_progress) || 0));
         engine.setAccountLevel(duoAccountLevel);
-        engine.setClass(characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro');
+        const duoSelectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
+        engine.setClass(duoSelectedClass);
+        const duoSelectedWeapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, duoSelectedClass);
+        engine.setEquippedWeapon(duoSelectedWeapon ? { model: duoSelectedWeapon.model, damage: duoSelectedWeapon.damage, attributes: duoSelectedWeapon.attributes } : null);
         engine.configureCooperativeMatch(playerSeed as number, {
           waitForNightRelease: true,
           hordeTargetForNight: night => night >= duoSoloFromNightRef.current
@@ -2245,7 +2289,33 @@ export default function App() {
     };
   }, [duoPeer?.matchId, duoPeer?.roomId, duoPeer?.friendId, session.user.sub, characterPreferences]);
 
-  const pickClass = (id: ClassId) => engineRef.current?.setClass(id);
+  const applyClassAndEquippedWeapon = (id: ClassId) => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.setClass(id);
+    const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, id);
+    engine.setEquippedWeapon(weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null);
+  };
+  const equipCraftedWeapon = (weapon: CraftedWeapon) => {
+    const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
+    const next = { ...equippedWeaponIds, [classId]: weapon.id };
+    setEquippedWeaponIds(next);
+    writeEquippedWeaponSelections(session.user.sub, next);
+    if (engineRef.current?.state.classId === classId) {
+      engineRef.current.setEquippedWeapon({ model: weapon.model, damage: weapon.damage, attributes: weapon.attributes });
+    }
+    setWeaponFeedback(weaponModelLabels[weapon.model] + ' equipada para ' + classId + '.');
+  };
+  const unequipCraftedWeapon = (weapon: CraftedWeapon) => {
+    const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
+    const next = { ...equippedWeaponIds };
+    delete next[classId];
+    setEquippedWeaponIds(next);
+    writeEquippedWeaponSelections(session.user.sub, next);
+    if (engineRef.current?.state.classId === classId) engineRef.current.setEquippedWeapon(null);
+    setWeaponFeedback(weaponModelLabels[weapon.model] + ' desequipada.');
+  };
+  const pickClass = (id: ClassId) => applyClassAndEquippedWeapon(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
   const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
@@ -2725,16 +2795,21 @@ export default function App() {
                     <div className="weapon-anvil-heading"><strong>Armas fabricadas</strong><span>{craftedWeapons.length}/50</span></div>
                     {weaponsLoading ? <p className="weapon-anvil-muted">Carregando armas…</p>
                       : craftedWeapons.length === 0 ? <p className="weapon-anvil-muted">Nenhuma arma fabricada ainda.</p>
-                        : <div className="weapon-anvil-crafted-list">{craftedWeapons.map(weapon => <article className="weapon-anvil-crafted" key={weapon.id}>
-                          <header><strong>{weaponModelLabels[weapon.model]} · {coreRarityLabel(weapon.rarity)}</strong>
-                            <span>{weapon.surp && <b className="weapon-anvil-surp">SURP</b>}<b>Dano {weapon.damage}</b></span></header>
-                          <small>Núcleo: {weapon.coreSurp ? 'SURP · ' : ''}{weapon.coreAffinity === 'dano' ? 'Dano' : weapon.coreAffinity === 'natureza' ? 'Natureza' : 'Sem afinidade'}</small>
-                          <ul>{weapon.attributes.map((attribute, index) => {
-                            const active = WEAPON_ACTIVE_ATTRIBUTES[weapon.model].includes(attribute.key);
-                            const tier = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' }[coreAttributeTier(attribute.value, weapon.rarity)];
-                            return <li key={attribute.key + '-' + index} className={active ? '' : 'weapon-attribute-inactive'}><span>{weaponAttributeLabels[attribute.key]}{active ? '' : ' · não ativo'}</span><b>{tier}</b></li>;
-                          })}</ul>
-                        </article>)}</div>}
+                        : <div className="weapon-anvil-crafted-list">{craftedWeapons.map(weapon => {
+                          const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
+                          const equipped = equippedWeaponIds[classId] === weapon.id;
+                          return <article className="weapon-anvil-crafted" key={weapon.id}>
+                            <header><strong>{weaponModelLabels[weapon.model]} · {coreRarityLabel(weapon.rarity)}</strong>
+                              <span>{equipped && <b className="weapon-anvil-equipped">Equipada</b>}{weapon.surp && <b className="weapon-anvil-surp">SURP</b>}<b>Dano {weapon.damage}</b></span></header>
+                            <small>Núcleo: {weapon.coreSurp ? 'SURP · ' : ''}{weapon.coreAffinity === 'dano' ? 'Dano' : weapon.coreAffinity === 'natureza' ? 'Natureza' : 'Sem afinidade'}</small>
+                            <ul>{weapon.attributes.map((attribute, index) => {
+                              const active = WEAPON_ACTIVE_ATTRIBUTES[weapon.model].includes(attribute.key);
+                              const tier = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' }[coreAttributeTier(attribute.value, weapon.rarity)];
+                              return <li key={attribute.key + '-' + index} className={active ? '' : 'weapon-attribute-inactive'}><span>{weaponAttributeLabels[attribute.key]}{active ? '' : ' · não ativo'}</span><b>{tier}</b></li>;
+                            })}</ul>
+                            <button type="button" className="weapon-anvil-equip-button" onClick={() => equipped ? unequipCraftedWeapon(weapon) : equipCraftedWeapon(weapon)}>{equipped ? 'Desequipar' : 'Equipar'}</button>
+                          </article>;
+                        })}</div>}
                   </section>
                 </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
