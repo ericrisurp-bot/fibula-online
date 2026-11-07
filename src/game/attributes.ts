@@ -15,24 +15,26 @@ export type AttributeKey =
 
 export type EffectAttribute = 'vida' | 'armadura' | 'velocidadeMovimento' | 'velocidadeAtaque' | 'esquiva';
 export type PlayerAttributes = Record<AttributeKey, number>;
+export type AttributeBaseBonuses = Partial<Record<AttributeKey, number>>;
 
-export function getPlayerAttributes(classId: ClassId, level: number, pointsPerLevel = 1): PlayerAttributes {
+export function getPlayerAttributes(classId: ClassId, level: number, pointsPerLevel = 1, baseBonuses: AttributeBaseBonuses = {}): PlayerAttributes {
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
   const multipliers = classMultipliers[classId];
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
+  const base = (key: AttributeKey) => baseValue + (ATTRIBUTE_USAGE[classId][key] > 0 ? baseBonuses[key] ?? 0 : 0);
 
   return {
-    vida: baseValue + gainedLevels * multipliers.vida,
-    forca: baseValue + gainedLevels * multipliers.forca,
-    armadura: baseValue + gainedLevels * multipliers.armadura,
-    resistenciaMagica: baseValue + gainedLevels * multipliers.resistenciaMagica,
-    inteligencia: baseValue + gainedLevels * multipliers.inteligencia,
-    destreza: baseValue + gainedLevels * multipliers.destreza,
-    velocidadeMovimento: baseValue + gainedLevels * multipliers.velocidadeMovimento,
-    velocidadeAtaque: baseValue + gainedLevels * multipliers.velocidadeAtaque,
-    alcanceAtaque: baseValue + gainedLevels * multipliers.alcanceAtaque,
-    esquiva: baseValue + gainedLevels * multipliers.esquiva,
-    areaAtaque: baseValue + gainedLevels * multipliers.areaAtaque,
+    vida: base('vida') + gainedLevels * multipliers.vida,
+    forca: base('forca') + gainedLevels * multipliers.forca,
+    armadura: base('armadura') + gainedLevels * multipliers.armadura,
+    resistenciaMagica: base('resistenciaMagica') + gainedLevels * multipliers.resistenciaMagica,
+    inteligencia: base('inteligencia') + gainedLevels * multipliers.inteligencia,
+    destreza: base('destreza') + gainedLevels * multipliers.destreza,
+    velocidadeMovimento: base('velocidadeMovimento') + gainedLevels * multipliers.velocidadeMovimento,
+    velocidadeAtaque: base('velocidadeAtaque') + gainedLevels * multipliers.velocidadeAtaque,
+    alcanceAtaque: base('alcanceAtaque') + gainedLevels * multipliers.alcanceAtaque,
+    esquiva: base('esquiva') + gainedLevels * multipliers.esquiva,
+    areaAtaque: base('areaAtaque') + gainedLevels * multipliers.areaAtaque,
   };
 }
 
@@ -48,12 +50,12 @@ export const ATTRIBUTE_USAGE: Record<ClassId, Record<AttributeKey, number>> = {
 
 const DAMAGE_ATTRIBUTES = ['forca', 'inteligencia', 'destreza'] as const;
 
-export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLevel = 1): number {
+export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLevel = 1, baseBonuses: AttributeBaseBonuses = {}): number {
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
   const multipliers = classMultipliers[classId];
   const usage = ATTRIBUTE_USAGE[classId];
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
-  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + gainedLevels * multipliers[key]), 0);
+  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + (usage[key] > 0 ? baseBonuses[key] ?? 0 : 0) + gainedLevels * multipliers[key]), 0);
 
   return damageAttributeValue / baseValue;
 }
@@ -67,6 +69,12 @@ export function getAttributeEffectPerLevel(classId: ClassId, level: number, attr
 /** Converte um bônus temporário aplicado ao atributo-base em seu efeito de jogo,
  * preservando a escala de progressão por nível e classe.
  */
+/** Efeito direto de pontos adicionados ao valor-base, sem aplicar novamente o multiplicador de classe/nível. */
+export function getAttributeBaseValueEffect(attribute: EffectAttribute, baseBonus: number): number {
+  if (!Number.isFinite(baseBonus) || baseBonus <= 0) return 0;
+  return baseBonus * CONFIG.attributes.effectPerPointGained[attribute];
+}
+
 export function getAttributeBaseBonusEffect(
   classId: ClassId,
   level: number,

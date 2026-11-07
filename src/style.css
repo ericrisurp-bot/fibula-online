@@ -4842,3 +4842,26 @@ button, button * {
   .weapon-anvil-core-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .weapon-anvil-choice-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Estado e ações de equipamento das armas fabricadas. */
+.weapon-anvil-equipped {
+  padding: 3px 6px;
+  border: 1px solid #aeb8aa;
+  border-radius: 5px;
+  background: #414941;
+  color: #f0f3ed;
+  font-size: 9px;
+  font-weight: 900;
+}
+.weapon-anvil-equip-button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #899487;
+  border-radius: 8px;
+  background: #414941;
+  color: #f0f3ed;
+  font-size: 10px;
+  font-weight: 800;
+}
+.weapon-anvil-equip-button:hover { background: #515b50; }

@@ -1,4 +1,4 @@
-import { CONFIG, type WeaponId } from './config';
+import { CONFIG, type ClassId, type WeaponId } from './config';
 import { BOW_ARROW_CENTER, STAFF_TIP_LOCAL, arrowNockAlpha, setDrawnMuzzle } from './rangedWeapons';
 import type { CoreAttributeKey, CoreRarity } from './cores';
 
@@ -477,6 +477,12 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
 /* Cliente da Bigorna de armas: o servidor é a única autoridade sobre resultados. */
 
 export type WeaponModel = 'espada' | 'arco' | 'cajado' | 'bastao';
+export type WeaponAttribute = { key: CoreAttributeKey; value: number };
+export type EquippedWeapon = { model: WeaponModel; damage: number; attributes: WeaponAttribute[] };
+export const WEAPON_CORE_POINTS_PER_VALUE = 30;
+export const WEAPON_CLASS_BY_MODEL: Record<WeaponModel, ClassId> = {
+  espada: 'guerreiro', arco: 'arqueiro', cajado: 'mago', bastao: 'druida',
+};
 export type CraftedWeapon = {
   id: string;
   model: WeaponModel;
