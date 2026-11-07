@@ -331,6 +331,7 @@ const itemLabel = (itemId: string) => {
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
+const weaponModelLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' };
 const itemRarityGlow = (itemId: string): React.CSSProperties => {
   const parsedCore = parseCoreItemId(itemId);
   const rarity = parsedCore ? (parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity) : getItemRarity(itemId);
@@ -1827,16 +1828,6 @@ export default function App() {
     setLobbyChestItems(nextInventory);
     engineRef.current?.setHouseInventory(nextInventory);
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
-  };
-  const reloadCraftedWeapons = async () => {
-    if (!fibulaSupabase) throw new Error('Entre na sua conta para carregar as armas fabricadas.');
-    setWeaponsLoading(true);
-    try {
-      setCraftedWeapons(await listMyWeapons(fibulaSupabase));
-      setWeaponFeedback('');
-    } finally {
-      setWeaponsLoading(false);
-    }
   };
   const craftAnvilWeapon = async () => {
     if (!cookingOnline || !fibulaSupabase) {
