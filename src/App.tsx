@@ -1878,7 +1878,9 @@ export default function App() {
     }
     setWeaponCraftBusy(true);
     setWeaponFeedback('');
+    let serverCallMade = false;
     try {
+      serverCallMade = true;
       const result = await craftWeapon(fibulaSupabase, selectedWeaponModel, selectedWeaponTier, selectedWeaponCoreId);
       // A resposta transacional do servidor é a fonte única: não recalcula nem sincroniza outro Baú.
       applyCookingInventory(result.inventory.map(stack => ({ itemId: stack.itemId, quantity: stack.quantity })));
@@ -1895,6 +1897,14 @@ export default function App() {
       }
     } catch (cause) {
       setWeaponFeedback(cause instanceof Error ? cause.message : 'Não foi possível fabricar a arma.');
+      if (serverCallMade) {
+        try {
+          await refreshLobbyChestFromCloud();
+        } catch (refreshCause) {
+          setWeaponFeedback(current => current + ' Não foi possível recarregar o Baú da nuvem: '
+            + (refreshCause instanceof Error ? refreshCause.message : 'erro ao atualizar o Baú.'));
+        }
+      }
     } finally {
       setWeaponCraftBusy(false);
     }

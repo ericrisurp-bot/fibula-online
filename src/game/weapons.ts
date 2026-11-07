@@ -591,7 +591,7 @@ export async function craftWeapon(
   });
   if (error) throw new Error(error.message || 'O servidor recusou a fabricação da arma.');
   const payload = readWeaponObject(data, 'a resposta não é um objeto.');
-  return { weapon: readCraftedWeapon(payload.weapon), inventory: readWeaponInventory(payload.inventory) };
+  return { weapon: readStoredWeapon(payload.weapon), inventory: readWeaponInventory(payload.inventory) };
 }
 function readStoredWeapon(value: unknown): CraftedWeapon {
   const row = readWeaponObject(value, 'a linha da tabela contém dados inválidos.');
