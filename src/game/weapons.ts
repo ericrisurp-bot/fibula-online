@@ -1,4 +1,5 @@
 import { CONFIG, type WeaponId } from './config';
+import type { Core, CoreAttributeKey, CoreRarity } from './cores';
 import { BOW_ARROW_CENTER, STAFF_TIP_LOCAL, arrowNockAlpha, setDrawnMuzzle } from './rangedWeapons';
 
 type Point = readonly [number, number];
@@ -473,8 +474,6 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
   ctx.restore();
 }
 
-
-import type { Core, CoreAttributeKey, CoreRarity } from './cores';
 
 export type WeaponModel = 'espada' | 'arco' | 'cajado' | 'bastao';
 export type WeaponAttribute = { key: CoreAttributeKey; value: number };
