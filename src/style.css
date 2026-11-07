@@ -4749,3 +4749,63 @@ button, button * {
 .core-detail-panel ul { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
 .core-detail-panel li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; border-top:1px solid rgba(220,225,220,.12); font-size:11px; }
 .core-detail-panel li b { color:#d5dcd2; font-size:10px; }
+
+
+/* Bigorna de armas: abas e painéis da fabricação via servidor. */
+.anvil-tabs{display:flex;gap:8px;margin:0 0 12px}
+.anvil-tabs button{flex:1;min-height:38px;border:1px solid #596159;border-radius:9px;background:#292e29;color:#cbd1c9;font-size:12px;font-weight:800}
+.anvil-tabs button.active{border-color:#c2c9c0;background:#454b45;color:#fff}
+.weapon-anvil-form{display:flex;flex-direction:column;gap:12px;width:100%}
+.weapon-anvil-panel{padding:12px;border:1px solid #626a62;border-radius:12px;background:linear-gradient(145deg,rgba(55,60,55,.96),rgba(29,32,29,.98));color:#edf0eb}
+.weapon-anvil-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;font-size:11px}
+.weapon-anvil-heading span{color:#aeb6ad;font-size:10px;text-align:right}
+.weapon-core-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;max-height:250px;overflow:auto}
+.weapon-core-choice{position:relative;display:flex;min-width:0;flex-direction:column;gap:7px;padding:10px;border:1px solid #596159;border-radius:9px;background:#303630;color:#e9ede7;text-align:left}
+.weapon-core-choice.selected{border-color:#c3cbc0;background:#485048}
+.weapon-core-choice-top{display:flex;justify-content:space-between;gap:6px;align-items:center}
+.weapon-core-choice-top b{font-size:11px}
+.weapon-core-choice-top small{color:#c2c9c0;font-size:9px}
+.weapon-core-attributes{display:flex;flex-wrap:wrap;gap:5px}
+.weapon-core-attributes span{padding:3px 5px;border-radius:5px;background:#222722;color:#dce2da;font-size:9px}
+.weapon-core-choice>em{position:absolute;right:7px;bottom:7px;color:#f2d58b;font-size:9px;font-style:normal;font-weight:900}
+.weapon-core-selected{display:flex;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid #596159;font-size:10px}
+.weapon-core-selected span{color:#c4cbc2}
+.weapon-model-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.weapon-model-grid button{display:flex;min-width:0;min-height:76px;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:6px 3px;border:1px solid #596159;border-radius:9px;background:#303630;color:#e9ede7}
+.weapon-model-grid button.selected,.weapon-tier-toggle button.selected{border-color:#c3cbc0;background:#485048;color:#fff}
+.weapon-model-grid button span{font-size:23px}
+.weapon-model-grid button b{font-size:9px;text-align:center}
+.weapon-tier-toggle{display:flex;gap:7px;margin-top:9px}
+.weapon-tier-toggle button{flex:1;min-height:34px;border:1px solid #596159;border-radius:8px;background:#292e29;color:#cbd1c9;font-size:10px;font-weight:800}
+.weapon-recipe-list{display:flex;flex-direction:column;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid #596159}
+.weapon-recipe-list>strong{font-size:11px}
+.weapon-recipe-list>div{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:7px;background:#222722;font-size:10px}
+.weapon-recipe-list>div b{font-variant-numeric:tabular-nums}
+.weapon-recipe-list>small{color:#aeb6ad;font-size:10px}
+.weapon-core-warnings{display:flex;flex-direction:column;gap:6px}
+.weapon-core-warnings>strong{font-size:11px}
+.weapon-warning{margin:0;padding:7px 8px;border:1px solid #766b50;border-radius:7px;background:#39352b;color:#f0d9a5;font-size:10px;line-height:1.4}
+.weapon-warning.strong{border-color:#8c6259;background:#3b2d2a;color:#ffd0c4;font-weight:800}
+.weapon-anvil-footer{display:flex;flex-direction:column;gap:8px}
+.weapon-anvil-footer>p{margin:0;color:#cbd1c9;font-size:10px;text-align:center}
+.weapon-anvil-footer>button{min-height:42px;border:1px solid #7c867a;border-radius:9px;background:#454d44;color:#fff;font-size:12px;font-weight:900}
+.weapon-anvil-footer>button:disabled{opacity:.45;cursor:not-allowed}
+.weapon-crafted-result{display:flex;justify-content:space-between;gap:8px;padding:9px;border:1px solid #8b8f78;border-radius:8px;background:#30352d;color:#f2f4ee;font-size:11px}
+.weapon-crafted-result span{font-variant-numeric:tabular-nums}
+.weapon-crafted-list>p{margin:6px 0;color:#bfc7bd;font-size:10px}
+.weapon-crafted-card{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:10px;border:1px solid #596159;border-radius:9px;background:#252a25}
+.weapon-crafted-card>div{display:flex;justify-content:space-between;gap:8px;color:#f1f3ef;font-size:11px}
+.weapon-crafted-card>small{color:#bfc7bd;font-size:9px}
+.weapon-crafted-card ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
+.weapon-crafted-card li{display:flex;align-items:center;gap:8px;padding-top:5px;border-top:1px solid #424942;font-size:10px}
+.weapon-crafted-card li span{flex:1}
+.weapon-crafted-card li b{color:#dce2da}
+.weapon-crafted-card li.inactive{color:#858d84}
+.weapon-crafted-card li.inactive span,.weapon-crafted-card li.inactive b{text-decoration:line-through}
+.weapon-crafted-card li em{color:#9da69b;font-size:9px;font-style:normal}
+@media(max-width:520px){
+  .weapon-anvil-panel{padding:9px}
+  .weapon-core-list{grid-template-columns:1fr}
+  .weapon-model-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .weapon-core-selected,.weapon-crafted-result{align-items:flex-start;flex-direction:column}
+}
