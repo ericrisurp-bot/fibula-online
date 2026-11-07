@@ -2731,7 +2731,9 @@ export default function App() {
                 })}
               </div>
               {(() => {
-                const parsed = selectedChestCoreItemId ? parseCoreItemId(selectedChestCoreItemId) : null;
+                const selectedItemId = selectedChestCoreItemId;
+                if (!selectedItemId) return null;
+                const parsed = parseCoreItemId(selectedItemId);
                 if (!parsed || parsed.kind !== 'revealed') return null;
                 const labels: Record<CoreAttributeKey, string> = {
                   forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
@@ -2739,7 +2741,7 @@ export default function App() {
                 };
                 const tiers = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' };
                 return <section className="core-detail-panel" aria-label="Atributos do núcleo revelado">
-                  <strong>{itemLabel(selectedChestCoreItemId)}</strong>{parsed.core.surp && <small>SURP</small>}
+                  <strong>{itemLabel(selectedItemId)}</strong>{parsed.core.surp && <small>SURP</small>}
                   <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}><span>{labels[attribute.key]}</span><b>{tiers[coreAttributeTier(attribute.value, parsed.core.rarity)]}</b></li>)}</ul>
                 </section>;
               })()}
