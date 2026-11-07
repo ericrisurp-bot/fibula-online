@@ -2,7 +2,7 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
+import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
@@ -2386,7 +2386,7 @@ export class GameEngine {
       speed: getAttributeBonus(classId, player.level, 'velocidadeMovimento', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento, this.pointsPerLevel()),
       armor: getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
       dodge: getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
-      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeAtaque', this.cookingBaseBonuses().velocidadeAtaque + (this.getWeaponAttributeBonuses().velocidadeAtaque ?? 0), this.pointsPerLevel()),
+      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeAtaque', this.cookingBaseBonuses().velocidadeAtaque, this.pointsPerLevel()) + getAttributeBaseValueEffect('velocidadeAtaque', this.getWeaponAttributeBonuses().velocidadeAtaque ?? 0),
     };
   }
 
