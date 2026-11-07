@@ -724,6 +724,7 @@ export default function App() {
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
+  const armorAnvilCoreStacks: HouseStorageStack[] = []; // Mantém o protótipo de armaduras sem núcleos disponíveis.
   const anvilCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((result, item) => {
     const parsed = parseCoreItemId(item.itemId);
     if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return result;
@@ -2576,7 +2577,7 @@ export default function App() {
               {activeCraftingStation.id === 'bigorna' ? <>
                 <div className="anvil-tabs" role="tablist" aria-label="Tipos de fabricação na Bigorna">
                   <button type="button" role="tab" aria-selected={anvilTab === 'weapons'} className={anvilTab === 'weapons' ? 'active' : ''} onClick={() => setAnvilTab('weapons')}>Armas</button>
-                  <button type="button" role="tab" aria-selected={anvilTab === 'armor'} className={anvilTab === 'armor' ? 'active' : ''} onClick={() => setAnvilTab('armor')}>Armaduras</button>
+                  <button type="button" role="tab" aria-selected={anvilTab === 'armor'} className={anvilTab === 'armor' ? 'active' : ''} onClick={() => { setAnvilTab('armor'); setSelectedAnvilCoreId(null); }}>Armaduras</button>
                 </div>
                 {anvilTab === 'weapons' ? <div className="weapon-anvil-form">
                   <section className="weapon-anvil-panel">
@@ -2641,13 +2642,13 @@ export default function App() {
                         : <><span>＋</span><strong>Coloque o núcleo aqui</strong><small>Espaço exclusivo do núcleo</small></>}
                     </div>
                     <div className="anvil-material-grid" aria-label="Núcleos disponíveis no Baú">
-                      {anvilCoreStacks.map(item => <button type="button" key={item.itemId}
+                      {armorAnvilCoreStacks.map(item => <button type="button" key={item.itemId}
                         className={selectedAnvilCoreId === item.itemId ? 'anvil-material-option selected' : 'anvil-material-option'}
                         disabled={item.quantity < 1 || (!!selectedAnvilCoreId && selectedAnvilCoreId !== item.itemId)}
                         onClick={() => setSelectedAnvilCoreId(item.itemId)}>
                         <span>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                       </button>)}
-                      {anvilCoreStacks.length === 0 && <p className="anvil-empty-inventory">Nenhum núcleo disponível no Baú.</p>}
+                      {armorAnvilCoreStacks.length === 0 && <p className="anvil-empty-inventory">Nenhum núcleo disponível no Baú.</p>}
                     </div>
                   </section>
                   <section className="anvil-materials-panel">
