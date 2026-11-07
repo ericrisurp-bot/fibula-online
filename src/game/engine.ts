@@ -5,7 +5,7 @@ import type { SoundEvent } from '../audio/types';
 import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
-import { CORE_DROP_CHANCE, coreToItemId, createCore, type CoreDrop } from './cores';
+import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 import { distanceToLakeEdge, isInsideLake, lakeColliderCircles, lakeSteeringCircles, lakeSlideDirection, pushOutOfLake, type Lake, type LakeCircle } from './lake';
@@ -1038,7 +1038,7 @@ export class GameEngine {
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
 
-  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => enemy.animalKind ? { ...enemy } : enemy), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], coreDrops: this.state.coreDrops.map(drop => ({ ...drop, core: { ...drop.core, attributes: drop.core.attributes.map(attribute => ({ ...attribute })) } })), inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => enemy.animalKind ? { ...enemy } : enemy), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], coreDrops: this.state.coreDrops.map(drop => ({ ...drop, core: { ...drop.core } })), inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -2124,7 +2124,7 @@ export class GameEngine {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const feet = playerFeet(this.state.player);
       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
-      const result = addToInventory(this.state.inventory, coreToItemId(drop.core), 1, CONFIG.inventory);
+      const result = addToInventory(this.state.inventory, closedCoreItemId(drop.core), 1, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
       this.state.coreDrops = this.state.coreDrops.filter(value => value.id !== drop.id);
@@ -2164,7 +2164,7 @@ export class GameEngine {
       ...this.state.linenDrops.map(drop => ({ drop, itemId: 'linen', amount: 1 })),
       ...this.state.bronzeDrops.map(drop => ({ drop, itemId: 'bronze', amount: 1 })),
       ...this.state.wildlifeDrops.map(drop => ({ drop, itemId: getRarityItemId(drop.kind, drop.rarity), amount: drop.amount })),
-      ...this.state.coreDrops.map(drop => ({ drop, itemId: coreToItemId(drop.core), amount: 1 })),
+      ...this.state.coreDrops.map(drop => ({ drop, itemId: closedCoreItemId(drop.core), amount: 1 })),
       ...this.state.jabuticabaDrops.map(drop => ({ drop, itemId: 'jabuticaba', amount: 1 })),
     ];
     let availableInventory = this.state.inventory;
@@ -2946,10 +2946,7 @@ export class GameEngine {
     this.state.dyingEnemies.push({ ...e, deathAge: 0 });
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
     if (this.random() < CORE_DROP_CHANCE) {
-      const coreId = this.headless
-        ? `core-${this.seed.toString(36)}-${this.randomState.toString(36)}-${this.nextId}`
-        : globalThis.crypto?.randomUUID?.() ?? `core-${Date.now().toString(36)}-${this.nextId}`;
-      const core = createCore(() => this.random(), coreId);
+      const core = createClosedCore(() => this.random());
       this.state.coreDrops.push({ id: this.nextId++, x: e.x, y: e.y, age: 0, core });
     }
     if (countForDruidHealingOrb && this.state.classId === 'druida' && this.state.healingOrbs.length < CONFIG.druidHeal.maxOrbs) {

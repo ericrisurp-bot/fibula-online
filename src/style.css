@@ -4734,3 +4734,18 @@ button, button * {
   .anvil-material-grid { grid-template-columns:repeat(auto-fill,minmax(68px,1fr)); }
   .anvil-material-slot { gap:6px; padding:8px 6px; }
 }
+
+
+/* Núcleos: interação exclusiva no Baú e leitura dos atributos revelados. */
+.core-reveal-slot { cursor:pointer; }
+.core-reveal-slot:focus-visible { outline:2px solid #c4cbc2; outline-offset:2px; }
+.core-reveal-slot.selected { border-color:#c2c9c0; background:#454b45; }
+.core-detail-panel {
+  display:flex; flex-direction:column; gap:8px; margin:10px 12px 14px; padding:12px;
+  border:1px solid #737b72; border-radius:10px; background:#252925; color:#edf0eb;
+}
+.core-detail-panel>strong { font-size:12px; }
+.core-detail-panel>small { color:#d5dcd2; font-size:9px; font-weight:900; letter-spacing:.08em; }
+.core-detail-panel ul { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+.core-detail-panel li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; border-top:1px solid rgba(220,225,220,.12); font-size:11px; }
+.core-detail-panel li b { color:#d5dcd2; font-size:10px; }
