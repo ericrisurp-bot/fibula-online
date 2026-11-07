@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
-import { coreFromItemId, coreRarityLabel } from './game/cores';
+import { coreAttributeTier, coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
@@ -229,10 +229,11 @@ function ProfileClassStats({ classId, accountLevel }: { classId: ClassId; accoun
   </div>;
 }
 
-const itemIcon = (itemId: string) => getBaseItemId(itemId) === 'core' ? '💎' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
+const itemIcon = (itemId: string) => parseCoreItemId(itemId)?.kind === 'closed' ? '💎' : parseCoreItemId(itemId)?.kind === 'revealed' ? '💠' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
 const inventoryItemIcon = (itemId: string) => {
   const base = getBaseItemId(itemId);
-  if (base === 'core') return <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>💎</span>;
+  const parsedCore = parseCoreItemId(itemId);
+  if (parsedCore) return <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{parsedCore.kind === 'closed' ? '💎' : '💠'}</span>;
   const fishFile: Record<string, string> = {
     tilapia: 'fish-tilapia.png', tambaqui: 'fish-tambaqui.png',
     pintado_surubim: 'fish-pintado-surubim.png', lambari: 'fish-lambari.png',
@@ -319,10 +320,11 @@ const cookingMealArtwork = (meal: CookingMeal) => {
 };
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
-  if (base === 'core') {
-    const core = coreFromItemId(itemId);
-    const category = core?.category === 'weapon' ? 'de arma' : core?.category === 'armor' ? 'de armadura' : core?.category === 'accessory' ? 'de acessório' : '';
-    return core ? `Núcleo ${category} · ${coreRarityLabel(core.rarity)}` : 'Núcleo';
+  const parsedCore = parseCoreItemId(itemId);
+  if (parsedCore) {
+    const category = (parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category) === 'weapon' ? 'de arma' : (parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category) === 'armor' ? 'de armadura' : 'de acessório';
+    const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
+    return `Núcleo ${category} · ${coreRarityLabel(rarity)}`;
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
@@ -631,6 +633,8 @@ export default function App() {
   const [chestTransferBusy, setChestTransferBusy] = useState(false);
   const [chestCloudReady, setChestCloudReady] = useState(false);
   const [chestTransferFeedback, setChestTransferFeedback] = useState('');
+  const [coreFeedback, setCoreFeedback] = useState('');
+  const [selectedChestCoreItemId, setSelectedChestCoreItemId] = useState<string | null>(null);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -1794,6 +1798,24 @@ export default function App() {
     engineRef.current?.setHouseInventory(nextInventory);
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
   };
+  const revealChestCore = (itemId: string) => {
+    const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
+    if (sourceIndex < 0) return;
+    const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(itemId);
+    if (!parsed || parsed.kind !== 'closed') return;
+    if (source.quantity > 1 && lobbyChestItems.length >= 50) {
+      setCoreFeedback('Baú cheio: libere um espaço para revelar o núcleo'); return;
+    }
+    const random = () => {
+      const values = new Uint32Array(1); window.crypto.getRandomValues(values);
+      return values[0] / 0x1_0000_0000;
+    };
+    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID()));
+    const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
+      : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
+    if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
+    applyCookingInventory(next); setSelectedChestCoreItemId(revealedItemId); setCoreFeedback('');
+  };
   const addAnvilMaterialUnit = (itemId: string, slot: 'primary' | 'secondary') => {
     const source = lobbyChestItems.find(item => item.itemId === itemId);
     if (!source) return;
@@ -2676,35 +2698,50 @@ export default function App() {
             </nav>
             {chestTab === 'resources' ? <>
               {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
+              {coreFeedback && <p className="lobby-chest-feedback" role="status">{coreFeedback}</p>}
               <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
                 {lobbyChestItems.map(item => {
-                  const isJabuticaba = item.itemId === 'jabuticaba';
+                  const isJabuticaba = item.itemId === 'jabuticaba', parsedCore = parseCoreItemId(item.itemId);
+                  const isClosedCore = parsedCore?.kind === 'closed', isRevealedCore = parsedCore?.kind === 'revealed', isCore = Boolean(parsedCore);
                   const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
-                  const consumeJabuticabaFromSlot = () => {
-                    if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba();
+                  const consumeJabuticabaFromSlot = () => { if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba(); };
+                  const activateCoreSlot = () => {
+                    if (isClosedCore) revealChestCore(item.itemId);
+                    else if (isRevealedCore) { setSelectedChestCoreItemId(current => current === item.itemId ? null : item.itemId); setCoreFeedback(''); }
                   };
+                  const selectedCore = selectedChestCoreItemId === item.itemId;
                   return <div key={item.itemId}
-                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
+                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}${isCore ? ' core-reveal-slot' : ''}${selectedCore ? ' selected' : ''}`}
                     aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}
-                    role={isJabuticaba ? 'button' : undefined}
-                    tabIndex={isJabuticaba ? 0 : undefined}
+                    role={isJabuticaba || isCore ? 'button' : undefined} tabIndex={isJabuticaba || isCore ? 0 : undefined}
                     aria-disabled={isJabuticaba ? jabuticabaDisabled : undefined}
-                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : undefined}
-                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : undefined}
-                    onKeyDown={isJabuticaba ? event => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        consumeJabuticabaFromSlot();
-                      }
+                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : isClosedCore ? 'Clique para revelar 1 núcleo' : isRevealedCore ? 'Clique para ver os atributos' : undefined}
+                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : isCore ? activateCoreSlot : undefined}
+                    onKeyDown={isJabuticaba || isCore ? event => {
+                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (isJabuticaba) consumeJabuticabaFromSlot(); else activateCoreSlot(); }
                     } : undefined}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                    {isClosedCore && <em>Fechado</em>}
+                    {isRevealedCore && parsedCore.core.surp && <em>SURP</em>}
                     {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
-                      event.stopPropagation();
-                      setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
+                      event.stopPropagation(); setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
                     }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
                   </div>;
                 })}
               </div>
+              {(() => {
+                const parsed = selectedChestCoreItemId ? parseCoreItemId(selectedChestCoreItemId) : null;
+                if (!parsed || parsed.kind !== 'revealed') return null;
+                const labels: Record<CoreAttributeKey, string> = {
+                  forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
+                  vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
+                };
+                const tiers = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' };
+                return <section className="core-detail-panel" aria-label="Atributos do núcleo revelado">
+                  <strong>{itemLabel(selectedChestCoreItemId)}</strong>{parsed.core.surp && <small>SURP</small>}
+                  <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}><span>{labels[attribute.key]}</span><b>{tiers[coreAttributeTier(attribute.value, parsed.core.rarity)]}</b></li>)}</ul>
+                </section>;
+              })()}
             </> : <>
               <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
                 {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
