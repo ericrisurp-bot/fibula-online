@@ -1901,6 +1901,7 @@ export default function App() {
   useEffect(() => {
     let active = true;
     const savedSelections = readEquippedWeaponSelections(session.user.sub);
+    setCraftedWeapons([]);
     setEquippedWeaponIds(savedSelections);
     engineRef.current?.setEquippedWeapon(null);
     if (!fibulaSupabase || !cookingOnline) {
@@ -1929,7 +1930,7 @@ export default function App() {
       }
     }).finally(() => { if (active) setWeaponsLoading(false); });
     return () => { active = false; };
-  }, [session.user.sub, cookingOnline]);
+  }, [session.user.sub, cookingOnline, characterPreferences[0], characterPreferences[1]]);
 
   const revealChestCore = (itemId: string) => {
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
@@ -2118,6 +2119,28 @@ export default function App() {
     }
   };
 
+  const prepareEquippedWeaponForClass = async (engine: GameEngine, classId: ClassId) => {
+    engine.setEquippedWeapon(null);
+    if (!fibulaSupabase || !cookingOnline) return;
+    try {
+      const items = await listMyWeapons(fibulaSupabase);
+      const saved = readEquippedWeaponSelections(session.user.sub);
+      const valid: EquippedWeaponSelections = {};
+      for (const candidateClass of ['guerreiro', 'mago', 'arqueiro', 'druida'] as const) {
+        const selected = selectedWeaponForClass(items, saved, candidateClass);
+        if (selected) valid[candidateClass] = selected.id;
+      }
+      setCraftedWeapons(items);
+      setEquippedWeaponIds(valid);
+      writeEquippedWeaponSelections(session.user.sub, valid);
+      const selected = selectedWeaponForClass(items, valid, classId);
+      engine.setEquippedWeapon(selected ? { model: selected.model, damage: selected.damage, attributes: selected.attributes } : null);
+    } catch {
+      // Sem uma lista validada nesta sessão, a partida segue sem arma fabricada equipada.
+      engine.setEquippedWeapon(null);
+    }
+  };
+
   const handleLobbyPlay = () => {
     if (duoPeer) {
       if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
@@ -2149,8 +2172,7 @@ export default function App() {
       houseMatchClosedRef.current = false;
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
-      const selectedWeapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, selectedClass);
-      engine.setEquippedWeapon(selectedWeapon ? { model: selectedWeapon.model, damage: selectedWeapon.damage, attributes: selectedWeapon.attributes } : null);
+      await prepareEquippedWeaponForClass(engine, selectedClass);
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
@@ -2250,8 +2272,7 @@ export default function App() {
         engine.setAccountLevel(duoAccountLevel);
         const duoSelectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
         engine.setClass(duoSelectedClass);
-        const duoSelectedWeapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, duoSelectedClass);
-        engine.setEquippedWeapon(duoSelectedWeapon ? { model: duoSelectedWeapon.model, damage: duoSelectedWeapon.damage, attributes: duoSelectedWeapon.attributes } : null);
+        await prepareEquippedWeaponForClass(engine, duoSelectedClass);
         engine.configureCooperativeMatch(playerSeed as number, {
           waitForNightRelease: true,
           hordeTargetForNight: night => night >= duoSoloFromNightRef.current
