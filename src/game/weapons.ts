@@ -1,5 +1,6 @@
 import { CONFIG, type WeaponId } from './config';
 import { BOW_ARROW_CENTER, STAFF_TIP_LOCAL, arrowNockAlpha, setDrawnMuzzle } from './rangedWeapons';
+import type { CoreAttributeKey, CoreRarity } from './cores';
 
 type Point = readonly [number, number];
 
@@ -471,4 +472,151 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
       break;
   }
   ctx.restore();
+}
+
+/* Cliente da Bigorna de armas: o servidor é a única autoridade sobre resultados. */
+
+export type WeaponModel = 'espada' | 'arco' | 'cajado' | 'bastao';
+export type CraftedWeapon = {
+  id: string;
+  model: WeaponModel;
+  rarity: CoreRarity;
+  tier: 1 | 2;
+  damage: number;
+  surp: boolean;
+  coreSurp: boolean;
+  coreAffinity: 'dano' | 'natureza' | null;
+  attributes: Array<{ key: CoreAttributeKey; value: number }>;
+  createdAt: string;
+};
+export type WeaponRecipeMaterial = { base: 'wood' | 'linen' | 'mineral'; quantity: number };
+export const WEAPON_RECIPES: Record<WeaponModel, { materials: readonly WeaponRecipeMaterial[] }> = {
+  espada: { materials: [{ base: 'wood', quantity: 5 }, { base: 'mineral', quantity: 10 }] },
+  arco: { materials: [{ base: 'wood', quantity: 5 }, { base: 'linen', quantity: 5 }, { base: 'mineral', quantity: 10 }] },
+  cajado: { materials: [{ base: 'wood', quantity: 5 }, { base: 'mineral', quantity: 10 }] },
+  bastao: { materials: [{ base: 'wood', quantity: 5 }, { base: 'mineral', quantity: 10 }] },
+};
+export const WEAPON_ACTIVE_ATTRIBUTES: Record<WeaponModel, readonly CoreAttributeKey[]> = {
+  espada: ['forca', 'velocidadeAtaque'],
+  arco: ['forca', 'destreza', 'velocidadeAtaque'],
+  cajado: ['inteligencia', 'velocidadeAtaque'],
+  bastao: ['inteligencia', 'velocidadeAtaque'],
+};
+export function weaponMaterialItemId(base: string, rarity: CoreRarity): string {
+  return rarity === 'normal' ? base : base + ':' + rarity;
+}
+export function weaponCoreCompatibility(model: WeaponModel, core: { affinity?: 'dano' | 'natureza' }): string | null {
+  if (model === 'cajado' && core.affinity === 'natureza') return 'Este núcleo tem afinidade Natureza e não é compatível com Cajado.';
+  if (model === 'bastao' && core.affinity === 'dano') return 'Este núcleo tem afinidade Dano e não é compatível com Bastão da Natureza.';
+  return null;
+}
+type WeaponClient = unknown;
+type WeaponInventory = Array<{ itemId: string; quantity: number }>;
+type WeaponCraftResult = { weapon: CraftedWeapon; inventory: WeaponInventory };
+const WEAPON_MODELS: readonly WeaponModel[] = ['espada', 'arco', 'cajado', 'bastao'];
+const WEAPON_RARITIES: readonly CoreRarity[] = ['normal', 'common', 'uncommon', 'rare', 'legendary'];
+const WEAPON_ATTRIBUTE_KEYS: readonly CoreAttributeKey[] = [
+  'forca', 'velocidadeAtaque', 'inteligencia', 'destreza', 'vida',
+  'armadura', 'resistenciaMagica', 'velocidadeMovimento', 'esquiva',
+];
+function invalidWeaponResponse(detail: string): Error {
+  return new Error('O servidor retornou dados inválidos para a Bigorna: ' + detail);
+}
+function readWeaponObject(value: unknown, detail: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalidWeaponResponse(detail);
+  return value as Record<string, unknown>;
+}
+function readWeaponAttributes(value: unknown): CraftedWeapon['attributes'] {
+  if (!Array.isArray(value) || !value.every(attribute => {
+    if (!attribute || typeof attribute !== 'object' || Array.isArray(attribute)) return false;
+    const row = attribute as Record<string, unknown>;
+    return typeof row.key === 'string' && WEAPON_ATTRIBUTE_KEYS.includes(row.key as CoreAttributeKey)
+      && typeof row.value === 'number' && Number.isFinite(row.value) && row.value >= 0;
+  })) throw invalidWeaponResponse('os atributos da arma estão ausentes ou inválidos.');
+  return value as CraftedWeapon['attributes'];
+}
+function readCraftedWeapon(value: unknown): CraftedWeapon {
+  const row = readWeaponObject(value, 'a arma está ausente ou não é um objeto.');
+  if (typeof row.id !== 'string' || row.id.length === 0
+    || !WEAPON_MODELS.includes(row.model as WeaponModel)
+    || !WEAPON_RARITIES.includes(row.rarity as CoreRarity)
+    || (row.tier !== 1 && row.tier !== 2)
+    || typeof row.damage !== 'number' || !Number.isFinite(row.damage) || row.damage < 0
+    || typeof row.surp !== 'boolean' || typeof row.coreSurp !== 'boolean'
+    || (row.coreAffinity !== null && row.coreAffinity !== 'dano' && row.coreAffinity !== 'natureza')
+    || typeof row.createdAt !== 'string' || !Number.isFinite(Date.parse(row.createdAt))) {
+    throw invalidWeaponResponse('os campos da arma estão ausentes ou inválidos.');
+  }
+  return {
+    id: row.id,
+    model: row.model as WeaponModel,
+    rarity: row.rarity as CoreRarity,
+    tier: row.tier,
+    damage: row.damage,
+    surp: row.surp,
+    coreSurp: row.coreSurp,
+    coreAffinity: row.coreAffinity as CraftedWeapon['coreAffinity'],
+    attributes: readWeaponAttributes(row.attributes),
+    createdAt: row.createdAt,
+  };
+}
+function readWeaponInventory(value: unknown): WeaponInventory {
+  if (!Array.isArray(value) || !value.every(stack => {
+    if (!stack || typeof stack !== 'object' || Array.isArray(stack)) return false;
+    const row = stack as Record<string, unknown>;
+    return typeof row.itemId === 'string' && row.itemId.length > 0
+      && Number.isSafeInteger(row.quantity) && (row.quantity as number) > 0;
+  })) throw invalidWeaponResponse('o inventário devolvido está ausente ou inválido.');
+  return value as WeaponInventory;
+}
+export async function craftWeapon(
+  client: WeaponClient,
+  model: WeaponModel,
+  tier: 1 | 2,
+  coreItemId: string,
+): Promise<WeaponCraftResult> {
+  const rpcClient = client as {
+    rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+  };
+  const { data, error } = await rpcClient.rpc('fibula_craft_weapon', {
+    p_model: model,
+    p_tier: tier,
+    p_core_item_id: coreItemId,
+  });
+  if (error) throw new Error(error.message || 'O servidor recusou a fabricação da arma.');
+  const payload = readWeaponObject(data, 'a resposta não é um objeto.');
+  return { weapon: readCraftedWeapon(payload.weapon), inventory: readWeaponInventory(payload.inventory) };
+}
+function readStoredWeapon(value: unknown): CraftedWeapon {
+  const row = readWeaponObject(value, 'a linha da tabela contém dados inválidos.');
+  return readCraftedWeapon({
+    id: row.id,
+    model: row.model,
+    rarity: row.rarity,
+    tier: row.tier,
+    damage: row.damage,
+    surp: row.surp,
+    coreSurp: row.core_surp,
+    coreAffinity: row.core_affinity,
+    attributes: row.attributes,
+    createdAt: row.created_at,
+  });
+}
+export async function listMyWeapons(client: WeaponClient): Promise<CraftedWeapon[]> {
+  const queryClient = client as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        order: (column: string, options: { ascending: boolean }) => {
+          limit: (count: number) => PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+        };
+      };
+    };
+  };
+  const { data, error } = await queryClient.from('fibula_weapons')
+    .select('id,model,rarity,tier,damage,surp,core_surp,core_affinity,attributes,created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw new Error(error.message || 'Não foi possível carregar as armas fabricadas.');
+  if (!Array.isArray(data)) throw invalidWeaponResponse('a lista de armas está ausente ou inválida.');
+  return data.map(readStoredWeapon);
 }

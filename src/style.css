@@ -4749,3 +4749,96 @@ button, button * {
 .core-detail-panel ul { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
 .core-detail-panel li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; border-top:1px solid rgba(220,225,220,.12); font-size:11px; }
 .core-detail-panel li b { color:#d5dcd2; font-size:10px; }
+
+/* Bigorna de armas: abas e painéis de fabricação, sem alterar o protótipo de armaduras. */
+.weapon-anvil-tabs {
+  display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:0 0 12px;
+  padding:5px; border:1px solid #555d55; border-radius:10px; background:#202420;
+}
+.weapon-anvil-tabs button,.weapon-anvil-choice-row button {
+  min-height:36px; border:1px solid #586158; border-radius:8px; background:#303630;
+  color:#cbd2c9; font-size:11px; font-weight:800;
+}
+.weapon-anvil-tabs button.active,.weapon-anvil-choice-row button.selected {
+  border-color:#aeb8aa; background:#485148; color:#fff;
+}
+.weapon-anvil-form { display:flex; flex-direction:column; gap:12px; width:100%; }
+.weapon-anvil-section {
+  min-width:0; padding:12px; border:1px solid #626a62; border-radius:12px;
+  background:linear-gradient(145deg,rgba(55,60,55,.96),rgba(29,32,29,.98));
+  box-shadow:inset 0 0 24px rgba(0,0,0,.22);
+}
+.weapon-anvil-heading {
+  display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px;
+  color:#edf0eb; font-size:11px;
+}
+.weapon-anvil-heading span { color:#aeb6ad; font-size:10px; text-align:right; }
+.weapon-anvil-core-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:7px;
+}
+.weapon-anvil-core {
+  display:flex; min-width:0; flex-direction:column; align-items:center; gap:5px;
+  padding:9px 7px; border:1px solid #596159; border-radius:9px; background:#303630; color:#e9ede7;
+  text-align:center;
+}
+.weapon-anvil-core.selected { border-color:#c3cbc0; background:#485048; }
+.weapon-anvil-core > span { font-size:25px; line-height:1.1; }
+.weapon-anvil-core > strong { color:#f2f4f0; font-size:11px; }
+.weapon-anvil-core > small { color:#c0c8bd; font-size:9px; }
+.weapon-anvil-core > b { color:#e0e5dd; font-size:10px; }
+.weapon-anvil-core ul,.weapon-anvil-crafted ul {
+  display:grid; width:100%; gap:4px; margin:2px 0 0; padding:0; list-style:none;
+}
+.weapon-anvil-core li {
+  padding-top:4px; border-top:1px solid rgba(220,225,220,.12); color:#d5dcd2; font-size:9px;
+}
+.weapon-anvil-empty,.weapon-anvil-muted {
+  margin:4px 0; color:#aeb6ad; font-size:10px; line-height:1.45;
+}
+.weapon-anvil-empty { grid-column:1/-1; text-align:center; }
+.weapon-anvil-choice-row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin:0 0 12px; }
+.weapon-anvil-choice-row:last-child { grid-template-columns:repeat(2,minmax(0,1fr)); margin-bottom:0; }
+.weapon-anvil-choice-row button { padding:6px 4px; font-size:10px; }
+.weapon-anvil-recipe { display:grid; gap:6px; }
+.weapon-anvil-recipe-row {
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:7px 8px; border:1px solid rgba(220,225,220,.12); border-radius:7px; background:rgba(12,15,12,.3);
+  color:#e6ebe3; font-size:10px;
+}
+.weapon-anvil-recipe-row strong { font-variant-numeric:tabular-nums; }
+.weapon-anvil-recipe-row .enough { color:#dce8d8; }
+.weapon-anvil-recipe-row .missing { color:#e5b7ad; }
+.weapon-anvil-warning {
+  margin:9px 0 0; padding:8px; border:1px solid #806c60; border-radius:7px;
+  background:rgba(90,57,45,.24); color:#f0d2c4; font-size:10px; line-height:1.45;
+}
+.weapon-anvil-warning.strong { border-color:#9b7564; color:#ffe0ce; font-weight:900; }
+.weapon-anvil-footer { display:flex; flex-direction:column; gap:7px; padding:0 2px; }
+.weapon-anvil-footer > button {
+  min-height:42px; border:1px solid #899487; border-radius:9px; background:#465047;
+  color:#f2f4f0; font-size:12px; font-weight:900;
+}
+.weapon-anvil-footer > button:disabled { opacity:.45; cursor:not-allowed; }
+.weapon-anvil-footer > p { margin:0; color:#c5cdc1; font-size:10px; line-height:1.45; text-align:center; }
+.weapon-anvil-crafted-list { display:grid; gap:8px; }
+.weapon-anvil-crafted {
+  display:flex; flex-direction:column; gap:7px; padding:10px;
+  border:1px solid #596159; border-radius:9px; background:#292e29; color:#e9ede7;
+}
+.weapon-anvil-crafted header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.weapon-anvil-crafted header strong { font-size:11px; }
+.weapon-anvil-crafted header span { display:flex; align-items:center; gap:7px; font-size:10px; }
+.weapon-anvil-crafted small { color:#bfc8bc; font-size:9px; }
+.weapon-anvil-surp { padding:3px 6px; border:1px solid #b38c51; border-radius:5px; color:#f1d59a; font-size:9px; }
+.weapon-anvil-crafted li {
+  display:flex; justify-content:space-between; gap:10px; padding-top:5px;
+  border-top:1px solid rgba(220,225,220,.1); color:#dce3d9; font-size:10px;
+}
+.weapon-anvil-crafted li b { color:#e7ece4; }
+.weapon-anvil-crafted li.weapon-attribute-inactive { color:#858e84; text-decoration:line-through; }
+.weapon-anvil-crafted li.weapon-attribute-inactive b { color:#858e84; }
+@media(max-width:520px) {
+  .weapon-anvil-section { padding:9px; }
+  .weapon-anvil-core-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .weapon-anvil-choice-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
