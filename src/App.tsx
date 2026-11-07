@@ -332,7 +332,8 @@ const itemLabel = (itemId: string) => {
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
 const itemRarityGlow = (itemId: string): React.CSSProperties => {
-  const rarity = getItemRarity(itemId);
+  const parsedCore = parseCoreItemId(itemId);
+  const rarity = parsedCore ? (parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity) : getItemRarity(itemId);
   const color = rarity === 'common' ? '#36d66f' : rarity === 'uncommon' ? '#348cff' : rarity === 'rare' ? '#a34be8' : rarity === 'legendary' ? '#ff8a24' : 'transparent';
   return rarity ? { filter: `drop-shadow(0 0 5px ${color})` } : {};
 };
