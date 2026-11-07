@@ -40,7 +40,7 @@ export function revealCore(random: () => number, category: CoreCategory, rarity:
 }
 export function coreAttributeTier(value: number, rarity: CoreRarity): 'ruim' | 'medio' | 'bom' | 'maximo' {
   const potency = value / CORE_RARITY_REFERENCE[rarity];
-  if (potency >= 0.999) return 'maximo';
+  if (potency >= 1) return 'maximo';
   if (potency >= 0.834) return 'bom';
   if (potency >= 0.667) return 'medio';
   return 'ruim';
