@@ -467,6 +467,7 @@ export default function App() {
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const applyClassAndEquippedWeaponRef = useRef<(id: ClassId) => void>(() => {});
   const houseLoadReadyRef = useRef(false);
   const houseChangedDuringLoadRef = useRef(false);
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
@@ -1734,10 +1735,10 @@ export default function App() {
       }
       engine.setKey(k, true);
       
-      if (k === '1') applyClassAndEquippedWeapon('guerreiro');
-      if (k === '2') applyClassAndEquippedWeapon('mago');
-      if (k === '3') applyClassAndEquippedWeapon('arqueiro');
-      if (k === '4') applyClassAndEquippedWeapon('druida');
+      if (k === '1') applyClassAndEquippedWeaponRef.current('guerreiro');
+      if (k === '2') applyClassAndEquippedWeaponRef.current('mago');
+      if (k === '3') applyClassAndEquippedWeaponRef.current('arqueiro');
+      if (k === '4') applyClassAndEquippedWeaponRef.current('druida');
       if (k === 'r') engine.toggleRange();
       if (k === ' ' && !e.repeat) engine.toggleCart();
     };
@@ -2317,6 +2318,7 @@ export default function App() {
     const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, id);
     engine.setEquippedWeapon(weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null);
   };
+  applyClassAndEquippedWeaponRef.current = applyClassAndEquippedWeapon;
   const equipCraftedWeapon = (weapon: CraftedWeapon) => {
     const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
     const next = { ...equippedWeaponIds, [classId]: weapon.id };
