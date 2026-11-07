@@ -51,8 +51,13 @@ function parseOldCore(encoded: string): Core | null {
     const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
     const core = value as Partial<Core>;
     if (typeof core.id !== 'string' || !isCategory(core.category) || !isRarity(core.rarity) || typeof core.surp !== 'boolean'
-      || !Array.isArray(core.attributes) || core.attributes.length === 0
-      || !core.attributes.every(a => a && typeof a.key === 'string' && [...WEAPON_ATTRIBUTES, ...ARMOR_ATTRIBUTES].includes(a.key as CoreAttributeKey) && Number.isFinite(a.value) && a.value > 0)) return null;
+      || !Array.isArray(core.attributes) || core.attributes.length === 0) return null;
+    const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
+    for (const a of core.attributes) {
+      if (!a || typeof a.key !== 'string' || !pool.includes(a.key as CoreAttributeKey) || seen.has(a.key as CoreAttributeKey)
+        || !Number.isFinite(a.value) || a.value < ref * 0.5 - 0.005 || a.value > ref + 0.005) return null;
+      seen.add(a.key as CoreAttributeKey);
+    }
     return core as Core;
   } catch { return null; }
 }
