@@ -449,7 +449,8 @@ export class GameEngine {
     const attributeKeys = ['forca', 'inteligencia', 'destreza', 'velocidadeAtaque', 'vida', 'armadura', 'resistenciaMagica', 'velocidadeMovimento', 'esquiva'] as const;
     if (!models.includes(weapon.model) || typeof weapon.damage !== 'number' || !Number.isFinite(weapon.damage)
       || weapon.damage <= 0 || !Array.isArray(weapon.attributes)
-      || !weapon.attributes.every(attribute => attributeKeys.includes(attribute.key as typeof attributeKeys[number])
+      || !weapon.attributes.every(attribute => !!attribute && typeof attribute === 'object'
+        && attributeKeys.includes(attribute.key as typeof attributeKeys[number])
         && Number.isFinite(attribute.value) && attribute.value >= 0)) {
       this.equippedWeapon = null;
       return;
