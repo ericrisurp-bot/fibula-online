@@ -61,7 +61,8 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
     const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
     const core = value as Partial<Core>;
     if (typeof core.id !== 'string' || !isCategory(core.category) || !isRarity(core.rarity) || core.rarity !== rarityPart
-      || typeof core.surp !== 'boolean' || !Array.isArray(core.attributes) || ![2, 4].includes(core.attributes.length)) return null;
+      || typeof core.surp !== 'boolean' || !Array.isArray(core.attributes) || ![2, 4].includes(core.attributes.length)
+      || core.surp !== (core.attributes.length === 4)) return null;
     const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
     for (const a of core.attributes) {
       if (!a || typeof a.key !== 'string' || !pool.includes(a.key as CoreAttributeKey) || seen.has(a.key as CoreAttributeKey)
