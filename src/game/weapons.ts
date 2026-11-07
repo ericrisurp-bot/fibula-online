@@ -1,5 +1,6 @@
 import { CONFIG, type WeaponId } from './config';
 import { BOW_ARROW_CENTER, STAFF_TIP_LOCAL, arrowNockAlpha, setDrawnMuzzle } from './rangedWeapons';
+import type { CoreAttributeKey, CoreRarity } from './cores';
 
 type Point = readonly [number, number];
 
@@ -474,7 +475,6 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, weapon: WeaponId, r: n
 }
 
 /* Cliente da Bigorna de armas: o servidor é a única autoridade sobre resultados. */
-import type { CoreAttributeKey, CoreRarity } from './cores';
 
 export type WeaponModel = 'espada' | 'arco' | 'cajado' | 'bastao';
 export type CraftedWeapon = {
