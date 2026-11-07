@@ -1734,10 +1734,10 @@ export default function App() {
       }
       engine.setKey(k, true);
       
-      if (k === '1') engine.setClass('guerreiro');
-      if (k === '2') engine.setClass('mago');
-      if (k === '3') engine.setClass('arqueiro');
-      if (k === '4') engine.setClass('druida');
+      if (k === '1') applyClassAndEquippedWeapon('guerreiro');
+      if (k === '2') applyClassAndEquippedWeapon('mago');
+      if (k === '3') applyClassAndEquippedWeapon('arqueiro');
+      if (k === '4') applyClassAndEquippedWeapon('druida');
       if (k === 'r') engine.toggleRange();
       if (k === ' ' && !e.repeat) engine.toggleCart();
     };
