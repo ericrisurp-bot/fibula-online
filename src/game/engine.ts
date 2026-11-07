@@ -516,6 +516,8 @@ export class GameEngine {
   setMove(x: number, y: number) { this.primaryPlayer.setMove(x, y); }
   setClass(classId: ClassId) {
     this.primaryPlayer.setClass(classId);
+    // Revalida o modelo equipado para a classe que acabou de ser selecionada.
+    this.getActiveEquippedWeapon();
   }
   buildHouse() {
     const house = this.state.house;
