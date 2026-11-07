@@ -3,7 +3,7 @@ export type CoreCategory = 'weapon' | 'armor' | 'accessory';
 export type CoreAttributeKey = 'forca' | 'velocidadeAtaque' | 'inteligencia' | 'destreza' | 'vida' | 'armadura' | 'resistenciaMagica' | 'velocidadeMovimento' | 'esquiva';
 export type CoreAttribute = { key: CoreAttributeKey; value: number };
 export type ClosedCore = { category: CoreCategory; rarity: CoreRarity };
-export type Core = { id: string; category: CoreCategory; rarity: CoreRarity; surp: boolean; attributes: CoreAttribute[] };
+export type Core = { id: string; category: CoreCategory; rarity: CoreRarity; surp: boolean; attributes: CoreAttribute[]; affinity?: 'dano' | 'natureza' };
 export type CoreDrop = { id: number; x: number; y: number; age: number; core: ClosedCore };
 export const CORE_DROP_CHANCE = 0.02;
 export const CORE_SURP_CHANCE = 0.02;
@@ -36,7 +36,8 @@ export function revealCore(random: () => number, category: CoreCategory, rarity:
     const potency = surp ? 1 : 0.5 + random() * 0.5;
     attributes.push({ key, value: CORE_RARITY_REFERENCE[rarity] * potency });
   }
-  return { id, category, rarity, surp, attributes };
+  const affinity = category === 'weapon' ? (random() < 0.5 ? 'dano' : 'natureza') : undefined;
+  return { id, category, rarity, surp, attributes, ...(affinity ? { affinity } : {}) };
 }
 export function coreAttributeTier(value: number, rarity: CoreRarity): 'ruim' | 'medio' | 'bom' | 'maximo' {
   const potency = value / CORE_RARITY_REFERENCE[rarity];
@@ -66,6 +67,7 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
     const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
     const core = value as Partial<Core>;
     if (typeof core.id !== 'string' || !isCategory(core.category) || !isRarity(core.rarity) || core.rarity !== rarityPart
+      || (core.affinity !== undefined && (core.category !== 'weapon' || (core.affinity !== 'dano' && core.affinity !== 'natureza')))
       || typeof core.surp !== 'boolean' || !Array.isArray(core.attributes) || ![2, 4].includes(core.attributes.length)
       || core.surp !== (core.attributes.length === 4)) return null;
     const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
