@@ -512,10 +512,7 @@ export function weaponCoreCompatibility(model: WeaponModel, core: Pick<Core, 'af
 }
 const WEAPON_MODELS: readonly WeaponModel[] = ['espada', 'arco', 'cajado', 'bastao'];
 const WEAPON_RARITIES: readonly CoreRarity[] = ['normal', 'common', 'uncommon', 'rare', 'legendary'];
-const WEAPON_ATTRIBUTE_KEYS: readonly CoreAttributeKey[] = [
-  'forca', 'velocidadeAtaque', 'inteligencia', 'destreza',
-  'vida', 'armadura', 'resistenciaMagica', 'velocidadeMovimento', 'esquiva',
-];
+const WEAPON_ATTRIBUTE_KEYS: readonly CoreAttributeKey[] = ['forca', 'velocidadeAtaque', 'inteligencia', 'destreza'];
 function invalidWeaponResponse(detail: string): Error {
   return new Error('O servidor retornou dados inválidos para a fabricação de armas: ' + detail);
 }
@@ -552,7 +549,9 @@ function readWeapon(value: unknown): CraftedWeapon {
     || typeof damage !== 'number' || !Number.isFinite(damage) || damage <= 0
     || typeof surp !== 'boolean' || typeof coreSurp !== 'boolean'
     || !(coreAffinity === null || coreAffinity === 'dano' || coreAffinity === 'natureza')
-    || !Array.isArray(attributes) || !attributes.every(isWeaponAttribute)
+    || !Array.isArray(attributes) || ![2, 4].includes(attributes.length)
+    || !attributes.every(isWeaponAttribute)
+    || new Set((attributes as WeaponAttribute[]).map(attribute => attribute.key)).size !== attributes.length
     || typeof createdAt !== 'string' || !Number.isFinite(Date.parse(createdAt))) {
     throw invalidWeaponResponse('a arma está ausente ou contém campos inválidos.');
   }
