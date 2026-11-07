@@ -1,143 +1,91 @@
 export type CoreRarity = 'normal' | 'common' | 'uncommon' | 'rare' | 'legendary';
 export type CoreCategory = 'weapon' | 'armor' | 'accessory';
-export type CoreAttributeKey =
-  | 'forca'
-  | 'velocidadeAtaque'
-  | 'inteligencia'
-  | 'destreza'
-  | 'vida'
-  | 'armadura'
-  | 'resistenciaMagica'
-  | 'velocidadeMovimento'
-  | 'esquiva';
-
-export type CoreAttribute = {
-  key: CoreAttributeKey;
-  /** Valor final em fração: referência da raridade × potência individual. */
-  value: number;
-};
-
-export type Core = {
-  id: string;
-  category: CoreCategory;
-  rarity: CoreRarity;
-  surp: boolean;
-  attributes: CoreAttribute[];
-};
-
-export type CoreDrop = {
-  id: number;
-  x: number;
-  y: number;
-  age: number;
-  core: Core;
-};
-
-export const CORE_DROP_CHANCE = 0.12;
-
+export type CoreAttributeKey = 'forca' | 'velocidadeAtaque' | 'inteligencia' | 'destreza' | 'vida' | 'armadura' | 'resistenciaMagica' | 'velocidadeMovimento' | 'esquiva';
+export type CoreAttribute = { key: CoreAttributeKey; value: number };
+export type ClosedCore = { category: CoreCategory; rarity: CoreRarity };
+export type Core = { id: string; category: CoreCategory; rarity: CoreRarity; surp: boolean; attributes: CoreAttribute[] };
+export type CoreDrop = { id: number; x: number; y: number; age: number; core: ClosedCore };
+export const CORE_DROP_CHANCE = 0.02;
+export const CORE_SURP_CHANCE = 0.02;
 export const CORE_CATEGORY_CHANCES: ReadonlyArray<{ category: CoreCategory; chance: number }> = [
-  { category: 'weapon', chance: 1 / 3 },
-  { category: 'armor', chance: 1 / 3 },
-  { category: 'accessory', chance: 1 / 3 },
+  { category: 'weapon', chance: 1 / 3 }, { category: 'armor', chance: 1 / 3 }, { category: 'accessory', chance: 1 / 3 },
 ];
-
 export const CORE_RARITY_CHANCES: ReadonlyArray<{ rarity: CoreRarity; chance: number }> = [
-  { rarity: 'normal', chance: 50 },
-  { rarity: 'common', chance: 25 },
-  { rarity: 'uncommon', chance: 15 },
-  { rarity: 'rare', chance: 8 },
-  { rarity: 'legendary', chance: 2 },
+  { rarity: 'normal', chance: 50 }, { rarity: 'common', chance: 25 }, { rarity: 'uncommon', chance: 15 }, { rarity: 'rare', chance: 8 }, { rarity: 'legendary', chance: 2 },
 ];
-
-export const CORE_RARITY_REFERENCE: Record<CoreRarity, number> = {
-  normal: 0.2,
-  common: 0.4,
-  uncommon: 0.6,
-  rare: 0.8,
-  legendary: 1,
-};
-
-const WEAPON_ATTRIBUTES: CoreAttributeKey[] = [
-  'forca', 'velocidadeAtaque', 'inteligencia', 'destreza',
-];
-const ARMOR_ATTRIBUTES: CoreAttributeKey[] = [
-  'vida', 'armadura', 'resistenciaMagica', 'velocidadeMovimento', 'esquiva',
-];
-const ACCESSORY_ATTRIBUTES: CoreAttributeKey[] = [
-  ...WEAPON_ATTRIBUTES, ...ARMOR_ATTRIBUTES,
-];
-
-export function createCore(random: () => number, id: string): Core {
-  const categoryRoll = random();
-  let cumulativeCategoryChance = 0;
-  const category = CORE_CATEGORY_CHANCES.find(entry => {
-    cumulativeCategoryChance += entry.chance;
-    return categoryRoll < cumulativeCategoryChance;
-  })?.category ?? 'accessory';
-
-  const rarityRoll = random() * 100;
-  let cumulativeChance = 0;
-  const rarity = CORE_RARITY_CHANCES.find(entry => {
-    cumulativeChance += entry.chance;
-    return rarityRoll < cumulativeChance;
-  })?.rarity ?? 'normal';
-
-  const surp = random() < 0.5;
-  const attributeCount = random() < 0.98 ? 2 : 4;
-  const pool = [...(category === 'weapon'
-    ? WEAPON_ATTRIBUTES
-    : category === 'armor' ? ARMOR_ATTRIBUTES : ACCESSORY_ATTRIBUTES)];
+export const CORE_RARITY_REFERENCE: Record<CoreRarity, number> = { normal: 0.2, common: 0.4, uncommon: 0.6, rare: 0.8, legendary: 1 };
+const WEAPON_ATTRIBUTES: CoreAttributeKey[] = ['forca', 'inteligencia', 'destreza', 'velocidadeAtaque'];
+const ARMOR_ATTRIBUTES: CoreAttributeKey[] = ['vida', 'armadura', 'velocidadeMovimento', 'esquiva'];
+const ACCESSORY_ATTRIBUTES: CoreAttributeKey[] = [...WEAPON_ATTRIBUTES, ...ARMOR_ATTRIBUTES];
+const isCategory = (v: unknown): v is CoreCategory => v === 'weapon' || v === 'armor' || v === 'accessory';
+const isRarity = (v: unknown): v is CoreRarity => CORE_RARITY_CHANCES.some(entry => entry.rarity === v);
+const poolFor = (category: CoreCategory) => category === 'weapon' ? WEAPON_ATTRIBUTES : category === 'armor' ? ARMOR_ATTRIBUTES : ACCESSORY_ATTRIBUTES;
+export function createClosedCore(random: () => number): ClosedCore {
+  const categoryRoll = random(); let categoryTotal = 0;
+  const category = CORE_CATEGORY_CHANCES.find(entry => { categoryTotal += entry.chance; return categoryRoll < categoryTotal; })?.category ?? 'accessory';
+  const rarityRoll = random() * 100; let rarityTotal = 0;
+  const rarity = CORE_RARITY_CHANCES.find(entry => { rarityTotal += entry.chance; return rarityRoll < rarityTotal; })?.rarity ?? 'normal';
+  return { category, rarity };
+}
+export function closedCoreItemId(core: ClosedCore): string { return `core:${core.rarity}:${core.category}`; }
+export function revealCore(random: () => number, category: CoreCategory, rarity: CoreRarity, id: string): Core {
+  const surp = random() < CORE_SURP_CHANCE, count = surp ? 4 : 2, pool = [...poolFor(category)];
   const attributes: CoreAttribute[] = [];
-
-  while (attributes.length < attributeCount && pool.length > 0) {
-    const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
-    const [key] = pool.splice(index, 1);
+  while (attributes.length < count && pool.length) {
+    const index = Math.min(pool.length - 1, Math.floor(random() * pool.length)), [key] = pool.splice(index, 1);
     const potency = surp ? 1 : 0.5 + random() * 0.5;
-    attributes.push({
-      key,
-      value: CORE_RARITY_REFERENCE[rarity] * potency,
-    });
+    attributes.push({ key, value: CORE_RARITY_REFERENCE[rarity] * potency });
   }
-
   return { id, category, rarity, surp, attributes };
 }
-
-/** Codifica todos os dados no itemId para manter a identidade individual no inventário e no Baú. */
-export function coreToItemId(core: Core): string {
-  return `core:${core.rarity}:${encodeURIComponent(JSON.stringify(core))}`;
+export function coreAttributeTier(value: number, rarity: CoreRarity): 'ruim' | 'medio' | 'bom' | 'maximo' {
+  const potency = value / CORE_RARITY_REFERENCE[rarity];
+  if (potency >= 0.999) return 'maximo';
+  if (potency >= 0.834) return 'bom';
+  if (potency >= 0.667) return 'medio';
+  return 'ruim';
 }
-
-export function coreFromItemId(itemId: string): Core | null {
-  if (!itemId.startsWith('core:')) return null;
-  const encoded = itemId.split(':').slice(2).join(':');
-  if (!encoded) return null;
+export function coreToItemId(core: Core): string { return `rcore:${core.rarity}:${encodeURIComponent(JSON.stringify(core))}`; }
+function parseOldCore(encoded: string): Core | null {
   try {
-    const value: unknown = JSON.parse(decodeURIComponent(encoded));
-    if (!value || typeof value !== 'object') return null;
+    const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
     const core = value as Partial<Core>;
-    if (typeof core.id !== 'string'
-      || !['weapon', 'armor', 'accessory'].includes(core.category ?? '')
-      || !CORE_RARITY_CHANCES.some(entry => entry.rarity === core.rarity)
-      || typeof core.surp !== 'boolean'
-      || !Array.isArray(core.attributes)
-      || core.attributes.length === 0
-      || !core.attributes.every(attribute =>
-        attribute && typeof attribute.key === 'string'
-        && [...WEAPON_ATTRIBUTES, ...ARMOR_ATTRIBUTES].includes(attribute.key as CoreAttributeKey)
-        && Number.isFinite(attribute.value) && attribute.value > 0,
-      )) return null;
+    if (typeof core.id !== 'string' || !isCategory(core.category) || !isRarity(core.rarity) || typeof core.surp !== 'boolean'
+      || !Array.isArray(core.attributes) || core.attributes.length === 0
+      || !core.attributes.every(a => a && typeof a.key === 'string' && [...WEAPON_ATTRIBUTES, ...ARMOR_ATTRIBUTES].includes(a.key as CoreAttributeKey) && Number.isFinite(a.value) && a.value > 0)) return null;
     return core as Core;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
-
+function parseNewCore(encoded: string, rarityPart: string): Core | null {
+  try {
+    const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
+    const core = value as Partial<Core>;
+    if (typeof core.id !== 'string' || !isCategory(core.category) || !isRarity(core.rarity) || core.rarity !== rarityPart
+      || typeof core.surp !== 'boolean' || !Array.isArray(core.attributes) || ![2, 4].includes(core.attributes.length)) return null;
+    const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
+    for (const a of core.attributes) {
+      if (!a || typeof a.key !== 'string' || !pool.includes(a.key as CoreAttributeKey) || seen.has(a.key as CoreAttributeKey)
+        || !Number.isFinite(a.value) || a.value < ref * 0.5 - 0.005 || a.value > ref + 0.005) return null;
+      seen.add(a.key as CoreAttributeKey);
+    }
+    return core as Core;
+  } catch { return null; }
+}
+export type ParsedCoreItemId = { kind: 'closed'; category: CoreCategory; rarity: CoreRarity } | { kind: 'revealed'; core: Core };
+export function parseCoreItemId(itemId: string): ParsedCoreItemId | null {
+  const parts = itemId.split(':');
+  if (parts[0] === 'core' && isRarity(parts[1])) {
+    if (parts.length === 3 && isCategory(parts[2])) return { kind: 'closed', category: parts[2], rarity: parts[1] };
+    const legacy = parseOldCore(parts.slice(2).join(':')); return legacy ? { kind: 'revealed', core: legacy } : null;
+  }
+  if (parts[0] === 'rcore' && isRarity(parts[1])) {
+    const core = parseNewCore(parts.slice(2).join(':'), parts[1]); return core ? { kind: 'revealed', core } : null;
+  }
+  return null;
+}
+export function coreFromItemId(itemId: string): Core | null {
+  const parsed = parseCoreItemId(itemId); return parsed?.kind === 'revealed' ? parsed.core : null;
+}
 export function coreRarityLabel(rarity: CoreRarity): string {
-  return ({
-    normal: 'Normal',
-    common: 'Comum',
-    uncommon: 'Incomum',
-    rare: 'Raro',
-    legendary: 'Lendário',
-  })[rarity];
+  return ({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Raro', legendary: 'Lendário' })[rarity];
 }
