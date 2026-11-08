@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
-import { coreAttributeTier, coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
+import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
@@ -13,7 +13,7 @@ import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
-import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
+import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -676,8 +676,19 @@ export default function App() {
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
   const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
   const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
+  const [weaponInfoModal, setWeaponInfoModal] = useState<CraftedWeapon | null>(null);
+  const weaponInfoHoldTimerRef = useRef<number | null>(null);
+  const weaponInfoHoldTriggeredRef = useRef(false);
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
+  const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
+  const arsenalInventoryEntries = [
+    ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
+    ...craftedWeapons.map(weapon => ({ kind: 'weapon' as const, weapon })),
+  ];
+  const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
+  const selectedArsenalWeapon = craftedWeapons.find(weapon => weapon.id === selectedArsenalItemId) ?? null;
+  const selectedArsenalEquipment = arsenalItems.find(item => item.id === selectedArsenalItemId) ?? null;
   const [profileOpen, setProfileOpen] = useState(false);
   const [playerProfileOpen, setPlayerProfileOpen] = useState(false);
   const [viewedProfileUserId, setViewedProfileUserId] = useState<string | null>(null);
@@ -1902,10 +1913,7 @@ export default function App() {
       // A resposta transacional do servidor é a fonte única: não recalcula nem sincroniza outro Baú.
       applyCookingInventory(result.inventory.map(stack => ({ itemId: stack.itemId, quantity: stack.quantity })));
       setSelectedWeaponCoreId(null);
-      setWeaponFeedback(
-        'Arma fabricada: ' + weaponModelLabels[result.weapon.model] + ' · ' + coreRarityLabel(result.weapon.rarity)
-        + ' · dano ' + result.weapon.damage + (result.weapon.surp ? ' · SURP' : '') + '.',
-      );
+      setWeaponFeedback(weaponModelLabels[result.weapon.model] + ' · ' + coreRarityLabel(result.weapon.rarity) + ' fabricada! Veja no Arsenal.');
       try {
         setCraftedWeapons(await listMyWeapons(fibulaSupabase));
       } catch (cause) {
@@ -2357,7 +2365,7 @@ export default function App() {
     if (engineRef.current?.state.classId === classId) {
       engineRef.current.setEquippedWeapon({ model: weapon.model, damage: weapon.damage, attributes: weapon.attributes });
     }
-    setWeaponFeedback(weaponModelLabels[weapon.model] + ' equipada para ' + classId + '.');
+    setWeaponFeedback(weaponModelLabels[weapon.model] + ' equipada.');
   };
   const unequipCraftedWeapon = (weapon: CraftedWeapon) => {
     const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
@@ -2367,6 +2375,35 @@ export default function App() {
     writeEquippedWeaponSelections(session.user.sub, next);
     if (engineRef.current?.state.classId === classId) engineRef.current.setEquippedWeapon(null);
     setWeaponFeedback(weaponModelLabels[weapon.model] + ' desequipada.');
+  };
+  const handleArsenalWeaponTap = (weapon: CraftedWeapon) => {
+    const weaponClass = WEAPON_CLASS_BY_MODEL[weapon.model];
+    if (activeArsenalClassId !== weaponClass) {
+      setWeaponFeedback('Esta arma é do ' + CLASSES[weaponClass].label + '.');
+      return;
+    }
+    if (equippedWeaponIds[weaponClass] === weapon.id) unequipCraftedWeapon(weapon);
+    else equipCraftedWeapon(weapon);
+    setSelectedArsenalItemId(weapon.id);
+    setSelectedEquipmentSlot('arma');
+  };
+  const startWeaponInfoHold = (event: PointerEvent<HTMLButtonElement>, weapon: CraftedWeapon) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
+    weaponInfoHoldTriggeredRef.current = false;
+    weaponInfoHoldTimerRef.current = window.setTimeout(() => {
+      weaponInfoHoldTriggeredRef.current = true;
+      weaponInfoHoldTimerRef.current = null;
+      setWeaponInfoModal(weapon);
+    }, 500);
+  };
+  const clearWeaponInfoHold = () => {
+    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
+    weaponInfoHoldTimerRef.current = null;
+  };
+  const cancelWeaponInfoHold = () => {
+    clearWeaponInfoHold();
+    weaponInfoHoldTriggeredRef.current = false;
   };
   const pickClass = (id: ClassId) => applyClassAndEquippedWeapon(id);
   const toggleRange = () => engineRef.current?.toggleRange();
@@ -2869,26 +2906,7 @@ export default function App() {
                     </button>
                     {weaponFeedback && <p role="status">{weaponFeedback}</p>}
                   </div>
-                  <section className="weapon-anvil-section">
-                    <div className="weapon-anvil-heading"><strong>Armas fabricadas</strong><span>{craftedWeapons.length}/50</span></div>
-                    {weaponsLoading ? <p className="weapon-anvil-muted">Carregando armas…</p>
-                      : craftedWeapons.length === 0 ? <p className="weapon-anvil-muted">Nenhuma arma fabricada ainda.</p>
-                        : <div className="weapon-anvil-crafted-list">{craftedWeapons.map(weapon => {
-                          const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
-                          const equipped = equippedWeaponIds[classId] === weapon.id;
-                          return <article className="weapon-anvil-crafted" key={weapon.id}>
-                            <header><strong>{weaponModelLabels[weapon.model]} · {coreRarityLabel(weapon.rarity)}</strong>
-                              <span>{equipped && <b className="weapon-anvil-equipped">Equipada</b>}{weapon.surp && <b className="weapon-anvil-surp">SURP</b>}<b>Dano {weapon.damage}</b></span></header>
-                            <small>Núcleo: {weapon.coreSurp ? 'SURP · ' : ''}{weapon.coreAffinity === 'dano' ? 'Dano' : weapon.coreAffinity === 'natureza' ? 'Natureza' : 'Sem afinidade'}</small>
-                            <ul>{weapon.attributes.map((attribute, index) => {
-                              const active = WEAPON_ACTIVE_ATTRIBUTES[weapon.model].includes(attribute.key);
-                              const tier = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' }[coreAttributeTier(attribute.value, weapon.rarity)];
-                              return <li key={attribute.key + '-' + index} className={active ? '' : 'weapon-attribute-inactive'}><span>{weaponAttributeLabels[attribute.key]}{active ? '' : ' · não ativo'}</span><b>{tier}</b></li>;
-                            })}</ul>
-                            <button type="button" className="weapon-anvil-equip-button" onClick={() => equipped ? unequipCraftedWeapon(weapon) : equipCraftedWeapon(weapon)}>{equipped ? 'Desequipar' : 'Equipar'}</button>
-                          </article>;
-                        })}</div>}
-                  </section>
+
                 </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form">
@@ -2964,7 +2982,7 @@ export default function App() {
           <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-arsenal-header">
               <div><span>EQUIPAMENTOS DO PERSONAGEM</span><h2 id="lobby-arsenal-title">Arsenal</h2></div>
-              <div className="lobby-arsenal-count">{arsenalItems.length}/{ARSENAL_CAPACITY} espaços</div>
+              <div className="lobby-arsenal-count">{arsenalInventoryEntries.length}/{arsenalInventoryCapacity} espaços</div>
               <button type="button" className="lobby-profile-close" aria-label="Fechar Arsenal" onClick={() => setArsenalOpen(false)}>×</button>
             </header>
             <div className="lobby-arsenal-content">
@@ -2979,10 +2997,12 @@ export default function App() {
                    {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                    <div className="arsenal-equipment-grid">
                      {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
-                       const equipped = arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                       const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
+                       const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                       const equippedName = weaponEquipped ? weaponModelLabels[weaponEquipped.model] + ' · ' + coreRarityLabel(weaponEquipped.rarity) : equipped?.name;
                        const info = ARSENAL_SLOT_INFO[slot];
-                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equipped ? 'equipped' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(equipped?.id ?? null); }} aria-label={`${info.label}: ${equipped ? equipped.name + ', equipado' : 'vazio'}`}>
-                         <strong>{info.label}</strong>{equipped && <span className="arsenal-equipped-item">{equipped.name}</span>}
+                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equippedName ? 'equipped' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(weaponEquipped?.id ?? equipped?.id ?? null); }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado' : 'vazio'}`}>
+                         <strong>{info.label}</strong>{equippedName && <span className="arsenal-equipped-item">{equippedName}</span>}
                        </button>;
                      })}
                    </div>
@@ -2991,28 +3011,64 @@ export default function App() {
                <section className="arsenal-inventory-section">
                 <div className="arsenal-section-heading"><strong>INVENTÁRIO DE EQUIPAMENTOS</strong><span>Itens obtidos e fabricados ficam aqui</span></div>
                 <div className="arsenal-inventory-grid">
-                  {Array.from({ length: ARSENAL_CAPACITY }, (_, index) => {
-                    const item = arsenalItems[index];
-                    const isEquipped = !!item && Object.values(equipmentLoadout).includes(item.id);
-                    return <button type="button" key={index} className={`arsenal-inventory-slot ${item ? 'filled' : ''} ${item?.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} disabled={!item} onClick={() => { if (item) { setSelectedArsenalItemId(item.id); setSelectedEquipmentSlot(item.slot); } }} aria-label={item ? `Selecionar ${item.name}${isEquipped ? ', equipado' : ''}` : `Espaço ${index + 1} vazio`}>
-                      {item ? <><span>{item.icon}</span><small>{item.name}</small>{isEquipped && <em>EQUIPADO</em>}</> : <span className="arsenal-empty-number">{index + 1}</span>}
+                  {Array.from({ length: arsenalInventoryCapacity }, (_, index) => {
+                    const entry = arsenalInventoryEntries[index];
+                    if (!entry) return <button type="button" key={'empty-' + index} className="arsenal-inventory-slot" disabled><span className="arsenal-empty-number">{index + 1}</span></button>;
+                    if (entry.kind === 'weapon') {
+                      const weapon = entry.weapon;
+                      const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
+                      const isEquipped = equippedWeaponIds[classId] === weapon.id;
+                      const weaponName = weaponModelLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
+                      const rarityColor = weapon.rarity === 'common' ? '#36d66f' : weapon.rarity === 'uncommon' ? '#348cff' : weapon.rarity === 'rare' ? '#a34be8' : weapon.rarity === 'legendary' ? '#ff8a24' : '#cbd5e1';
+                      const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
+                      return <button type="button" key={weapon.id}
+                        className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`}
+                        style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
+                        onPointerDown={event => startWeaponInfoHold(event, weapon)}
+                        onPointerUp={clearWeaponInfoHold}
+                        onPointerLeave={clearWeaponInfoHold}
+                        onPointerCancel={cancelWeaponInfoHold}
+                        onContextMenu={event => event.preventDefault()}
+                        onClick={() => {
+                          if (weaponInfoHoldTriggeredRef.current) { weaponInfoHoldTriggeredRef.current = false; return; }
+                          handleArsenalWeaponTap(weapon);
+                        }}
+                        aria-label={`${weaponName}${isEquipped ? ', equipado' : ''}. Toque para equipar ou desequipar; segure para informações.`}>
+                        <span>{weaponIcon}</span><small>{weaponName}</small>{isEquipped && <em>EQUIPADO</em>}
+                      </button>;
+                    }
+                    const item = entry.item;
+                    const isEquipped = Object.values(equipmentLoadout).includes(item.id);
+                    return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} onClick={() => { setSelectedArsenalItemId(item.id); setSelectedEquipmentSlot(item.slot); }} aria-label={`Selecionar ${item.name}${isEquipped ? ', equipado' : ''}`}>
+                      <span>{item.icon}</span><small>{item.name}</small>{isEquipped && <em>EQUIPADO</em>}
                     </button>;
                   })}
                 </div>
                 <div className="arsenal-actions">
-                  <div className="arsenal-selection-label">{arsenalItems.find(item => item.id === selectedArsenalItemId)?.name ?? 'Selecione um equipamento'}</div>
-                  <button type="button" disabled={!activeArsenalClassId || !arsenalItems.some(item => item.id === selectedArsenalItemId) || arsenalItems.find(item => item.id === selectedArsenalItemId)?.slot !== selectedEquipmentSlot} onClick={() => {
-                    const selected = arsenalItems.find(item => item.id === selectedArsenalItemId);
-                    if (selected && selected.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selected) }));
-                  }}>Equipar</button>
-                  <button type="button" className="arsenal-unequip" disabled={!activeArsenalClassId || !equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
-                    if (activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, selectedEquipmentSlot) }));
-                    setSelectedArsenalItemId(null);
-                  }}>Desequipar</button>
+                  <div className="arsenal-selection-label">{selectedArsenalWeapon ? weaponModelLabels[selectedArsenalWeapon.model] + ' · ' + coreRarityLabel(selectedArsenalWeapon.rarity) : selectedArsenalEquipment?.name ?? 'Selecione um equipamento'}</div>
+                  {!selectedArsenalWeapon && <>
+                    <button type="button" disabled={!activeArsenalClassId || !selectedArsenalEquipment || selectedArsenalEquipment.slot !== selectedEquipmentSlot} onClick={() => {
+                      if (selectedArsenalEquipment && selectedArsenalEquipment.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selectedArsenalEquipment) }));
+                    }}>Equipar</button>
+                    <button type="button" className="arsenal-unequip" disabled={!activeArsenalClassId || !equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
+                      if (activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, selectedEquipmentSlot) }));
+                      setSelectedArsenalItemId(null);
+                    }}>Desequipar</button>
+                  </>}
                 </div>
+                {weaponFeedback && <p className="arsenal-weapon-feedback" role="status">{weaponFeedback}</p>}
                 <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
               </section>
             </div>
+          </section>
+        </div>}
+        {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => setWeaponInfoModal(null)}>
+          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponModelLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
+            <header><strong>{weaponModelLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => setWeaponInfoModal(null)}>Fechar</button></header>
+            <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
+            <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'bastão' : weaponInfoModal.model}</h3>
+            <ul>{weaponInfoModal.attributes.map((attribute, index) => <li key={attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b></li>)}</ul>
+            <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
           </section>
         </div>}
         <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
