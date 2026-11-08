@@ -5282,3 +5282,71 @@ button, button * {
   .cooking-ingredient-workbench .cooking-pot-slot{min-height:76px}
 }
 @media(prefers-reduced-motion:reduce){.cooking-oven-fire i{animation:none}}
+
+
+/* Revisão da cozinha: página clara e forno de pedra como peça central. */
+.station-page-no-header .station-page-content{
+  padding:calc(14px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));
+  background:#f5f3ed;
+  color:#292a27;
+}
+.station-page-no-header .station-page-content .lobby-crafting-content{
+  width:min(100%,900px);
+  padding:8px 0 24px;
+}
+.station-page-no-header .lobby-crafting-content .cooking-kitchen{gap:18px}
+.station-page-no-header .cooking-oven-panel{
+  position:relative;
+  padding:18px;
+  border:1px solid #c5c2b8;
+  border-radius:24px;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 34px,rgba(116,112,101,.12) 35px 36px),
+    repeating-linear-gradient(90deg,transparent 0 72px,rgba(116,112,101,.10) 73px 74px),
+    linear-gradient(145deg,#e8e5dc,#d5d1c6 54%,#c8c3b7);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.8),inset 0 -8px 16px rgba(87,79,63,.12),0 9px 22px rgba(45,42,35,.13);
+}
+.station-page-no-header .cooking-oven-panel .cooking-pot-heading{margin:0 0 14px;color:#45443e}
+.station-page-no-header .cooking-oven-panel .cooking-pot-heading strong{font-size:12px;letter-spacing:.1em}
+.station-page-no-header .cooking-oven-panel .cooking-pot-heading span{border-color:#b5aa97;background:#f4f0e7;color:#5b5144}
+.station-page-no-header .cooking-oven-mouth{
+  min-height:206px;
+  padding:24px 12px 12px;
+  border:11px solid #aaa598;
+  border-bottom-width:13px;
+  border-radius:46% 46% 12px 12px / 34% 34% 12px 12px;
+  background:radial-gradient(ellipse at 50% 100%,rgba(221,93,28,.18),transparent 55%),linear-gradient(180deg,#292722,#171715 76%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.13),inset 0 12px 28px #000b,0 3px 0 #918b7e;
+}
+.station-page-no-header .cooking-oven-mouth::before{inset:0 12% auto;height:7px;border-radius:50%;background:linear-gradient(90deg,#c7c1b4,#f2eee5,#b7b0a2)}
+.station-page-no-header .cooking-oven-fire{bottom:10px;height:76px;filter:blur(.35px)}
+.station-page-no-header .cooking-oven-fire i{width:18px;height:39px;background:linear-gradient(0deg,#d84b1e 0%,#ff8b27 52%,#ffe5a1 100%);box-shadow:0 0 18px rgba(255,121,35,.78),0 0 36px rgba(232,83,22,.4)}
+.station-page-no-header .cooking-oven-fire i:nth-child(2){height:52px;width:22px}
+.station-page-no-header .cooking-oven-panel.is-burning .cooking-oven-mouth{box-shadow:inset 0 0 0 2px rgba(255,196,125,.24),inset 0 0 38px rgba(239,91,28,.28),0 3px 0 #918b7e,0 0 30px rgba(224,105,42,.2)}
+.station-page-no-header .cooking-oven-panel .cooking-production-slot{min-height:120px;border-color:rgba(202,161,112,.58);background:rgba(24,22,19,.88);color:#f3e8d6}
+.station-page-no-header .cooking-oven-panel .cooking-production-slot>strong{color:#f0d9b8}
+.station-page-no-header .cooking-oven-panel .cooking-production-slot>small{color:#e0c7a5}
+.station-page-no-header .cooking-oven-panel .cooking-production-slot.cooking-in-progress{border-color:#e28b45;background:rgba(65,38,22,.94)}
+.station-page-no-header .cooking-oven-panel .cooking-production-slot.cooking-ready{border-color:#d7b47e;background:rgba(91,68,43,.94)}
+.station-page-no-header .cooking-ingredient-workbench{padding:16px;border:1px solid #d4cfc3;border-radius:17px;background:linear-gradient(155deg,#fffefa,#eeece5);box-shadow:0 5px 16px rgba(55,51,43,.08);color:#343530}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-heading{color:#44443e}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-heading span{color:#777064}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-slot{border-color:#c8c2b5;background:linear-gradient(180deg,#fffefa,#eae7df);color:#777064}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-slot.filled{border-color:#b69a70;background:linear-gradient(180deg,#fff9ed,#eee2cd);color:#34312b;box-shadow:inset 0 1px 0 #fff,0 2px 5px rgba(74,60,39,.08)}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-slot>strong{color:#393832}
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient-grid{border-color:#ddd7cb;background:#f5f2eb}
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot{border-color:#d2c8b6;background:linear-gradient(155deg,#fffefa,#eae5da);color:#393832}
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot.selected{border-color:#b58c55;background:linear-gradient(155deg,#fff4df,#e9d5b5);box-shadow:0 0 0 1px rgba(181,140,85,.18)}
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>small,
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>b{color:#393832}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-item{border-color:#ded7ca;background:#f8f5ef;color:#393832}
+.station-page-no-header .cooking-ingredient-workbench .cooking-pot-item button{border-color:#c9b99e;background:#eee5d6;color:#423a2e}
+.station-page-no-header .cooking-kitchen .cooking-prepare-button{border-color:#a9783e;background:linear-gradient(180deg,#bd8a4d,#946535);color:#fffaf0}
+.station-page-no-header .cooking-kitchen .cooking-feedback{color:#625c50}
+@media(max-width:520px){
+  .station-page-no-header .station-page-content{padding-left:9px;padding-right:9px}
+  .station-page-no-header .cooking-oven-panel{padding:12px}
+  .station-page-no-header .cooking-oven-mouth{min-height:190px;padding:22px 6px 9px;border-width:8px;border-bottom-width:10px}
+  .station-page-no-header .cooking-oven-panel .cooking-production-slot{min-height:108px;padding:6px 3px}
+  .station-page-no-header .cooking-ingredient-workbench{padding:11px}
+}
