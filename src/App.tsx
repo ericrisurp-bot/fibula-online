@@ -2715,7 +2715,7 @@ export default function App() {
     }
   };
 
-  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao'} stateClassName={activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.some(meal => (meal.productionReadyAt ?? 0) > cookingClock) ? 'is-burning' : 'is-idle') : undefined}>
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao'} stateClassName={activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
@@ -2882,7 +2882,7 @@ export default function App() {
                 </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form cooking-kitchen">
-                  <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.some(meal => (meal.productionReadyAt ?? 0) > cookingClock) ? 'is-burning' : ''}`}>
+                  <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : ''}`}>
                     <div className="cooking-pot-heading"><strong>🔥 Forno de pedra</strong><span>{preparedCookingMeals.length}/3</span></div>
                     <div className="cooking-oven-mouth">
                       <div className="cooking-oven-fire" aria-hidden="true"><i /><i /><i /></div>
@@ -2904,16 +2904,25 @@ export default function App() {
                     </div>
                   </div>
                   <div className="cooking-pot-panel cooking-ingredient-workbench">
-                    <div className="cooking-pot-heading"><strong>Ingredientes · 4 espaços</strong><span>{cookingSelectedTotal}/{cookingCapacity} · {panCookingSelections.length}/4</span></div>
+                    <div className="cooking-pot-heading"><strong>Ingredientes · 4 espaços</strong></div>
                     <div className="cooking-pot-slots" aria-label="Quatro espaços de ingredientes">
                       {Array.from({ length: 4 }, (_, index) => {
                         const item = panCookingSelections[index];
-                        return <div className={item ? 'cooking-pot-slot filled' : 'cooking-pot-slot'} key={item ? item.itemId : 'empty-' + index}>
-                          {item ? <><span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b></>
-                            : <><span>＋</span><small>Espaço {index + 1}</small></>}
+                        if (!item) return <div className="cooking-pot-slot" key={'empty-' + index}>
+                          <span>＋</span><small>Espaço {index + 1}</small>
                         </div>;
+                        const nextTotal = cookingSelectedTotal - 1;
+                        const nextVarieties = panCookingSelections.length - (item.quantity === 1 ? 1 : 0);
+                        const cannotRemove = nextTotal > getCookingCapacity(nextVarieties);
+                        return <button type="button" className="cooking-pot-slot filled" key={item.itemId}
+                          aria-label={'Retirar uma unidade de ' + itemLabel(item.itemId)}
+                          onClick={() => removeCookingIngredientUnit(item.itemId)} disabled={cannotRemove}>
+                          <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b>
+                        </button>;
                       })}
                     </div>
+                    <button type="button" className="cooking-prepare-button" onClick={() => void prepareCookingMeal()}
+                      disabled={!cookingOnline || preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
                     <div className="lobby-chest-grid cooking-ingredient-grid" aria-label="Ingredientes disponíveis no Baú">
                       {cookingIngredientStacks.map(item => {
                         const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
@@ -2924,24 +2933,10 @@ export default function App() {
                             || cookingSelectedTotal >= nextCapacity}>
                           <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                           <small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                          {selected > 0 && <em>Panela ×{selected}</em>}
                         </button>;
                       })}
                     </div>
-                    {panCookingSelections.length > 0 && <div className="cooking-pot-quantities">
-                      {panCookingSelections.map(item => {
-                        const nextTotal = cookingSelectedTotal - 1;
-                        const nextVarieties = panCookingSelections.length - (item.quantity === 1 ? 1 : 0);
-                        const cannotRemove = nextTotal > getCookingCapacity(nextVarieties);
-                        return <div className="cooking-pot-item" key={item.itemId}>
-                          <span>{itemLabel(item.itemId)}</span><strong>×{item.quantity}</strong>
-                          <button type="button" aria-label={'Retirar uma unidade de ' + itemLabel(item.itemId)}
-                            onClick={() => removeCookingIngredientUnit(item.itemId)} disabled={cannotRemove}>−</button>
-                        </div>;
-                      })}
-                    </div>}
-                    <button type="button" className="cooking-prepare-button" onClick={() => void prepareCookingMeal()}
-                      disabled={!cookingOnline || preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
+
                   </div>
                   {!cookingOnline && <small className="cooking-feedback" role="status">Sem conexão: cozinhar exige internet.</small>}
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
