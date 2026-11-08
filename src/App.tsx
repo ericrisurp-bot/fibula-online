@@ -2419,10 +2419,6 @@ export default function App() {
     if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
     weaponInfoHoldTimerRef.current = null;
   };
-  const cancelWeaponInfoHold = () => {
-    clearWeaponInfoHold();
-    weaponInfoHoldTriggeredRef.current = false;
-  };
   const pickClass = (id: ClassId) => applyClassAndEquippedWeapon(id);
   const toggleRange = () => engineRef.current?.toggleRange();
   const toggleCart = () => engineRef.current?.toggleCart();
@@ -3045,8 +3041,8 @@ export default function App() {
                         style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
                         onPointerDown={event => startWeaponInfoHold(event, weapon)}
                         onPointerUp={() => finishWeaponInfoHold(weapon)}
-                        onPointerLeave={cancelWeaponInfoHold}
-                        onPointerCancel={cancelWeaponInfoHold}
+                        onPointerLeave={clearWeaponInfoHold}
+                        onPointerCancel={clearWeaponInfoHold}
                         onContextMenu={event => event.preventDefault()}
                         onClick={() => {
                           if (weaponInfoHoldTriggeredRef.current) { weaponInfoHoldTriggeredRef.current = false; return; }
