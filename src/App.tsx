@@ -339,7 +339,6 @@ const itemLabel = (itemId: string) => {
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
-const weaponModelLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' };
 const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão' };
 type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
 const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
@@ -2812,57 +2811,6 @@ export default function App() {
                     </div>
                   </section>
                 </div>}
-                  <section className="weapon-anvil-section">
-                    <div className="weapon-anvil-heading"><strong>① Núcleo revelado de arma</strong><span>Selecione 1 núcleo do Baú</span></div>
-                    <div className="weapon-anvil-core-grid">
-                      {anvilWeaponCoreStacks.map(item => {
-                        const parsed = parseCoreItemId(item.itemId);
-                        if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
-                        const core = parsed.core;
-                        const selected = selectedWeaponCoreId === item.itemId;
-                        return <button type="button" key={item.itemId}
-                          className={selected ? 'weapon-anvil-core selected' : 'weapon-anvil-core'}
-                          aria-pressed={selected}
-                          onClick={() => {
-                            setSelectedWeaponCoreId(selected ? null : item.itemId);
-                            if (!selected) setSelectedWeaponModel(core.weaponModel === 'espada' ? 'espada' : core.weaponModel === 'arco' ? 'arco' : core.affinity === 'natureza' ? 'bastao' : 'cajado');
-                            setWeaponFeedback('');
-                          }}>
-                          <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong>
-                          <b>×{item.quantity}</b>
-                        </button>;
-                      })}
-                      {anvilWeaponCoreStacks.length === 0 && <p className="weapon-anvil-empty">Nenhum núcleo revelado de arma no Baú.</p>}
-                    </div>
-                  </section>
-                  <section className="weapon-anvil-section">
-                    <div className="weapon-anvil-heading"><strong>② Modelo da arma</strong><span>Escolha o formato</span></div>
-                    <div className="weapon-anvil-choice-row">
-                      {(['espada', 'arco', 'cajado', 'bastao'] as const).map(model => <button type="button" key={model}
-                        className={selectedWeaponModel === model ? 'selected' : ''}
-                        aria-pressed={selectedWeaponModel === model}
-                        disabled={!allowedWeaponModels.includes(model)}
-                        onClick={() => { setSelectedWeaponModel(model); setWeaponFeedback(''); }}>
-                        {weaponModelLabels[model]}
-                      </button>)}
-                    </div>
-                    <div className="weapon-anvil-heading"><strong>③ Material mineral</strong><span>Tipo 1 ou tipo 2</span></div>
-                    <div className="weapon-anvil-choice-row">
-                      <button type="button" className={selectedWeaponTier === 1 ? 'selected' : ''} aria-pressed={selectedWeaponTier === 1} onClick={() => setSelectedWeaponTier(1)}>Tipo 1 · Pedra</button>
-                      <button type="button" className={selectedWeaponTier === 2 ? 'selected' : ''} aria-pressed={selectedWeaponTier === 2} onClick={() => setSelectedWeaponTier(2)}>Tipo 2 · Bronze</button>
-                    </div>
-                  </section>
-                  <section className="weapon-anvil-section">
-                    <div className="weapon-anvil-heading"><strong>④ Receita</strong><span>Materiais da mesma raridade do núcleo</span></div>
-                    {!selectedWeaponCore ? <p className="weapon-anvil-muted">Selecione um núcleo para conferir os materiais necessários.</p> :
-                      <div className="weapon-anvil-recipe">
-                        {weaponRecipeRows.map(row => <div key={row.itemId} className="weapon-anvil-recipe-row">
-                          <span>{itemLabel(row.itemId)}{selectedWeaponCore?.rarity === 'normal' ? ' · Normal' : ''}</span><strong className={row.available >= row.required ? 'enough' : 'missing'}>{row.available}/{row.required}</strong>
-                        </div>)}
-                      </div>}
-                    {weaponCompatibilityError && <p className="weapon-anvil-warning" role="alert">{weaponCompatibilityError}</p>}
-                  </section>
-
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form cooking-kitchen">
                   <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : ''}`}>
