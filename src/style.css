@@ -6690,7 +6690,8 @@ button, button * {
  box-shadow:0 2px 8px #0008;white-space:nowrap;
 }
 .back-to-lobby-button:active{transform:translateY(1px);background:#59402e}
-.forge-page .station-page-content{padding-bottom:calc(42px + env(safe-area-inset-bottom))!important;}
+:root{--back-button-clearance:calc(29px + 10px + 3px + env(safe-area-inset-bottom));}
+.forge-page .station-page-content{padding-bottom:var(--back-button-clearance)!important;}
 @media(max-width:430px){
  .forge-scene-slots{top:42%;width:99%;}
  .forge-recipe-slots{gap:2px;}
@@ -6720,3 +6721,7 @@ button, button * {
 .forge-page .forge-material-item:disabled{opacity:1;filter:none;color:#fff0d8;background:linear-gradient(150deg,#554b3e 0%,#343a35 100%)}
 .forge-page .forge-material-item.selected{border-color:#f3b36e;background:linear-gradient(150deg,#79502f,#423329);box-shadow:0 0 0 1px #f3b36e66,0 0 12px #df8a3b33}
 .forge-page .forge-material-item:disabled>span{opacity:1;filter:none}
+
+
+/* B1.4 — mesma faixa livre do botão fixo na Cozinha, sem alterar o botão. */
+.station-page-no-header .station-page-content{padding-bottom:var(--back-button-clearance)!important;}
