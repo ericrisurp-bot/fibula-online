@@ -4953,3 +4953,86 @@ button, button * {
   .station-page-content { padding-left:9px; padding-right:9px; }
   .station-page-content .lobby-crafting-content { padding-top:12px; }
 }
+
+
+/* Páginas do lobby: conteúdo em tela inteira, sem backdrop ou caixa de modal. */
+.station-page-content .lobby-arsenal-page,
+.station-page-content .lobby-chest-page,
+.station-page-content .lobby-status-page,
+.station-page-content .lobby-classes-page,
+.station-page-content .lobby-ranking-page {
+  width:min(100%,1100px);
+  max-width:1100px;
+  max-height:none;
+  min-height:0;
+  height:auto;
+  margin:0 auto;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.station-page-content .lobby-arsenal-page { display:flex; flex-direction:column; gap:12px; }
+.station-page-content .lobby-arsenal-page .lobby-arsenal-header > div:first-child { display:none; }
+.station-page-content .lobby-arsenal-page .lobby-arsenal-header { justify-content:flex-end; border:0; padding:0 0 6px; background:transparent; }
+.station-page-content .lobby-arsenal-page .lobby-arsenal-content { min-height:0; overflow:visible; }
+.station-page-content .lobby-chest-page { display:flex; flex-direction:column; gap:10px; }
+.station-page-content .lobby-chest-page .lobby-chest-header,
+.station-page-content .lobby-status-page .lobby-profile-header,
+.station-page-content .lobby-classes-page .lobby-profile-header,
+.station-page-content .lobby-ranking-page .lobby-ranking-header,
+.player-profile-page-content .player-profile-header { display:none; }
+.station-page-content .lobby-status-page,
+.station-page-content .lobby-classes-page,
+.station-page-content .lobby-ranking-page { padding:0; }
+.station-page-content .lobby-status-page .lobby-profile-content,
+.station-page-content .lobby-classes-page .lobby-profile-content,
+.station-page-content .lobby-ranking-page .lobby-ranking-body { overflow:visible; max-height:none; }
+.station-page-content .lobby-ranking-page { display:flex; flex-direction:column; gap:12px; }
+.player-profile-page-content { display:flex; justify-content:center; }
+.player-profile-page-content .player-profile-page {
+  width:min(100%,760px);
+  max-width:760px;
+  max-height:none;
+  margin:0 auto;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.player-profile-page-content .player-profile-content { overflow:visible; }
+.friends-page-content { display:flex; justify-content:center; }
+.friends-page-content .lobby-friends-page {
+  width:min(100%,760px);
+  max-width:760px;
+  max-height:none;
+  margin:0 auto;
+  overflow:visible;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.friends-page-content .lobby-friends-header {
+  display:flex;
+  justify-content:flex-end;
+  padding:0 0 8px;
+  border:0;
+  background:transparent;
+}
+.friends-page-content .lobby-friends-header > div:first-child { display:none; }
+.friends-page-content .lobby-friends-content { overflow:visible; max-height:none; padding:0; }
+.station-page-content .lobby-chest-page .lobby-chest-grid { max-height:none; overflow:visible; }
+@media(max-width:650px) {
+  .station-page-content .lobby-arsenal-page,
+  .station-page-content .lobby-chest-page,
+  .station-page-content .lobby-status-page,
+  .station-page-content .lobby-classes-page,
+  .station-page-content .lobby-ranking-page { width:100%; padding:0; }
+  .station-page-content .lobby-arsenal-page .lobby-arsenal-content { display:flex; flex-direction:column; }
+  .station-page-content .lobby-arsenal-page .arsenal-equipment-stage { min-height:300px; }
+  .player-profile-page-content .player-profile-page,
+  .friends-page-content .lobby-friends-page { width:100%; padding:0; }
+}
