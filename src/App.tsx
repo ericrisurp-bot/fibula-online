@@ -1026,7 +1026,7 @@ export default function App() {
   }, [arsenalOpen, arsenalCharacterTab, characterPreferences]);
 
   useEffect(() => {
-    if (!showStart || activeCraftingStation) return;
+    if (!showStart || activeGameRoute.page !== 'lobby') return;
     const canvas = lobbyGrassCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1047,7 +1047,7 @@ export default function App() {
     drawGrass();
     window.addEventListener('resize', drawGrass);
     return () => window.removeEventListener('resize', drawGrass);
-  }, [showStart, activeCraftingStation]);
+  }, [showStart, activeGameRoute.page]);
 
   useEffect(() => {
     if (!showStart || activeCraftingStation) return;
@@ -1078,10 +1078,10 @@ export default function App() {
     };
     frame = window.requestAnimationFrame(renderCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [showStart, characterPreferences, activeCraftingStation]);
+  }, [showStart, characterPreferences, activeGameRoute.page]);
 
   useEffect(() => {
-    if (!showStart || !duoPeer || activeCraftingStation) return;
+    if (!showStart || !duoPeer || activeGameRoute.page !== 'lobby') return;
     const canvas = duoPeerCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1110,7 +1110,7 @@ export default function App() {
     };
     renderPeer(performance.now());
     return () => { if (frame) window.cancelAnimationFrame(frame); };
-  }, [showStart, duoPeer?.classId, duoPeer?.status, activeCraftingStation]);
+  }, [showStart, duoPeer?.classId, duoPeer?.status, activeGameRoute.page]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -1151,7 +1151,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (activeCraftingStation) return;
+    if (activeGameRoute.page !== 'lobby') return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const engine = new GameEngine((next) => setState(next), { accountLevel }); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
@@ -1736,7 +1736,7 @@ export default function App() {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeCraftingStation]);
+  }, [activeGameRoute.page]);
 
   useEffect(() => {
     const engine = engineRef.current; if (!engine || activeCraftingStation) return;
