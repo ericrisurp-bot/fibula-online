@@ -4821,51 +4821,12 @@ button, button * {
 }
 .weapon-anvil-footer > button:disabled { opacity:.45; cursor:not-allowed; }
 .weapon-anvil-footer > p { margin:0; color:#c5cdc1; font-size:10px; line-height:1.45; text-align:center; }
-.weapon-anvil-crafted-list { display:grid; gap:8px; }
-.weapon-anvil-crafted {
-  display:flex; flex-direction:column; gap:7px; padding:10px;
-  border:1px solid #596159; border-radius:9px; background:#292e29; color:#e9ede7;
-}
-.weapon-anvil-crafted header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-.weapon-anvil-crafted header strong { font-size:11px; }
-.weapon-anvil-crafted header span { display:flex; align-items:center; gap:7px; font-size:10px; }
-.weapon-anvil-crafted small { color:#bfc8bc; font-size:9px; }
-.weapon-anvil-surp { padding:3px 6px; border:1px solid #b38c51; border-radius:5px; color:#f1d59a; font-size:9px; }
-.weapon-anvil-crafted li {
-  display:flex; justify-content:space-between; gap:10px; padding-top:5px;
-  border-top:1px solid rgba(220,225,220,.1); color:#dce3d9; font-size:10px;
-}
-.weapon-anvil-crafted li b { color:#e7ece4; }
-.weapon-anvil-crafted li.weapon-attribute-inactive { color:#858e84; text-decoration:line-through; }
-.weapon-anvil-crafted li.weapon-attribute-inactive b { color:#858e84; }
 @media(max-width:520px) {
   .weapon-anvil-section { padding:9px; }
   .weapon-anvil-core-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .weapon-anvil-choice-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
-
-/* Estado e ações de equipamento das armas fabricadas. */
-.weapon-anvil-equipped {
-  padding: 3px 6px;
-  border: 1px solid #aeb8aa;
-  border-radius: 5px;
-  background: #414941;
-  color: #f0f3ed;
-  font-size: 9px;
-  font-weight: 900;
-}
-.weapon-anvil-equip-button {
-  min-height: 34px;
-  padding: 6px 10px;
-  border: 1px solid #899487;
-  border-radius: 8px;
-  background: #414941;
-  color: #f0f3ed;
-  font-size: 10px;
-  font-weight: 800;
-}
-.weapon-anvil-equip-button:hover { background: #515b50; }
 
 
 /* Joalheria: revelar núcleos de arma com leitura compacta em telas estreitas. */
@@ -4893,3 +4854,24 @@ button, button * {
 .jewelry-result-card li span { min-width:0; overflow-wrap:anywhere; }
 .jewelry-result-card li b { flex:0 0 auto; color:#f2f4f0; font-variant-numeric:tabular-nums; }
 @media(max-width:420px) { .jewelry-core-panel,.jewelry-result-card { padding:9px; } .jewelry-core-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .jewelry-section-heading { align-items:flex-start; } }
+
+
+/* Armas fabricadas no Arsenal e cartão de informações por toque longo. */
+.arsenal-weapon-item { touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+.arsenal-weapon-item>span:first-child { font-size:25px; line-height:1.1; }
+.arsenal-weapon-item small { font-size:9px; }
+.arsenal-weapon-feedback { margin:8px 0 0; color:#526174; font-size:11px; font-weight:800; line-height:1.4; }
+.arsenal-weapon-info-backdrop { position:fixed; inset:0; z-index:12000; display:grid; place-items:center; padding:16px; background:rgba(8,11,9,.72); }
+.arsenal-weapon-info-card { width:min(360px,100%); max-height:min(78vh,520px); overflow:auto; padding:15px; border:1px solid #788477; border-radius:14px; background:linear-gradient(145deg,#343b34,#202520); color:#edf1eb; box-shadow:0 18px 55px rgba(0,0,0,.55); }
+.arsenal-weapon-info-card>header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.arsenal-weapon-info-card>header strong { min-width:0; overflow-wrap:anywhere; font-size:14px; }
+.arsenal-weapon-info-card>header button { flex:0 0 auto; min-height:32px; padding:5px 11px; border:1px solid #7d897a; border-radius:8px; background:#424b41; color:#f1f4ef; font-size:11px; font-weight:800; }
+.arsenal-weapon-info-damage { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid rgba(230,238,227,.15); border-bottom:1px solid rgba(230,238,227,.15); font-size:12px; }
+.arsenal-weapon-info-damage b { font-variant-numeric:tabular-nums; }
+.arsenal-weapon-info-card h3 { margin:12px 0 8px; color:#cbd6c8; font-size:11px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+.arsenal-weapon-info-card ul { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.arsenal-weapon-info-card li { display:flex; justify-content:space-between; gap:12px; padding-top:6px; border-top:1px solid rgba(230,238,227,.1); font-size:11px; }
+.arsenal-weapon-info-card li span { min-width:0; overflow-wrap:anywhere; color:#d0d9cd; }
+.arsenal-weapon-info-card li b { flex:0 0 auto; color:#f0f4ed; font-variant-numeric:tabular-nums; }
+.arsenal-weapon-info-stars { display:flex; justify-content:center; gap:9px; margin-top:15px; color:#aeb9aa; font-size:25px; line-height:1; }
+@media(max-width:420px) { .arsenal-weapon-info-card { padding:12px; } .arsenal-weapon-info-card>header strong { font-size:12px; } }
