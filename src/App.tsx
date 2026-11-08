@@ -881,6 +881,17 @@ export default function App() {
   }, [equipmentLoadouts]);
 
   useEffect(() => {
+    if (!weaponInfoModal) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setWeaponInfoModal(null); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [weaponInfoModal]);
+
+  useEffect(() => () => {
+    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
+  }, []);
+
+  useEffect(() => {
     if (!friendsOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setFriendsOpen(false);
@@ -3010,6 +3021,7 @@ export default function App() {
                </section>
                <section className="arsenal-inventory-section">
                 <div className="arsenal-section-heading"><strong>INVENTÁRIO DE EQUIPAMENTOS</strong><span>Itens obtidos e fabricados ficam aqui</span></div>
+                {weaponsLoading && <p className="arsenal-weapon-feedback" role="status">Carregando armas…</p>}
                 <div className="arsenal-inventory-grid">
                   {Array.from({ length: arsenalInventoryCapacity }, (_, index) => {
                     const entry = arsenalInventoryEntries[index];
@@ -3066,7 +3078,7 @@ export default function App() {
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponModelLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
             <header><strong>{weaponModelLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => setWeaponInfoModal(null)}>Fechar</button></header>
             <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
-            <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'bastão' : weaponInfoModal.model}</h3>
+            <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'cajado' : weaponInfoModal.model}</h3>
             <ul>{weaponInfoModal.attributes.map((attribute, index) => <li key={attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b></li>)}</ul>
             <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
           </section>
