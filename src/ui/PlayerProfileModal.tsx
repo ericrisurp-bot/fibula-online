@@ -4,6 +4,7 @@ import { useArenaAuth } from '../auth/AuthGate';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 import { drawLadino } from '../game/ladino';
 import { drawFloatingWeapon } from '../game/weapons';
+import PageFrame from './PageFrame';
 
 type PlayerProfile = {
   user_id: string;
@@ -27,6 +28,7 @@ type Props = {
   currentCharacter: ClassId;
   avatarCharacter: ClassId;
   onAvatarChange: (avatar: ClassId) => void;
+  pageMode?: boolean;
   onClose: () => void;
 };
 
@@ -79,7 +81,7 @@ function AvatarPortrait({ classId }: { classId: ClassId }) {
 }
 
 export default function PlayerProfileModal({
-  userId, isOwner, currentCharacter, avatarCharacter, onAvatarChange, onClose,
+  userId, isOwner, currentCharacter, avatarCharacter, onAvatarChange, pageMode = false, onClose,
 }: Props) {
   const { session } = useArenaAuth();
   const canEdit = isOwner && session.user.sub === userId;
@@ -241,11 +243,10 @@ export default function PlayerProfileModal({
   const canCompleteIdentity = canEdit && identityIncomplete;
   const accountDays = createdAt ? Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 86_400_000)) : 0;
 
-  return <div className="player-profile-backdrop" onClick={onClose}>
-    <section className="player-profile-modal" role="dialog" aria-modal="true" aria-labelledby="player-profile-title" onClick={event => event.stopPropagation()}>
+  const profilePanel = <section className="player-profile-modal player-profile-page" role={pageMode ? undefined : 'dialog'} aria-modal={pageMode ? undefined : true} aria-labelledby="player-profile-title" onClick={event => event.stopPropagation()}>
       <header className="player-profile-header">
         <div><span>IDENTIDADE DO FÍBULA ONLINE</span><h2 id="player-profile-title">Perfil do jogador</h2></div>
-        <button type="button" className="player-profile-close" aria-label="Fechar perfil" onClick={onClose}>×</button>
+        {!pageMode && <button type="button" className="player-profile-close" aria-label="Fechar perfil" onClick={onClose}>×</button>}
       </header>
       {loading ? <p className="player-profile-message">Carregando perfil...</p> : !profile ? <p className="player-profile-message">{error || 'Este jogador ainda não criou um perfil.'}</p> : <>
         <div className="player-profile-content">
@@ -305,6 +306,8 @@ export default function PlayerProfileModal({
         </div>
       </>}
       <footer className="player-profile-footer"><span>Nome, idade e sexo ficam bloqueados depois de definidos. O avatar pode ser trocado quando quiser.</span></footer>
-    </section>
-  </div>;
+    </section>;
+  return pageMode
+    ? <PageFrame eyebrow="IDENTIDADE DO FÍBULA ONLINE" title="Perfil do jogador" onBack={onClose}><div className="station-page-content player-profile-page-content">{profilePanel}</div></PageFrame>
+    : <div className="player-profile-backdrop" onClick={onClose}>{profilePanel}</div>;
 }

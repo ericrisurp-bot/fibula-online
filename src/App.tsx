@@ -28,6 +28,8 @@ import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
+import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute } from './ui/stationRoute';
+import PageFrame from './ui/PageFrame';
 
 type RankingEntry = {
   user_id: string;
@@ -739,7 +741,7 @@ export default function App() {
     return () => { active = false; };
   }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
 
-  const [craftingStationId, setCraftingStationId] = useState<string | null>(null);
+  const [activeGameRoute, setActiveGameRoute] = useState<GameRoute>(() => readGameRoute() ?? { page: 'lobby' });
   const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>([]);
   const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>([]);
   const [pendingCookingMeals, setPendingCookingMeals] = useState<CookingMeal[]>([]);
@@ -768,7 +770,32 @@ export default function App() {
   const selectedArsenalEquipment = arsenalItems.find(item => item.id === selectedArsenalItemId) ?? null;
   const [selectedAnvilPrimary, setSelectedAnvilPrimary] = useState<{ itemId: string; quantity: number } | null>(null);
   const [selectedAnvilSecondary, setSelectedAnvilSecondary] = useState<{ itemId: string; quantity: number } | null>(null);
-  const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
+  const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
+  const closeGamePage = () => {
+    navigateToLobby();
+    setActiveGameRoute({ page: 'lobby' });
+    setArsenalOpen(false); setFriendsOpen(false); setChestOpen(false);
+    setStatusOpen(false); setProfileOpen(false); setRankingOpen(false);
+    setPlayerProfileOpen(false); setViewedProfileUserId(null);
+  };
+  useEffect(() => {
+    const syncGameRoute = () => {
+      const route = readGameRoute(window.location.pathname) ?? { page: 'lobby' as const };
+      setActiveGameRoute(route);
+      setArsenalOpen(route.page === 'arsenal');
+      setFriendsOpen(route.page === 'amigos');
+      setChestOpen(route.page === 'bau');
+      setStatusOpen(route.page === 'status');
+      setProfileOpen(route.page === 'classes');
+      setRankingOpen(route.page === 'ranking');
+      setPlayerProfileOpen(route.page === 'jogador');
+      setViewedProfileUserId(route.page === 'jogador' ? route.playerId : null);
+    };
+    window.addEventListener('popstate', syncGameRoute);
+    if (!isKnownGamePath(window.location.pathname)) window.history.replaceState(null, '', '/');
+    syncGameRoute();
+    return () => window.removeEventListener('popstate', syncGameRoute);
+  }, []);
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
@@ -819,11 +846,11 @@ export default function App() {
     return () => { window.removeEventListener('online', updateOnline); window.removeEventListener('offline', updateOnline); };
   }, []);
   useEffect(() => {
-    if (craftingStationId !== 'fogao') return;
+    if (activeGameRoute.page !== 'fogao') return;
     setCookingClock(Date.now() + cookingClockOffset);
     const timer = window.setInterval(() => setCookingClock(Date.now() + cookingClockOffset), 1000);
     return () => window.clearInterval(timer);
-  }, [craftingStationId, cookingClockOffset]);
+  }, [activeGameRoute.page, cookingClockOffset]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1000,7 +1027,7 @@ export default function App() {
   }, [arsenalOpen, arsenalCharacterTab, characterPreferences]);
 
   useEffect(() => {
-    if (!showStart) return;
+    if (!showStart || activeGameRoute.page !== 'lobby') return;
     const canvas = lobbyGrassCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1021,10 +1048,10 @@ export default function App() {
     drawGrass();
     window.addEventListener('resize', drawGrass);
     return () => window.removeEventListener('resize', drawGrass);
-  }, [showStart]);
+  }, [showStart, activeGameRoute.page]);
 
   useEffect(() => {
-    if (!showStart) return;
+    if (!showStart || activeGameRoute.page !== 'lobby') return;
     const canvas = lobbyCharacterCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1052,10 +1079,10 @@ export default function App() {
     };
     frame = window.requestAnimationFrame(renderCharacter);
     return () => window.cancelAnimationFrame(frame);
-  }, [showStart, characterPreferences]);
+  }, [showStart, characterPreferences, activeGameRoute.page]);
 
   useEffect(() => {
-    if (!showStart || !duoPeer) return;
+    if (!showStart || !duoPeer || activeGameRoute.page !== 'lobby') return;
     const canvas = duoPeerCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1084,7 +1111,7 @@ export default function App() {
     };
     renderPeer(performance.now());
     return () => { if (frame) window.cancelAnimationFrame(frame); };
-  }, [showStart, duoPeer?.classId, duoPeer?.status]);
+  }, [showStart, duoPeer?.classId, duoPeer?.status, activeGameRoute.page]);
 
   useEffect(() => {
     ambience.setActive(!showStart && !state.dead);
@@ -1125,6 +1152,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (activeGameRoute.page !== 'lobby') return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const engine = new GameEngine((next) => setState(next), { accountLevel }); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
@@ -1709,10 +1737,10 @@ export default function App() {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, []);
+  }, [activeGameRoute.page]);
 
   useEffect(() => {
-    const engine = engineRef.current; if (!engine) return;
+    const engine = engineRef.current; if (!engine || activeGameRoute.page !== 'lobby') return;
     const down = (e: KeyboardEvent) => {
       if (!gameStartedRef.current) return;
       const k = e.key.toLowerCase();
@@ -1786,7 +1814,7 @@ export default function App() {
     const up = (e: KeyboardEvent) => { if (gameStartedRef.current) engine.setKey(e.key, false); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
-  }, []);
+  }, [activeGameRoute.page]);
 
   const refreshLobbyChestFromCloud = async () => {
     if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para atualizar o Baú.');
@@ -1838,6 +1866,8 @@ export default function App() {
   };
 
   const openLobbyChest = () => {
+    navigateToPage('bau');
+    setActiveGameRoute({ page: 'bau' });
     setChestTab('resources');
     setChestOpen(true);
     setChestTransferItemId(null);
@@ -2070,13 +2100,13 @@ export default function App() {
     return result;
   };
   useEffect(() => {
-    if (!showStart && craftingStationId !== 'fogao' && !chestOpen) return;
+    if (!showStart && activeGameRoute.page !== 'fogao' && !chestOpen) return;
     let active = true;
     void refreshCookingState().catch(cause => {
       if (active) setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível sincronizar a cozinha.');
     });
     return () => { active = false; };
-  }, [showStart, craftingStationId, chestOpen, cookingOnline, session.user.sub]);
+  }, [showStart, activeGameRoute.page, chestOpen, cookingOnline, session.user.sub]);
 
   const prepareCookingMeal = async () => {
     if (!requireCookingConnection()) return;
@@ -2670,99 +2700,10 @@ export default function App() {
     }
   };
 
-  return <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
-    <header className="topbar">
-      <div className="brand-mark">F<span>Í</span>BULA</div>
-      <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
-      <button className="help-button" onClick={() => { const nextMuted = !audioMuted; setAudioMuted(nextMuted); audioManager.setMuted(nextMuted); }} aria-label={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"} aria-pressed={!audioMuted} title={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"}>{audioMuted ? "🔇" : "🔊"}</button>
-      <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
-    </header>
-    <section className="game-stage">
-      <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
-      <div className="hud-top" aria-label="Status da partida">
-        {state.activeMeals.length > 0 && <div className="cooking-match-actions" aria-label="Refeições ativas">
-          {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
-            <span>{cookingMealArtwork(meal)}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
-          </div>)}
-        </div>}
-        <div className="hud-left-stack">
-          <div className="hud-vitals-panel">
-            <div className="hud-level">NÍVEL <strong>{state.player.level}</strong></div>
-            <div className="hud-meter health-meter"><span>HP</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.floor(state.player.hp)}/{Math.floor(state.player.maxHp)}</b></div>
-            <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
-          </div>
-          <div className="hud-center-stack">
-            <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : state.dayNight === 'dawn' ? 'AMANHECENDO' : 'DIA'}</strong></div>
-            <div className="hud-substats">
-              <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
-              <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
-        <div className="lobby-sky" aria-hidden="true">
-          <i className="lobby-moon"/>
-          <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
-          <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
-          <i className="lobby-comet" aria-hidden="true"/>
-        </div>
-        <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
-        <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => setFriendsOpen(true)}>+</button>}</div>
-        
-          <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => setArsenalOpen(true)}>
-            <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
-            <span>ARSENAL</span>
-          </button>
-          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
-            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-            <span>AMIGOS</span>
-          </button>
-          <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
-            <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
-            <span>BAÚ</span>
-          </button>
-          <button className="lobby-profile-trigger" type="button" aria-label="Abrir seleção de classes" title="Classes" onClick={() => setProfileOpen(true)}>
-            <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
-            <span>CLASSES</span>
-          </button>
-          <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => setRankingOpen(true)}>
-            <span className="lobby-ranking-spark lobby-ranking-spark-one" aria-hidden="true">✦</span>
-            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
-            <span>RANKING</span>
-            <span className="lobby-ranking-spark lobby-ranking-spark-two" aria-hidden="true">✧</span>
-          </button>
-          <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => setStatusOpen(true)}>
-            <span className="lobby-top-emoji" aria-hidden="true">📊</span>
-            <span>STATUS</span>
-          </button>
-        {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
-          {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
-        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={duoPeer ? duoPeer.status !== 'connected' || !duoPeer.peerReady ? `Aguardando ${duoPeer.friendName} ficar pronto` : 'Modo cooperativo em preparação' : 'Entrar no mundo'}>
-          Jogar
-        </button>}
-        {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
-        <nav className="lobby-crafting-stations" aria-label="Estações de criação">
-          {LOBBY_CRAFTING_STATIONS.map(station => <button
-            key={station.id}
-            className="lobby-crafting-trigger"
-            type="button"
-            aria-label={`Abrir estação: ${station.title}`}
-            title={station.title}
-            onClick={() => { setCraftingStationId(station.id); if (station.id === 'bigorna') { setAnvilTab('armas'); setSelectedWeaponCoreId(null); setWeaponFeedback(''); setSelectedAnvilCoreId(null); setSelectedAnvilPrimary(null); setSelectedAnvilSecondary(null); } if (!cookingOnline && station.id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
-          >
-            <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
-            <span>{station.label}</span>
-          </button>)}
-        </nav>
-        {activeCraftingStation && <div className="lobby-crafting-backdrop" onClick={() => setCraftingStationId(null)}>
-          <section className="lobby-crafting-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-crafting-title" onClick={event => event.stopPropagation()}>
-            <header className="lobby-crafting-header">
-              <div><span>ESTAÇÃO DE CRIAÇÃO</span><h2 id="lobby-crafting-title">{activeCraftingStation.title}</h2></div>
-              <button type="button" className="lobby-crafting-close" aria-label="Fechar estação" onClick={() => setCraftingStationId(null)}>×</button>
-            </header>
-            <div className="lobby-crafting-content">
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage}>
+      <div className="station-page-content">
+        <div className="lobby-crafting-content">
+
               <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
               {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
               {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-station-form">
@@ -2991,15 +2932,101 @@ export default function App() {
                 <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
                 <small>Os recursos disponíveis no Baú são usados diretamente na fabricação.</small>
               </>}
-            </div>
-          </section>
+            
+        </div>
+      </div>
+    </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
+    <header className="topbar">
+      <div className="brand-mark">F<span>Í</span>BULA</div>
+      <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
+      <button className="help-button" onClick={() => { const nextMuted = !audioMuted; setAudioMuted(nextMuted); audioManager.setMuted(nextMuted); }} aria-label={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"} aria-pressed={!audioMuted} title={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"}>{audioMuted ? "🔇" : "🔊"}</button>
+      <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
+    </header>
+    <section className="game-stage">
+      <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
+      <div className="hud-top" aria-label="Status da partida">
+        {state.activeMeals.length > 0 && <div className="cooking-match-actions" aria-label="Refeições ativas">
+          {state.activeMeals.map(meal => <div className="cooking-active-meal" key={meal.id} title={meal.name}>
+            <span>{cookingMealArtwork(meal)}{meal.herbExtended && <i className="cooking-herb-sparkle" aria-label="Duração estendida por ervas">✦</i>}</span><strong>{meal.name}</strong><small>{Math.floor(Math.ceil(meal.remainingSeconds) / 60)}:{String(Math.ceil(meal.remainingSeconds) % 60).padStart(2, '0')}</small>
+          </div>)}
         </div>}
-        {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
-          <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
+        <div className="hud-left-stack">
+          <div className="hud-vitals-panel">
+            <div className="hud-level">NÍVEL <strong>{state.player.level}</strong></div>
+            <div className="hud-meter health-meter"><span>HP</span><div className="bar"><i style={{ width: Math.max(0, state.player.hp / state.player.maxHp * 100) + '%' }} /></div><b>{Math.floor(state.player.hp)}/{Math.floor(state.player.maxHp)}</b></div>
+            <div className="hud-meter xp-meter"><span>XP</span><div className="bar xp-bar"><i style={{ width: state.player.xp / state.player.nextXp * 100 + '%' }} /></div><b>{state.player.xp}/{state.player.nextXp}</b></div>
+          </div>
+          <div className="hud-center-stack">
+            <div className="hud-chip timer"><span>DIA / NOITE</span><strong>{state.dayNight === 'night' ? 'NOITE' : state.dayNight === 'dawn' ? 'AMANHECENDO' : 'DIA'}</strong></div>
+            <div className="hud-substats">
+              <div className="hud-chip compact"><span>DIA</span><strong>{survivalDay}</strong></div>
+              <div className="hud-chip kills-chip"><span>☠ MORTOS</span><strong>{state.kills}</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
+        <div className="lobby-sky" aria-hidden="true">
+          <i className="lobby-moon"/>
+          <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
+          <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
+          <i className="lobby-comet" aria-hidden="true"/>
+        </div>
+        <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
+        <i className="lobby-ground-light" aria-hidden="true"/>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { navigateToPlayerProfile(session.user.sub); setActiveGameRoute({ page: 'jogador', playerId: session.user.sub }); setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>+</button>}</div>
+        
+          <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => { navigateToPage('arsenal'); setActiveGameRoute({ page: 'arsenal' }); setArsenalOpen(true); }}>
+            <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
+            <span>ARSENAL</span>
+          </button>
+          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
+            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
+            <span>AMIGOS</span>
+          </button>
+          <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
+            <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
+            <span>BAÚ</span>
+          </button>
+          <button className="lobby-profile-trigger" type="button" aria-label="Abrir seleção de classes" title="Classes" onClick={() => { navigateToPage('classes'); setActiveGameRoute({ page: 'classes' }); setProfileOpen(true); }}>
+            <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
+            <span>CLASSES</span>
+          </button>
+          <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => { navigateToPage('ranking'); setActiveGameRoute({ page: 'ranking' }); setRankingOpen(true); }}>
+            <span className="lobby-ranking-spark lobby-ranking-spark-one" aria-hidden="true">✦</span>
+            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
+            <span>RANKING</span>
+            <span className="lobby-ranking-spark lobby-ranking-spark-two" aria-hidden="true">✧</span>
+          </button>
+          <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => { navigateToPage('status'); setActiveGameRoute({ page: 'status' }); setStatusOpen(true); }}>
+            <span className="lobby-top-emoji" aria-hidden="true">📊</span>
+            <span>STATUS</span>
+          </button>
+        {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
+          {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
+        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={duoPeer ? duoPeer.status !== 'connected' || !duoPeer.peerReady ? `Aguardando ${duoPeer.friendName} ficar pronto` : 'Modo cooperativo em preparação' : 'Entrar no mundo'}>
+          Jogar
+        </button>}
+        {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
+        <nav className="lobby-crafting-stations" aria-label="Estações de criação">
+          {LOBBY_CRAFTING_STATIONS.map(station => <button
+            key={station.id}
+            className="lobby-crafting-trigger"
+            type="button"
+            aria-label={`Abrir estação: ${station.title}`}
+            title={station.title}
+            onClick={() => { navigateToStation(station.id); setActiveGameRoute({ page: station.id }); if (station.id === 'bigorna') { setAnvilTab('armas'); setSelectedWeaponCoreId(null); setWeaponFeedback(''); setSelectedAnvilCoreId(null); setSelectedAnvilPrimary(null); setSelectedAnvilSecondary(null); } if (!cookingOnline && station.id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
+          >
+            <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
+            <span>{station.label}</span>
+          </button>)}
+        </nav>
+                {arsenalOpen && <PageFrame eyebrow="EQUIPAMENTOS DO PERSONAGEM" title="Arsenal" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-arsenal-modal lobby-arsenal-page">
             <header className="lobby-arsenal-header">
               <div><span>EQUIPAMENTOS DO PERSONAGEM</span><h2 id="lobby-arsenal-title">Arsenal</h2></div>
               <div className="lobby-arsenal-count">{arsenalInventoryEntries.length}/{arsenalInventoryCapacity} espaços</div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar Arsenal" onClick={() => setArsenalOpen(false)}>×</button>
+              
             </header>
             <div className="lobby-arsenal-content">
               <section className="arsenal-equipment-section" aria-label="Equipamentos equipados">
@@ -3043,12 +3070,11 @@ export default function App() {
                       const weaponName = arsenalWeaponLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
                       const rarityColor = weapon.rarity === 'common' ? '#36d66f' : weapon.rarity === 'uncommon' ? '#348cff' : weapon.rarity === 'rare' ? '#a34be8' : weapon.rarity === 'legendary' ? '#ff8a24' : 'transparent';
                       const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
-                      const weaponClass = WEAPON_CLASS_BY_MODEL[weapon.model];
                       return <button type="button" key={weapon.id}
                         className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''}`}
                         style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
                         onPointerDown={event => startWeaponInfoHold(event)}
-                        onPointerUp={() => finishWeaponInfoHold(weapon, selectedWeaponForClass(craftedWeapons, equippedWeaponIds, weaponClass))}
+                        onPointerUp={() => finishWeaponInfoHold(weapon, selectedWeaponForClass(craftedWeapons, equippedWeaponIds, WEAPON_CLASS_BY_MODEL[weapon.model]))}
                         onPointerLeave={clearWeaponInfoHold}
                         onPointerCancel={clearWeaponInfoHold}
                         onContextMenu={event => event.preventDefault()}
@@ -3083,8 +3109,7 @@ export default function App() {
                 <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
               </section>
             </div>
-          </section>
-        </div>}
+          </section></div></PageFrame>}
         {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); weaponInfoHoldTriggeredRef.current = false; }}>
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={arsenalWeaponLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalWeaponLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); weaponInfoHoldTriggeredRef.current = false; }}>Fechar</button></header>
@@ -3111,12 +3136,11 @@ export default function App() {
             <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
-        {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
-          <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
+        {chestOpen && <PageFrame eyebrow="COLEÇÃO DE ITENS" title="Baú" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-chest-modal lobby-chest-page">
             <header className="lobby-chest-header">
               <div><h2 id="lobby-chest-title">Baú</h2><p>Sua coleção de itens</p></div>
-              <button type="button" className="lobby-chest-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
+              
             </header>
             <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
             <nav className="lobby-chest-tabs" role="tablist" aria-label="Conteúdo do Baú">
@@ -3185,13 +3209,12 @@ export default function App() {
             {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
-          </section>
-        </div>}
-        {statusOpen && <div className="lobby-profile-backdrop lobby-status-backdrop" onClick={() => setStatusOpen(false)}>
-          <section className="lobby-profile-modal lobby-status-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-status-title" onClick={event => event.stopPropagation()}>
+          </section></div></PageFrame>}
+        {statusOpen && <PageFrame eyebrow="RESUMO DOS PERSONAGENS ESCOLHIDOS" title="Status" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-profile-modal lobby-status-modal lobby-status-page">
             <header className="lobby-profile-header">
               <div><span>RESUMO DOS PERSONAGENS ESCOLHIDOS</span><h2 id="lobby-status-title">Status</h2></div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar Status" onClick={() => setStatusOpen(false)}>×</button>
+              
             </header>
             <div className="lobby-profile-content lobby-status-content">
               {characterPreferences.map((classId, index) => {
@@ -3237,13 +3260,12 @@ export default function App() {
               })}
               <p className="lobby-status-note">O PODER soma a base do personagem: vida, armadura, esquiva, velocidades e dano. Ele não mede quem é melhor: cada classe foi feita para um estilo de combate, e um número menor só mostra que ela cumpre outro papel. Atributo em vermelho riscado não é usado pela classe e não soma.</p>
             </div>
-          </section>
-        </div>}
-        {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
-          <section className="lobby-profile-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-profile-title" onClick={event => event.stopPropagation()}>
+          </section></div></PageFrame>}
+        {profileOpen && <PageFrame eyebrow="SELEÇÃO E CONFIGURAÇÃO" title="Classes" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-profile-modal lobby-classes-page">
             <header className="lobby-profile-header">
               <div><span>SELEÇÃO E CONFIGURAÇÃO</span><h2 id="lobby-profile-title">Classes</h2></div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar Classes" onClick={() => setProfileOpen(false)}>×</button>
+              
             </header>
             <nav className="lobby-profile-tabs" role="tablist" aria-label="Classes disponíveis">
               {PROFILE_CLASS_IDS.map(classId => <button
@@ -3283,13 +3305,12 @@ export default function App() {
               </section>
               <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
             </div>
-          </section>
-        </div>}
-        {rankingOpen && <div className="lobby-ranking-backdrop" onClick={() => setRankingOpen(false)}>
-          <section className="lobby-ranking-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-ranking-title" onClick={event => event.stopPropagation()}>
+          </section></div></PageFrame>}
+        {rankingOpen && <PageFrame eyebrow="FÍBULA ONLINE · HALL DA FAMA" title="🏆 Ranking" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-ranking-modal lobby-ranking-page">
             <header className="lobby-ranking-header">
               <div><span>FÍBULA ONLINE · HALL DA FAMA</span><h2 id="lobby-ranking-title"><span aria-hidden="true">🏆</span> Ranking</h2></div>
-              <button type="button" className="lobby-ranking-close" aria-label="Fechar Ranking" onClick={() => setRankingOpen(false)}>×</button>
+              
             </header>
             <nav className="lobby-ranking-mode-tabs" role="tablist" aria-label="Modalidade do ranking">
               <button type="button" role="tab" aria-selected={rankingMode === 'solo'} className={rankingMode === 'solo' ? 'active' : ''} onClick={() => setRankingMode('solo')}>SOLO</button>
@@ -3348,15 +3369,15 @@ export default function App() {
                   : rankingCategory === 'survival' ? rankingOwnProfile.highest_survival_level : rankingOwnProfile.kills) : '—'}</strong></div>
               <small>Classificação individual atualizada a partir dos perfis públicos do jogo.</small>
             </footer>
-          </section>
-        </div>}
+          </section></div></PageFrame>}
         {playerProfileOpen && <PlayerProfileModal
+          pageMode={activeGameRoute.page === 'jogador'}
           userId={viewedProfileUserId ?? session.user.sub}
           isOwner={(viewedProfileUserId ?? session.user.sub) === session.user.sub}
           currentCharacter={characterPreferences[0] ?? state.classId}
           avatarCharacter={avatarCharacter}
           onAvatarChange={setAvatarCharacter}
-          onClose={() => { setPlayerProfileOpen(false); setViewedProfileUserId(null); }}
+          onClose={closeGamePage}
         />}
       </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta a carroça construída quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
@@ -3423,7 +3444,9 @@ export default function App() {
 {!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
-  </main>;
+  </main>}
+    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
+  </>;
 }
 
 function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
