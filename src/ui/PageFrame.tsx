@@ -13,6 +13,6 @@ export default function PageFrame({ eyebrow, title, onBack, children }: PageFram
       <button type="button" className="station-page-back" onClick={onBack}>← Lobby</button>
       <div><span>{eyebrow}</span><h1 id="station-page-title">{title}</h1></div>
     </header>
-    <div className="station-page-frame-content">{children}</div>
+    {children}
   </main>;
 }
