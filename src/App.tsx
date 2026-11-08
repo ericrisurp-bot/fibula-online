@@ -31,6 +31,7 @@ import { registerStepSounds } from './audio/stepSounds';
 import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute } from './ui/stationRoute';
 import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
+import BackToLobbyButton from './ui/BackToLobbyButton';
 
 type RankingEntry = {
   user_id: string;
@@ -2779,23 +2780,33 @@ export default function App() {
                 })()}
               </div> : activeCraftingStation.id === 'bigorna' ? <>
                 <div className="forge-workspace">
-                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering} onBack={closeGamePage}>
+                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
                     <div className="forge-recipe-slots" aria-label="Slots da receita">
+                      {selectedWeaponCore && weaponRecipeRows.map(row => {
+                        const partLabel = row.slot === 'mineral'
+                          ? selectedWeaponModel === 'espada' ? 'Lâmina' : 'Ponta'
+                          : row.slot === 'linen' ? 'Corda'
+                            : row.slot === 'wood' ? selectedWeaponModel === 'arco' ? 'Haste' : 'Cabo' : row.slot;
+                        const materialLabel = row.slot === 'mineral' ? 'Minério' : row.slot === 'wood' ? 'Madeira' : 'Linho';
+                        const order = row.slot === 'linen' ? -2 : row.slot === 'wood' ? -1 : 1;
+                        return <button type="button" key={row.slot}
+                          className={row.selection ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+                          style={{ order }}
+                          onClick={() => clearForgeMaterial(row.slot)}
+                          aria-label={row.selection ? 'Devolver ' + itemLabel(row.selection.itemId) + ' à grade' : 'Slot ' + partLabel}>
+                          <span>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
+                          <strong>{partLabel} · {materialLabel} ×{row.material.quantity}</strong>
+                          <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
+                        </button>;
+                      })}
                       <button type="button" className={selectedWeaponCore ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
+                        style={{ order: 0 }}
                         onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
                         aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
                         <span>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
                         <strong>Núcleo</strong>
                         <small>{selectedWeaponCore ? coreRarityLabel(selectedWeaponCore.rarity) : '0/1'}</small>
                       </button>
-                      {selectedWeaponCore && weaponRecipeRows.map(row => <button type="button" key={row.slot}
-                        className={row.selection ? 'forge-recipe-slot filled' : 'forge-recipe-slot'}
-                        onClick={() => clearForgeMaterial(row.slot)}
-                        aria-label={row.selection ? 'Devolver ' + itemLabel(row.selection.itemId) + ' à grade' : 'Slot ' + row.slot}>
-                        <span>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
-                        <strong>{(row.slot === 'mineral' ? 'Minério' : row.slot === 'wood' ? 'Madeira' : 'Linho') + ' ×' + row.material.quantity}</strong>
-                        <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
-                      </button>)}
                     </div>
                   </ForgeScene>
                   <section className="forge-zone forge-nuclei-zone" aria-label="Núcleos">
@@ -2926,7 +2937,8 @@ export default function App() {
             
         </div>
       </div>
-    </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
+    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao') && <BackToLobbyButton onClick={closeGamePage} />}
+      </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
