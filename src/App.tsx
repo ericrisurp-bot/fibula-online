@@ -3019,12 +3019,12 @@ export default function App() {
             <span>{station.label}</span>
           </button>)}
         </nav>
-                {arsenalOpen && <div className="lobby-arsenal-backdrop" onClick={() => setArsenalOpen(false)}>
-          <section className="lobby-arsenal-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-arsenal-title" onClick={event => event.stopPropagation()}>
+                {arsenalOpen && <PageFrame eyebrow="EQUIPAMENTOS DO PERSONAGEM" title="Arsenal" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-arsenal-modal lobby-arsenal-page">
             <header className="lobby-arsenal-header">
               <div><span>EQUIPAMENTOS DO PERSONAGEM</span><h2 id="lobby-arsenal-title">Arsenal</h2></div>
               <div className="lobby-arsenal-count">{arsenalInventoryEntries.length}/{arsenalInventoryCapacity} espaços</div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar Arsenal" onClick={() => setArsenalOpen(false)}>×</button>
+              
             </header>
             <div className="lobby-arsenal-content">
               <section className="arsenal-equipment-section" aria-label="Equipamentos equipados">
@@ -3102,8 +3102,7 @@ export default function App() {
                 <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
               </section>
             </div>
-          </section>
-        </div>}
+          </section></div></PageFrame>}
         {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); weaponInfoHoldTriggeredRef.current = false; }}>
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={arsenalWeaponLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalWeaponLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); weaponInfoHoldTriggeredRef.current = false; }}>Fechar</button></header>
@@ -3113,11 +3112,11 @@ export default function App() {
             <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
           </section>
         </div>}
-        {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
-          <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
+        {chestOpen && <PageFrame eyebrow="COLEÇÃO DE ITENS" title="Baú" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-chest-modal lobby-chest-page">
             <header className="lobby-chest-header">
               <div><h2 id="lobby-chest-title">Baú</h2><p>Sua coleção de itens</p></div>
-              <button type="button" className="lobby-chest-close" aria-label="Fechar Baú" onClick={() => setChestOpen(false)}>×</button>
+              
             </header>
             <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
             <nav className="lobby-chest-tabs" role="tablist" aria-label="Conteúdo do Baú">
@@ -3186,13 +3185,12 @@ export default function App() {
             {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
-          </section>
-        </div>}
-        {statusOpen && <div className="lobby-profile-backdrop lobby-status-backdrop" onClick={() => setStatusOpen(false)}>
-          <section className="lobby-profile-modal lobby-status-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-status-title" onClick={event => event.stopPropagation()}>
+          </section></div></PageFrame>}
+        {statusOpen && <PageFrame eyebrow="RESUMO DOS PERSONAGENS ESCOLHIDOS" title="Status" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-profile-modal lobby-status-modal lobby-status-page">
             <header className="lobby-profile-header">
               <div><span>RESUMO DOS PERSONAGENS ESCOLHIDOS</span><h2 id="lobby-status-title">Status</h2></div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar Status" onClick={() => setStatusOpen(false)}>×</button>
+              
             </header>
             <div className="lobby-profile-content lobby-status-content">
               {characterPreferences.map((classId, index) => {
@@ -3238,13 +3236,12 @@ export default function App() {
               })}
               <p className="lobby-status-note">O PODER soma a base do personagem: vida, armadura, esquiva, velocidades e dano. Ele não mede quem é melhor: cada classe foi feita para um estilo de combate, e um número menor só mostra que ela cumpre outro papel. Atributo em vermelho riscado não é usado pela classe e não soma.</p>
             </div>
-          </section>
-        </div>}
-        {profileOpen && <div className="lobby-profile-backdrop" onClick={() => setProfileOpen(false)}>
-          <section className="lobby-profile-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-profile-title" onClick={event => event.stopPropagation()}>
+          </section></div></PageFrame>}
+        {profileOpen && <PageFrame eyebrow="SELEÇÃO E CONFIGURAÇÃO" title="Classes" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-profile-modal lobby-classes-page">
             <header className="lobby-profile-header">
               <div><span>SELEÇÃO E CONFIGURAÇÃO</span><h2 id="lobby-profile-title">Classes</h2></div>
-              <button type="button" className="lobby-profile-close" aria-label="Fechar Classes" onClick={() => setProfileOpen(false)}>×</button>
+              
             </header>
             <nav className="lobby-profile-tabs" role="tablist" aria-label="Classes disponíveis">
               {PROFILE_CLASS_IDS.map(classId => <button
@@ -3284,13 +3281,12 @@ export default function App() {
               </section>
               <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
             </div>
-          </section>
-        </div>}
-        {rankingOpen && <div className="lobby-ranking-backdrop" onClick={() => setRankingOpen(false)}>
-          <section className="lobby-ranking-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-ranking-title" onClick={event => event.stopPropagation()}>
+          </section></div></PageFrame>}
+        {rankingOpen && <PageFrame eyebrow="FÍBULA ONLINE · HALL DA FAMA" title="🏆 Ranking" onBack={closeGamePage}>
+          <div className="station-page-content"><section className="lobby-ranking-modal lobby-ranking-page">
             <header className="lobby-ranking-header">
               <div><span>FÍBULA ONLINE · HALL DA FAMA</span><h2 id="lobby-ranking-title"><span aria-hidden="true">🏆</span> Ranking</h2></div>
-              <button type="button" className="lobby-ranking-close" aria-label="Fechar Ranking" onClick={() => setRankingOpen(false)}>×</button>
+              
             </header>
             <nav className="lobby-ranking-mode-tabs" role="tablist" aria-label="Modalidade do ranking">
               <button type="button" role="tab" aria-selected={rankingMode === 'solo'} className={rankingMode === 'solo' ? 'active' : ''} onClick={() => setRankingMode('solo')}>SOLO</button>
@@ -3349,9 +3345,9 @@ export default function App() {
                   : rankingCategory === 'survival' ? rankingOwnProfile.highest_survival_level : rankingOwnProfile.kills) : '—'}</strong></div>
               <small>Classificação individual atualizada a partir dos perfis públicos do jogo.</small>
             </footer>
-          </section>
-        </div>}
+          </section></div></PageFrame>}
         {playerProfileOpen && <PlayerProfileModal
+          pageMode={activeGameRoute.page === 'jogador'}
           userId={viewedProfileUserId ?? session.user.sub}
           isOwner={(viewedProfileUserId ?? session.user.sub) === session.user.sub}
           currentCharacter={characterPreferences[0] ?? state.classId}
