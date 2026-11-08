@@ -2978,7 +2978,7 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showStart && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
+      {showStart && activeGameRoute.page === 'lobby' && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
         <div className="lobby-sky" aria-hidden="true">
           <i className="lobby-moon"/>
           <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
@@ -3034,6 +3034,7 @@ export default function App() {
             <span>{station.label}</span>
           </button>)}
         </nav>
+      </div>}
                 {arsenalOpen && <PageFrame eyebrow="EQUIPAMENTOS DO PERSONAGEM" title="Arsenal" onBack={closeGamePage}>
           <div className="station-page-content"><section className="lobby-arsenal-modal lobby-arsenal-page">
             <header className="lobby-arsenal-header">
@@ -3392,7 +3393,6 @@ export default function App() {
           onAvatarChange={setAvatarCharacter}
           onClose={closeGamePage}
         />}
-      </div>}
       {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta a carroça construída quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><div className="game-over-actions"><button className="restart-button" onClick={restart}>↻ Tentar novamente</button><button className="lobby-return-button" onClick={returnToLobby}>⌂ Voltar ao lobby</button></div></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
@@ -3458,7 +3458,7 @@ export default function App() {
     </section>
 
   </main>}
-    {showStart && mobileLobbyLandscape && <div className="lobby-orientation-guard" role="alert" aria-live="polite">
+    {showStart && activeGameRoute.page === 'lobby' && mobileLobbyLandscape && <div className="lobby-orientation-guard" role="alert" aria-live="polite">
       <div className="lobby-orientation-guard-icon" aria-hidden="true"><span>▯</span><i>↻</i></div>
       <strong>Gire o celular para a posição vertical</strong>
       <p>O Lobby foi desenvolvido para jogar e organizar seus itens com o celular em pé.</p>
