@@ -6123,5 +6123,10 @@ button, button * {
  box-shadow:0 2px 8px #0008;white-space:nowrap;
 }
 .back-to-lobby-button:active{transform:translateY(1px);background:#59402e}
-.station-page-no-header:has(.cooking-oven-panel) .station-page-content{padding-bottom:calc(46px + env(safe-area-inset-bottom))!important;}
+.station-page-no-header:has(.cooking-oven-panel) .station-page-content{
+ padding-bottom:calc(72px + env(safe-area-inset-bottom))!important;
+}
+.station-page-no-header:has(.cooking-oven-panel) .lobby-crafting-content{
+ padding-bottom:28px;
+}
 @media(max-width:360px){.back-to-lobby-button{right:calc(7px + env(safe-area-inset-right));bottom:calc(7px + env(safe-area-inset-bottom));min-height:27px;padding:4px 8px;font-size:9px}}
