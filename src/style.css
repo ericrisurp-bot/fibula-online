@@ -6108,3 +6108,6 @@ button, button * {
   .forge-page .weapon-anvil-tabs{flex-basis:auto}
   .forge-page .weapon-anvil-tabs button{min-width:72px;padding:5px 8px}
 }
+
+.forge-intensity-0 .forge-flame-back,.forge-intensity-0 .forge-flame-mid{opacity:.12;transform:scaleY(.2)}
+.forge-intensity-0 .forge-flame-core{opacity:.72;transform:scaleY(.34)}
