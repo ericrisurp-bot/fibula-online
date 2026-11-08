@@ -5110,3 +5110,175 @@ button, button * {
   .arsenal-weapon-info-card li { gap:7px; }
   .arsenal-weapon-comparison li span { overflow-wrap:anywhere; }
 }
+
+
+/* Cozinha medieval: camada exclusivamente visual, mantendo os controles e slots existentes. */
+.cooking-kitchen{gap:14px}
+.cooking-oven-panel{
+  border:1px solid rgba(177,151,111,.48);
+  border-radius:18px;
+  padding:14px;
+  background:
+    radial-gradient(ellipse at 50% 78%,rgba(178,91,35,.10),transparent 54%),
+    linear-gradient(155deg,#39332b 0%,#292722 48%,#1e201e 100%);
+  box-shadow:inset 0 1px 0 rgba(255,230,184,.08),inset 0 -16px 32px rgba(0,0,0,.34),0 10px 28px rgba(0,0,0,.2);
+}
+.cooking-oven-panel::before{content:none}
+.cooking-oven-panel .cooking-pot-heading{
+  margin:0 0 12px;
+  color:#f1dfc2;
+  letter-spacing:.04em;
+}
+.cooking-oven-panel .cooking-pot-heading strong{
+  font-size:13px;
+  text-transform:uppercase;
+}
+.cooking-oven-panel .cooking-pot-heading span{
+  padding:4px 9px;
+  border:1px solid rgba(190,157,112,.34);
+  border-radius:999px;
+  background:#211f1b;
+  color:#dfc49d;
+  font-variant-numeric:tabular-nums;
+}
+.cooking-oven-mouth{
+  position:relative;
+  overflow:hidden;
+  padding:13px 11px 11px;
+  border:7px solid #65513c;
+  border-bottom-width:10px;
+  border-radius:18px 18px 10px 10px;
+  background:linear-gradient(180deg,#171715,#24201b 68%,#171614);
+  box-shadow:inset 0 0 0 2px rgba(226,192,143,.12),inset 0 12px 24px #0009,0 4px 0 #171512;
+}
+.cooking-oven-mouth::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:5px;
+  background:linear-gradient(90deg,#80684c,#b08a5c,#80684c);
+  opacity:.8;
+}
+.cooking-oven-fire{
+  position:absolute;
+  inset:auto 0 8px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  gap:7px;
+  height:66px;
+  opacity:0;
+  filter:blur(.2px);
+  pointer-events:none;
+  transition:opacity .35s ease;
+}
+.cooking-oven-fire i{
+  display:block;
+  width:15px;
+  height:32px;
+  border-radius:70% 25% 65% 35%;
+  background:linear-gradient(0deg,#e45b20 0%,#ff9b32 56%,#ffe09a 100%);
+  transform:rotate(8deg);
+  transform-origin:50% 100%;
+  box-shadow:0 0 15px rgba(244,111,35,.65),0 0 30px rgba(221,81,24,.28);
+  animation:cooking-oven-flame 1.15s ease-in-out infinite alternate;
+}
+.cooking-oven-fire i:nth-child(2){height:43px;width:19px;animation-delay:-.55s;transform:rotate(-7deg)}
+.cooking-oven-fire i:nth-child(3){height:25px;animation-delay:-.25s;transform:rotate(13deg)}
+.cooking-oven-panel.is-burning .cooking-oven-fire{opacity:.9}
+.cooking-oven-panel.is-burning .cooking-oven-mouth{
+  box-shadow:inset 0 0 0 2px rgba(255,188,105,.18),inset 0 0 32px rgba(223,88,28,.22),0 4px 0 #171512,0 0 22px rgba(220,103,42,.12);
+}
+.cooking-oven-panel .cooking-production-slots{z-index:1}
+.cooking-oven-panel .cooking-production-slot{
+  min-height:116px;
+  border-color:rgba(173,145,108,.45);
+  background:rgba(20,19,17,.88);
+  color:#d7c8b2;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+.cooking-oven-panel .cooking-production-slot>strong{color:#dfc9a8;font-size:9px;letter-spacing:.04em;text-transform:uppercase}
+.cooking-oven-panel .cooking-production-slot>small{color:#c7b397}
+.cooking-oven-panel .cooking-production-slot.cooking-in-progress{border-color:#c47c43;background:rgba(58,35,22,.9)}
+.cooking-oven-panel .cooking-production-slot.cooking-in-progress>small{color:#ffc27b}
+.cooking-oven-panel .cooking-production-slot.cooking-ready{border-color:#c5a878;background:rgba(83,66,43,.88)}
+.cooking-oven-panel .cooking-production-slot>button{border-color:#b18c5c;background:#59442d;color:#fff0d6}
+.cooking-oven-panel .cooking-production-slot>button:hover{background:#725638}
+.cooking-ingredient-workbench{
+  padding:14px;
+  border:1px solid rgba(160,132,96,.38);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(62,51,38,.92),rgba(34,33,29,.98));
+  box-shadow:inset 0 1px 0 rgba(255,230,190,.06),0 8px 22px rgba(0,0,0,.16);
+}
+.cooking-ingredient-workbench .cooking-pot-heading{color:#ead8b9}
+.cooking-ingredient-workbench .cooking-pot-heading strong{font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.cooking-ingredient-workbench .cooking-pot-heading span{color:#c8b18d;font-size:10px}
+.cooking-ingredient-workbench .cooking-pot-slots{gap:8px;margin:6px 0 12px}
+.cooking-ingredient-workbench .cooking-pot-slot{
+  min-height:84px;
+  border:1px dashed rgba(190,157,112,.55);
+  border-radius:10px;
+  background:linear-gradient(180deg,#29251f,#211f1b);
+  color:#bca98c;
+}
+.cooking-ingredient-workbench .cooking-pot-slot.filled{
+  border:1px solid #a9875a;
+  background:linear-gradient(180deg,#4b3b29,#30281f);
+  color:#fff0d7;
+  box-shadow:inset 0 1px 0 rgba(255,232,190,.08),0 0 12px rgba(173,119,62,.08);
+}
+.cooking-ingredient-workbench .cooking-pot-slot>span{font-size:22px}
+.cooking-ingredient-workbench .cooking-pot-slot>strong{color:#f0dfc2}
+.cooking-ingredient-workbench .cooking-ingredient-grid{
+  border:1px solid rgba(166,137,98,.24);
+  border-radius:11px;
+  background:rgba(20,19,17,.42);
+}
+.cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot{
+  border:1px solid rgba(170,143,105,.38);
+  background:linear-gradient(155deg,#40372b,#29251f);
+  color:#f0e2ca;
+}
+.cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot.selected{
+  border-color:#d2a86f;
+  background:linear-gradient(155deg,#5a452d,#3b3023);
+  box-shadow:0 0 12px rgba(212,157,84,.14);
+}
+.cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>small{color:#e3d1b3}
+.cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>b{color:#f6e8d1}
+.cooking-ingredient-workbench .cooking-pot-item{
+  padding:6px 8px;
+  border:1px solid rgba(166,137,98,.22);
+  border-radius:8px;
+  background:rgba(20,19,17,.3);
+  color:#ead8b9;
+}
+.cooking-ingredient-workbench .cooking-pot-item button{
+  border-color:#806747;
+  background:#403426;
+  color:#f5e5c9;
+}
+.cooking-kitchen .cooking-prepare-button{
+  border-color:#b18b5b;
+  background:linear-gradient(180deg,#765638,#523d29);
+  color:#fff0d7;
+  box-shadow:inset 0 1px 0 rgba(255,230,190,.14);
+}
+.cooking-kitchen .cooking-prepare-button:not(:disabled):hover{background:linear-gradient(180deg,#896745,#634a31)}
+.cooking-kitchen .cooking-feedback{color:#e5d4b8}
+@keyframes cooking-oven-flame{
+  from{transform:scaleY(.82) rotate(-6deg);opacity:.78}
+  to{transform:scaleY(1.08) rotate(7deg);opacity:1}
+}
+@media(max-width:520px){
+  .cooking-oven-panel{padding:10px}
+  .cooking-oven-mouth{padding:10px 6px 8px;border-width:5px;border-bottom-width:8px}
+  .cooking-oven-panel .cooking-production-slots{gap:5px}
+  .cooking-oven-panel .cooking-production-slot{min-height:108px;padding:6px 3px}
+  .cooking-oven-panel .cooking-production-slot>strong{font-size:8px}
+  .cooking-ingredient-workbench{padding:10px}
+  .cooking-ingredient-workbench .cooking-pot-slots{gap:5px}
+  .cooking-ingredient-workbench .cooking-pot-slot{min-height:76px}
+}
+@media(prefers-reduced-motion:reduce){.cooking-oven-fire i{animation:none}}
