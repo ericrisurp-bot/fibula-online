@@ -6672,3 +6672,31 @@ button, button * {
 @media(prefers-reduced-motion:reduce){
   .forge-sparking .forge-sparks,.forge-sparking .forge-flash,.forge-scene-slots .forge-recipe-slot{animation:none!important;opacity:0}
 }
+
+
+/* B1.3 — slots posicionados nas partes da bigorna e retorno fixo. */
+.forge-scene-header{justify-content:flex-start!important;pointer-events:none}
+.forge-scene-header .forge-back-button{display:none!important}
+.forge-scene-slots{top:42%;width:min(98%,350px);}
+.forge-recipe-slots{display:flex!important;width:100%;max-width:none;align-items:flex-start;justify-content:center;gap:clamp(3px,1.1vw,7px);}
+.forge-recipe-slot{flex:1 1 0;min-width:0;max-width:82px;min-height:66px;padding:4px 2px;}
+.forge-recipe-slot.forge-core-recipe-slot{flex:0 0 clamp(54px,17vw,68px);max-width:68px;}
+.forge-recipe-slot.forge-material-recipe-slot>strong{white-space:normal;overflow-wrap:anywhere;text-align:center;font-size:clamp(6px,1.8vw,8px);line-height:1.12;}
+.forge-recipe-slot>small{font-size:8px;}
+.back-to-lobby-button{
+ position:fixed;z-index:1200;right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));
+ min-height:29px;padding:5px 9px;border:1px solid #b88b62;border-radius:8px;
+ background:linear-gradient(180deg,#40362b,#262522);color:#f2e8d8;font:inherit;font-size:10px;font-weight:800;
+ box-shadow:0 2px 8px #0008;white-space:nowrap;
+}
+.back-to-lobby-button:active{transform:translateY(1px);background:#59402e}
+.forge-page .station-page-content{padding-bottom:calc(42px + env(safe-area-inset-bottom))!important;}
+@media(max-width:430px){
+ .forge-scene-slots{top:42%;width:99%;}
+ .forge-recipe-slots{gap:2px;}
+ .forge-recipe-slot{min-height:62px;padding:3px 1px;}
+ .forge-recipe-slot.forge-core-recipe-slot{flex-basis:clamp(48px,15vw,58px);}
+ .forge-recipe-slot.forge-material-recipe-slot>strong{font-size:6px;}
+ .back-to-lobby-button{right:calc(7px + env(safe-area-inset-right));bottom:calc(7px + env(safe-area-inset-bottom));}
+}
+@media(prefers-reduced-motion:reduce){.forge-scene-slots .forge-recipe-slot{animation:none!important}}
