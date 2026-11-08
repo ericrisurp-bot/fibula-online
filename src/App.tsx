@@ -883,7 +883,7 @@ export default function App() {
 
   useEffect(() => {
     if (!weaponInfoModal) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setWeaponInfoModal(null); };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setWeaponInfoModal(null); weaponInfoHoldTriggeredRef.current = false; } };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [weaponInfoModal]);
@@ -2413,7 +2413,6 @@ export default function App() {
     weaponInfoHoldTimerRef.current = null;
     if (weaponInfoHoldTriggeredRef.current) {
       setWeaponInfoModal(weapon);
-      window.setTimeout(() => { weaponInfoHoldTriggeredRef.current = false; }, 0);
     }
   };
   const clearWeaponInfoHold = () => {
@@ -3082,9 +3081,9 @@ export default function App() {
             </div>
           </section>
         </div>}
-        {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => setWeaponInfoModal(null)}>
+        {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); weaponInfoHoldTriggeredRef.current = false; }}>
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={arsenalWeaponLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
-            <header><strong>{arsenalWeaponLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => setWeaponInfoModal(null)}>Fechar</button></header>
+            <header><strong>{arsenalWeaponLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); weaponInfoHoldTriggeredRef.current = false; }}>Fechar</button></header>
             <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
             <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'cajado' : weaponInfoModal.model}</h3>
             <ul>{weaponInfoModal.attributes.map((attribute, index) => <li key={attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b></li>)}</ul>
