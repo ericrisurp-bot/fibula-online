@@ -759,6 +759,7 @@ export default function App() {
   const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
+  const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalInventoryEntries = [
@@ -1978,7 +1979,7 @@ export default function App() {
       setWeaponFeedback('Sem conexão: fabricar exige internet.');
       return;
     }
-    if (weaponCraftBusy) return;
+    if (weaponCraftLockRef.current || weaponCraftBusy) return;
     if (!selectedWeaponCoreId || !selectedWeaponCore || !selectedWeaponModel) {
       setWeaponFeedback('Selecione um núcleo revelado de arma.');
       return;
@@ -1989,6 +1990,7 @@ export default function App() {
     }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const animationStartedAt = Date.now();
+    weaponCraftLockRef.current = true;
     setWeaponCraftBusy(true);
     setForgeHammering(!reducedMotion);
     setForgeCraftResult('');
@@ -2024,6 +2026,7 @@ export default function App() {
         }
       }
     } finally {
+      weaponCraftLockRef.current = false;
       setWeaponCraftBusy(false);
     }
   };
