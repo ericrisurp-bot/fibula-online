@@ -6111,3 +6111,21 @@ button, button * {
 
 .forge-intensity-0 .forge-flame-back,.forge-intensity-0 .forge-flame-mid{opacity:.12;transform:scaleY(.2)}
 .forge-intensity-0 .forge-flame-core{opacity:.72;transform:scaleY(.34)}
+
+
+/* C1: retorno ao Lobby dentro da própria cena do Forno de Pedra. */
+.cooking-oven-panel .cooking-pot-heading{align-items:center;gap:8px}
+.cooking-oven-heading-title{display:flex;min-width:0;align-items:center;gap:8px}
+.cooking-oven-heading-title>strong{color:#f1dfc2;font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+.cooking-oven-panel .cooking-back-button{
+  flex:0 0 auto;min-height:25px;padding:3px 8px;border:1px solid rgba(220,143,79,.58);
+  border-radius:7px;background:linear-gradient(180deg,#3b3026,#25221e);color:#f2dfc7;
+  font:inherit;font-size:9px;font-weight:800;line-height:1;white-space:nowrap;
+  box-shadow:inset 0 1px 0 #ffffff12,0 2px 4px #0005;
+}
+.cooking-oven-panel .cooking-back-button:active{background:#59402e;transform:translateY(1px)}
+@media(max-width:360px){
+  .cooking-oven-heading-title{gap:5px}
+  .cooking-oven-heading-title>strong{font-size:10px}
+  .cooking-oven-panel .cooking-back-button{min-height:23px;padding:3px 6px;font-size:8px}
+}
