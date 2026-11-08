@@ -3084,7 +3084,7 @@ export default function App() {
         </div>}
         {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => setWeaponInfoModal(null)}>
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={arsenalWeaponLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
-            <header><strong>{weaponModelLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => setWeaponInfoModal(null)}>Fechar</button></header>
+            <header><strong>{arsenalWeaponLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => setWeaponInfoModal(null)}>Fechar</button></header>
             <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
             <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'cajado' : weaponInfoModal.model}</h3>
             <ul>{weaponInfoModal.attributes.map((attribute, index) => <li key={attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b></li>)}</ul>
