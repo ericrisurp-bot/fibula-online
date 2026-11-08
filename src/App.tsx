@@ -322,9 +322,14 @@ const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
   if (parsedCore) {
-    const category = (parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category) === 'weapon' ? 'de arma' : (parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category) === 'armor' ? 'de armadura' : 'de acessório';
-    const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
-    return `Núcleo ${category} · ${coreRarityLabel(rarity)}`;
+    const category = parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category;
+    if (category === 'weapon') {
+      const model = parsedCore.kind === 'closed' ? parsedCore.weaponModel : parsedCore.core.weaponModel;
+      const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
+      const modelLabel = model === 'arco' ? 'arco' : model === 'cajado' ? 'cajado' : 'espada';
+      return `Núcleo de ${modelLabel} · ${coreRarityLabel(rarity)}`;
+    }
+    return category === 'armor' ? 'Núcleo de armadura' : 'Núcleo de acessório';
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
@@ -772,8 +777,9 @@ export default function App() {
     return { itemId, required: material.quantity, available };
   }) : [];
   const weaponCompatibilityError = selectedWeaponCore ? weaponCoreCompatibility(selectedWeaponModel, selectedWeaponCore) : null;
-  const activeWeaponAttributes = WEAPON_ACTIVE_ATTRIBUTES[selectedWeaponModel];
-  const inactiveWeaponAttributes = selectedWeaponCore?.attributes.filter(attribute => !activeWeaponAttributes.includes(attribute.key)) ?? [];
+  const allowedWeaponModels: readonly WeaponModel[] = selectedWeaponCore?.weaponModel === 'espada' ? ['espada']
+    : selectedWeaponCore?.weaponModel === 'arco' ? ['arco']
+      : selectedWeaponCore?.weaponModel === 'cajado' ? ['cajado', 'bastao'] : ['espada', 'arco', 'cajado', 'bastao'];
   const weaponMaterialsReady = weaponRecipeRows.length > 0 && weaponRecipeRows.every(item => item.available >= item.required);
   const anvilPrimaryStacks = lobbyChestItems.filter(item => ['stone', 'bronze'].includes(getBaseItemId(item.itemId)));
   const anvilSecondaryStacks = lobbyChestItems.filter(item => ['wood', 'wolf_hide', 'linen', 'cotton'].includes(getBaseItemId(item.itemId)));
@@ -1955,7 +1961,7 @@ export default function App() {
       const values = new Uint32Array(1); window.crypto.getRandomValues(values);
       return values[0] / 0x1_0000_0000;
     };
-    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID()));
+    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID(), parsed.weaponModel));
     const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
       : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
     if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
@@ -2775,7 +2781,11 @@ export default function App() {
                         return <button type="button" key={item.itemId}
                           className={selected ? 'weapon-anvil-core selected' : 'weapon-anvil-core'}
                           aria-pressed={selected}
-                          onClick={() => { setSelectedWeaponCoreId(selected ? null : item.itemId); setWeaponFeedback(''); }}>
+                          onClick={() => {
+                            setSelectedWeaponCoreId(selected ? null : item.itemId);
+                            if (!selected) setSelectedWeaponModel(core.weaponModel === 'espada' ? 'espada' : core.weaponModel === 'arco' ? 'arco' : core.affinity === 'natureza' ? 'bastao' : 'cajado');
+                            setWeaponFeedback('');
+                          }}>
                           <span>💠</span><strong>{coreRarityLabel(core.rarity)}{core.surp ? ' · SURP' : ''}</strong>
                           <small>{core.affinity ? 'Afinidade: ' + (core.affinity === 'dano' ? 'Dano' : 'Natureza') : 'Sem afinidade'}</small>
                           <ul>{core.attributes.map(attribute => <li key={attribute.key}>{weaponAttributeLabels[attribute.key]} · {tierLabels[coreAttributeTier(attribute.value, core.rarity)]}</li>)}</ul>
@@ -2791,6 +2801,7 @@ export default function App() {
                       {(['espada', 'arco', 'cajado', 'bastao'] as const).map(model => <button type="button" key={model}
                         className={selectedWeaponModel === model ? 'selected' : ''}
                         aria-pressed={selectedWeaponModel === model}
+                        disabled={!allowedWeaponModels.includes(model)}
                         onClick={() => { setSelectedWeaponModel(model); setWeaponFeedback(''); }}>
                         {weaponModelLabels[model]}
                       </button>)}
@@ -2810,11 +2821,6 @@ export default function App() {
                         </div>)}
                       </div>}
                     {weaponCompatibilityError && <p className="weapon-anvil-warning" role="alert">{weaponCompatibilityError}</p>}
-                    {selectedWeaponCore && inactiveWeaponAttributes.length > 0 && <p className={inactiveWeaponAttributes.length === selectedWeaponCore.attributes.length ? 'weapon-anvil-warning strong' : 'weapon-anvil-muted'}>
-                      {inactiveWeaponAttributes.length === selectedWeaponCore.attributes.length
-                        ? 'Este núcleo não dará bônus a esta arma.'
-                        : 'Atributos não ativos para este modelo: ' + inactiveWeaponAttributes.map(attribute => weaponAttributeLabels[attribute.key]).join(', ') + '.'}
-                    </p>}
                   </section>
                   <div className="weapon-anvil-footer">
                     {!cookingOnline && <p className="weapon-anvil-warning" role="status">Sem conexão: fabricar exige internet.</p>}
