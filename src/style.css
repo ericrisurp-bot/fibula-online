@@ -4799,6 +4799,7 @@ button, button * {
 .weapon-anvil-choice-row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin:0 0 12px; }
 .weapon-anvil-choice-row:last-child { grid-template-columns:repeat(2,minmax(0,1fr)); margin-bottom:0; }
 .weapon-anvil-choice-row button { padding:6px 4px; font-size:10px; }
+.weapon-anvil-choice-row button:disabled { opacity:.35; cursor:not-allowed; }
 .weapon-anvil-recipe { display:grid; gap:6px; }
 .weapon-anvil-recipe-row {
   display:flex; justify-content:space-between; align-items:center; gap:10px;
