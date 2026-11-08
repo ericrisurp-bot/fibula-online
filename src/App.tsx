@@ -2405,8 +2405,15 @@ export default function App() {
     weaponInfoHoldTimerRef.current = window.setTimeout(() => {
       weaponInfoHoldTriggeredRef.current = true;
       weaponInfoHoldTimerRef.current = null;
-      setWeaponInfoModal(weapon);
     }, 500);
+  };
+  const finishWeaponInfoHold = (weapon: CraftedWeapon) => {
+    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
+    weaponInfoHoldTimerRef.current = null;
+    if (weaponInfoHoldTriggeredRef.current) {
+      setWeaponInfoModal(weapon);
+      window.setTimeout(() => { weaponInfoHoldTriggeredRef.current = false; }, 0);
+    }
   };
   const clearWeaponInfoHold = () => {
     if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
@@ -3037,7 +3044,7 @@ export default function App() {
                         className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`}
                         style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
                         onPointerDown={event => startWeaponInfoHold(event, weapon)}
-                        onPointerUp={clearWeaponInfoHold}
+                        onPointerUp={() => finishWeaponInfoHold(weapon)}
                         onPointerLeave={clearWeaponInfoHold}
                         onPointerCancel={cancelWeaponInfoHold}
                         onContextMenu={event => event.preventDefault()}
