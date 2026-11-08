@@ -6098,3 +6098,13 @@ button, button * {
   .forge-flame,.forge-hammering .forge-hammer-art,.forge-hammering .forge-sparks{animation:none!important}
   .forge-fire-glow{transition:none}
 }
+
+.forge-toolbar{display:flex;flex:0 0 40px;align-items:center;justify-content:space-between;gap:8px;padding:3px 10px;border-bottom:1px solid #414b51;background:#20272c}
+.forge-back-button{flex:0 0 auto;min-height:30px;padding:5px 9px;border:1px solid #4d5a62;border-radius:7px;background:#2b343a;color:#dce3e6;font:inherit;font-size:10px;font-weight:800}
+.forge-page .weapon-anvil-tabs{flex:1 1 auto;min-height:0;justify-content:flex-end;gap:6px;padding:0;border:0;background:transparent}
+.forge-page .weapon-anvil-tabs button{min-width:82px;padding:5px 10px;font-size:10px}
+@media(max-width:420px){
+  .forge-toolbar{flex-basis:37px;padding:2px 7px}
+  .forge-page .weapon-anvil-tabs{flex-basis:auto}
+  .forge-page .weapon-anvil-tabs button{min-width:72px;padding:5px 8px}
+}
