@@ -176,24 +176,34 @@ Um núcleo pode ser utilizado em estruturas/materiais diferentes. Entretanto:
 
 Exemplo: um núcleo com Vida e Armadura aplicado a uma estrutura de linho só pode ativar os atributos que a combinação efetivamente aceita. O atributo incompatível não se transforma em movimento ou esquiva.
 
-## 9. Materiais de armadura
+## 9. Tipos e refinamentos de armadura
 
-Combinações de estrutura já definidas:
+As armaduras têm dois tipos de estrutura, definidos pelo material-base da peça:
 
-- Bronze + couro
-- Bronze + linho
-- Bronze + algodão
+- **Tipo 1 — Couro:** o couro bruto é o material-base da peça. Este tipo oferece menos armadura que o Tipo 2.
+- **Tipo 2 — Bronze:** o bronze é o material-base metálico da peça. Este tipo oferece mais armadura que o Tipo 1.
 
-Especialidades dos materiais:
+O couro bruto não é forro nem revestimento: ele constitui a estrutura-base do Tipo 1. Bronze e couro não concedem bônus próprios adicionais além da diferença de armadura entre os dois tipos descrita acima. Não atribuir mobilidade extra ao Tipo 1.
 
-| Material | Especialidade |
+### 9.1 Forro e costura
+
+Os refinamentos são aplicáveis aos dois tipos de armadura. A peça tem, na especificação conceitual, um slot de material-base, um slot de forro e um slot de costura. Para forro e costura, as opções de material são:
+
+| Material de refinamento | Atributos aproveitados |
 |---|---|
-| Bronze | Estrutura/placa metálica; não concede atributo próprio nesta especificação |
-| Couro | Armadura e resistência |
-| Linho | Velocidade de movimento e esquiva |
 | Algodão | Vida |
+| Linho | Velocidade de movimento e esquiva |
+| Couro refinado | Armadura e resistência |
 
-O núcleo determina os atributos e suas potências; o material determina quais atributos são aproveitados. Não inventar bônus de bronze nem permitir que o material altere os atributos originais do núcleo.
+O material determina quais atributos do núcleo são aproveitados; ele não cria atributos nem altera os atributos ou as potências originais do núcleo. O núcleo continua sendo a fonte dos atributos e das potências. Armaduras não recebem força nem velocidade de ataque.
+
+A armadura é fabricada na **Alfaiataria**.
+
+### 9.2 Produção futura de couro refinado
+
+O couro refinado será produzido na **Tecelaria**, dentro da partida, a partir do couro que cai do lobo. A Tecelaria atualmente refina algodão em linho; a produção de couro refinado é um requisito futuro e não deve ser considerada implementada nesta etapa.
+
+As chances de refino, o estoque e a capacidade da Tecelaria para esse processo ainda não foram definidos e permanecem em Pendências.
 
 ## 10. Regras de fabricação e troca
 
@@ -223,16 +233,19 @@ Fluxo conceitual:
 
 Esta documentação não resolve por suposição os seguintes pontos:
 
-1. Distribuição definitiva de até quatro atributos por peça individual de armadura.
-2. Matriz individual de atributos/efeitos por espada, arco, cajado e bastão da Natureza.
-3. Se `areaAtaque` pode aparecer em núcleos de armas e/ou acessórios.
-4. Se `alcanceAtaque` fica totalmente fora de qualquer núcleo/acessório (a regra atual mantém o alcance das armas fixo).
-5. Fórmula exata de aplicação dos multiplicadores de núcleos de armadura e de armas.
-6. Acúmulo de dois ou mais acessórios que multiplicam o mesmo atributo: aditivo ou multiplicativo.
-7. Distribuição probabilística dentro da faixa de 50% a 100%, incluindo arredondamento e se cada atributo recebe rolagem independente.
-8. Como efeitos especiais (empurrão, perfuração, explosão, veneno, cura etc.) são escalados e quais armas podem receber cada efeito.
-9. Se um núcleo SURP tem alguma chance específica de produzir equipamento SURP além de preservar os quatro atributos/potências do núcleo. Não assumir chance de 80% ou 100% sem aprovação explícita.
-10. Quais atributos formais já possuem efeito real no combate e quais exigem implementação própria. A auditoria do código deve preceder qualquer alteração de gameplay.
+1. Valores numéricos de armadura do Tipo 1 (Couro) e do Tipo 2 (Bronze).
+2. Confirmação da quantidade exata de slots de forro e costura. A estrutura conceitual descrita nesta seção prevê um slot de forro e um slot de costura, além do slot de material-base; não ampliar nem reduzir essa quantidade sem aprovação.
+3. Números do couro refinado na Tecelaria: chance de refino, estoque e capacidade.
+4. Distribuição definitiva de até quatro atributos por peça individual de armadura.
+5. Matriz individual de atributos/efeitos por espada, arco, cajado e bastão da Natureza.
+6. Se `areaAtaque` pode aparecer em núcleos de armas e/ou acessórios.
+7. Se `alcanceAtaque` fica totalmente fora de qualquer núcleo/acessório (a regra atual mantém o alcance das armas fixo).
+8. Fórmula exata de aplicação dos multiplicadores de núcleos de armadura e de armas.
+9. Acúmulo de dois ou mais acessórios que multiplicam o mesmo atributo: aditivo ou multiplicativo.
+10. Distribuição probabilística dentro da faixa de 50% a 100%, incluindo arredondamento e se cada atributo recebe rolagem independente.
+11. Como efeitos especiais (empurrão, perfuração, explosão, veneno, cura etc.) são escalados e quais armas podem receber cada efeito.
+12. Se um núcleo SURP tem alguma chance específica de produzir equipamento SURP além de preservar os quatro atributos/potências do núcleo. Não assumir chance de 80% ou 100% sem aprovação explícita.
+13. Quais atributos formais já possuem efeito real no combate e quais exigem implementação própria. A auditoria do código deve preceder qualquer alteração de gameplay.
 
 ## 13. Limites desta etapa
 
