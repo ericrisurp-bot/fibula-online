@@ -2389,14 +2389,14 @@ export default function App() {
   };
   const handleArsenalWeaponTap = (weapon: CraftedWeapon) => {
     const weaponClass = WEAPON_CLASS_BY_MODEL[weapon.model];
+    setSelectedArsenalItemId(weapon.id);
+    setSelectedEquipmentSlot('arma');
     if (activeArsenalClassId !== weaponClass) {
       setWeaponFeedback('Esta arma é do ' + CLASSES[weaponClass].label + '.');
       return;
     }
     if (equippedWeaponIds[weaponClass] === weapon.id) unequipCraftedWeapon(weapon);
     else equipCraftedWeapon(weapon);
-    setSelectedArsenalItemId(weapon.id);
-    setSelectedEquipmentSlot('arma');
   };
   const startWeaponInfoHold = (event: PointerEvent<HTMLButtonElement>, weapon: CraftedWeapon) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -3031,11 +3031,11 @@ export default function App() {
                       const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
                       const isEquipped = equippedWeaponIds[classId] === weapon.id;
                       const weaponName = weaponModelLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
-                      const rarityColor = weapon.rarity === 'common' ? '#36d66f' : weapon.rarity === 'uncommon' ? '#348cff' : weapon.rarity === 'rare' ? '#a34be8' : weapon.rarity === 'legendary' ? '#ff8a24' : '#cbd5e1';
+                      const rarityColor = weapon.rarity === 'common' ? '#36d66f' : weapon.rarity === 'uncommon' ? '#348cff' : weapon.rarity === 'rare' ? '#a34be8' : weapon.rarity === 'legendary' ? '#ff8a24' : 'transparent';
                       const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
                       return <button type="button" key={weapon.id}
                         className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`}
-                        style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
+                        style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
                         onPointerDown={event => startWeaponInfoHold(event, weapon)}
                         onPointerUp={clearWeaponInfoHold}
                         onPointerLeave={clearWeaponInfoHold}
