@@ -2737,8 +2737,8 @@ export default function App() {
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
-              {activeCraftingStation.id !== 'fogao' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
-              {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && <p>{activeCraftingStation.description}</p>}
               {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-station-form">
                 <section className="jewelry-core-panel">
                   <div className="jewelry-section-heading"><strong>NÚCLEOS FECHADOS DE ARMA</strong><span>Selecione 1 núcleo para revelar</span></div>
@@ -2773,7 +2773,7 @@ export default function App() {
                   <button type="button" role="tab" aria-selected={anvilTab === 'armaduras'} className={anvilTab === 'armaduras' ? 'active' : ''} onClick={() => setAnvilTab('armaduras')}>Armaduras</button>
                 </nav>
                 {anvilTab === 'armaduras' ? <div className="forge-coming-soon">Em breve</div> : <div className="forge-workspace">
-                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering} coreLabel={selectedWeaponCore ? 'Núcleo de ' + (selectedWeaponCore.weaponModel === 'cajado' ? selectedWeaponCore.affinity === 'natureza' ? 'bastão' : 'cajado' : selectedWeaponCore.weaponModel) + ' · ' + coreRarityLabel(selectedWeaponCore.rarity) : ''} onCoreSlotClick={() => { setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }} />
+                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering} coreLabel={selectedWeaponCore ? 'Núcleo de ' + (selectedWeaponCore.weaponModel === 'cajado' ? selectedWeaponCore.affinity === 'natureza' ? 'bastão' : 'cajado' : selectedWeaponCore.weaponModel) + ' · ' + coreRarityLabel(selectedWeaponCore.rarity) : ''} onCoreSlotClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }} />
                   <section className="forge-panel">
                     <div className="forge-panel-heading"><strong>{selectedWeaponCore ? 'Materiais da receita' : 'Núcleos revelados'}</strong><span>{selectedWeaponCore ? 'Mesma raridade do núcleo' : 'Escolha um núcleo no Baú'}</span></div>
                     {selectedWeaponCore ? <>
