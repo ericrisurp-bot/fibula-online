@@ -779,7 +779,9 @@ export default function App() {
   const weaponCompatibilityError = selectedWeaponCore ? weaponCoreCompatibility(selectedWeaponModel, selectedWeaponCore) : null;
   const allowedWeaponModels: readonly WeaponModel[] = selectedWeaponCore?.weaponModel === 'espada' ? ['espada']
     : selectedWeaponCore?.weaponModel === 'arco' ? ['arco']
-      : selectedWeaponCore?.weaponModel === 'cajado' ? ['cajado', 'bastao'] : ['espada', 'arco', 'cajado', 'bastao'];
+      : selectedWeaponCore?.weaponModel === 'cajado'
+        ? selectedWeaponCore.affinity === 'natureza' ? ['bastao'] : ['cajado']
+        : ['espada', 'arco', 'cajado', 'bastao'];
   const weaponMaterialsReady = weaponRecipeRows.length > 0 && weaponRecipeRows.every(item => item.available >= item.required);
   const anvilPrimaryStacks = lobbyChestItems.filter(item => ['stone', 'bronze'].includes(getBaseItemId(item.itemId)));
   const anvilSecondaryStacks = lobbyChestItems.filter(item => ['wood', 'wolf_hide', 'linen', 'cotton'].includes(getBaseItemId(item.itemId)));
