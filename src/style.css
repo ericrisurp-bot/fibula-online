@@ -5474,3 +5474,65 @@ button, button * {
   background:#493625;
   color:#f5e5c9;
 }
+
+
+/* Forno de pedra: blocos cinza-ardósia, barro aparente e fissuras sutis. */
+.station-page-no-header .cooking-oven-panel{
+  position:relative;
+  overflow:hidden;
+  border-color:#77766f;
+  background:
+    radial-gradient(ellipse at 18% 18%,rgba(190,151,112,.22),transparent 32%),
+    radial-gradient(ellipse at 82% 76%,rgba(28,27,25,.24),transparent 38%),
+    repeating-linear-gradient(0deg,transparent 0 31px,rgba(28,29,28,.22) 32px 34px),
+    repeating-linear-gradient(90deg,transparent 0 68px,rgba(25,26,25,.18) 69px 71px),
+    linear-gradient(145deg,#85847e 0%,#686963 48%,#4c4d49 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.16),inset 0 -10px 22px rgba(0,0,0,.3),0 9px 22px rgba(0,0,0,.24);
+}
+.station-page-no-header .cooking-oven-panel::before{
+  content:"";
+  position:absolute;
+  inset:7px;
+  z-index:0;
+  border-radius:15px;
+  opacity:.42;
+  pointer-events:none;
+  background:
+    linear-gradient(132deg,transparent 0 18%,rgba(27,27,25,.8) 18.15% 18.45%,transparent 18.6% 100%),
+    linear-gradient(42deg,transparent 0 47%,rgba(29,29,27,.72) 47.12% 47.38%,transparent 47.55% 100%),
+    linear-gradient(164deg,transparent 0 72%,rgba(32,31,28,.68) 72.12% 72.36%,transparent 72.5% 100%),
+    linear-gradient(108deg,transparent 0 83%,rgba(224,211,190,.55) 83.12% 83.32%,transparent 83.5% 100%);
+  mask-image:linear-gradient(90deg,#000,transparent 32%,#000 70%,transparent);
+}
+.station-page-no-header .cooking-oven-panel > *{position:relative;z-index:1}
+.station-page-no-header .cooking-oven-panel .cooking-pot-heading,
+.station-page-no-header.is-burning .cooking-oven-panel .cooking-pot-heading{color:#f0e7d8}
+.station-page-no-header .cooking-oven-mouth{
+  border-color:#77766f;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.13),inset 0 12px 28px #000b,0 3px 0 #393a36;
+}
+.station-page-no-header .cooking-oven-mouth::before{
+  background:linear-gradient(90deg,#5c5d58,#aaa99f,#5c5d58);
+}
+.station-page-no-header .cooking-oven-panel.is-burning .cooking-oven-mouth{
+  box-shadow:inset 0 0 0 2px rgba(255,196,125,.24),inset 0 0 38px rgba(239,91,28,.28),0 3px 0 #393a36,0 0 30px rgba(224,105,42,.2);
+}
+
+/* Quantidade e marcador dos ingredientes: plaquinha marrom, não cinza. */
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>b,
+.station-page-no-header.is-burning .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>b{
+  display:inline-block;
+  justify-self:center;
+  padding:3px 8px;
+  border:1px solid #9b7449;
+  border-radius:6px;
+  background:linear-gradient(180deg,#765638,#493423);
+  color:#fff0d7;
+  box-shadow:inset 0 1px 0 rgba(255,226,184,.12);
+}
+.station-page-no-header .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>em,
+.station-page-no-header.is-burning .cooking-ingredient-workbench .cooking-ingredient.lobby-chest-slot>em{
+  border-color:#a9875a;
+  background:linear-gradient(180deg,#765638,#493423);
+  color:#fff0d7;
+}
