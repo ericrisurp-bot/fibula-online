@@ -323,13 +323,13 @@ const itemLabel = (itemId: string) => {
   const parsedCore = parseCoreItemId(itemId);
   if (parsedCore) {
     const category = parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category;
+    const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
     if (category === 'weapon') {
       const model = parsedCore.kind === 'closed' ? parsedCore.weaponModel : parsedCore.core.weaponModel;
-      const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
       const modelLabel = model === 'arco' ? 'arco' : model === 'cajado' ? 'cajado' : 'espada';
       return `Núcleo de ${modelLabel} · ${coreRarityLabel(rarity)}`;
     }
-    return category === 'armor' ? 'Núcleo de armadura' : 'Núcleo de acessório';
+    return `Núcleo de ${category === 'armor' ? 'armadura' : 'acessório'} · ${coreRarityLabel(rarity)}`;
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
@@ -380,7 +380,7 @@ const jabuticabaLevelCost = (level: number) => {
 const LOBBY_CRAFTING_STATIONS = [
   { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
   { id: 'costura', label: 'COSTURA', icon: '🧵', title: 'Alfaiataria', description: 'Mesa de costura para trabalhar tecidos e materiais flexíveis.', products: 'Luvas, botas e peças de tecido' },
-  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Bancada para criar acessórios que complementam os atributos do personagem.', products: 'Colares e pulseiras' },
+  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Revele os núcleos fechados de suas armas e descubra seus atributos.', products: 'Revelação de núcleos de arma' },
   { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão e Panela', description: 'Escolha os ingredientes do Baú e coloque cada unidade na panela para preparar sua refeição.', products: 'Sopas, grelhados, guisados e ensopados' },
 ] as const;
 
