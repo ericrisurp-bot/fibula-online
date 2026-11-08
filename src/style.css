@@ -4868,7 +4868,7 @@ button, button * {
 .arsenal-weapon-info-card>header button { flex:0 0 auto; min-height:32px; padding:5px 11px; border:1px solid #7d897a; border-radius:8px; background:#424b41; color:#f1f4ef; font-size:11px; font-weight:800; }
 .arsenal-weapon-info-damage { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid rgba(230,238,227,.15); border-bottom:1px solid rgba(230,238,227,.15); font-size:12px; }
 .arsenal-weapon-info-damage b { font-variant-numeric:tabular-nums; }
-.arsenal-weapon-info-card h3 { margin:12px 0 8px; color:#cbd6c8; font-size:11px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+.arsenal-weapon-info-card h3 { margin:12px 0 8px; color:#cbd6c8; font-size:11px; font-weight:900; letter-spacing:.02em; }
 .arsenal-weapon-info-card ul { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
 .arsenal-weapon-info-card li { display:flex; justify-content:space-between; gap:12px; padding-top:6px; border-top:1px solid rgba(230,238,227,.1); font-size:11px; }
 .arsenal-weapon-info-card li span { min-width:0; overflow-wrap:anywhere; color:#d0d9cd; }
