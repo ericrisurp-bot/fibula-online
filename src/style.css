@@ -4875,3 +4875,75 @@ button, button * {
 .arsenal-weapon-info-card li b { flex:0 0 auto; color:#f0f4ed; font-variant-numeric:tabular-nums; }
 .arsenal-weapon-info-stars { display:flex; justify-content:center; gap:9px; margin-top:15px; color:#aeb9aa; font-size:25px; line-height:1; }
 @media(max-width:420px) { .arsenal-weapon-info-card { padding:12px; } .arsenal-weapon-info-card>header strong { font-size:12px; } }
+
+
+/* N6: arma equipada visível no manequim e comparação compacta no cartão. */
+.arsenal-equipped-weapon-icon {
+  display:grid;
+  min-height:25px;
+  place-items:center;
+  font-size:23px;
+  line-height:1;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
+}
+.arsenal-weapon-equipped-slot {
+  min-width:0;
+  overflow:hidden;
+}
+.arsenal-weapon-equipped-slot .arsenal-equipped-item {
+  max-width:100%;
+  overflow-wrap:anywhere;
+  text-align:center;
+}
+.arsenal-weapon-comparison {
+  display:grid;
+  gap:7px;
+  margin-top:13px;
+  padding-top:10px;
+  border-top:1px solid rgba(230,238,227,.18);
+}
+.arsenal-weapon-comparison h3 {
+  margin:0 0 2px;
+  overflow-wrap:anywhere;
+}
+.arsenal-weapon-comparison-damage {
+  display:flex;
+  min-width:0;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 0;
+  border-top:1px solid rgba(230,238,227,.1);
+  border-bottom:1px solid rgba(230,238,227,.1);
+  font-size:11px;
+}
+.arsenal-weapon-comparison-damage span {
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.arsenal-weapon-comparison li {
+  min-width:0;
+  align-items:flex-start;
+}
+.arsenal-weapon-comparison li b,
+.arsenal-weapon-comparison-damage b {
+  flex:0 0 auto;
+  max-width:48%;
+  overflow-wrap:anywhere;
+  text-align:right;
+}
+.arsenal-weapon-comparison .is-better { color:#8fc99a; }
+.arsenal-weapon-comparison .is-worse { color:#d9958f; }
+.arsenal-weapon-comparison .is-equal { color:#aeb6ad; }
+@media(max-width:420px) {
+  .arsenal-weapon-info-backdrop { padding:8px; }
+  .arsenal-weapon-info-card {
+    width:100%;
+    max-height:82dvh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding:10px;
+  }
+  .arsenal-weapon-info-card li { gap:7px; }
+  .arsenal-weapon-comparison li span { overflow-wrap:anywhere; }
+}
