@@ -53,9 +53,18 @@ export function readStationRoute(pathname?: string): StationRouteId | null {
   return isStationRoute(route) ? route.page : null;
 }
 
-export function navigateToStation(id: StationRouteId): void {
+export function navigateToPage(id: Exclude<StaticPageId, 'lobby' | 'jogador'>): void {
   if (typeof window === 'undefined') return;
   window.history.pushState({ page: id }, '', PAGE_PATH_BY_ID[id]);
+}
+
+export function navigateToPlayerProfile(userId: string): void {
+  if (typeof window === 'undefined' || !userId.trim()) return;
+  window.history.pushState({ page: 'jogador', playerId: userId }, '', `${PAGE_PATH_BY_ID.jogador.slice(0, -':id'.length)}${encodeURIComponent(userId)}`);
+}
+
+export function navigateToStation(id: StationRouteId): void {
+  navigateToPage(id);
 }
 
 export function navigateToLobby(): void {
