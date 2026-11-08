@@ -337,6 +337,7 @@ const itemLabel = (itemId: string) => {
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
 const weaponModelLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão da Natureza' };
+const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão' };
 type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
 const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
 function readEquippedWeaponSelections(userId: string): EquippedWeaponSelections {
@@ -1924,7 +1925,7 @@ export default function App() {
       // A resposta transacional do servidor é a fonte única: não recalcula nem sincroniza outro Baú.
       applyCookingInventory(result.inventory.map(stack => ({ itemId: stack.itemId, quantity: stack.quantity })));
       setSelectedWeaponCoreId(null);
-      setWeaponFeedback(weaponModelLabels[result.weapon.model] + ' · ' + coreRarityLabel(result.weapon.rarity) + ' fabricada! Veja no Arsenal.');
+      setWeaponFeedback(arsenalWeaponLabels[result.weapon.model] + ' · ' + coreRarityLabel(result.weapon.rarity) + ' fabricada! Veja no Arsenal.');
       try {
         setCraftedWeapons(await listMyWeapons(fibulaSupabase));
       } catch (cause) {
@@ -2376,7 +2377,7 @@ export default function App() {
     if (engineRef.current?.state.classId === classId) {
       engineRef.current.setEquippedWeapon({ model: weapon.model, damage: weapon.damage, attributes: weapon.attributes });
     }
-    setWeaponFeedback(weaponModelLabels[weapon.model] + ' equipada.');
+    setWeaponFeedback(arsenalWeaponLabels[weapon.model] + ' equipada.');
   };
   const unequipCraftedWeapon = (weapon: CraftedWeapon) => {
     const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
@@ -2385,7 +2386,7 @@ export default function App() {
     setEquippedWeaponIds(next);
     writeEquippedWeaponSelections(session.user.sub, next);
     if (engineRef.current?.state.classId === classId) engineRef.current.setEquippedWeapon(null);
-    setWeaponFeedback(weaponModelLabels[weapon.model] + ' desequipada.');
+    setWeaponFeedback(arsenalWeaponLabels[weapon.model] + ' desequipada.');
   };
   const handleArsenalWeaponTap = (weapon: CraftedWeapon) => {
     const weaponClass = WEAPON_CLASS_BY_MODEL[weapon.model];
@@ -3017,7 +3018,7 @@ export default function App() {
                      {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
                        const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
                        const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                       const equippedName = weaponEquipped ? weaponModelLabels[weaponEquipped.model] + ' · ' + coreRarityLabel(weaponEquipped.rarity) : equipped?.name;
+                       const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] + ' · ' + coreRarityLabel(weaponEquipped.rarity) : equipped?.name;
                        const info = ARSENAL_SLOT_INFO[slot];
                        return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equippedName ? 'equipped' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!activeArsenalClassId} onClick={() => { setSelectedEquipmentSlot(slot); setSelectedArsenalItemId(weaponEquipped?.id ?? equipped?.id ?? null); }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado' : 'vazio'}`}>
                          <strong>{info.label}</strong>{equippedName && <span className="arsenal-equipped-item">{equippedName}</span>}
@@ -3037,7 +3038,7 @@ export default function App() {
                       const weapon = entry.weapon;
                       const classId = WEAPON_CLASS_BY_MODEL[weapon.model];
                       const isEquipped = equippedWeaponIds[classId] === weapon.id;
-                      const weaponName = weaponModelLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
+                      const weaponName = arsenalWeaponLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
                       const rarityColor = weapon.rarity === 'common' ? '#36d66f' : weapon.rarity === 'uncommon' ? '#348cff' : weapon.rarity === 'rare' ? '#a34be8' : weapon.rarity === 'legendary' ? '#ff8a24' : 'transparent';
                       const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
                       return <button type="button" key={weapon.id}
@@ -3064,7 +3065,7 @@ export default function App() {
                   })}
                 </div>
                 <div className="arsenal-actions">
-                  <div className="arsenal-selection-label">{selectedArsenalWeapon ? weaponModelLabels[selectedArsenalWeapon.model] + ' · ' + coreRarityLabel(selectedArsenalWeapon.rarity) : selectedArsenalEquipment?.name ?? 'Selecione um equipamento'}</div>
+                  <div className="arsenal-selection-label">{selectedArsenalWeapon ? arsenalWeaponLabels[selectedArsenalWeapon.model] + ' · ' + coreRarityLabel(selectedArsenalWeapon.rarity) : selectedArsenalEquipment?.name ?? 'Selecione um equipamento'}</div>
                   {!selectedArsenalWeapon && <>
                     <button type="button" disabled={!activeArsenalClassId || !selectedArsenalEquipment || selectedArsenalEquipment.slot !== selectedEquipmentSlot} onClick={() => {
                       if (selectedArsenalEquipment && selectedArsenalEquipment.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selectedArsenalEquipment) }));
@@ -3082,7 +3083,7 @@ export default function App() {
           </section>
         </div>}
         {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => setWeaponInfoModal(null)}>
-          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponModelLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
+          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={arsenalWeaponLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
             <header><strong>{weaponModelLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => setWeaponInfoModal(null)}>Fechar</button></header>
             <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
             <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'cajado' : weaponInfoModal.model}</h3>
