@@ -845,11 +845,11 @@ export default function App() {
     return () => { window.removeEventListener('online', updateOnline); window.removeEventListener('offline', updateOnline); };
   }, []);
   useEffect(() => {
-    if (craftingStationId !== 'fogao') return;
+    if (activeGameRoute.page !== 'fogao') return;
     setCookingClock(Date.now() + cookingClockOffset);
     const timer = window.setInterval(() => setCookingClock(Date.now() + cookingClockOffset), 1000);
     return () => window.clearInterval(timer);
-  }, [craftingStationId, cookingClockOffset]);
+  }, [activeGameRoute.page, cookingClockOffset]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
   const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
     if (typeof window === 'undefined') return 130;
@@ -1050,7 +1050,7 @@ export default function App() {
   }, [showStart, activeGameRoute.page]);
 
   useEffect(() => {
-    if (!showStart || activeCraftingStation) return;
+    if (!showStart || activeGameRoute.page !== 'lobby') return;
     const canvas = lobbyCharacterCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1739,7 +1739,7 @@ export default function App() {
   }, [activeGameRoute.page]);
 
   useEffect(() => {
-    const engine = engineRef.current; if (!engine || activeCraftingStation) return;
+    const engine = engineRef.current; if (!engine || activeGameRoute.page !== 'lobby') return;
     const down = (e: KeyboardEvent) => {
       if (!gameStartedRef.current) return;
       const k = e.key.toLowerCase();
@@ -1813,7 +1813,7 @@ export default function App() {
     const up = (e: KeyboardEvent) => { if (gameStartedRef.current) engine.setKey(e.key, false); };
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
-  }, [activeCraftingStation]);
+  }, [activeGameRoute.page]);
 
   const refreshLobbyChestFromCloud = async () => {
     if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para atualizar o Baú.');
@@ -2099,13 +2099,13 @@ export default function App() {
     return result;
   };
   useEffect(() => {
-    if (!showStart && craftingStationId !== 'fogao' && !chestOpen) return;
+    if (!showStart && activeGameRoute.page !== 'fogao' && !chestOpen) return;
     let active = true;
     void refreshCookingState().catch(cause => {
       if (active) setCookingFeedback(cause instanceof Error ? cause.message : 'Não foi possível sincronizar a cozinha.');
     });
     return () => { active = false; };
-  }, [showStart, craftingStationId, chestOpen, cookingOnline, session.user.sub]);
+  }, [showStart, activeGameRoute.page, chestOpen, cookingOnline, session.user.sub]);
 
   const prepareCookingMeal = async () => {
     if (!requireCookingConnection()) return;
