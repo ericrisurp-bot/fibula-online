@@ -6717,7 +6717,6 @@ button, button * {
 .forge-page .forge-material-item>span{filter:none;opacity:1}
 .forge-page .forge-material-item strong{color:#ffe0b7}
 .forge-page .forge-material-item small{color:#e4cba9}
-.forge-page .forge-material-item:disabled:not(.incompatible){opacity:1;filter:none;color:#fff0d8;background:linear-gradient(150deg,#554b3e 0%,#343a35 100%)}
-.forge-page .forge-material-item.incompatible{opacity:.88;filter:saturate(.78)}
+.forge-page .forge-material-item:disabled{opacity:1;filter:none;color:#fff0d8;background:linear-gradient(150deg,#554b3e 0%,#343a35 100%)}
 .forge-page .forge-material-item.selected{border-color:#f3b36e;background:linear-gradient(150deg,#79502f,#423329);box-shadow:0 0 0 1px #f3b36e66,0 0 12px #df8a3b33}
-.forge-page .forge-material-item:disabled:not(.incompatible)>span{opacity:1;filter:none}
+.forge-page .forge-material-item:disabled>span{opacity:1;filter:none}
