@@ -2768,10 +2768,13 @@ export default function App() {
                   </section>;
                 })()}
               </div> : activeCraftingStation.id === 'bigorna' ? <>
-                <nav className="weapon-anvil-tabs" role="tablist" aria-label="Tipos de fabricação na Bigorna">
-                  <button type="button" role="tab" aria-selected={anvilTab === 'armas'} className={anvilTab === 'armas' ? 'active' : ''} onClick={() => setAnvilTab('armas')}>Armas</button>
-                  <button type="button" role="tab" aria-selected={anvilTab === 'armaduras'} className={anvilTab === 'armaduras' ? 'active' : ''} onClick={() => setAnvilTab('armaduras')}>Armaduras</button>
-                </nav>
+                <div className="forge-toolbar">
+                  <button type="button" className="forge-back-button" onClick={closeGamePage}>← Lobby</button>
+                  <nav className="weapon-anvil-tabs" role="tablist" aria-label="Tipos de fabricação na Bigorna">
+                    <button type="button" role="tab" aria-selected={anvilTab === 'armas'} className={anvilTab === 'armas' ? 'active' : ''} onClick={() => setAnvilTab('armas')}>Armas</button>
+                    <button type="button" role="tab" aria-selected={anvilTab === 'armaduras'} className={anvilTab === 'armaduras' ? 'active' : ''} onClick={() => setAnvilTab('armaduras')}>Armaduras</button>
+                  </nav>
+                </div>
                 {anvilTab === 'armaduras' ? <div className="forge-coming-soon">Em breve</div> : <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering} coreLabel={selectedWeaponCore ? 'Núcleo de ' + (selectedWeaponCore.weaponModel === 'cajado' ? selectedWeaponCore.affinity === 'natureza' ? 'bastão' : 'cajado' : selectedWeaponCore.weaponModel) + ' · ' + coreRarityLabel(selectedWeaponCore.rarity) : ''} onCoreSlotClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }} />
                   <section className="forge-panel">
