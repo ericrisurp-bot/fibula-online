@@ -2000,7 +2000,7 @@ export default function App() {
       const result = await craftWeapon(fibulaSupabase, selectedWeaponModel, selectedWeaponTier, selectedWeaponCoreId);
       applyCookingInventory(result.inventory.map(stack => ({ itemId: stack.itemId, quantity: stack.quantity })));
       if (!reducedMotion) {
-        await new Promise(resolve => window.setTimeout(resolve, Math.max(0, 2500 - (Date.now() - animationStartedAt))));
+        await new Promise(resolve => window.setTimeout(resolve, Math.max(0, 1500 - (Date.now() - animationStartedAt))));
       }
       setForgeHammering(false);
       setForgeCraftResult(arsenalWeaponLabels[result.weapon.model] + ' · ' + coreRarityLabel(result.weapon.rarity) + ' fabricada!');
@@ -2770,11 +2770,9 @@ export default function App() {
                   </section>;
                 })()}
               </div> : activeCraftingStation.id === 'bigorna' ? <>
-                <div className="forge-toolbar">
-                  <button type="button" className="forge-back-button" onClick={closeGamePage}>← Lobby</button>
-                </div>
                 <div className="forge-workspace">
-                  <div className="forge-recipe-slots" aria-label="Slots da receita">
+                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering} onBack={closeGamePage}>
+                    <div className="forge-recipe-slots" aria-label="Slots da receita">
                     <button type="button" className={selectedWeaponCore ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
                       onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
                       aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
@@ -2790,8 +2788,8 @@ export default function App() {
                       <strong>{(row.slot === 'mineral' ? 'Minério' : row.slot === 'wood' ? 'Madeira' : row.slot === 'linen' ? 'Linho' : row.slot) + ' ×' + row.material.quantity}</strong>
                       <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
                     </button>)}
-                  </div>
-                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering} />
+                    </div>
+                  </ForgeScene>
                   <div className="forge-action-area">
                     {forgeCraftResult ? <div className="forge-result" role="status">
                       <strong>{forgeCraftResult}</strong>
