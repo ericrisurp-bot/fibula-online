@@ -2,7 +2,7 @@ export type StationRouteId = 'bigorna' | 'fogao' | 'costura' | 'joalheria';
 export type ReservedPageId = 'arsenal' | 'bau' | 'amigos' | 'classes' | 'status' | 'ranking' | 'jogador';
 export type StaticPageId = 'lobby' | StationRouteId | ReservedPageId;
 export type GameRoute =
-  | { page: StaticPageId }
+  | { page: Exclude<StaticPageId, 'jogador'> }
   | { page: 'jogador'; playerId: string };
 
 export const PAGE_PATH_BY_ID: Record<StaticPageId, string> = {
