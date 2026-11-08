@@ -1,5 +1,5 @@
 export type StationRouteId = 'bigorna' | 'fogao' | 'costura' | 'joalheria';
-export type ReservedPageId = 'arsenal' | 'bau' | 'amigos' | 'classes' | 'status' | 'ranking';
+export type ReservedPageId = 'arsenal' | 'bau' | 'amigos' | 'classes' | 'status' | 'ranking' | 'jogador';
 export type StaticPageId = 'lobby' | StationRouteId | ReservedPageId;
 export type GameRoute =
   | { page: StaticPageId }
@@ -17,6 +17,7 @@ export const PAGE_PATH_BY_ID: Record<StaticPageId, string> = {
   classes: '/classes',
   status: '/status',
   ranking: '/ranking',
+  jogador: '/jogador/:id',
 };
 
 const PAGE_ID_BY_PATH = new Map(
@@ -26,7 +27,37 @@ const PAGE_ID_BY_PATH = new Map(
 export function readGameRoute(pathname = typeof window === 'undefined' ? '/' : window.location.pathname): GameRoute | null {
   const page = PAGE_ID_BY_PATH.get(pathname);
   if (page) return { page };
-  const playerMatch = pathname.match(/^\/jogador\/([^/]+)\/?$/);
+  const playerPattern = PAGE_PATH_BY_ID.jogador.replace(':id', '([^/]+)');
+  const playerMatch = pathname.match(new RegExp(`^${playerPattern}/?export type StationRouteId = 'bigorna' | 'fogao' | 'costura' | 'joalheria';
+export type ReservedPageId = 'arsenal' | 'bau' | 'amigos' | 'classes' | 'status' | 'ranking' | 'jogador';
+export type StaticPageId = 'lobby' | StationRouteId | ReservedPageId;
+export type GameRoute =
+  | { page: StaticPageId }
+  | { page: 'jogador'; playerId: string };
+
+export const PAGE_PATH_BY_ID: Record<StaticPageId, string> = {
+  lobby: '/',
+  bigorna: '/bigorna',
+  fogao: '/fogao',
+  costura: '/alfaiataria',
+  joalheria: '/joalheria',
+  arsenal: '/arsenal',
+  bau: '/bau',
+  amigos: '/amigos',
+  classes: '/classes',
+  status: '/status',
+  ranking: '/ranking',
+  jogador: '/jogador/:id',
+};
+
+const PAGE_ID_BY_PATH = new Map(
+  Object.entries(PAGE_PATH_BY_ID).map(([id, path]) => [path, id as StaticPageId]),
+);
+
+export function readGameRoute(pathname = typeof window === 'undefined' ? '/' : window.location.pathname): GameRoute | null {
+  const page = PAGE_ID_BY_PATH.get(pathname);
+  if (page) return { page };
+));
   if (playerMatch) {
     try {
       return { page: 'jogador', playerId: decodeURIComponent(playerMatch[1]) };
