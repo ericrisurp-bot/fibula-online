@@ -28,7 +28,7 @@ import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
-import { isKnownGamePath, isStationRoute, navigateToLobby, navigateToStation, readStationRoute, type StationRouteId } from './ui/stationRoute';
+import { isKnownGamePath, navigateToLobby, navigateToStation, readStationRoute, type StationRouteId } from './ui/stationRoute';
 import PageFrame from './ui/PageFrame';
 
 type RankingEntry = {
