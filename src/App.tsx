@@ -2820,7 +2820,13 @@ export default function App() {
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form cooking-kitchen">
                   <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : ''}`}>
-                    <div className="cooking-pot-heading"><strong>🔥 Forno de pedra</strong><span>{preparedCookingMeals.length}/3</span></div>
+                    <div className="cooking-pot-heading">
+                      <div className="cooking-oven-heading-title">
+                        <strong>FORNO DE PEDRA</strong>
+                        <button type="button" className="cooking-back-button" onClick={closeGamePage}>← Lobby</button>
+                      </div>
+                      <span>{preparedCookingMeals.length}/3</span>
+                    </div>
                     <div className="cooking-oven-mouth">
                       <div className="cooking-oven-fire" aria-hidden="true"><i /><i /><i /></div>
                       <div className="cooking-production-slots">
