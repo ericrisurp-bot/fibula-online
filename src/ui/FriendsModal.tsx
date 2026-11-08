@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
+import PageFrame from './PageFrame';
 import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, startDuoMatch } from './duoRooms';
 
 type RequestStatus = 'pending' | 'accepted' | 'declined';
@@ -25,6 +26,7 @@ type Props = {
   myClassId: FriendProfile['avatar_character'];
   myDisplayName: string;
   open: boolean;
+  pageMode?: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
   onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
@@ -40,7 +42,7 @@ const AVATARS = {
   druida: { label: 'Druida', icon: '🌿' },
 } as const;
 
-export default function FriendsModal({ userId, myClassId, myDisplayName, open, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
+export default function FriendsModal({ userId, myClassId, myDisplayName, open, pageMode = false, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -752,31 +754,38 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, o
     </article>;
   };
 
-  return <>{open && <div className="lobby-friends-backdrop" onClick={onClose}>
-    <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>
-      <header className="lobby-friends-header">
-        <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
-        <div className="lobby-friends-count">{accepted.length} amigos</div>
-        <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={onClose}>×</button>
-      </header>
-      <div className="lobby-friends-content">
-        <form className="lobby-friends-search" onSubmit={sendRequest}>
-          <label htmlFor="friend-search-name">Adicionar amigo pelo nome de jogador</label>
-          <div><input id="friend-search-name" value={searchName} onChange={event => setSearchName(event.target.value)} minLength={3} maxLength={20} placeholder="Digite o nome exato" />
-            <button type="submit" disabled={searching || searchName.trim().length < 3}>{searching ? 'Buscando...' : 'Enviar pedido'}</button></div>
-        </form>
-        {error && <p className="lobby-friends-feedback error" role="alert">{error}</p>}
-        {notice && <p className="lobby-friends-feedback" role="status">{notice}</p>}
-        {loading ? <p className="lobby-friends-empty">Carregando amigos...</p> : <>
-          {incoming.length > 0 && <section className="lobby-friends-section"><h3>Convites recebidos <span>{incoming.length}</span></h3>{incoming.map(row => friendCard(row, 'incoming'))}</section>}
-          <section className="lobby-friends-section"><h3>Seus amigos</h3>
-            {accepted.length ? accepted.map(row => friendCard(row, 'friend')) : <div className="lobby-friends-empty" role="status"><span aria-hidden="true">♡</span><strong>Você ainda não tem amigos</strong><p>Envie um convite usando o nome de jogador.</p></div>}
-          </section>
-          {outgoing.length > 0 && <section className="lobby-friends-section"><h3>Convites enviados <span>{outgoing.length}</span></h3>{outgoing.map(row => friendCard(row, 'outgoing'))}</section>}
-        </>}
-      </div>
-    </section>
-  </div>}
+  const friendsPanel = <>
+    <header className="lobby-friends-header">
+      <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
+      <div className="lobby-friends-count">{accepted.length} amigos</div>
+      {!pageMode && <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={onClose}>×</button>}
+    </header>
+    <div className="lobby-friends-content">
+      <form className="lobby-friends-search" onSubmit={sendRequest}>
+        <label htmlFor="friend-search-name">Adicionar amigo pelo nome de jogador</label>
+        <div><input id="friend-search-name" value={searchName} onChange={event => setSearchName(event.target.value)} minLength={3} maxLength={20} placeholder="Digite o nome exato" />
+          <button type="submit" disabled={searching || searchName.trim().length < 3}>{searching ? 'Buscando...' : 'Enviar pedido'}</button></div>
+      </form>
+      {error && <p className="lobby-friends-feedback error" role="alert">{error}</p>}
+      {notice && <p className="lobby-friends-feedback" role="status">{notice}</p>}
+      {loading ? <p className="lobby-friends-empty">Carregando amigos...</p> : <>
+        {incoming.length > 0 && <section className="lobby-friends-section"><h3>Convites recebidos <span>{incoming.length}</span></h3>{incoming.map(row => friendCard(row, 'incoming'))}</section>}
+        <section className="lobby-friends-section"><h3>Seus amigos</h3>
+          {accepted.length ? accepted.map(row => friendCard(row, 'friend')) : <div className="lobby-friends-empty" role="status"><span aria-hidden="true">♡</span><strong>Você ainda não tem amigos</strong><p>Envie um convite usando o nome de jogador.</p></div>}
+        </section>
+        {outgoing.length > 0 && <section className="lobby-friends-section"><h3>Convites enviados <span>{outgoing.length}</span></h3>{outgoing.map(row => friendCard(row, 'outgoing'))}</section>}
+      </>}
+    </div>
+  </>;
+  return <>{open && (pageMode
+    ? <PageFrame eyebrow="SUA COMUNIDADE" title="Amigos" onBack={onClose}>
+        <div className="station-page-content friends-page-content">
+          <section className="lobby-friends-modal lobby-friends-page" aria-labelledby="lobby-friends-title">{friendsPanel}</section>
+        </div>
+      </PageFrame>
+    : <div className="lobby-friends-backdrop" onClick={onClose}>
+        <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>{friendsPanel}</section>
+      </div>)}
     {lobbyInvite && !activeDuo && <div className="duo-lobby-invite-toast" role="dialog"><strong>{lobbyInvite.sender_name || 'Seu amigo'} convidou você para o lobby</strong><div><button type="button" onClick={() => void answerLobbyInvite(true)}>Aceitar</button><button type="button" className="secondary" onClick={() => void answerLobbyInvite(false)}>Recusar</button></div></div>}
   </>;
 }
