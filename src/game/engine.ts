@@ -709,8 +709,8 @@ export class GameEngine {
       building.hideStock += moved;
       return nextInventory;
     };
-    if (playerNear && building.hideStock < CONFIG.tecelaria.hideCapacity) this.state.inventory = transfer(this.state.inventory);
-    if (cartCanDeliver && building.hideStock < CONFIG.tecelaria.hideCapacity) this.state.cart.inventory = transfer(this.state.cart.inventory);
+    if (playerNear && building.hideStock < CONFIG.tecelaria.hideCapacity && this.state.inventory.some(stack => getBaseItemId(stack.itemId) === 'wolf_hide')) this.state.inventory = transfer(this.state.inventory);
+    if (cartCanDeliver && building.hideStock < CONFIG.tecelaria.hideCapacity && this.state.cart.inventory.some(stack => getBaseItemId(stack.itemId) === 'wolf_hide')) this.state.cart.inventory = transfer(this.state.cart.inventory);
   }
 
   private processRefinedLeather(dt: number) {
