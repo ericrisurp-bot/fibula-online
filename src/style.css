@@ -4866,3 +4866,30 @@ button, button * {
   font-weight: 800;
 }
 .weapon-anvil-equip-button:hover { background: #515b50; }
+
+
+/* Joalheria: revelar núcleos de arma com leitura compacta em telas estreitas. */
+.jewelry-station-form { display:flex; min-width:0; flex-direction:column; gap:12px; width:100%; }
+.jewelry-core-panel,.jewelry-result-card { min-width:0; padding:12px; border:1px solid #626a62; border-radius:13px; background:linear-gradient(145deg,rgba(55,60,55,.96),rgba(29,32,29,.98)); box-shadow:inset 0 0 24px rgba(0,0,0,.25); }
+.jewelry-section-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; color:#edf0eb; font-size:11px; }
+.jewelry-section-heading span { color:#aeb6ad; font-size:10px; text-align:right; }
+.jewelry-core-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+.jewelry-core-option { display:flex; min-width:0; min-height:94px; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:9px 6px; border:1px solid #596159; border-radius:10px; background:#303630; color:#e9ede7; text-align:center; }
+.jewelry-core-option.selected { border-color:#c3cbc0; background:#485048; }
+.jewelry-core-option>span { display:grid; min-height:32px; place-items:center; }
+.jewelry-core-option>span svg,.jewelry-core-option>span img { max-width:34px; }
+.jewelry-core-option>strong { max-width:100%; overflow-wrap:anywhere; color:#f2f4f0; font-size:10px; line-height:1.3; }
+.jewelry-core-option>b { color:#dce2d9; font-size:11px; }
+.jewelry-empty { grid-column:1/-1; margin:6px 0; color:#aeb6ad; font-size:11px; text-align:center; }
+.jewelry-reveal-button { min-height:42px; border:1px solid #899487; border-radius:9px; background:#465047; color:#f2f4f0; font-size:12px; font-weight:900; }
+.jewelry-reveal-button:disabled { opacity:.45; cursor:not-allowed; }
+.jewelry-feedback { margin:0; color:#e4c9b8; font-size:11px; line-height:1.45; text-align:center; }
+.jewelry-result-card { border-color:#899487; background:linear-gradient(145deg,rgba(67,75,66,.96),rgba(29,32,29,.98)); }
+.jewelry-result-card>header { display:flex; min-width:0; align-items:center; gap:9px; margin-bottom:9px; color:#f2f4f0; }
+.jewelry-result-card>header>span { display:grid; flex:0 0 34px; place-items:center; }
+.jewelry-result-card>header strong { min-width:0; overflow-wrap:anywhere; font-size:12px; }
+.jewelry-result-card ul { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.jewelry-result-card li { display:flex; min-width:0; justify-content:space-between; gap:10px; padding-top:6px; border-top:1px solid rgba(220,225,220,.14); color:#dce3d9; font-size:11px; }
+.jewelry-result-card li span { min-width:0; overflow-wrap:anywhere; }
+.jewelry-result-card li b { flex:0 0 auto; color:#f2f4f0; font-variant-numeric:tabular-nums; }
+@media(max-width:420px) { .jewelry-core-panel,.jewelry-result-card { padding:9px; } .jewelry-core-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .jewelry-section-heading { align-items:flex-start; } }

@@ -13,7 +13,7 @@ import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { drawLadino, ladinoFeetY } from './game/ladino';
-import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
+import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -323,13 +323,13 @@ const itemLabel = (itemId: string) => {
   const parsedCore = parseCoreItemId(itemId);
   if (parsedCore) {
     const category = parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category;
+    const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
     if (category === 'weapon') {
       const model = parsedCore.kind === 'closed' ? parsedCore.weaponModel : parsedCore.core.weaponModel;
-      const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
       const modelLabel = model === 'arco' ? 'arco' : model === 'cajado' ? 'cajado' : 'espada';
       return `Núcleo de ${modelLabel} · ${coreRarityLabel(rarity)}`;
     }
-    return category === 'armor' ? 'Núcleo de armadura' : 'Núcleo de acessório';
+    return `Núcleo de ${category === 'armor' ? 'armadura' : 'acessório'} · ${coreRarityLabel(rarity)}`;
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
@@ -380,7 +380,7 @@ const jabuticabaLevelCost = (level: number) => {
 const LOBBY_CRAFTING_STATIONS = [
   { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
   { id: 'costura', label: 'COSTURA', icon: '🧵', title: 'Alfaiataria', description: 'Mesa de costura para trabalhar tecidos e materiais flexíveis.', products: 'Luvas, botas e peças de tecido' },
-  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Bancada para criar acessórios que complementam os atributos do personagem.', products: 'Colares e pulseiras' },
+  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Revele os núcleos fechados de suas armas e descubra seus atributos.', products: 'Revelação de núcleos de arma' },
   { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão e Panela', description: 'Escolha os ingredientes do Baú e coloque cada unidade na panela para preparar sua refeição.', products: 'Sopas, grelhados, guisados e ensopados' },
 ] as const;
 
@@ -668,8 +668,9 @@ export default function App() {
   const [chestTransferBusy, setChestTransferBusy] = useState(false);
   const [chestCloudReady, setChestCloudReady] = useState(false);
   const [chestTransferFeedback, setChestTransferFeedback] = useState('');
-  const [coreFeedback, setCoreFeedback] = useState('');
-  const [selectedChestCoreItemId, setSelectedChestCoreItemId] = useState<string | null>(null);
+  const [selectedJewelryCoreId, setSelectedJewelryCoreId] = useState<string | null>(null);
+  const [jewelryResultCoreId, setJewelryResultCoreId] = useState<string | null>(null);
+  const [jewelryFeedback, setJewelryFeedback] = useState('');
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -759,6 +760,14 @@ export default function App() {
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   const anvilCoreStacks: HouseStorageStack[] = []; // O inventário ainda não possui itens de núcleo definidos.
+  const jewelryWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+    const parsed = parseCoreItemId(item.itemId);
+    if (parsed?.kind !== 'closed' || parsed.category !== 'weapon' || item.quantity <= 0) return stacks;
+    const existing = stacks.find(stack => stack.itemId === item.itemId);
+    if (existing) existing.quantity += item.quantity;
+    else stacks.push({ itemId: item.itemId, quantity: item.quantity });
+    return stacks;
+  }, []);
   const anvilWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     const parsed = parseCoreItemId(item.itemId);
     if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon' || item.quantity <= 0) return stacks;
@@ -1951,13 +1960,13 @@ export default function App() {
     return () => { active = false; };
   }, [session.user.sub, cookingOnline, characterPreferences[0], characterPreferences[1]]);
 
-  const revealChestCore = (itemId: string) => {
+  const revealCoreFromChest = (itemId: string) => {
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
     if (sourceIndex < 0) return;
     const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(itemId);
-    if (!parsed || parsed.kind !== 'closed') return;
+    if (!parsed || parsed.kind !== 'closed' || parsed.category !== 'weapon') return;
     if (source.quantity > 1 && lobbyChestItems.length >= 50) {
-      setCoreFeedback('Baú cheio: libere um espaço para revelar o núcleo'); return;
+      setJewelryFeedback('Baú cheio: libere um espaço para revelar o núcleo'); return;
     }
     const random = () => {
       const values = new Uint32Array(1); window.crypto.getRandomValues(values);
@@ -1967,7 +1976,10 @@ export default function App() {
     const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
       : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
     if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
-    applyCookingInventory(next); setSelectedChestCoreItemId(revealedItemId); setCoreFeedback('');
+    applyCookingInventory(next);
+    setSelectedJewelryCoreId(null);
+    setJewelryResultCoreId(revealedItemId);
+    setJewelryFeedback('');
   };
   const addAnvilMaterialUnit = (itemId: string, slot: 'primary' | 'secondary') => {
     const source = lobbyChestItems.find(item => item.itemId === itemId);
@@ -2700,7 +2712,35 @@ export default function App() {
             <div className="lobby-crafting-content">
               <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
               {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
-              {activeCraftingStation.id === 'bigorna' ? <>
+              {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-station-form">
+                <section className="jewelry-core-panel">
+                  <div className="jewelry-section-heading"><strong>NÚCLEOS FECHADOS DE ARMA</strong><span>Selecione 1 núcleo para revelar</span></div>
+                  <div className="jewelry-core-grid">
+                    {jewelryWeaponCoreStacks.map(item => <button type="button" key={item.itemId}
+                      className={selectedJewelryCoreId === item.itemId ? 'jewelry-core-option selected' : 'jewelry-core-option'}
+                      aria-pressed={selectedJewelryCoreId === item.itemId}
+                      onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
+                      <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b>
+                    </button>)}
+                    {jewelryWeaponCoreStacks.length === 0 && <p className="jewelry-empty">Você não tem núcleos para revelar.</p>}
+                  </div>
+                </section>
+                {selectedJewelryCoreId && <button type="button" className="jewelry-reveal-button"
+                  disabled={!jewelryWeaponCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
+                  onClick={() => revealCoreFromChest(selectedJewelryCoreId)}>Revelar</button>}
+                {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
+                {(() => {
+                  const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
+                  if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
+                  return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
+                    <header><span>{inventoryItemIcon(jewelryResultCoreId!)}</span><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
+                    <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}>
+                      <span>{weaponAttributeLabels[attribute.key]}</span>
+                      <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
+                    </li>)}</ul>
+                  </section>;
+                })()}
+              </div> : activeCraftingStation.id === 'bigorna' ? <>
                 <nav className="weapon-anvil-tabs" role="tablist" aria-label="Tipos de fabricação na Bigorna">
                   <button type="button" role="tab" aria-selected={anvilTab === 'armas'} className={anvilTab === 'armas' ? 'active' : ''} onClick={() => setAnvilTab('armas')}>Armas</button>
                   <button type="button" role="tab" aria-selected={anvilTab === 'armaduras'} className={anvilTab === 'armaduras' ? 'active' : ''} onClick={() => setAnvilTab('armaduras')}>Armaduras</button>
@@ -2779,7 +2819,6 @@ export default function App() {
                         if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
                         const core = parsed.core;
                         const selected = selectedWeaponCoreId === item.itemId;
-                        const tierLabels = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' };
                         return <button type="button" key={item.itemId}
                           className={selected ? 'weapon-anvil-core selected' : 'weapon-anvil-core'}
                           aria-pressed={selected}
@@ -2788,9 +2827,7 @@ export default function App() {
                             if (!selected) setSelectedWeaponModel(core.weaponModel === 'espada' ? 'espada' : core.weaponModel === 'arco' ? 'arco' : core.affinity === 'natureza' ? 'bastao' : 'cajado');
                             setWeaponFeedback('');
                           }}>
-                          <span>💠</span><strong>{coreRarityLabel(core.rarity)}{core.surp ? ' · SURP' : ''}</strong>
-                          <small>{core.affinity ? 'Afinidade: ' + (core.affinity === 'dano' ? 'Dano' : 'Natureza') : 'Sem afinidade'}</small>
-                          <ul>{core.attributes.map(attribute => <li key={attribute.key}>{weaponAttributeLabels[attribute.key]} · {tierLabels[coreAttributeTier(attribute.value, core.rarity)]}</li>)}</ul>
+                          <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong>
                           <b>×{item.quantity}</b>
                         </button>;
                       })}
@@ -2992,53 +3029,29 @@ export default function App() {
             </nav>
             {chestTab === 'resources' ? <>
               {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-              {coreFeedback && <p className="lobby-chest-feedback" role="status">{coreFeedback}</p>}
               <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
                 {lobbyChestItems.map(item => {
                   const isJabuticaba = item.itemId === 'jabuticaba', parsedCore = parseCoreItemId(item.itemId);
-                  const isClosedCore = parsedCore?.kind === 'closed', isRevealedCore = parsedCore?.kind === 'revealed', isCore = Boolean(parsedCore);
+                  const isClosedCore = parsedCore?.kind === 'closed';
                   const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
                   const consumeJabuticabaFromSlot = () => { if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba(); };
-                  const activateCoreSlot = () => {
-                    if (isClosedCore) revealChestCore(item.itemId);
-                    else if (isRevealedCore) { setSelectedChestCoreItemId(current => current === item.itemId ? null : item.itemId); setCoreFeedback(''); }
-                  };
-                  const selectedCore = selectedChestCoreItemId === item.itemId;
                   return <div key={item.itemId}
-                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}${isCore ? ' core-reveal-slot' : ''}${selectedCore ? ' selected' : ''}`}
+                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
                     aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}
-                    role={isJabuticaba || isCore ? 'button' : undefined} tabIndex={isJabuticaba || isCore ? 0 : undefined}
+                    role={isJabuticaba ? 'button' : undefined} tabIndex={isJabuticaba ? 0 : undefined}
                     aria-disabled={isJabuticaba ? jabuticabaDisabled : undefined}
-                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : isClosedCore ? 'Clique para revelar 1 núcleo' : isRevealedCore ? 'Clique para ver os atributos' : undefined}
-                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : isCore ? activateCoreSlot : undefined}
-                    onKeyDown={isJabuticaba || isCore ? event => {
-                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (isJabuticaba) consumeJabuticabaFromSlot(); else activateCoreSlot(); }
+                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : isClosedCore ? 'Leve à Joalheria para revelar' : undefined}
+                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : undefined}
+                    onKeyDown={isJabuticaba ? event => {
+                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); consumeJabuticabaFromSlot(); }
                     } : undefined}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                    {isClosedCore && <em>Fechado</em>}
-                    {isRevealedCore && parsedCore.core.surp && <em>SURP</em>}
                     {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
                       event.stopPropagation(); setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
                     }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
                   </div>;
                 })}
               </div>
-              {(() => {
-                const selectedItemId = selectedChestCoreItemId;
-                if (!selectedItemId) return null;
-                const parsed = parseCoreItemId(selectedItemId);
-                if (!parsed || parsed.kind !== 'revealed') return null;
-                const labels: Record<CoreAttributeKey, string> = {
-                  forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
-                  vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
-                };
-                const tiers = { ruim: 'Ruim', medio: 'Médio', bom: 'Bom', maximo: 'Máximo' };
-                return <section className="core-detail-panel" aria-label="Atributos do núcleo revelado">
-                  <strong>{itemLabel(selectedItemId)}</strong>{parsed.core.surp && <small>SURP</small>}
-                  {parsed.core.category === 'weapon' && parsed.core.affinity && <p>Afinidade: {parsed.core.affinity === 'dano' ? 'Dano' : 'Natureza'}</p>}
-                  <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}><span>{labels[attribute.key]}</span><b>{tiers[coreAttributeTier(attribute.value, parsed.core.rarity)]}</b></li>)}</ul>
-                </section>;
-              })()}
             </> : <>
               <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
                 {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
