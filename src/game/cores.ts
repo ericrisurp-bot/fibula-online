@@ -102,7 +102,7 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
       for (const a of core.attributes) {
         if (!a || typeof a.key !== 'string' || !expected.includes(a.key as CoreAttributeKey)
           || !Number.isFinite(a.value) || a.value < ref * 0.5 - 0.005 || a.value > ref + 0.005) return null;
-        if (a.value < ref - 0.005) allMaximum = false;
+        if (a.value < ref - 0.000001) allMaximum = false;
       }
       if (core.surp !== allMaximum) return null;
     } else {
