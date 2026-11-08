@@ -26,5 +26,5 @@ export function navigateToStation(id: StationRouteId): void {
 
 export function navigateToLobby(): void {
   if (typeof window === 'undefined') return;
-  window.history.pushState({}, '', '/');
+  window.history.replaceState({}, '', '/');
 }
