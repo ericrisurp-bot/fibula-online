@@ -5536,3 +5536,47 @@ button, button * {
   background:linear-gradient(180deg,#765638,#493423);
   color:#fff0d7;
 }
+
+/* No lobby, celulares devem permanecer em retrato; a partida continua livre em paisagem. */
+.lobby-orientation-guard{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  padding:28px;
+  background:#222322;
+  color:#f0eee8;
+  text-align:center;
+}
+.lobby-orientation-guard-icon{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:76px;
+  height:76px;
+  border:2px solid rgba(240,238,232,.72);
+  border-radius:18px;
+  font-size:48px;
+  line-height:1;
+}
+.lobby-orientation-guard-icon span{transform:rotate(90deg);opacity:.9}
+.lobby-orientation-guard-icon i{
+  position:absolute;
+  right:-14px;
+  bottom:-12px;
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:#222322;
+  color:#d8c7a1;
+  font-size:27px;
+  font-style:normal;
+}
+.lobby-orientation-guard strong{max-width:340px;font-size:19px;line-height:1.35}
+.lobby-orientation-guard p{max-width:330px;margin:0;color:#bdbdb6;font-size:14px;line-height:1.5}

@@ -862,6 +862,7 @@ export default function App() {
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
+  const [mobileLobbyLandscape, setMobileLobbyLandscape] = useState(false);
   const gameStartedRef = useRef(false);
   const zoomRef = useRef(window.matchMedia('(pointer: coarse)').matches ? 1.55 : 1.3);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
@@ -1117,6 +1118,20 @@ export default function App() {
     ambience.setActive(!showStart && !state.dead);
     return () => ambience.setActive(false);
   }, [showStart, state.dead]);
+
+  useEffect(() => {
+    const mobileLandscapeQuery = window.matchMedia('(pointer: coarse) and (orientation: landscape) and (max-height: 600px) and (max-width: 950px)');
+    const syncMobileLobbyOrientation = () => setMobileLobbyLandscape(mobileLandscapeQuery.matches);
+    syncMobileLobbyOrientation();
+    mobileLandscapeQuery.addEventListener('change', syncMobileLobbyOrientation);
+    window.addEventListener('resize', syncMobileLobbyOrientation);
+    window.addEventListener('orientationchange', syncMobileLobbyOrientation);
+    return () => {
+      mobileLandscapeQuery.removeEventListener('change', syncMobileLobbyOrientation);
+      window.removeEventListener('resize', syncMobileLobbyOrientation);
+      window.removeEventListener('orientationchange', syncMobileLobbyOrientation);
+    };
+  }, []);
 
   useEffect(() => {
     const syncFullscreenOrientation = () => {
@@ -3448,6 +3463,11 @@ export default function App() {
     </section>
 
   </main>}
+    {showStart && mobileLobbyLandscape && <div className="lobby-orientation-guard" role="alert" aria-live="polite">
+      <div className="lobby-orientation-guard-icon" aria-hidden="true"><span>▯</span><i>↻</i></div>
+      <strong>Gire o celular para a posição vertical</strong>
+      <p>O Lobby foi desenvolvido para jogar e organizar seus itens com o celular em pé.</p>
+    </div>}
     <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
   </>;
 }
