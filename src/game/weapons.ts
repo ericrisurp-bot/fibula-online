@@ -533,7 +533,7 @@ function readWeaponObject(value: unknown, detail: string): Record<string, unknow
   return value as Record<string, unknown>;
 }
 function readWeaponAttributes(value: unknown): CraftedWeapon['attributes'] {
-  if (!Array.isArray(value) || !value.every(attribute => {
+  if (!Array.isArray(value) || ![2, 3, 4].includes(value.length) || !value.every(attribute => {
     if (!attribute || typeof attribute !== 'object' || Array.isArray(attribute)) return false;
     const row = attribute as Record<string, unknown>;
     return typeof row.key === 'string' && WEAPON_ATTRIBUTE_KEYS.includes(row.key as CoreAttributeKey)
