@@ -1,11 +1,10 @@
 type ForgeSceneProps = {
   intensity: 0 | 1 | 2 | 3;
   hammering: boolean;
-  onBack: () => void;
   children?: import('react').ReactNode;
 };
 
-export default function ForgeScene({ intensity: _intensity, hammering, onBack, children }: ForgeSceneProps) {
+export default function ForgeScene({ intensity: _intensity, hammering, children }: ForgeSceneProps) {
   return <section className={'forge-scene' + (hammering ? ' forge-sparking' : '')} aria-label="Bigorna de fabricação">
     <svg className="forge-backdrop" viewBox="0 0 360 210" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bigorna de ferro em uma parede de pedra">
       <defs>
@@ -49,7 +48,6 @@ export default function ForgeScene({ intensity: _intensity, hammering, onBack, c
     </svg>
     <div className="forge-scene-header">
       <h2>BIGORNA</h2>
-      <button type="button" className="forge-back-button" onClick={onBack}>← Lobby</button>
     </div>
     <div className="forge-scene-slots">{children}</div>
   </section>;
