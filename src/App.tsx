@@ -1960,7 +1960,7 @@ export default function App() {
     return () => { active = false; };
   }, [session.user.sub, cookingOnline, characterPreferences[0], characterPreferences[1]]);
 
-  const revealCoreAtJewelry = (itemId: string) => {
+  const revealCoreFromChest = (itemId: string) => {
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
     if (sourceIndex < 0) return;
     const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(itemId);
@@ -2727,7 +2727,7 @@ export default function App() {
                 </section>
                 {selectedJewelryCoreId && <button type="button" className="jewelry-reveal-button"
                   disabled={!jewelryWeaponCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
-                  onClick={() => revealCoreAtJewelry(selectedJewelryCoreId)}>Revelar</button>}
+                  onClick={() => revealCoreFromChest(selectedJewelryCoreId)}>Revelar</button>}
                 {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
                 {(() => {
                   const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
