@@ -682,14 +682,6 @@ export default function App() {
   const weaponInfoHoldTriggeredRef = useRef(false);
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
-  const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
-  const arsenalInventoryEntries = [
-    ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
-    ...craftedWeapons.map(weapon => ({ kind: 'weapon' as const, weapon })),
-  ];
-  const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
-  const selectedArsenalWeapon = craftedWeapons.find(weapon => weapon.id === selectedArsenalItemId) ?? null;
-  const selectedArsenalEquipment = arsenalItems.find(item => item.id === selectedArsenalItemId) ?? null;
   const [profileOpen, setProfileOpen] = useState(false);
   const [playerProfileOpen, setPlayerProfileOpen] = useState(false);
   const [viewedProfileUserId, setViewedProfileUserId] = useState<string | null>(null);
@@ -765,6 +757,14 @@ export default function App() {
   const [weaponsLoading, setWeaponsLoading] = useState(false);
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
+  const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
+  const arsenalInventoryEntries = [
+    ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
+    ...craftedWeapons.map(weapon => ({ kind: 'weapon' as const, weapon })),
+  ];
+  const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
+  const selectedArsenalWeapon = craftedWeapons.find(weapon => weapon.id === selectedArsenalItemId) ?? null;
+  const selectedArsenalEquipment = arsenalItems.find(item => item.id === selectedArsenalItemId) ?? null;
   const [selectedAnvilPrimary, setSelectedAnvilPrimary] = useState<{ itemId: string; quantity: number } | null>(null);
   const [selectedAnvilSecondary, setSelectedAnvilSecondary] = useState<{ itemId: string; quantity: number } | null>(null);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === craftingStationId) ?? null;
@@ -2399,7 +2399,7 @@ export default function App() {
     if (equippedWeaponIds[weaponClass] === weapon.id) unequipCraftedWeapon(weapon);
     else equipCraftedWeapon(weapon);
   };
-  const startWeaponInfoHold = (event: PointerEvent<HTMLButtonElement>, weapon: CraftedWeapon) => {
+  const startWeaponInfoHold = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
     weaponInfoHoldTriggeredRef.current = false;
@@ -3039,7 +3039,7 @@ export default function App() {
                       return <button type="button" key={weapon.id}
                         className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`}
                         style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
-                        onPointerDown={event => startWeaponInfoHold(event, weapon)}
+                        onPointerDown={event => startWeaponInfoHold(event)}
                         onPointerUp={() => finishWeaponInfoHold(weapon)}
                         onPointerLeave={clearWeaponInfoHold}
                         onPointerCancel={clearWeaponInfoHold}
