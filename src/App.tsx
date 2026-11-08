@@ -2700,11 +2700,11 @@ export default function App() {
     }
   };
 
-  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage}>
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao'} stateClassName={activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.some(meal => (meal.productionReadyAt ?? 0) > cookingClock) ? 'is-burning' : 'is-idle') : undefined}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
-              <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
+              {activeCraftingStation.id !== 'fogao' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
               {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
               {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-station-form">
                 <section className="jewelry-core-panel">
@@ -2866,10 +2866,12 @@ export default function App() {
 
                 </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
-                <div className="cooking-station-form">
-                  <div className="cooking-production-panel">
-                    <div className="cooking-pot-heading"><strong>🥘 Produção</strong><span>{preparedCookingMeals.length}/3</span></div>
-                    <div className="cooking-production-slots">
+                <div className="cooking-station-form cooking-kitchen">
+                  <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.some(meal => (meal.productionReadyAt ?? 0) > cookingClock) ? 'is-burning' : ''}`}>
+                    <div className="cooking-pot-heading"><strong>🔥 Forno de pedra</strong><span>{preparedCookingMeals.length}/3</span></div>
+                    <div className="cooking-oven-mouth">
+                      <div className="cooking-oven-fire" aria-hidden="true"><i /><i /><i /></div>
+                      <div className="cooking-production-slots">
                       {Array.from({ length: 3 }, (_, index) => {
                         const meal = preparedCookingMeals[index];
                         const remaining = meal ? Math.max(0, Math.ceil(((meal.productionReadyAt ?? 0) - cookingClock) / 1000)) : 0;
@@ -2883,10 +2885,11 @@ export default function App() {
                           </> : <small>Livre</small>}
                         </div>;
                       })}
+                      </div>
                     </div>
                   </div>
-                  <div className="cooking-pot-panel">
-                    <div className="cooking-pot-heading"><strong>Ingredientes</strong><span>{cookingSelectedTotal}/{cookingCapacity} · {panCookingSelections.length}/4</span></div>
+                  <div className="cooking-pot-panel cooking-ingredient-workbench">
+                    <div className="cooking-pot-heading"><strong>Ingredientes · 4 espaços</strong><span>{cookingSelectedTotal}/{cookingCapacity} · {panCookingSelections.length}/4</span></div>
                     <div className="cooking-pot-slots" aria-label="Quatro espaços de ingredientes">
                       {Array.from({ length: 4 }, (_, index) => {
                         const item = panCookingSelections[index];
