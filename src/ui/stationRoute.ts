@@ -26,7 +26,7 @@ const PAGE_ID_BY_PATH = new Map(
 
 export function readGameRoute(pathname = typeof window === 'undefined' ? '/' : window.location.pathname): GameRoute | null {
   const page = PAGE_ID_BY_PATH.get(pathname);
-  if (page) return { page };
+  if (page && page !== 'jogador') return { page };
   const playerPrefix = PAGE_PATH_BY_ID.jogador.slice(0, -':id'.length);
   if (!pathname.startsWith(playerPrefix)) return null;
   const playerSegment = pathname.slice(playerPrefix.length).replace(/\/$/, '');
