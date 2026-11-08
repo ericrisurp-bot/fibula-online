@@ -5350,3 +5350,28 @@ button, button * {
   .station-page-no-header .cooking-oven-panel .cooking-production-slot{min-height:108px;padding:6px 3px}
   .station-page-no-header .cooking-ingredient-workbench{padding:11px}
 }
+
+
+/* Fogão: fundo translúcido quando o forno está ocioso; claro durante a queima. */
+.station-page-no-header .station-page-content{
+  background:rgba(105,76,49,.58);
+  backdrop-filter:blur(1.5px);
+  transition:background-color .45s ease, color .45s ease;
+}
+.station-page-no-header.is-burning .station-page-content{
+  background:#f5f3ed;
+  color:#292a27;
+}
+.station-page-no-header.is-idle .cooking-oven-mouth{
+  background:linear-gradient(180deg,#171715,#11110f 76%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.08),inset 0 12px 28px #000d,0 3px 0 #918b7e;
+}
+.station-page-no-header.is-idle .cooking-oven-panel{
+  background:
+    repeating-linear-gradient(0deg,transparent 0 34px,rgba(116,112,101,.12) 35px 36px),
+    repeating-linear-gradient(90deg,transparent 0 72px,rgba(116,112,101,.10) 73px 74px),
+    linear-gradient(145deg,#e8e5dc,#d5d1c6 54%,#c8c3b7);
+}
+@media(prefers-reduced-motion:reduce){
+  .station-page-no-header .station-page-content{transition:none}
+}
