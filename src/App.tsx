@@ -28,7 +28,8 @@ import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
-import { isKnownStationPath, navigateToLobby, navigateToStation, readStationRoute, type StationRouteId } from './ui/stationRoute';
+import { isKnownGamePath, isStationRoute, navigateToLobby, navigateToStation, readStationRoute, type StationRouteId } from './ui/stationRoute';
+import PageFrame from './ui/PageFrame';
 
 type RankingEntry = {
   user_id: string;
@@ -772,7 +773,7 @@ export default function App() {
   useEffect(() => {
     const syncStationRoute = () => setCraftingStationId(readStationRoute());
     window.addEventListener('popstate', syncStationRoute);
-    if (!isKnownStationPath(window.location.pathname)) window.history.replaceState(null, '', '/');
+    if (!isKnownGamePath(window.location.pathname)) window.history.replaceState(null, '', '/');
     else syncStationRoute();
     return () => window.removeEventListener('popstate', syncStationRoute);
   }, []);
@@ -2677,11 +2678,7 @@ export default function App() {
     }
   };
 
-  if (activeCraftingStation) return <main className="station-page" aria-labelledby="station-page-title">
-      <header className="station-page-header">
-        <button type="button" className="station-page-back" onClick={() => { navigateToLobby(); setCraftingStationId(null); }}>← Lobby</button>
-        <div><span>ESTAÇÃO DE CRIAÇÃO</span><h1 id="station-page-title">{activeCraftingStation.title}</h1></div>
-      </header>
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={() => { navigateToLobby(); setCraftingStationId(null); }}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
@@ -2916,9 +2913,7 @@ export default function App() {
             
         </div>
       </div>
-    </main>;
-
-  return <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
+    </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
@@ -3098,7 +3093,6 @@ export default function App() {
             <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
           </section>
         </div>}
-        <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
         {chestOpen && <div className="lobby-chest-backdrop" onClick={() => setChestOpen(false)}>
           <section className="lobby-chest-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-chest-title" onClick={event => event.stopPropagation()}>
             <header className="lobby-chest-header">
@@ -3410,7 +3404,9 @@ export default function App() {
 {!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
-  </main>;
+  </main>}
+    <FriendsModal open={friendsOpen} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={() => setFriendsOpen(false)} onOpenProfile={userId => { setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={() => setFriendsOpen(false)} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
+  </>;
 }
 
 function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
