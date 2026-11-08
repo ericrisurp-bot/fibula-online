@@ -57,10 +57,10 @@ const initial: GameSnapshot = {
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
-  tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0 },
+  tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
 const cookingRarityLabel = (rarity: CookingMeal['rarity']) => ({
   normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
@@ -255,6 +255,7 @@ const inventoryItemIcon = (itemId: string) => {
     linen: { fill: '#e3d4ad', shade: '#aa9870', line: '#695d45' },
     wolf_meat: { fill: '#bd6b5d', shade: '#80433e', line: '#542d2b' },
     wolf_hide: { fill: '#a98768', shade: '#69503d', line: '#47372c' },
+    refined_leather: { fill: '#986b49', shade: '#65442f', line: '#3f2b20' },
     chicken_meat: { fill: '#d89a62', shade: '#9b5c3b', line: '#663b2c' },
     feather: { fill: '#e8e2d1', shade: '#a9a18f', line: '#696354' },
     jabuticaba: { fill: '#75508f', shade: '#422c62', line: '#30213f' },
@@ -294,9 +295,10 @@ const inventoryItemIcon = (itemId: string) => {
       <path d="M6 17c0-6 6-10 13-8 5 1 8 6 6 11-2 6-11 8-16 4-2-2-3-4-3-7Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.4"/>
       <path d="M8 16c4-4 10-5 15-1M10 21c4 2 8 1 11-2" fill="none" stroke="#f3c2a0" strokeWidth="1.5" strokeLinecap="round"/>
       <path d="m22 9 4-3 2 3-3 4" fill={colors.shade} stroke={colors.line} strokeWidth="1"/>
-    </> : base === 'wolf_hide' ? <>
+    </> : base === 'wolf_hide' || base === 'refined_leather' ? <>
       <path d="M7 5 13 8 19 5 25 9 23 15 26 23 18 27 12 24 5 26 7 18 4 12Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="m10 10 5 4 6-4m-10 9 8 3" fill="none" stroke={colors.shade} strokeWidth="1.5"/>
+      {base === 'refined_leather' && <path d="m9 8 14 15" stroke="#c49a70" strokeWidth="1.2" opacity=".8"/>}
     </> : base === 'feather' ? <>
       <path d="M7 26C4 13 12 4 26 4c0 12-6 21-19 22Z" fill={colors.fill} stroke={colors.line} strokeWidth="1.2"/>
       <path d="M7 26 24 7M11 21l-1-7m5 2-1-7m2 12 7-1m-3-5 6-1" stroke={colors.shade} strokeWidth="1.1" strokeLinecap="round"/>
@@ -335,7 +337,7 @@ const itemLabel = (itemId: string) => {
     }
     return `Núcleo de ${category === 'armor' ? 'armadura' : 'acessório'} · ${coreRarityLabel(rarity)}`;
   }
-  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'refined_leather' ? 'Couro refinado' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
@@ -1513,6 +1515,15 @@ export default function App() {
           ctx.fillStyle = '#e5d6b5'; ctx.strokeStyle = '#8b7857'; ctx.lineWidth = 1.3;
           ctx.fillRect(-6, -4, 12, 8); ctx.strokeRect(-6, -4, 12, 8);
           ctx.strokeStyle = '#b39a70'; ctx.beginPath(); ctx.moveTo(-3, -4); ctx.lineTo(-3, 4); ctx.moveTo(1, -4); ctx.lineTo(1, 4); ctx.stroke();
+          ctx.restore();
+        }});
+      }
+      for (const drop of s.refinedLeatherDrops) {
+        worldDrawables.push({ depth: drop.y + 5, draw: () => {
+          ctx.save(); ctx.translate(drop.x, drop.y);
+          ctx.fillStyle = '#986b49'; ctx.strokeStyle = '#3f2b20'; ctx.lineWidth = 1.3;
+          ctx.beginPath(); ctx.moveTo(-7, -4); ctx.lineTo(-2, -6); ctx.lineTo(5, -4); ctx.lineTo(7, 2); ctx.lineTo(3, 6); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.strokeStyle = '#c49a70'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(3, 3); ctx.moveTo(1, -4); ctx.lineTo(5, 0); ctx.stroke();
           ctx.restore();
         }});
       }
