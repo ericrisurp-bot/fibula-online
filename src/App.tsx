@@ -30,6 +30,7 @@ import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
 import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute } from './ui/stationRoute';
 import PageFrame from './ui/PageFrame';
+import BackToLobbyButton from './ui/BackToLobbyButton';
 import ForgeScene from './ui/ForgeScene';
 
 type RankingEntry = {
@@ -2823,7 +2824,7 @@ export default function App() {
                     <div className="cooking-pot-heading">
                       <div className="cooking-oven-heading-title">
                         <strong>FORNO DE PEDRA</strong>
-                        <button type="button" className="cooking-back-button" onClick={closeGamePage}>← Lobby</button>
+                        
                       </div>
                       <span>{preparedCookingMeals.length}/3</span>
                     </div>
@@ -2891,6 +2892,7 @@ export default function App() {
             
         </div>
       </div>
+    {activeCraftingStation.id === 'fogao' && <BackToLobbyButton onClick={closeGamePage} />}
     </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
