@@ -4786,7 +4786,7 @@ button, button * {
 .weapon-anvil-core > strong { color:#f2f4f0; font-size:11px; }
 .weapon-anvil-core > small { color:#c0c8bd; font-size:9px; }
 .weapon-anvil-core > b { color:#e0e5dd; font-size:10px; }
-.weapon-anvil-core ul,.weapon-anvil-crafted ul {
+.weapon-anvil-core ul {
   display:grid; width:100%; gap:4px; margin:2px 0 0; padding:0; list-style:none;
 }
 .weapon-anvil-core li {
