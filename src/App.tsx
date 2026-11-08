@@ -2855,10 +2855,9 @@ export default function App() {
                         const slot = base === 'stone' || base === 'bronze' ? 'mineral' : base;
                         const recipeRow = weaponRecipeRows.find(row => row.slot === slot);
                         const canSelect = !!selectedWeaponCore && !!recipeRow && rarity === selectedWeaponCore.rarity;
-                        const incompatible = !!selectedWeaponCore && !canSelect;
                         const selected = selectedWeaponMaterials.find(selection => selection.slot === slot && selection.itemId === item.itemId);
                         return <button type="button" key={item.itemId}
-                          className={'forge-material-item' + (selected ? ' selected' : '') + (incompatible ? ' incompatible' : '')}
+                          className={'forge-material-item' + (selected ? ' selected' : '')}
                           disabled={weaponCraftBusy || !canSelect}
                           onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
                           <span>{inventoryItemIcon(item.itemId)}</span>
