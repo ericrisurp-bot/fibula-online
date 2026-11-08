@@ -6700,3 +6700,24 @@ button, button * {
  .back-to-lobby-button{right:calc(7px + env(safe-area-inset-right));bottom:calc(7px + env(safe-area-inset-bottom));}
 }
 @media(prefers-reduced-motion:reduce){.forge-scene-slots .forge-recipe-slot{animation:none!important}}
+
+
+/* B1.4 visual — pedra quente, metal com cor e materiais sempre legíveis. */
+.forge-page .forge-scene{
+ border-color:#9b7655;
+ background:linear-gradient(145deg,#665447,#303b3b 58%,#252b2b);
+ box-shadow:inset 0 0 30px #17110d66,0 4px 14px #0006,0 0 0 1px #d8a36a22;
+}
+.forge-page .forge-material-item{
+ border-color:#8a755e;
+ background:linear-gradient(150deg,#554b3e 0%,#343a35 100%);
+ color:#fff0d8;
+ box-shadow:inset 0 1px 0 #ffe5bc24,0 2px 5px #0004;
+}
+.forge-page .forge-material-item>span{filter:none;opacity:1}
+.forge-page .forge-material-item strong{color:#ffe0b7}
+.forge-page .forge-material-item small{color:#e4cba9}
+.forge-page .forge-material-item:disabled:not(.incompatible){opacity:1;filter:none;color:#fff0d8;background:linear-gradient(150deg,#554b3e 0%,#343a35 100%)}
+.forge-page .forge-material-item.incompatible{opacity:.88;filter:saturate(.78)}
+.forge-page .forge-material-item.selected{border-color:#f3b36e;background:linear-gradient(150deg,#79502f,#423329);box-shadow:0 0 0 1px #f3b36e66,0 0 12px #df8a3b33}
+.forge-page .forge-material-item:disabled:not(.incompatible)>span{opacity:1;filter:none}
