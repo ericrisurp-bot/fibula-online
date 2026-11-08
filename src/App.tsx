@@ -2700,11 +2700,11 @@ export default function App() {
     }
   };
 
-  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage}>
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao'}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
-              <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>
+              {activeCraftingStation.id !== 'fogao' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
               {activeCraftingStation.id !== 'fogao' && <p>{activeCraftingStation.description}</p>}
               {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-station-form">
                 <section className="jewelry-core-panel">
