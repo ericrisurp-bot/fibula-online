@@ -2978,7 +2978,7 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
             <span>ARSENAL</span>
           </button>
-          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => setFriendsOpen(true)}>
+          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
             <span className="lobby-top-emoji" aria-hidden="true">👥</span>
             <span>AMIGOS</span>
           </button>
