@@ -5375,3 +5375,14 @@ button, button * {
 @media(prefers-reduced-motion:reduce){
   .station-page-no-header .station-page-content{transition:none}
 }
+
+
+/* Ajuste final da cozinha: manter a identidade carvão do Fíbula. */
+.station-page-no-header .station-page-content,
+.station-page-no-header.is-burning .station-page-content{
+  background:#222322;
+  color:#f0eee8;
+  backdrop-filter:none;
+}
+.station-page-no-header.is-burning .cooking-oven-panel .cooking-pot-heading{color:#45443e}
+.station-page-no-header.is-burning .cooking-ingredient-workbench{color:#343530}
