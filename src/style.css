@@ -6113,19 +6113,15 @@ button, button * {
 .forge-intensity-0 .forge-flame-core{opacity:.72;transform:scaleY(.34)}
 
 
-/* C1: retorno ao Lobby dentro da própria cena do Forno de Pedra. */
-.cooking-oven-panel .cooking-pot-heading{align-items:center;gap:8px}
-.cooking-oven-heading-title{display:flex;min-width:0;align-items:center;gap:8px}
-.cooking-oven-heading-title>strong{color:#f1dfc2;font-size:12px;letter-spacing:.05em;text-transform:uppercase}
-.cooking-oven-panel .cooking-back-button{
-  flex:0 0 auto;min-height:25px;padding:3px 8px;border:1px solid rgba(220,143,79,.58);
-  border-radius:7px;background:linear-gradient(180deg,#3b3026,#25221e);color:#f2dfc7;
-  font:inherit;font-size:9px;font-weight:800;line-height:1;white-space:nowrap;
-  box-shadow:inset 0 1px 0 #ffffff12,0 2px 4px #0005;
+
+
+/* C1 — botão reutilizável fixo, sem sobrepor os controles da cozinha. */
+.back-to-lobby-button{
+ position:fixed;z-index:1200;right:calc(10px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));
+ min-height:29px;padding:5px 9px;border:1px solid #b88b62;border-radius:8px;
+ background:linear-gradient(180deg,#40362b,#262522);color:#f2e8d8;font:inherit;font-size:10px;font-weight:800;
+ box-shadow:0 2px 8px #0008;white-space:nowrap;
 }
-.cooking-oven-panel .cooking-back-button:active{background:#59402e;transform:translateY(1px)}
-@media(max-width:360px){
-  .cooking-oven-heading-title{gap:5px}
-  .cooking-oven-heading-title>strong{font-size:10px}
-  .cooking-oven-panel .cooking-back-button{min-height:23px;padding:3px 6px;font-size:8px}
-}
+.back-to-lobby-button:active{transform:translateY(1px);background:#59402e}
+.station-page-no-header:has(.cooking-oven-panel) .station-page-content{padding-bottom:calc(46px + env(safe-area-inset-bottom))!important;}
+@media(max-width:360px){.back-to-lobby-button{right:calc(7px + env(safe-area-inset-right));bottom:calc(7px + env(safe-area-inset-bottom));min-height:27px;padding:4px 8px;font-size:9px}}
