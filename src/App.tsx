@@ -3045,7 +3045,7 @@ export default function App() {
                         style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
                         onPointerDown={event => startWeaponInfoHold(event, weapon)}
                         onPointerUp={() => finishWeaponInfoHold(weapon)}
-                        onPointerLeave={clearWeaponInfoHold}
+                        onPointerLeave={cancelWeaponInfoHold}
                         onPointerCancel={cancelWeaponInfoHold}
                         onContextMenu={event => event.preventDefault()}
                         onClick={() => {
