@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 type ForgeSceneProps = {
   intensity: 0 | 1 | 2 | 3;
   hammering: boolean;
