@@ -3032,7 +3032,7 @@ export default function App() {
               <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
                 {lobbyChestItems.map(item => {
                   const isJabuticaba = item.itemId === 'jabuticaba', parsedCore = parseCoreItemId(item.itemId);
-                  const isClosedCore = parsedCore?.kind === 'closed', isRevealedCore = parsedCore?.kind === 'revealed', isCore = Boolean(parsedCore);
+                  const isClosedCore = parsedCore?.kind === 'closed';
                   const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
                   const consumeJabuticabaFromSlot = () => { if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba(); };
                   return <div key={item.itemId}
@@ -3046,7 +3046,6 @@ export default function App() {
                       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); consumeJabuticabaFromSlot(); }
                     } : undefined}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                    {isClosedCore && <em>Fechado</em>}
                     {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
                       event.stopPropagation(); setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
                     }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
