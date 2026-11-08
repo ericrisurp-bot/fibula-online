@@ -6523,3 +6523,12 @@ button, button * {
 @media(prefers-reduced-motion:reduce){
   .forge-sparking .forge-sparks,.forge-sparking .forge-flash{animation:none;opacity:0}
 }
+
+.forge-scene-slots .forge-recipe-slot{animation:forge-slot-reveal .24s ease-out both}
+@keyframes forge-slot-reveal{
+  from{opacity:0;transform:translateY(7px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .forge-scene-slots .forge-recipe-slot{animation:none}
+}
