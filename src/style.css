@@ -7367,18 +7367,16 @@ button, button * {
   color:#39342b;
 }
 .side-page.classes-page .class-story-card p {
-  display:-webkit-box;
   margin:0;
-  overflow:hidden;
   color:#39342b;
   font-size:12px;
   line-height:1.22;
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:3;
-  line-clamp:3;
 }
 .side-page.classes-page .class-story-quote {display:none}
-.side-page.classes-page .class-computed-stat {background:#fffdf8}
+.side-page.classes-page .class-computed-stat {
+  min-height:clamp(44px,5.6dvh,52px);
+  background:var(--class-soft);
+}
 .side-page.classes-page .class-page-content.class-guerreiro {--class-accent:#a52d2d;--class-soft:#f3ddda}
 .side-page.classes-page .class-page-content.class-mago {--class-accent:#7042a8;--class-soft:#ece3f7}
 .side-page.classes-page .class-page-content.class-arqueiro {--class-accent:#865e05;--class-soft:#f5ecd3}
