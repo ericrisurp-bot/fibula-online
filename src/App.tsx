@@ -2776,12 +2776,14 @@ export default function App() {
     }
   };
 
+  const stationPresentation = activeCraftingStation as { icon: string; description: string; products: string };
+
   return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'joalheria' ? 'jewelry-page' : activeCraftingStation.id === 'costura' ? 'tailor-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
-              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
-              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{activeCraftingStation.description}</p>}
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{stationPresentation.icon}</div>}
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
               {activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
                 <TailorScene>
                   <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
@@ -3006,7 +3008,7 @@ export default function App() {
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
                 </div>
               </> : <>
-                <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
+                <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{stationPresentation.products}</strong></div>
                 <small>Os recursos disponíveis no Baú são usados diretamente na fabricação.</small>
               </>}
             
