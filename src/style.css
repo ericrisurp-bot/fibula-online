@@ -7269,7 +7269,7 @@ button, button * {
   font-size:clamp(13px,3.6vw,17px);
   font-variant-numeric:tabular-nums;
 }
- .side-page.classes-page .class-duels {
+.side-page.classes-page .class-duels {
   display:grid;
   flex:0 0 auto;
   gap:clamp(4px,.65dvh,7px);
