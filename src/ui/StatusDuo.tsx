@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { ClassFace, computeClassStats } from './ClassStatBars';
 import { getClassPower } from '../game/power';
 import { CLASSES, type ClassId } from '../game/config';
@@ -62,7 +63,7 @@ export default function StatusDuo({ preferences, accountLevel, onChooseClasses }
     <button type="button" className="status-page-action" onClick={onChooseClasses}>Escolher classes</button>
   </section>;
 
-  const primary = selected[0];
+  const primary = selected[0]!;
   const secondary = selected[1];
   const totalPower = selected.reduce((sum, entry) => sum + entry.power, 0);
   const totalPowerAt10 = selected.reduce((sum, entry) => sum + entry.powerAt10, 0);
