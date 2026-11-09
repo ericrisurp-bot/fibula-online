@@ -183,7 +183,7 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
         return <article className="class-duel" key={def.key}>
           <div className="class-duel-labels">
             <span className={share.left > share.right ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.leftIcon}</i>{def.left}</span>
-            <span className={share.right > share.left ? 'duel-side-winner' : 'duel-side-loser'}>{def.right}<i aria-hidden="true">{def.rightIcon}</i></span>
+            <span className={share.right > share.left ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.rightIcon}</i>{def.right}</span>
           </div>
           <div className="class-duel-track" role="img" aria-label={`${def.left} ${share.left} por cento; ${def.right} ${share.right} por cento`}>
             <span className={`class-duel-left ${share.left > share.right ? 'is-winner' : 'is-loser'}`} style={{width:`${share.left}%`}}/><span className={`class-duel-right ${share.right > share.left ? 'is-winner' : 'is-loser'}`} style={{width:`${share.right}%`}}/><i className="class-duel-divider" style={{left:`${share.left}%`}} aria-hidden="true" />
