@@ -17,15 +17,22 @@ const STATION_NAV_ORDER: StationRouteId[] = ['bigorna', 'costura', 'joalheria', 
 
 export default function StationNav({ current, onLobby, onOpenStation }: StationNavProps) {
   return <nav className="station-nav" aria-label="Navegação entre estações">
-    {STATION_NAV_ORDER.filter(id => id !== current).map(id =>
-      <button
+    {STATION_NAV_ORDER.map(id => {
+      const isActive = id === current;
+      return <button
         key={id}
         type="button"
-        className={`station-nav-button station-nav-${id}`}
+        className={`station-nav-button station-nav-${id}${isActive ? ' is-active' : ' is-inactive'}`}
         aria-label={`Abrir estação ${STATION_LABELS[id]}`}
-        onClick={() => onOpenStation(id)}
-      >{STATION_LABELS[id]}</button>,
-    )}
-    <button type="button" className="station-nav-button station-nav-lobby" aria-label="Voltar ao Lobby" onClick={onLobby}>Lobby</button>
+        aria-current={isActive ? 'page' : undefined}
+        onClick={() => { if (!isActive) onOpenStation(id); }}
+      >{STATION_LABELS[id]}</button>;
+    })}
+    <button
+      type="button"
+      className="station-nav-button station-nav-lobby"
+      aria-label="Voltar ao Lobby"
+      onClick={onLobby}
+    >Lobby</button>
   </nav>;
 }
