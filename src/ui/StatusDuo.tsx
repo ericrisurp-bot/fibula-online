@@ -33,7 +33,7 @@ function Comparison({ title, leftClass, rightClass, leftValue, rightValue }: {
   return <div className="status-page-comparison" style={{
     '--status-left': `var(--status-color-${leftClass})`,
     '--status-right': `var(--status-color-${rightClass})`,
-  } as React.CSSProperties}>
+  } as CSSProperties}>
     <strong className="status-page-comparison-title">{title}</strong>
     <div className="status-page-comparison-names">
       <strong className={leftWins ? 'is-winner' : ''}>{CLASSES[leftClass].label}</strong>
