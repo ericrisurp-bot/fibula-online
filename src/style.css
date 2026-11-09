@@ -7201,3 +7201,21 @@ button, button * {
   .side-page.classes-page .classes-tabs .profile-class-tab,
   .class-stat-fill { transition:none; }
 }
+
+.side-page.classes-page .classes-tabs .class-tab-label {
+  display:grid;
+  width:100%;
+  min-height:22px;
+  place-items:center;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+  font:inherit;
+}
+.side-page.classes-page .classes-tabs .class-tab-label:focus-visible {
+  outline:2px solid #e7c49c;
+  outline-offset:2px;
+  border-radius:4px;
+}
