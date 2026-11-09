@@ -7724,10 +7724,10 @@ button, button * {
   background:linear-gradient(90deg,var(--class-accent-light),var(--class-accent));
 }
 .side-page.classes-page .class-duel-left.is-loser {
-  background:linear-gradient(90deg,var(--class-soft),#fffdf8);
+  background:linear-gradient(90deg,#777c81,#aeb3b7);
 }
 .side-page.classes-page .class-duel-right.is-loser {
-  background:linear-gradient(90deg,#fffdf8,var(--class-soft));
+  background:linear-gradient(90deg,#aeb3b7,#777c81);
 }
 .side-page.classes-page .class-duel-divider {
   z-index:1;
