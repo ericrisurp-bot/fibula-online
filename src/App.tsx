@@ -34,7 +34,8 @@ import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import StationNav from './ui/StationNav';
-import ClassStatBars, { ClassDuelBars, ClassFace } from './ui/ClassStatBars';
+import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
+import StatusDuo from './ui/StatusDuo';
 import BackToLobbyButton from './ui/BackToLobbyButton';
 type RankingEntry = {
   user_id: string;
@@ -3227,51 +3228,12 @@ export default function App() {
           </section></div></PageFrame>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-status-modal lobby-status-page side-page-panel">
-            <div className="lobby-profile-content lobby-status-content">
-              {characterPreferences.map((classId, index) => {
-                if (!classId) return <section className="lobby-status-card lobby-status-empty" key={index}>
-                  <span>{index === 0 ? 'PRINCIPAL' : 'SECUNDÁRIA'}</span>
-                  <strong>Nenhuma classe selecionada</strong>
-                </section>;
-                const attributes = getPlayerAttributes(classId, state.player.level, 1 + accountLevel * 0.05);
-                const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
-                const powerDamage = weapon.damage * getDamageMultiplier(classId, state.player.level, 1 + accountLevel * 0.05);
-                const classPower = getClassPower(classId, state.player.level, 1 + accountLevel * 0.05).total;
-                const classPowerAt10 = getClassPower(classId, 10, 1 + accountLevel * 0.05).total;
-                const loadout = equipmentLoadouts[classId] ?? {};
-                const equippedItems = Object.values(loadout).flatMap(itemId => {
-                  const item = arsenalItems.find(candidate => candidate.id === itemId);
-                  return item ? [item] : [];
-                });
-                return <section className={`lobby-status-card class-${classId}`} key={classId}>
-                  <div className="lobby-status-card-heading">
-                    <div className="lobby-status-class-identity"><ClassFace classId={classId} size={42} /><div><span>{index === 0 ? '★ PRINCIPAL' : '② SECUNDÁRIA'}</span><h3>{CLASSES[classId].label}</h3></div></div>
-                    <strong className="lobby-status-level">NÍVEL {state.player.level}</strong>
-                  </div>
-                  <i className="lobby-status-tag" aria-hidden="true" />
-                  <div className="lobby-status-poder">
-                    <div><span>PODER</span><strong>{classPower.toFixed(0)}</strong></div>
-                    <small>{CLASS_STYLE[classId]} · no nível 10: {classPowerAt10.toFixed(0)}</small>
-                  </div>
-                  <div className="lobby-status-power-grid">
-                    <div className="lobby-status-power"><span>PD / GOLPE</span><strong>{powerDamage.toFixed(1)}</strong></div>
-                    <div className={`lobby-status-power${attributeUnusedClass(classId, 'forca')}`}><span>FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong></div>
-                  </div>
-                  <ClassDuelBars classId={classId} />
-                  <div className="lobby-status-attributes">
-                    <div className={attributeUnusedClass(classId, 'vida').trim()}><span>❤️ Vida</span><strong>{attributes.vida.toFixed(1)}</strong></div>
-                    <div className={attributeUnusedClass(classId, 'inteligencia').trim()}><span>🧠 Int.</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
-                    <div className={attributeUnusedClass(classId, 'destreza').trim()}><span>🎯 Dest.</span><strong>{attributes.destreza.toFixed(1)}</strong></div>
-                    <div className={attributeUnusedClass(classId, 'armadura').trim()}><span>🛡️ Arm.</span><strong>{(CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue).toFixed(1)}</strong></div>
-                  </div>
-                  <div className="lobby-status-equipment">
-                    <span>EQUIPAMENTOS · {equippedItems.length}</span>
-                    {equippedItems.length ? <div>{equippedItems.map(item => <small key={item.id}>{item.icon} {item.name}</small>)}</div> : <small>Sem equipamentos</small>}
-                  </div>
-                </section>;
-              })}
-              <p className="lobby-status-note">O PODER soma a base do personagem: vida, armadura, esquiva, velocidades e dano. Ele não mede quem é melhor: cada classe foi feita para um estilo de combate, e um número menor só mostra que ela cumpre outro papel. Atributo em vermelho riscado não é usado pela classe e não soma.</p>
-            </div>
+            <StatusDuo preferences={characterPreferences} accountLevel={accountLevel} onGoClasses={() => {
+              navigateToPage('classes');
+              setActiveGameRoute({ page: 'classes' });
+              setStatusOpen(false);
+              setProfileOpen(true);
+            }} />
           </section></div>
           <BackToLobbyButton onClick={closeGamePage} />
         </PageFrame>}
