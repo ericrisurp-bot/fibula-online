@@ -795,7 +795,7 @@ export default function App() {
     setJewelryResultCoreId(null);
     setJewelryRevealAnimating(false);
     setJewelryFeedback('');
-    if (!cookingOnline && id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.');
+    setCookingFeedback(!cookingOnline && id === 'fogao' ? 'Sem conexão: cozinhar exige internet.' : '');
   };
   const closeGamePage = () => {
     navigateToLobby();
