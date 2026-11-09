@@ -17,7 +17,7 @@ export default function StatusDuo({ preferences, accountLevel, onGoClasses }: Pr
  const selected = preferences.map((classId, index) => classId ? {
    classId, index,
    power: Math.round(getClassPower(classId, 0, pointsPerLevel).total),
-   powerAt10: Math.round(getClassPower(classId, 10, pointsPerLevel).total),
+   powerAt10: getClassPower(classId, 10, pointsPerLevel).total,
    stats: computeClassStats(classId),
  } : null).filter((item): item is NonNullable<typeof item> => item !== null);
  const left = selected[0] ?? null, right = selected[1] ?? null;
@@ -28,8 +28,8 @@ export default function StatusDuo({ preferences, accountLevel, onGoClasses }: Pr
    return { ...metric, a, b, aPercent, bPercent: 100 - aPercent, leftWins: a > b, rightWins: b > a };
  }) : [];
  const style = left && right ? {
-   '--duo-left': 'var(--status-' + left.classId + ')',
-   '--duo-right': 'var(--status-' + right.classId + ')',
+   '--duo-left': ({ guerreiro: '#a52d2d', mago: '#7042a8', arqueiro: '#865e05', druida: '#236b3b' }[left.classId]),
+   '--duo-right': ({ guerreiro: '#a52d2d', mago: '#7042a8', arqueiro: '#865e05', druida: '#236b3b' }[right.classId]),
  } as CSSProperties : undefined;
  if (!selected.length) return <div className="status-page-content"><div className="status-page-empty">
    <strong>Escolha sua classe principal e secundária</strong><button type="button" onClick={onGoClasses}>Ir para Classes</button>
@@ -40,11 +40,11 @@ export default function StatusDuo({ preferences, accountLevel, onGoClasses }: Pr
        <div className={'status-page-role ' + (item.index === 0 ? 'primary' : 'secondary')}><Star/>{item.index === 0 ? 'Principal' : 'Secundária'}</div>
        <div className="status-page-class-name">{CLASSES[item.classId].label}</div>
      </div></div>
-     <div className="status-page-power"><span>PODER</span><strong>{item.power}</strong></div><small>Nível 10: {item.powerAt10}</small>
+     <div className="status-page-power"><span>PODER</span><strong>{item.power}</strong></div><small>Nível 10: {Math.round(item.powerAt10)}</small>
    </article>)}</div>
    <section className="status-page-total" aria-label="Poder da dupla">
      <div><span>PODER DA DUPLA</span><strong>{selected.reduce((sum, item) => sum + item.power, 0)}</strong></div>
-     <small>Nível 10: {selected.reduce((sum, item) => sum + item.powerAt10, 0)}</small>
+     <small>Nível 10: {Math.round(selected.reduce((sum, item) => sum + item.powerAt10, 0))}</small>
    </section>
    {left && right ? <section className="status-page-comparison" style={style}><h3>COMPARATIVO</h3>
      {metrics.map(metric => {
