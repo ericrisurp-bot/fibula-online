@@ -32,6 +32,7 @@ import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfi
 import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
+import TailorScene from './ui/TailorScene';
 import BackToLobbyButton from './ui/BackToLobbyButton';
 
 type RankingEntry = {
@@ -824,6 +825,14 @@ export default function App() {
     const parsed = parseCoreItemId(item.itemId);
     if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon' || item.quantity <= 0) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
+    if (existing) existing.quantity += item.quantity;
+    else stacks.push({ itemId: item.itemId, quantity: item.quantity });
+    return stacks;
+  }, []);
+  const tailorFabricStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+    const base = getBaseItemId(item.itemId);
+    if (!['cotton', 'linen', 'refined_leather'].includes(base) || item.quantity <= 0) return stacks;
+    const existing = stacks.find(stack => getBaseItemId(stack.itemId) === base);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
@@ -2767,13 +2776,32 @@ export default function App() {
     }
   };
 
-  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'joalheria'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'joalheria' ? 'jewelry-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
+  const stationPresentation = activeCraftingStation as { icon: string; description: string; products: string };
+
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'joalheria' ? 'jewelry-page' : activeCraftingStation.id === 'costura' ? 'tailor-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
-              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
-              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && <p>{activeCraftingStation.description}</p>}
-              {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{stationPresentation.icon}</div>}
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
+              {activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
+                <TailorScene>
+                  <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
+                    {['Peça', 'Forro', 'Costura'].map(label => <div className="tailor-preview-slot" key={label} aria-disabled="true"><strong>{label}</strong><small>Em breve</small></div>)}
+                  </div>
+                </TailorScene>
+                <section className="forge-zone tailor-fabrics-zone" aria-label="Tecidos no Baú">
+                  <div className="forge-panel-heading"><strong>TECIDOS</strong><span>Materiais disponíveis no Baú</span></div>
+                  <div className="forge-material-grid tailor-fabric-grid" aria-label="Tecidos disponíveis no Baú">
+                    {tailorFabricStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
+                      <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                    </div>)}
+                    {tailorFabricStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum tecido no Baú.</p>}
+                  </div>
+                  <p className="tailor-fabric-note">Aqui serão feitas as armaduras: couro (tipo 1) e bronze (tipo 2), com forro e costura.</p>
+                </section>
+                <div className="tailor-action-area"><button type="button" className="tailor-sew-button" disabled>Costurar · Em breve</button></div>
+              </div> : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
                 <JewelryScene revealAnimating={jewelryRevealAnimating}>
                   <div className="jewelry-scene-content">
                     <button type="button" className={selectedJewelryCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
@@ -2980,13 +3008,13 @@ export default function App() {
                   {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
                 </div>
               </> : <>
-                <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{activeCraftingStation.products}</strong></div>
+                <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{stationPresentation.products}</strong></div>
                 <small>Os recursos disponíveis no Baú são usados diretamente na fabricação.</small>
               </>}
             
         </div>
       </div>
-    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria') && <BackToLobbyButton onClick={closeGamePage} />}
+    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura') && <BackToLobbyButton onClick={closeGamePage} />}
       </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
