@@ -106,7 +106,6 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   const initialArmor = CONFIG.player.armor + (attributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
   const initialMobility = CONFIG.player.speed + (attributes.velocidadeMovimento - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.velocidadeMovimento;
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
-  const role = weapon.kind === 'melee' ? 'Corpo a corpo' : weapon.kind === 'arrow' ? 'Arco e mobilidade' : weapon.label === CONFIG.weapons.bastao.label ? 'Natureza à distância' : 'Magia à distância';
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
