@@ -3266,12 +3266,12 @@ export default function App() {
           </section></div></PageFrame>}
         {profileOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
           <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
-            <nav className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
+            <div className="lobby-profile-tabs classes-tabs" role="group" aria-label="Classes disponíveis">
               {PROFILE_CLASS_IDS.map(classId => <div
                 className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
                 key={classId}
               >
-                <button type="button" role="tab" aria-selected={profileClassTab === classId} tabIndex={profileClassTab === classId ? 0 : -1} className="class-tab-label" onClick={() => setProfileClassTab(classId)}>
+                <button type="button" aria-pressed={profileClassTab === classId} className="class-tab-label" onClick={() => setProfileClassTab(classId)}>
                   <strong>{CLASSES[classId].label}</strong>
                 </button>
                 <span className="class-priority-stars">
@@ -3293,7 +3293,7 @@ export default function App() {
                   </button>
                 </span>
               </div>)}
-            </nav>
+            </div>
             <div className="lobby-profile-content classes-content">
               <section className={`profile-class-details class-${profileClassTab}`} aria-label={`Comparação de atributos: ${CLASSES[profileClassTab].label}`}>
                 <ClassStatBars classId={profileClassTab} />
