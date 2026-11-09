@@ -7230,6 +7230,10 @@ button, button * {
 
 /* S2 — Status como estado combinado da dupla. */
 .side-page.status-page {
+  --status-color-guerreiro:#c83d3d;
+  --status-color-mago:#8054c3;
+  --status-color-arqueiro:#c39225;
+  --status-color-druida:#4d9a5a;
   min-height:100dvh;
   box-sizing:border-box;
   display:flex;
@@ -7253,7 +7257,7 @@ button, button * {
   box-sizing:border-box;
   display:flex;
   flex-direction:column;
-  gap:clamp(9px,1.5vh,14px);
+  gap:clamp(7px,1.2vh,11px);
   padding:clamp(12px,2.4vw,20px);
   border:1px solid #d9d1c3;
   border-radius:22px;
@@ -7291,14 +7295,14 @@ button, button * {
   flex-direction:column;
   align-items:center;
   gap:6px;
-  padding:10px 8px;
+  padding:8px 7px;
   border:1px solid var(--status-border);
   border-radius:15px;
   background:var(--status-soft);
   color:var(--status-ink);
   text-align:center;
 }
-.status-page-class-card .class-face {width:clamp(42px,7vw,56px);height:clamp(42px,7vw,56px)}
+.status-page-class-card .class-face {width:clamp(42px,7vw,52px);height:clamp(42px,7vw,52px)}
 .status-page-class-name {font-size:clamp(13px,2vw,16px);font-weight:850}
 .status-page-role {
   display:flex;
@@ -7308,7 +7312,7 @@ button, button * {
   font-weight:800;
   color:#655b50;
 }
-.status-page-role svg {width:13px;height:13px;fill:currentColor}
+.status-page-role svg {width:13px;height:13px;fill:currentColor;stroke:currentColor;stroke-width:.5}
 .status-page-role.primary {color:#956b0d}
 .status-page-role.secondary {color:#3c638d}
 .status-page-power-label {font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
@@ -7353,6 +7357,7 @@ button, button * {
 .status-page-mago {--status-ink:#7042a8;--status-soft:#f0eafa;--status-border:#cbb8e8;--status-color:#8054c3}
 .status-page-arqueiro {--status-ink:#865e05;--status-soft:#fbf1d9;--status-border:#ddc58a;--status-color:#c39225}
 .status-page-druida {--status-ink:#236b3b;--status-soft:#e9f3e8;--status-border:#afd0ad;--status-color:#4d9a5a}
+.status-page .class-face-ring {fill:none;stroke-width:2.5}
 .status-page .class-face-guerreiro .class-face-background {fill:#f8e8e5}
 .status-page .class-face-guerreiro .class-face-ring {stroke:#a52d2d}
 .status-page .class-face-mago .class-face-background {fill:#f0eafa}
