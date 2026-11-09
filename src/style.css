@@ -7829,3 +7829,13 @@ button, button * {
   .side-page.classes-page .class-duel-track {height:12px}
 }
 
+
+
+/* Preferências: estrelas inativas cinzas; somente o ícone ativo ganha cor e brilho. */
+.side-page.classes-page .class-preference-star.primary:not(.is-active),
+.side-page.classes-page .class-preference-star.secondary:not(.is-active) {
+  border-color:#d8d0c1;
+  background:#fffdf8;
+  color:#9b9b96;
+  box-shadow:none;
+}
