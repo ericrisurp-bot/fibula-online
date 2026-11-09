@@ -46,7 +46,7 @@ export function deriveClassStatPercentages(): ClassStatPercentages {
 
   const raw: Record<ClassId, Record<ClassStatKey, number>> = Object.fromEntries(
     CLASS_IDS.map(classId => [classId, {
-      vida: multipliers[classId].vida * ATTRIBUTE_USAGE[classId].vida,
+      vida: multipliers[classId].vida,
       danoFisico: physicalDamage(classId),
       danoMagico: magicalDamage(classId),
       mobilidade: mobility(classId),
