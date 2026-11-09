@@ -6,10 +6,10 @@ const CLASS_WEAPONS: Record<ClassId, WeaponId> = { guerreiro: 'espada', mago: 'c
 
 export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '👢', damagePerSecond: '💥', enemiesPerSecond: '👾', hits: '🛡️', range: '🎯' } as const;
 export const CLASS_STORIES: Record<ClassId, string> = {
-  guerreiro: 'O guerreiro encara a horda de frente. Com espada e armadura, segura a linha e abre caminho golpe a golpe.',
-  mago: 'O mago mantém distância e transforma cada quarto disparo em uma explosão. Seu poder é enorme — mas não deixe os inimigos chegarem perto.',
-  arqueiro: 'O arqueiro luta em movimento. Suas flechas atravessam inimigos e, a cada sequência de disparos, recupera um pouco de vida.',
-  druida: 'O druida deixa a natureza lutar por ele. Retarda, envenena e atinge de longe enquanto a floresta cerca seus inimigos.',
+  guerreiro: 'Curta distância, armadura pesada e nenhum medo de apanhar. O guerreiro resolve tudo de frente: entra no meio da horda, segura a pancada e responde com a espada, empurrando quem chegar perto. Para ele, a melhor tática é ser o último a ficar de pé.',
+  mago: 'Frágil no corpo, devastador na mente. O mago prefere ficar longe da pancadaria e deixar o cajado trabalhar: a cada quarto disparo, uma explosão varre o grupo inteiro. Se o inimigo chegar perto, algo deu errado, mas até lá ele já fez muito estrago.',
+  arqueiro: 'Veloz e sempre em movimento, o arqueiro nunca briga de perto. Mantém a distância e resolve tudo com uma flecha, ou com várias: elas atravessam os inimigos. Quando o fôlego aperta, recupera um pouco de vida entre os disparos.',
+  druida: 'Guardião do mato, o druida não corre atrás da vitória: deixa a natureza trabalhar. Retarda quem avança, envenena quem insiste e ataca de longe com seu cajado. Quando o inimigo percebe, já está devagar, doente e cercado.',
 };
 const CLASS_LABELS: Record<ClassId, string> = { guerreiro: 'Guerreiro', mago: 'Mago', arqueiro: 'Arqueiro', druida: 'Druida' };
 const DUEL_DEFINITIONS = [
