@@ -7363,7 +7363,7 @@ button, button * {
   border:1px solid #e5dfd3;
   border-left:3px solid var(--class-accent);
   border-radius:8px;
-  background:#fffaf1;
+  background:linear-gradient(135deg,var(--class-soft),#fffaf1 78%);
   color:#39342b;
 }
 .side-page.classes-page .class-story-card p {
@@ -7372,7 +7372,15 @@ button, button * {
   font-size:12px;
   line-height:1.22;
 }
-.side-page.classes-page .class-story-quote {display:none}
+.side-page.classes-page .class-story-quote {
+  display:block;
+  margin:-2px 0 -7px;
+  color:var(--class-accent);
+  font-size:25px;
+  font-weight:800;
+  line-height:1;
+  opacity:.7;
+}
 .side-page.classes-page .class-computed-stat {
   min-height:clamp(44px,5.6dvh,52px);
   background:var(--class-soft);
