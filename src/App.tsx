@@ -3225,7 +3225,7 @@ export default function App() {
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
           </section></div></PageFrame>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
-          <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-status-modal lobby-status-page side-page-panel">
+          <div className="station-page-content side-page-content"><section className="side-page-panel">
             <StatusDuo preferences={characterPreferences} accountLevel={accountLevel} onGoClasses={() => {
               navigateToPage('classes');
               setActiveGameRoute({ page: 'classes' });
