@@ -6931,3 +6931,32 @@ button, button * {
   .jewelry-core-slot{bottom:calc(40% + 17px);min-height:56px}
   .jewelry-result-card{max-height:26%}
 }
+
+/* K1 — placa escura para contraste estável do título do Forno de Pedra. */
+.station-page-no-header .cooking-oven-panel .cooking-oven-heading-title{
+  display:inline-flex;
+  min-width:0;
+  max-width:calc(100% - 48px);
+  align-items:center;
+}
+.station-page-no-header .cooking-oven-panel .cooking-oven-heading-title strong{
+  display:inline-block;
+  max-width:100%;
+  padding:4px 8px;
+  border:1px solid #8c6945;
+  border-radius:6px;
+  background:linear-gradient(180deg,#35271b,#211a14);
+  color:#fff0d5;
+  font-size:clamp(10px,3.2vw,12px);
+  line-height:1.2;
+  letter-spacing:.06em;
+  text-shadow:0 1px 1px #100b07;
+  box-shadow:inset 0 1px 0 rgba(255,231,190,.12),0 2px 5px rgba(20,12,6,.3);
+}
+@media(max-width:340px){
+  .station-page-no-header .cooking-oven-panel .cooking-oven-heading-title strong{
+    padding:4px 6px;
+    font-size:10px;
+    letter-spacing:.04em;
+  }
+}
