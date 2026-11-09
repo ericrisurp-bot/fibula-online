@@ -7658,3 +7658,197 @@ button, button * {
 @media(prefers-reduced-motion:reduce){
   .station-nav-button{transition:none!important}
 }
+
+/* CLASSES — identidade visual, retratos do jogo e barras direcionais. */
+.side-page.classes-page .class-face {
+  display:block;
+  flex:0 0 auto;
+  width:clamp(28px,4.3dvh,36px);
+  height:clamp(28px,4.3dvh,36px);
+  overflow:hidden;
+  border:2px solid var(--class-accent);
+  border-radius:50%;
+  background:#fffdf8;
+  box-shadow:0 1px 4px #211a1730,inset 0 0 0 1px #fff9;
+}
+.side-page.classes-page .class-face-guerreiro {border-color:#a52d2d;background:#f8e8e5}
+.side-page.classes-page .class-face-mago {border-color:#7042a8;background:#f0eafa}
+.side-page.classes-page .class-face-arqueiro {border-color:#b58a28;background:#fbf1d9}
+.side-page.classes-page .class-face-druida {border-color:#236b3b;background:#e9f3e8}
+
+.side-page.classes-page .class-page-content {
+  position:relative;
+  isolation:isolate;
+  padding:clamp(4px,.7dvh,8px);
+  border:1px solid color-mix(in srgb,var(--class-accent) 34%,#e5dfd3);
+  border-radius:11px;
+  background:linear-gradient(180deg,var(--class-soft) 0%,#fffdf8 48%,#fffaf1 100%);
+}
+.side-page.classes-page .class-initial-stat {
+  border-color:color-mix(in srgb,var(--class-accent) 26%,#e5dfd3);
+  background:linear-gradient(135deg,var(--class-soft),#fffdf8 82%);
+  box-shadow:0 1px 2px #211a170c;
+}
+.side-page.classes-page .class-initial-stat strong,
+.side-page.classes-page .class-computed-stat strong {color:var(--class-accent)}
+.side-page.classes-page .class-initial-stat-icon,
+.side-page.classes-page .class-computed-stat-icon {filter:drop-shadow(0 1px 1px #0002)}
+
+.side-page.classes-page .class-duel {
+  grid-template-rows:auto 14px;
+  gap:5px;
+  padding:5px 8px 6px;
+  border-color:color-mix(in srgb,var(--class-accent) 25%,#e5dfd3);
+  background:linear-gradient(180deg,#fff 0%,#fffdf9 100%);
+  box-shadow:0 1px 3px #211a170d;
+}
+.side-page.classes-page .class-duel-labels .duel-side-winner,
+.side-page.classes-page .class-duel-labels .duel-side-winner b {color:var(--class-accent)}
+.side-page.classes-page .class-duel-track {
+  height:14px;
+  border:1px solid #65594b;
+  border-radius:999px;
+  background:linear-gradient(180deg,#d7d0c5,#eee9e1);
+  box-shadow:inset 0 2px 3px #33291d2b,0 1px 0 #fff;
+}
+.side-page.classes-page .class-duel-track>span {
+  min-width:0;
+  border-radius:999px;
+  box-shadow:inset 0 1px 0 #ffffff70,inset 0 -1px 1px #0002;
+  transition:width .32s ease,background .32s ease;
+}
+.side-page.classes-page .class-duel-left.is-winner {
+  background:linear-gradient(90deg,var(--class-accent),var(--class-accent-light));
+}
+.side-page.classes-page .class-duel-right.is-winner {
+  background:linear-gradient(90deg,var(--class-accent-light),var(--class-accent));
+}
+.side-page.classes-page .class-duel-left.is-loser {
+  background:linear-gradient(90deg,#777c81,#aeb3b7);
+}
+.side-page.classes-page .class-duel-right.is-loser {
+  background:linear-gradient(90deg,#aeb3b7,#777c81);
+}
+.side-page.classes-page .class-duel-divider {
+  z-index:1;
+  width:3px;
+  border-radius:2px;
+  background:#fffdf8;
+  box-shadow:0 0 0 1px #29272075,0 0 4px #17120f70;
+}
+
+.side-page.classes-page .class-preferences,
+.side-page.classes-page .class-computed-stats {
+  border-color:color-mix(in srgb,var(--class-accent) 30%,#e5dfd3);
+  background:linear-gradient(135deg,var(--class-soft),#fffdf8 76%);
+  box-shadow:0 1px 3px #211a170d;
+}
+.side-page.classes-page .class-preferences h3,
+.side-page.classes-page .class-computed-stats h3 {color:var(--class-accent)}
+.side-page.classes-page .class-preference-star.primary {
+  border-color:#d9c48b;
+  background:#fff9e9;
+  color:#956b0d;
+}
+.side-page.classes-page .class-preference-star.secondary {
+  border-color:#b7c9df;
+  background:#f3f7fc;
+  color:#3c638d;
+}
+.side-page.classes-page .class-preference-star.primary.is-active {
+  border-color:#b88b26;
+  background:linear-gradient(145deg,#fff4d5,#f5d98e);
+  color:#805708;
+  box-shadow:0 0 0 2px #d8b65a33,0 2px 5px #6c4d122b;
+}
+.side-page.classes-page .class-preference-star.secondary.is-active {
+  border-color:#6f8fb3;
+  background:linear-gradient(145deg,#edf4fc,#cbdcf0);
+  color:#315b88;
+  box-shadow:0 0 0 2px #789bc533,0 2px 5px #2f4c6b24;
+}
+.side-page.classes-page .class-preference-star:focus-visible {
+  outline:2px solid var(--class-accent);
+  outline-offset:2px;
+}
+
+/* A seleção destaca somente a estrela; o botão mantém a aparência neutra. */
+.side-page.classes-page .class-preference-star.primary.is-active,
+.side-page.classes-page .class-preference-star.secondary.is-active {
+  border-color:#d8d0c1;
+  background:#fffdf8;
+  color:#766b58;
+  box-shadow:none;
+}
+.side-page.classes-page .class-preference-star.primary.is-active svg {
+  color:#e3b72f;
+  filter:drop-shadow(0 0 3px #e3b72f88);
+}
+.side-page.classes-page .class-preference-star.secondary.is-active svg {
+  color:#4d91d5;
+  filter:drop-shadow(0 0 3px #4d91d588);
+}
+
+.side-page.classes-page .class-story-card {
+  display:flex;
+  align-items:flex-start;
+  gap:5px;
+  border-color:color-mix(in srgb,var(--class-accent) 28%,#e5dfd3);
+  border-left:4px solid var(--class-accent);
+  background:linear-gradient(110deg,var(--class-soft),#fffaf1 78%);
+  box-shadow:0 1px 3px #211a170d;
+}
+.side-page.classes-page .class-story-quote {
+  display:block;
+  flex:0 0 auto;
+  margin-top:-5px;
+  color:var(--class-accent);
+  font-family:Georgia,serif;
+  font-size:30px;
+  font-weight:900;
+  line-height:1;
+  opacity:.85;
+}
+.side-page.classes-page .class-story-card p {
+  flex:1 1 auto;
+  font-size:clamp(10px,1.55dvh,12px);
+  line-height:1.3;
+}
+.side-page.classes-page .class-computed-stat {
+  border-color:color-mix(in srgb,var(--class-accent) 28%,#e5dfd3);
+  background:linear-gradient(135deg,var(--class-soft),#fffdf8);
+}
+
+.side-page.classes-page .class-page-content.class-guerreiro {--class-accent:#a52d2d;--class-accent-light:#e88a82;--class-soft:#f3ddda}
+.side-page.classes-page .class-page-content.class-mago {--class-accent:#7042a8;--class-accent-light:#b79be6;--class-soft:#ece3f7}
+.side-page.classes-page .class-page-content.class-arqueiro {--class-accent:#865e05;--class-accent-light:#efd27f;--class-soft:#f5ecd3}
+.side-page.classes-page .class-page-content.class-druida {--class-accent:#236b3b;--class-accent-light:#9bd3a0;--class-soft:#e2efe3}
+
+@media(max-width:380px) {
+  .side-page.classes-page .class-duel {grid-template-rows:auto 12px}
+  .side-page.classes-page .class-duel-track {height:12px}
+}
+
+
+
+/* Preferências: somente a estrela é visível; a área do botão fica transparente. */
+.side-page.classes-page .class-preference-star,
+.side-page.classes-page .class-preference-star.primary,
+.side-page.classes-page .class-preference-star.secondary,
+.side-page.classes-page .class-preference-star.primary.is-active,
+.side-page.classes-page .class-preference-star.secondary.is-active {
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:0;
+  color:#9b9b96;
+}
+.side-page.classes-page .class-preference-star.primary.is-active svg {
+  color:#e3b72f;
+  filter:drop-shadow(0 0 3px #e3b72f88);
+}
+.side-page.classes-page .class-preference-star.secondary.is-active svg {
+  color:#4d91d5;
+  filter:drop-shadow(0 0 3px #4d91d588);
+}

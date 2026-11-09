@@ -1,20 +1,22 @@
+import { useEffect, useRef } from 'react';
 import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
+import { drawLadino } from '../game/ladino';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 
 const CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_WEAPONS: Record<ClassId, WeaponId> = { guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao' };
 
-export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '👢', damagePerSecond: '💥', enemiesPerSecond: '👾', hits: '🛡️', range: '🎯' } as const;
+export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '🥾', damagePerSecond: '💥', enemiesPerSecond: '👾', hits: '🛡️', range: '🎯' } as const;
 export const CLASS_STORIES: Record<ClassId, string> = {
-  guerreiro: 'O guerreiro encara a horda de frente. Com espada e armadura, segura a linha e abre caminho golpe a golpe.',
-  mago: 'O mago mantém distância e transforma cada quarto disparo em uma explosão. Seu poder é enorme — mas não deixe os inimigos chegarem perto.',
-  arqueiro: 'O arqueiro luta em movimento. Suas flechas atravessam inimigos e, a cada sequência de disparos, recupera um pouco de vida.',
-  druida: 'O druida deixa a natureza lutar por ele. Retarda, envenena e atinge de longe enquanto a floresta cerca seus inimigos.',
+  guerreiro: 'A linha de frente de Fíbula. A espada resolve o combate de perto, enquanto a maior reserva de vida e a armadura ajudam a segurar a horda quando o cerco fecha.',
+  mago: 'O poder arcano vem de longe: o cajado mantém a pressão e cada quarto disparo explode. Sua força é enorme, mas sua defesa exige distância e posicionamento.',
+  arqueiro: 'Precisão e movimento. As flechas alcançam longe e atravessam a linha de inimigos; sequências de acertos devolvem vida para continuar sempre em movimento.',
+  druida: 'A natureza luta ao seu lado. O cajado mantém distância, enquanto lentidão, veneno e cura sustentam o combate por mais tempo.'
 };
 const CLASS_LABELS: Record<ClassId, string> = { guerreiro: 'Guerreiro', mago: 'Mago', arqueiro: 'Arqueiro', druida: 'Druida' };
 const DUEL_DEFINITIONS = [
   { key: 'damage', left: 'Dano físico', leftIcon: '⚔️', right: 'Dano mágico', rightIcon: '✨' },
-  { key: 'survival', left: 'Sobrevivência', leftIcon: '❤️', right: 'Mobilidade', rightIcon: '👢' },
+  { key: 'survival', left: 'Sobrevivência', leftIcon: '❤️', right: 'Mobilidade', rightIcon: '🥾' },
   { key: 'armor', left: 'Armadura', leftIcon: '🛡️', right: 'Vel. de ataque', rightIcon: '⚡' },
 ] as const;
 type DuelKey = typeof DUEL_DEFINITIONS[number]['key'];
@@ -104,39 +106,36 @@ export function deriveClassDuelPercentages(): ClassDuelPercentages {
 }
 
 export function ClassFace({ classId, size = 36 }: { classId: ClassId; size?: number }) {
-  return <svg className={`class-face class-face-${classId}`} viewBox="0 0 64 64" width={size} height={size}
-    role="img" aria-label={`Rosto do personagem ${CLASS_LABELS[classId]}`}>
-    <circle className="class-face-background" cx="32" cy="32" r="31" />
-    <path d="M12 35c0-3 2-5 5-5h30c3 0 5 2 5 5v8H12z" fill="#9a6248" opacity=".28" />
-    <path d="M13 33c-3-2-5 1-4 5 1 4 4 5 7 3M51 33c3-2 5 1 4 5-1 4-4 5-7 3" fill="#d99e79" stroke="#85543f" strokeWidth="1.5" />
-    <path d="M18 29c0-12 6-19 14-19s14 7 14 19v12c0 10-7 17-14 17s-14-7-14-17z" fill="#efc39f" stroke="#85543f" strokeWidth="1.5" />
-    <path d="M22 34q3-3 7 0M35 34q3-3 7 0" fill="none" stroke="#49362f" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="26" cy="38" r="1.8" fill="#302923" /><circle cx="38" cy="38" r="1.8" fill="#302923" />
-    <path d="M28 47q4 3 8 0" fill="none" stroke="#9a5149" strokeWidth="1.8" strokeLinecap="round" />
-    {classId === 'guerreiro' && <>
-      <path d="M15 29 17 17q15-13 30 0l2 12-7-4-10 2-10-2z" fill="#9ba5ae" stroke="#46515b" strokeWidth="2" />
-      <path d="M17 22q15-8 30 0v6H17z" fill="#d4dbe0" stroke="#59636c" strokeWidth="1.5" />
-      <path d="M30 17q-8-13 1-15 7 4 4 15z" fill="#c63c3c" stroke="#862525" strokeWidth="1.5" />
-      <path d="M18 28h28" stroke="#d8b35d" strokeWidth="3" strokeLinecap="round" />
-    </>}
-    {classId === 'mago' && <>
-      <path d="M14 25 29 3q3-5 6 0l15 22q-13-5-36 0z" fill="#7548b7" stroke="#4d2e80" strokeWidth="2" />
-      <path d="M23 18q9-5 18 0" fill="none" stroke="#b99be9" strokeWidth="2" />
-      <path d="m32 7 1.8 4 4.2.6-3 2.9.7 4.2-3.7-2-3.7 2 .7-4.2-3-2.9 4.2-.6z" fill="#f7d66c" stroke="#9d7426" strokeWidth=".7" />
-      <path d="M17 26q15-6 30 0" fill="none" stroke="#c8a6f5" strokeWidth="3" />
-    </>}
-    {classId === 'arqueiro' && <>
-      <path d="M11 34q-1-23 21-28 22 5 21 28l-8-5-4-10-9 7-10-6-4 13z" fill="#d7a83e" stroke="#8b6418" strokeWidth="2" />
-      <path d="M39 13q14-12 13-4-4 8-13 12" fill="#f3d46e" stroke="#9c741e" strokeWidth="1.5" />
-      <path d="M17 29q15-7 30 0" fill="none" stroke="#f7e1a0" strokeWidth="2" />
-    </>}
-    {classId === 'druida' && <>
-      <path d="M14 28q-4-11 8-13 1-12 11-7 10-7 13 5 10 5 4 17l-8-5-10 2-10-2z" fill="#4c984d" stroke="#286b35" strokeWidth="2" />
-      <path d="M17 18q-1-12 8-9 4 5-8 9M31 13q-1-13 8-9 4 7-8 9M43 18q5-10 10-4 1 7-10 4" fill="#8bc66b" stroke="#397b3d" strokeWidth="1.3" />
-      <circle cx="32" cy="17" r="3" fill="#e5c96a" stroke="#9b7a2b" strokeWidth="1" />
-    </>}
-    <circle className="class-face-ring" cx="32" cy="32" r="30.5" />
-  </svg>;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = '#fffdf8';
+    ctx.fillRect(0, 0, size, size);
+    // Usa o mesmo Ladino encapuzado renderizado no perfil, mantendo a silhueta oficial
+    // e variando somente a paleta de cada classe.
+    ctx.translate(size / 2, size * 1.05);
+    drawLadino(ctx, classId, 16, { walking: false, phase: 0, breath: 0, carry: false, direction: 'front' });
+    ctx.restore();
+  }, [classId, size]);
+  return <canvas
+    ref={canvasRef}
+    className={`class-face class-face-${classId}`}
+    width={size}
+    height={size}
+    role="img"
+    aria-label={`Rosto do personagem ${CLASS_LABELS[classId]}`}
+  />;
 }
 
 function PreferenceStar({ active, kind, label, onClick }: { active: boolean; kind: 'primary' | 'secondary'; label: string; onClick: () => void }) {
