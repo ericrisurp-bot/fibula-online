@@ -5,6 +5,7 @@ import { getBaseItemId, getItemRarity } from './game/inventory';
 import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
+import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
@@ -696,6 +697,16 @@ export default function App() {
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
+  const arsenalArmedPower = activeArsenalClassId
+    ? getArmedClassPower(activeArsenalClassId, 0, 1 + accountLevel * 0.05, {
+      weapon: equippedArsenalWeapon ? {
+        model: equippedArsenalWeapon.model,
+        damage: equippedArsenalWeapon.damage,
+        attributes: equippedArsenalWeapon.attributes,
+      } : null,
+    })
+    : null;
+  const arsenalPowerValue = arsenalArmedPower ? Math.round(arsenalArmedPower.total) : null;
   const arsenalInventoryEntries = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
@@ -3048,7 +3059,7 @@ export default function App() {
                  </div>
                  <div className="arsenal-section-heading"><strong>{arsenalCharacterTab === 'principal' ? 'PERSONAGEM PRINCIPAL' : 'PERSONAGEM SECUNDÁRIO'}</strong><span>Selecione um espaço para equipar</span></div>
                  <div className="arsenal-equipment-stage">
-                    <span className="arsenal-power-label" aria-label="Poder do personagem">PD</span>
+                    <span className="arsenal-power-label" aria-label={arsenalPowerValue === null ? "Poder do personagem" : `Poder do personagem: ${arsenalPowerValue}`}>PD{arsenalPowerValue === null ? "" : ` ${arsenalPowerValue}`}</span>
                    {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                    <div className="arsenal-equipment-grid">
                      {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
