@@ -3268,20 +3268,12 @@ export default function App() {
           <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
             <nav className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
               {PROFILE_CLASS_IDS.map(classId => <div
-                role="tab"
-                aria-selected={profileClassTab === classId}
-                tabIndex={profileClassTab === classId ? 0 : -1}
                 className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
                 key={classId}
-                onClick={() => setProfileClassTab(classId)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setProfileClassTab(classId);
-                  }
-                }}
               >
-                <strong>{CLASSES[classId].label}</strong>
+                <button type="button" role="tab" aria-selected={profileClassTab === classId} tabIndex={profileClassTab === classId ? 0 : -1} className="class-tab-label" onClick={() => setProfileClassTab(classId)}>
+                  <strong>{CLASSES[classId].label}</strong>
+                </button>
                 <span className="class-priority-stars">
                   <button type="button" className={`class-priority-star primary${characterPreferences[0] === classId ? ' is-active' : ''}`} aria-pressed={characterPreferences[0] === classId} aria-label={`Definir ${CLASSES[classId].label} como principal`} onClick={event => {
                     event.stopPropagation();
