@@ -6,7 +6,7 @@ import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 const CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_WEAPONS: Record<ClassId, WeaponId> = { guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao' };
 
-export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', mobility: '👢' } as const;
+export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '👢' } as const;
 export const CLASS_STORIES: Record<ClassId, string> = {
   guerreiro: 'Curta distância, armadura pesada e nenhum medo de apanhar. O guerreiro resolve tudo de frente: entra no meio da horda, segura a pancada e responde com a espada, empurrando quem chegar perto. Para ele, a melhor tática é ser o último a ficar de pé.',
   mago: 'Frágil no corpo, devastador na mente. O mago prefere ficar longe da pancadaria e deixar o cajado trabalhar: a cada quarto disparo, uma explosão varre o grupo inteiro. Se o inimigo chegar perto, algo deu errado, mas até lá ele já fez muito estrago.',
@@ -17,6 +17,7 @@ const CLASS_LABELS: Record<ClassId, string> = { guerreiro: 'Guerreiro', mago: 'M
 const DUEL_DEFINITIONS = [
   { key: 'damage', left: 'Dano físico', leftIcon: '⚔️', right: 'Dano mágico', rightIcon: '✨' },
   { key: 'survival', left: 'Sobrevivência', leftIcon: '❤️', right: 'Mobilidade', rightIcon: '👢' },
+  { key: 'armor', left: 'Armadura', leftIcon: '🛡️', right: 'Vel. de ataque', rightIcon: '⚡' },
 ] as const;
 type DuelKey = typeof DUEL_DEFINITIONS[number]['key'];
 type DuelShare = { left: number; right: number };
@@ -40,7 +41,8 @@ function getRawDuelValues() {
   const survival = (id: ClassId) => defensiveBase(id) + (maxHealing > 0 ? healingRate(id) / maxHealing * maxDefense * 0.25 : 0);
   return Object.fromEntries(CLASS_IDS.map(id => [id, {
     physicalDamage: physicalDamage(id), magicalDamage: magicalDamage(id), survival: survival(id), mobility: mobility(id),
-  }])) as Record<ClassId, { physicalDamage: number; magicalDamage: number; survival: number; mobility: number }>;
+    armor: multipliers[id].armadura, attackSpeed: multipliers[id].velocidadeAtaque,
+  }])) as Record<ClassId, { physicalDamage: number; magicalDamage: number; survival: number; mobility: number; armor: number; attackSpeed: number }>;
 }
 function normalizedValue(values: Record<ClassId, number>, id: ClassId) {
   const best = Math.max(...CLASS_IDS.map(classId => values[classId]));
@@ -54,6 +56,7 @@ export function deriveClassDuelPercentages(): ClassDuelPercentages {
   const keys = {
     physicalDamage: valuesFor('physicalDamage'), magicalDamage: valuesFor('magicalDamage'),
     survival: valuesFor('survival'), mobility: valuesFor('mobility'),
+    armor: valuesFor('armor'), attackSpeed: valuesFor('attackSpeed'),
   };
   const duel = (leftKey: keyof typeof keys, rightKey: keyof typeof keys, id: ClassId): DuelShare => {
     const left = normalizedValue(keys[leftKey], id), right = normalizedValue(keys[rightKey], id), total = left + right;
@@ -62,7 +65,7 @@ export function deriveClassDuelPercentages(): ClassDuelPercentages {
     return { left: leftPercent, right: 100 - leftPercent };
   };
   return Object.fromEntries(CLASS_IDS.map(id => [id, {
-    damage: duel('physicalDamage', 'magicalDamage', id), survival: duel('survival', 'mobility', id),
+    damage: duel('physicalDamage', 'magicalDamage', id), survival: duel('survival', 'mobility', id), armor: duel('armor', 'attackSpeed', id),
   }])) as ClassDuelPercentages;
 }
 
