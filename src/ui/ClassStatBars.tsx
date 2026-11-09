@@ -144,6 +144,23 @@ function PreferenceStar({ active, kind, label, onClick }: { active: boolean; kin
   </button>;
 }
 
+export function ClassDuelBars({ classId }: { classId: ClassId }) {
+  const duels = deriveClassDuelPercentages()[classId];
+  return <section className="class-duels" aria-label={`Comparativos de atributos: ${CLASS_LABELS[classId]}`}>
+    {DUEL_DEFINITIONS.map(def => {
+      const share = duels[def.key];
+      return <article className="class-duel" key={def.key}>
+        <div className="class-duel-labels">
+          <span className={share.left > share.right ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.leftIcon}</i><span>{def.left}</span><b>{share.left}%</b></span>
+          <span className={share.right > share.left ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.rightIcon}</i><span>{def.right}</span><b>{share.right}%</b></span>
+        </div>
+        <div className="class-duel-track" role="img" aria-label={`${def.left} ${share.left} por cento; ${def.right} ${share.right} por cento`}>
+          <span className={`class-duel-left ${share.left > share.right ? 'is-winner' : 'is-loser'}`} style={{width:`${share.left}%`}}/><span className={`class-duel-right ${share.right > share.left ? 'is-winner' : 'is-loser'}`} style={{width:`${share.right}%`}}/><i className="class-duel-divider" style={{left:`${share.left}%`}} aria-hidden="true" />
+        </div>
+      </article>;
+    })}
+  </section>;
+}
 export default function ClassStatBars({ classId, preferences, onPreferencesChange }: {
   classId: ClassId; preferences: [ClassId | null, ClassId | null]; onPreferencesChange: (next: [ClassId | null, ClassId | null]) => void;
 }) {
@@ -174,20 +191,7 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
     <section className="class-initial-stats" aria-label="Status iniciais">
       {stats.map(stat => <article className="class-initial-stat" key={stat.key}><span className="class-initial-stat-icon" aria-hidden="true">{stat.icon}</span><span className="class-initial-stat-label">{stat.label}</span><strong>{stat.value}</strong></article>)}
     </section>
-    <section className="class-duels" aria-label="Duelos de atributos">
-      {DUEL_DEFINITIONS.map(def => {
-        const share = duels[def.key];
-        return <article className="class-duel" key={def.key}>
-          <div className="class-duel-labels">
-            <span className={share.left > share.right ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.leftIcon}</i><span>{def.left}</span><b>{share.left}%</b></span>
-            <span className={share.right > share.left ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.rightIcon}</i><span>{def.right}</span><b>{share.right}%</b></span>
-          </div>
-          <div className="class-duel-track" role="img" aria-label={`${def.left} ${share.left} por cento; ${def.right} ${share.right} por cento`}>
-            <span className={`class-duel-left ${share.left > share.right ? 'is-winner' : 'is-loser'}`} style={{width:`${share.left}%`}}/><span className={`class-duel-right ${share.right > share.left ? 'is-winner' : 'is-loser'}`} style={{width:`${share.right}%`}}/><i className="class-duel-divider" style={{left:`${share.left}%`}} aria-hidden="true" />
-          </div>
-        </article>;
-      })}
-    </section>
+    <ClassDuelBars classId={classId} />
     <section className="class-preferences" aria-label="Preferência da classe"><h3>Preferência</h3><div className="class-preference-options">
       <div><PreferenceStar kind="primary" active={preferences[0] === classId} label={`Definir ${CLASS_LABELS[classId]} como principal`} onClick={() => setPreference(0)}/><span>Principal</span></div>
       <div><PreferenceStar kind="secondary" active={preferences[1] === classId} label={`Definir ${CLASS_LABELS[classId]} como secundária`} onClick={() => setPreference(1)}/><span>Secundária</span></div>
