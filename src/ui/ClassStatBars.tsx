@@ -120,7 +120,6 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
     : (slot === 0 ? [classId, preferences[1] === classId ? null : preferences[1]] : [preferences[0] === classId ? null : preferences[0], classId]));
 
   return <div className={`class-page-content class-${classId}`}>
-    <header className="class-identity-card"><ClassFace classId={classId} size={76}/><div><h2>{CLASS_LABELS[classId]}</h2><p>{role}</p><span>{weapon.label}</span></div></header>
     <section className="class-initial-stats" aria-label="Status iniciais">
       {stats.map(stat => <article className="class-initial-stat" key={stat.key}><span className="class-initial-stat-icon" aria-hidden="true">{stat.icon}</span><span className="class-initial-stat-label">{stat.label}</span><strong>{stat.value}</strong></article>)}
     </section>
