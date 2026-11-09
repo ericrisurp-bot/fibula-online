@@ -2533,33 +2533,9 @@ button, button * {
 .lobby-status-trigger:focus-visible{outline:2px solid #c9e8d5;outline-offset:2px}
 .lobby-status-trigger span:not(.lobby-top-emoji){font-size:10px;font-weight:900;line-height:1;letter-spacing:.04em}
 .lobby-status-trigger .lobby-top-emoji{font-size:clamp(21px,2.2vw,26px);line-height:1}
-.lobby-status-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.lobby-status-card{min-width:0;padding:14px;border:1px solid rgba(185,205,185,.2);border-radius:12px;background:rgba(18,25,22,.72)}
-.lobby-status-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
-.lobby-status-card-heading>div>span,.lobby-status-equipment>span{font-size:9px;font-weight:900;letter-spacing:.09em;color:#b9cbbd}
-.lobby-status-card-heading h3{margin:4px 0 0;font-size:19px;color:#edf3e8}
-.lobby-status-level{font-size:10px;color:#c8d6c9}
-.lobby-status-power-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.lobby-status-power{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:9px;background:rgba(255,255,255,.055)}
-.lobby-status-power>span{font-size:9px;font-weight:900;color:#c5d3c6}
-.lobby-status-power>strong{font-size:26px;line-height:1.1;color:#f3f2df}
-.lobby-status-power>small{font-size:9px;color:#aab7aa}
-.lobby-status-attributes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:9px}
-.lobby-status-attributes>div{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:7px;background:rgba(255,255,255,.04);font-size:10px;color:#d6dfd5}
-.lobby-status-attributes strong{color:#fff;font-variant-numeric:tabular-nums}
-.lobby-status-equipment{display:flex;flex-direction:column;gap:7px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1)}
-.lobby-status-equipment>div{display:flex;flex-wrap:wrap;gap:5px}
-.lobby-status-equipment>div small{padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.07);font-size:10px;color:#e1e9df}
-.lobby-status-equipment>small{font-size:10px;color:#c0cabe}
-.lobby-status-equipment .lobby-status-equipment-note{color:#d4b98b;line-height:1.4}
-.lobby-status-empty{display:flex;flex-direction:column;gap:8px;color:#dce6dc}
 @media(max-width:650px){
   .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
   .lobby-status-trigger .lobby-top-emoji{font-size:21px}
-  .lobby-status-content{grid-template-columns:1fr;gap:8px;padding:10px}
-  .lobby-status-card{padding:10px}
-  .lobby-status-card-heading h3{font-size:16px}
-  .lobby-status-power>strong{font-size:22px}
 }
 @media(max-width:360px){
   .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:48px;height:48px;min-width:48px;min-height:48px}
@@ -2651,141 +2627,9 @@ button, button * {
   .lobby-arsenal-trigger{top:calc(31% + 128px)}
   .lobby-friends-trigger{top:calc(31% + 192px)}
   .lobby-chest-trigger{top:calc(31% + 256px)}
-}
-
-
-/* Status: cada ficha acompanha dinamicamente a cor da classe escolhida. */
-.lobby-status-card.class-guerreiro{
-  border-color:rgba(200,63,63,.62);
-  background:linear-gradient(135deg,rgba(200,63,63,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #c83f3f;
-}
-.lobby-status-card.class-guerreiro .lobby-status-card-heading h3{color:#ff8b85}
-.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span{color:#f2a6a1}
-.lobby-status-card.class-mago{
-  border-color:rgba(117,65,200,.62);
-  background:linear-gradient(135deg,rgba(117,65,200,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #7541c8;
-}
-.lobby-status-card.class-mago .lobby-status-card-heading h3{color:#c4a2ff}
-.lobby-status-card.class-mago .lobby-status-card-heading>div>span{color:#cdb6f4}
-.lobby-status-card.class-arqueiro{
-  border-color:rgba(168,117,8,.66);
-  background:linear-gradient(135deg,rgba(168,117,8,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #a87508;
-}
-.lobby-status-card.class-arqueiro .lobby-status-card-heading h3{color:#f1c76a}
-.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span{color:#e8ca87}
-.lobby-status-card.class-druida{
-  border-color:rgba(33,131,75,.66);
-  background:linear-gradient(135deg,rgba(33,131,75,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #21834b;
-}
-.lobby-status-card.class-druida .lobby-status-card-heading h3{color:#83dba2}
-.lobby-status-card.class-druida .lobby-status-card-heading>div>span{color:#a1dfb5}
-
-
-/* Status: bloco inteiro na cor da classe, com texto de alto contraste. */
-.lobby-status-card.class-guerreiro,
-.lobby-status-card.class-mago,
-.lobby-status-card.class-arqueiro,
-.lobby-status-card.class-druida{
+}/* Status: bloco inteiro na cor da classe{
   border:1px solid rgba(255,255,255,.48);
   box-shadow:0 5px 18px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.16);
-}
-.lobby-status-card.class-guerreiro{
-  background:#c83f3f;
-  color:#fff;
-}
-.lobby-status-card.class-mago{
-  background:#7541c8;
-  color:#fff;
-}
-.lobby-status-card.class-arqueiro{
-  background:#a87508;
-  color:#17130a;
-}
-.lobby-status-card.class-druida{
-  background:#21834b;
-  color:#fff;
-}
-.lobby-status-card.class-guerreiro .lobby-status-card-heading h3,
-.lobby-status-card.class-mago .lobby-status-card-heading h3,
-.lobby-status-card.class-druida .lobby-status-card-heading h3,
-.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span,
-.lobby-status-card.class-mago .lobby-status-card-heading>div>span,
-.lobby-status-card.class-druida .lobby-status-card-heading>div>span,
-.lobby-status-card.class-guerreiro .lobby-status-level,
-.lobby-status-card.class-mago .lobby-status-level,
-.lobby-status-card.class-druida .lobby-status-level,
-.lobby-status-card.class-guerreiro .lobby-status-power>span,
-.lobby-status-card.class-mago .lobby-status-power>span,
-.lobby-status-card.class-druida .lobby-status-power>span,
-.lobby-status-card.class-guerreiro .lobby-status-power>strong,
-.lobby-status-card.class-mago .lobby-status-power>strong,
-.lobby-status-card.class-druida .lobby-status-power>strong,
-.lobby-status-card.class-guerreiro .lobby-status-power>small,
-.lobby-status-card.class-mago .lobby-status-power>small,
-.lobby-status-card.class-druida .lobby-status-power>small,
-.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
-.lobby-status-card.class-mago .lobby-status-attributes>div,
-.lobby-status-card.class-druida .lobby-status-attributes>div,
-.lobby-status-card.class-guerreiro .lobby-status-attributes strong,
-.lobby-status-card.class-mago .lobby-status-attributes strong,
-.lobby-status-card.class-druida .lobby-status-attributes strong,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>span,
-.lobby-status-card.class-mago .lobby-status-equipment>span,
-.lobby-status-card.class-druida .lobby-status-equipment>span,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
-.lobby-status-card.class-mago .lobby-status-equipment>div small,
-.lobby-status-card.class-druida .lobby-status-equipment>div small,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>small,
-.lobby-status-card.class-mago .lobby-status-equipment>small,
-.lobby-status-card.class-druida .lobby-status-equipment>small{
-  color:#fff;
-}
-.lobby-status-card.class-arqueiro .lobby-status-card-heading h3,
-.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span,
-.lobby-status-card.class-arqueiro .lobby-status-level,
-.lobby-status-card.class-arqueiro .lobby-status-power>span,
-.lobby-status-card.class-arqueiro .lobby-status-power>strong,
-.lobby-status-card.class-arqueiro .lobby-status-power>small,
-.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
-.lobby-status-card.class-arqueiro .lobby-status-attributes strong,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>span,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>div small,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>small{
-  color:#17130a;
-}
-.lobby-status-card.class-guerreiro .lobby-status-power,
-.lobby-status-card.class-mago .lobby-status-power,
-.lobby-status-card.class-druida .lobby-status-power,
-.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
-.lobby-status-card.class-mago .lobby-status-attributes>div,
-.lobby-status-card.class-druida .lobby-status-attributes>div,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
-.lobby-status-card.class-mago .lobby-status-equipment>div small,
-.lobby-status-card.class-druida .lobby-status-equipment>div small{
-  background:rgba(0,0,0,.13);
-}
-.lobby-status-card.class-arqueiro .lobby-status-power,
-.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>div small{
-  background:rgba(255,255,255,.28);
-}
-.lobby-status-card.class-guerreiro .lobby-status-equipment,
-.lobby-status-card.class-mago .lobby-status-equipment,
-.lobby-status-card.class-druida .lobby-status-equipment{
-  border-top-color:rgba(255,255,255,.38);
-}
-.lobby-status-card.class-arqueiro .lobby-status-equipment{
-  border-top-color:rgba(23,19,10,.3);
-}
-.lobby-status-card.class-guerreiro .lobby-status-equipment .lobby-status-equipment-note,
-.lobby-status-card.class-mago .lobby-status-equipment .lobby-status-equipment-note,
-.lobby-status-card.class-druida .lobby-status-equipment .lobby-status-equipment-note,
-.lobby-status-card.class-arqueiro .lobby-status-equipment .lobby-status-equipment-note{
-  color:inherit;
 }
 
 
@@ -3794,54 +3638,6 @@ button, button * {
   border-bottom-color: var(--fb-modal-border-soft) !important;
   border-top-color: var(--fb-modal-border-soft) !important;
 }
-.lobby-status-card,
-.lobby-status-card.class-guerreiro,
-.lobby-status-card.class-mago,
-.lobby-status-card.class-arqueiro,
-.lobby-status-card.class-druida {
-  border-color: var(--fb-modal-border) !important;
-  background: var(--fb-modal-panel) !important;
-  color: var(--fb-modal-text) !important;
-  box-shadow: none !important;
-}
-.lobby-status-card-heading h3,
-.lobby-status-card-heading>div>span,
-.lobby-status-level,
-.lobby-status-power>span,
-.lobby-status-power>strong,
-.lobby-status-power>small,
-.lobby-status-attributes>div,
-.lobby-status-attributes strong,
-.lobby-status-equipment>span,
-.lobby-status-equipment>div small,
-.lobby-status-equipment>small,
-.lobby-status-equipment-note {
-  color: var(--fb-modal-text) !important;
-  text-shadow: none !important;
-}
-.lobby-status-power,
-.lobby-status-attributes>div,
-.lobby-status-equipment,
-.lobby-status-equipment>div small,
-.lobby-status-equipment-note {
-  border-color: var(--fb-modal-border-soft) !important;
-  background: var(--fb-modal-card) !important;
-}
-.lobby-status-card.class-guerreiro .lobby-status-power,
-.lobby-status-card.class-mago .lobby-status-power,
-.lobby-status-card.class-arqueiro .lobby-status-power,
-.lobby-status-card.class-druida .lobby-status-power,
-.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
-.lobby-status-card.class-mago .lobby-status-attributes>div,
-.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
-.lobby-status-card.class-druida .lobby-status-attributes>div,
-.lobby-status-card.class-guerreiro .lobby-status-equipment,
-.lobby-status-card.class-mago .lobby-status-equipment,
-.lobby-status-card.class-arqueiro .lobby-status-equipment,
-.lobby-status-card.class-druida .lobby-status-equipment {
-  border-color: var(--fb-modal-border-soft) !important;
-  background: var(--fb-modal-card) !important;
-}
 .lobby-crafting-content,
 .lobby-friends-list,
 .lobby-chest-grid,
@@ -4012,24 +3808,6 @@ button, button * {
   .lobby-ranking-empty { min-height: 100px !important; }
 }
 
-/* ===== Status enxuto (Etapa 3): ficha curta no padrão carvão; a cor da classe vira só uma linha fina ===== */
-.lobby-status-card { padding: 12px !important; }
-.lobby-status-card-heading { margin-bottom: 0 !important; }
-.lobby-status-card-heading h3 { color: var(--fb-modal-text) !important; font-size: 17px !important; }
-.lobby-status-card-heading > div > span, .lobby-status-equipment > span { color: var(--fb-modal-label) !important; }
-.lobby-status-level { padding: 3px 8px; border: 1px solid var(--fb-modal-border); border-radius: 999px; background: #303330; color: var(--fb-modal-text) !important; font-weight: 900; }
-.lobby-status-tag { display: block; height: 3px; margin: 9px 0; border-radius: 3px; background: var(--fb-modal-selected); }
-.lobby-status-card.class-guerreiro .lobby-status-tag { background: #d2586a; }
-.lobby-status-card.class-mago .lobby-status-tag { background: #8a63d6; }
-.lobby-status-card.class-arqueiro .lobby-status-tag { background: #c99a2e; }
-.lobby-status-card.class-druida .lobby-status-tag { background: #4fae6b; }
-.lobby-status-power { background: rgba(0, 0, 0, 0.22) !important; }
-.lobby-status-power > span { color: var(--fb-modal-label) !important; letter-spacing: 0.1em; }
-.lobby-status-power > strong { color: var(--fb-modal-text) !important; font-size: 22px; }
-.lobby-status-attributes > div { color: var(--fb-modal-muted); font-size: 11px; }
-.lobby-status-equipment { margin-top: 9px !important; padding-top: 8px !important; }
-.lobby-status-equipment > small { color: var(--fb-modal-label) !important; }
-
 /* ===== Classes enxuto (Etapa 4): herói + 4 números + barras de crescimento; o resto fica recolhido ===== */
 .profile-class-details .profile-section-heading h3 { flex-wrap: wrap; }
 .profile-class-pill { margin-left: 4px; padding: 3px 8px; border: 1px solid var(--fb-modal-border); border-radius: 999px; background: #303330; color: var(--fb-modal-text); font-size: 9px; font-style: normal; font-weight: 900; letter-spacing: 0.08em; }
@@ -4069,16 +3847,7 @@ button, button * {
   .lobby-arsenal-trigger { top: calc(90dvh - 287px) !important; }
   .lobby-status-trigger { top: calc(90dvh - 369px) !important; }
   .lobby-profile-trigger { top: calc(90dvh - 451px) !important; }
-}
-
-
-/* ===== PODER na tela (Etapa 6B): número do PODER, estilo da classe e atributos não usados em vermelho riscado ===== */
-.lobby-status-poder { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--fb-modal-border); border-radius: 10px; background: rgba(0, 0, 0, 0.28); }
-.lobby-status-poder > div { display: flex; align-items: baseline; gap: 8px; }
-.lobby-status-poder span { color: var(--fb-modal-label); font-size: 10px; font-weight: 900; letter-spacing: 0.12em; }
-.lobby-status-poder strong { color: var(--fb-modal-text); font-size: 26px; font-variant-numeric: tabular-nums; }
-.lobby-status-poder small { color: var(--fb-modal-muted); font-size: 11px; }
-.lobby-status-note { grid-column: 1 / -1; margin: 10px 2px 0; color: var(--fb-modal-label); font-size: 11px; line-height: 1.5; }
+}/* ===== PODER na tela (Etapa 6B): número do PODER{ display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--fb-modal-border); border-radius: 10px; background: rgba(0, 0, 0, 0.28); }
 .attr-unused, .attr-unused span, .attr-unused strong, .attr-unused small, .attr-unused i { color: #e57373 !important; text-decoration: line-through; text-decoration-thickness: 1px; }
 .profile-growth-row.attr-unused > b u { background: #7a3b3b !important; }
 
@@ -4952,15 +4721,12 @@ button, button * {
   .station-page-back { min-height:38px; padding:7px 9px; font-size:12px; }
   .station-page-content { padding-left:9px; padding-right:9px; }
   .station-page-content .lobby-crafting-content { padding-top:12px; }
-}
-
-
-/* Páginas do lobby: conteúdo em tela inteira, sem backdrop ou caixa de modal. */
+}/* Páginas do lobby: conteúdo em tela inteira,
+sem backdrop ou caixa de modal. */
 .station-page-content .lobby-arsenal-page,
 .station-page-content .lobby-chest-page,
-.station-page-content .lobby-status-page,
 .station-page-content .lobby-classes-page,
-.station-page-content .lobby-ranking-page {
+.station-page-content .lobby-ranking-page{
   width:min(100%,1100px);
   max-width:1100px;
   max-height:none;
@@ -4977,18 +4743,12 @@ button, button * {
 .station-page-content .lobby-arsenal-page .lobby-arsenal-header > div:first-child { display:none; }
 .station-page-content .lobby-arsenal-page .lobby-arsenal-header { justify-content:flex-end; border:0; padding:0 0 6px; background:transparent; }
 .station-page-content .lobby-arsenal-page .lobby-arsenal-content { min-height:0; overflow:visible; }
-.station-page-content .lobby-chest-page { display:flex; flex-direction:column; gap:10px; }
-.station-page-content .lobby-chest-page .lobby-chest-header,
-.station-page-content .lobby-status-page .lobby-profile-header,
+.station-page-content .lobby-chest-page { display:flex; flex-direction:column; gap:10px; }.station-page-content .lobby-chest-page .lobby-chest-header,
 .station-page-content .lobby-classes-page .lobby-profile-header,
 .station-page-content .lobby-ranking-page .lobby-ranking-header,
-.player-profile-page-content .player-profile-header { display:none; }
-.station-page-content .lobby-status-page,
-.station-page-content .lobby-classes-page,
-.station-page-content .lobby-ranking-page { padding:0; }
-.station-page-content .lobby-status-page .lobby-profile-content,
-.station-page-content .lobby-classes-page .lobby-profile-content,
-.station-page-content .lobby-ranking-page .lobby-ranking-body { overflow:visible; max-height:none; }
+.player-profile-page-content .player-profile-header{ display:none; }.station-page-content .lobby-classes-page,
+.station-page-content .lobby-ranking-page{ padding:0; }.station-page-content .lobby-classes-page .lobby-profile-content,
+.station-page-content .lobby-ranking-page .lobby-ranking-body{ overflow:visible; max-height:none; }
 .station-page-content .lobby-ranking-page { display:flex; flex-direction:column; gap:12px; }
 .player-profile-page-content { display:flex; justify-content:center; }
 .player-profile-page-content .player-profile-page {
@@ -5025,12 +4785,10 @@ button, button * {
 .friends-page-content .lobby-friends-header > div:first-child { display:none; }
 .friends-page-content .lobby-friends-content { overflow:visible; max-height:none; padding:0; }
 .station-page-content .lobby-chest-page .lobby-chest-grid { max-height:none; overflow:visible; }
-@media(max-width:650px) {
-  .station-page-content .lobby-arsenal-page,
-  .station-page-content .lobby-chest-page,
-  .station-page-content .lobby-status-page,
-  .station-page-content .lobby-classes-page,
-  .station-page-content .lobby-ranking-page { width:100%; padding:0; }
+@media(max-width:650px) {.station-page-content .lobby-arsenal-page,
+.station-page-content .lobby-chest-page,
+.station-page-content .lobby-classes-page,
+.station-page-content .lobby-ranking-page{ width:100%; padding:0; }
   .station-page-content .lobby-arsenal-page .lobby-arsenal-content { display:flex; flex-direction:column; }
   .station-page-content .lobby-arsenal-page .arsenal-equipment-stage { min-height:300px; }
   .player-profile-page-content .player-profile-page,
