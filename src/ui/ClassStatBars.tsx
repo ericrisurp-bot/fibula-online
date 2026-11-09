@@ -1,6 +1,4 @@
-import { useEffect, useRef } from 'react';
 import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
-import { drawLadino } from '../game/ladino';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 
 const CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
@@ -106,21 +104,39 @@ export function deriveClassDuelPercentages(): ClassDuelPercentages {
 }
 
 export function ClassFace({ classId, size = 36 }: { classId: ClassId; size?: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(32, 32, 30, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.translate(32, 66);
-    drawLadino(ctx, classId, 30, { walking: false, phase: 0, breath: 0, carry: false, direction: 'front' });
-    ctx.restore();
-  }, [classId]);
-  return <canvas ref={canvasRef} className={`class-face class-face-${classId}`} width={64} height={64} style={{ width: size, height: size }} role="img" aria-label={`Rosto do personagem ${CLASS_LABELS[classId]}`} />;
+  return <svg className={`class-face class-face-${classId}`} viewBox="0 0 64 64" width={size} height={size}
+    role="img" aria-label={`Rosto do personagem ${CLASS_LABELS[classId]}`}>
+    <circle className="class-face-background" cx="32" cy="32" r="31" />
+    <path d="M12 35c0-3 2-5 5-5h30c3 0 5 2 5 5v8H12z" fill="#9a6248" opacity=".28" />
+    <path d="M13 33c-3-2-5 1-4 5 1 4 4 5 7 3M51 33c3-2 5 1 4 5-1 4-4 5-7 3" fill="#d99e79" stroke="#85543f" strokeWidth="1.5" />
+    <path d="M18 29c0-12 6-19 14-19s14 7 14 19v12c0 10-7 17-14 17s-14-7-14-17z" fill="#efc39f" stroke="#85543f" strokeWidth="1.5" />
+    <path d="M22 34q3-3 7 0M35 34q3-3 7 0" fill="none" stroke="#49362f" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="26" cy="38" r="1.8" fill="#302923" /><circle cx="38" cy="38" r="1.8" fill="#302923" />
+    <path d="M28 47q4 3 8 0" fill="none" stroke="#9a5149" strokeWidth="1.8" strokeLinecap="round" />
+    {classId === 'guerreiro' && <>
+      <path d="M15 29 17 17q15-13 30 0l2 12-7-4-10 2-10-2z" fill="#9ba5ae" stroke="#46515b" strokeWidth="2" />
+      <path d="M17 22q15-8 30 0v6H17z" fill="#d4dbe0" stroke="#59636c" strokeWidth="1.5" />
+      <path d="M30 17q-8-13 1-15 7 4 4 15z" fill="#c63c3c" stroke="#862525" strokeWidth="1.5" />
+      <path d="M18 28h28" stroke="#d8b35d" strokeWidth="3" strokeLinecap="round" />
+    </>}
+    {classId === 'mago' && <>
+      <path d="M14 25 29 3q3-5 6 0l15 22q-13-5-36 0z" fill="#7548b7" stroke="#4d2e80" strokeWidth="2" />
+      <path d="M23 18q9-5 18 0" fill="none" stroke="#b99be9" strokeWidth="2" />
+      <path d="m32 7 1.8 4 4.2.6-3 2.9.7 4.2-3.7-2-3.7 2 .7-4.2-3-2.9 4.2-.6z" fill="#f7d66c" stroke="#9d7426" strokeWidth=".7" />
+      <path d="M17 26q15-6 30 0" fill="none" stroke="#c8a6f5" strokeWidth="3" />
+    </>}
+    {classId === 'arqueiro' && <>
+      <path d="M11 34q-1-23 21-28 22 5 21 28l-8-5-4-10-9 7-10-6-4 13z" fill="#d7a83e" stroke="#8b6418" strokeWidth="2" />
+      <path d="M39 13q14-12 13-4-4 8-13 12" fill="#f3d46e" stroke="#9c741e" strokeWidth="1.5" />
+      <path d="M17 29q15-7 30 0" fill="none" stroke="#f7e1a0" strokeWidth="2" />
+    </>}
+    {classId === 'druida' && <>
+      <path d="M14 28q-4-11 8-13 1-12 11-7 10-7 13 5 10 5 4 17l-8-5-10 2-10-2z" fill="#4c984d" stroke="#286b35" strokeWidth="2" />
+      <path d="M17 18q-1-12 8-9 4 5-8 9M31 13q-1-13 8-9 4 7-8 9M43 18q5-10 10-4 1 7-10 4" fill="#8bc66b" stroke="#397b3d" strokeWidth="1.3" />
+      <circle cx="32" cy="17" r="3" fill="#e5c96a" stroke="#9b7a2b" strokeWidth="1" />
+    </>}
+    <circle className="class-face-ring" cx="32" cy="32" r="30.5" />
+  </svg>;
 }
 
 function PreferenceStar({ active, kind, label, onClick }: { active: boolean; kind: 'primary' | 'secondary'; label: string; onClick: () => void }) {
@@ -137,11 +153,14 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   // At level zero these resolve to the same CONFIG.player base values shown in the former profile.
   const initialMobility = CONFIG.player.speed + (attributes.velocidadeMovimento - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.velocidadeMovimento;
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
+  const initialArmor = CONFIG.player.armor
+    + (attributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
     { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Vel. de ataque', value: weapon.attackSpeed.toFixed(2) },
-    { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. movimento', value: initialMobility.toFixed(0) },
+    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura', value: initialArmor.toFixed(1) },
+    { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. de movimento', value: initialMobility.toFixed(0) },
   ];
   const duels = deriveClassDuelPercentages()[classId];
   const computedStats = computeClassStats(classId);
