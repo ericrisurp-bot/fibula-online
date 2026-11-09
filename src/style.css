@@ -7149,10 +7149,10 @@ button, button * {
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.side-page.classes-page .profile-class-tab.class-guerreiro { --class-accent:#c94f49; }
-.side-page.classes-page .profile-class-tab.class-mago { --class-accent:#7952bd; }
-.side-page.classes-page .profile-class-tab.class-arqueiro { --class-accent:#a87919; }
-.side-page.classes-page .profile-class-tab.class-druida { --class-accent:#438052; }
+.side-page.classes-page .profile-class-tab.class-guerreiro { --class-accent:#b83d38; --class-face-accent:#c94f49; }
+.side-page.classes-page .profile-class-tab.class-mago { --class-accent:#7952bd; --class-face-accent:#936bd7; }
+.side-page.classes-page .profile-class-tab.class-arqueiro { --class-accent:#87600f; --class-face-accent:#c89a3c; }
+.side-page.classes-page .profile-class-tab.class-druida { --class-accent:#356f44; --class-face-accent:#579968; }
 .side-page.classes-page .lobby-profile-tabs.classes-tabs .profile-class-tab.active {
   border-color:var(--class-accent);
   background:#fffdf8 !important;
@@ -7165,7 +7165,7 @@ button, button * {
 .side-page.classes-page .class-face {
   display:block;
   flex:0 0 auto;
-  border:2px solid var(--class-accent);
+  border:2px solid var(--class-face-accent,var(--class-accent));
   border-radius:50%;
   background:#fffaf1;
   box-shadow:0 1px 4px rgba(50,38,25,.12);
@@ -7199,7 +7199,7 @@ button, button * {
   color:var(--classes-text);
 }
 .side-page.classes-page .class-page-content.class-guerreiro {
-  --class-accent:#c94f49; --class-accent-soft:rgba(201,79,73,.38);
+  --class-accent:#b83d38; --class-accent-soft:rgba(184,61,56,.38);
   --class-panel:rgba(201,79,73,.13); --class-muted:#713b37;
 }
 .side-page.classes-page .class-page-content.class-mago {
@@ -7207,11 +7207,11 @@ button, button * {
   --class-panel:rgba(121,82,189,.12); --class-muted:#574078;
 }
 .side-page.classes-page .class-page-content.class-arqueiro {
-  --class-accent:#a87919; --class-accent-soft:rgba(168,121,25,.38);
+  --class-accent:#87600f; --class-accent-soft:rgba(135,96,15,.38);
   --class-panel:rgba(168,121,25,.14); --class-muted:#70531e;
 }
 .side-page.classes-page .class-page-content.class-druida {
-  --class-accent:#438052; --class-accent-soft:rgba(67,128,82,.36);
+  --class-accent:#356f44; --class-accent-soft:rgba(53,111,68,.36);
   --class-panel:rgba(67,128,82,.13); --class-muted:#365f40;
 }
 .side-page.classes-page .class-initial-stats {
