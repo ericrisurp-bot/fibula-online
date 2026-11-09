@@ -77,7 +77,7 @@ export default function StatusDuo({ preferences, accountLevel, onChooseClasses }
       </article>)}
     </div>
     <div className="status-page-total">
-      <div><span className="status-page-total-label">PODER DA DUPLA</span><small>Nível 10: {formatPower(totalPowerAt10)}</small></div>
+      <div><span className="status-page-total-label">{secondary ? "PODER DA DUPLA" : "PODER DA CLASSE"}</span><small>Nível 10: {formatPower(totalPowerAt10)}</small></div>
       <strong className="status-page-total-value">{formatPower(totalPower)}</strong>
     </div>
     {secondary ? <div className="status-page-comparisons" aria-label="Comparativo entre as classes">
