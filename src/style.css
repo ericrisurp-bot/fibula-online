@@ -7416,3 +7416,462 @@ button, button * {
   .side-page.classes-page .classes-tabs .profile-class-tab,
   .side-page.classes-page .class-duel-track>span {transition:none!important}
 }
+
+
+
+
+/* FIX-CLASSES-VISUAL — restaura o acabamento rosa/creme somente na aba Classes. */
+.side-page.classes-page {
+  background:#fff4f1!important;
+  color:#302629!important;
+}
+.side-page.classes-page .station-page-content,
+.side-page.classes-page .side-page-content {
+  align-items:stretch;
+  justify-content:flex-start;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:clamp(6px,1.4dvh,12px) clamp(7px,2vw,12px) var(--back-button-clearance)!important;
+  background:#fff4f1!important;
+  color:#302629!important;
+}
+.side-page.classes-page .side-page-panel {
+  display:flex;
+  flex:0 0 auto;
+  width:min(100%,680px);
+  height:auto;
+  min-height:0;
+  max-height:none;
+  flex-direction:column;
+  justify-content:flex-start;
+  gap:clamp(7px,1.2dvh,10px);
+  margin:0 auto;
+  padding:clamp(8px,1.8vw,13px);
+  overflow:visible;
+  border:1px solid #efc8c4!important;
+  border-radius:18px!important;
+  background:linear-gradient(155deg,#fffaf8 0%,#ffefed 52%,#fff7f2 100%)!important;
+  color:#302629!important;
+  box-shadow:0 5px 18px rgba(135,55,60,.09),inset 0 1px #fff!important;
+}
+.side-page.classes-page .lobby-profile-content,
+.side-page.classes-page .classes-content,
+.side-page.classes-page .profile-class-details {
+  display:flex;
+  flex:0 0 auto;
+  width:100%;
+  min-width:0;
+  min-height:0;
+  max-width:100%;
+  margin:0;
+  padding:0;
+  overflow:visible!important;
+  border:0;
+  background:transparent!important;
+}
+.side-page.classes-page .class-page-content {
+  display:grid;
+  flex:0 0 auto;
+  grid-template-rows:auto auto auto auto auto;
+  align-content:start;
+  gap:clamp(8px,1.3dvh,11px);
+  width:100%;
+  min-width:0;
+  min-height:0;
+  max-width:100%;
+  margin:0;
+  padding:0;
+  overflow:visible;
+  color:#302629;
+}
+.side-page.classes-page .classes-tabs {
+  display:grid;
+  flex:0 0 auto;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:clamp(4px,1vw,7px);
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  width:100%;
+  min-width:0;
+  min-height:clamp(58px,8dvh,70px);
+  margin:0;
+  padding:5px 2px;
+  overflow:hidden;
+  border:1px solid #65575d!important;
+  border-radius:12px;
+  background:linear-gradient(155deg,#494147,#353137)!important;
+  color:#fff5f2!important;
+  text-align:center;
+  box-shadow:inset 0 1px #ffffff12!important;
+  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab strong {
+  display:block;
+  max-width:100%;
+  min-width:0;
+  overflow-wrap:anywhere;
+  color:var(--class-accent)!important;
+  font-size:clamp(10px,2.7vw,13px);
+  font-weight:900;
+  line-height:1.1;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab.active {
+  border-color:var(--class-accent)!important;
+  background:linear-gradient(155deg,#fff,#fff7f4)!important;
+  box-shadow:0 3px 10px rgba(93,48,51,.14),inset 0 0 0 1px #ffffff!important;
+  transform:translateY(-1px);
+}
+.side-page.classes-page .class-face {
+  display:block;
+  flex:0 0 auto;
+  width:clamp(28px,4.5dvh,36px);
+  height:clamp(28px,4.5dvh,36px);
+  overflow:visible;
+  filter:none!important;
+}
+.side-page.classes-page .class-face-background {fill:#fff8f4!important}
+.side-page.classes-page .class-face-ring {
+  fill:none!important;
+  stroke:var(--class-accent)!important;
+  stroke-width:3!important;
+}
+.side-page.classes-page .class-face > path,
+.side-page.classes-page .class-face > circle:not(.class-face-background):not(.class-face-ring) {
+  filter:grayscale(1) brightness(.2) contrast(1.35);
+}
+.side-page.classes-page .class-page-content.class-guerreiro {--class-accent:#bd3d43;--class-soft:#f8dedd}
+.side-page.classes-page .class-page-content.class-mago {--class-accent:#8053b8;--class-soft:#f0e2f8}
+.side-page.classes-page .class-page-content.class-arqueiro {--class-accent:#9a6b16;--class-soft:#f8edcf}
+.side-page.classes-page .class-page-content.class-druida {--class-accent:#39784a;--class-soft:#e1f0e3}
+
+/* Cards iniciais e estatísticas calculadas: rosa suave, sem branco chapado. */
+.side-page.classes-page .class-initial-stats,
+.side-page.classes-page .class-computed-stat-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(5px,1.2vw,8px);
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:0;
+}
+.side-page.classes-page .class-initial-stat,
+.side-page.classes-page .class-computed-stat {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:clamp(4px,1.2vw,7px);
+  width:100%;
+  min-width:0;
+  min-height:clamp(42px,6.2dvh,50px);
+  margin:0;
+  padding:6px clamp(7px,1.8vw,10px);
+  border:1px solid #efb9bb!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,#ffe2e2 0%,#fff0ed 62%,#fff8f3 100%)!important;
+  color:#38292d!important;
+  box-shadow:inset 0 1px #fff9,0 2px 6px rgba(145,57,65,.055)!important;
+}
+.side-page.classes-page .class-initial-stat-icon,
+.side-page.classes-page .class-computed-stat-icon {
+  color:#b63c45;
+  font-size:15px;
+  text-align:center;
+}
+.side-page.classes-page .class-initial-stat-label,
+.side-page.classes-page .class-computed-stat-label {
+  min-width:0;
+  color:#68484b!important;
+  font-size:clamp(10px,2.55vw,12px);
+  font-weight:650;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+.side-page.classes-page .class-initial-stat strong,
+.side-page.classes-page .class-computed-stat strong {
+  color:#38252a!important;
+  font-size:clamp(14px,3.6vw,17px);
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Duelos sem cartão: rótulos, trilho de 26 px e percentuais nas extremidades. */
+.side-page.classes-page .class-duels {
+  display:grid;
+  gap:clamp(8px,1.25dvh,11px);
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:0;
+}
+.side-page.classes-page .class-duel {
+  display:grid;
+  grid-template-rows:auto 26px auto;
+  gap:3px;
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:0;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#49363a;
+  box-shadow:none!important;
+}
+.side-page.classes-page .class-duel-labels {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  width:100%;
+  min-width:0;
+  color:#553d42;
+  font-size:clamp(10px,2.65vw,13px);
+  font-weight:800;
+  line-height:1.15;
+}
+.side-page.classes-page .class-duel-labels>span {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  max-width:100%;
+  color:#654b50;
+}
+.side-page.classes-page .class-duel-labels>span:last-child {
+  justify-content:flex-end;
+  text-align:right;
+}
+.side-page.classes-page .class-duel-labels>span>span {
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.side-page.classes-page .class-duel-labels i {
+  flex:0 0 auto;
+  font-size:13px;
+  font-style:normal;
+}
+.side-page.classes-page .class-duel-labels .duel-side-winner {
+  color:#a92f3b;
+  font-weight:900;
+}
+.side-page.classes-page .class-duel-labels .duel-side-loser {
+  color:#806b6e;
+  font-weight:700;
+}
+.side-page.classes-page .class-duel-track {
+  position:relative;
+  display:flex;
+  width:100%;
+  min-width:0;
+  height:26px;
+  overflow:hidden;
+  border:1px solid #e7babc!important;
+  border-radius:999px!important;
+  background:#f2dfe0!important;
+  box-shadow:inset 0 1px 2px rgba(111,57,62,.08)!important;
+}
+.side-page.classes-page .class-duel-track>span {
+  display:block;
+  flex:0 0 auto;
+  height:100%;
+  transition:width .32s ease,background-color .2s ease;
+}
+.side-page.classes-page .class-duel-left.is-winner,
+.side-page.classes-page .class-duel-right.is-winner {
+  background:var(--class-accent)!important;
+  opacity:1!important;
+}
+.side-page.classes-page .class-duel-left.is-loser,
+.side-page.classes-page .class-duel-right.is-loser {
+  background:#efc9cb!important;
+  opacity:1!important;
+}
+.side-page.classes-page .class-duel-divider {
+  position:absolute;
+  top:0;
+  bottom:0;
+  z-index:2;
+  width:3px;
+  margin-left:-1.5px;
+  background:#fff!important;
+  box-shadow:0 0 2px rgba(85,43,48,.22);
+  pointer-events:none;
+}
+.side-page.classes-page .class-duel-percentages {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  min-width:0;
+  color:#805e62;
+  font-size:clamp(10px,2.5vw,12px);
+  font-variant-numeric:tabular-nums;
+}
+.side-page.classes-page .class-duel-percentages strong {font-weight:700}
+.side-page.classes-page .class-duel-percentages strong.is-winner {
+  color:#a92f3b;
+  font-weight:900;
+}
+
+/* Preferência: painel rosado e estrelas com contorno dourado. */
+.side-page.classes-page .class-preferences {
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:8px 10px;
+  border:1px solid #efb9bb!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,#ffe0e1 0%,#fff0ed 72%,#fff8f3 100%)!important;
+  color:#3b292e!important;
+  box-shadow:0 2px 7px rgba(145,57,65,.06)!important;
+}
+.side-page.classes-page .class-preferences h3 {
+  margin:0 0 5px;
+  color:#b8323e!important;
+  font-size:clamp(14px,3.7vw,16px);
+  font-weight:950;
+  text-align:center;
+}
+.side-page.classes-page .class-preference-options {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(18px,6vw,30px);
+}
+.side-page.classes-page .class-preference-options>div {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#38292d!important;
+  font-size:clamp(11px,2.8vw,13px);
+  font-weight:850;
+}
+.side-page.classes-page .class-preference-star {
+  display:inline-flex;
+  flex:0 0 44px;
+  width:44px;
+  height:44px;
+  min-width:44px;
+  min-height:44px;
+  align-items:center;
+  justify-content:center;
+  padding:7px;
+  border:1px solid #d4b46b!important;
+  border-radius:11px!important;
+  background:#fff8e9!important;
+  color:#a77b24!important;
+  touch-action:manipulation;
+}
+.side-page.classes-page .class-preference-star svg {display:block;width:25px;height:25px}
+.side-page.classes-page .class-preference-star path {
+  fill:#fff8e9!important;
+  stroke:#b58a32!important;
+  stroke-width:1.7!important;
+  stroke-linejoin:round;
+}
+.side-page.classes-page .class-preference-star.is-active path {
+  fill:#f4d477!important;
+  stroke:#9e711d!important;
+}
+
+/* História e Estatísticas: sem cartões brancos chapados. */
+.side-page.classes-page .class-story-card {
+  position:relative;
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:12px 13px 11px 17px;
+  overflow:visible;
+  border:1px solid #efc2bf!important;
+  border-left:4px solid #bd3d43!important;
+  border-radius:14px!important;
+  background:linear-gradient(135deg,#ffe5e3 0%,#fff0ed 70%,#fff8f3 100%)!important;
+  color:#493236!important;
+  box-shadow:0 2px 7px rgba(145,57,65,.05)!important;
+}
+.side-page.classes-page .class-story-card p {
+  margin:12px 0 0;
+  color:#493236!important;
+  font-size:clamp(12px,3.1vw,14px);
+  line-height:1.42;
+  overflow-wrap:anywhere;
+}
+.side-page.classes-page .class-story-quote {
+  display:block!important;
+  position:absolute;
+  top:1px;
+  left:9px;
+  color:#bd3d43!important;
+  opacity:.82;
+  font-family:Georgia,serif;
+  font-size:38px;
+  line-height:1;
+}
+.side-page.classes-page .class-computed-stats {
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#302629!important;
+  box-shadow:none!important;
+}
+.side-page.classes-page .class-computed-stats h3 {
+  margin:0 0 6px;
+  color:#b8323e!important;
+  font-size:clamp(15px,4vw,17px);
+  font-weight:950;
+}
+.side-page.classes-page .class-computed-stat {
+  background:linear-gradient(135deg,#ffe2e2 0%,#fff0ed 62%,#fff8f3 100%)!important;
+}
+
+/* Ajustes de largura para celulares sem alterar as outras páginas. */
+@media(max-width:412px) {
+  .side-page.classes-page .station-page-content,
+  .side-page.classes-page .side-page-content {padding-left:6px!important;padding-right:6px!important}
+  .side-page.classes-page .side-page-panel {padding:7px;gap:8px}
+  .side-page.classes-page .classes-tabs {gap:4px}
+  .side-page.classes-page .classes-tabs .profile-class-tab {min-height:58px;padding:4px 1px}
+  .side-page.classes-page .class-face {width:28px;height:28px}
+  .side-page.classes-page .class-initial-stat,
+  .side-page.classes-page .class-computed-stat {min-height:42px;gap:4px;padding:5px 6px}
+  .side-page.classes-page .class-initial-stat-label,
+  .side-page.classes-page .class-computed-stat-label {font-size:10px}
+  .side-page.classes-page .class-initial-stat strong,
+  .side-page.classes-page .class-computed-stat strong {font-size:14px}
+  .side-page.classes-page .class-duel-labels {font-size:10px;gap:4px}
+  .side-page.classes-page .class-duel-labels i {font-size:11px}
+  .side-page.classes-page .class-duel-percentages {font-size:10px}
+  .side-page.classes-page .class-preference-options>div {gap:5px;font-size:11px}
+  .side-page.classes-page .class-preference-star {width:42px;height:42px;min-width:42px;min-height:42px;flex-basis:42px}
+  .side-page.classes-page .class-story-card p {font-size:12px;line-height:1.38}
+}
+@media(max-width:360px) {
+  .side-page.classes-page .class-initial-stat,
+  .side-page.classes-page .class-computed-stat {grid-template-columns:18px minmax(0,1fr) auto;gap:3px;padding:4px 5px}
+  .side-page.classes-page .class-initial-stat-label,
+  .side-page.classes-page .class-computed-stat-label {font-size:9px}
+  .side-page.classes-page .class-duel-labels {font-size:9px}
+  .side-page.classes-page .class-preference-options {gap:12px}
+  .side-page.classes-page .class-preference-options>div {font-size:10px}
+}
+@media(prefers-reduced-motion:reduce) {
+  .side-page.classes-page .classes-tabs .profile-class-tab,
+  .side-page.classes-page .class-duel-track>span {transition:none!important}
+}
