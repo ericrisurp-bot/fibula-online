@@ -2506,7 +2506,8 @@ button, button * {
 
 
 /* Acesso triplo do lobby: Classes, Status e Arsenal. */
-.lobby-status-trigger{
+.lobby-status-trigger
+{
   position:absolute;
   top:calc(42% + 76px);
   right:clamp(14px,4vw,42px);
@@ -2529,44 +2530,29 @@ button, button * {
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
 }
-.lobby-status-trigger:active{background:rgba(53,83,69,.95);transform:scale(.96)}
-.lobby-status-trigger:focus-visible{outline:2px solid #c9e8d5;outline-offset:2px}
-.lobby-status-trigger span:not(.lobby-top-emoji){font-size:10px;font-weight:900;line-height:1;letter-spacing:.04em}
-.lobby-status-trigger .lobby-top-emoji{font-size:clamp(21px,2.2vw,26px);line-height:1}
-.lobby-status-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.lobby-status-card{min-width:0;padding:14px;border:1px solid rgba(185,205,185,.2);border-radius:12px;background:rgba(18,25,22,.72)}
-.lobby-status-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
-.lobby-status-card-heading>div>span,.lobby-status-equipment>span{font-size:9px;font-weight:900;letter-spacing:.09em;color:#b9cbbd}
-.lobby-status-card-heading h3{margin:4px 0 0;font-size:19px;color:#edf3e8}
-.lobby-status-level{font-size:10px;color:#c8d6c9}
-.lobby-status-power-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.lobby-status-power{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:9px;background:rgba(255,255,255,.055)}
-.lobby-status-power>span{font-size:9px;font-weight:900;color:#c5d3c6}
-.lobby-status-power>strong{font-size:26px;line-height:1.1;color:#f3f2df}
-.lobby-status-power>small{font-size:9px;color:#aab7aa}
-.lobby-status-attributes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:9px}
-.lobby-status-attributes>div{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:7px;background:rgba(255,255,255,.04);font-size:10px;color:#d6dfd5}
-.lobby-status-attributes strong{color:#fff;font-variant-numeric:tabular-nums}
-.lobby-status-equipment{display:flex;flex-direction:column;gap:7px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1)}
-.lobby-status-equipment>div{display:flex;flex-wrap:wrap;gap:5px}
-.lobby-status-equipment>div small{padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.07);font-size:10px;color:#e1e9df}
-.lobby-status-equipment>small{font-size:10px;color:#c0cabe}
-.lobby-status-equipment .lobby-status-equipment-note{color:#d4b98b;line-height:1.4}
-.lobby-status-empty{display:flex;flex-direction:column;gap:8px;color:#dce6dc}
+.lobby-status-trigger:active
+{background:rgba(53,83,69,.95);transform:scale(.96)}
+.lobby-status-trigger:focus-visible
+{outline:2px solid #c9e8d5;outline-offset:2px}
+.lobby-status-trigger span:not(.lobby-top-emoji)
+{font-size:10px;font-weight:900;line-height:1;letter-spacing:.04em}
+.lobby-status-trigger .lobby-top-emoji
+{font-size:clamp(21px,2.2vw,26px);line-height:1}
 @media(max-width:650px){
-  .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
-  .lobby-status-trigger .lobby-top-emoji{font-size:21px}
-  .lobby-status-content{grid-template-columns:1fr;gap:8px;padding:10px}
-  .lobby-status-card{padding:10px}
-  .lobby-status-card-heading h3{font-size:16px}
-  .lobby-status-power>strong{font-size:22px}
+  .lobby-status-trigger
+{top:calc(38% + 62px);right:12px;width:52px;height:52px;min-width:52px;min-height:52px;border-radius:9px}
+  .lobby-status-trigger .lobby-top-emoji
+{font-size:21px}
 }
 @media(max-width:360px){
-  .lobby-status-trigger{top:calc(38% + 62px);right:12px;width:48px;height:48px;min-width:48px;min-height:48px}
-  .lobby-status-trigger .lobby-top-emoji{font-size:19px}
+  .lobby-status-trigger
+{top:calc(38% + 62px);right:12px;width:48px;height:48px;min-width:48px;min-height:48px}
+  .lobby-status-trigger .lobby-top-emoji
+{font-size:19px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .lobby-status-trigger{top:calc(30% + 58px)}
+  .lobby-status-trigger
+{top:calc(30% + 58px)}
 }
 
 
@@ -2576,7 +2562,8 @@ button, button * {
 .lobby-arsenal-trigger,
 .lobby-friends-trigger,
 .lobby-chest-trigger,
-.lobby-crafting-trigger{
+.lobby-crafting-trigger
+{
   background:rgba(34,35,34,.82);
   border:1px solid rgba(235,239,235,.24);
   color:#f2f3ef;
@@ -2590,7 +2577,8 @@ button, button * {
 .lobby-arsenal-trigger span:not(.lobby-top-emoji),
 .lobby-friends-trigger span:not(.lobby-top-emoji),
 .lobby-chest-trigger span:not(.lobby-top-emoji),
-.lobby-crafting-trigger>span:last-child{
+.lobby-crafting-trigger>span:last-child
+{
   color:#f2f3ef;
   font-family:"Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
   font-size:9px;
@@ -2604,7 +2592,8 @@ button, button * {
 .lobby-arsenal-trigger:active,
 .lobby-friends-trigger:active,
 .lobby-chest-trigger:active,
-.lobby-crafting-trigger:active{
+.lobby-crafting-trigger:active
+{
   background:rgba(34,35,34,.96);
   transform:scale(.96);
 }
@@ -2613,7 +2602,8 @@ button, button * {
 .lobby-arsenal-trigger:hover,
 .lobby-friends-trigger:hover,
 .lobby-chest-trigger:hover,
-.lobby-crafting-trigger:hover{
+.lobby-crafting-trigger:hover
+{
   background:rgba(48,50,48,.92);
   border-color:rgba(235,239,235,.42);
 }
@@ -2622,19 +2612,22 @@ button, button * {
 .lobby-arsenal-trigger .lobby-top-emoji,
 .lobby-friends-trigger .lobby-top-emoji,
 .lobby-chest-trigger .lobby-top-emoji,
-.lobby-crafting-icon{
+.lobby-crafting-icon
+{
   font-size:clamp(21px,2.2vw,26px);
   line-height:1;
 }
 /* Coluna lateral com ritmo uniforme e mais próxima da linha inferior do lobby. */
 .lobby-profile-trigger{top:41%}
-.lobby-status-trigger{top:calc(41% + 82px)}
+.lobby-status-trigger
+{top:calc(41% + 82px)}
 .lobby-arsenal-trigger{top:calc(41% + 164px)}
 .lobby-friends-trigger{top:calc(41% + 246px)}
 .lobby-chest-trigger{top:calc(41% + 328px)}
 @media(max-width:650px){
   .lobby-profile-trigger{top:37%}
-  .lobby-status-trigger{top:calc(37% + 70px)}
+  .lobby-status-trigger
+{top:calc(37% + 70px)}
   .lobby-arsenal-trigger{top:calc(37% + 140px)}
   .lobby-friends-trigger{top:calc(37% + 210px)}
   .lobby-chest-trigger{top:calc(37% + 280px)}
@@ -2643,149 +2636,23 @@ button, button * {
   .lobby-arsenal-trigger span:not(.lobby-top-emoji),
   .lobby-friends-trigger span:not(.lobby-top-emoji),
   .lobby-chest-trigger span:not(.lobby-top-emoji),
-  .lobby-crafting-trigger>span:last-child{font-size:8px}
+  .lobby-crafting-trigger>span:last-child
+{font-size:8px}
 }
 @media(orientation:landscape) and (max-height:520px){
   .lobby-profile-trigger{top:31%}
-  .lobby-status-trigger{top:calc(31% + 64px)}
+  .lobby-status-trigger
+{top:calc(31% + 64px)}
   .lobby-arsenal-trigger{top:calc(31% + 128px)}
   .lobby-friends-trigger{top:calc(31% + 192px)}
   .lobby-chest-trigger{top:calc(31% + 256px)}
 }
 
 
-/* Status: cada ficha acompanha dinamicamente a cor da classe escolhida. */
-.lobby-status-card.class-guerreiro{
-  border-color:rgba(200,63,63,.62);
-  background:linear-gradient(135deg,rgba(200,63,63,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #c83f3f;
-}
-.lobby-status-card.class-guerreiro .lobby-status-card-heading h3{color:#ff8b85}
-.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span{color:#f2a6a1}
-.lobby-status-card.class-mago{
-  border-color:rgba(117,65,200,.62);
-  background:linear-gradient(135deg,rgba(117,65,200,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #7541c8;
-}
-.lobby-status-card.class-mago .lobby-status-card-heading h3{color:#c4a2ff}
-.lobby-status-card.class-mago .lobby-status-card-heading>div>span{color:#cdb6f4}
-.lobby-status-card.class-arqueiro{
-  border-color:rgba(168,117,8,.66);
-  background:linear-gradient(135deg,rgba(168,117,8,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #a87508;
-}
-.lobby-status-card.class-arqueiro .lobby-status-card-heading h3{color:#f1c76a}
-.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span{color:#e8ca87}
-.lobby-status-card.class-druida{
-  border-color:rgba(33,131,75,.66);
-  background:linear-gradient(135deg,rgba(33,131,75,.20),rgba(18,25,22,.82) 72%);
-  box-shadow:inset 3px 0 0 #21834b;
-}
-.lobby-status-card.class-druida .lobby-status-card-heading h3{color:#83dba2}
-.lobby-status-card.class-druida .lobby-status-card-heading>div>span{color:#a1dfb5}
-
-
-/* Status: bloco inteiro na cor da classe, com texto de alto contraste. */
-.lobby-status-card.class-guerreiro,
-.lobby-status-card.class-mago,
-.lobby-status-card.class-arqueiro,
-.lobby-status-card.class-druida{
+/* Status: bloco inteiro na cor da classe
+{
   border:1px solid rgba(255,255,255,.48);
   box-shadow:0 5px 18px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.16);
-}
-.lobby-status-card.class-guerreiro{
-  background:#c83f3f;
-  color:#fff;
-}
-.lobby-status-card.class-mago{
-  background:#7541c8;
-  color:#fff;
-}
-.lobby-status-card.class-arqueiro{
-  background:#a87508;
-  color:#17130a;
-}
-.lobby-status-card.class-druida{
-  background:#21834b;
-  color:#fff;
-}
-.lobby-status-card.class-guerreiro .lobby-status-card-heading h3,
-.lobby-status-card.class-mago .lobby-status-card-heading h3,
-.lobby-status-card.class-druida .lobby-status-card-heading h3,
-.lobby-status-card.class-guerreiro .lobby-status-card-heading>div>span,
-.lobby-status-card.class-mago .lobby-status-card-heading>div>span,
-.lobby-status-card.class-druida .lobby-status-card-heading>div>span,
-.lobby-status-card.class-guerreiro .lobby-status-level,
-.lobby-status-card.class-mago .lobby-status-level,
-.lobby-status-card.class-druida .lobby-status-level,
-.lobby-status-card.class-guerreiro .lobby-status-power>span,
-.lobby-status-card.class-mago .lobby-status-power>span,
-.lobby-status-card.class-druida .lobby-status-power>span,
-.lobby-status-card.class-guerreiro .lobby-status-power>strong,
-.lobby-status-card.class-mago .lobby-status-power>strong,
-.lobby-status-card.class-druida .lobby-status-power>strong,
-.lobby-status-card.class-guerreiro .lobby-status-power>small,
-.lobby-status-card.class-mago .lobby-status-power>small,
-.lobby-status-card.class-druida .lobby-status-power>small,
-.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
-.lobby-status-card.class-mago .lobby-status-attributes>div,
-.lobby-status-card.class-druida .lobby-status-attributes>div,
-.lobby-status-card.class-guerreiro .lobby-status-attributes strong,
-.lobby-status-card.class-mago .lobby-status-attributes strong,
-.lobby-status-card.class-druida .lobby-status-attributes strong,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>span,
-.lobby-status-card.class-mago .lobby-status-equipment>span,
-.lobby-status-card.class-druida .lobby-status-equipment>span,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
-.lobby-status-card.class-mago .lobby-status-equipment>div small,
-.lobby-status-card.class-druida .lobby-status-equipment>div small,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>small,
-.lobby-status-card.class-mago .lobby-status-equipment>small,
-.lobby-status-card.class-druida .lobby-status-equipment>small{
-  color:#fff;
-}
-.lobby-status-card.class-arqueiro .lobby-status-card-heading h3,
-.lobby-status-card.class-arqueiro .lobby-status-card-heading>div>span,
-.lobby-status-card.class-arqueiro .lobby-status-level,
-.lobby-status-card.class-arqueiro .lobby-status-power>span,
-.lobby-status-card.class-arqueiro .lobby-status-power>strong,
-.lobby-status-card.class-arqueiro .lobby-status-power>small,
-.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
-.lobby-status-card.class-arqueiro .lobby-status-attributes strong,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>span,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>div small,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>small{
-  color:#17130a;
-}
-.lobby-status-card.class-guerreiro .lobby-status-power,
-.lobby-status-card.class-mago .lobby-status-power,
-.lobby-status-card.class-druida .lobby-status-power,
-.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
-.lobby-status-card.class-mago .lobby-status-attributes>div,
-.lobby-status-card.class-druida .lobby-status-attributes>div,
-.lobby-status-card.class-guerreiro .lobby-status-equipment>div small,
-.lobby-status-card.class-mago .lobby-status-equipment>div small,
-.lobby-status-card.class-druida .lobby-status-equipment>div small{
-  background:rgba(0,0,0,.13);
-}
-.lobby-status-card.class-arqueiro .lobby-status-power,
-.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
-.lobby-status-card.class-arqueiro .lobby-status-equipment>div small{
-  background:rgba(255,255,255,.28);
-}
-.lobby-status-card.class-guerreiro .lobby-status-equipment,
-.lobby-status-card.class-mago .lobby-status-equipment,
-.lobby-status-card.class-druida .lobby-status-equipment{
-  border-top-color:rgba(255,255,255,.38);
-}
-.lobby-status-card.class-arqueiro .lobby-status-equipment{
-  border-top-color:rgba(23,19,10,.3);
-}
-.lobby-status-card.class-guerreiro .lobby-status-equipment .lobby-status-equipment-note,
-.lobby-status-card.class-mago .lobby-status-equipment .lobby-status-equipment-note,
-.lobby-status-card.class-druida .lobby-status-equipment .lobby-status-equipment-note,
-.lobby-status-card.class-arqueiro .lobby-status-equipment .lobby-status-equipment-note{
-  color:inherit;
 }
 
 
@@ -3205,7 +3072,8 @@ button, button * {
   .lobby-status-trigger,
   .lobby-arsenal-trigger,
   .lobby-friends-trigger,
-  .lobby-chest-trigger{
+  .lobby-chest-trigger
+{
     width:clamp(46px,7.2vw,52px);
     height:clamp(46px,7.2vw,52px);
     min-width:44px;
@@ -3220,7 +3088,8 @@ button, button * {
   .lobby-profile-trigger .lobby-top-emoji,
   .lobby-arsenal-trigger .lobby-top-emoji,
   .lobby-friends-trigger .lobby-top-emoji,
-  .lobby-chest-trigger .lobby-top-emoji{font-size:clamp(18px,4.5vw,21px)}
+  .lobby-chest-trigger .lobby-top-emoji
+{font-size:clamp(18px,4.5vw,21px)}
   .lobby-crafting-trigger{
     width:clamp(44px,6.8vw,50px);
     height:clamp(44px,6.8vw,50px);
@@ -3236,7 +3105,8 @@ button, button * {
   .lobby-status-trigger,
   .lobby-arsenal-trigger,
   .lobby-friends-trigger,
-  .lobby-chest-trigger{width:46px;height:46px}
+  .lobby-chest-trigger
+{width:46px;height:46px}
   .lobby-crafting-trigger{width:44px;height:44px}
 }
 @media(orientation:landscape) and (max-height:520px){
@@ -3244,7 +3114,8 @@ button, button * {
   .lobby-status-trigger,
   .lobby-arsenal-trigger,
   .lobby-friends-trigger,
-  .lobby-chest-trigger{width:44px;height:44px;min-width:44px;min-height:44px}
+  .lobby-chest-trigger
+{width:44px;height:44px;min-width:44px;min-height:44px}
   .lobby-crafting-trigger{width:44px;height:44px;min-width:44px;min-height:44px}
 }
 
@@ -3255,7 +3126,8 @@ button, button * {
   .lobby-status-trigger,
   .lobby-arsenal-trigger,
   .lobby-friends-trigger,
-  .lobby-chest-trigger{
+  .lobby-chest-trigger
+{
     width:48px;
     height:48px;
     min-width:48px;
@@ -3264,7 +3136,8 @@ button, button * {
     right:10px;
   }
   .lobby-profile-trigger{top:clamp(88px,24vh,140px)}
-  .lobby-status-trigger{top:calc(clamp(88px,24vh,140px) + clamp(48px,8vh,64px))}
+  .lobby-status-trigger
+{top:calc(clamp(88px,24vh,140px) + clamp(48px,8vh,64px))}
   .lobby-arsenal-trigger{top:calc(clamp(88px,24vh,140px) + clamp(48px,8vh,64px) + clamp(48px,8vh,64px))}
   .lobby-friends-trigger{top:calc(clamp(88px,24vh,140px) + clamp(48px,8vh,64px) + clamp(48px,8vh,64px) + clamp(48px,8vh,64px))}
   .lobby-chest-trigger{top:calc(clamp(88px,24vh,140px) + clamp(48px,8vh,64px) + clamp(48px,8vh,64px) + clamp(48px,8vh,64px) + clamp(48px,8vh,64px))}
@@ -3272,12 +3145,14 @@ button, button * {
   .lobby-status-trigger span:not(.lobby-top-emoji),
   .lobby-arsenal-trigger span:not(.lobby-top-emoji),
   .lobby-friends-trigger span:not(.lobby-top-emoji),
-  .lobby-chest-trigger span:not(.lobby-top-emoji){font-size:7px;letter-spacing:0}
+  .lobby-chest-trigger span:not(.lobby-top-emoji)
+{font-size:7px;letter-spacing:0}
   .lobby-profile-trigger .lobby-top-emoji,
   .lobby-status-trigger .lobby-top-emoji,
   .lobby-arsenal-trigger .lobby-top-emoji,
   .lobby-friends-trigger .lobby-top-emoji,
-  .lobby-chest-trigger .lobby-top-emoji{font-size:18px}
+  .lobby-chest-trigger .lobby-top-emoji
+{font-size:18px}
   .lobby-crafting-stations{left:8px;right:104px;gap:0}
   .lobby-crafting-trigger{width:44px;height:44px;min-width:44px;min-height:44px}
   .lobby-crafting-icon{font-size:17px}
@@ -3285,7 +3160,8 @@ button, button * {
 }
 @media(max-width:650px) and (max-height:420px){
   .lobby-profile-trigger{top:clamp(64px,18vh,80px)}
-  .lobby-status-trigger{top:calc(clamp(64px,18vh,80px) + 44px)}
+  .lobby-status-trigger
+{top:calc(clamp(64px,18vh,80px) + 44px)}
   .lobby-arsenal-trigger{top:calc(clamp(64px,18vh,80px) + 44px + 44px)}
   .lobby-friends-trigger{top:calc(clamp(64px,18vh,80px) + 44px + 44px + 44px)}
   .lobby-chest-trigger{top:calc(clamp(64px,18vh,80px) + 44px + 44px + 44px + 44px)}
@@ -3298,7 +3174,8 @@ button, button * {
   .lobby-status-trigger,
   .lobby-arsenal-trigger,
   .lobby-friends-trigger,
-  .lobby-chest-trigger {
+  .lobby-chest-trigger 
+{
     top: max(8px, env(safe-area-inset-top));
     right: auto;
     width: 44px;
@@ -3309,7 +3186,8 @@ button, button * {
     border-radius: 8px;
   }
   .lobby-profile-trigger { right: 10px; }
-  .lobby-status-trigger { right: 60px; }
+  .lobby-status-trigger 
+{ right: 60px; }
   .lobby-arsenal-trigger { right: 110px; }
   .lobby-friends-trigger { right: 160px; }
   .lobby-chest-trigger { right: 210px; }
@@ -3318,14 +3196,16 @@ button, button * {
   .lobby-status-trigger .lobby-top-emoji,
   .lobby-arsenal-trigger .lobby-top-emoji,
   .lobby-friends-trigger .lobby-top-emoji,
-  .lobby-chest-trigger .lobby-top-emoji {
+  .lobby-chest-trigger .lobby-top-emoji 
+{
     font-size: 18px;
   }
   .lobby-profile-trigger span:not(.lobby-top-emoji),
   .lobby-status-trigger span:not(.lobby-top-emoji),
   .lobby-arsenal-trigger span:not(.lobby-top-emoji),
   .lobby-friends-trigger span:not(.lobby-top-emoji),
-  .lobby-chest-trigger span:not(.lobby-top-emoji) {
+  .lobby-chest-trigger span:not(.lobby-top-emoji) 
+{
     font-size: 6px;
     letter-spacing: 0;
   }
@@ -3794,54 +3674,6 @@ button, button * {
   border-bottom-color: var(--fb-modal-border-soft) !important;
   border-top-color: var(--fb-modal-border-soft) !important;
 }
-.lobby-status-card,
-.lobby-status-card.class-guerreiro,
-.lobby-status-card.class-mago,
-.lobby-status-card.class-arqueiro,
-.lobby-status-card.class-druida {
-  border-color: var(--fb-modal-border) !important;
-  background: var(--fb-modal-panel) !important;
-  color: var(--fb-modal-text) !important;
-  box-shadow: none !important;
-}
-.lobby-status-card-heading h3,
-.lobby-status-card-heading>div>span,
-.lobby-status-level,
-.lobby-status-power>span,
-.lobby-status-power>strong,
-.lobby-status-power>small,
-.lobby-status-attributes>div,
-.lobby-status-attributes strong,
-.lobby-status-equipment>span,
-.lobby-status-equipment>div small,
-.lobby-status-equipment>small,
-.lobby-status-equipment-note {
-  color: var(--fb-modal-text) !important;
-  text-shadow: none !important;
-}
-.lobby-status-power,
-.lobby-status-attributes>div,
-.lobby-status-equipment,
-.lobby-status-equipment>div small,
-.lobby-status-equipment-note {
-  border-color: var(--fb-modal-border-soft) !important;
-  background: var(--fb-modal-card) !important;
-}
-.lobby-status-card.class-guerreiro .lobby-status-power,
-.lobby-status-card.class-mago .lobby-status-power,
-.lobby-status-card.class-arqueiro .lobby-status-power,
-.lobby-status-card.class-druida .lobby-status-power,
-.lobby-status-card.class-guerreiro .lobby-status-attributes>div,
-.lobby-status-card.class-mago .lobby-status-attributes>div,
-.lobby-status-card.class-arqueiro .lobby-status-attributes>div,
-.lobby-status-card.class-druida .lobby-status-attributes>div,
-.lobby-status-card.class-guerreiro .lobby-status-equipment,
-.lobby-status-card.class-mago .lobby-status-equipment,
-.lobby-status-card.class-arqueiro .lobby-status-equipment,
-.lobby-status-card.class-druida .lobby-status-equipment {
-  border-color: var(--fb-modal-border-soft) !important;
-  background: var(--fb-modal-card) !important;
-}
 .lobby-crafting-content,
 .lobby-friends-list,
 .lobby-chest-grid,
@@ -4012,24 +3844,6 @@ button, button * {
   .lobby-ranking-empty { min-height: 100px !important; }
 }
 
-/* ===== Status enxuto (Etapa 3): ficha curta no padrão carvão; a cor da classe vira só uma linha fina ===== */
-.lobby-status-card { padding: 12px !important; }
-.lobby-status-card-heading { margin-bottom: 0 !important; }
-.lobby-status-card-heading h3 { color: var(--fb-modal-text) !important; font-size: 17px !important; }
-.lobby-status-card-heading > div > span, .lobby-status-equipment > span { color: var(--fb-modal-label) !important; }
-.lobby-status-level { padding: 3px 8px; border: 1px solid var(--fb-modal-border); border-radius: 999px; background: #303330; color: var(--fb-modal-text) !important; font-weight: 900; }
-.lobby-status-tag { display: block; height: 3px; margin: 9px 0; border-radius: 3px; background: var(--fb-modal-selected); }
-.lobby-status-card.class-guerreiro .lobby-status-tag { background: #d2586a; }
-.lobby-status-card.class-mago .lobby-status-tag { background: #8a63d6; }
-.lobby-status-card.class-arqueiro .lobby-status-tag { background: #c99a2e; }
-.lobby-status-card.class-druida .lobby-status-tag { background: #4fae6b; }
-.lobby-status-power { background: rgba(0, 0, 0, 0.22) !important; }
-.lobby-status-power > span { color: var(--fb-modal-label) !important; letter-spacing: 0.1em; }
-.lobby-status-power > strong { color: var(--fb-modal-text) !important; font-size: 22px; }
-.lobby-status-attributes > div { color: var(--fb-modal-muted); font-size: 11px; }
-.lobby-status-equipment { margin-top: 9px !important; padding-top: 8px !important; }
-.lobby-status-equipment > small { color: var(--fb-modal-label) !important; }
-
 /* ===== Classes enxuto (Etapa 4): herói + 4 números + barras de crescimento; o resto fica recolhido ===== */
 .profile-class-details .profile-section-heading h3 { flex-wrap: wrap; }
 .profile-class-pill { margin-left: 4px; padding: 3px 8px; border: 1px solid var(--fb-modal-border); border-radius: 999px; background: #303330; color: var(--fb-modal-text); font-size: 9px; font-style: normal; font-weight: 900; letter-spacing: 0.08em; }
@@ -4067,18 +3881,14 @@ button, button * {
   .lobby-chest-trigger { top: calc(90dvh - 123px) !important; }
   .lobby-friends-trigger { top: calc(90dvh - 205px) !important; }
   .lobby-arsenal-trigger { top: calc(90dvh - 287px) !important; }
-  .lobby-status-trigger { top: calc(90dvh - 369px) !important; }
+  .lobby-status-trigger 
+{ top: calc(90dvh - 369px) !important; }
   .lobby-profile-trigger { top: calc(90dvh - 451px) !important; }
 }
 
 
-/* ===== PODER na tela (Etapa 6B): número do PODER, estilo da classe e atributos não usados em vermelho riscado ===== */
-.lobby-status-poder { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--fb-modal-border); border-radius: 10px; background: rgba(0, 0, 0, 0.28); }
-.lobby-status-poder > div { display: flex; align-items: baseline; gap: 8px; }
-.lobby-status-poder span { color: var(--fb-modal-label); font-size: 10px; font-weight: 900; letter-spacing: 0.12em; }
-.lobby-status-poder strong { color: var(--fb-modal-text); font-size: 26px; font-variant-numeric: tabular-nums; }
-.lobby-status-poder small { color: var(--fb-modal-muted); font-size: 11px; }
-.lobby-status-note { grid-column: 1 / -1; margin: 10px 2px 0; color: var(--fb-modal-label); font-size: 11px; line-height: 1.5; }
+/* ===== PODER na tela (Etapa 6B): número do PODER
+{ display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; margin-bottom: 8px; padding: 8px 10px; border: 1px solid var(--fb-modal-border); border-radius: 10px; background: rgba(0, 0, 0, 0.28); }
 .attr-unused, .attr-unused span, .attr-unused strong, .attr-unused small, .attr-unused i { color: #e57373 !important; text-decoration: line-through; text-decoration-thickness: 1px; }
 .profile-growth-row.attr-unused > b u { background: #7a3b3b !important; }
 
@@ -4958,9 +4768,9 @@ button, button * {
 /* Páginas do lobby: conteúdo em tela inteira, sem backdrop ou caixa de modal. */
 .station-page-content .lobby-arsenal-page,
 .station-page-content .lobby-chest-page,
-.station-page-content .lobby-status-page,
 .station-page-content .lobby-classes-page,
-.station-page-content .lobby-ranking-page {
+.station-page-content .lobby-ranking-page 
+{
   width:min(100%,1100px);
   max-width:1100px;
   max-height:none;
@@ -4979,16 +4789,16 @@ button, button * {
 .station-page-content .lobby-arsenal-page .lobby-arsenal-content { min-height:0; overflow:visible; }
 .station-page-content .lobby-chest-page { display:flex; flex-direction:column; gap:10px; }
 .station-page-content .lobby-chest-page .lobby-chest-header,
-.station-page-content .lobby-status-page .lobby-profile-header,
 .station-page-content .lobby-classes-page .lobby-profile-header,
 .station-page-content .lobby-ranking-page .lobby-ranking-header,
-.player-profile-page-content .player-profile-header { display:none; }
-.station-page-content .lobby-status-page,
+.player-profile-page-content .player-profile-header 
+{ display:none; }
 .station-page-content .lobby-classes-page,
-.station-page-content .lobby-ranking-page { padding:0; }
-.station-page-content .lobby-status-page .lobby-profile-content,
+.station-page-content .lobby-ranking-page 
+{ padding:0; }
 .station-page-content .lobby-classes-page .lobby-profile-content,
-.station-page-content .lobby-ranking-page .lobby-ranking-body { overflow:visible; max-height:none; }
+.station-page-content .lobby-ranking-page .lobby-ranking-body 
+{ overflow:visible; max-height:none; }
 .station-page-content .lobby-ranking-page { display:flex; flex-direction:column; gap:12px; }
 .player-profile-page-content { display:flex; justify-content:center; }
 .player-profile-page-content .player-profile-page {
@@ -5028,9 +4838,9 @@ button, button * {
 @media(max-width:650px) {
   .station-page-content .lobby-arsenal-page,
   .station-page-content .lobby-chest-page,
-  .station-page-content .lobby-status-page,
   .station-page-content .lobby-classes-page,
-  .station-page-content .lobby-ranking-page { width:100%; padding:0; }
+  .station-page-content .lobby-ranking-page 
+{ width:100%; padding:0; }
   .station-page-content .lobby-arsenal-page .lobby-arsenal-content { display:flex; flex-direction:column; }
   .station-page-content .lobby-arsenal-page .arsenal-equipment-stage { min-height:300px; }
   .player-profile-page-content .player-profile-page,
@@ -7415,4 +7225,151 @@ button, button * {
 @media(prefers-reduced-motion:reduce) {
   .side-page.classes-page .classes-tabs .profile-class-tab,
   .side-page.classes-page .class-duel-track>span {transition:none!important}
+}
+
+
+/* S2 — Status como estado combinado da dupla. */
+.side-page.status-page {
+  min-height:100dvh;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding:clamp(10px,2.2vh,20px) 12px calc(var(--back-button-clearance, 76px) + env(safe-area-inset-bottom, 0px));
+  overflow-x:hidden;
+  overflow-y:hidden;
+  background:#eeeae1;
+  color:#342f29;
+}
+.side-page.status-page .side-page-content {
+  width:min(100%,720px);
+  min-width:0;
+  margin:0 auto;
+}
+.status-page-panel {
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  gap:clamp(9px,1.5vh,14px);
+  padding:clamp(12px,2.4vw,20px);
+  border:1px solid #d9d1c3;
+  border-radius:22px;
+  background:#faf7ef;
+  box-shadow:0 12px 30px rgba(48,42,32,.12);
+}
+.status-page-empty {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  min-height:180px;
+  text-align:center;
+  color:#51483d;
+}
+.status-page-empty strong {font-size:16px}
+.status-page-action {
+  min-height:44px;
+  padding:9px 16px;
+  border:1px solid #8d6ac2;
+  border-radius:12px;
+  background:#7650b6;
+  color:#fff;
+  font:700 14px inherit;
+}
+.status-page-duo-cards {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.status-page-class-card {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:10px 8px;
+  border:1px solid var(--status-border);
+  border-radius:15px;
+  background:var(--status-soft);
+  color:var(--status-ink);
+  text-align:center;
+}
+.status-page-class-card .class-face {width:clamp(42px,7vw,56px);height:clamp(42px,7vw,56px)}
+.status-page-class-name {font-size:clamp(13px,2vw,16px);font-weight:850}
+.status-page-role {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-size:10px;
+  font-weight:800;
+  color:#655b50;
+}
+.status-page-role svg {width:13px;height:13px;fill:currentColor}
+.status-page-role.primary {color:#956b0d}
+.status-page-role.secondary {color:#3c638d}
+.status-page-power-label {font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.status-page-power-value {font-size:clamp(24px,4vw,32px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.status-page-level10 {font-size:11px;color:#5e554b}
+.status-page-total {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 13px;
+  border:1px solid #d7c8e8;
+  border-radius:14px;
+  background:#f0eaf5;
+  color:#44344f;
+}
+.status-page-total>div {display:flex;flex-direction:column;gap:3px}
+.status-page-total-label {font-size:10px;font-weight:900;letter-spacing:.08em}
+.status-page-total-value {font-size:clamp(23px,4vw,30px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.status-page-total small {font-size:11px;color:#675b70}
+.status-page-comparisons {display:flex;flex-direction:column;gap:9px}
+.status-page-comparison {display:flex;flex-direction:column;gap:4px}
+.status-page-comparison-title {font-size:11px;font-weight:850;color:#554b40}
+.status-page-comparison-names {display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#554b40}
+.status-page-comparison-names strong.is-winner {font-weight:950;color:#29231d}
+.status-page-bar {
+  display:flex;
+  width:100%;
+  height:12px;
+  overflow:hidden;
+  border:1px solid #d2c9bd;
+  border-radius:999px;
+  background:#e9e2d8;
+}
+.status-page-bar-left,.status-page-bar-right {height:100%;transition:width 320ms ease}
+.status-page-bar-divider {width:2px;flex:0 0 2px;background:#fff}
+.status-page-bar-left {background:var(--status-left)}
+.status-page-bar-right {background:var(--status-right)}
+.status-page-comparison-percentages {display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:#62594f;font-variant-numeric:tabular-nums}
+.status-page-single-note {padding:12px;border:1px dashed #c9bba8;border-radius:12px;color:#6a5d4e;font-size:12px;text-align:center}
+.status-page-guerreiro {--status-ink:#a52d2d;--status-soft:#f8e8e5;--status-border:#dba9a3;--status-color:#c83d3d}
+.status-page-mago {--status-ink:#7042a8;--status-soft:#f0eafa;--status-border:#cbb8e8;--status-color:#8054c3}
+.status-page-arqueiro {--status-ink:#865e05;--status-soft:#fbf1d9;--status-border:#ddc58a;--status-color:#c39225}
+.status-page-druida {--status-ink:#236b3b;--status-soft:#e9f3e8;--status-border:#afd0ad;--status-color:#4d9a5a}
+.status-page .class-face-guerreiro .class-face-background {fill:#f8e8e5}
+.status-page .class-face-guerreiro .class-face-ring {stroke:#a52d2d}
+.status-page .class-face-mago .class-face-background {fill:#f0eafa}
+.status-page .class-face-mago .class-face-ring {stroke:#7042a8}
+.status-page .class-face-arqueiro .class-face-background {fill:#fbf1d9}
+.status-page .class-face-arqueiro .class-face-ring {stroke:#865e05}
+.status-page .class-face-druida .class-face-background {fill:#e9f3e8}
+.status-page .class-face-druida .class-face-ring {stroke:#236b3b}
+@media(max-height:559px),(orientation:landscape) {
+  .side-page.status-page {overflow-y:auto}
+}
+@media(prefers-reduced-motion:reduce) {
+  .status-page-bar-left,.status-page-bar-right {transition:none}
+}
+@media(max-width:420px) {
+  .status-page-panel {padding:10px;gap:9px}
+  .status-page-duo-cards {gap:7px}
+  .status-page-class-card {padding:8px 5px}
+  .status-page-level10 {font-size:10px}
 }
