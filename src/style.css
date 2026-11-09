@@ -7772,6 +7772,23 @@ button, button * {
   outline-offset:2px;
 }
 
+/* A seleção destaca somente a estrela; o botão mantém a aparência neutra. */
+.side-page.classes-page .class-preference-star.primary.is-active,
+.side-page.classes-page .class-preference-star.secondary.is-active {
+  border-color:#d8d0c1;
+  background:#fffdf8;
+  color:#766b58;
+  box-shadow:none;
+}
+.side-page.classes-page .class-preference-star.primary.is-active svg {
+  color:#e3b72f;
+  filter:drop-shadow(0 0 3px #e3b72f88);
+}
+.side-page.classes-page .class-preference-star.secondary.is-active svg {
+  color:#4d91d5;
+  filter:drop-shadow(0 0 3px #4d91d588);
+}
+
 .side-page.classes-page .class-story-card {
   display:flex;
   align-items:flex-start;
