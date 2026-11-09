@@ -80,7 +80,7 @@ export function ClassFace({ classId, size = 36 }: { classId: ClassId; size?: num
     ctx.beginPath();
     ctx.arc(32, 32, 30, 0, Math.PI * 2);
     ctx.clip();
-    ctx.translate(32, 85);
+    ctx.translate(32, 66);
     drawLadino(ctx, classId, 30, { walking: false, phase: 0, breath: 0, carry: false, direction: 'front' });
     ctx.restore();
   }, [classId]);
