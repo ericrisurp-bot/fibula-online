@@ -5,7 +5,7 @@ import { getBaseItemId, getItemRarity } from './game/inventory';
 import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
-import { ATTRIBUTE_USAGE, getAttributeEffectPerLevel, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
+import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
@@ -34,7 +34,8 @@ import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import StationNav from './ui/StationNav';
-
+import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
+import BackToLobbyButton from './ui/BackToLobbyButton';
 type RankingEntry = {
   user_id: string;
   display_name: string | null;
@@ -68,14 +69,15 @@ const cookingRarityLabel = (rarity: CookingMeal['rarity']) => ({
   normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
 }[rarity]);
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
-const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
-const attributeUnusedClass = (classId: ClassId, key: AttributeKey) => ATTRIBUTE_USAGE[classId][key] > 0 ? '' : ' attr-unused';
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada',
   mago: 'cajado',
   arqueiro: 'arco',
   druida: 'bastao',
 };
+const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
+const attributeUnusedClass = (classId: ClassId, key: AttributeKey) => ATTRIBUTE_USAGE[classId][key] > 0 ? '' : ' attr-unused';
+
 const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
   capacete: { label: 'capacete' }, peitoral: { label: 'peitoral' },
   leggings: { label: 'leggings' }, bota: { label: 'bota' },
@@ -154,86 +156,6 @@ function readSavedLoadouts(): ClassEquipmentLoadouts {
 
 const isProfileClassId = (value: unknown): value is ClassId =>
   typeof value === 'string' && PROFILE_CLASS_IDS.includes(value as ClassId);
-
-function ProfileClassStats({ classId, accountLevel }: { classId: ClassId; accountLevel: number }) {
-  const pointsPerLevel = 1 + accountLevel * 0.05;
-  const attributes = getPlayerAttributes(classId, 0, pointsPerLevel);
-  const weapon = CONFIG.weapons[PROFILE_CLASS_WEAPONS[classId]];
-  const hpPerLevel = getAttributeEffectPerLevel(classId, 1, 'vida', pointsPerLevel);
-  const damagePerLevel = (getDamageMultiplier(classId, 1, pointsPerLevel) - 1) * 100;
-  const movementPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeMovimento', pointsPerLevel);
-  const armorPerLevel = getAttributeEffectPerLevel(classId, 1, 'armadura', pointsPerLevel);
-  const attackSpeedPerLevel = getAttributeEffectPerLevel(classId, 1, 'velocidadeAtaque', pointsPerLevel) * 100;
-  const dodgePerLevel = getAttributeEffectPerLevel(classId, 1, 'esquiva', pointsPerLevel) * 100;
-  const nextLevelAttributes = getPlayerAttributes(classId, 1, pointsPerLevel);
-  const attributeKeyByLabel: Record<string, AttributeKey> = {
-    'Força': 'forca', 'Inteligência': 'inteligencia', 'Destreza': 'destreza', 'Armadura': 'armadura', 'Resistência mágica': 'resistenciaMagica',
-    'Velocidade de movimento': 'velocidadeMovimento', 'Velocidade de ataque': 'velocidadeAtaque', 'Alcance de ataque': 'alcanceAtaque', 'Esquiva': 'esquiva', 'Área de ataque': 'areaAtaque',
-  };
-  const attributeRows = [
-    ['Força', nextLevelAttributes.forca - attributes.forca],
-    ['Inteligência', nextLevelAttributes.inteligencia - attributes.inteligencia],
-    ['Destreza', nextLevelAttributes.destreza - attributes.destreza],
-    ['Armadura', nextLevelAttributes.armadura - attributes.armadura],
-    ['Resistência mágica', nextLevelAttributes.resistenciaMagica - attributes.resistenciaMagica],
-    ['Velocidade de movimento', nextLevelAttributes.velocidadeMovimento - attributes.velocidadeMovimento],
-    ['Velocidade de ataque', nextLevelAttributes.velocidadeAtaque - attributes.velocidadeAtaque],
-    ['Alcance de ataque', nextLevelAttributes.alcanceAtaque - attributes.alcanceAtaque],
-    ['Esquiva', nextLevelAttributes.esquiva - attributes.esquiva],
-    ['Área de ataque', nextLevelAttributes.areaAtaque - attributes.areaAtaque],
-  ] as const;
-  const growthRows = ([['forca', 'Força', '💪'], ['armadura', 'Armadura', '🛡️'], ['inteligencia', 'Inteligência', '🧠'], ['destreza', 'Destreza', '🎯']] as const).map(([key, label, icon]) => {
-    const gain = nextLevelAttributes[key] - attributes[key];
-    const best = Math.max(0.0001, ...PROFILE_CLASS_IDS.map(id => getPlayerAttributes(id, 1, pointsPerLevel)[key] - getPlayerAttributes(id, 0, pointsPerLevel)[key]));
-    return { label, icon, gain, percent: Math.max(0, Math.min(100, Math.round(gain / best * 100))), unused: ATTRIBUTE_USAGE[classId][key] === 0 };
-  });
-  const ability = {
-    guerreiro: 'Espada corpo a corpo: atinge até 4 inimigos no arco do golpe e aplica empurrão.',
-    mago: `A cada 4º ataque, cria uma explosão de raio ${CONFIG.mageExplosion.radius} com dano multiplicado por ${CONFIG.mageExplosion.damageMultiplier.toFixed(1)}.`,
-    arqueiro: `Arco de longo alcance; as flechas perfuram inimigos e perdem dano nos alvos seguintes. A cada ${CONFIG.archerHeal.arrowsPerHeal} flechas disparadas, recupera ${CONFIG.archerHeal.amount} de vida.`,
-    druida: `Cajado natural à distância; aplica lentidão de ${Math.round((1 - CONFIG.druidSlow.speedMultiplier) * 100)}% por ${CONFIG.druidSlow.duration}s e veneno por ${CONFIG.druidPoison.duration}s. Cura ${CONFIG.druidHeal.basicHitAmount} de vida a cada ${CONFIG.druidHeal.basicHitsPerHeal} acertos e gera 1 orbe a cada ${CONFIG.druidHeal.killsPerOrb} eliminações (máx. ${CONFIG.druidHeal.maxOrbs}).`,
-  }[classId];
-
-  const statIcons: Record<string, string> = {
-    'Força': '💪', 'Inteligência': '🧠', 'Destreza': '🎯', 'Armadura': '🛡️',
-    'Resistência mágica': '✨', 'Velocidade de movimento': '👢',
-    'Velocidade de ataque': '⚔️', 'Alcance de ataque': '🏹',
-    'Esquiva': '💨', 'Área de ataque': '💥',
-  };
-  return <div className="profile-stats-content">
-    <div className="profile-weapon-note"><span>ARMA INICIAL</span><strong>⚔️ {weapon.label}</strong></div>
-    <div className="profile-stat-summary">
-      <div className="stat-health"><span>❤️ VIDA / HP</span><strong>{CONFIG.attributes.classStartHealth[classId]}</strong><small>+{hpPerLevel.toFixed(1)} por nível</small></div>
-      <div className="stat-damage"><span>💥 DANO</span><strong>{weapon.damage}</strong><small>+{damagePerLevel.toFixed(2)}% por nível</small></div>
-      <div className="stat-range"><span>🎯 ALCANCE</span><strong>{weapon.range}</strong><small>unidades do jogo</small></div>
-      <div className="stat-speed"><span>⚔️ ATAQUES / SEG</span><strong>{weapon.attackSpeed.toFixed(2)}</strong><small>+{attackSpeedPerLevel.toFixed(2)}% por nível</small></div>
-    </div>
-    <section className="profile-stat-section profile-growth">
-      <h4>📈 Cresce a cada nível</h4>
-      <p className="profile-stat-note">A barra compara com as outras classes.</p>
-      {growthRows.map(row => <div className={`profile-growth-row${row.unused ? ' attr-unused' : ''}`} title={row.unused ? 'Esta classe não usa este atributo: ele não soma no PODER.' : undefined} key={row.label}><span><i aria-hidden="true">{row.icon}</i>{row.label}</span><b aria-hidden="true"><u style={{ width: `${row.percent}%` }} /></b><strong>+{row.gain.toFixed(2)}</strong></div>)}
-    </section>
-    <section className="profile-ability"><span>✨ HABILIDADE / ESTILO</span><p>{ability}</p></section>
-    <details className="profile-more">
-    <summary>Todos os atributos e mobilidade</summary>
-    <section className="profile-stat-section">
-      <h4>🧭 Sobrevivência e mobilidade</h4>
-      <div className="profile-stat-list">
-        <div><span>👢 Velocidade de movimento</span><strong>{CONFIG.player.speed} <small>+{movementPerLevel.toFixed(2)} / nível</small></strong></div>
-        <div><span>🛡️ Armadura inicial</span><strong>{CONFIG.player.armor} <small>+{armorPerLevel.toFixed(2)} / nível</small></strong></div>
-        <div><span>💨 Esquiva inicial</span><strong>{(CONFIG.player.dodge * 100).toFixed(1)}% <small>+{dodgePerLevel.toFixed(2)} p.p. / nível</small></strong></div>
-      </div>
-    </section>
-    <section className="profile-stat-section">
-      <h4>📊 Atributos da classe</h4>
-      <p className="profile-stat-note">Quanto cada atributo aumenta a cada nível.</p>
-      <div className="profile-attribute-list">
-        {attributeRows.map(([label, gain]) => <div key={label} className={attributeUnusedClass(classId, attributeKeyByLabel[label]).trim() || undefined} title={ATTRIBUTE_USAGE[classId][attributeKeyByLabel[label]] > 0 ? undefined : 'Esta classe não usa este atributo: ele não soma no PODER.'}><span><i aria-hidden="true">{statIcons[label]}</i>{label}</span><strong>+{gain.toFixed(2)} <small>/ nível</small></strong></div>)}
-      </div>
-    </section>
-    </details>
-  </div>;
-}
 
 const itemIcon = (itemId: string) => parseCoreItemId(itemId)?.kind === 'closed' ? '💎' : parseCoreItemId(itemId)?.kind === 'revealed' ? '💠' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
 const inventoryItemIcon = (itemId: string) => {
@@ -3354,51 +3276,30 @@ export default function App() {
               <p className="lobby-status-note">O PODER soma a base do personagem: vida, armadura, esquiva, velocidades e dano. Ele não mede quem é melhor: cada classe foi feita para um estilo de combate, e um número menor só mostra que ela cumpre outro papel. Atributo em vermelho riscado não é usado pela classe e não soma.</p>
             </div>
           </section></div></PageFrame>}
-        {profileOpen && <PageFrame eyebrow="SELEÇÃO E CONFIGURAÇÃO" title="Classes" onBack={closeGamePage}>
-          <div className="station-page-content"><section className="lobby-profile-modal lobby-classes-page">
-            <header className="lobby-profile-header">
-              <div><span>SELEÇÃO E CONFIGURAÇÃO</span><h2 id="lobby-profile-title">Classes</h2></div>
-              
-            </header>
-            <nav className="lobby-profile-tabs" role="tablist" aria-label="Classes disponíveis">
+        {profileOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
+          <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
+            <div className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
               {PROFILE_CLASS_IDS.map(classId => <button
                 type="button"
                 role="tab"
                 aria-selected={profileClassTab === classId}
+                tabIndex={profileClassTab === classId ? 0 : -1}
                 className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
                 key={classId}
                 onClick={() => setProfileClassTab(classId)}
               >
-                <span className="profile-class-emoji" aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[classId]}</span>
+                <ClassFace classId={classId} size={36} />
                 <strong>{CLASSES[classId].label}</strong>
-                <small>{characterPreferences[0] === classId ? '★ PRINCIPAL' : characterPreferences[1] === classId ? '② SECUNDÁRIO' : 'NÃO SELECIONADO'}</small>
               </button>)}
-            </nav>
-            <div className="lobby-profile-content">
-              <section className={`profile-class-details class-${profileClassTab}`}>
-                <div className="profile-section-heading">
-                  <div><span>NÍVEL 0 · INÍCIO DA PARTIDA</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[profileClassTab]}</span> {CLASSES[profileClassTab].label}{(characterPreferences[0] === profileClassTab || characterPreferences[1] === profileClassTab) && <em className="profile-class-pill">{characterPreferences[0] === profileClassTab ? '★ PRINCIPAL' : '② SECUNDÁRIO'}</em>}</h3></div>
-                </div>
-                <p className="profile-class-description">{CLASSES[profileClassTab].description}</p>
-                <div className="profile-priority-controls" aria-label="Prioridade da classe">
-                  <span>USAR COMO</span>
-                  <button type="button" className={characterPreferences[0] === profileClassTab ? 'chosen primary' : ''} aria-pressed={characterPreferences[0] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
-                    if (current[0] === profileClassTab) return [null, current[1]];
-                    if (current[1] === profileClassTab) return [profileClassTab, current[0]];
-                    return [profileClassTab, current[1]];
-                  })}><b>1</b> Principal</button>
-                  <button type="button" className={characterPreferences[1] === profileClassTab ? 'chosen secondary' : ''} aria-pressed={characterPreferences[1] === profileClassTab} onClick={() => setCharacterPreferences((current): [ClassId | null, ClassId | null] => {
-                    if (current[1] === profileClassTab) return [current[0], null];
-                    if (current[0] === profileClassTab) return [current[1], profileClassTab];
-                    return [current[0], profileClassTab];
-                  })}><b>2</b> Secundário</button>
-                  {characterPreferences[0] !== profileClassTab && characterPreferences[1] !== profileClassTab && <small>Toque em 1 ou 2 para escolher. Toque de novo para desligar.</small>}
-                </div>
-                <ProfileClassStats classId={profileClassTab} accountLevel={accountLevel} />
-              </section>
-              <p className="profile-save-note">Preferências salvas neste navegador · a sincronização com conta online ainda não está conectada.</p>
             </div>
-          </section></div></PageFrame>}
+            <div className="lobby-profile-content classes-content">
+              <section className={`profile-class-details class-${profileClassTab}`} aria-label={`Comparação de atributos: ${CLASSES[profileClassTab].label}`}>
+                <ClassStatBars classId={profileClassTab} preferences={characterPreferences} onPreferencesChange={setCharacterPreferences} />
+              </section>
+            </div>
+          </section></div>
+          <BackToLobbyButton onClick={closeGamePage} />
+        </PageFrame>}
         {rankingOpen && <PageFrame eyebrow="FÍBULA ONLINE · HALL DA FAMA" title="🏆 Ranking" onBack={closeGamePage}>
           <div className="station-page-content"><section className="lobby-ranking-modal lobby-ranking-page">
             <header className="lobby-ranking-header">
