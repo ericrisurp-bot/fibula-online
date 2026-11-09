@@ -7102,3 +7102,88 @@ button, button * {
   .station-nav{left:8px;right:8px;gap:4px;padding:3px}
   .station-nav-button{min-height:36px;padding:4px 2px;font-size:11px}
 }
+
+
+/* NAV1.1 — identidade cromática por objeto de destaque e ordem espacial fixa. */
+:root{
+  --station-bigorna:#c3cbc0;
+  --station-bigorna-dark:#9ba59a;
+  --station-bigorna-light:#e3e8e2;
+  --station-fogao:#76583b;
+  --station-fogao-dark:#443426;
+  --station-fogao-light:#c09a69;
+  --station-costura:#e4d5b7;
+  --station-costura-dark:#c7b693;
+  --station-costura-light:#f0e4ca;
+  --station-joalheria:#795c91;
+  --station-joalheria-dark:#392b59;
+  --station-joalheria-light:#b99ad2;
+}
+.station-nav{
+  justify-content:flex-end;
+  gap:5px;
+  background:linear-gradient(180deg,#202326f7,#111315fa);
+  border-color:#9ba3aa;
+}
+.station-nav-button{
+  box-sizing:border-box;
+  flex:0 0 max(64px,calc((100% - 15px)/4));
+  width:max(64px,calc((100% - 15px)/4));
+  min-width:64px;
+  max-width:calc((100% - 15px)/4);
+  min-height:38px;
+  transition:none!important;
+  animation:none!important;
+}
+.station-nav-button:active{transform:none}
+.station-nav-lobby{
+  border-color:#aeb6bd;
+  background:linear-gradient(180deg,#303438,#171a1d);
+  color:#fff;
+  text-shadow:0 1px 2px #000;
+}
+.station-nav-bigorna{
+  border-color:var(--station-bigorna-light);
+  background:linear-gradient(145deg,var(--station-bigorna),var(--station-bigorna-dark));
+  color:#1b1d1c;
+  text-shadow:none;
+}
+.station-nav-fogao{
+  border-color:var(--station-fogao-light);
+  background:linear-gradient(145deg,var(--station-fogao),var(--station-fogao-dark));
+  color:#fff8ed;
+}
+.station-nav-costura{
+  border-color:var(--station-costura-light);
+  background:linear-gradient(145deg,var(--station-costura),var(--station-costura-dark));
+  color:#29251f;
+  text-shadow:none;
+}
+.station-nav-joalheria{
+  border-color:var(--station-joalheria-light);
+  background:linear-gradient(145deg,var(--station-joalheria),var(--station-joalheria-dark));
+  color:#fff8ff;
+}
+@media(max-width:340px){
+  .station-nav{gap:3px}
+  .station-nav-button{
+    flex-basis:max(64px,calc((100% - 9px)/4));
+    width:max(64px,calc((100% - 9px)/4));
+    max-width:calc((100% - 9px)/4);
+    min-height:38px;
+    padding:5px 1px;
+    font-size:10px;
+    letter-spacing:-.045em;
+  }
+}
+@media(orientation:landscape) and (max-height:520px){
+  .station-nav{gap:4px}
+  .station-nav-button{
+    flex-basis:max(64px,calc((100% - 12px)/4));
+    width:max(64px,calc((100% - 12px)/4));
+    max-width:calc((100% - 12px)/4);
+    min-height:36px;
+    padding:4px 2px;
+    font-size:11px;
+  }
+}
