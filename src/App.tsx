@@ -28,12 +28,12 @@ import { ambience } from './audio/ambience';
 import { registerCombatSounds } from './audio/combatSounds';
 import { registerGatherSounds } from './audio/gatherSounds';
 import { registerStepSounds } from './audio/stepSounds';
-import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute } from './ui/stationRoute';
+import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute, type StationRouteId } from './ui/stationRoute';
 import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
-import BackToLobbyButton from './ui/BackToLobbyButton';
+import StationNav from './ui/StationNav';
 
 type RankingEntry = {
   user_id: string;
@@ -785,6 +785,18 @@ export default function App() {
   const selectedArsenalWeapon = craftedWeapons.find(weapon => weapon.id === selectedArsenalItemId) ?? null;
   const selectedArsenalEquipment = arsenalItems.find(item => item.id === selectedArsenalItemId) ?? null;
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
+  const openStation = (id: StationRouteId) => {
+    navigateToStation(id);
+    setActiveGameRoute({ page: id });
+    setSelectedWeaponCoreId(null);
+    setWeaponFeedback('');
+    setForgeCraftResult('');
+    setSelectedJewelryCoreId(null);
+    setJewelryResultCoreId(null);
+    setJewelryRevealAnimating(false);
+    setJewelryFeedback('');
+    setCookingFeedback(!cookingOnline && id === 'fogao' ? 'Sem conexão: cozinhar exige internet.' : '');
+  };
   const closeGamePage = () => {
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
@@ -3014,7 +3026,7 @@ export default function App() {
             
         </div>
       </div>
-    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura') && <BackToLobbyButton onClick={closeGamePage} />}
+    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura') && <StationNav current={activeCraftingStation.id} onLobby={closeGamePage} onOpenStation={openStation} />}
       </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
@@ -3095,7 +3107,7 @@ export default function App() {
             type="button"
             aria-label={`Abrir estação: ${station.title}`}
             title={station.title}
-            onClick={() => { navigateToStation(station.id); setActiveGameRoute({ page: station.id }); if (station.id === 'bigorna') { setSelectedWeaponCoreId(null); setWeaponFeedback('');  } if (!cookingOnline && station.id === 'fogao') setCookingFeedback('Sem conexão: cozinhar exige internet.'); }}
+            onClick={() => openStation(station.id)}
           >
             <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
             <span>{station.label}</span>
