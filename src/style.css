@@ -6991,3 +6991,62 @@ button, button * {
 @media(max-width:430px){.tailor-workspace{grid-template-rows:minmax(138px,1fr) auto auto;gap:6px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}.tailor-scene{border-radius:10px}.tailor-mannequin{top:21%;height:58%}.tailor-preview-slots{width:92%;gap:4px;margin-top:8%}.tailor-preview-slot{min-height:39px;padding:4px 2px}.tailor-fabrics-zone{padding:6px;gap:3px}.tailor-fabric-grid{gap:4px}.tailor-fabric-item{min-height:49px;padding:3px 2px}.tailor-fabric-item strong{font-size:7px}.tailor-fabric-note{font-size:7px}.tailor-action-area{min-height:32px}}
 @media(max-width:340px){.tailor-title-plaque{top:6px;left:7px;padding:4px 7px}.tailor-preview-slots{width:96%;gap:3px}.tailor-preview-slot strong{font-size:8px}.tailor-preview-slot small{font-size:7px}.tailor-fabric-note{font-size:6.5px}}
 @media(orientation:landscape) and (max-height:520px){.tailor-workspace{grid-template-rows:minmax(112px,1fr) auto auto;gap:4px;padding:4px 6px calc(4px + env(safe-area-inset-bottom))!important}.tailor-scene{min-height:112px}.tailor-mannequin{top:17%;height:63%}.tailor-preview-slots{margin-top:2%}.tailor-fabric-item{min-height:43px}.tailor-fabric-note{font-size:7px}}
+
+
+/* ETAPA A1.1 — acabamento compacto da Alfaiataria */
+.tailor-workspace{grid-template-rows:minmax(420px,440px) auto auto;flex:0 0 auto;max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.tailor-scene{height:440px;min-height:420px;max-height:460px}
+.tailor-wall{inset:0 0 24%}
+.tailor-shelf{top:34%;left:8%;right:8%;height:9px}
+.tailor-fabric-roll{bottom:7px;width:13%;height:26px}
+.tailor-lamp-cord{right:4%;top:0;height:38%;width:2px}
+.tailor-lamp-shade{right:calc(4% - 18px);top:36%;width:38px;height:17px}
+.tailor-lamp-light{right:calc(4% - 48px);top:calc(36% + 15px);width:92px;height:46%;background:linear-gradient(180deg,#f8e7b466,#f8e7b41a 58%,transparent);clip-path:polygon(43% 0,57% 0,100% 100%,0 100%)}
+.tailor-mannequin{top:31%;left:50%;width:clamp(82px,23vw,106px);height:43%;z-index:2;filter:drop-shadow(0 4px 3px #4a403044)}
+.tailor-mannequin-neck{position:relative;width:19%;height:9%;flex:0 0 9%;border:1px solid #776c55;border-radius:5px 5px 3px 3px;background:linear-gradient(90deg,#a18e6d,#eee1c5 48%,#8b795b)}
+.tailor-mannequin-neck:before{content:"";position:absolute;left:-8%;right:-8%;top:-4px;height:8px;border:1px solid #8d7d61;border-radius:50%;background:linear-gradient(180deg,#f0e3c8,#b4a17e)}
+.tailor-mannequin-body{width:100%;height:58%;flex:0 0 58%;border-radius:42% 42% 25% 25% / 15% 15% 12% 12%;clip-path:polygon(39% 0,61% 0,69% 7%,83% 10%,100% 24%,91% 43%,82% 49%,77% 73%,68% 100%,32% 100%,23% 73%,18% 49%,9% 43%,0 24%,17% 10%,31% 7%);background:linear-gradient(90deg,#a58f6d 0%,#d9c8a8 20%,#f0e4ca 49%,#d2c09e 76%,#8e7e60 100%);box-shadow:inset 0 3px 7px #fff9,inset -7px 0 9px #66583c44}
+.tailor-mannequin-body:before{left:16%;top:12%;width:68%;height:12%;border-top:2px solid #a99672;border-bottom:1px solid #b9a783;border-radius:50%}
+.tailor-mannequin-seam{top:20%;height:55%;background:linear-gradient(180deg,#a98c70,#8b4f45 55%,#a98c70);opacity:.55}
+.tailor-mannequin-stand{width:5px;height:21%;flex:0 0 21%;background:linear-gradient(90deg,#66583f,#b19a6d,#51452f)}
+.tailor-mannequin-foot{width:57%;height:7%;flex:0 0 7%;border-radius:50% 50% 35% 35%;background:linear-gradient(180deg,#c0a779,#77613e 75%,#574a34)}
+.tailor-table{height:24%;left:5%;right:5%;z-index:3}
+.tailor-table-top{height:18%;top:0}
+.tailor-table-front{top:17%;height:39%;background:linear-gradient(180deg,#8a7451,#715d40);box-shadow:inset 0 2px 4px #d6c39a55}
+.tailor-table-front:after{content:"";position:absolute;left:34%;right:34%;top:8%;height:65%;border:1px solid #5e4d35;border-radius:2px;background:linear-gradient(180deg,#9b835d,#776343);box-shadow:inset 0 1px 2px #d6c39a55}
+.tailor-table-leg{top:55%;height:45%;width:5%;border-radius:0 0 2px 2px;background:linear-gradient(90deg,#594b35,#a1875b,#4e432f)}
+.tailor-spool{top:-14%}
+.tailor-scissors{top:-8%}
+.tailor-pincushion{position:absolute;z-index:5;left:68%;top:-13%;width:27px;height:16px;border:1px solid #754943;border-radius:45% 45% 35% 35%;background:radial-gradient(ellipse at 50% 30%,#b76d61,#814b43 72%);box-shadow:0 2px 3px #3d302555}
+.tailor-needle{position:absolute;left:44%;top:-10px;width:2px;height:21px;border-radius:2px;background:#e5e1ce;transform:rotate(24deg);box-shadow:0 0 1px #333}
+.tailor-scene-slots{inset:auto 0 24%;padding:0 8px;justify-content:center;align-items:center}
+.tailor-preview-slots{width:min(88%,410px);gap:6px;margin:0}
+.tailor-preview-slot{min-height:40px}
+@media(max-width:430px){
+  .tailor-workspace{grid-template-rows:minmax(420px,440px) auto auto;gap:6px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
+  .tailor-scene{height:440px;min-height:420px;max-height:460px}
+  .tailor-mannequin{top:31%;height:43%;width:clamp(82px,25vw,98px)}
+  .tailor-preview-slots{width:94%;gap:4px}
+  .tailor-preview-slot{min-height:38px;padding:4px 2px}
+  .tailor-fabrics-zone{padding:6px;gap:3px}
+  .tailor-fabric-grid{gap:4px}
+  .tailor-fabric-item{min-height:49px;padding:3px 2px}
+  .tailor-fabric-note{font-size:7px}
+}
+@media(max-width:340px){
+  .tailor-title-plaque{top:6px;left:7px;padding:4px 7px}
+  .tailor-preview-slots{width:96%;gap:3px}
+  .tailor-preview-slot strong{font-size:8px}
+  .tailor-preview-slot small{font-size:7px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .tailor-workspace{grid-template-rows:minmax(280px,320px) auto auto}
+  .tailor-scene{height:320px;min-height:280px;max-height:340px}
+  .tailor-mannequin{top:29%;height:46%}
+  .tailor-preview-slots{margin:0}
+  .tailor-fabric-item{min-height:43px}
+  .tailor-fabric-note{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){
+  .tailor-scene,.tailor-scene *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
