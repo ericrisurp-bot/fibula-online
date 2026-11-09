@@ -34,7 +34,7 @@ import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import StationNav from './ui/StationNav';
-import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
+import ClassStatBars, { ClassDuelBars, ClassFace } from './ui/ClassStatBars';
 import BackToLobbyButton from './ui/BackToLobbyButton';
 type RankingEntry = {
   user_id: string;
@@ -3225,12 +3225,8 @@ export default function App() {
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
           </section></div></PageFrame>}
-        {statusOpen && <PageFrame eyebrow="RESUMO DOS PERSONAGENS ESCOLHIDOS" title="Status" onBack={closeGamePage}>
-          <div className="station-page-content"><section className="lobby-profile-modal lobby-status-modal lobby-status-page">
-            <header className="lobby-profile-header">
-              <div><span>RESUMO DOS PERSONAGENS ESCOLHIDOS</span><h2 id="lobby-status-title">Status</h2></div>
-              
-            </header>
+        {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
+          <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-status-modal lobby-status-page side-page-panel">
             <div className="lobby-profile-content lobby-status-content">
               {characterPreferences.map((classId, index) => {
                 if (!classId) return <section className="lobby-status-card lobby-status-empty" key={index}>
@@ -3249,7 +3245,7 @@ export default function App() {
                 });
                 return <section className={`lobby-status-card class-${classId}`} key={classId}>
                   <div className="lobby-status-card-heading">
-                    <div><span>{index === 0 ? '★ PRINCIPAL' : '② SECUNDÁRIA'}</span><h3><span aria-hidden="true">{{ guerreiro: '⚔️', mago: '🔮', arqueiro: '🏹', druida: '🌿' }[classId]}</span> {CLASSES[classId].label}</h3></div>
+                    <div className="lobby-status-class-identity"><ClassFace classId={classId} size={42} /><div><span>{index === 0 ? '★ PRINCIPAL' : '② SECUNDÁRIA'}</span><h3>{CLASSES[classId].label}</h3></div></div>
                     <strong className="lobby-status-level">NÍVEL {state.player.level}</strong>
                   </div>
                   <i className="lobby-status-tag" aria-hidden="true" />
@@ -3261,6 +3257,7 @@ export default function App() {
                     <div className="lobby-status-power"><span>PD / GOLPE</span><strong>{powerDamage.toFixed(1)}</strong></div>
                     <div className={`lobby-status-power${attributeUnusedClass(classId, 'forca')}`}><span>FORÇA</span><strong>{attributes.forca.toFixed(1)}</strong></div>
                   </div>
+                  <ClassDuelBars classId={classId} />
                   <div className="lobby-status-attributes">
                     <div className={attributeUnusedClass(classId, 'vida').trim()}><span>❤️ Vida</span><strong>{attributes.vida.toFixed(1)}</strong></div>
                     <div className={attributeUnusedClass(classId, 'inteligencia').trim()}><span>🧠 Int.</span><strong>{attributes.inteligencia.toFixed(1)}</strong></div>
@@ -3275,7 +3272,9 @@ export default function App() {
               })}
               <p className="lobby-status-note">O PODER soma a base do personagem: vida, armadura, esquiva, velocidades e dano. Ele não mede quem é melhor: cada classe foi feita para um estilo de combate, e um número menor só mostra que ela cumpre outro papel. Atributo em vermelho riscado não é usado pela classe e não soma.</p>
             </div>
-          </section></div></PageFrame>}
+          </section></div>
+          <BackToLobbyButton onClick={closeGamePage} />
+        </PageFrame>}
         {profileOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
           <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
             <div className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
