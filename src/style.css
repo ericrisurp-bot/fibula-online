@@ -7120,7 +7120,7 @@ button, button * {
   background:rgba(184,139,98,.13);
   box-shadow:inset 0 -2px rgba(211,164,119,.72);
 }
-.class-priority-stars { display:flex; align-items:center; justify-content:center; gap:2px; }
+.class-priority-stars { display:flex; align-items:center; justify-content:center; gap:0; }
 .class-priority-star {
   display:grid;
   width:36px;
@@ -7218,4 +7218,10 @@ button, button * {
   outline:2px solid #e7c49c;
   outline-offset:2px;
   border-radius:4px;
+}
+
+@media(max-width:360px) {
+  .side-page.classes-page .station-page-content { padding-left:4px; padding-right:4px; }
+  .side-page.classes-page .side-page-panel { padding:4px; }
+  .side-page.classes-page .classes-tabs { gap:3px; }
 }
