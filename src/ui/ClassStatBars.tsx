@@ -145,7 +145,6 @@ function PreferenceStar({ active, kind, label, onClick }: { active: boolean; kin
 }
 
 export function ClassDuelBars({ classId }: { classId: ClassId }) {
-  const duels = deriveClassDuelPercentages()[classId];
   return <section className="class-duels" aria-label={`Comparativos de atributos: ${CLASS_LABELS[classId]}`}>
     {DUEL_DEFINITIONS.map(def => {
       const share = duels[def.key];
