@@ -5,8 +5,6 @@ import { getBaseItemId, getItemRarity } from './game/inventory';
 import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
-import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
-import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
