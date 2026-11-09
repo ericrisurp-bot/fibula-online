@@ -7119,7 +7119,7 @@ button, button * {
   --class-accent:#d0a16f; --class-accent-soft:rgba(208,161,111,.25);
   --class-panel:rgba(208,161,111,.09); --class-glow:rgba(208,161,111,.22);
   --class-muted:#d0c2b3;
-  display:grid; gap:12px; padding:12px 2px 4px;
+  display:grid; gap:12px; padding:0 2px 4px;
 }
 .class-page-content.class-guerreiro {
   --class-accent:#ef7771; --class-accent-soft:rgba(239,119,113,.3);
