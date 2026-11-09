@@ -8,7 +8,7 @@ export default function TailorScene({ children }: TailorSceneProps) {
       <span className="tailor-lamp-cord"/><span className="tailor-lamp-shade"/><span className="tailor-lamp-light"/>
     </div>
     <div className="tailor-mannequin" aria-hidden="true"><span className="tailor-mannequin-neck"/><span className="tailor-mannequin-body"/><span className="tailor-mannequin-seam"/><span className="tailor-mannequin-stand"/><span className="tailor-mannequin-foot"/></div>
-    <div className="tailor-table" aria-hidden="true"><span className="tailor-table-top"/><span className="tailor-table-front"/><span className="tailor-table-leg left"/><span className="tailor-table-leg right"/><span className="tailor-spool spool-olive"/><span className="tailor-spool spool-wine"/><span className="tailor-scissors"/><span className="tailor-needle"/><span className="tailor-folded-cloth"/></div>
+    <div className="tailor-table" aria-hidden="true"><span className="tailor-table-top"/><span className="tailor-table-front"/><span className="tailor-table-leg left"/><span className="tailor-table-leg right"/><span className="tailor-spool spool-olive"/><span className="tailor-spool spool-wine"/><span className="tailor-scissors"/><span className="tailor-pincushion"><i className="tailor-needle"/></span><span className="tailor-folded-cloth"/></div>
     <div className="tailor-scene-slots">{children}</div>
   </section>;
 }
