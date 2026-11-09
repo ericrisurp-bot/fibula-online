@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ATTRIBUTE_USAGE, getAttributeBonus, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
+import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
 import { drawLadino } from '../game/ladino';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 
@@ -48,14 +48,11 @@ export function computeClassStats(classId: ClassId): ComputedClassStats {
     + (FIRST_NIGHT - 1) * CONFIG.enemy.healthPerWave;
   const firstNightContactDamage = CONFIG.enemy.contactDamage
     + Math.floor((FIRST_NIGHT - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
-  const levelZeroArmor = getAttributeBonus(classId, BASE_LEVEL, 'armadura');
+  const levelZeroArmor = (playerAttributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
   const damageTakenPerHit = Math.max(1, Math.round(
     firstNightContactDamage - CONFIG.player.armor - levelZeroArmor,
   ));
   const initialHealth = CONFIG.attributes.classStartHealth[classId];
-
-  // Mantém a leitura dos atributos-base no mesmo nível zero usado pelos cartões de status.
-  void playerAttributes;
 
   return {
     damagePerSecond,
