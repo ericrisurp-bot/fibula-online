@@ -5,6 +5,7 @@ import { getBaseItemId, getItemRarity } from './game/inventory';
 import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
+import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes, type AttributeKey } from './game/attributes';
 import { getClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
@@ -68,7 +69,14 @@ const cookingRarityLabel = (rarity: CookingMeal['rarity']) => ({
   normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
 }[rarity]);
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
+const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
+  guerreiro: 'espada',
+  mago: 'cajado',
+  arqueiro: 'arco',
+  druida: 'bastao',
+};
 const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
+const attributeUnusedClass = (classId: ClassId, key: AttributeKey) => ATTRIBUTE_USAGE[classId][key] > 0 ? '' : ' attr-unused';
 
 const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
   capacete: { label: 'capacete' }, peitoral: { label: 'peitoral' },
