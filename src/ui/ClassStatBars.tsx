@@ -153,8 +153,7 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   // At level zero these resolve to the same CONFIG.player base values shown in the former profile.
   const initialMobility = CONFIG.player.speed + (attributes.velocidadeMovimento - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.velocidadeMovimento;
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
-  const initialArmor = CONFIG.player.armor
-    + (attributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
+  const initialArmor = CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue;
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
