@@ -7419,18 +7419,18 @@ button, button * {
 
 /* NAV1 — cores de identidade das quatro estações e navegação fixa. */
 :root{
-  --station-bigorna:#40565b;
-  --station-bigorna-deep:#293a40;
-  --station-bigorna-edge:#a9c1c2;
-  --station-fogao:#56351f;
-  --station-fogao-deep:#332116;
-  --station-fogao-edge:#d39a61;
+  --station-bigorna:#8da2b3;
+  --station-bigorna-deep:#506777;
+  --station-bigorna-edge:#c4d2dc;
+  --station-fogao:#9a5a24;
+  --station-fogao-deep:#48280f;
+  --station-fogao-edge:#e1ad79;
   --station-costura:#51583a;
   --station-costura-deep:#383d2c;
   --station-costura-edge:#c5c39a;
-  --station-joalheria:#285064;
-  --station-joalheria-deep:#382b50;
-  --station-joalheria-edge:#c3a6d5;
+  --station-joalheria:#7a4fa3;
+  --station-joalheria-deep:#42275e;
+  --station-joalheria-edge:#c8a9e2;
   --back-button-clearance:calc(52px + 12px + env(safe-area-inset-bottom));
 }
 .station-nav{
@@ -7471,18 +7471,18 @@ button, button * {
 
 /* NAV1.1 — identidade cromática por objeto de destaque e ordem espacial fixa. */
 :root{
-  --station-bigorna:#c3cbc0;
-  --station-bigorna-dark:#9ba59a;
-  --station-bigorna-light:#e3e8e2;
-  --station-fogao:#76583b;
-  --station-fogao-dark:#443426;
-  --station-fogao-light:#c09a69;
+  --station-bigorna:#8da2b3;
+  --station-bigorna-dark:#6c8293;
+  --station-bigorna-light:#c2d0da;
+  --station-fogao:#9a5a24;
+  --station-fogao-dark:#63380f;
+  --station-fogao-light:#d99a5f;
   --station-costura:#e4d5b7;
   --station-costura-dark:#c7b693;
   --station-costura-light:#f0e4ca;
-  --station-joalheria:#795c91;
-  --station-joalheria-dark:#392b59;
-  --station-joalheria-light:#b99ad2;
+  --station-joalheria:#7a4fa3;
+  --station-joalheria-dark:#533675;
+  --station-joalheria-light:#b99ad8;
 }
 .station-nav{
   justify-content:flex-end;
@@ -7558,8 +7558,8 @@ button, button * {
 :root{
   --station-nav-inactive-bg:#292d31;
   --station-nav-inactive-text:#e3e7ea;
-  --station-nav-lobby-top:#d8dde0;
-  --station-nav-lobby-bottom:#aeb6bd;
+  --station-nav-lobby-top:#f1f3f4;
+  --station-nav-lobby-bottom:#dde1e4;
   --station-nav-lobby-text:#202326;
   --back-button-clearance:calc(60px + 12px + env(safe-area-inset-bottom));
 }
@@ -7612,11 +7612,11 @@ button, button * {
   box-shadow:inset 0 1px 0 #ffffff55,0 0 9px var(--station-glow),0 0 16px var(--station-glow-soft);
 }
 .station-nav-bigorna.is-active{
-  --station-glow:#c3cbc077;
-  --station-glow-soft:#c3cbc033;
+  --station-glow:#8da2b377;
+  --station-glow-soft:#8da2b333;
   border-color:var(--station-bigorna-light);
   background:linear-gradient(145deg,var(--station-bigorna),var(--station-bigorna-dark));
-  color:#1b1d1c;
+  color:#0f1418;
 }
 .station-nav-costura.is-active{
   --station-glow:#e4d5b777;
@@ -7626,15 +7626,15 @@ button, button * {
   color:#29251f;
 }
 .station-nav-joalheria.is-active{
-  --station-glow:#795c9177;
-  --station-glow-soft:#795c9133;
+  --station-glow:#7a4fa377;
+  --station-glow-soft:#7a4fa333;
   border-color:var(--station-joalheria-light);
   background:linear-gradient(145deg,var(--station-joalheria),var(--station-joalheria-dark));
-  color:#fff8ff;
+  color:#ffffff;
 }
 .station-nav-fogao.is-active{
-  --station-glow:#76583b77;
-  --station-glow-soft:#76583b33;
+  --station-glow:#9a5a2477;
+  --station-glow-soft:#9a5a2433;
   border-color:var(--station-fogao-light);
   background:linear-gradient(145deg,var(--station-fogao),var(--station-fogao-dark));
   color:#fff8ed;
