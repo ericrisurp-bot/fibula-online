@@ -3228,6 +3228,7 @@ export default function App() {
             <StatusDuo preferences={characterPreferences} accountLevel={accountLevel} onChooseClasses={() => {
               navigateToPage('classes');
               setActiveGameRoute({ page: 'classes' });
+              setStatusOpen(false);
               setProfileOpen(true);
             }} />
           </div>
