@@ -6816,7 +6816,9 @@ button, button * {
 .jewelry-result-card>ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 9px;margin:0;padding:0;list-style:none}
 .jewelry-result-card li{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:5px;color:#d7d0e5;font-size:8px;line-height:1.2}
 .jewelry-result-card li b{flex:0 0 auto;color:#f0d38c;font-size:9px}
-.jewelry-revealing .jewelry-gem-icon,.jewelry-revealing .jewelry-scene-glow{animation:jewelry-gem-flare 1.5s ease-out both}
+.jewelry-revealing .jewelry-gem-icon,.jewelry-revealing .jewelry-result-gem,.jewelry-revealing .jewelry-scene-glow{animation:jewelry-gem-flare 1.5s ease-out both}
+.jewelry-revealing .jewelry-result-card{animation:jewelry-result-appear .25s ease-out 1.2s both}
+@keyframes jewelry-result-appear{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 .jewelry-scene-glow{position:absolute;z-index:2;left:50%;top:49%;width:120px;height:100px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,#fff4c777 0%,#b18be455 35%,transparent 72%);opacity:0;pointer-events:none}
 .jewelry-scene-spark{position:absolute;z-index:4;width:5px;height:5px;border-radius:50%;background:#fff1bc;box-shadow:0 0 8px 3px #e7c77b99;opacity:0;pointer-events:none}
 .jewelry-spark-one{left:38%;top:42%}.jewelry-spark-two{left:61%;top:48%}.jewelry-spark-three{left:52%;top:35%}
@@ -6859,5 +6861,5 @@ button, button * {
   .jewelry-reveal-button{min-height:30px}
 }
 @media(prefers-reduced-motion:reduce){
-  .jewelry-revealing .jewelry-gem-icon,.jewelry-revealing .jewelry-scene-glow,.jewelry-revealing .jewelry-scene-spark{animation:none!important;opacity:0!important}
+  .jewelry-revealing .jewelry-gem-icon,.jewelry-revealing .jewelry-result-gem,.jewelry-revealing .jewelry-scene-glow,.jewelry-revealing .jewelry-scene-spark,.jewelry-revealing .jewelry-result-card{animation:none!important;opacity:1!important}
 }
