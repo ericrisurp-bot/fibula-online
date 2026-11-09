@@ -145,6 +145,7 @@ function PreferenceStar({ active, kind, label, onClick }: { active: boolean; kin
 }
 
 export function ClassDuelBars({ classId }: { classId: ClassId }) {
+  const duels = deriveClassDuelPercentages()[classId];
   return <section className="class-duels" aria-label={`Comparativos de atributos: ${CLASS_LABELS[classId]}`}>
     {DUEL_DEFINITIONS.map(def => {
       const share = duels[def.key];
@@ -174,7 +175,6 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
     { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Vel. de ataque', value: weapon.attackSpeed.toFixed(2) },
     { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. de movimento', value: initialMobility.toFixed(0) },
   ];
-  const duels = deriveClassDuelPercentages()[classId];
   const computedStats = computeClassStats(classId);
   const computedStatCards = [
     { key: 'damagePerSecond', icon: CLASS_STAT_ICONS.damagePerSecond, label: 'Dano por segundo', value: computedStats.damagePerSecond.toFixed(1) },
