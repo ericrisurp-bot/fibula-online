@@ -120,7 +120,7 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
     </section>
     <section className="class-duels" aria-label="Duelos de atributos">
       {DUEL_DEFINITIONS.map(def => {
-        const share = duels[def.key], leftWins = share.left >= share.right;
+        const share = duels[def.key];
         return <article className="class-duel" key={def.key}>
           <div className="class-duel-labels">
             <span className={share.left > share.right ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.leftIcon}</i>{def.left}</span>
