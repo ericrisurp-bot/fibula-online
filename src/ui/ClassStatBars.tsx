@@ -153,12 +153,10 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   // At level zero these resolve to the same CONFIG.player base values shown in the former profile.
   const initialMobility = CONFIG.player.speed + (attributes.velocidadeMovimento - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.velocidadeMovimento;
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
-  const initialArmor = CONFIG.player.armor + attributes.armadura - CONFIG.attributes.baseValue;
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
     { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Vel. de ataque', value: weapon.attackSpeed.toFixed(2) },
-    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura', value: initialArmor.toFixed(1) },
     { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. de movimento', value: initialMobility.toFixed(0) },
   ];
   const duels = deriveClassDuelPercentages()[classId];
@@ -182,15 +180,11 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
         const share = duels[def.key];
         return <article className="class-duel" key={def.key}>
           <div className="class-duel-labels">
-            <span className={share.left > share.right ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.leftIcon}</i>{def.left}</span>
-            <span className={share.right > share.left ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.rightIcon}</i>{def.right}</span>
+            <span className={share.left > share.right ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.leftIcon}</i><span>{def.left}</span><b>{share.left}%</b></span>
+            <span className={share.right > share.left ? 'duel-side-winner' : 'duel-side-loser'}><i aria-hidden="true">{def.rightIcon}</i><span>{def.right}</span><b>{share.right}%</b></span>
           </div>
           <div className="class-duel-track" role="img" aria-label={`${def.left} ${share.left} por cento; ${def.right} ${share.right} por cento`}>
             <span className={`class-duel-left ${share.left > share.right ? 'is-winner' : 'is-loser'}`} style={{width:`${share.left}%`}}/><span className={`class-duel-right ${share.right > share.left ? 'is-winner' : 'is-loser'}`} style={{width:`${share.right}%`}}/><i className="class-duel-divider" style={{left:`${share.left}%`}} aria-hidden="true" />
-          </div>
-          <div className="class-duel-percentages" aria-hidden="true">
-            <strong className={share.left > share.right ? 'is-winner' : ''}>{share.left}%</strong>
-            <strong className={share.right > share.left ? 'is-winner' : ''}>{share.right}%</strong>
           </div>
         </article>;
       })}
