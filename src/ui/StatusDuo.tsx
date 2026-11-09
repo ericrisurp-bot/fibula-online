@@ -10,7 +10,7 @@ type StatusDuoProps = {
 };
 
 
-function PreferenceStar({ kind }: { kind: 'primary' | 'secondary' }) {
+function PreferenceStar() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.55 4.43 1.08 6.27L12 17.14l-5.63 2.96 1.08-6.27L2.9 9.4l6.3-.9L12 2.8Z" /></svg>;
 }
 
@@ -70,7 +70,7 @@ export default function StatusDuo({ preferences, accountLevel, onChooseClasses }
       {selected.map(entry => <article className={`status-page-class-card status-page-${entry.classId}`} key={entry.classId}>
         <ClassFace classId={entry.classId} size={48} />
         <strong className="status-page-class-name">{CLASSES[entry.classId].label}</strong>
-        <span className={`status-page-role ${entry.kind}`}><PreferenceStar kind={entry.kind} />{entry.role}</span>
+        <span className={`status-page-role ${entry.kind}`}><PreferenceStar />{entry.role}</span>
         <span className="status-page-power-label">Poder</span>
         <strong className="status-page-power-value">{formatPower(entry.power)}</strong>
         <small className="status-page-level10">Nível 10: {formatPower(entry.powerAt10)}</small>
