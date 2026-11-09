@@ -49,9 +49,13 @@ function normalizedValue(values: Record<ClassId, number>, id: ClassId) {
 /** Normaliza cada lado pelo melhor valor entre classes e divide a barra em 100%. */
 export function deriveClassDuelPercentages(): ClassDuelPercentages {
   const raw = getRawDuelValues();
-  const keys = Object.fromEntries(['physicalDamage', 'magicalDamage', 'survival', 'mobility', 'armor', 'attackSpeed'].map(key => [
-    key, Object.fromEntries(CLASS_IDS.map(id => [id, raw[id][key as keyof typeof raw[ClassId]]])) as Record<ClassId, number>,
-  ])) as Record<'physicalDamage' | 'magicalDamage' | 'survival' | 'mobility' | 'armor' | 'attackSpeed', Record<ClassId, number>>;
+  const valuesFor = (key: keyof typeof raw.guerreiro) =>
+    Object.fromEntries(CLASS_IDS.map(id => [id, raw[id][key]])) as Record<ClassId, number>;
+  const keys = {
+    physicalDamage: valuesFor('physicalDamage'), magicalDamage: valuesFor('magicalDamage'),
+    survival: valuesFor('survival'), mobility: valuesFor('mobility'),
+    armor: valuesFor('armor'), attackSpeed: valuesFor('attackSpeed'),
+  };
   const duel = (leftKey: keyof typeof keys, rightKey: keyof typeof keys, id: ClassId): DuelShare => {
     const left = normalizedValue(keys[leftKey], id), right = normalizedValue(keys[rightKey], id), total = left + right;
     if (total === 0) return { left: 50, right: 50 };
@@ -98,14 +102,17 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
 }) {
   const weapon = CONFIG.weapons[CLASS_WEAPONS[classId]];
   const attributes = getPlayerAttributes(classId, 0);
+  // At level zero these resolve to the same CONFIG.player base values shown in the former profile.
+  const initialArmor = CONFIG.player.armor + (attributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
+  const initialMobility = CONFIG.player.speed + (attributes.velocidadeMovimento - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.velocidadeMovimento;
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
   const role = weapon.kind === 'melee' ? 'Corpo a corpo' : weapon.kind === 'arrow' ? 'Arco e mobilidade' : classId === 'druida' ? 'Natureza à distância' : 'Magia à distância';
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
     { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Vel. de ataque', value: weapon.attackSpeed.toFixed(2) },
-    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura', value: CONFIG.player.armor.toFixed(0) },
-    { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Mobilidade', value: CONFIG.player.speed.toFixed(0) },
+    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura', value: initialArmor.toFixed(0) },
+    { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Mobilidade', value: initialMobility.toFixed(0) },
   ];
   const duels = deriveClassDuelPercentages()[classId];
   const setPreference = (slot: 0 | 1) => onPreferencesChange(preferences[slot] === classId
