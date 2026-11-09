@@ -7320,3 +7320,68 @@ button, button * {
 @media(orientation:landscape) and (max-height:520px) {
   .class-page-content { gap:8px; padding-top:0; }
 }
+
+
+/* Revisão visual Classes: painel claro de verdade e cartões com a cor da classe. */
+.side-page.classes-page,
+.side-page.classes-page .station-page-content {
+  background:#f1ede5 !important;
+  color:#39332d !important;
+}
+.side-page.classes-page .side-page-panel {
+  background:#f8f5ee !important;
+  border:1px solid #d4c9b9 !important;
+  box-shadow:0 8px 24px rgba(61,48,34,.12),inset 0 1px #fff !important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab {
+  background:#ebe6dc !important;
+  border-color:#d2c8b9 !important;
+  color:#403931 !important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab.active {
+  background:#fffaf2 !important;
+  border-color:var(--class-accent) !important;
+  box-shadow:inset 0 -3px var(--class-accent),0 2px 7px rgba(54,43,30,.09) !important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab strong { color:var(--class-accent) !important; }
+.side-page.classes-page .classes-tabs .profile-class-tab.class-guerreiro { --class-accent:#df625d; }
+.side-page.classes-page .classes-tabs .profile-class-tab.class-mago { --class-accent:#936bd7; }
+.side-page.classes-page .classes-tabs .profile-class-tab.class-arqueiro { --class-accent:#c89a3c; }
+.side-page.classes-page .classes-tabs .profile-class-tab.class-druida { --class-accent:#579968; }
+
+/* O retrato usa a paleta do personagem, sem o fundo escuro antigo. */
+.side-page.classes-page .class-face {
+  background:#fffaf1 !important;
+  border-color:var(--class-accent) !important;
+  box-shadow:0 1px 4px rgba(50,38,25,.15);
+  filter:none !important;
+}
+
+/* Os cartões de status recuperam o destaque colorido em vez de branco neutro. */
+.class-page-content.class-guerreiro { --class-accent:#df625d; --class-panel:rgba(223,98,93,.17); --class-accent-soft:rgba(190,65,60,.42); --class-muted:#79443f; }
+.class-page-content.class-mago { --class-accent:#936bd7; --class-panel:rgba(147,107,215,.17); --class-accent-soft:rgba(119,78,190,.4); --class-muted:#5f4b7d; }
+.class-page-content.class-arqueiro { --class-accent:#c89a3c; --class-panel:rgba(200,154,60,.2); --class-accent-soft:rgba(165,121,36,.42); --class-muted:#705a30; }
+.class-page-content.class-druida { --class-accent:#579968; --class-panel:rgba(87,153,104,.18); --class-accent-soft:rgba(66,132,83,.4); --class-muted:#456b4d; }
+.class-initial-stat {
+  background:linear-gradient(135deg,var(--class-panel),rgba(255,255,255,.56)) !important;
+  border:1px solid var(--class-accent-soft) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.7),0 2px 5px rgba(70,52,34,.06) !important;
+}
+.class-initial-stat-icon { color:var(--class-accent); }
+.class-initial-stat-label { color:var(--class-muted) !important; }
+.class-initial-stat strong { color:#352e28 !important; }
+.class-duel-labels { color:#4a4037 !important; }
+.class-duel-labels strong { color:#342d27 !important; }
+.duel-side-winner { color:#352e28 !important; opacity:1 !important; }
+.duel-side-loser { color:#84796e !important; opacity:1 !important; }
+.class-duel-track { background:#ded6ca !important; border-color:#cfc4b5 !important; }
+.class-preferences {
+  background:linear-gradient(135deg,var(--class-panel),#fffaf2) !important;
+  border-color:var(--class-accent-soft) !important;
+}
+.class-story-card {
+  background:linear-gradient(135deg,var(--class-panel),#fffaf2) !important;
+  color:#40372f !important;
+  border-color:var(--class-accent-soft) !important;
+  border-left-color:var(--class-accent) !important;
+}
