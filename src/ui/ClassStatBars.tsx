@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
+import { ATTRIBUTE_USAGE, getAttributeBonus, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
 import { drawLadino } from '../game/ladino';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 
 const CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const CLASS_WEAPONS: Record<ClassId, WeaponId> = { guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao' };
 
-export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '👢' } as const;
+export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '👢', damagePerSecond: '💥', enemiesPerSecond: '👾', hits: '🛡️', range: '🎯' } as const;
 export const CLASS_STORIES: Record<ClassId, string> = {
   guerreiro: 'Curta distância, armadura pesada e nenhum medo de apanhar. O guerreiro resolve tudo de frente: entra no meio da horda, segura a pancada e responde com a espada, empurrando quem chegar perto. Para ele, a melhor tática é ser o último a ficar de pé.',
   mago: 'Frágil no corpo, devastador na mente. O mago prefere ficar longe da pancadaria e deixar o cajado trabalhar: a cada quarto disparo, uma explosão varre o grupo inteiro. Se o inimigo chegar perto, algo deu errado, mas até lá ele já fez muito estrago.',
@@ -25,6 +25,45 @@ export type ClassDuelPercentages = Record<ClassId, Record<DuelKey, DuelShare>>;
 
 // O orbe de cura do Druida vale 14 HP; killEnemy() no engine confirma esse valor.
 const DRUID_HEALING_ORB_VALUE = 14;
+
+const BASE_LEVEL = 0;
+const FIRST_NIGHT = 1;
+
+export type ComputedClassStats = {
+  damagePerSecond: number;
+  enemiesPerSecond: number;
+  hitsToSurvive: number;
+  range: number;
+};
+
+/** Estatísticas de combate da classe no nível zero, sem equipamento ou bônus de arsenal. */
+export function computeClassStats(classId: ClassId): ComputedClassStats {
+  const weapon = CONFIG.weapons[CLASS_WEAPONS[classId]];
+  const playerAttributes = getPlayerAttributes(classId, BASE_LEVEL);
+  const initialDamage = weapon.damage * getDamageMultiplier(classId, BASE_LEVEL);
+  const attacksPerSecond = weapon.attackSpeed;
+  const damagePerSecond = initialDamage * attacksPerSecond;
+
+  const firstNightEnemyHealth = CONFIG.enemy.health
+    + (FIRST_NIGHT - 1) * CONFIG.enemy.healthPerWave;
+  const firstNightContactDamage = CONFIG.enemy.contactDamage
+    + Math.floor((FIRST_NIGHT - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
+  const levelZeroArmor = getAttributeBonus(classId, BASE_LEVEL, 'armadura');
+  const damageTakenPerHit = Math.max(1, Math.round(
+    firstNightContactDamage - CONFIG.player.armor - levelZeroArmor,
+  ));
+  const initialHealth = CONFIG.attributes.classStartHealth[classId];
+
+  // Mantém a leitura dos atributos-base no mesmo nível zero usado pelos cartões de status.
+  void playerAttributes;
+
+  return {
+    damagePerSecond,
+    enemiesPerSecond: firstNightEnemyHealth > 0 ? damagePerSecond / firstNightEnemyHealth : 0,
+    hitsToSurvive: Math.floor(initialHealth / damageTakenPerHit),
+    range: weapon.range,
+  };
+}
 
 function getRawDuelValues() {
   const multipliers = CONFIG.attributes.classMultipliers;
@@ -108,6 +147,13 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
     { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. movimento', value: initialMobility.toFixed(0) },
   ];
   const duels = deriveClassDuelPercentages()[classId];
+  const computedStats = computeClassStats(classId);
+  const computedStatCards = [
+    { key: 'damagePerSecond', icon: CLASS_STAT_ICONS.damagePerSecond, label: 'Dano por segundo', value: computedStats.damagePerSecond.toFixed(1) },
+    { key: 'enemiesPerSecond', icon: CLASS_STAT_ICONS.enemiesPerSecond, label: 'Inimigos/s (1 alvo)', value: computedStats.enemiesPerSecond.toFixed(2) },
+    { key: 'hits', icon: CLASS_STAT_ICONS.hits, label: 'Aguenta (golpes)', value: computedStats.hitsToSurvive.toString() },
+    { key: 'range', icon: CLASS_STAT_ICONS.range, label: 'Alcance', value: computedStats.range.toFixed(0) },
+  ];
   const setPreference = (slot: 0 | 1) => onPreferencesChange(preferences[slot] === classId
     ? (slot === 0 ? [null, preferences[1]] : [preferences[0], null])
     : (slot === 0 ? [classId, preferences[1] === classId ? null : preferences[1]] : [preferences[0] === classId ? null : preferences[0], classId]));
@@ -139,5 +185,15 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
       <div><PreferenceStar kind="secondary" active={preferences[1] === classId} label={`Definir ${CLASS_LABELS[classId]} como secundária`} onClick={() => setPreference(1)}/><span>Secundária</span></div>
     </div></section>
     <blockquote className="class-story-card"><span className="class-story-quote" aria-hidden="true">“</span><p>{CLASS_STORIES[classId]}</p></blockquote>
+    <section className="class-computed-stats" aria-label="Estatísticas">
+      <h3>Estatísticas</h3>
+      <div className="class-computed-stat-grid">
+        {computedStatCards.map(stat => <article className="class-computed-stat" key={stat.key}>
+          <span className="class-computed-stat-icon" aria-hidden="true">{stat.icon}</span>
+          <span className="class-computed-stat-label">{stat.label}</span>
+          <strong>{stat.value}</strong>
+        </article>)}
+      </div>
+    </section>
   </div>;
 }
