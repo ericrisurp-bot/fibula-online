@@ -6727,6 +6727,211 @@ button, button * {
 .station-page-no-header .station-page-content{padding-bottom:var(--back-button-clearance)!important;}
 
 
+
+/* J1 — Joalheria imersiva: bancada em veludo, gema central e revelação. */
+.jewelry-page .station-page-content{
+  display:flex!important;min-width:0;min-height:0;height:100%;overflow:hidden!important;
+  padding:0 0 var(--back-button-clearance)!important;
+}
+.jewelry-page .lobby-crafting-content{
+  display:flex!important;flex:1 1 auto;flex-direction:column;align-items:stretch;
+  width:100%;height:100%;min-width:0;min-height:0;gap:0!important;margin:0;padding:0!important;overflow:hidden!important;
+}
+.jewelry-workspace{
+  display:grid!important;grid-template-rows:minmax(145px,1fr) minmax(104px,.48fr) auto;
+  flex:1 1 auto;width:100%;max-width:960px;min-width:0;min-height:0;gap:7px;
+  margin:0 auto;padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important;overflow:hidden;
+}
+.jewelry-scene{
+  position:relative;display:block;min-width:0;min-height:0;overflow:hidden;isolation:isolate;
+  border:1px solid #536d78;border-radius:13px;
+  background:
+    radial-gradient(ellipse at 50% 74%,rgba(120,78,179,.35),transparent 43%),
+    radial-gradient(ellipse at 83% 12%,rgba(51,147,151,.22),transparent 35%),
+    linear-gradient(155deg,#1b243c 0%,#172d3a 48%,#111d2b 100%);
+  box-shadow:inset 0 1px 0 #d8c8ff20,inset 0 -24px 45px #080d1b99,0 5px 14px #0007;
+}
+.jewelry-scene-wall{position:absolute;inset:0 0 30%;overflow:hidden;background:linear-gradient(180deg,#202b45aa,#182b3a55 70%,transparent)}
+.jewelry-wall-shelf{position:absolute;left:8%;right:8%;top:23%;height:8px;border-radius:4px;background:linear-gradient(180deg,#56707b,#263d4b 55%,#101d2b);box-shadow:0 5px 9px #050b17aa}
+.jewelry-lamp-arm{position:absolute;top:5%;right:22%;width:4px;height:43%;border-radius:4px;background:linear-gradient(90deg,#8b7c63,#e4c68c,#514b48);transform:rotate(22deg);transform-origin:top}
+.jewelry-lamp-shade{position:absolute;top:29%;right:13%;width:54px;height:24px;border:1px solid #c3a56d;border-radius:8px 8px 17px 17px;background:linear-gradient(180deg,#f0dca8,#927b52 45%,#343d4a);transform:rotate(22deg);box-shadow:0 0 20px #f4d78b44}
+.jewelry-loupe{position:absolute;top:15%;left:15%;width:31px;height:31px;border:4px solid #c9ad73;border-radius:50%;box-shadow:inset 0 0 0 3px #4b6880,0 0 12px #80d7dc44}
+.jewelry-loupe:after{content:"";position:absolute;width:4px;height:23px;left:23px;top:23px;border-radius:3px;background:#c9ad73;transform:rotate(-42deg);transform-origin:top}
+.jewelry-decor-gem{position:absolute;width:13px;height:16px;clip-path:polygon(50% 0,100% 32%,78% 100%,22% 100%,0 32%);background:linear-gradient(135deg,#b5f4ed,#4d9fa9 45%,#293c6e);filter:drop-shadow(0 0 7px #73d9db88)}
+.jewelry-decor-gem-one{left:36%;top:12%}
+.jewelry-decor-gem-two{right:34%;top:15%;width:9px;height:12px;background:linear-gradient(135deg,#f7e1a1,#b17ed8 55%,#4e477e)}
+.jewelry-light-beam{position:absolute;top:38%;right:12%;width:48%;height:65%;background:linear-gradient(180deg,#f4d99524,transparent);clip-path:polygon(42% 0,58% 0,100% 100%,0 100%);filter:blur(5px)}
+.jewelry-workbench{position:absolute;z-index:1;left:-3%;right:-3%;bottom:-4%;height:42%;border-top:2px solid #8c705b;background:linear-gradient(180deg,#4b3c4a 0%,#302b3d 14%,#1c2432 100%);box-shadow:0 -9px 22px #090e1caa,inset 0 8px 12px #d4b3e51a}
+.jewelry-workbench:before,.jewelry-workbench:after{content:"";position:absolute;top:22%;height:2px;background:#c19d6d66}
+.jewelry-workbench:before{left:8%;right:8%}
+.jewelry-workbench:after{left:18%;right:18%;top:34%;background:#9a8bb64d}
+.jewelry-bench-edge{position:absolute;left:0;right:0;top:0;height:12px;background:linear-gradient(180deg,#8b705f,#3e3542);box-shadow:0 3px 5px #090d17aa}
+.jewelry-velvet-pad{position:absolute;z-index:1;left:50%;top:5%;width:min(43%,190px);height:88%;transform:translateX(-50%);border:1px solid #9675b6;border-radius:45% 45% 18px 18px;background:radial-gradient(ellipse at 50% 35%,#684b87,#392b59 58%,#241f3c 100%);box-shadow:inset 0 2px 10px #e6c7ff30,inset 0 -8px 14px #090d1d99,0 0 20px #a78bd733}
+.jewelry-velvet-pad:after{content:"";position:absolute;inset:7px;border:1px solid #c8a6d13d;border-radius:inherit}
+.jewelry-bench-inlay{position:absolute;z-index:2;left:50%;bottom:7%;width:34%;height:3px;transform:translateX(-50%);border-radius:50%;background:#d4b678;box-shadow:0 0 9px #d4b67888}
+.jewelry-scene-header{position:absolute;z-index:4;top:8px;left:11px;pointer-events:none}
+.jewelry-scene-header h2{margin:0;color:#e8ddf7;font-size:11px;font-weight:900;letter-spacing:.2em;text-shadow:0 2px 4px #080d1a}
+.jewelry-scene-slots{position:absolute;z-index:3;inset:0;display:flex;align-items:center;justify-content:center;padding:27px 10px 9px}
+.jewelry-scene-content{position:relative;display:flex;width:100%;height:100%;align-items:center;justify-content:center}
+.jewelry-core-slot{
+  display:flex;flex:0 0 auto;width:min(42vw,150px);min-width:116px;min-height:78px;max-height:104px;
+  flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:7px 9px;
+  border:1px dashed #c6a9df;border-radius:12px;background:linear-gradient(150deg,#171b32eF,#29223eF5);
+  color:#f5e9ff;font:inherit;text-align:center;box-shadow:0 3px 12px #080b19bb,inset 0 1px 0 #fff2;
+}
+.jewelry-core-slot.filled{border:1px solid #d5b66f;background:linear-gradient(150deg,#28223fF5,#3b2e50F5);box-shadow:0 0 0 2px #d6b76d33,0 0 18px #d6b76d33}
+.jewelry-core-slot>strong{max-width:100%;font-size:clamp(9px,2.7vw,11px);line-height:1.2;overflow-wrap:anywhere}
+.jewelry-core-slot>small{color:#e4c68d;font-size:9px;font-weight:800;letter-spacing:.08em}
+.jewelry-gem-icon,.jewelry-list-gem,.jewelry-result-gem{
+  display:inline-block;flex:0 0 auto;width:24px;height:29px;clip-path:polygon(50% 0,100% 30%,78% 100%,22% 100%,0 30%);
+  background:linear-gradient(135deg,#e4fbff 0%,#76c8dc 28%,#9378d0 58%,#3a527d 100%);
+  filter:drop-shadow(0 0 7px #9be4ee99);
+}
+.jewelry-list-gem{width:20px;height:24px}
+.jewelry-result-gem{width:18px;height:22px}
+.jewelry-nuclei-zone{border-color:#62527d;background:linear-gradient(155deg,#302a46 0%,#22283a 56%,#19232e 100%);color:#f2eaff}
+.jewelry-nuclei-zone .forge-panel-heading strong{color:#e4c68d}
+.jewelry-nuclei-zone .forge-panel-heading span{color:#c7bfd9}
+.jewelry-nuclei-zone .forge-core-strip{scrollbar-color:#81709b transparent}
+.jewelry-nuclei-zone .forge-core-item{flex-basis:82px;border-color:#5b5473;background:linear-gradient(150deg,#38334e,#23283a);color:#f2eaff}
+.jewelry-nuclei-zone .forge-core-item.selected{border-color:#e1c27d;background:linear-gradient(150deg,#57476c,#2d3045);box-shadow:0 0 0 1px #e1c27d66,0 0 12px #a98bd044}
+.jewelry-nuclei-zone .forge-core-item strong{color:#f0dfbb;font-size:8px;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+.jewelry-nuclei-zone .forge-core-item small{color:#d4c7e7;font-size:8px}
+.jewelry-action-area{display:flex;min-width:0;min-height:35px;align-items:center;justify-content:center;gap:9px;padding:0 2px}
+.jewelry-reveal-button{
+  flex:0 0 auto;min-width:142px;min-height:35px;padding:7px 22px;border:1px solid #d5b66f;border-radius:9px;
+  background:linear-gradient(180deg,#e4cf91,#a8874e 58%,#66543f);color:#1e1c2c;font:inherit;font-size:10px;font-weight:950;
+  letter-spacing:.1em;text-shadow:0 1px 0 #fff8e0;box-shadow:inset 0 1px 0 #fff9df,0 2px 0 #44364c,0 4px 9px #0006;
+}
+.jewelry-reveal-button:disabled{border-color:#656174;background:linear-gradient(180deg,#777487,#4b4a5c);color:#ded9e8;opacity:.72;box-shadow:0 2px 0 #272536}
+.jewelry-feedback{min-width:0;max-width:55%;margin:0;color:#f4e8ff;font-size:9px;line-height:1.25;text-align:left;text-shadow:0 1px 3px #080b16;overflow-wrap:anywhere}
+.jewelry-result-card{
+  position:absolute;z-index:5;left:50%;bottom:4px;width:min(270px,calc(100% - 16px));max-height:64%;
+  transform:translateX(-50%);overflow:auto;padding:7px 9px;border:1px solid #d6bd7d;border-radius:10px;
+  background:linear-gradient(145deg,rgba(37,31,58,.97),rgba(17,27,42,.98));color:#f4eaff;
+  box-shadow:0 5px 18px #080b19cc,0 0 15px #c9a5f044;backdrop-filter:blur(5px);
+}
+.jewelry-result-card>header{display:flex;min-width:0;align-items:center;gap:7px;margin-bottom:4px;color:#fff3cf}
+.jewelry-result-card>header strong{min-width:0;font-size:9px;line-height:1.2;overflow-wrap:anywhere}
+.jewelry-result-card>ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 9px;margin:0;padding:0;list-style:none}
+.jewelry-result-card li{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:5px;color:#d7d0e5;font-size:8px;line-height:1.2}
+.jewelry-result-card li b{flex:0 0 auto;color:#f0d38c;font-size:9px}
+.jewelry-revealing .jewelry-gem-icon,.jewelry-revealing .jewelry-result-gem,.jewelry-revealing .jewelry-scene-glow{animation:jewelry-gem-flare 1.5s ease-out both}
+.jewelry-revealing .jewelry-result-card{animation:jewelry-result-appear .25s ease-out 1.2s both}
+@keyframes jewelry-result-appear{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+.jewelry-scene-glow{position:absolute;z-index:2;left:50%;top:49%;width:120px;height:100px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,#fff4c777 0%,#b18be455 35%,transparent 72%);opacity:0;pointer-events:none}
+.jewelry-scene-spark{position:absolute;z-index:4;width:5px;height:5px;border-radius:50%;background:#fff1bc;box-shadow:0 0 8px 3px #e7c77b99;opacity:0;pointer-events:none}
+.jewelry-spark-one{left:38%;top:42%}.jewelry-spark-two{left:61%;top:48%}.jewelry-spark-three{left:52%;top:35%}
+.jewelry-revealing .jewelry-scene-spark{animation:jewelry-spark-burst 1.5s ease-out both}
+@keyframes jewelry-gem-flare{
+  0%{filter:brightness(1);opacity:.35;transform:scale(.72)}
+  18%{filter:brightness(1.9);opacity:1;transform:scale(1.22)}
+  58%{filter:brightness(1.35);opacity:.9;transform:scale(1.06)}
+  100%{filter:brightness(1);opacity:1;transform:scale(1)}
+}
+@keyframes jewelry-spark-burst{
+  0%,100%{opacity:0;transform:translate(0,0) scale(.3)}
+  16%{opacity:1}
+  78%{opacity:.8;transform:translate(0,-24px) scale(1.1)}
+}
+@media(max-width:430px){
+  .jewelry-workspace{grid-template-rows:minmax(138px,1fr) minmax(98px,.48fr) auto;gap:6px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
+  .jewelry-scene{border-radius:10px}
+  .jewelry-scene-slots{padding:24px 7px 7px}
+  .jewelry-core-slot{width:min(44vw,142px);min-width:108px;min-height:72px;padding:6px}
+  .jewelry-nuclei-zone{padding:6px;gap:4px}
+  .jewelry-nuclei-zone .forge-core-item{flex-basis:74px;padding:4px 3px}
+  .jewelry-action-area{min-height:34px;gap:6px}
+  .jewelry-reveal-button{min-width:116px;min-height:34px;padding:6px 14px}
+  .jewelry-feedback{max-width:calc(100% - 122px);font-size:8px}
+  .jewelry-result-card{bottom:3px;width:min(260px,calc(100% - 10px));padding:6px 7px}
+}
+@media(max-width:340px){
+  .jewelry-nuclei-zone .forge-core-item{flex-basis:68px}
+  .jewelry-scene-header h2{font-size:10px}
+  .jewelry-feedback{font-size:7px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .jewelry-workspace{grid-template-rows:minmax(112px,1fr) minmax(82px,.5fr) auto;gap:4px;padding:4px 6px!important}
+  .jewelry-scene{min-height:112px}
+  .jewelry-scene-wall{bottom:25%}
+  .jewelry-workbench{height:38%}
+  .jewelry-nuclei-zone{padding:4px;gap:3px}
+  .jewelry-action-area{min-height:31px}
+  .jewelry-reveal-button{min-height:30px}
+}
+@media(prefers-reduced-motion:reduce){
+  .jewelry-revealing .jewelry-gem-icon,.jewelry-revealing .jewelry-result-gem,.jewelry-revealing .jewelry-scene-glow,.jewelry-revealing .jewelry-scene-spark,.jewelry-revealing .jewelry-result-card{animation:none!important;opacity:1!important}
+}
+
+
+/* J1.1 — ajuste de apoio e proporção dos objetos da bancada. */
+.jewelry-workbench{height:40%;bottom:-4%}
+.jewelry-velvet-pad{
+  left:50%;top:-24px;width:clamp(112px,34vw,138px);height:54px;
+  transform:translateX(-50%);border-radius:13px;
+  background:linear-gradient(155deg,#795c91 0%,#4c3968 52%,#2b2945 100%);
+  box-shadow:inset 0 2px 7px #f0d9ff38,inset 0 -5px 9px #090d1d88,0 9px 10px -7px #050914cc,0 0 12px #a78bd722;
+}
+.jewelry-velvet-pad:after{inset:5px;border-radius:9px}
+.jewelry-scene-slots{align-items:stretch}
+.jewelry-scene-content{position:relative}
+.jewelry-core-slot{
+  position:absolute;left:50%;bottom:calc(40% + 22px);z-index:4;
+  transform:translateX(-50%);min-height:66px;max-height:84px;width:min(38vw,132px);
+  box-shadow:0 7px 10px -5px #070a17dd,0 2px 5px #090b17aa,inset 0 1px 0 #fff2;
+}
+.jewelry-result-card{bottom:4px;max-height:30%;width:min(270px,calc(100% - 16px))}
+.jewelry-lamp-arm{
+  top:-2%;right:20%;width:5px;height:32%;border-radius:0 0 5px 5px;
+  transform:rotate(0);transform-origin:top;
+  background:linear-gradient(90deg,#665c50,#d9c18c 48%,#625743);
+  box-shadow:1px 1px 2px #080d18aa;
+}
+.jewelry-lamp-shade{
+  top:26%;right:calc(20% - 25px);width:55px;height:27px;
+  border:1px solid #c3a56d;border-radius:3px 3px 15px 15px;
+  clip-path:polygon(10% 0,90% 0,100% 100%,0 100%);
+  transform:none;
+  background:linear-gradient(180deg,#f2dfb0,#b69b68 52%,#66583f);
+  box-shadow:0 3px 8px #080d18aa,0 0 14px #f4d78b55;
+}
+.jewelry-light-beam{
+  top:calc(26% + 24px);right:calc(20% - 39px);width:83px;height:43%;
+  background:linear-gradient(180deg,#f4d99538 0%,#c6a9df16 42%,transparent 100%);
+  clip-path:polygon(39% 0,61% 0,100% 100%,0 100%);filter:blur(4px);
+}
+.jewelry-wall-shelf{top:26%;height:9px}
+.jewelry-decor-gem-one{left:36%;top:calc(26% - 16px)}
+.jewelry-decor-gem-two{right:34%;top:calc(26% - 12px)}
+.jewelry-loupe{
+  top:calc(26% - 32px);left:15%;width:29px;height:29px;
+  border-width:4px;background:radial-gradient(circle at 35% 30%,#c8e9e9,#4e7280 55%,#283e55);
+  box-shadow:0 4px 5px #070b17aa,inset 0 0 0 2px #26394c;
+}
+.jewelry-loupe:after{width:4px;height:20px;left:21px;top:21px;transform:rotate(-35deg)}
+.jewelry-nuclei-zone{min-height:0!important;height:auto;max-height:100%;align-self:start;padding-top:6px;padding-bottom:6px}
+.jewelry-nuclei-zone .forge-core-strip{min-height:0;height:auto;max-height:76px;align-items:stretch}
+.jewelry-nuclei-zone .forge-core-item{min-height:64px;max-height:72px}
+@media(max-width:430px){
+  .jewelry-workbench{height:40%}
+  .jewelry-velvet-pad{width:116px;height:49px;top:-21px}
+  .jewelry-core-slot{bottom:calc(40% + 19px);min-height:62px;max-height:76px;width:min(37vw,126px)}
+  .jewelry-result-card{max-height:29%;bottom:3px}
+  .jewelry-nuclei-zone .forge-core-strip{max-height:70px}
+  .jewelry-nuclei-zone .forge-core-item{min-height:60px;max-height:66px}
+}
+@media(max-width:340px){
+  .jewelry-velvet-pad{width:108px;height:46px}
+  .jewelry-core-slot{bottom:calc(40% + 18px);min-width:100px;min-height:58px}
+  .jewelry-result-card{width:calc(100% - 8px);padding:5px 6px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .jewelry-velvet-pad{width:108px;height:43px;top:-19px}
+  .jewelry-core-slot{bottom:calc(40% + 17px);min-height:56px}
+  .jewelry-result-card{max-height:26%}
+}
+
 /* K1 — placa escura para contraste estável do título do Forno de Pedra. */
 .station-page-no-header .cooking-oven-panel .cooking-oven-heading-title{
   display:inline-flex;
