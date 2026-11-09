@@ -34,7 +34,7 @@ import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import BackToLobbyButton from './ui/BackToLobbyButton';
-import ClassStatBars from './ui/ClassStatBars';
+import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 
 type RankingEntry = {
   user_id: string;
@@ -3266,37 +3266,23 @@ export default function App() {
           </section></div></PageFrame>}
         {profileOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
           <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
-            <div className="lobby-profile-tabs classes-tabs" role="group" aria-label="Classes disponíveis">
-              {PROFILE_CLASS_IDS.map(classId => <div
+            <div className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
+              {PROFILE_CLASS_IDS.map(classId => <button
+                type="button"
+                role="tab"
+                aria-selected={profileClassTab === classId}
+                tabIndex={profileClassTab === classId ? 0 : -1}
                 className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
                 key={classId}
+                onClick={() => setProfileClassTab(classId)}
               >
-                <button type="button" aria-pressed={profileClassTab === classId} className="class-tab-label" onClick={() => setProfileClassTab(classId)}>
-                  <strong>{CLASSES[classId].label}</strong>
-                </button>
-                <span className="class-priority-stars">
-                  <button type="button" className={`class-priority-star primary${characterPreferences[0] === classId ? ' is-active' : ''}`} aria-pressed={characterPreferences[0] === classId} aria-label={`Definir ${CLASSES[classId].label} como principal`} onClick={event => {
-                    event.stopPropagation();
-                    setCharacterPreferences((current): [ClassId | null, ClassId | null] => current[0] === classId
-                      ? [null, current[1]]
-                      : [classId, current[1] === classId ? null : current[1]]);
-                  }}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.55 4.43 1.08 6.27L12 17.14l-5.63 2.96 1.08-6.27L2.9 9.4l6.3-.9L12 2.8Z" /></svg>
-                  </button>
-                  <button type="button" className={`class-priority-star secondary${characterPreferences[1] === classId ? ' is-active' : ''}`} aria-pressed={characterPreferences[1] === classId} aria-label={`Definir ${CLASSES[classId].label} como secundário`} onClick={event => {
-                    event.stopPropagation();
-                    setCharacterPreferences((current): [ClassId | null, ClassId | null] => current[1] === classId
-                      ? [current[0], null]
-                      : [current[0] === classId ? null : current[0], classId]);
-                  }}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.55 4.43 1.08 6.27L12 17.14l-5.63 2.96 1.08-6.27L2.9 9.4l6.3-.9L12 2.8Z" /></svg>
-                  </button>
-                </span>
-              </div>)}
+                <ClassFace classId={classId} size={36} />
+                <strong>{CLASSES[classId].label}</strong>
+              </button>)}
             </div>
             <div className="lobby-profile-content classes-content">
               <section className={`profile-class-details class-${profileClassTab}`} aria-label={`Comparação de atributos: ${CLASSES[profileClassTab].label}`}>
-                <ClassStatBars classId={profileClassTab} />
+                <ClassStatBars classId={profileClassTab} preferences={characterPreferences} onPreferencesChange={setCharacterPreferences} />
               </section>
             </div>
           </section></div>
