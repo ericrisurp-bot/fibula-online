@@ -9,7 +9,6 @@ type StatusDuoProps = {
   onChooseClasses: () => void;
 };
 
-const ROLE_LABELS = ['Principal', 'Secundária'] as const;
 
 function PreferenceStar({ kind }: { kind: 'primary' | 'secondary' }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.55 4.43 1.08 6.27L12 17.14l-5.63 2.96 1.08-6.27L2.9 9.4l6.3-.9L12 2.8Z" /></svg>;
@@ -52,7 +51,6 @@ function Comparison({ title, leftClass, rightClass, leftValue, rightValue }: {
 export default function StatusDuo({ preferences, accountLevel, onChooseClasses }: StatusDuoProps) {
   const selected = preferences.map((classId, index) => classId ? {
     classId,
-    role: ROLE_LABELS[index],
     kind: index === 0 ? 'primary' as const : 'secondary' as const,
     power: getClassPower(classId, 0, 1 + accountLevel * 0.05).total,
     powerAt10: getClassPower(classId, 10, 1 + accountLevel * 0.05).total,
