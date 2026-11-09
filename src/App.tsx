@@ -31,6 +31,7 @@ import { registerStepSounds } from './audio/stepSounds';
 import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute } from './ui/stationRoute';
 import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
+import JewelryScene from './ui/JewelryScene';
 import BackToLobbyButton from './ui/BackToLobbyButton';
 
 type RankingEntry = {
@@ -676,7 +677,18 @@ export default function App() {
   const [chestTransferFeedback, setChestTransferFeedback] = useState('');
   const [selectedJewelryCoreId, setSelectedJewelryCoreId] = useState<string | null>(null);
   const [jewelryResultCoreId, setJewelryResultCoreId] = useState<string | null>(null);
+  const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
   const [jewelryFeedback, setJewelryFeedback] = useState('');
+  useEffect(() => {
+    if (!jewelryResultCoreId) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setJewelryRevealAnimating(false);
+      return;
+    }
+    setJewelryRevealAnimating(true);
+    const timeout = window.setTimeout(() => setJewelryRevealAnimating(false), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [jewelryResultCoreId]);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
   const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
@@ -2755,40 +2767,60 @@ export default function App() {
     }
   };
 
-  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
+  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'joalheria'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'joalheria' ? 'jewelry-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
-              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
-              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && <p>{activeCraftingStation.description}</p>}
-              {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-station-form">
-                <section className="jewelry-core-panel">
-                  <div className="jewelry-section-heading"><strong>NÚCLEOS FECHADOS DE ARMA</strong><span>Selecione 1 núcleo para revelar</span></div>
-                  <div className="jewelry-core-grid">
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && <div className="lobby-crafting-emblem" aria-hidden="true">{activeCraftingStation.icon}</div>}
+              {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && <p>{activeCraftingStation.description}</p>}
+              {activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
+                <JewelryScene revealAnimating={jewelryRevealAnimating}>
+                  <div className="jewelry-scene-content">
+                    <button type="button" className={selectedJewelryCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
+                      onClick={() => { setSelectedJewelryCoreId(null); setJewelryFeedback(''); }}
+                      aria-label={selectedJewelryCoreId ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
+                      {selectedJewelryCoreId ? <>
+                        <span className="jewelry-gem-icon" aria-hidden="true" />
+                        <strong>{itemLabel(selectedJewelryCoreId)}</strong>
+                        <small>{(() => { const core = parseCoreItemId(selectedJewelryCoreId); return core?.kind === 'closed' ? coreRarityLabel(core.rarity) : 'Núcleo fechado'; })()}</small>
+                      </> : <strong>＋ Núcleo 0/1</strong>}
+                    </button>
+                    {(() => {
+                      const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
+                      if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
+                      return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
+                        <header><span className="jewelry-result-gem" aria-hidden="true" /><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
+                        <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}>
+                          <span>{weaponAttributeLabels[attribute.key]}</span>
+                          <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
+                        </li>)}</ul>
+                      </section>;
+                    })()}
+                  </div>
+                </JewelryScene>
+                <section className="forge-zone forge-nuclei-zone jewelry-nuclei-zone" aria-label="Núcleos fechados">
+                  <div className="forge-panel-heading">
+                    <strong>NÚCLEOS FECHADOS</strong>
+                    <span>Selecione 1 núcleo para revelar</span>
+                  </div>
+                  <div className="forge-core-strip">
                     {jewelryWeaponCoreStacks.map(item => <button type="button" key={item.itemId}
-                      className={selectedJewelryCoreId === item.itemId ? 'jewelry-core-option selected' : 'jewelry-core-option'}
+                      className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
                       onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
-                      <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b>
+                      <span className="jewelry-list-gem" aria-hidden="true" />
+                      <strong>{itemLabel(item.itemId)}</strong>
+                      <small>×{item.quantity}</small>
                     </button>)}
-                    {jewelryWeaponCoreStacks.length === 0 && <p className="jewelry-empty">Você não tem núcleos para revelar.</p>}
+                    {jewelryWeaponCoreStacks.length === 0 && <p className="forge-empty">Você não tem núcleos para revelar.</p>}
                   </div>
                 </section>
-                {selectedJewelryCoreId && <button type="button" className="jewelry-reveal-button"
-                  disabled={!jewelryWeaponCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
-                  onClick={() => revealCoreFromChest(selectedJewelryCoreId)}>Revelar</button>}
-                {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
-                {(() => {
-                  const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
-                  if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
-                  return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
-                    <header><span>{inventoryItemIcon(jewelryResultCoreId!)}</span><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
-                    <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}>
-                      <span>{weaponAttributeLabels[attribute.key]}</span>
-                      <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
-                    </li>)}</ul>
-                  </section>;
-                })()}
+                <div className="jewelry-action-area">
+                  <button type="button" className="jewelry-reveal-button"
+                    disabled={!selectedJewelryCoreId || !jewelryWeaponCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
+                    onClick={() => selectedJewelryCoreId && revealCoreFromChest(selectedJewelryCoreId)}>Revelar</button>
+                  {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
+                </div>
               </div> : activeCraftingStation.id === 'bigorna' ? <>
                 <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
@@ -2954,7 +2986,7 @@ export default function App() {
             
         </div>
       </div>
-    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao') && <BackToLobbyButton onClick={closeGamePage} />}
+    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria') && <BackToLobbyButton onClick={closeGamePage} />}
       </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
