@@ -6,24 +6,26 @@ type StationNavProps = {
   onOpenStation: (id: StationRouteId) => void;
 };
 
-const STATIONS: { id: StationRouteId; label: string }[] = [
-  { id: 'bigorna', label: 'Bigorna' },
-  { id: 'fogao', label: 'Cozinha' },
-  { id: 'costura', label: 'Alfaiataria' },
-  { id: 'joalheria', label: 'Joalheria' },
-];
+const STATION_LABELS: Record<StationRouteId, string> = {
+  bigorna: 'Bigorna',
+  costura: 'Alfaiataria',
+  joalheria: 'Joalheria',
+  fogao: 'Cozinha',
+};
+
+const STATION_NAV_ORDER: StationRouteId[] = ['bigorna', 'costura', 'joalheria', 'fogao'];
 
 export default function StationNav({ current, onLobby, onOpenStation }: StationNavProps) {
   return <nav className="station-nav" aria-label="Navegação entre estações">
-    <button type="button" className="station-nav-button station-nav-lobby" aria-label="Voltar ao Lobby" onClick={onLobby}>Lobby</button>
-    {STATIONS.filter(station => station.id !== current).map(station =>
+    {STATION_NAV_ORDER.filter(id => id !== current).map(id =>
       <button
-        key={station.id}
+        key={id}
         type="button"
-        className={`station-nav-button station-nav-${station.id}`}
-        aria-label={`Abrir estação ${station.label}`}
-        onClick={() => onOpenStation(station.id)}
-      >{station.label}</button>,
+        className={`station-nav-button station-nav-${id}`}
+        aria-label={`Abrir estação ${STATION_LABELS[id]}`}
+        onClick={() => onOpenStation(id)}
+      >{STATION_LABELS[id]}</button>,
     )}
+    <button type="button" className="station-nav-button station-nav-lobby" aria-label="Voltar ao Lobby" onClick={onLobby}>Lobby</button>
   </nav>;
 }
