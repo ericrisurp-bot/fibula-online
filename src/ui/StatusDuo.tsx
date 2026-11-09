@@ -70,7 +70,7 @@ export default function StatusDuo({ preferences, accountLevel, onChooseClasses }
       {selected.map(entry => <article className={`status-page-class-card status-page-${entry.classId}`} key={entry.classId}>
         <ClassFace classId={entry.classId} size={48} />
         <strong className="status-page-class-name">{CLASSES[entry.classId].label}</strong>
-        <span className={`status-page-role ${entry.kind}`}><PreferenceStar />{entry.role}</span>
+        <span className={`status-page-role ${entry.kind}`}><PreferenceStar />{entry.kind === 'primary' ? 'Principal' : 'Secundária'}</span>
         <span className="status-page-power-label">Poder</span>
         <strong className="status-page-power-value">{formatPower(entry.power)}</strong>
         <small className="status-page-level10">Nível 10: {formatPower(entry.powerAt10)}</small>
