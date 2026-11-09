@@ -76,8 +76,6 @@ const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   arqueiro: 'arco',
   druida: 'bastao',
 };
-const CLASS_STYLE: Record<ClassId, string> = { guerreiro: 'Tanque', mago: 'Explosivo', arqueiro: 'Independente', druida: 'Suporte' };
-const attributeUnusedClass = (classId: ClassId, key: AttributeKey) => ATTRIBUTE_USAGE[classId][key] > 0 ? '' : ' attr-unused';
 
 const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
   capacete: { label: 'capacete' }, peitoral: { label: 'peitoral' },
