@@ -7547,9 +7547,10 @@ button, button * {
   stroke:var(--class-accent)!important;
   stroke-width:3!important;
 }
+/* Mantém as cores originais dos rostos e dos acessórios de cada classe. */
 .side-page.classes-page .class-face > path,
 .side-page.classes-page .class-face > circle:not(.class-face-background):not(.class-face-ring) {
-  filter:grayscale(1) brightness(.2) contrast(1.35);
+  filter:none;
 }
 .side-page.classes-page .class-page-content.class-guerreiro {--class-accent:#bd3d43;--class-soft:#f8dedd}
 .side-page.classes-page .class-page-content.class-mago {--class-accent:#8053b8;--class-soft:#f0e2f8}
