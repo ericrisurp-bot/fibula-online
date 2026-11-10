@@ -8412,3 +8412,83 @@ sem backdrop ou caixa de modal. */
   .side-page.player-profile-side .player-profile-side-stats article>span {font-size:11px;letter-spacing:0}
   .side-page.player-profile-side .player-profile-side-stats article>strong {font-size:17px}
 }
+
+
+/* SP2.1 — Correções de contraste, formulário e alinhamento. */
+.side-page.player-profile-side .player-profile-avatar-choice>span {
+  color:#292720!important;
+  font-size:12px;
+  font-weight:800;
+}
+.side-page.player-profile-side .player-profile-avatar-choice.selected>span {
+  color:#292720!important;
+}
+.side-page.player-profile-side .player-profile-side-form label {
+  color:#292720!important;
+  font-size:12px;
+  font-weight:800;
+}
+.side-page.player-profile-side .player-profile-side-form label small {
+  color:#514b40!important;
+  font-size:11px!important;
+  font-weight:500!important;
+}
+.side-page.player-profile-side .player-profile-side-form input,
+.side-page.player-profile-side .player-profile-side-form select {
+  min-height:42px;
+  border:1px solid #cfc6b3!important;
+  background:#ffffff!important;
+  color:#292720!important;
+  font-size:12px;
+}
+.side-page.player-profile-side .player-profile-side-form input::placeholder {
+  color:#6b6455!important;
+  opacity:1;
+}
+.side-page.player-profile-side .player-profile-side-form input:focus-visible,
+.side-page.player-profile-side .player-profile-side-form select:focus-visible {
+  outline:2px solid #8a744c!important;
+  outline-offset:2px;
+}
+.side-page.player-profile-side .player-profile-side-form .player-profile-actions button {
+  min-height:42px;
+  border:1px solid #cfc6b3!important;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:900;
+}
+.side-page.player-profile-side .player-profile-side-form .player-profile-actions button.secondary {
+  background:#f1ece0!important;
+  color:#292720!important;
+}
+.side-page.player-profile-side .player-profile-side-form .player-profile-actions button[type="submit"] {
+  border-color:#292720!important;
+  background:#292720!important;
+  color:#fffdf8!important;
+}
+.side-page.player-profile-side .player-profile-side-form .player-profile-actions button:disabled {
+  opacity:.6!important;
+}
+.side-page.player-profile-side .station-page-content,
+.side-page.player-profile-side .side-page-content {
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+}
+.side-page.player-profile-side .player-profile-panel {
+  align-self:flex-start;
+  margin:0 auto!important;
+}
+.side-page.player-profile-side .player-profile-side-content {
+  justify-content:flex-start!important;
+}
+.side-page.player-profile-side .player-profile-side-stats article {
+  justify-content:space-between!important;
+  gap:5px;
+}
+.side-page.player-profile-side .player-profile-side-stats article>span {
+  min-height:2.4em;
+  line-height:1.2;
+}
+.side-page.player-profile-side .player-profile-side-stats article>strong {
+  margin-top:auto;
+}
