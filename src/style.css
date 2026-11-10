@@ -8516,6 +8516,7 @@ sem backdrop ou caixa de modal. */
 .lobby-screen .lobby-play-trigger.duo-ready-trigger[aria-pressed="true"]{border-color:#8a744c;background:#292720;color:#fffdf8}
 .lobby-screen .lobby-duo-peer{padding:6px 8px;border:1px solid #e0d9ca;border-radius:10px;background:rgba(255,253,248,.92);color:#292720;box-shadow:0 3px 12px #0005;backdrop-filter:none;-webkit-backdrop-filter:none}
 .lobby-screen .lobby-duo-peer-name,.lobby-screen .lobby-duo-peer-status{color:#292720;text-shadow:none}
+.lobby-screen .lobby-duo-peer.connecting{opacity:1;filter:none}
 .lobby-screen .lobby-duo-peer-leave{min-height:24px;border:1px solid #cfc6b3;background:#f1ece0;color:#292720}
 .lobby-screen .lobby-duo-invite{border:1px solid #8a744c;background:#fffdf8;color:#292720;box-shadow:0 3px 12px #0006;backdrop-filter:none;-webkit-backdrop-filter:none}
 .lobby-screen .lobby-duo-invite:hover,.lobby-screen .lobby-duo-invite:active{background:#f1ece0;color:#292720}
