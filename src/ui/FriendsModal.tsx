@@ -160,7 +160,10 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
   useEffect(() => {
     let active = true;
     setPdRanks({});
-    if (!friendIds.length) return () => { active = false; };
+    if (!friendIds.length) {
+      pdRanksRequestRef.current = null;
+      return () => { active = false; };
+    }
 
     let request = pdRanksRequestRef.current;
     if (!request || request.key !== friendIdsKey) {
