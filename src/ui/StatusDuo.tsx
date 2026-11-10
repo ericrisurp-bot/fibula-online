@@ -1,6 +1,7 @@
 import { CLASSES, type ClassId } from '../game/config';
 import { ClassFace } from './ClassStatBars';
 import type { MatchHistoryEntry } from '../game/matchHistory';
+import type { ClassUsageRecord } from '../game/classUsage';
 
 type RankInfo = { position: number | null; total: number; previous: number | null; error: boolean };
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
   rankings: { power: RankInfo; days: RankInfo };
   lastMatch: MatchHistoryEntry | null;
   history: MatchHistoryEntry[];
+  usage: ClassUsageRecord;
   onGoClasses: () => void;
 };
 function Trend({ rank }: { rank: RankInfo }) {
@@ -25,7 +27,35 @@ function RankCard({ title, rank }: { title: string; rank: RankInfo }) {
     <small>{rank.error ? 'sem conexão' : hasValue ? 'posição atual' : 'sem posição ainda'}</small>
   </article>;
 }
-export default function StatusDuo({ preferences, powers, powerReady, weaponsLoading, rankings, lastMatch, history, onGoClasses }: Props) {
+const USAGE_CLASS_ORDER: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
+
+function topUsageClass(usage: ClassUsageRecord['total'], metric: 'seconds' | 'damage' | 'kills') {
+  let bestClass: ClassId | null = null;
+  let bestValue = 0;
+  for (const classId of USAGE_CLASS_ORDER) {
+    const value = usage[classId][metric];
+    if (value > bestValue) {
+      bestClass = classId;
+      bestValue = value;
+    }
+  }
+  return bestClass ? { classId: bestClass, value: bestValue } : null;
+}
+
+function formatUsageTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 1) return '<1 min';
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`;
+}
+
+function formatUsageDamage(damage: number): string {
+  return damage >= 1000
+    ? `${(damage / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
+    : Math.round(damage).toLocaleString('pt-BR');
+}
+
+export default function StatusDuo({ preferences, powers, powerReady, weaponsLoading, rankings, lastMatch, history, usage, onGoClasses }: Props) {
   const selected = preferences.flatMap((classId, index) => classId ? [{ classId, index }] : []);
   if (!selected.length) return <div className="status-page-content"><div className="status-page-empty">
     <strong>Escolha sua classe principal e secundária</strong><button type="button" onClick={onGoClasses}>Ir para Classes</button>
@@ -34,6 +64,13 @@ export default function StatusDuo({ preferences, powers, powerReady, weaponsLoad
   const maxDays = Math.max(1, ...history.map(item => item.days));
   const averageDays = history.length ? history.reduce((sum, item) => sum + item.days, 0) / history.length : 0;
   const bestDays = history.length ? Math.max(...history.map(item => item.days)) : 0;
+  const mostPlayed = topUsageClass(usage.total, 'seconds');
+  const mostDamage = topUsageClass(usage.total, 'damage');
+  const mostLastKills = usage.last ? topUsageClass(usage.last, 'kills') : null;
+  const usageHasData = USAGE_CLASS_ORDER.some(classId =>
+    usage.total[classId].seconds > 0 || usage.total[classId].damage > 0 || usage.total[classId].kills > 0,
+  );
+  const usageNeedsHint = !usageHasData || !mostPlayed || !mostDamage || !mostLastKills;
   return <div className="status-page-content">
     <section className="status-page-power-overview" aria-label="Poder da dupla armada">
       <header><span>PODER DA DUPLA</span><strong>{totalPower === null ? '—' : totalPower}</strong></header>
@@ -64,6 +101,27 @@ export default function StatusDuo({ preferences, powers, powerReady, weaponsLoad
         </div>)}</div>
         <footer><span>MÉDIA <strong>{averageDays.toFixed(1)} dias</strong></span><span>MELHOR <strong>{bestDays} dias</strong></span></footer>
       </> : <small>Jogue uma partida para ver seu histórico</small>}
+    </section>
+    <section className="status-page-usage" aria-label="Uso por classe">
+      <header>USO</header>
+      <div className="status-page-usage-rows">
+        <div className={`status-page-usage-row ${mostPlayed ? `class-${mostPlayed.classId}` : ''}`}>
+          <span>Mais jogada</span>
+          <strong>{mostPlayed ? <><ClassFace classId={mostPlayed.classId} size={18}/>{CLASSES[mostPlayed.classId].label}</> : '—'}</strong>
+          <b>{mostPlayed ? formatUsageTime(mostPlayed.value) : '—'}</b>
+        </div>
+        <div className={`status-page-usage-row ${mostDamage ? `class-${mostDamage.classId}` : ''}`}>
+          <span>Mais dano</span>
+          <strong>{mostDamage ? <><ClassFace classId={mostDamage.classId} size={18}/>{CLASSES[mostDamage.classId].label}</> : '—'}</strong>
+          <b>{mostDamage ? formatUsageDamage(mostDamage.value) : '—'}</b>
+        </div>
+        <div className={`status-page-usage-row ${mostLastKills ? `class-${mostLastKills.classId}` : ''}`}>
+          <span>Abates na última partida</span>
+          <strong>{mostLastKills ? <><ClassFace classId={mostLastKills.classId} size={18}/>{CLASSES[mostLastKills.classId].label}</> : '—'}</strong>
+          <b>{mostLastKills ? mostLastKills.value.toLocaleString('pt-BR') : '—'}</b>
+        </div>
+      </div>
+      {usageNeedsHint && <small>Jogue uma partida para ver seu uso</small>}
     </section>
   </div>;
 }
