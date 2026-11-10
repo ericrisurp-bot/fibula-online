@@ -8022,7 +8022,34 @@ sem backdrop ou caixa de modal. */
 .side-page.ranking-page .ranking-empty small {max-width:380px;color:#655c4f;font-size:11px;line-height:1.4}
 .side-page.ranking-page button:focus-visible {outline:2px solid #8a744c;outline-offset:2px}
 
-@media(max-width:559px),(orientation:landscape) {
+@media(max-width:559px) and (orientation:portrait) {
+  .side-page.ranking-page .station-page-content,
+  .side-page.ranking-page .side-page-content {
+    padding-left:7px!important;
+    padding-right:7px!important;
+    overflow-x:hidden;
+    overflow-y:hidden;
+  }
+  .side-page.ranking-page .ranking-panel {
+    flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
+    padding:7px;
+    gap:6px;
+  }
+  .side-page.ranking-page .ranking-board {
+    display:flex;
+    flex:1 1 auto;
+    min-height:0;
+    flex-direction:column;
+  }
+  .side-page.ranking-page .ranking-list {
+    flex:1 1 auto;
+    max-height:none;
+    min-height:0;
+  }
+}
+@media(orientation:landscape) {
   .side-page.ranking-page .station-page-content,
   .side-page.ranking-page .side-page-content {
     padding-left:7px!important;
@@ -8045,7 +8072,7 @@ sem backdrop ou caixa de modal. */
   .side-page.ranking-page .ranking-entry-avatar .class-face {width:26px;height:26px}
   .side-page.ranking-page .ranking-entry>strong {font-size:11px}
   .side-page.ranking-page .ranking-entry>b {font-size:11px}
-  .side-page.ranking-page .ranking-category-tabs button {gap:3px;font-size:10px}
+  .side-page.ranking-page .ranking-category-tabs button {gap:2px;padding-left:2px;padding-right:2px;font-size:11px}
 }
 @media(prefers-reduced-motion:reduce) {
   .side-page.ranking-page * {scroll-behavior:auto!important;transition:none!important}
