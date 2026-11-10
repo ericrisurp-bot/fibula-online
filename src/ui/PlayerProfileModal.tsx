@@ -5,6 +5,7 @@ import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 import { drawLadino } from '../game/ladino';
 import { drawFloatingWeapon } from '../game/weapons';
 import PageFrame from './PageFrame';
+import BackToLobbyButton from './BackToLobbyButton';
 
 type PlayerProfile = {
   user_id: string;
@@ -307,7 +308,69 @@ export default function PlayerProfileModal({
       </>}
       <footer className="player-profile-footer"><span>Nome, idade e sexo ficam bloqueados depois de definidos. O avatar pode ser trocado quando quiser.</span></footer>
     </section>;
+  const sideProfilePanel = <section className="side-page-panel player-profile-panel">
+    {loading ? <p className="player-profile-side-message">Carregando perfil...</p> : !profile ? <p className="player-profile-side-message">{error || 'Este jogador ainda não criou um perfil.'}</p> : <>
+      <div className="player-profile-side-content">
+        <div className="player-profile-side-hero">
+          <div className="player-profile-side-avatar-wrap">
+            <button type="button" className="player-profile-avatar" disabled={!canEdit}
+              aria-label={canEdit ? "Alterar foto de perfil" : "Foto de perfil"}
+              title={canEdit ? "Alterar foto de perfil" : "Foto de perfil"}
+              onClick={() => setAvatarPickerOpen(true)}>
+              <canvas ref={avatarCanvasRef} className="player-profile-avatar-canvas" aria-hidden="true" />
+              {canEdit && <span className="player-profile-avatar-edit" aria-hidden="true">✎</span>}
+            </button>
+          </div>
+          <div className="player-profile-side-identity">
+            <h2>{profile.display_name || 'Nome ainda não escolhido'}</h2>
+            <p>Conta no Fíbula desde {createdAt ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(createdAt) : '—'} · há {accountDays.toLocaleString('pt-BR')} dias</p>
+            {canEdit && <div className="player-profile-side-personal">
+              <span><b>IDADE</b>{profile.age ? `${profile.age} anos` : 'Não informada'}</span>
+              <span><b>SEXO</b>{profile.sex ? profile.sex.charAt(0).toUpperCase() + profile.sex.slice(1) : 'Não informado'}</span>
+            </div>}
+          </div>
+        </div>
+        <div className="player-profile-side-stats">
+          <article><span>MAIOR PD</span><strong>{profile.highest_pd.toLocaleString('pt-BR')}</strong></article>
+          <article><span>RECORDE DE DIAS</span><strong>{profile.highest_survival_level.toLocaleString('pt-BR')}</strong></article>
+          <article><span>ABATES</span><strong>{profile.kills.toLocaleString('pt-BR')}</strong></article>
+        </div>
+        {avatarPickerOpen && canEdit && <div className="player-profile-avatar-backdrop player-profile-side-avatar-backdrop" onClick={() => !savingAvatar && setAvatarPickerOpen(false)}>
+          <section className="player-profile-avatar-dialog player-profile-side-avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="player-profile-avatar-title" onClick={event => event.stopPropagation()}>
+            <header><div><span>PERSONALIZAÇÃO</span><h3 id="player-profile-avatar-title">Escolher foto</h3></div>
+              <button type="button" aria-label="Fechar seleção de avatar" disabled={savingAvatar} onClick={() => setAvatarPickerOpen(false)}>×</button>
+            </header>
+            <p>Escolha o personagem que vai representar seu perfil.</p>
+            <div className="player-profile-avatar-options">
+              {CLASS_IDS.map(classId => <button key={classId} type="button" disabled={savingAvatar} aria-pressed={selectedAvatar === classId}
+                className={`player-profile-avatar-choice${selectedAvatar === classId ? ' selected' : ''} class-${classId}`}
+                onClick={() => { if (selectedAvatar === classId) { setAvatarPickerOpen(false); return; } void saveAvatar(classId).then(saved => { if (saved) setAvatarPickerOpen(false); }); }}>
+                <AvatarPortrait classId={classId} />
+                <span>{CLASS_INFO[classId].name}</span>
+                {selectedAvatar === classId && <small>Atual</small>}
+              </button>)}
+            </div>
+            {savingAvatar && <small className="player-profile-avatar-saving" role="status">Salvando foto...</small>}
+            {error && <p className="player-profile-error" role="alert">{error}</p>}
+          </section>
+        </div>}
+        {editing && canEdit ? <form className="player-profile-form player-profile-side-form" onSubmit={saveIdentity}>
+          {profile.display_name === null && <label>Nome de jogador<input value={displayName} onChange={event => setDisplayName(event.target.value)} minLength={3} maxLength={20} placeholder="Escolha seu nome" required /></label>}
+          {profile.age === null && <label>Idade <small>(não poderá ser alterada depois)</small><input type="number" min="1" max="120" value={age} onChange={event => setAge(event.target.value)} placeholder="Sua idade" required /></label>}
+          {profile.sex === null && <label>Sexo <small>(não poderá ser alterado depois)</small><select value={sex} onChange={event => setSex(event.target.value)} required><option value="">Selecione</option><option value="masculino">Masculino</option><option value="feminino">Feminino</option><option value="outro">Outro</option></select></label>}
+          <div className="player-profile-actions"><button type="button" className="secondary" onClick={() => { setEditing(false); setError(''); }}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar dados'}</button></div>
+        </form> : canCompleteIdentity && <button type="button" className="player-profile-edit player-profile-side-edit" onClick={() => { setEditing(true); setError(''); }}>{profile.display_name ? 'Completar dados do perfil' : 'Criar meu perfil'}</button>}
+        {error && <p className="player-profile-error" role="alert">{error}</p>}
+      </div>
+      {canEdit && <footer className="player-profile-side-footer">Nome, idade e sexo ficam bloqueados depois de definidos. O avatar pode ser trocado quando quiser.</footer>}
+    </>}
+  </section>;
   return pageMode
-    ? <PageFrame eyebrow="IDENTIDADE DO FÍBULA ONLINE" title="Perfil do jogador" onBack={onClose}><div className="station-page-content player-profile-page-content">{profilePanel}</div></PageFrame>
+    ? <PageFrame eyebrow="" title="" onBack={onClose} hideHeader stateClassName="side-page player-profile-side">
+        <div className="station-page-content side-page-content player-profile-page-content">
+          {sideProfilePanel}
+        </div>
+        <BackToLobbyButton onClick={onClose} />
+      </PageFrame>
     : <div className="player-profile-backdrop" onClick={onClose}>{profilePanel}</div>;
 }
