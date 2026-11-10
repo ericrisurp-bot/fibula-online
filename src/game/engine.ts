@@ -10,6 +10,7 @@ import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './d
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 import { distanceToLakeEdge, isInsideLake, lakeColliderCircles, lakeSteeringCircles, lakeSlideDirection, pushOutOfLake, type Lake, type LakeCircle } from './lake';
 import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon, type WeaponModel } from './weapons';
+import type { MatchClassUsage } from './classUsage';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -18,6 +19,15 @@ const MATERIAL_ATTRACTION_DELAY = 0.5;
 const MATERIAL_DROP_LIFETIME = 15;
 const HOUSE_STORAGE_KEY = 'fibula-house-storage';
 const HOUSE_STORAGE_SLOTS = 50;
+
+function createEmptyClassUsage(): MatchClassUsage {
+  return {
+    guerreiro: { seconds: 0, damage: 0, kills: 0 },
+    mago: { seconds: 0, damage: 0, kills: 0 },
+    arqueiro: { seconds: 0, damage: 0, kills: 0 },
+    druida: { seconds: 0, damage: 0, kills: 0 },
+  };
+}
 
 function readHouseStorage(): InventoryStack[] {
   if (typeof window === 'undefined') return [];
@@ -268,6 +278,7 @@ export class GameEngine {
   readonly players: PlayerEntity[];
   onSound?: (event: SoundEvent) => void;
   private local: PlayerRuntime = createPlayerRuntime();
+  private classUsage: MatchClassUsage = createEmptyClassUsage();
   private accountLevel = 0;
   private jabuticabaSunsetChecked = false;
   private nextId = 1;
@@ -337,6 +348,15 @@ export class GameEngine {
   }
 
   get primaryPlayer(): PlayerEntity { return this.players[0]; }
+
+  getClassUsage(): MatchClassUsage {
+    return {
+      guerreiro: { ...this.classUsage.guerreiro },
+      mago: { ...this.classUsage.mago },
+      arqueiro: { ...this.classUsage.arqueiro },
+      druida: { ...this.classUsage.druida },
+    };
+  }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
   private pointsPerLevel(): number { return 1 + this.accountLevel * 0.05; }
@@ -503,7 +523,10 @@ export class GameEngine {
   step(dt: number) {
     if (this.state.dead || !Number.isFinite(dt) || dt <= 0) return;
     const previousVisibleState = this.visibleStateKey();
-    this.update(Math.min(dt, 0.04));
+    const usageClassId = this.state.classId;
+    const stepDt = Math.min(dt, 0.04);
+    this.update(stepDt);
+    this.classUsage[usageClassId].seconds += stepDt;
     if (this.visibleStateKey() !== previousVisibleState) this.emit();
   }
 
@@ -1120,7 +1143,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
+    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
     this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.tecelariaHideProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
@@ -2720,6 +2743,7 @@ export class GameEngine {
       for (const enemy of hits) {
         const vulnerability = this.getDayNightState().vulnerability;
         const damage = this.getWeaponBaseDamage() * this.getCookingDamageMultiplier() * (1 + vulnerability);
+        this.recordClassDamage(enemy, damage);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
         this.registerDruidBasicHit();
@@ -2922,6 +2946,7 @@ export class GameEngine {
           }
         }
         const damage = shot.damage * CONFIG.archerPierce.damageFactors[hitIndex] * (1 + this.getDayNightState().vulnerability);
+        this.recordClassDamage(target, damage);
         target.hp -= damage;
         this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, damage, firstHit ? '#ffffff' : '#d7b66e', firstHit ? 1 : 2 / 3);
         if (target.hp <= 0) this.killEnemy(target.id);
@@ -2946,6 +2971,7 @@ export class GameEngine {
           this.onSound?.({ type: 'explosion', kind: 'mage' });
           const vulnerability = 1 + this.getDayNightState().vulnerability;
           const basicDamage = shot.damage * vulnerability;
+          this.recordClassDamage(target, basicDamage);
           target.hp -= basicDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, basicDamage, '#ffffff');
           const damage = shot.damage * CONFIG.mageExplosion.damageMultiplier * vulnerability;
@@ -2957,12 +2983,14 @@ export class GameEngine {
             .slice(0, Math.max(0, CONFIG.mageExplosion.maxTargets - 1))
             .map(({ enemy }) => enemy);
           for (const enemy of hits) {
+            this.recordClassDamage(enemy, damage);
             enemy.hp -= damage;
             this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#9c8be8', 2 / 3);
           }
           for (const enemy of [target, ...hits].filter(enemy => enemy.hp <= 0)) this.killEnemy(enemy.id);
         } else {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
+          this.recordClassDamage(target, effectiveDamage);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
           if (this.state.classId === 'druida') {
@@ -3011,6 +3039,7 @@ export class GameEngine {
       enemy.poisonTick = (enemy.poisonTick ?? CONFIG.druidPoison.tickInterval) - activeTime;
       while ((enemy.poisonTick ?? 0) <= 0) {
         const damage = enemy.poisonDamage ?? 0;
+        this.recordClassDamage(enemy, damage);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#3f8f45', 2 / 3);
         enemy.poisonTick = (enemy.poisonTick ?? 0) + CONFIG.druidPoison.tickInterval;
@@ -3029,6 +3058,12 @@ export class GameEngine {
       this.local.druidBasicHitCount = 0;
       this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + CONFIG.druidHeal.basicHitAmount);
     }
+  }
+
+  private recordClassDamage(enemy: Enemy, amount: number): void {
+    if (enemy.animalKind || !Number.isFinite(enemy.hp) || !Number.isFinite(amount) || amount <= 0) return;
+    const effectiveDamage = Math.min(amount, Math.max(0, enemy.hp));
+    if (effectiveDamage > 0) this.classUsage[this.state.classId].damage += effectiveDamage;
   }
 
   private killEnemy(id: number, countForDruidHealingOrb = true, killer: 'player' | 'wolf' = 'player') {
@@ -3060,6 +3095,7 @@ export class GameEngine {
       }
     }
     this.state.enemies = this.state.enemies.filter(v => v.id !== id); this.state.kills += 1;
+    this.classUsage[this.state.classId].kills += 1;
   }
 
   private addFloatingDamage(x: number, y: number, amount: number, color: FloatingDamage['color'], scale = 1) {
