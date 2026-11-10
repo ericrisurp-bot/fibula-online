@@ -7655,7 +7655,7 @@ sem backdrop ou caixa de modal. */
   align-items:stretch;
   padding:max(8px,env(safe-area-inset-top)) 12px var(--back-button-clearance)!important;
   overflow-x:hidden;
-  overflow-y:auto;
+  overflow-y:hidden;
   overscroll-behavior:contain;
   background:#f7f4ed!important;
   color:#292720!important;
