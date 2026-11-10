@@ -1000,6 +1000,7 @@ export default function App() {
       });
       return;
     }
+    const supabase = fibulaSupabase;
     let active = true;
     void (async () => {
       try {
@@ -1007,14 +1008,16 @@ export default function App() {
         if (statusPowerReady && statusDuoPower > 0
           && (lastReportedPdRef.current?.userId !== session.user.sub || lastReportedPdRef.current.pd !== statusDuoPower)) {
           lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
-          reportedPd = await reportHighestPd(fibulaSupabase, statusDuoPower);
+          reportedPd = await reportHighestPd(supabase, statusDuoPower);
         }
-        const { data: profile, error: profileError } = await fibulaSupabase
+        const { data: profile, error: profileError } = await supabase
           .from('fibula_profiles').select('highest_pd,highest_survival_level')
           .eq('user_id', session.user.sub).maybeSingle();
         if (profileError) throw profileError;
-        const powerValue = reportedPd ?? (Number.isSafeInteger(profile?.highest_pd) ? profile.highest_pd : 0);
-        const daysValue = Number.isSafeInteger(profile?.highest_survival_level) ? profile.highest_survival_level : 0;
+        const highestPd = profile?.highest_pd;
+        const highestDays = profile?.highest_survival_level;
+        const powerValue = reportedPd ?? (typeof highestPd === 'number' && Number.isSafeInteger(highestPd) ? highestPd : 0);
+        const daysValue = typeof highestDays === 'number' && Number.isSafeInteger(highestDays) ? highestDays : 0;
         const fields = [
           { key: 'power' as const, field: 'highest_pd', value: powerValue },
           { key: 'days' as const, field: 'highest_survival_level', value: daysValue },
@@ -1022,8 +1025,8 @@ export default function App() {
         const next = await Promise.all(fields.map(async item => {
           if (item.value <= 0) return { key: item.key, position: null, total: 0, previous: null };
           const [ahead, total] = await Promise.all([
-            fibulaSupabase.from('fibula_profiles').select('user_id', { count: 'exact', head: true }).gt(item.field, item.value),
-            fibulaSupabase.from('fibula_profiles').select('user_id', { count: 'exact', head: true }).gt(item.field, 0),
+            supabase.from('fibula_profiles').select('user_id', { count: 'exact', head: true }).gt(item.field, item.value),
+            supabase.from('fibula_profiles').select('user_id', { count: 'exact', head: true }).gt(item.field, 0),
           ]);
           if (ahead.error) throw ahead.error;
           if (total.error) throw total.error;
