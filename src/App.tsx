@@ -38,6 +38,7 @@ import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
 import BackToLobbyButton from './ui/BackToLobbyButton';
+import SideNav, { type SideNavId } from './ui/SideNav';
 type RankingEntry = {
   user_id: string;
   display_name: string | null;
@@ -2052,6 +2053,23 @@ export default function App() {
     });
   };
 
+  const openSidePage = (id: SideNavId): void => {
+    if (id === 'bau') {
+      openLobbyChest();
+    } else {
+      navigateToPage(id);
+      setActiveGameRoute({ page: id });
+      setArsenalOpen(id === 'arsenal');
+      setFriendsOpen(id === 'amigos');
+      setChestOpen(false);
+      setStatusOpen(id === 'status');
+      setProfileOpen(id === 'classes');
+    }
+    setRankingOpen(false);
+    setPlayerProfileOpen(false);
+    setViewedProfileUserId(null);
+  };
+
   const sendLobbyChestItem = async () => {
     const peer = duoPeer;
     const item = lobbyChestItems.find(entry => entry.itemId === chestTransferItemId);
@@ -3276,30 +3294,22 @@ export default function App() {
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { navigateToPlayerProfile(session.user.sub); setActiveGameRoute({ page: 'jogador', playerId: session.user.sub }); setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>+</button>}</div>
         
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => { navigateToPage('arsenal'); setActiveGameRoute({ page: 'arsenal' }); setArsenalOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
-            <span>ARSENAL</span>
+            ARSENAL
           </button>
           <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-            <span>AMIGOS</span>
+            AMIGOS
           </button>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
-            <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
-            <span>BAÚ</span>
+            BAÚ
           </button>
           <button className="lobby-profile-trigger" type="button" aria-label="Abrir seleção de classes" title="Classes" onClick={() => { navigateToPage('classes'); setActiveGameRoute({ page: 'classes' }); setProfileOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
-            <span>CLASSES</span>
+            CLASSES
           </button>
           <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => { navigateToPage('ranking'); setActiveGameRoute({ page: 'ranking' }); setRankingOpen(true); }}>
-            <span className="lobby-ranking-spark lobby-ranking-spark-one" aria-hidden="true">✦</span>
-            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
-            <span>RANKING</span>
-            <span className="lobby-ranking-spark lobby-ranking-spark-two" aria-hidden="true">✧</span>
+            RANKING
           </button>
           <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => { navigateToPage('status'); setActiveGameRoute({ page: 'status' }); setStatusOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">📊</span>
-            <span>STATUS</span>
+            STATUS
           </button>
         {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
           {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
@@ -3379,7 +3389,7 @@ export default function App() {
               {weaponFeedback && <p className="arsenal-weapon-feedback" role="status">{weaponFeedback}</p>}
             </section>
           </section></div>
-          <BackToLobbyButton onClick={closeGamePage} />
+          <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity) : arsenalActionItem.item.name} onClick={event => event.stopPropagation()}>
@@ -3498,7 +3508,7 @@ export default function App() {
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
           </section></div>
-          <BackToLobbyButton onClick={closeGamePage} />
+          <SideNav current="bau" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         {bauAction && <div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
           <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}`} role="dialog" aria-modal="true"
@@ -3552,14 +3562,9 @@ export default function App() {
         </div>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
-            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => {
-              navigateToPage('classes');
-              setActiveGameRoute({ page: 'classes' });
-              setStatusOpen(false);
-              setProfileOpen(true);
-            }} />
+            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => openSidePage('classes')} />
           </section></div>
-          <BackToLobbyButton onClick={closeGamePage} />
+          <SideNav current="status" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         {profileOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
           <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
@@ -3583,7 +3588,7 @@ export default function App() {
               </section>
             </div>
           </section></div>
-          <BackToLobbyButton onClick={closeGamePage} />
+          <SideNav current="classes" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         {rankingOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page ranking-page">
           <div className="station-page-content side-page-content ranking-page-content"><section className="side-page-panel ranking-panel">
@@ -3723,7 +3728,7 @@ export default function App() {
       <strong>Gire o celular para a posição vertical</strong>
       <p>O Lobby foi desenvolvido para jogar e organizar seus itens com o celular em pé.</p>
     </div>}
-    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
+    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
   </>;
 }
 
