@@ -7,7 +7,7 @@ import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
+import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, reportHighestPd, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -266,6 +266,26 @@ const itemLabel = (itemId: string) => {
   const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
   return rarityLabel ? `${label} · ${rarityLabel}` : label;
 };
+
+const bauRarityLabel = (rarity: string | null | undefined) => rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : 'Normal';
+const bauItemDetails = (itemId: string) => {
+ const parsed = parseCoreItemId(itemId);
+ if (parsed) return { rarity: coreRarityLabel(parsed.kind === 'closed' ? parsed.rarity : parsed.core.rarity),
+  usage: parsed.kind === 'closed' ? 'Leve à Joalheria para revelar.' : 'Usado na criação de equipamentos.', property: '' };
+ const recipe = isCookingIngredient(itemId) ? getQuickRecipe(itemId,10) : null;
+ const labels: Record<string,string> = {forca:'força',destreza:'destreza',inteligencia:'inteligência',velocidadeAtaque:'velocidade de ataque',velocidadeMovimento:'velocidade de movimento',healingPerSecond:'regeneração'};
+ const properties = recipe ? Object.entries(recipe.effects).filter(([,value]) => typeof value === 'number' && value > 0).map(([key]) => labels[key]).filter(Boolean) : [];
+ return {rarity:bauRarityLabel(getItemRarity(itemId)),property:properties.length?'Propriedade: '+properties.join(' e '):'',
+  usage:isCookingIngredient(itemId)?'Uso: usado em receitas':'Uso: usado em armas, armaduras, construção e outras criações.'};
+};
+const bauMealEffects = (meal: CookingMeal) => {
+ const tier = meal.rarity === 'legendary' ? 'Grande' : meal.rarity === 'uncommon' || meal.rarity === 'rare' ? 'Médio' : 'Pequeno';
+ const healingTier = tier === 'Grande' ? 'Grande' : tier === 'Médio' ? 'Média' : 'Pequena';
+ const labels: Record<string,string> = {forca:'Força',destreza:'Destreza',inteligencia:'Inteligência',velocidadeAtaque:'Velocidade de ataque',velocidadeMovimento:'Velocidade de movimento',healingPerSecond:'Regeneração'};
+ return Object.entries(meal.effects).filter(([,v])=>typeof v==='number'&&v>0).map(([key])=>key==='healingPerSecond'?healingTier+' regeneração':tier+' aumento de '+(labels[key]??key));
+};
+const bauIngredientName = (itemId: string) => itemLabel(itemId).replace(/ · (Comum|Incomum|Raro|Lendário)$/,'');
+
 const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão' };
 type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
 const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
@@ -605,6 +625,13 @@ export default function App() {
   const [chestTransferBusy, setChestTransferBusy] = useState(false);
   const [chestCloudReady, setChestCloudReady] = useState(false);
   const [chestTransferFeedback, setChestTransferFeedback] = useState('');
+  const [bauAction, setBauAction] = useState<
+    | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm' }
+    | { kind:'meal'; meal:CookingMeal; view:'actions'|'details'|'confirm' }
+    | null
+  >(null);
+  const [bauDeleteQuantity,setBauDeleteQuantity] = useState('1');
+  const [bauDeleteBusy,setBauDeleteBusy] = useState(false);
   const [selectedJewelryCoreId, setSelectedJewelryCoreId] = useState<string | null>(null);
   const [jewelryResultCoreId, setJewelryResultCoreId] = useState<string | null>(null);
   const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
@@ -939,6 +966,13 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [weaponInfoModal]);
+
+  useEffect(() => {
+    if (!bauAction) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !bauDeleteBusy) setBauAction(null); };
+    window.addEventListener('keydown',closeOnEscape);
+    return () => window.removeEventListener('keydown',closeOnEscape);
+  },[bauAction,bauDeleteBusy]);
 
   useEffect(() => {
     if (!arsenalActionItem) return;
@@ -2065,6 +2099,34 @@ export default function App() {
     setLobbyChestItems(nextInventory);
     engineRef.current?.setHouseInventory(nextInventory);
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
+  };
+  const openBauItemActions = (item:HouseStorageStack) => {setBauDeleteQuantity('1');setBauAction({kind:'item',item,view:'actions'});};
+  const openBauMealActions = (meal:CookingMeal) => setBauAction({kind:'meal',meal,view:'actions'});
+  const showBauActionDetails = () => setBauAction(current=>current?{...current,view:'details'}:null);
+  const requestBauActionDeletion = () => setBauAction(current=>current?{...current,view:'confirm'}:null);
+  const discardBauMeal = async (meal:CookingMeal) => {
+    if(!cookingOnline||!fibulaSupabase){setCookingFeedback('Sem conexão: excluir refeições exige internet.');return;}
+    setBauDeleteBusy(true);setCookingFeedback('');
+    try {const result=await discardCookingMeal(fibulaSupabase,meal.id);applyCookingServerState(result);setBauAction(null);setCookingFeedback(meal.name+' foi excluída do Baú.');}
+    catch(cause){setCookingFeedback(cause instanceof Error?cause.message:'Não foi possível excluir a refeição.');}
+    finally{setBauDeleteBusy(false);}
+  };
+  const discardBauItem = async (deleteAll=false) => {
+    if(bauAction?.kind!=='item'||bauDeleteBusy)return;
+    const currentItem=lobbyChestItems.find(entry=>entry.itemId===bauAction.item.itemId);
+    if(!currentItem){setChestTransferFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
+    const quantity=deleteAll?currentItem.quantity:Number(bauDeleteQuantity);
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setChestTransferFeedback('Informe uma quantidade válida para excluir.');return;}
+    if(!fibulaSupabase||!session.user.sub){setChestTransferFeedback('O serviço de armazenamento não está disponível.');return;}
+    setBauDeleteBusy(true);setChestTransferFeedback('');
+    try {
+      const nextInventory=lobbyChestItems.flatMap(entry=>{if(entry.itemId!==currentItem.itemId)return [entry];const remaining=entry.quantity-quantity;return remaining>0?[{...entry,quantity:remaining}]:[];});
+      const saved=await syncHouseInventory(fibulaSupabase,session.user.sub,nextInventory,{allowEmpty:true});
+      if(!saved)throw new Error('Não foi possível confirmar a gravação do novo estoque. O Baú não foi alterado.');
+      lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
+      applyCookingInventory(nextInventory);setBauAction(null);setChestTransferFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
+    } catch(cause){setChestTransferFeedback(cause instanceof Error?cause.message:'Não foi possível excluir o item.');}
+    finally{setBauDeleteBusy(false);}
   };
   const selectForgeCore = (itemId: string) => {
     setSelectedWeaponCoreId(current => current === itemId ? null : itemId);
@@ -3378,51 +3440,34 @@ export default function App() {
             </div>}
           </section>
         </div>}
-        {chestOpen && <PageFrame eyebrow="COLEÇÃO DE ITENS" title="Baú" onBack={closeGamePage}>
-          <div className="station-page-content"><section className="lobby-chest-modal lobby-chest-page">
-            <header className="lobby-chest-header">
-              <div><h2 id="lobby-chest-title">Baú</h2><p>Sua coleção de itens</p></div>
-              
-            </header>
+        {chestOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page bau-side">
+          <div className="station-page-content side-page-content bau-side-content"><section className="side-page-panel bau-side-panel lobby-chest-modal lobby-chest-page">
             <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
             <nav className="lobby-chest-tabs" role="tablist" aria-label="Conteúdo do Baú">
               <button type="button" role="tab" aria-selected={chestTab === 'resources'} className={chestTab === 'resources' ? 'active' : ''} onClick={() => setChestTab('resources')}>Recursos</button>
               <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
             </nav>
-            {chestTab === 'resources' ? <>
-              {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-              <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
-                {lobbyChestItems.map(item => {
-                  const isJabuticaba = item.itemId === 'jabuticaba', parsedCore = parseCoreItemId(item.itemId);
-                  const isClosedCore = parsedCore?.kind === 'closed';
-                  const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
-                  const consumeJabuticabaFromSlot = () => { if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba(); };
-                  return <div key={item.itemId}
-                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
-                    aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}
-                    role={isJabuticaba ? 'button' : undefined} tabIndex={isJabuticaba ? 0 : undefined}
-                    aria-disabled={isJabuticaba ? jabuticabaDisabled : undefined}
-                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : isClosedCore ? 'Leve à Joalheria para revelar' : undefined}
-                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : undefined}
-                    onKeyDown={isJabuticaba ? event => {
-                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); consumeJabuticabaFromSlot(); }
-                    } : undefined}>
+            {chestTab === 'resources' ? <div className="lobby-chest-grid bau-side-grid" aria-label="Itens guardados no Baú">
+              {lobbyChestItems.map(item => {
+                const isJabuticaba = item.itemId === 'jabuticaba';
+                return <div key={item.itemId} className="bau-resource-slot">
+                  <button type="button" className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
+                    aria-label={`${itemLabel(item.itemId)}: abrir ações`} onClick={() => openBauItemActions(item)}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                    {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
-                      event.stopPropagation(); setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
-                    }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
-                  </div>;
-                })}
-              </div>
-            </> : <>
-              <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
-                {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
+                  </button>
+                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
+                    event.stopPropagation();setChestTransferItemId(item.itemId);setChestTransferQuantity('1');setChestTransferFeedback('');
+                  }}>{chestCloudReady?'Enviar':'Indisponível'}</button>}
+                </div>;
+              })}
+            </div> : <>
+              <div className="lobby-chest-grid lobby-chest-meals bau-side-grid" aria-label="Refeições prontas">
+                {readyCookingMeals.length ? readyCookingMeals.map(meal => <button type="button" key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card"
+                  aria-label={meal.name + ': abrir ações'} onClick={() => openBauMealActions(meal)}>
                   <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
                   <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
-                  <button type="button" className="cooking-meal-action" title="Consumir"
-                    disabled={!cookingOnline} onClick={() => void queueReadyCookingMeal(meal)}>Consumir</button>
-                </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
+                </button>) : <p className="house-storage-empty bau-side-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
               </div>
               <section className="cooking-pending-panel" aria-label="Refeições para a próxima partida">
                 <strong>Para a próxima partida</strong>
@@ -3448,10 +3493,63 @@ export default function App() {
               </label>
               <div><button type="button" disabled={chestTransferBusy} onClick={() => void sendLobbyChestItem()}>{chestTransferBusy ? 'Enviando…' : 'Confirmar envio'}</button><button type="button" className="secondary" disabled={chestTransferBusy} onClick={() => setChestTransferItemId(null)}>Cancelar</button></div>
             </div>}
+            {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
             {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
-          </section></div></PageFrame>}
+          </section></div>
+          <BackToLobbyButton onClick={closeGamePage} />
+        </PageFrame>}
+        {bauAction && <div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
+          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}`} role="dialog" aria-modal="true"
+            aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
+            onClick={event=>event.stopPropagation()}>
+            {bauAction.view==='actions'?<>
+              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
+              {bauAction.kind==='meal'?<>
+                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
+                <button type="button" className="bau-action-button danger" disabled={!cookingOnline} onClick={requestBauActionDeletion}>Excluir</button>
+                {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              </>:bauAction.item.itemId==='jabuticaba'?<>
+                <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={!chestCloudReady||jabuticabaBusy} onClick={showBauActionDetails}>Detalhes</button>
+              </>:<>
+                <button type="button" className="bau-action-button" autoFocus onClick={showBauActionDetails}>Detalhes</button>
+                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
+              </>}
+            </>:bauAction.view==='details'?<>
+              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
+              {bauAction.kind==='meal'?<>
+                <p><b>Raridade:</b> {cookingRarityLabel(bauAction.meal.rarity)}</p><p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
+                <div className="bau-action-detail-section"><strong>Ingredientes</strong><ul>{bauAction.meal.ingredients.map((ingredient,index)=><li key={ingredient.itemId+'-'+index}>{bauIngredientName(ingredient.itemId)}</li>)}</ul></div>
+                <div className="bau-action-detail-section"><strong>Efeito</strong><ul>{bauMealEffects(bauAction.meal).map((effect,index)=><li key={effect+'-'+index}>{effect}</li>)}</ul>
+                  {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
+              </>:bauAction.item.itemId==='jabuticaba'?<>
+                <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
+              </>:<>
+                <p><b>Raridade:</b> {bauItemDetails(bauAction.item.itemId).rarity}</p>
+                {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
+                <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
+              </>}
+              <button type="button" className="bau-action-button" autoFocus onClick={()=>setBauAction(current=>current?{...current,view:'actions'}:null)}>Voltar</button>
+            </>:<>
+              <header><strong>Excluir {bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}?</strong><button type="button" aria-label="Fechar" disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>×</button></header>
+              <p>Esta ação não pode ser desfeita.</p>
+              {bauAction.kind==='item'&&bauAction.item.quantity>1&&<>
+                <label className="bau-action-quantity">Quantidade a excluir<input type="number" min="1" max={lobbyChestItems.find(item=>item.itemId===bauAction.item.itemId)?.quantity??bauAction.item.quantity} step="1" value={bauDeleteQuantity} onChange={event=>setBauDeleteQuantity(event.target.value)}/></label>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
+              </>}
+              <div className="bau-action-confirm-actions">
+                <button type="button" className="bau-action-button" autoFocus disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>Cancelar</button>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy||(bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
+              </div>
+              {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
+              {bauAction.kind==='item'&&chestTransferFeedback&&<p role="status">{chestTransferFeedback}</p>}
+            </>}
+          </section>
+        </div>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
             <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => {

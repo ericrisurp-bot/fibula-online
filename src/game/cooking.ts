@@ -106,6 +106,9 @@ export async function queueCookingMeal(client: CookingRpcClient, mealId: string)
 export async function returnCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingServerState> {
   return readCookingState(await callCookingRpc(client, 'fibula_cooking_return', { p_meal_id: mealId }));
 }
+export async function discardCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingServerState> {
+  return readCookingState(await callCookingRpc(client, 'fibula_cooking_discard', { p_meal_id: mealId }));
+}
 export async function consumeReadyCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingConsumeResult> {
   const payload = readCookingObject(await callCookingRpc(client, 'fibula_cooking_consume_ready', { p_meal_id: mealId }));
   const state = readCookingState(payload);
