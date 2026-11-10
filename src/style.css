@@ -8678,7 +8678,10 @@ sem backdrop ou caixa de modal. */
   min-width:0;
 }
 .side-page.friends-side .friends-side-profile strong {
-  display:block;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
   color:#292720!important;
   font-size:14px;
   font-weight:900;
