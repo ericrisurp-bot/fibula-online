@@ -8626,8 +8626,8 @@ sem backdrop ou caixa de modal. */
 
 
 /* SP4.1 — Menu de ações e detalhes do Baú. */
-.side-page.bau-side .bau-resource-slot{display:flex;min-width:0;min-height:0;flex-direction:column;gap:3px}
-.side-page.bau-side .bau-resource-slot>.lobby-chest-slot{flex:1 1 auto;width:100%;min-height:100px}
+.side-page.bau-side .bau-resource-slot{display:flex;min-width:0;min-height:100px;flex-direction:column;gap:3px;padding:3px;border:1px solid #cfc6b3;border-radius:8px;background:#fffdf8}
+.side-page.bau-side .bau-resource-slot>.lobby-chest-slot{flex:1 1 auto;width:100%;min-height:0;padding:3px 2px;border:0!important;background:transparent!important}
 .side-page.bau-side .bau-resource-slot>.lobby-chest-send-button{flex:0 0 auto;margin-top:0}
 .side-page.bau-side .bau-resource-slot .lobby-chest-slot:focus-visible,.side-page.bau-side .lobby-chest-meal-card:focus-visible{outline:2px solid #8a744c!important;outline-offset:2px}
 .side-page.bau-side ~ .bau-action-backdrop{position:fixed;inset:0;z-index:12010;display:flex;align-items:center;justify-content:center;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));background:#29272066}
