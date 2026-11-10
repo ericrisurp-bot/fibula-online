@@ -8811,13 +8811,13 @@ sem backdrop ou caixa de modal. */
   color:#292720;
   font-size:22px;
 }
-.arsenal-action-hint {
+.side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-action-hint {
   margin:0;
   color:#514b40;
   font-size:11px;
   line-height:1.35;
 }
-.arsenal-action-button {
+.side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-action-button {
   width:100%;
   min-height:48px;
   padding:10px 12px;
@@ -8828,8 +8828,8 @@ sem backdrop ou caixa de modal. */
   font-size:12px;
   font-weight:900;
 }
-.arsenal-action-button:disabled {opacity:.55;cursor:not-allowed}
-.arsenal-action-button.danger {
+.side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-action-button:disabled {opacity:.55;cursor:not-allowed}
+.side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-action-button.danger {
   border-color:#a52d2d;
   background:#fffdf8;
   color:#a52d2d;
@@ -8837,11 +8837,11 @@ sem backdrop ou caixa de modal. */
 .side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-confirm-dialog>p {margin:0;color:#514b40;font-size:12px;line-height:1.4}
 .side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-confirm-actions {display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-confirm-actions .arsenal-action-button:first-child {background:#292720;color:#fffdf8}
-.side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-confirm-actions .arsenal-action-button.danger {background:#a52d2d;color:#fffdf8}
-.side-page.arsenal-side ~ .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details {display:grid;gap:8px}
-.side-page.arsenal-side ~ .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details>div {display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #e0d9ca;font-size:12px}
-.side-page.arsenal-side ~ .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details span {color:#514b40}
-.side-page.arsenal-side ~ .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details b {color:#292720}
+.side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-confirm-actions .side-page.arsenal-side ~ .arsenal-action-backdrop .arsenal-action-button.danger {background:#a52d2d;color:#fffdf8}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details {display:grid;gap:8px}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details>div {display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #e0d9ca;font-size:12px}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details span {color:#514b40}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-item-info-details b {color:#292720}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop {z-index:12002;background:#29272066}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-info-card {
   width:min(360px,100%);
@@ -8865,7 +8865,7 @@ sem backdrop ou caixa de modal. */
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-info-card li {border-color:#e8e1d5}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-info-card li span {color:#514b40}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-info-card li b {color:#292720}
-.arsenal-weapon-info-stars {color:#756b5c}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-info-stars {color:#756b5c}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-comparison .is-better {color:#176b35}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-comparison .is-worse {color:#a52d2d}
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-weapon-comparison .is-equal {color:#514b40}
