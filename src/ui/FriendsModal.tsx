@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
 import PageFrame from './PageFrame';
-import BackToLobbyButton from './BackToLobbyButton';
+import SideNav, { type SideNavId } from './SideNav';
 import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, startDuoMatch } from './duoRooms';
 
 type ClassId = 'guerreiro' | 'mago' | 'arqueiro' | 'druida';
@@ -31,6 +31,8 @@ type Props = {
   open: boolean;
   pageMode?: boolean;
   onClose: () => void;
+  onOpenSidePage: (id: SideNavId) => void;
+  onLobby: () => void;
   onOpenProfile: (userId: string) => void;
   onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
   onLobbyConnected: () => void;
@@ -45,7 +47,7 @@ const AVATARS = {
   druida: { label: 'Druida' },
 } as const;
 
-export default function FriendsModal({ userId, myClassId, myDisplayName, open, pageMode = false, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
+export default function FriendsModal({ userId, myClassId, myDisplayName, open, pageMode = false, onClose, onOpenSidePage, onLobby, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -830,11 +832,11 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     </div>
   </>;
   return <>{open && (pageMode
-    ? <PageFrame eyebrow="" title="" onBack={onClose} hideHeader stateClassName="side-page friends-side">
+    ? <PageFrame eyebrow="" title="" onBack={onLobby} hideHeader stateClassName="side-page friends-side">
         <div className="station-page-content side-page-content friends-side-content">
           <section className="side-page-panel friends-side-panel" aria-label="Amigos">{friendsPanel}</section>
         </div>
-        <BackToLobbyButton onClick={onClose} />
+        <SideNav current="amigos" onLobby={onLobby} onOpenPage={onOpenSidePage} />
       </PageFrame>
     : <div className="lobby-friends-backdrop" onClick={onClose}>
         <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>{friendsPanel}</section>
