@@ -274,7 +274,7 @@ const bauItemDetails = (itemId: string) => {
   usage: parsed.kind === 'closed' ? 'Leve à Joalheria para revelar.' : 'Usado na criação de equipamentos.', property: '' };
  const recipe = isCookingIngredient(itemId) ? getQuickRecipe(itemId,10) : null;
  const labels: Record<string,string> = {forca:'força',destreza:'destreza',inteligencia:'inteligência',velocidadeAtaque:'velocidade de ataque',velocidadeMovimento:'velocidade de movimento',healingPerSecond:'regeneração'};
- const properties = recipe ? Object.keys(recipe.effects).filter(key => (recipe.effects as Record<string,number>)[key] > 0).map(key => labels[key]).filter(Boolean) : [];
+ const properties = recipe ? Object.entries(recipe.effects).filter(([,value]) => typeof value === 'number' && value > 0).map(([key]) => labels[key]).filter(Boolean) : [];
  return {rarity:bauRarityLabel(getItemRarity(itemId)),property:properties.length?'Propriedade: '+properties.join(' e '):'',
   usage:isCookingIngredient(itemId)?'Uso: usado em receitas':'Uso: usado em armas, armaduras, construção e outras criações.'};
 };
