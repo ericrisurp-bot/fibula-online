@@ -12,9 +12,6 @@ type Props = {
   history: MatchHistoryEntry[];
   onGoClasses: () => void;
 };
-const CLASS_COLORS: Record<ClassId, string> = {
-  guerreiro: '#a52d2d', mago: '#7042a8', arqueiro: '#865e05', druida: '#236b3b',
-};
 function Trend({ rank }: { rank: RankInfo }) {
   if (!rank.position || !rank.previous || rank.position === rank.previous) return null;
   return <span className={rank.position < rank.previous ? 'status-page-trend up' : 'status-page-trend down'} aria-label={rank.position < rank.previous ? 'Subiu no ranking' : 'Desceu no ranking'}>{rank.position < rank.previous ? '▲' : '▼'}</span>;
