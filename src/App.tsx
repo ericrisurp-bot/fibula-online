@@ -3377,60 +3377,54 @@ export default function App() {
           </section></div>
           <BackToLobbyButton onClick={closeGamePage} />
         </PageFrame>}
-        {rankingOpen && <PageFrame eyebrow="FÍBULA ONLINE · HALL DA FAMA" title="🏆 Ranking" onBack={closeGamePage}>
-          <div className="station-page-content"><section className="lobby-ranking-modal lobby-ranking-page">
-            <header className="lobby-ranking-header">
-              <div><span>FÍBULA ONLINE · HALL DA FAMA</span><h2 id="lobby-ranking-title"><span aria-hidden="true">🏆</span> Ranking</h2></div>
-              
-            </header>
-            <nav className="lobby-ranking-mode-tabs" role="tablist" aria-label="Modalidade do ranking">
+        {rankingOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page ranking-page">
+          <div className="station-page-content side-page-content ranking-page-content"><section className="side-page-panel ranking-panel">
+            <nav className="ranking-mode-tabs" role="tablist" aria-label="Modalidade do ranking">
               <button type="button" role="tab" aria-selected={rankingMode === 'solo'} className={rankingMode === 'solo' ? 'active' : ''} onClick={() => setRankingMode('solo')}>SOLO</button>
               <button type="button" role="tab" aria-selected={rankingMode === 'duo'} className={rankingMode === 'duo' ? 'active' : ''} onClick={() => setRankingMode('duo')}>DUO</button>
             </nav>
-            <div className="lobby-ranking-body">
-              <nav className="lobby-ranking-category-tabs" aria-label="Categoria do ranking">
-                <button type="button" aria-pressed={rankingCategory === 'survival'} className={rankingCategory === 'survival' ? 'active' : ''} onClick={() => setRankingCategory('survival')}>
-                  <span aria-hidden="true">🌄</span><span>DIAS</span>
-                </button>
-                <button type="button" aria-pressed={rankingCategory === 'power'} className={rankingCategory === 'power' ? 'active' : ''} onClick={() => setRankingCategory('power')}>
-                  <span aria-hidden="true">⚔️</span><span>PD</span>
-                </button>
-                <button type="button" aria-pressed={rankingCategory === 'kills'} className={rankingCategory === 'kills' ? 'active' : ''} onClick={() => setRankingCategory('kills')}>
-                  <span aria-hidden="true">💀</span><span>ABATES</span>
-                </button>
-              </nav>
-              <section className="lobby-ranking-board" aria-live="polite">
-                <div className="lobby-ranking-board-heading">
-                  <div><span>TOP 100</span><h3>{rankingMode === 'solo' ? 'Lendas individuais' : 'Duplas lendárias'}</h3></div>
-                  <strong>{rankingCategory === 'power' ? '⚔️ PD' : rankingCategory === 'survival' ? '🌄 DIAS' : '💀 ABATES'}</strong>
-                </div>
-                {rankingMode === 'duo' ? <div className="lobby-ranking-empty">
-                  <span aria-hidden="true">🤝</span><strong>Ranking Duo em preparação</strong>
-                  <p>As classificações Solo são individuais. O modo Duo terá uma tabela própria quando as partidas em equipe forem ativadas.</p>
-                </div> : rankingLoading ? <div className="lobby-ranking-empty"><span aria-hidden="true">⌛</span><strong>Carregando classificação...</strong></div>
-                  : rankingError ? <div className="lobby-ranking-empty"><span aria-hidden="true">⚠️</span><strong>Não foi possível carregar o ranking</strong><p>{rankingError}</p></div>
-                  : rankingRows.length === 0 ? <div className="lobby-ranking-empty">
-                    <span aria-hidden="true">{rankingCategory === 'power' ? '⚔️' : rankingCategory === 'survival' ? '🌄' : '💀'}</span>
-                    <strong>{rankingCategory === 'power' ? 'Ainda não há PD registrado' : rankingCategory === 'survival' ? 'Ainda não há dias registrados' : 'Ainda não há abates registrados'}</strong>
-                    <p>Os melhores resultados dos jogadores aparecerão aqui assim que forem validados e salvos.</p>
-                    {rankingCategory === 'power' && <small>O registro seguro do PD depende da atualização da validação de partidas no banco.</small>}
-                  </div> : <div className="lobby-ranking-list">
-                    {rankingRows.map((entry, index) => {
-                      const value = rankingCategory === 'power' ? entry.highest_pd
-                        : rankingCategory === 'survival' ? entry.highest_survival_level : entry.kills;
-                      const avatar = entry.avatar_character === 'mago' ? '🔮' : entry.avatar_character === 'arqueiro' ? '🏹'
-                        : entry.avatar_character === 'druida' ? '🌿' : '⚔️';
-                      return <article className="lobby-ranking-entry" key={entry.user_id}>
-                        <span className="lobby-ranking-entry-position">{index + 1}</span>
-                        <span className="lobby-ranking-entry-avatar" aria-hidden="true">{avatar}</span>
-                        <strong>{entry.display_name || 'Jogador sem nome'}</strong>
-                        <b>{new Intl.NumberFormat('pt-BR').format(value)}</b>
-                      </article>;
-                    })}
-                  </div>}
-              </section>
-            </div>
-            <footer className="lobby-ranking-player-position">
+            <nav className="ranking-category-tabs" aria-label="Categoria do ranking">
+              <button type="button" aria-pressed={rankingCategory === 'survival'} className={rankingCategory === 'survival' ? 'active' : ''} onClick={() => setRankingCategory('survival')}>
+                <span aria-hidden="true">🌄</span><span>DIAS</span>
+              </button>
+              <button type="button" aria-pressed={rankingCategory === 'power'} className={rankingCategory === 'power' ? 'active' : ''} onClick={() => setRankingCategory('power')}>
+                <span aria-hidden="true">⚔️</span><span>PD</span>
+              </button>
+              <button type="button" aria-pressed={rankingCategory === 'kills'} className={rankingCategory === 'kills' ? 'active' : ''} onClick={() => setRankingCategory('kills')}>
+                <span aria-hidden="true">💀</span><span>ABATES</span>
+              </button>
+            </nav>
+            <section className="ranking-board" aria-live="polite">
+              <header className="ranking-board-heading">
+                <div><span>TOP 100</span><h3>{rankingMode === 'solo' ? 'Lendas individuais' : 'Duplas lendárias'}</h3></div>
+                <strong>{rankingCategory === 'power' ? '⚔️ PD' : rankingCategory === 'survival' ? '🌄 DIAS' : '💀 ABATES'}</strong>
+              </header>
+              {rankingMode === 'duo' ? <div className="ranking-empty">
+                <span aria-hidden="true">🤝</span><strong>Ranking Duo em preparação</strong>
+                <p>As classificações Solo são individuais. O modo Duo terá uma tabela própria quando as partidas em equipe forem ativadas.</p>
+              </div> : rankingLoading ? <div className="ranking-empty"><span aria-hidden="true">⌛</span><strong>Carregando classificação...</strong></div>
+                : rankingError ? <div className="ranking-empty"><span aria-hidden="true">⚠️</span><strong>Não foi possível carregar o ranking</strong><p>{rankingError}</p></div>
+                : rankingRows.length === 0 ? <div className="ranking-empty">
+                  <span aria-hidden="true">{rankingCategory === 'power' ? '⚔️' : rankingCategory === 'survival' ? '🌄' : '💀'}</span>
+                  <strong>{rankingCategory === 'power' ? 'Ainda não há PD registrado' : rankingCategory === 'survival' ? 'Ainda não há dias registrados' : 'Ainda não há abates registrados'}</strong>
+                  <p>Os melhores resultados dos jogadores aparecerão aqui assim que forem validados e salvos.</p>
+                  {rankingCategory === 'power' && <small>Abra o Status para registrar o PD da sua dupla.</small>}
+                </div> : <div className="ranking-list">
+                  {rankingRows.map((entry, index) => {
+                    const value = rankingCategory === 'power' ? entry.highest_pd
+                      : rankingCategory === 'survival' ? entry.highest_survival_level : entry.kills;
+                    const avatarClass = isProfileClassId(entry.avatar_character) ? entry.avatar_character : 'guerreiro';
+                    const isOwnEntry = entry.user_id === session.user.sub;
+                    return <article className={`ranking-entry class-${avatarClass}${isOwnEntry ? ' is-own' : ''}`} key={entry.user_id}>
+                      <span className={`ranking-entry-position${index < 3 ? ` medal-${index + 1}` : ''}`}>{index + 1}</span>
+                      <span className="ranking-entry-avatar"><ClassFace classId={avatarClass} size={28} /></span>
+                      <strong title={entry.display_name || 'Jogador sem nome'}>{entry.display_name || 'Jogador sem nome'}</strong>
+                      <b>{new Intl.NumberFormat('pt-BR').format(value)}</b>
+                    </article>;
+                  })}
+                </div>}
+            </section>
+            <footer className="ranking-player-position">
               <div><span>SUA POSIÇÃO</span><strong>{rankingRows.findIndex(entry => entry.user_id === session.user.sub) >= 0
                 ? `#${rankingRows.findIndex(entry => entry.user_id === session.user.sub) + 1}`
                 : (rankingOwnProfile && (rankingCategory === 'power' ? rankingOwnProfile.highest_pd
@@ -3438,9 +3432,10 @@ export default function App() {
               <div><span>{rankingCategory === 'power' ? 'SEU PD' : rankingCategory === 'survival' ? 'SEUS DIAS' : 'SEUS ABATES'}</span><strong>{rankingOwnProfile
                 ? new Intl.NumberFormat('pt-BR').format(rankingCategory === 'power' ? rankingOwnProfile.highest_pd
                   : rankingCategory === 'survival' ? rankingOwnProfile.highest_survival_level : rankingOwnProfile.kills) : '—'}</strong></div>
-              <small>Classificação individual atualizada a partir dos perfis públicos do jogo.</small>
             </footer>
-          </section></div></PageFrame>}
+          </section></div>
+          <BackToLobbyButton onClick={closeGamePage} />
+        </PageFrame>}
         {playerProfileOpen && <PlayerProfileModal
           pageMode={activeGameRoute.page === 'jogador'}
           userId={viewedProfileUserId ?? session.user.sub}
