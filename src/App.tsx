@@ -10,7 +10,8 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
+import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, reportHighestPd, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
+import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
@@ -540,11 +541,16 @@ export default function App() {
       return;
     }
 
+    const survivalNights = Math.max(0, state.nightNumber - (state.dayNight === 'night' ? 1 : 0));
+    setStatusHistory(recordMatch(session.user.sub, {
+      days: survivalNights,
+      kills: state.kills,
+      at: new Date().toISOString(),
+    }));
+
     const sessionId = matchSessionIdRef.current;
     matchSessionIdRef.current = null;
     if (!sessionId || !fibulaSupabase) return;
-
-    const survivalNights = Math.max(0, state.nightNumber - (state.dayNight === 'night' ? 1 : 0));
     void finishSoloMatchSession(fibulaSupabase, sessionId, {
       kills: state.kills,
       survivalNights,
@@ -555,7 +561,7 @@ export default function App() {
     }).catch(() => {
       window.alert('Não foi possível validar o resultado no encerramento. Esta partida não foi salva no perfil.');
     });
-  }, [state.dead, state.kills, state.nightNumber, state.dayNight]);
+  }, [state.dead, state.kills, state.nightNumber, state.dayNight, session.user.sub]);
   const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [accountLevel, setAccountLevel] = useState(0);
   const [jabuticabaProgress, setJabuticabaProgress] = useState(0);
@@ -632,6 +638,12 @@ export default function App() {
   const [rankingOwnProfile, setRankingOwnProfile] = useState<RankingEntry | null>(null);
   const [rankingLoading, setRankingLoading] = useState(false);
   const [rankingError, setRankingError] = useState('');
+  const [statusHistory, setStatusHistory] = useState<MatchHistoryEntry[]>(() => readMatchHistory(session.user.sub));
+  const [statusRanks, setStatusRanks] = useState({
+    power: { position: null as number | null, total: 0, previous: null as number | null, error: false },
+    days: { position: null as number | null, total: 0, previous: null as number | null, error: false },
+  });
+  const lastReportedPdRef = useRef<number | null>(null);
   useEffect(() => {
     if (!rankingOpen) return;
     const supabase = fibulaSupabase;
@@ -693,6 +705,7 @@ export default function App() {
   const [craftedWeapons, setCraftedWeapons] = useState<CraftedWeapon[]>([]);
   const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
+  const [weaponsLoaded, setWeaponsLoaded] = useState(false);
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
@@ -707,6 +720,20 @@ export default function App() {
     })
     : null;
   const arsenalPowerValue = arsenalArmedPower ? Math.round(arsenalArmedPower.total) : null;
+  const statusPowerReady = weaponsLoaded && !weaponsLoading;
+  const statusPowers: Partial<Record<ClassId, number>> = {};
+  if (statusPowerReady) {
+    for (const classId of characterPreferences) {
+      if (!classId) continue;
+      const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, classId);
+      statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, 1 + accountLevel * 0.05, {
+        weapon: weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null,
+      }).total);
+    }
+  }
+  const statusDuoPower = statusPowerReady
+    ? characterPreferences.reduce((sum, classId) => sum + (classId ? statusPowers[classId] ?? 0 : 0), 0)
+    : 0;
   const arsenalInventoryEntries = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
@@ -958,6 +985,68 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [profileOpen]);
+
+
+  useEffect(() => {
+    setStatusHistory(readMatchHistory(session.user.sub));
+  }, [session.user.sub]);
+
+  useEffect(() => {
+    if (!statusOpen || !statusPowerReady || statusDuoPower <= 0 || !fibulaSupabase
+      || typeof navigator !== 'undefined' && !navigator.onLine) return;
+    if (lastReportedPdRef.current === statusDuoPower) return;
+    lastReportedPdRef.current = statusDuoPower;
+    let active = true;
+    void (async () => {
+      try {
+        const reportedPd = await reportHighestPd(fibulaSupabase, statusDuoPower);
+        const { data: profile, error: profileError } = await fibulaSupabase
+          .from('fibula_profiles').select('highest_pd,highest_survival_level')
+          .eq('user_id', session.user.sub).maybeSingle();
+        if (profileError) throw profileError;
+        const powerValue = reportedPd ?? (Number.isSafeInteger(profile?.highest_pd) ? profile.highest_pd : 0);
+        const daysValue = Number.isSafeInteger(profile?.highest_survival_level) ? profile.highest_survival_level : 0;
+        const fields = [
+          { key: 'power' as const, field: 'highest_pd', value: powerValue },
+          { key: 'days' as const, field: 'highest_survival_level', value: daysValue },
+        ];
+        const next = await Promise.all(fields.map(async item => {
+          if (item.value <= 0) return { key: item.key, position: null, total: 0, previous: null };
+          const [ahead, total] = await Promise.all([
+            fibulaSupabase.from('fibula_profiles').select('user_id', { count: 'exact', head: true }).gt(item.field, item.value),
+            fibulaSupabase.from('fibula_profiles').select('user_id', { count: 'exact', head: true }).gt(item.field, 0),
+          ]);
+          if (ahead.error) throw ahead.error;
+          if (total.error) throw total.error;
+          return { key: item.key, position: (ahead.count ?? 0) + 1, total: total.count ?? 0, previous: null as number | null };
+        }));
+        if (!active) return;
+        let saved: Record<string, { current: number | null; previous: number | null }> = {};
+        const storageKey = 'fibula-status-rank-v1:' + session.user.sub;
+        try {
+          const raw = window.localStorage.getItem(storageKey);
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed && typeof parsed === 'object') saved = parsed;
+        } catch { saved = {}; }
+        const updated: Record<string, { current: number | null; previous: number | null }> = { ...saved };
+        const rankState = { power: { position: null as number | null, total: 0, previous: null as number | null, error: false }, days: { position: null as number | null, total: 0, previous: null as number | null, error: false } };
+        for (const item of next) {
+          const old = saved[item.key];
+          const previous = old && old.current !== item.position ? old.current : old?.previous ?? null;
+          updated[item.key] = { current: item.position, previous: item.position === null ? null : previous };
+          rankState[item.key] = { position: item.position, total: item.total, previous: item.position === null ? null : previous, error: false };
+        }
+        try { window.localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* Histórico de posição opcional. */ }
+        setStatusRanks(rankState);
+      } catch {
+        if (active) setStatusRanks({
+          power: { position: null, total: 0, previous: null, error: true },
+          days: { position: null, total: 0, previous: null, error: true },
+        });
+      }
+    })();
+    return () => { active = false; };
+  }, [statusOpen, statusPowerReady, statusDuoPower, session.user.sub]);
 
   useEffect(() => {
     if (!statusOpen) return;
@@ -2016,6 +2105,7 @@ export default function App() {
     let active = true;
     const savedSelections = readEquippedWeaponSelections(session.user.sub);
     setCraftedWeapons([]);
+    setWeaponsLoaded(false);
     setEquippedWeaponIds(savedSelections);
     engineRef.current?.setEquippedWeapon(null);
     if (!fibulaSupabase || !cookingOnline) {
@@ -2031,6 +2121,7 @@ export default function App() {
         if (selected) validSelections[classId] = selected.id;
       }
       setCraftedWeapons(items);
+      setWeaponsLoaded(true);
       setEquippedWeaponIds(validSelections);
       writeEquippedWeaponSelections(session.user.sub, validSelections);
       const activeClass = engineRef.current?.state.classId ?? characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
@@ -2044,7 +2135,7 @@ export default function App() {
       }
     }).finally(() => { if (active) setWeaponsLoading(false); });
     return () => { active = false; };
-  }, [session.user.sub, cookingOnline, characterPreferences[0], characterPreferences[1]]);
+  }, [session.user.sub, cookingOnline, statusOpen, characterPreferences[0], characterPreferences[1]]);
 
   const revealCoreFromChest = (itemId: string) => {
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
@@ -3235,7 +3326,7 @@ export default function App() {
           </section></div></PageFrame>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
-            <StatusDuo preferences={characterPreferences} accountLevel={accountLevel} onGoClasses={() => {
+            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} onGoClasses={() => {
               navigateToPage('classes');
               setActiveGameRoute({ page: 'classes' });
               setStatusOpen(false);
