@@ -1040,9 +1040,10 @@ export default function App() {
         const rankState = { power: { position: null as number | null, total: 0, previous: null as number | null, error: false }, days: { position: null as number | null, total: 0, previous: null as number | null, error: false } };
         for (const item of next) {
           const old = saved[item.key];
-          const previous = old && old.current !== item.position ? old.current : old?.previous ?? null;
-          updated[item.key] = { current: item.position, previous: item.position === null ? null : previous };
-          rankState[item.key] = { position: item.position, total: item.total, previous: item.position === null ? null : previous, error: false };
+          const changed = !!old && old.current !== item.position;
+          const previous = changed ? old.current : item.position === null ? null : item.position;
+          updated[item.key] = { current: item.position, previous };
+          rankState[item.key] = { position: item.position, total: item.total, previous: changed ? previous : item.position, error: false };
         }
         try { window.localStorage.setItem(storageKey, JSON.stringify(updated)); } catch { /* Histórico de posição opcional. */ }
         setStatusRanks(rankState);
