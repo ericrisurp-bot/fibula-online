@@ -3282,8 +3282,9 @@ export default function App() {
                       if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
                       else if (equipped) openArsenalEquipmentActions(equipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
+                      {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
                       {weaponEquipped && weaponIcon && <span className="arsenal-equipped-weapon-icon" aria-hidden="true">{weaponIcon}</span>}
-                      {equippedName && <span className="arsenal-equipped-item">{equippedName}</span>}
+                      {equippedName && <><small className="arsenal-slot-caption">{info.label}</small><span className="arsenal-equipped-item">{equippedName}</span></>}
                     </button>;
                   })}
                 </div>
