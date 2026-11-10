@@ -626,3 +626,12 @@ export async function listMyWeapons(client: WeaponClient): Promise<CraftedWeapon
   if (!Array.isArray(data)) throw invalidWeaponResponse('a lista de armas está ausente ou inválida.');
   return data.map(readStoredWeapon);
 }
+
+export async function deleteWeapon(client: WeaponClient, weaponId: string): Promise<boolean> {
+  const rpcClient = client as {
+    rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+  };
+  const { data, error } = await rpcClient.rpc('fibula_delete_weapon', { p_weapon_id: weaponId });
+  if (error) throw new Error(error.message || 'Não foi possível excluir a arma.');
+  return data === true;
+}
