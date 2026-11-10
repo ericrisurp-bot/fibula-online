@@ -8494,6 +8494,136 @@ sem backdrop ou caixa de modal. */
 }
 
 
+/* SP4 — Baú em página lateral clara; regras antigas e outros usos preservados. */
+.side-page.bau-side{display:flex;height:100dvh;min-height:0;flex-direction:column;overflow:hidden;background:#f7f4ed!important;color:#292720!important}
+.side-page.bau-side,.side-page.bau-side *{box-sizing:border-box}
+.side-page.bau-side .station-page-content,.side-page.bau-side .side-page-content{
+ display:flex;flex:1 1 auto;width:100%;min-width:0;min-height:0;flex-direction:column;gap:8px;
+ padding:max(7px,env(safe-area-inset-top)) 8px var(--back-button-clearance)!important;overflow:hidden;
+ background:#f7f4ed!important;color:#292720!important
+}
+.side-page.bau-side .bau-side-panel{
+ display:flex;flex:1 1 auto;width:100%;max-width:900px;min-width:0;min-height:0;flex-direction:column;gap:7px;
+ align-self:center;margin:0 auto;padding:8px;overflow:hidden;border:1px solid #e0d9ca!important;
+ border-radius:13px!important;background:#fffdf8!important;color:#292720!important;box-shadow:0 5px 18px #44362014!important
+}
+.side-page.bau-side .lobby-jabuticaba-progress{
+ display:flex;flex:0 0 auto;min-width:0;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:7px 9px;
+ border:1px solid #e0d9ca!important;border-radius:8px;background:#f7f4ed!important;color:#292720!important;font-size:11px;line-height:1.2
+}
+.side-page.bau-side .lobby-jabuticaba-progress strong{flex:0 0 auto;color:#292720!important;font-size:11px}
+.side-page.bau-side .lobby-jabuticaba-progress span{min-width:0;color:#514b40!important;font-size:11px;text-align:right}
+.side-page.bau-side .lobby-chest-tabs{display:flex;flex:0 0 auto;gap:6px;margin:0;padding:0}
+.side-page.bau-side .lobby-chest-tabs button{
+ flex:1 1 0;min-width:0;min-height:34px;padding:5px 8px;border:1px solid #cfc6b3!important;border-radius:7px;
+ background:#f1ece0!important;color:#514b40!important;font-size:11px;font-weight:850
+}
+.side-page.bau-side .lobby-chest-tabs button.active{
+ border-color:#8a744c!important;background:#e9dfca!important;color:#292720!important;box-shadow:inset 0 -2px #8a744c
+}
+.side-page.bau-side .bau-side-grid{
+ display:grid;flex:1 1 auto;width:100%;min-width:0;min-height:0;grid-template-columns:repeat(4,minmax(0,1fr));
+ grid-auto-rows:min-content;align-content:start;gap:6px;margin:0;padding:2px 3px 2px 0;overflow-x:hidden;overflow-y:auto;
+ overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c9bea9 transparent
+}
+.side-page.bau-side .lobby-chest-slot{
+ display:flex;position:relative;min-width:0;min-height:104px;width:auto;height:auto;aspect-ratio:auto;flex-direction:column;
+ align-items:center;justify-content:flex-start;gap:3px;padding:5px 3px;overflow:hidden;border:1px solid #cfc6b3!important;
+ border-radius:8px;background:#fffdf8!important;color:#292720!important;text-align:center
+}
+.side-page.bau-side .lobby-chest-slot>span:first-child{
+ display:grid;flex:0 0 25px;min-height:25px;place-items:center;color:#292720;font-size:23px;line-height:1
+}
+.side-page.bau-side .lobby-chest-slot>span:first-child svg,.side-page.bau-side .lobby-chest-slot>span:first-child img{
+ width:24px;height:24px;max-width:100%;object-fit:contain
+}
+.side-page.bau-side .lobby-chest-slot>small{
+ display:block;max-width:100%;min-width:0;padding:0;overflow:visible;color:#292720!important;font-size:11px!important;
+ font-weight:750;line-height:1.15;overflow-wrap:anywhere;white-space:normal;text-overflow:clip
+}
+.side-page.bau-side .lobby-chest-slot>b{
+ position:static;right:auto;bottom:auto;flex:0 0 auto;padding:0;border:0;border-radius:0;background:transparent!important;
+ color:#292720!important;font-size:11px;font-weight:900;line-height:1.1
+}
+.side-page.bau-side .lobby-chest-slot-consumable{cursor:pointer}
+.side-page.bau-side .lobby-chest-slot-consumable:focus-visible{outline:2px solid #8a744c!important;outline-offset:1px}
+.side-page.bau-side .lobby-chest-send-button{
+ flex:0 0 auto;width:100%;min-height:36px;margin-top:auto;padding:5px 3px;border:1px solid #cfc6b3!important;
+ border-radius:7px;background:#f1ece0!important;color:#292720!important;font-size:11px;font-weight:850;line-height:1.1
+}
+.side-page.bau-side .lobby-chest-send-button:disabled{opacity:.55}
+.side-page.bau-side .lobby-chest-meals{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:min-content}
+.side-page.bau-side .lobby-chest-meal-card{min-height:124px;gap:4px;padding:6px}
+.side-page.bau-side .lobby-chest-meal-card>span:first-child{flex-basis:30px;min-height:30px}
+.side-page.bau-side .lobby-chest-meal-card .cooking-meal-rarity{color:#514b40!important;font-size:11px!important}
+.side-page.bau-side .cooking-meal-action{
+ flex:0 0 auto;width:100%;min-height:36px;padding:6px 5px;border:1px solid #292720!important;border-radius:7px;
+ background:#292720!important;color:#fffdf8!important;font-size:11px;font-weight:850
+}
+.side-page.bau-side .cooking-meal-action.secondary{
+ border-color:#cfc6b3!important;background:#f1ece0!important;color:#292720!important
+}
+.side-page.bau-side .cooking-pending-panel{
+ display:flex;flex:0 0 auto;min-width:0;flex-direction:column;gap:5px;margin:0;padding:7px;
+ border:1px solid #e0d9ca!important;border-radius:9px;background:#f7f4ed!important;color:#292720!important
+}
+.side-page.bau-side .cooking-pending-panel>strong{color:#292720!important;font-size:11px}
+.side-page.bau-side .cooking-pending-slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.side-page.bau-side .cooking-pending-slot{
+ display:flex;min-width:0;min-height:0;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 4px;
+ border:1px dashed #cfc6b3!important;border-radius:7px;background:#fffdf8!important;color:#292720!important;text-align:center
+}
+.side-page.bau-side .cooking-pending-slot>b{color:#292720!important;font-size:11px}
+.side-page.bau-side .cooking-pending-slot>span{font-size:22px;line-height:1}
+.side-page.bau-side .cooking-pending-slot>small{
+ max-width:100%;color:#514b40!important;font-size:11px;line-height:1.15;overflow-wrap:anywhere
+}
+.side-page.bau-side .cooking-pending-slot .cooking-meal-rarity{color:#514b40!important;font-size:11px!important}
+.side-page.bau-side .cooking-pending-empty{color:#514b40!important;font-size:11px}
+.side-page.bau-side .bau-side-empty{
+ display:grid;grid-column:1/-1;min-height:54px;place-items:center;margin:0;padding:8px;color:#514b40!important;
+ font-size:12px;line-height:1.3;text-align:center
+}
+.side-page.bau-side .lobby-chest-transfer{
+ display:grid;flex:0 0 auto;min-width:0;grid-template-columns:minmax(0,1fr);gap:5px;margin:0;padding:7px;
+ border:1px solid #e0d9ca!important;border-radius:8px;background:#f7f4ed!important;color:#292720!important
+}
+.side-page.bau-side .lobby-chest-transfer>strong{color:#292720!important;font-size:11px;line-height:1.2;overflow-wrap:anywhere}
+.side-page.bau-side .lobby-chest-transfer label{
+ display:grid;grid-template-columns:auto minmax(64px,90px);align-items:center;justify-content:space-between;gap:8px;
+ color:#514b40!important;font-size:11px
+}
+.side-page.bau-side .lobby-chest-transfer input{
+ width:100%;min-width:0;min-height:36px;padding:5px 7px;border:1px solid #cfc6b3!important;border-radius:7px;
+ background:#fffdf8!important;color:#292720!important;font-size:12px
+}
+.side-page.bau-side .lobby-chest-transfer>div{display:flex;gap:6px}
+.side-page.bau-side .lobby-chest-transfer button{
+ flex:1 1 auto;min-width:0;min-height:36px;padding:6px 8px;border:1px solid #cfc6b3!important;border-radius:7px;
+ background:#292720!important;color:#fffdf8!important;font-size:11px;font-weight:850
+}
+.side-page.bau-side .lobby-chest-transfer button.secondary{
+ flex:0 0 92px;background:#f1ece0!important;color:#292720!important
+}
+.side-page.bau-side .lobby-chest-transfer button:disabled{opacity:.55}
+.side-page.bau-side .lobby-chest-feedback{
+ flex:0 0 auto;margin:0;padding:0 2px;border:0;border-radius:0;background:transparent!important;color:#514b40!important;
+ font-size:11px;line-height:1.2;overflow-wrap:anywhere
+}
+.side-page.bau-side button:focus-visible,.side-page.bau-side input:focus-visible{outline:2px solid #8a744c!important;outline-offset:2px}
+.side-page.bau-side .back-to-lobby-button{flex:0 0 auto;min-height:44px}
+@media(min-width:400px){.side-page.bau-side .bau-side-grid:not(.lobby-chest-meals){grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:380px){
+ .side-page.bau-side .bau-side-panel{gap:6px;padding:6px}
+ .side-page.bau-side .bau-side-grid{gap:5px}
+ .side-page.bau-side .lobby-chest-slot{min-height:100px;padding:4px 2px}
+ .side-page.bau-side .lobby-chest-meal-card{min-height:116px}
+ .side-page.bau-side .cooking-pending-panel{gap:4px;padding:5px}
+ .side-page.bau-side .cooking-pending-slots{gap:4px}
+ .side-page.bau-side .cooking-pending-slot{padding:4px 3px}
+ .side-page.bau-side .lobby-chest-transfer{gap:4px;padding:6px}
+}
+
 /* SP3.1 — Arsenal em página lateral clara; regras antigas preservadas. */
 .side-page.arsenal-side {
   display:flex;
