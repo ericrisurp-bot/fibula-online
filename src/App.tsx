@@ -643,7 +643,7 @@ export default function App() {
     power: { position: null as number | null, total: 0, previous: null as number | null, error: false },
     days: { position: null as number | null, total: 0, previous: null as number | null, error: false },
   });
-  const lastReportedPdRef = useRef<number | null>(null);
+  const lastReportedPdRef = useRef<{ userId: string; pd: number } | null>(null);
   useEffect(() => {
     if (!rankingOpen) return;
     const supabase = fibulaSupabase;
@@ -1004,8 +1004,9 @@ export default function App() {
     void (async () => {
       try {
         let reportedPd: number | null = null;
-        if (statusPowerReady && statusDuoPower > 0 && lastReportedPdRef.current !== statusDuoPower) {
-          lastReportedPdRef.current = statusDuoPower;
+        if (statusPowerReady && statusDuoPower > 0
+          && (lastReportedPdRef.current?.userId !== session.user.sub || lastReportedPdRef.current.pd !== statusDuoPower)) {
+          lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
           reportedPd = await reportHighestPd(fibulaSupabase, statusDuoPower);
         }
         const { data: profile, error: profileError } = await fibulaSupabase
