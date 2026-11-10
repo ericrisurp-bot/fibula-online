@@ -8655,8 +8655,7 @@ sem backdrop ou caixa de modal. */
   background:#fffdf8;
   color:#292720;
 }
-.side-page.arsenal-side .arsenal-empty-slot-label,
-.side-page.arsenal-side .arsenal-slot-caption {
+.side-page.arsenal-side .arsenal-empty-slot-label {
   display:block;
   max-width:100%;
   color:#6b6455;
@@ -8666,27 +8665,13 @@ sem backdrop ou caixa de modal. */
   text-align:center;
   overflow-wrap:anywhere;
 }
-.side-page.arsenal-side .arsenal-slot-caption {color:#514b40}
-.side-page.arsenal-side .arsenal-equipped-item {
-  display:-webkit-box;
+.side-page.arsenal-side .arsenal-equipped-weapon-icon {
+  display:block;
   max-width:100%;
-  padding:0;
-  overflow:hidden;
-  border:0;
-  border-radius:0;
-  background:transparent;
-  color:#292720;
-  font-size:11px;
-  font-weight:850;
-  line-height:1.15;
+  font-size:26px;
+  line-height:1;
   text-align:center;
-  overflow-wrap:anywhere;
-  white-space:normal;
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
-  box-shadow:none;
 }
-.side-page.arsenal-side .arsenal-equipped-weapon-icon {font-size:20px;line-height:1}
 .side-page.arsenal-side .arsenal-inventory-section {
   display:flex;
   flex:1 1 auto;
