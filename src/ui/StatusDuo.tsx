@@ -7,6 +7,7 @@ type Props = {
   preferences: [ClassId | null, ClassId | null];
   powers: Partial<Record<ClassId, number>>;
   powerReady: boolean;
+  weaponsLoading: boolean;
   rankings: { power: RankInfo; days: RankInfo };
   lastMatch: MatchHistoryEntry | null;
   history: MatchHistoryEntry[];
@@ -24,7 +25,7 @@ function RankCard({ title, rank }: { title: string; rank: RankInfo }) {
     <small>{rank.error ? 'sem conexão' : hasValue ? 'posição atual' : 'sem posição ainda'}</small>
   </article>;
 }
-export default function StatusDuo({ preferences, powers, powerReady, rankings, lastMatch, history, onGoClasses }: Props) {
+export default function StatusDuo({ preferences, powers, powerReady, weaponsLoading, rankings, lastMatch, history, onGoClasses }: Props) {
   const selected = preferences.flatMap((classId, index) => classId ? [{ classId, index }] : []);
   if (!selected.length) return <div className="status-page-content"><div className="status-page-empty">
     <strong>Escolha sua classe principal e secundária</strong><button type="button" onClick={onGoClasses}>Ir para Classes</button>
@@ -46,7 +47,7 @@ export default function StatusDuo({ preferences, powers, powerReady, rankings, l
           <div className="status-page-power"><span>PD ARMADO</span><strong>{power === undefined ? '—' : power}</strong></div>
         </article>;
       })}</div>
-      {!powerReady && <small className="status-page-loading">Carregando armas…</small>}
+      {!powerReady && <small className="status-page-loading">{weaponsLoading ? 'Carregando armas…' : 'Armas indisponíveis'}</small>}
     </section>
     <section className="status-page-rankings" aria-label="Posição no ranking">
       <RankCard title="PODER" rank={rankings.power}/><RankCard title="DIAS" rank={rankings.days}/>
