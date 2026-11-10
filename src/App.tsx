@@ -3323,12 +3323,12 @@ export default function App() {
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity) : arsenalActionItem.item.name} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalActionItem.kind === 'weapon'
               ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity)
-              : arsenalActionItem.item.name + ' · ' + ({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' }[arsenalActionItem.item.rarity ?? 'normal'] ?? arsenalActionItem.item.rarity ?? 'Normal')}</strong>
+              : arsenalActionItem.item.name + ' · ' + (({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' } as Record<string, string>)[arsenalActionItem.item.rarity ?? 'normal'] ?? arsenalActionItem.item.rarity ?? 'Normal')}</strong>
               <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
             {arsenalActionItem.equipped
               ? <button type="button" className="arsenal-action-button" autoFocus onClick={unequipSelectedArsenalItem}>Desequipar</button>
-              : <button type="button" className="arsenal-action-button" autoFocus disabled={arsenalActionItem.kind === 'weapon' && (!activeArsenalClassId || activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
+              : <button type="button" className="arsenal-action-button" autoFocus disabled={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
             <button type="button" className="arsenal-action-button" autoFocus={arsenalActionItem.kind === 'weapon' && !arsenalActionItem.equipped && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]} onClick={showArsenalItemDetails}>Detalhes</button>
             <button type="button" className="arsenal-action-button danger" onClick={requestArsenalItemDeletion}>Excluir</button>
           </section>
@@ -3349,7 +3349,7 @@ export default function App() {
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] + ' · ' + coreRarityLabel(weaponInfoModal.weapon.rarity) : weaponInfoModal.item.name} onClick={event => event.stopPropagation()}>
             <header><strong>{weaponInfoModal.kind === 'weapon'
               ? arsenalWeaponLabels[weaponInfoModal.weapon.model] + ' · ' + coreRarityLabel(weaponInfoModal.weapon.rarity)
-              : weaponInfoModal.item.name + ' · ' + ({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' }[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>Fechar</button></header>
+              : weaponInfoModal.item.name + ' · ' + (({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' } as Record<string, string>)[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>Fechar</button></header>
             {weaponInfoModal.kind === 'weapon' ? <>
               <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.weapon.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
               <h3>Núcleo de {weaponInfoModal.weapon.model === 'bastao' ? 'cajado' : weaponInfoModal.weapon.model}</h3>
@@ -3374,7 +3374,7 @@ export default function App() {
               <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
             </> : <div className="arsenal-item-info-details">
               <div><span>Slot</span><b>{ARSENAL_SLOT_INFO[weaponInfoModal.item.slot].label}</b></div>
-              <div><span>Raridade</span><b>{({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' }[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</b></div>
+              <div><span>Raridade</span><b>{(({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' } as Record<string, string>)[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</b></div>
             </div>}
           </section>
         </div>}
