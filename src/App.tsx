@@ -2123,6 +2123,7 @@ export default function App() {
       const nextInventory=lobbyChestItems.flatMap(entry=>{if(entry.itemId!==currentItem.itemId)return [entry];const remaining=entry.quantity-quantity;return remaining>0?[{...entry,quantity:remaining}]:[];});
       const saved=await syncHouseInventory(fibulaSupabase,session.user.sub,nextInventory,{allowEmpty:true});
       if(!saved)throw new Error('Não foi possível confirmar a gravação do novo estoque. O Baú não foi alterado.');
+      lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       applyCookingInventory(nextInventory);setBauAction(null);setChestTransferFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
     } catch(cause){setChestTransferFeedback(cause instanceof Error?cause.message:'Não foi possível excluir o item.');}
     finally{setBauDeleteBusy(false);}
