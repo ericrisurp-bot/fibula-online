@@ -3328,8 +3328,8 @@ export default function App() {
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
             {arsenalActionItem.equipped
               ? <button type="button" className="arsenal-action-button" autoFocus onClick={unequipSelectedArsenalItem}>Desequipar</button>
-              : <button type="button" className="arsenal-action-button" autoFocus disabled={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
-            <button type="button" className="arsenal-action-button" autoFocus={arsenalActionItem.kind === 'weapon' && !arsenalActionItem.equipped && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]} onClick={showArsenalItemDetails}>Detalhes</button>
+              : <button type="button" className="arsenal-action-button" autoFocus={Boolean(activeArsenalClassId) && (arsenalActionItem.kind !== 'weapon' || activeArsenalClassId === WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} disabled={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
+            <button type="button" className="arsenal-action-button" autoFocus={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={showArsenalItemDetails}>Detalhes</button>
             <button type="button" className="arsenal-action-button danger" onClick={requestArsenalItemDeletion}>Excluir</button>
           </section>
         </div>}
