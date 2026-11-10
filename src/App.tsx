@@ -279,9 +279,10 @@ const bauItemDetails = (itemId: string) => {
   usage:isCookingIngredient(itemId)?'Uso: usado em receitas':'Uso: usado em armas, armaduras, construção e outras criações.'};
 };
 const bauMealEffects = (meal: CookingMeal) => {
- const tier = meal.rarity === 'legendary' ? 'Grande' : meal.rarity === 'uncommon' || meal.rarity === 'rare' ? 'Média' : 'Pequena';
+ const tier = meal.rarity === 'legendary' ? 'Grande' : meal.rarity === 'uncommon' || meal.rarity === 'rare' ? 'Médio' : 'Pequeno';
+ const healingTier = tier === 'Grande' ? 'Grande' : tier === 'Médio' ? 'Média' : 'Pequena';
  const labels: Record<string,string> = {forca:'Força',destreza:'Destreza',inteligencia:'Inteligência',velocidadeAtaque:'Velocidade de ataque',velocidadeMovimento:'Velocidade de movimento',healingPerSecond:'Regeneração'};
- return Object.entries(meal.effects).filter(([,v])=>typeof v==='number'&&v>0).map(([key])=>key==='healingPerSecond'?tier+' regeneração':tier+' aumento de '+(labels[key]??key));
+ return Object.entries(meal.effects).filter(([,v])=>typeof v==='number'&&v>0).map(([key])=>key==='healingPerSecond'?healingTier+' regeneração':tier+' aumento de '+(labels[key]??key));
 };
 const bauIngredientName = (itemId: string) => itemLabel(itemId).replace(/ · (Comum|Incomum|Raro|Lendário)$/,'');
 
