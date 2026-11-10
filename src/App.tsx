@@ -561,7 +561,7 @@ export default function App() {
     }).catch(() => {
       window.alert('Não foi possível validar o resultado no encerramento. Esta partida não foi salva no perfil.');
     });
-  }, [state.dead, state.kills, state.nightNumber, state.dayNight, session.user.sub]);
+  }, [state.dead, state.kills, state.nightNumber, state.dayNight]);
   const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [accountLevel, setAccountLevel] = useState(0);
   const [jabuticabaProgress, setJabuticabaProgress] = useState(0);
@@ -992,8 +992,14 @@ export default function App() {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (!statusOpen || !statusPowerReady || statusDuoPower <= 0 || !fibulaSupabase
-      || typeof navigator !== 'undefined' && !navigator.onLine) return;
+    if (!statusOpen || !statusPowerReady || statusDuoPower <= 0) return;
+    if (!fibulaSupabase || typeof navigator !== 'undefined' && !navigator.onLine) {
+      setStatusRanks({
+        power: { position: null, total: 0, previous: null, error: true },
+        days: { position: null, total: 0, previous: null, error: true },
+      });
+      return;
+    }
     if (lastReportedPdRef.current === statusDuoPower) return;
     lastReportedPdRef.current = statusDuoPower;
     let active = true;
