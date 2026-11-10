@@ -7724,5 +7724,5 @@ sem backdrop ou caixa de modal. */
 .side-page.status-page .status-page-empty button{padding:8px 13px;border:1px solid #b8a98f;border-radius:8px;background:#f4ecdc;color:#383126;font-weight:900}
 .side-page.status-page .status-page-content:has(.status-page-empty){justify-content:center}
 @media(max-width:650px){.side-page.status-page .station-page-content,.side-page.status-page .side-page-content{padding-left:8px!important;padding-right:8px!important}.side-page.status-page .side-page-panel{padding:8px;gap:8px}.side-page.status-page .status-page-content{gap:7px}}
-@media(max-width:559px),(orientation:landscape) and (max-height:560px){.side-page.status-page .station-page-content,.side-page.status-page .side-page-content{overflow-y:auto}}
+@media(max-width:559px),(orientation:landscape){.side-page.status-page .station-page-content,.side-page.status-page .side-page-content{overflow-y:auto}}
 @media(prefers-reduced-motion:reduce){.side-page.status-page .status-page-history-bars i{transition:none!important}}
