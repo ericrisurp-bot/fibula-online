@@ -3378,51 +3378,44 @@ export default function App() {
             </div>}
           </section>
         </div>}
-        {chestOpen && <PageFrame eyebrow="COLEÇÃO DE ITENS" title="Baú" onBack={closeGamePage}>
-          <div className="station-page-content"><section className="lobby-chest-modal lobby-chest-page">
-            <header className="lobby-chest-header">
-              <div><h2 id="lobby-chest-title">Baú</h2><p>Sua coleção de itens</p></div>
-              
-            </header>
+        {chestOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page bau-side">
+          <div className="station-page-content side-page-content bau-side-content"><section className="side-page-panel bau-side-panel lobby-chest-modal lobby-chest-page">
             <div className="lobby-jabuticaba-progress"><strong>NÍVEL GERAL {accountLevel}</strong><span>{jabuticabaProgress}/{jabuticabaLevelCost(accountLevel)} jabuticabas para o próximo nível</span></div>
             <nav className="lobby-chest-tabs" role="tablist" aria-label="Conteúdo do Baú">
               <button type="button" role="tab" aria-selected={chestTab === 'resources'} className={chestTab === 'resources' ? 'active' : ''} onClick={() => setChestTab('resources')}>Recursos</button>
               <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
             </nav>
-            {chestTab === 'resources' ? <>
-              {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-              <div className="lobby-chest-grid" aria-label="Itens guardados no Baú">
-                {lobbyChestItems.map(item => {
-                  const isJabuticaba = item.itemId === 'jabuticaba', parsedCore = parseCoreItemId(item.itemId);
-                  const isClosedCore = parsedCore?.kind === 'closed';
-                  const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
-                  const consumeJabuticabaFromSlot = () => { if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba(); };
-                  return <div key={item.itemId}
-                    className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
-                    aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}
-                    role={isJabuticaba ? 'button' : undefined} tabIndex={isJabuticaba ? 0 : undefined}
-                    aria-disabled={isJabuticaba ? jabuticabaDisabled : undefined}
-                    title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : isClosedCore ? 'Leve à Joalheria para revelar' : undefined}
-                    onClick={isJabuticaba ? consumeJabuticabaFromSlot : undefined}
-                    onKeyDown={isJabuticaba ? event => {
-                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); consumeJabuticabaFromSlot(); }
-                    } : undefined}>
-                    <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-                    {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
-                      event.stopPropagation(); setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
-                    }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
-                  </div>;
-                })}
-              </div>
-            </> : <>
-              <div className="lobby-chest-grid lobby-chest-meals" aria-label="Refeições prontas">
+            {chestTab === 'resources' ? <div className="lobby-chest-grid bau-side-grid" aria-label="Itens guardados no Baú">
+              {lobbyChestItems.map(item => {
+                const isJabuticaba = item.itemId === 'jabuticaba', parsedCore = parseCoreItemId(item.itemId);
+                const isClosedCore = parsedCore?.kind === 'closed';
+                const jabuticabaDisabled = !chestCloudReady || jabuticabaBusy;
+                const consumeJabuticabaFromSlot = () => { if (isJabuticaba && !jabuticabaDisabled) void consumeJabuticaba(); };
+                return <div key={item.itemId}
+                  className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
+                  aria-label={`${itemLabel(item.itemId)}: ${item.quantity}`}
+                  role={isJabuticaba ? 'button' : undefined} tabIndex={isJabuticaba ? 0 : undefined}
+                  aria-disabled={isJabuticaba ? jabuticabaDisabled : undefined}
+                  title={isJabuticaba ? (jabuticabaDisabled ? 'Aguarde...' : 'Clique para consumir 1') : isClosedCore ? 'Leve à Joalheria para revelar' : undefined}
+                  onClick={isJabuticaba ? consumeJabuticabaFromSlot : undefined}
+                  onKeyDown={isJabuticaba ? event => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); consumeJabuticabaFromSlot(); }
+                  } : undefined}>
+                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
+                    event.stopPropagation(); setChestTransferItemId(item.itemId); setChestTransferQuantity('1'); setChestTransferFeedback('');
+                  }}>{chestCloudReady ? 'Enviar' : 'Indisponível'}</button>}
+                </div>;
+              })}
+            </div> : <>
+              <div className="lobby-chest-grid lobby-chest-meals bau-side-grid" aria-label="Refeições prontas">
                 {readyCookingMeals.length ? readyCookingMeals.map(meal => <div key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card">
                   <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
                   <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                   <button type="button" className="cooking-meal-action" title="Consumir"
                     disabled={!cookingOnline} onClick={() => void queueReadyCookingMeal(meal)}>Consumir</button>
-                </div>) : <p className="house-storage-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
+                </div>) : <p className="house-storage-empty bau-side-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
               </div>
               <section className="cooking-pending-panel" aria-label="Refeições para a próxima partida">
                 <strong>Para a próxima partida</strong>
@@ -3448,10 +3441,13 @@ export default function App() {
               </label>
               <div><button type="button" disabled={chestTransferBusy} onClick={() => void sendLobbyChestItem()}>{chestTransferBusy ? 'Enviando…' : 'Confirmar envio'}</button><button type="button" className="secondary" disabled={chestTransferBusy} onClick={() => setChestTransferItemId(null)}>Cancelar</button></div>
             </div>}
+            {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
             {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
-          </section></div></PageFrame>}
+          </section></div>
+          <BackToLobbyButton onClick={closeGamePage} />
+        </PageFrame>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
             <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => {
