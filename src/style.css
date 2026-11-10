@@ -7681,7 +7681,7 @@ sem backdrop ou caixa de modal. */
 .side-page.status-page .status-page-content{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:8px}
 .side-page.status-page .status-page-power-overview{display:flex;flex-direction:column;gap:7px;padding:8px;border:1px solid #ded6c8;border-radius:11px;background:#f5f1e8}
 .side-page.status-page .status-page-power-overview>header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.side-page.status-page .status-page-power-overview>header span{color:#514b40;font-size:10px;font-weight:950;letter-spacing:.1em}
+.side-page.status-page .status-page-power-overview>header span{color:#514b40;font-size:11px;font-weight:950;letter-spacing:.1em}
 .side-page.status-page .status-page-power-overview>header strong{color:#292720;font-size:clamp(23px,3.5dvh,30px);font-variant-numeric:tabular-nums;line-height:1}
 .side-page.status-page .status-page-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .side-page.status-page .status-page-duo:has(>article:only-child){grid-template-columns:minmax(0,1fr)}
@@ -7693,18 +7693,18 @@ sem backdrop ou caixa de modal. */
 .side-page.status-page .status-page-class-head{display:flex;align-items:center;gap:7px;min-width:0}
 .side-page.status-page .status-page-class .class-face{width:34px;height:34px;flex:0 0 34px;border:2px solid var(--class-accent);border-radius:50%;background:#fffdf8}
 .side-page.status-page .status-page-class-name{color:var(--class-accent);font-size:clamp(12px,1.9dvh,15px);font-weight:900;line-height:1.1}
-.side-page.status-page .status-page-role{display:inline-flex;align-items:center;gap:3px;color:#514b40;font-size:9px;font-weight:900}
+.side-page.status-page .status-page-role{display:inline-flex;align-items:center;gap:3px;color:#514b40;font-size:11px;font-weight:900}
 .side-page.status-page .status-page-role.primary span{color:#d5a51b}
 .side-page.status-page .status-page-role.secondary span{color:#4d91d5}
 .side-page.status-page .status-page-power{display:flex;align-items:baseline;justify-content:space-between;gap:4px;margin-top:2px}
-.side-page.status-page .status-page-power span{color:#514b40;font-size:9px;font-weight:900;letter-spacing:.06em}
+.side-page.status-page .status-page-power span{color:#514b40;font-size:11px;font-weight:900;letter-spacing:.06em}
 .side-page.status-page .status-page-power strong{color:var(--class-accent);font-size:clamp(20px,3dvh,25px);font-variant-numeric:tabular-nums;line-height:1}
-.side-page.status-page .status-page-loading{color:#655c4f;font-size:10px;text-align:right}
+.side-page.status-page .status-page-loading{color:#655c4f;font-size:11px;text-align:right}
 .side-page.status-page .status-page-rankings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .side-page.status-page .status-page-rank-card{display:flex;min-width:0;flex-direction:column;gap:3px;padding:8px 9px;border:1px solid #e0d9ca;border-radius:9px;background:#fffdf8}
-.side-page.status-page .status-page-rank-card>span,.side-page.status-page .status-page-last-match>span,.side-page.status-page .status-page-history>header>span{color:#655c4f;font-size:9px;font-weight:950;letter-spacing:.09em}
+.side-page.status-page .status-page-rank-card>span,.side-page.status-page .status-page-last-match>span,.side-page.status-page .status-page-history>header>span{color:#655c4f;font-size:11px;font-weight:950;letter-spacing:.09em}
 .side-page.status-page .status-page-rank-card>strong{color:#292720;font-size:clamp(15px,2.4dvh,19px);font-variant-numeric:tabular-nums;white-space:nowrap}
-.side-page.status-page .status-page-rank-card small,.side-page.status-page .status-page-last-match small,.side-page.status-page .status-page-history>small{color:#655c4f;font-size:10px}
+.side-page.status-page .status-page-rank-card small,.side-page.status-page .status-page-last-match small,.side-page.status-page .status-page-history>small{color:#655c4f;font-size:11px}
 .side-page.status-page .status-page-trend{margin-left:3px;font-size:11px}
 .side-page.status-page .status-page-trend.up{color:#218344}
 .side-page.status-page .status-page-trend.down{color:#bd3535}
@@ -7712,14 +7712,14 @@ sem backdrop ou caixa de modal. */
 .side-page.status-page .status-page-last-match strong{color:#292720;font-size:12px;font-weight:850}
 .side-page.status-page .status-page-history{display:flex;min-height:0;flex-direction:column;gap:6px;padding:8px 9px;border:1px solid #e0d9ca;border-radius:9px;background:#fffdf8}
 .side-page.status-page .status-page-history>header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.side-page.status-page .status-page-history>header small{color:#756b5c;font-size:9px;font-weight:800}
+.side-page.status-page .status-page-history>header small{color:#756b5c;font-size:11px;font-weight:800}
 .side-page.status-page .status-page-history-bars{display:flex;align-items:flex-end;justify-content:flex-start;gap:6px;height:72px;min-height:72px;padding:0 2px}
 .side-page.status-page .status-page-history-bars>div{display:flex;flex:1 1 0;max-width:38px;height:100%;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px}
 .side-page.status-page .status-page-history-bars i{display:block;width:min(100%,22px);min-height:6px;border-radius:4px 4px 1px 1px;background:#9caa9d}
 .side-page.status-page .status-page-history-bars .latest i{background:#4e7658;box-shadow:0 0 0 2px #dbe8d9}
-.side-page.status-page .status-page-history-bars small{color:#514b40;font-size:9px;font-weight:800;font-variant-numeric:tabular-nums}
-.side-page.status-page .status-page-history footer{display:flex;justify-content:space-between;gap:8px;color:#655c4f;font-size:9px;font-weight:850}
-.side-page.status-page .status-page-history footer strong{margin-left:3px;color:#292720;font-size:10px}
+.side-page.status-page .status-page-history-bars small{color:#514b40;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+.side-page.status-page .status-page-history footer{display:flex;justify-content:space-between;gap:8px;color:#655c4f;font-size:11px;font-weight:850}
+.side-page.status-page .status-page-history footer strong{margin-left:3px;color:#292720;font-size:11px}
 .side-page.status-page .status-page-empty{display:flex;align-items:center;justify-content:center;gap:9px;min-height:120px;padding:16px;text-align:center;border:1px dashed #d8d0c1;border-radius:10px;background:#fffaf1;color:#514b40;font-size:12px}
 .side-page.status-page .status-page-empty button{padding:8px 13px;border:1px solid #b8a98f;border-radius:8px;background:#f4ecdc;color:#383126;font-weight:900}
 .side-page.status-page .status-page-content:has(.status-page-empty){justify-content:center}
