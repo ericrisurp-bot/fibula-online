@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
 import PageFrame from './PageFrame';
+import BackToLobbyButton from './BackToLobbyButton';
 import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, startDuoMatch } from './duoRooms';
 
+type ClassId = 'guerreiro' | 'mago' | 'arqueiro' | 'druida';
 type RequestStatus = 'pending' | 'accepted' | 'declined';
 type FriendRequest = {
   id: string;
@@ -14,16 +16,17 @@ type FriendRequest = {
 type FriendProfile = {
   user_id: string;
   display_name: string | null;
-  avatar_character: 'guerreiro' | 'mago' | 'arqueiro' | 'druida';
+  avatar_character: ClassId | null;
+  main_character: ClassId | null;
   age: number | null;
   sex: string | null;
 };
 type DuoRole = 'host' | 'guest';
 type DuoStatus = 'connecting' | 'connected';
-type DuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: FriendProfile['avatar_character']; classId: FriendProfile['avatar_character']; displayName: string; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
+type DuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
 type Props = {
   userId: string;
-  myClassId: FriendProfile['avatar_character'];
+  myClassId: ClassId;
   myDisplayName: string;
   open: boolean;
   pageMode?: boolean;
@@ -36,10 +39,10 @@ type Props = {
 };
 
 const AVATARS = {
-  guerreiro: { label: 'Guerreiro', icon: '⚔️' },
-  mago: { label: 'Mago', icon: '🔮' },
-  arqueiro: { label: 'Arqueiro', icon: '🏹' },
-  druida: { label: 'Druida', icon: '🌿' },
+  guerreiro: { label: 'Guerreiro' },
+  mago: { label: 'Mago' },
+  arqueiro: { label: 'Arqueiro' },
+  druida: { label: 'Druida' },
 } as const;
 
 export default function FriendsModal({ userId, myClassId, myDisplayName, open, pageMode = false, onClose, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
@@ -52,6 +55,8 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
+  const [pdRanks, setPdRanks] = useState<Record<string, number | null>>({});
+  const pdRanksRequestRef = useRef<{ key: string; promise: Promise<Record<string, number | null>> } | null>(null);
   const [lobbyInvite, setLobbyInvite] = useState<{ room_id: string; from: string; sender_name: string } | null>(null);
   const [activeDuo, setActiveDuo] = useState<DuoPeer | null>(null);
   const dismissedInvitesRef = useRef<Set<string>>(new Set());
@@ -97,7 +102,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     setActiveDuo(null);
     onLobbyChangeRef.current(null);
   };
-  const validClassId = (value: unknown): FriendProfile['avatar_character'] =>
+  const validClassId = (value: unknown): ClassId =>
     value === 'guerreiro' || value === 'mago' || value === 'arqueiro' || value === 'druida' ? value : 'guerreiro';
   const ownReadyPayload = (friendId: string) => ({
     from: userId,
@@ -128,7 +133,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
       if (ids.length) {
         const { data: profileRows, error: profileError } = await fibulaSupabase
           .from('fibula_profiles')
-          .select('user_id,display_name,avatar_character,age,sex')
+          .select('user_id,display_name,avatar_character,main_character,age,sex')
           .in('user_id', ids);
         if (profileError) throw profileError;
         setProfiles(Object.fromEntries(((profileRows ?? []) as FriendProfile[]).map(profile => [profile.user_id, profile])));
@@ -152,6 +157,38 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
   const friendIds = useMemo(() => [...new Set(accepted.map(row => row.sender_id === userId ? row.receiver_id : row.sender_id))], [accepted, userId]);
   const friendIdsKey = friendIds.join('|');
 
+  useEffect(() => {
+    let active = true;
+    setPdRanks({});
+    if (!friendIds.length) return () => { active = false; };
+
+    let request = pdRanksRequestRef.current;
+    if (!request || request.key !== friendIdsKey) {
+      const supabase = fibulaSupabase;
+      const friendIdSet = new Set(friendIds);
+      const promise: Promise<Record<string, number | null>> = (async () => {
+        if (!supabase) return {};
+        try {
+          const { data, error: rankError } = await supabase.rpc('fibula_pd_ranks', { p_user_ids: friendIds });
+          if (rankError || !Array.isArray(data)) return {};
+          const ranks: Record<string, number | null> = {};
+          for (const row of data) {
+            if (!row || typeof row !== 'object' || typeof row.user_id !== 'string' || !friendIdSet.has(row.user_id)) continue;
+            const rank = row.pd_rank;
+            if (rank === null || (Number.isSafeInteger(rank) && rank >= 1)) ranks[row.user_id] = rank;
+          }
+          return ranks;
+        } catch {
+          return {};
+        }
+      })();
+      request = { key: friendIdsKey, promise };
+      pdRanksRequestRef.current = request;
+    }
+    void request.promise.then(ranks => { if (active) setPdRanks(ranks); });
+    return () => { active = false; };
+  }, [friendIdsKey]);
+
   const notify = (message: string) => {
     setNotice(message);
     onLobbyNoticeRef.current(message);
@@ -163,7 +200,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     if (!fibulaSupabase) return null;
     const { data, error: profileError } = await fibulaSupabase
       .from('fibula_profiles')
-      .select('user_id,display_name,avatar_character,age,sex')
+      .select('user_id,display_name,avatar_character,main_character,age,sex')
       .eq('user_id', friendId)
       .maybeSingle();
     if (profileError) throw profileError;
@@ -738,50 +775,63 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
   const friendCard = (request: FriendRequest, mode: 'friend' | 'incoming' | 'outgoing') => {
     const otherId = request.sender_id === userId ? request.receiver_id : request.sender_id;
     const profile = profiles[otherId];
-    const avatar = AVATARS[profile?.avatar_character ?? 'guerreiro'];
-    return <article className="lobby-friend-card" key={request.id}>
-      <span className={`lobby-friend-avatar class-${profile?.avatar_character ?? 'guerreiro'}`} aria-hidden="true">{avatar.icon}</span>
-      {mode === 'friend' && <span className={`lobby-friend-online-dot ${onlineFriends.includes(otherId) ? 'online' : ''}`} aria-label={onlineFriends.includes(otherId) ? 'Online' : 'Offline'} />}
-      <button type="button" className="lobby-friend-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
-        <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong><small>{mode === 'friend' ? avatar.label : mode === 'incoming' ? 'Enviou um convite' : 'Convite enviado · aguardando'}</small></span>
-      </button>
-      {mode === 'friend' && <div className="lobby-friend-actions">{onlineFriends.includes(otherId) ? <button type="button" disabled={Boolean(activeDuo)} onClick={() => void sendLobbyInvite(otherId)}>Convidar</button> : <span className="lobby-friend-pending">Offline</span>}</div>}
-      {mode === 'incoming' && <div className="lobby-friend-actions">
-        <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
-        <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
+    const online = onlineFriends.includes(otherId);
+    const classId = validClassId(profile?.main_character ?? profile?.avatar_character);
+    const rank = pdRanks[otherId];
+    return <article className={`lobby-friend-card friends-side-card friends-side-card-${mode}`} key={request.id}>
+      <div className="friends-side-card-main">
+        <button type="button" className="lobby-friend-profile friends-side-profile" onClick={() => onOpenProfile(otherId)} aria-label={`Ver perfil de ${profile?.display_name || 'jogador'}`}>
+          <span className="lobby-friend-identity"><strong>{profile?.display_name || 'Jogador sem nome'}</strong></span>
+        </button>
+        {mode === 'friend' && online && <div className="lobby-friend-actions friends-side-actions"><button type="button" disabled={Boolean(activeDuo)} onClick={() => void sendLobbyInvite(otherId)}>Convidar</button></div>}
+        {mode === 'incoming' && <div className="lobby-friend-actions friends-side-actions">
+          <button type="button" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'accepted')}>Aceitar</button>
+          <button type="button" className="secondary" disabled={actingId === request.id} onClick={() => void answerRequest(request, 'declined')}>Recusar</button>
+        </div>}
+      </div>
+      {mode === 'friend' && <div className="friends-side-meta">
+        <span className={`friends-side-status ${online ? 'online' : 'offline'}`}><i aria-hidden="true" />{online ? 'Online' : 'Offline'}</span>
+        <span>{AVATARS[classId].label}</span>
+        <span>Rank PD {Number.isSafeInteger(rank) && (rank ?? 0) >= 1 ? `#${rank}` : '—'}</span>
       </div>}
-      {mode === 'outgoing' && <span className="lobby-friend-pending">Pendente</span>}
+      {mode === 'incoming' && <p className="friends-side-request-copy">Enviou um convite</p>}
+      {mode === 'outgoing' && <p className="friends-side-request-copy">Convite enviado · aguardando</p>}
     </article>;
   };
 
   const friendsPanel = <>
-    <header className="lobby-friends-header">
-      <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
-      <div className="lobby-friends-count">{accepted.length} amigos</div>
-      {!pageMode && <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={onClose}>×</button>}
-    </header>
-    <div className="lobby-friends-content">
-      <form className="lobby-friends-search" onSubmit={sendRequest}>
+    {pageMode
+      ? <div className="friends-side-count">{accepted.length} amigos</div>
+      : <header className="lobby-friends-header">
+          <div><span>SUA COMUNIDADE</span><h2 id="lobby-friends-title">Amigos</h2></div>
+          <div className="lobby-friends-count">{accepted.length} amigos</div>
+          <button type="button" className="lobby-friends-close" aria-label="Fechar amigos" onClick={onClose}>×</button>
+        </header>}
+    <div className="lobby-friends-content friends-side-content-body">
+      <form className="lobby-friends-search friends-side-search" onSubmit={sendRequest}>
         <label htmlFor="friend-search-name">Adicionar amigo pelo nome de jogador</label>
         <div><input id="friend-search-name" value={searchName} onChange={event => setSearchName(event.target.value)} minLength={3} maxLength={20} placeholder="Digite o nome exato" />
           <button type="submit" disabled={searching || searchName.trim().length < 3}>{searching ? 'Buscando...' : 'Enviar pedido'}</button></div>
       </form>
       {error && <p className="lobby-friends-feedback error" role="alert">{error}</p>}
       {notice && <p className="lobby-friends-feedback" role="status">{notice}</p>}
-      {loading ? <p className="lobby-friends-empty">Carregando amigos...</p> : <>
-        {incoming.length > 0 && <section className="lobby-friends-section"><h3>Convites recebidos <span>{incoming.length}</span></h3>{incoming.map(row => friendCard(row, 'incoming'))}</section>}
-        <section className="lobby-friends-section"><h3>Seus amigos</h3>
-          {accepted.length ? accepted.map(row => friendCard(row, 'friend')) : <div className="lobby-friends-empty" role="status"><span aria-hidden="true">♡</span><strong>Você ainda não tem amigos</strong><p>Envie um convite usando o nome de jogador.</p></div>}
-        </section>
-        {outgoing.length > 0 && <section className="lobby-friends-section"><h3>Convites enviados <span>{outgoing.length}</span></h3>{outgoing.map(row => friendCard(row, 'outgoing'))}</section>}
-      </>}
+      <div className="friends-side-scroll">
+        {loading ? <p className="lobby-friends-empty">Carregando amigos...</p> : <>
+          {incoming.length > 0 && <section className="lobby-friends-section friends-side-section"><h3>Convites recebidos <span>{incoming.length}</span></h3>{incoming.map(row => friendCard(row, 'incoming'))}</section>}
+          <section className="lobby-friends-section friends-side-section"><h3>Seus amigos</h3>
+            {accepted.length ? accepted.map(row => friendCard(row, 'friend')) : <div className="lobby-friends-empty" role="status"><strong>Você ainda não tem amigos</strong><p>Envie um convite usando o nome de jogador.</p></div>}
+          </section>
+          {outgoing.length > 0 && <section className="lobby-friends-section friends-side-section"><h3>Convites enviados <span>{outgoing.length}</span></h3>{outgoing.map(row => friendCard(row, 'outgoing'))}</section>}
+        </>}
+      </div>
     </div>
   </>;
   return <>{open && (pageMode
-    ? <PageFrame eyebrow="SUA COMUNIDADE" title="Amigos" onBack={onClose}>
-        <div className="station-page-content friends-page-content">
-          <section className="lobby-friends-modal lobby-friends-page" aria-labelledby="lobby-friends-title">{friendsPanel}</section>
+    ? <PageFrame eyebrow="" title="" onBack={onClose} hideHeader stateClassName="side-page friends-side">
+        <div className="station-page-content side-page-content friends-side-content">
+          <section className="side-page-panel friends-side-panel" aria-label="Amigos">{friendsPanel}</section>
         </div>
+        <BackToLobbyButton onClick={onClose} />
       </PageFrame>
     : <div className="lobby-friends-backdrop" onClick={onClose}>
         <section className="lobby-friends-modal" role="dialog" aria-modal="true" aria-labelledby="lobby-friends-title" onClick={event => event.stopPropagation()}>{friendsPanel}</section>
