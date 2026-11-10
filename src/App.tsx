@@ -3306,7 +3306,7 @@ export default function App() {
                       </button>;
                     }
                     const item = entry.item;
-                    const isEquipped = Object.values(equipmentLoadouts).some(loadout => Object.values(loadout ?? {}).includes(item.id));
+                    const isEquipped = Object.values(equipmentLoadout).includes(item.id);
                     const rarity = item.rarity ?? 'normal';
                     const rarityColor = rarity === 'common' ? '#36a852' : rarity === 'uncommon' ? '#2874c7' : rarity === 'rare' ? '#8740bd' : rarity === 'legendary' ? '#b65b13' : '#cfc6b3';
                     return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}35` }} onClick={() => openArsenalEquipmentActions(item, isEquipped)} aria-label={`${item.name}${isEquipped ? ', equipado' : ''}. Abrir ações.`}>
@@ -3316,7 +3316,8 @@ export default function App() {
                 </div>}
               {weaponFeedback && <p className="arsenal-weapon-feedback" role="status">{weaponFeedback}</p>}
             </section>
-          </section><BackToLobbyButton onClick={closeGamePage} /></div>
+          </section></div>
+          <BackToLobbyButton onClick={closeGamePage} />
         </PageFrame>}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity) : arsenalActionItem.item.name} onClick={event => event.stopPropagation()}>
