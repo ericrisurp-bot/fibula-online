@@ -217,7 +217,7 @@ export async function reportHighestPd(client: SupabaseClient, pd: number): Promi
   if (!Number.isSafeInteger(pd) || pd <= 0 || pd > 3000) return null;
   try {
     const { data, error } = await client.rpc('fibula_report_pd', { p_pd: pd });
-    if (error || !Number.isSafeInteger(data) || typeof data !== 'number') return null;
+    if (error || typeof data !== 'number' || !Number.isSafeInteger(data)) return null;
     return data;
   } catch {
     return null;
