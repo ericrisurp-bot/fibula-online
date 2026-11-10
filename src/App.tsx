@@ -3335,7 +3335,7 @@ export default function App() {
           </section></div></PageFrame>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
-            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} onGoClasses={() => {
+            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} onGoClasses={() => {
               navigateToPage('classes');
               setActiveGameRoute({ page: 'classes' });
               setStatusOpen(false);
