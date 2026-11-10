@@ -7720,6 +7720,19 @@ sem backdrop ou caixa de modal. */
 .side-page.status-page .status-page-history-bars small{color:#514b40;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
 .side-page.status-page .status-page-history footer{display:flex;justify-content:space-between;gap:8px;color:#655c4f;font-size:11px;font-weight:850}
 .side-page.status-page .status-page-history footer strong{margin-left:3px;color:#292720;font-size:11px}
+.side-page.status-page .status-page-usage{display:flex;flex-direction:column;gap:4px;padding:6px 9px;border:1px solid #e0d9ca;border-radius:9px;background:#fffdf8}
+.side-page.status-page .status-page-usage>header{color:#655c4f;font-size:11px;font-weight:950;letter-spacing:.09em}
+.side-page.status-page .status-page-usage-rows{display:flex;flex-direction:column;gap:3px}
+.side-page.status-page .status-page-usage-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;align-items:center;gap:6px;min-height:20px;color:#514b40;font-size:11px}
+.side-page.status-page .status-page-usage-row>span{white-space:nowrap}
+.side-page.status-page .status-page-usage-row>strong{display:flex;align-items:center;gap:4px;min-width:0;color:#292720;font-size:11px;font-weight:850;white-space:nowrap}
+.side-page.status-page .status-page-usage-row>strong .class-face{width:18px;height:18px;flex:0 0 18px}
+.side-page.status-page .status-page-usage-row>b{color:#292720;font-size:11px;font-weight:900;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.side-page.status-page .status-page-usage-row.class-guerreiro>strong{color:#a52d2d}
+.side-page.status-page .status-page-usage-row.class-mago>strong{color:#7042a8}
+.side-page.status-page .status-page-usage-row.class-arqueiro>strong{color:#865e05}
+.side-page.status-page .status-page-usage-row.class-druida>strong{color:#236b3b}
+.side-page.status-page .status-page-usage>small{color:#655c4f;font-size:11px}
 .side-page.status-page .status-page-empty{display:flex;align-items:center;justify-content:center;gap:9px;min-height:120px;padding:16px;text-align:center;border:1px dashed #d8d0c1;border-radius:10px;background:#fffaf1;color:#514b40;font-size:12px}
 .side-page.status-page .status-page-empty button{padding:8px 13px;border:1px solid #b8a98f;border-radius:8px;background:#f4ecdc;color:#383126;font-weight:900}
 .side-page.status-page .status-page-content:has(.status-page-empty){justify-content:center}

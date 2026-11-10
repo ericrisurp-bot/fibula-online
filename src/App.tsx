@@ -12,6 +12,7 @@ import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, reportHighestPd, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
+import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
@@ -547,6 +548,8 @@ export default function App() {
       kills: state.kills,
       at: new Date().toISOString(),
     }));
+    const matchUsage = engineRef.current?.getClassUsage();
+    if (matchUsage) setStatusUsage(recordClassUsage(session.user.sub, matchUsage));
 
     const sessionId = matchSessionIdRef.current;
     matchSessionIdRef.current = null;
@@ -639,6 +642,7 @@ export default function App() {
   const [rankingLoading, setRankingLoading] = useState(false);
   const [rankingError, setRankingError] = useState('');
   const [statusHistory, setStatusHistory] = useState<MatchHistoryEntry[]>(() => readMatchHistory(session.user.sub));
+  const [statusUsage, setStatusUsage] = useState<ClassUsageRecord>(() => readClassUsage(session.user.sub));
   const [statusRanks, setStatusRanks] = useState({
     power: { position: null as number | null, total: 0, previous: null as number | null, error: false },
     days: { position: null as number | null, total: 0, previous: null as number | null, error: false },
@@ -989,6 +993,7 @@ export default function App() {
 
   useEffect(() => {
     setStatusHistory(readMatchHistory(session.user.sub));
+    setStatusUsage(readClassUsage(session.user.sub));
   }, [session.user.sub]);
 
   useEffect(() => {
@@ -3339,7 +3344,7 @@ export default function App() {
           </section></div></PageFrame>}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
-            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} onGoClasses={() => {
+            <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => {
               navigateToPage('classes');
               setActiveGameRoute({ page: 'classes' });
               setStatusOpen(false);
