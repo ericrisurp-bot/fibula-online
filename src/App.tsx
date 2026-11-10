@@ -2059,12 +2059,12 @@ export default function App() {
     } else {
       navigateToPage(id);
       setActiveGameRoute({ page: id });
-      setArsenalOpen(id === 'arsenal');
-      setFriendsOpen(id === 'amigos');
-      setChestOpen(false);
-      setStatusOpen(id === 'status');
-      setProfileOpen(id === 'classes');
     }
+    setArsenalOpen(id === 'arsenal');
+    setFriendsOpen(id === 'amigos');
+    setChestOpen(id === 'bau');
+    setStatusOpen(id === 'status');
+    setProfileOpen(id === 'classes');
     setRankingOpen(false);
     setPlayerProfileOpen(false);
     setViewedProfileUserId(null);
