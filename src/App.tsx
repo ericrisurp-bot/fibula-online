@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
@@ -14,7 +14,7 @@ import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, re
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
-import { craftWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
+import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -620,14 +620,26 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [jewelryResultCoreId]);
   const [arsenalCharacterTab, setArsenalCharacterTab] = useState<'principal' | 'secundario'>('principal');
-  const [arsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
+  const [arsenalItems, setArsenalItems] = useState<ArsenalEquipment[]>(readSavedArsenal);
   const [equipmentLoadouts, setEquipmentLoadouts] = useState<ClassEquipmentLoadouts>(readSavedLoadouts);
   const [selectedArsenalItemId, setSelectedArsenalItemId] = useState<string | null>(null);
-  const [selectedEquipmentSlot, setSelectedEquipmentSlot] = useState<EquipmentSlotId>('capacete');
-  const [weaponInfoModal, setWeaponInfoModal] = useState<CraftedWeapon | null>(null);
+  const [arsenalActionItem, setArsenalActionItem] = useState<
+    | { kind: 'weapon'; weapon: CraftedWeapon; equipped: boolean }
+    | { kind: 'equipment'; item: ArsenalEquipment; equipped: boolean }
+    | null
+  >(null);
+  const [arsenalDeleteConfirmation, setArsenalDeleteConfirmation] = useState<
+    | { kind: 'weapon'; weapon: CraftedWeapon }
+    | { kind: 'equipment'; item: ArsenalEquipment }
+    | null
+  >(null);
+  const [arsenalDeleteBusy, setArsenalDeleteBusy] = useState(false);
+  const [weaponInfoModal, setWeaponInfoModal] = useState<
+    | { kind: 'weapon'; weapon: CraftedWeapon }
+    | { kind: 'equipment'; item: ArsenalEquipment }
+    | null
+  >(null);
   const [weaponInfoComparison, setWeaponInfoComparison] = useState<CraftedWeapon | null>(null);
-  const weaponInfoHoldTimerRef = useRef<number | null>(null);
-  const weaponInfoHoldTriggeredRef = useRef(false);
   const activeArsenalClassId = characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1];
   const equipmentLoadout = activeArsenalClassId ? equipmentLoadouts[activeArsenalClassId] ?? {} : {};
   const [profileOpen, setProfileOpen] = useState(false);
@@ -743,8 +755,6 @@ export default function App() {
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
-  const selectedArsenalWeapon = craftedWeapons.find(weapon => weapon.id === selectedArsenalItemId) ?? null;
-  const selectedArsenalEquipment = arsenalItems.find(item => item.id === selectedArsenalItemId) ?? null;
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const openStation = (id: StationRouteId) => {
     navigateToStation(id);
@@ -923,14 +933,30 @@ export default function App() {
 
   useEffect(() => {
     if (!weaponInfoModal) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setWeaponInfoModal(null); setWeaponInfoComparison(null); weaponInfoHoldTriggeredRef.current = false; } };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setWeaponInfoModal(null); setWeaponInfoComparison(null); }
+    };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [weaponInfoModal]);
 
-  useEffect(() => () => {
-    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
-  }, []);
+  useEffect(() => {
+    if (!arsenalActionItem) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setArsenalActionItem(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [arsenalActionItem]);
+
+  useEffect(() => {
+    if (!arsenalDeleteConfirmation) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !arsenalDeleteBusy) setArsenalDeleteConfirmation(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [arsenalDeleteConfirmation, arsenalDeleteBusy]);
 
   useEffect(() => {
     if (!friendsOpen) return;
@@ -2546,37 +2572,117 @@ export default function App() {
     if (engineRef.current?.state.classId === classId) engineRef.current.setEquippedWeapon(null);
     setWeaponFeedback(arsenalWeaponLabels[weapon.model] + ' desequipada.');
   };
-  const handleArsenalWeaponTap = (weapon: CraftedWeapon) => {
-    const weaponClass = WEAPON_CLASS_BY_MODEL[weapon.model];
+  const openArsenalWeaponActions = (weapon: CraftedWeapon, equipped: boolean) => {
     setSelectedArsenalItemId(weapon.id);
-    setSelectedEquipmentSlot('arma');
-    if (activeArsenalClassId !== weaponClass) {
-      setWeaponFeedback('Esta arma é do ' + CLASSES[weaponClass].label + '.');
+    setArsenalActionItem({ kind: 'weapon', weapon, equipped });
+  };
+  const openArsenalEquipmentActions = (item: ArsenalEquipment, equipped: boolean) => {
+    setSelectedArsenalItemId(item.id);
+    setArsenalActionItem({ kind: 'equipment', item, equipped });
+  };
+  const showArsenalItemDetails = () => {
+    const action = arsenalActionItem;
+    if (!action) return;
+    if (action.kind === 'weapon') {
+      const comparison = action.equipped
+        ? null
+        : selectedWeaponForClass(craftedWeapons, equippedWeaponIds, WEAPON_CLASS_BY_MODEL[action.weapon.model]);
+      setWeaponInfoComparison(comparison);
+      setWeaponInfoModal({ kind: 'weapon', weapon: action.weapon });
+    } else {
+      setWeaponInfoComparison(null);
+      setWeaponInfoModal({ kind: 'equipment', item: action.item });
+    }
+    setArsenalActionItem(null);
+  };
+  const equipSelectedArsenalItem = () => {
+    const action = arsenalActionItem;
+    if (!action || !activeArsenalClassId) return;
+    if (action.kind === 'weapon') {
+      if (activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[action.weapon.model]) return;
+      equipCraftedWeapon(action.weapon);
+    } else {
+      setEquipmentLoadouts(current => ({
+        ...current,
+        [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, action.item),
+      }));
+      setWeaponFeedback(action.item.name + ' equipada.');
+    }
+    setArsenalActionItem(null);
+  };
+  const unequipSelectedArsenalItem = () => {
+    const action = arsenalActionItem;
+    if (!action || !activeArsenalClassId) return;
+    if (action.kind === 'weapon') {
+      unequipCraftedWeapon(action.weapon);
+    } else {
+      setEquipmentLoadouts(current => ({
+        ...current,
+        [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, action.item.slot),
+      }));
+      setWeaponFeedback(action.item.name + ' desequipado.');
+    }
+    setSelectedArsenalItemId(null);
+    setArsenalActionItem(null);
+  };
+  const requestArsenalItemDeletion = () => {
+    const action = arsenalActionItem;
+    if (!action) return;
+    setArsenalDeleteConfirmation(action.kind === 'weapon'
+      ? { kind: 'weapon', weapon: action.weapon }
+      : { kind: 'equipment', item: action.item });
+    setArsenalActionItem(null);
+  };
+  const confirmArsenalItemDeletion = async () => {
+    const pending = arsenalDeleteConfirmation;
+    if (!pending || arsenalDeleteBusy) return;
+    setArsenalDeleteBusy(true);
+    if (pending.kind === 'weapon') {
+      const supabase = fibulaSupabase;
+      if (!supabase || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+        setArsenalDeleteConfirmation(null);
+        setWeaponFeedback('Não foi possível excluir agora. Tente de novo.');
+        setArsenalDeleteBusy(false);
+        return;
+      }
+      try {
+        await deleteWeapon(supabase, pending.weapon.id);
+        const weaponId = pending.weapon.id;
+        const weaponClass = WEAPON_CLASS_BY_MODEL[pending.weapon.model];
+        if (equippedWeaponIds[weaponClass] === weaponId) {
+          const next = { ...equippedWeaponIds };
+          delete next[weaponClass];
+          setEquippedWeaponIds(next);
+          writeEquippedWeaponSelections(session.user.sub, next);
+          if (engineRef.current?.state.classId === weaponClass) engineRef.current.setEquippedWeapon(null);
+        }
+        setCraftedWeapons(current => current.filter(weapon => weapon.id !== weaponId));
+        setSelectedArsenalItemId(null);
+        setWeaponFeedback('Arma excluída.');
+        setArsenalDeleteConfirmation(null);
+      } catch {
+        setArsenalDeleteConfirmation(null);
+        setWeaponFeedback('Não foi possível excluir agora. Tente de novo.');
+      } finally {
+        setArsenalDeleteBusy(false);
+      }
       return;
     }
-    if (equippedWeaponIds[weaponClass] === weapon.id) unequipCraftedWeapon(weapon);
-    else equipCraftedWeapon(weapon);
-  };
-  const startWeaponInfoHold = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
-    weaponInfoHoldTriggeredRef.current = false;
-    weaponInfoHoldTimerRef.current = window.setTimeout(() => {
-      weaponInfoHoldTriggeredRef.current = true;
-      weaponInfoHoldTimerRef.current = null;
-    }, 500);
-  };
-  const finishWeaponInfoHold = (weapon: CraftedWeapon, comparison: CraftedWeapon | null = null) => {
-    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
-    weaponInfoHoldTimerRef.current = null;
-    if (weaponInfoHoldTriggeredRef.current) {
-      setWeaponInfoComparison(comparison);
-      setWeaponInfoModal(weapon);
-    }
-  };
-  const clearWeaponInfoHold = () => {
-    if (weaponInfoHoldTimerRef.current !== null) window.clearTimeout(weaponInfoHoldTimerRef.current);
-    weaponInfoHoldTimerRef.current = null;
+    const item = pending.item;
+    setArsenalItems(current => current.filter(existing => existing.id !== item.id));
+    setEquipmentLoadouts(current => {
+      const next: ClassEquipmentLoadouts = {};
+      for (const [rawClassId, loadout] of Object.entries(current)) {
+        if (!isProfileClassId(rawClassId)) continue;
+        const filtered = Object.fromEntries(Object.entries(loadout ?? {}).filter(([, itemId]) => itemId !== item.id)) as EquipmentLoadout;
+        next[rawClassId] = filtered;
+      }
+      return next;
+    });
+    setSelectedArsenalItemId(null);
+    setWeaponFeedback(item.name + ' excluído.');
+    setArsenalDeleteConfirmation(null);
+    setArsenalDeleteBusy(false);
   };
   const pickClass = (id: ClassId) => applyClassAndEquippedWeapon(id);
   const toggleRange = () => engineRef.current?.toggleRange();
@@ -3153,119 +3259,122 @@ export default function App() {
           </button>)}
         </nav>
       </div>}
-                {arsenalOpen && <PageFrame eyebrow="EQUIPAMENTOS DO PERSONAGEM" title="Arsenal" onBack={closeGamePage}>
-          <div className="station-page-content"><section className="lobby-arsenal-modal lobby-arsenal-page">
-            <header className="lobby-arsenal-header">
-              <div><span>EQUIPAMENTOS DO PERSONAGEM</span><h2 id="lobby-arsenal-title">Arsenal</h2></div>
-              <div className="lobby-arsenal-count">{arsenalInventoryEntries.length}/{arsenalInventoryCapacity} espaços</div>
-              
-            </header>
-            <div className="lobby-arsenal-content">
-              <section className="arsenal-equipment-section" aria-label="Equipamentos equipados">
-                 <div className="arsenal-character-tabs" role="tablist" aria-label="Personagem do Arsenal">
-                   <button type="button" role="tab" aria-selected={arsenalCharacterTab === 'principal'} className={arsenalCharacterTab === 'principal' ? 'active' : ''} onClick={() => setArsenalCharacterTab('principal')}>Principal</button>
-                   <button type="button" role="tab" aria-selected={arsenalCharacterTab === 'secundario'} className={arsenalCharacterTab === 'secundario' ? 'active' : ''} onClick={() => setArsenalCharacterTab('secundario')}>Secundário</button>
-                 </div>
-                 <div className="arsenal-section-heading"><strong>{arsenalCharacterTab === 'principal' ? 'PERSONAGEM PRINCIPAL' : 'PERSONAGEM SECUNDÁRIO'}</strong><span>Selecione um espaço para equipar</span></div>
-                 <div className="arsenal-equipment-stage">
-                    <span className="arsenal-power-label" aria-label={arsenalPowerValue === null ? "Poder do personagem" : `Poder do personagem: ${arsenalPowerValue}`}>PD{arsenalPowerValue === null ? "" : ` ${arsenalPowerValue}`}</span>
-                   {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
-                   <div className="arsenal-equipment-grid">
-                     {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
-                       const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
-                       const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                       const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] + ' · ' + coreRarityLabel(weaponEquipped.rarity) : equipped?.name;
-                       const weaponIcon = weaponEquipped ? weaponEquipped.model === 'espada' ? '🗡️' : weaponEquipped.model === 'arco' ? '🏹' : weaponEquipped.model === 'cajado' ? '🔮' : '🌿' : null;
-                       const rarityColor = weaponEquipped?.rarity === 'common' ? '#36d66f' : weaponEquipped?.rarity === 'uncommon' ? '#348cff' : weaponEquipped?.rarity === 'rare' ? '#a34be8' : weaponEquipped?.rarity === 'legendary' ? '#ff8a24' : 'transparent';
-                       const info = ARSENAL_SLOT_INFO[slot];
-                       return <button type="button" key={slot} className={`arsenal-equipment-slot ${selectedEquipmentSlot === slot ? 'selected' : ''} ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column, ...(rarityColor === 'transparent' ? {} : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }) }} disabled={!activeArsenalClassId} onPointerDown={event => { if (weaponEquipped) startWeaponInfoHold(event); }} onPointerUp={() => { if (weaponEquipped) finishWeaponInfoHold(weaponEquipped); }} onPointerLeave={clearWeaponInfoHold} onPointerCancel={clearWeaponInfoHold} onContextMenu={event => event.preventDefault()} onClick={() => {
-                         if (weaponInfoHoldTriggeredRef.current) { weaponInfoHoldTriggeredRef.current = false; return; }
-                         setSelectedEquipmentSlot(slot);
-                         setSelectedArsenalItemId(weaponEquipped?.id ?? equipped?.id ?? null);
-                         if (weaponEquipped) unequipCraftedWeapon(weaponEquipped);
-                       }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado' : 'vazio'}`}>
-                         <strong>{info.label}</strong>{weaponEquipped && weaponIcon && <span className="arsenal-equipped-weapon-icon" aria-hidden="true">{weaponIcon}</span>}{equippedName && <span className="arsenal-equipped-item">{equippedName}</span>}
-                       </button>;
-                     })}
-                   </div>
-                 </div>
-               </section>
-               <section className="arsenal-inventory-section">
-                <div className="arsenal-section-heading"><strong>INVENTÁRIO DE EQUIPAMENTOS</strong><span>{arsenalInventoryEntries.length}/{arsenalInventoryCapacity} espaços · itens não equipados</span></div>
-                {weaponsLoading && <p className="arsenal-weapon-feedback" role="status">Carregando armas…</p>}
-                <div className="arsenal-inventory-grid">
-                  {Array.from({ length: arsenalInventoryCapacity }, (_, index) => {
-                    const entry = arsenalInventoryEntries[index];
-                    if (!entry) return <button type="button" key={'empty-' + index} className="arsenal-inventory-slot" disabled><span className="arsenal-empty-number">{index + 1}</span></button>;
+                {arsenalOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page arsenal-side">
+          <div className="station-page-content side-page-content arsenal-side-content"><section className="side-page-panel arsenal-side-panel">
+            <section className="arsenal-equipment-section" aria-label="Equipamentos equipados">
+              <div className="arsenal-character-tabs" role="tablist" aria-label="Personagem do Arsenal">
+                <button type="button" role="tab" aria-selected={arsenalCharacterTab === 'principal'} className={arsenalCharacterTab === 'principal' ? 'active' : ''} onClick={() => setArsenalCharacterTab('principal')}>Principal</button>
+                <button type="button" role="tab" aria-selected={arsenalCharacterTab === 'secundario'} className={arsenalCharacterTab === 'secundario' ? 'active' : ''} onClick={() => setArsenalCharacterTab('secundario')}>Secundário</button>
+              </div>
+              <div className="arsenal-equipment-stage">
+                <span className="arsenal-power-label" aria-label={arsenalPowerValue === null ? "Poder do personagem" : `Poder do personagem: ${arsenalPowerValue}`}>PD{arsenalPowerValue === null ? "" : ` ${arsenalPowerValue}`}</span>
+                {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
+                <div className="arsenal-equipment-grid">
+                  {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
+                    const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
+                    const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                    const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] + ' · ' + coreRarityLabel(weaponEquipped.rarity) : equipped?.name;
+                    const weaponIcon = weaponEquipped ? weaponEquipped.model === 'espada' ? '🗡️' : weaponEquipped.model === 'arco' ? '🏹' : weaponEquipped.model === 'cajado' ? '🔮' : '🌿' : null;
+                    const rarity = weaponEquipped?.rarity ?? equipped?.rarity;
+                    const rarityColor = rarity === 'common' ? '#36a852' : rarity === 'uncommon' ? '#2874c7' : rarity === 'rare' ? '#8740bd' : rarity === 'legendary' ? '#b65b13' : 'transparent';
+                    const info = ARSENAL_SLOT_INFO[slot];
+                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column, ...(rarityColor === 'transparent' ? {} : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55` }) }} disabled={!equippedName} onClick={() => {
+                      if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
+                      else if (equipped) openArsenalEquipmentActions(equipped, true);
+                    }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
+                      {weaponEquipped && weaponIcon && <span className="arsenal-equipped-weapon-icon" aria-hidden="true">{weaponIcon}</span>}
+                      {equippedName && <span className="arsenal-equipped-item">{equippedName}</span>}
+                    </button>;
+                  })}
+                </div>
+              </div>
+            </section>
+            <section className="arsenal-inventory-section" aria-label="Inventário de equipamentos">
+              <div className="arsenal-section-heading"><strong>INVENTÁRIO</strong><span>{arsenalInventoryEntries.length}/{arsenalInventoryCapacity}</span></div>
+              {weaponsLoading && <p className="arsenal-weapon-feedback" role="status">Carregando armas…</p>}
+              {!weaponsLoading && arsenalInventoryEntries.length === 0
+                ? <p className="arsenal-inventory-empty">Nenhum equipamento no inventário.</p>
+                : <div className="arsenal-inventory-grid">
+                  {arsenalInventoryEntries.map(entry => {
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
                       const weaponName = arsenalWeaponLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
-                      const rarityColor = weapon.rarity === 'common' ? '#36d66f' : weapon.rarity === 'uncommon' ? '#348cff' : weapon.rarity === 'rare' ? '#a34be8' : weapon.rarity === 'legendary' ? '#ff8a24' : 'transparent';
+                      const rarityColor = weapon.rarity === 'common' ? '#36a852' : weapon.rarity === 'uncommon' ? '#2874c7' : weapon.rarity === 'rare' ? '#8740bd' : weapon.rarity === 'legendary' ? '#b65b13' : '#cfc6b3';
                       const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
-                      return <button type="button" key={weapon.id}
-                        className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''}`}
-                        style={rarityColor === 'transparent' ? undefined : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55`, filter: `drop-shadow(0 0 5px ${rarityColor})` }}
-                        onPointerDown={event => startWeaponInfoHold(event)}
-                        onPointerUp={() => finishWeaponInfoHold(weapon, selectedWeaponForClass(craftedWeapons, equippedWeaponIds, WEAPON_CLASS_BY_MODEL[weapon.model]))}
-                        onPointerLeave={clearWeaponInfoHold}
-                        onPointerCancel={clearWeaponInfoHold}
-                        onContextMenu={event => event.preventDefault()}
-                        onClick={() => {
-                          if (weaponInfoHoldTriggeredRef.current) { weaponInfoHoldTriggeredRef.current = false; return; }
-                          handleArsenalWeaponTap(weapon);
-                        }}
-                        aria-label={`${weaponName}. Toque para equipar; segure para informações e comparação.`}>
+                      return <button type="button" key={weapon.id} className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''}`} style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}35` }} onClick={() => openArsenalWeaponActions(weapon, false)} aria-label={`${weaponName}. Abrir ações.`}>
                         <span>{weaponIcon}</span><small>{weaponName}</small>
                       </button>;
                     }
                     const item = entry.item;
-                    const isEquipped = Object.values(equipmentLoadout).includes(item.id);
-                    return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} onClick={() => { setSelectedArsenalItemId(item.id); setSelectedEquipmentSlot(item.slot); }} aria-label={`Selecionar ${item.name}${isEquipped ? ', equipado' : ''}`}>
+                    const isEquipped = Object.values(equipmentLoadouts).some(loadout => Object.values(loadout ?? {}).includes(item.id));
+                    const rarity = item.rarity ?? 'normal';
+                    const rarityColor = rarity === 'common' ? '#36a852' : rarity === 'uncommon' ? '#2874c7' : rarity === 'rare' ? '#8740bd' : rarity === 'legendary' ? '#b65b13' : '#cfc6b3';
+                    return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}35` }} onClick={() => openArsenalEquipmentActions(item, isEquipped)} aria-label={`${item.name}${isEquipped ? ', equipado' : ''}. Abrir ações.`}>
                       <span>{item.icon}</span><small>{item.name}</small>{isEquipped && <em>EQUIPADO</em>}
                     </button>;
                   })}
-                </div>
-                <div className="arsenal-actions">
-                  <div className="arsenal-selection-label">{selectedArsenalWeapon ? arsenalWeaponLabels[selectedArsenalWeapon.model] + ' · ' + coreRarityLabel(selectedArsenalWeapon.rarity) : selectedArsenalEquipment?.name ?? 'Selecione um equipamento'}</div>
-                  {!selectedArsenalWeapon && <>
-                    <button type="button" disabled={!activeArsenalClassId || !selectedArsenalEquipment || selectedArsenalEquipment.slot !== selectedEquipmentSlot} onClick={() => {
-                      if (selectedArsenalEquipment && selectedArsenalEquipment.slot === selectedEquipmentSlot && activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, selectedArsenalEquipment) }));
-                    }}>Equipar</button>
-                    <button type="button" className="arsenal-unequip" disabled={!activeArsenalClassId || !equipmentLoadout[selectedEquipmentSlot]} onClick={() => {
-                      if (activeArsenalClassId) setEquipmentLoadouts(current => ({ ...current, [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, selectedEquipmentSlot) }));
-                      setSelectedArsenalItemId(null);
-                    }}>Desequipar</button>
-                  </>}
-                </div>
-                {weaponFeedback && <p className="arsenal-weapon-feedback" role="status">{weaponFeedback}</p>}
-                <p className="arsenal-footnote">Somente equipamentos entram no Arsenal. Materiais e recursos continuam na mochila e no armazém da casa.</p>
-              </section>
+                </div>}
+              {weaponFeedback && <p className="arsenal-weapon-feedback" role="status">{weaponFeedback}</p>}
+            </section>
+          </section><BackToLobbyButton onClick={closeGamePage} /></div>
+        </PageFrame>}
+        {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
+          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity) : arsenalActionItem.item.name} onClick={event => event.stopPropagation()}>
+            <header><strong>{arsenalActionItem.kind === 'weapon'
+              ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity)
+              : arsenalActionItem.item.name + ' · ' + ({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' }[arsenalActionItem.item.rarity ?? 'normal'] ?? arsenalActionItem.item.rarity ?? 'Normal')}</strong>
+              <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
+            {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
+            {arsenalActionItem.equipped
+              ? <button type="button" className="arsenal-action-button" autoFocus onClick={unequipSelectedArsenalItem}>Desequipar</button>
+              : <button type="button" className="arsenal-action-button" autoFocus disabled={arsenalActionItem.kind === 'weapon' && (!activeArsenalClassId || activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
+            <button type="button" className="arsenal-action-button" autoFocus={arsenalActionItem.kind === 'weapon' && !arsenalActionItem.equipped && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]} onClick={showArsenalItemDetails}>Detalhes</button>
+            <button type="button" className="arsenal-action-button danger" onClick={requestArsenalItemDeletion}>Excluir</button>
+          </section>
+        </div>}
+        {arsenalDeleteConfirmation && <div className="arsenal-action-backdrop arsenal-confirm-backdrop" role="presentation" onClick={() => { if (!arsenalDeleteBusy) setArsenalDeleteConfirmation(null); }}>
+          <section className="arsenal-action-dialog arsenal-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmar exclusão" onClick={event => event.stopPropagation()}>
+            <header><strong>Excluir {arsenalDeleteConfirmation.kind === 'weapon'
+              ? arsenalWeaponLabels[arsenalDeleteConfirmation.weapon.model]
+              : arsenalDeleteConfirmation.item.name}?</strong></header>
+            <p>Esta ação não pode ser desfeita.</p>
+            <div className="arsenal-confirm-actions">
+              <button type="button" className="arsenal-action-button" autoFocus disabled={arsenalDeleteBusy} onClick={() => setArsenalDeleteConfirmation(null)}>Cancelar</button>
+              <button type="button" className="arsenal-action-button danger" disabled={arsenalDeleteBusy} onClick={() => { void confirmArsenalItemDeletion(); }}>{arsenalDeleteBusy ? 'Excluindo…' : 'Excluir'}</button>
             </div>
-          </section></div></PageFrame>}
-        {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); weaponInfoHoldTriggeredRef.current = false; }}>
-          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={arsenalWeaponLabels[weaponInfoModal.model] + ' · ' + coreRarityLabel(weaponInfoModal.rarity)} onClick={event => event.stopPropagation()}>
-            <header><strong>{arsenalWeaponLabels[weaponInfoModal.model]} · {coreRarityLabel(weaponInfoModal.rarity)}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); weaponInfoHoldTriggeredRef.current = false; }}>Fechar</button></header>
-            <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
-            <h3>Núcleo de {weaponInfoModal.model === 'bastao' ? 'cajado' : weaponInfoModal.model}</h3>
-            <ul>{weaponInfoModal.attributes.map((attribute, index) => <li key={attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b></li>)}</ul>
-            {weaponInfoComparison && <section className="arsenal-weapon-comparison">
-              <h3>Comparado com a equipada</h3>
-              <div className="arsenal-weapon-comparison-damage">
-                <span>Dano {weaponInfoModal.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
-                {(() => { const delta = weaponInfoModal.damage - weaponInfoComparison.damage; return <b className={delta > 0 ? 'is-better' : delta < 0 ? 'is-worse' : 'is-equal'}>{delta > 0 ? '+' + delta.toFixed(1).replace('.', ',') + ' ▲' : delta < 0 ? '−' + Math.abs(delta).toFixed(1).replace('.', ',') + ' ▼' : 'igual'}</b>; })()}
-              </div>
-              <ul>
-                {weaponInfoModal.attributes.map((attribute, index) => {
-                  const equippedAttribute = weaponInfoComparison.attributes.find(item => item.key === attribute.key);
-                  const points = attribute.value * WEAPON_CORE_POINTS_PER_VALUE;
-                  if (!equippedAttribute) return <li key={'new-' + attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b className="is-better">(novo) ▲</b></li>;
-                  const delta = points - equippedAttribute.value * WEAPON_CORE_POINTS_PER_VALUE;
-                  return <li key={'compare-' + attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b className={delta > 0 ? 'is-better' : delta < 0 ? 'is-worse' : 'is-equal'}>{delta > 0 ? '+' + delta.toFixed(1).replace('.', ',') + ' ▲' : delta < 0 ? '−' + Math.abs(delta).toFixed(1).replace('.', ',') + ' ▼' : 'igual'}</b></li>;
-                })}
-                {weaponInfoComparison.attributes.filter(attribute => !weaponInfoModal.attributes.some(viewed => viewed.key === attribute.key)).map((attribute, index) => <li key={'lost-' + attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b className="is-worse">(perde) ▼</b></li>)}
-              </ul>
-            </section>}
-            <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
+          </section>
+        </div>}
+        {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>
+          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] + ' · ' + coreRarityLabel(weaponInfoModal.weapon.rarity) : weaponInfoModal.item.name} onClick={event => event.stopPropagation()}>
+            <header><strong>{weaponInfoModal.kind === 'weapon'
+              ? arsenalWeaponLabels[weaponInfoModal.weapon.model] + ' · ' + coreRarityLabel(weaponInfoModal.weapon.rarity)
+              : weaponInfoModal.item.name + ' · ' + ({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' }[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>Fechar</button></header>
+            {weaponInfoModal.kind === 'weapon' ? <>
+              <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.weapon.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
+              <h3>Núcleo de {weaponInfoModal.weapon.model === 'bastao' ? 'cajado' : weaponInfoModal.weapon.model}</h3>
+              <ul>{weaponInfoModal.weapon.attributes.map((attribute, index) => <li key={attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b></li>)}</ul>
+              {weaponInfoComparison && <section className="arsenal-weapon-comparison">
+                <h3>Comparado com a equipada</h3>
+                <div className="arsenal-weapon-comparison-damage">
+                  <span>Dano {weaponInfoModal.weapon.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+                  {(() => { const delta = weaponInfoModal.weapon.damage - weaponInfoComparison.damage; return <b className={delta > 0 ? 'is-better' : delta < 0 ? 'is-worse' : 'is-equal'}>{delta > 0 ? '+' + delta.toFixed(1).replace('.', ',') + ' ▲' : delta < 0 ? '−' + Math.abs(delta).toFixed(1).replace('.', ',') + ' ▼' : 'igual'}</b>; })()}
+                </div>
+                <ul>
+                  {weaponInfoModal.weapon.attributes.map((attribute, index) => {
+                    const equippedAttribute = weaponInfoComparison.attributes.find(item => item.key === attribute.key);
+                    const points = attribute.value * WEAPON_CORE_POINTS_PER_VALUE;
+                    if (!equippedAttribute) return <li key={'new-' + attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b className="is-better">(novo) ▲</b></li>;
+                    const delta = points - equippedAttribute.value * WEAPON_CORE_POINTS_PER_VALUE;
+                    return <li key={'compare-' + attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b className={delta > 0 ? 'is-better' : delta < 0 ? 'is-worse' : 'is-equal'}>{delta > 0 ? '+' + delta.toFixed(1).replace('.', ',') + ' ▲' : delta < 0 ? '−' + Math.abs(delta).toFixed(1).replace('.', ',') + ' ▼' : 'igual'}</b></li>;
+                  })}
+                  {weaponInfoComparison.attributes.filter(attribute => !weaponInfoModal.weapon.attributes.some(viewed => viewed.key === attribute.key)).map((attribute, index) => <li key={'lost-' + attribute.key + '-' + index}><span>{weaponAttributeLabels[attribute.key]}</span><b className="is-worse">(perde) ▼</b></li>)}
+                </ul>
+              </section>}
+              <div className="arsenal-weapon-info-stars" aria-label="Cinco estrelas vazias"><i>☆</i><i>☆</i><i>☆</i><i>☆</i><i>☆</i></div>
+            </> : <div className="arsenal-item-info-details">
+              <div><span>Slot</span><b>{ARSENAL_SLOT_INFO[weaponInfoModal.item.slot].label}</b></div>
+              <div><span>Raridade</span><b>{({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' }[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</b></div>
+            </div>}
           </section>
         </div>}
         {chestOpen && <PageFrame eyebrow="COLEÇÃO DE ITENS" title="Baú" onBack={closeGamePage}>
