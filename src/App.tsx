@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
