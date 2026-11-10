@@ -992,7 +992,7 @@ export default function App() {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (!statusOpen || !statusPowerReady || statusDuoPower <= 0) return;
+    if (!statusOpen) return;
     if (!fibulaSupabase || typeof navigator !== 'undefined' && !navigator.onLine) {
       setStatusRanks({
         power: { position: null, total: 0, previous: null, error: true },
@@ -1000,12 +1000,14 @@ export default function App() {
       });
       return;
     }
-    if (lastReportedPdRef.current === statusDuoPower) return;
-    lastReportedPdRef.current = statusDuoPower;
     let active = true;
     void (async () => {
       try {
-        const reportedPd = await reportHighestPd(fibulaSupabase, statusDuoPower);
+        let reportedPd: number | null = null;
+        if (statusPowerReady && statusDuoPower > 0 && lastReportedPdRef.current !== statusDuoPower) {
+          lastReportedPdRef.current = statusDuoPower;
+          reportedPd = await reportHighestPd(fibulaSupabase, statusDuoPower);
+        }
         const { data: profile, error: profileError } = await fibulaSupabase
           .from('fibula_profiles').select('highest_pd,highest_survival_level')
           .eq('user_id', session.user.sub).maybeSingle();
