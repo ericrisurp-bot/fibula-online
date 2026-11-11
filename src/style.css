@@ -8516,7 +8516,7 @@ sem backdrop ou caixa de modal. */
   padding:0 8px;
   border:1px solid rgba(255,241,201,.32);
   border-radius:10px;
-  background:rgba(24,21,17,.52);
+  background:rgba(24,21,17,.68);
   color:#f6efe0;
   font-family:inherit;
   font-size:11px;
@@ -8561,7 +8561,7 @@ sem backdrop ou caixa de modal. */
 .lobby-screen .lobby-friends-trigger:active,
 .lobby-screen .lobby-chest-trigger:active,
 .lobby-screen .lobby-ranking-trigger:active{
-  background:rgba(24,21,17,.68);
+  background:rgba(24,21,17,.78);
   color:#f6efe0;
 }
 .lobby-screen .lobby-ranking-trigger{
@@ -8583,7 +8583,7 @@ sem backdrop ou caixa de modal. */
   box-sizing:border-box;
   border:1px solid rgba(255,241,201,.32);
   border-radius:50%;
-  background:rgba(24,21,17,.52);
+  background:rgba(24,21,17,.68);
   color:#f6efe0;
   text-shadow:0 1px 2px rgba(0,0,0,.6);
   box-shadow:0 2px 8px rgba(0,0,0,.28);
@@ -8591,7 +8591,7 @@ sem backdrop ou caixa de modal. */
   -webkit-backdrop-filter:blur(4px);
 }
 .lobby-screen .lobby-duo-invite:hover,
-.lobby-screen .lobby-duo-invite:active{background:rgba(24,21,17,.68);color:#f6efe0}
+.lobby-screen .lobby-duo-invite:active{background:rgba(24,21,17,.78);color:#f6efe0}
 .lobby-screen .lobby-character-profile-trigger:focus-visible{outline:2px solid #fff1c9;outline-offset:2px}
 
 /* O Jogar e o Pronto do Duo mantêm integralmente o estilo original da main. */
