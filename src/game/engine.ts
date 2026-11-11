@@ -550,10 +550,12 @@ export class GameEngine {
   placeCampfire(): { ok: true } | { ok: false; reason: 'already' | 'resources' | 'blocked' } {
     if (this.state.campfire) return { ok: false, reason: 'already' };
     const feet = playerFeet(this.state.player);
-    const { woodCost, cottonCost, minDistance } = CONFIG.campfire;
+    const { woodCost, stoneCost, cottonCost, minDistance } = CONFIG.campfire;
+    const costs = [['wood', woodCost], ['stone', stoneCost], ['cotton', cottonCost]] as const;
     const count = (inventory: InventoryStack[], itemId: string) => inventory.reduce((sum, stack) => sum + (getBaseItemId(stack.itemId) === itemId ? stack.quantity : 0), 0);
-    if (count(this.state.inventory, 'wood') + count(this.state.cart.inventory, 'wood') < woodCost
-      || count(this.state.inventory, 'cotton') + count(this.state.cart.inventory, 'cotton') < cottonCost) return { ok: false, reason: 'resources' };
+    if (costs.some(([itemId, cost]) => count(this.state.inventory, itemId) + count(this.state.cart.inventory, itemId) < cost)) {
+      return { ok: false, reason: 'resources' };
+    }
     const blockedByTree = this.state.trees.some(tree => Math.hypot(feet.x - this.treeBase(tree).x, feet.y - this.treeBase(tree).y) < minDistance + this.treeFootprintRadius(tree));
     const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
     const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
@@ -576,8 +578,7 @@ export class GameEngine {
       });
       return { inventory: next, consumed: requested - remaining };
     };
-    for (const itemId of ['wood', 'cotton'] as const) {
-      const cost = itemId === 'wood' ? woodCost : cottonCost;
+    for (const [itemId, cost] of costs) {
       const bagResult = consume(this.state.inventory, itemId, cost);
       this.state.inventory = bagResult.inventory;
       const remaining = cost - bagResult.consumed;
