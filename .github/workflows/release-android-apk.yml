@@ -1,0 +1,144 @@
+name: Release Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Versão pública (ex.: 0.1.1)"
+        required: true
+        type: string
+      version_code:
+        description: "Código inteiro da versão (sempre maior que o anterior)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-apk:
+    name: Build and publish signed Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Validate release inputs
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          if [[ ! "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version_name deve seguir o formato X.Y.Z."
+            exit 1
+          fi
+          if [[ ! "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::version_code deve ser um inteiro positivo."
+            exit 1
+          fi
+
+      - name: Check Android signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::A Secret $name ainda não foi configurada em Settings > Secrets and variables > Actions."
+              exit 1
+            fi
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build web app
+        env:
+          VITE_ARENA_OAUTH_CLIENT_ID: ${{ secrets.VITE_ARENA_OAUTH_CLIENT_ID }}
+          VITE_FIBULA_SUPABASE_URL: ${{ vars.VITE_FIBULA_SUPABASE_URL }}
+          VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+
+      - name: Generate Android project
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Prepare Android app icon and Arena deep link
+        run: npm run cap:android:prepare
+
+      - name: Restore permanent Android signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/fibula-release-key.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Configure Android release version and signing
+        env:
+          ANDROID_VERSION_NAME: ${{ inputs.version_name }}
+          ANDROID_VERSION_CODE: ${{ inputs.version_code }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: npm run cap:android:release-configure
+
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Create release metadata
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          printf '{\n  "versionName": "%s",\n  "versionCode": %s,\n  "applicationId": "com.iericris.fibulaonline",\n  "apk": "app-release.apk"\n}\n' \
+            "$VERSION_NAME" "$VERSION_CODE" > fibula-version.json
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fibula-online-v${{ inputs.version_name }}-signed-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          gh release create "android-v$VERSION_NAME" \
+            android/app/build/outputs/apk/release/app-release.apk \
+            fibula-version.json \
+            --target "$GITHUB_SHA" \
+            --title "Fíbula Online v$VERSION_NAME" \
+            --notes "Instalador Android oficial do Fíbula Online v$VERSION_NAME. Código da versão: ${{ inputs.version_code }}."

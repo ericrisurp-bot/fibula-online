@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
-    "cap:android:prepare": "node tools/prepare-android.mjs"
+    "cap:android:prepare": "node tools/prepare-android.mjs",
+    "cap:android:release-configure": "node tools/configure-android-release.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^7.1.0",
