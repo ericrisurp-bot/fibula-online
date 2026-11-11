@@ -3684,7 +3684,7 @@ export default function App() {
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
-        <div className={`flag-wheel-option camp ${flagWheel?.selected === 'camp' ? 'selected' : ''} ${state.campfire ? 'disabled' : ''}`} aria-label="Fogueira" title="Fogueira">⛺<small>Acampar</small></div>
+        <div className={`flag-wheel-option camp ${flagWheel?.selected === 'camp' ? 'selected' : ''} ${state.campfire ? 'disabled' : ''}`} style={flagWheel ? undefined : { display: 'none' }} aria-label="Fogueira" title="Fogueira">⛺<small>Acampar</small></div>
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
       {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Casa, mochila e carrinho">
