@@ -90,6 +90,7 @@ export type GameSnapshot = {
   weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
+type CampMachineBuildResult = { ok: true } | { ok: false; reason: 'nofire' | 'already' | 'resources' | 'outside' | 'blocked' };
 
 export type PlayerRuntime = {
   attackTimer: number;
@@ -547,6 +548,31 @@ export class GameEngine {
     // Revalida o modelo equipado para a classe que acabou de ser selecionada.
     this.getActiveEquippedWeapon();
   }
+  private applyBatchCosts(costs: ReadonlyArray<readonly [string, number]>, consume: boolean): boolean {
+    const count = (inventory: InventoryStack[], itemId: string) => inventory.reduce(
+      (sum, stack) => sum + (getBaseItemId(stack.itemId) === itemId ? stack.quantity : 0), 0,
+    );
+    if (costs.some(([itemId, quantity]) => count(this.state.inventory, itemId) + count(this.state.cart.inventory, itemId) < quantity)) return false;
+    if (!consume) return true;
+    const remove = (inventory: InventoryStack[], itemId: string, requested: number) => {
+      let remaining = requested;
+      const next = inventory.flatMap(stack => {
+        if (getBaseItemId(stack.itemId) !== itemId || remaining <= 0) return [stack];
+        const used = Math.min(stack.quantity, remaining);
+        remaining -= used;
+        return stack.quantity > used ? [{ ...stack, quantity: stack.quantity - used }] : [];
+      });
+      return { inventory: next, consumed: requested - remaining };
+    };
+    for (const [itemId, quantity] of costs) {
+      const bag = remove(this.state.inventory, itemId, quantity);
+      this.state.inventory = bag.inventory;
+      const remaining = quantity - bag.consumed;
+      if (remaining > 0) this.state.cart.inventory = remove(this.state.cart.inventory, itemId, remaining).inventory;
+    }
+    return true;
+  }
+
   placeCampfire(): { ok: true } | { ok: false; reason: 'already' | 'resources' | 'blocked' } {
     if (this.state.campfire) return { ok: false, reason: 'already' };
     const feet = playerFeet(this.state.player);
@@ -561,8 +587,8 @@ export class GameEngine {
     const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
     const obstacles = [
       ...(this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
-      { x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 },
-      { x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 },
+      ...(this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 }] : []),
+      ...(this.state.tecelaria.built ? [{ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 }] : []),
       { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
     ];
     const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
@@ -614,8 +640,8 @@ export class GameEngine {
     const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
     const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
     const obstacles = [
-      { x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 },
-      { x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 },
+      ...(this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 }] : []),
+      ...(this.state.tecelaria.built ? [{ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 }] : []),
       { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
     ];
     const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
@@ -651,6 +677,88 @@ export class GameEngine {
     this.state.house.x = feet.x;
     this.state.house.y = feet.y;
     this.state.house.built = true;
+    this.emit();
+    return { ok: true };
+  }
+
+  private getCampMachineBuildStatus(machine: 'refinery' | 'tecelaria'): CampMachineBuildResult {
+    const campfire = this.state.campfire;
+    if (!campfire) return { ok: false, reason: 'nofire' };
+    const target = machine === 'refinery' ? this.state.refinery : this.state.tecelaria;
+    if (target.built) return { ok: false, reason: 'already' };
+
+    const feet = playerFeet(this.state.player);
+    if (Math.hypot(feet.x - campfire.x, feet.y - campfire.y) > CONFIG.campfire.buildRadius) {
+      return { ok: false, reason: 'outside' };
+    }
+
+    const machineCosts = CONFIG.campMachines[machine];
+    const costs = [
+      ['wood', machineCosts.woodCost],
+      ['stone', machineCosts.stoneCost],
+      ['cotton', machineCosts.cottonCost],
+    ] as const;
+    if (!this.applyBatchCosts(costs, false)) return { ok: false, reason: 'resources' };
+
+    const minDistance = CONFIG.campfire.minDistance;
+    const blockedByTree = this.state.trees.some(tree => Math.hypot(feet.x - this.treeBase(tree).x, feet.y - this.treeBase(tree).y) < minDistance + this.treeFootprintRadius(tree));
+    const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
+    const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
+    const otherMachine = machine === 'refinery' ? this.state.tecelaria : this.state.refinery;
+    const otherMachineRadius = machine === 'refinery' ? 42 : 38;
+    const obstacles = [
+      ...(this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
+      ...(otherMachine.built ? [{ x: otherMachine.x, y: otherMachine.y + 1, radius: otherMachineRadius }] : []),
+      { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
+    ];
+    const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
+    const blockedByCampfire = Math.hypot(feet.x - campfire.x, feet.y - campfire.y) < minDistance;
+    const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
+    const outsideMap = feet.x < margin || feet.y < margin || feet.x > this.world - margin || feet.y > this.world - margin;
+    if (blockedByTree || blockedByRock || blockedByLake || blockedByStructure || blockedByCampfire || outsideMap) {
+      return { ok: false, reason: 'blocked' };
+    }
+    return { ok: true };
+  }
+
+  getRefineryCampStatus(): CampMachineBuildResult {
+    return this.getCampMachineBuildStatus('refinery');
+  }
+
+  buildRefineryAtCamp(): CampMachineBuildResult {
+    const status = this.getRefineryCampStatus();
+    if (!status.ok) return status;
+    const costs = [
+      ['wood', CONFIG.campMachines.refinery.woodCost],
+      ['stone', CONFIG.campMachines.refinery.stoneCost],
+      ['cotton', CONFIG.campMachines.refinery.cottonCost],
+    ] as const;
+    if (!this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
+    const feet = playerFeet(this.state.player);
+    this.state.refinery.x = feet.x;
+    this.state.refinery.y = feet.y;
+    this.state.refinery.built = true;
+    this.emit();
+    return { ok: true };
+  }
+
+  getTecelariaCampStatus(): CampMachineBuildResult {
+    return this.getCampMachineBuildStatus('tecelaria');
+  }
+
+  buildTecelariaAtCamp(): CampMachineBuildResult {
+    const status = this.getTecelariaCampStatus();
+    if (!status.ok) return status;
+    const costs = [
+      ['wood', CONFIG.campMachines.tecelaria.woodCost],
+      ['stone', CONFIG.campMachines.tecelaria.stoneCost],
+      ['cotton', CONFIG.campMachines.tecelaria.cottonCost],
+    ] as const;
+    if (!this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
+    const feet = playerFeet(this.state.player);
+    this.state.tecelaria.x = feet.x;
+    this.state.tecelaria.y = feet.y;
+    this.state.tecelaria.built = true;
     this.emit();
     return { ok: true };
   }
@@ -1269,9 +1377,11 @@ export class GameEngine {
       ? Math.hypot(feet.x - s.campfire.x, feet.y - s.campfire.y) <= CONFIG.house.interactRadius
       : false;
     const chestBuildStatus = this.getChestBuildStatus();
+    const refineryBuildStatus = this.getRefineryCampStatus();
+    const tecelariaBuildStatus = this.getTecelariaCampStatus();
     return [
       s.player.hp, s.player.maxHp, s.player.level, s.activeMeals.map(meal => `${meal.id}:${Math.ceil(meal.remainingSeconds)}`).join(','),
-      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.coreDrops.map(drop => drop.id).join(','), s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, ...(s.refinedLeatherDrops.length || s.tecelaria.hideStock || s.tecelaria.hideProcessed || s.tecelaria.refinedLeatherProduced ? [s.refinedLeatherDrops.length, s.tecelaria.hideStock, s.tecelaria.hideProcessed, s.tecelaria.refinedLeatherProduced] : []), s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange, campfireNear, chestBuildStatus.ok ? 'ready' : chestBuildStatus.reason,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.coreDrops.map(drop => drop.id).join(','), s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, ...(s.refinedLeatherDrops.length || s.tecelaria.hideStock || s.tecelaria.hideProcessed || s.tecelaria.refinedLeatherProduced ? [s.refinedLeatherDrops.length, s.tecelaria.hideStock, s.tecelaria.hideProcessed, s.tecelaria.refinedLeatherProduced] : []), s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange, campfireNear, chestBuildStatus.ok ? 'ready' : chestBuildStatus.reason, refineryBuildStatus.ok ? 'ready' : refineryBuildStatus.reason, tecelariaBuildStatus.ok ? 'ready' : tecelariaBuildStatus.reason,
       Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.house.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills,
     ].join('|');
   }
@@ -2711,8 +2821,8 @@ export class GameEngine {
     circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     if (this.state.jabuticabaTree) circles.push({ x: this.state.jabuticabaTree.x, y: this.state.jabuticabaTree.y + 94.25, radius: 29 });
     if (this.state.house.built) circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
-    circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
-    circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
+    if (this.state.refinery.built) circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
+    if (this.state.tecelaria.built) circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
     circles.push(...(useLakeSteering ? this.lakeAvoidanceCircles : this.lakeCollisionCircles));
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius });
     return circles;
