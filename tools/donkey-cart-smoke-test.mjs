@@ -78,6 +78,7 @@ try {
   obstacleEngine.hordeTarget = 0;
   obstacleEngine.state.trees = []; obstacleEngine.state.rocks = []; obstacleEngine.state.cottonPlants = [];
   obstacleEngine.state.house.x = 1100; obstacleEngine.state.house.y = 1000;
+  obstacleEngine.state.house.built = true;
   obstacleEngine.state.refinery.x = 300; obstacleEngine.state.refinery.y = 300;
   obstacleEngine.state.tecelaria.x = obstacleEngine.world - 300; obstacleEngine.state.tecelaria.y = obstacleEngine.world - 300;
   obstacleEngine.state.player.x = 1200; obstacleEngine.state.player.y = 960;
