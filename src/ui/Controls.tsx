@@ -222,8 +222,8 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onPointerDown={event => runTouchAction(event, onRange)} onClick={event => runClickAction(event, onRange)}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
         <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(-0.15))} onClick={event => runClickAction(event, () => onZoom(-0.15))}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(0.15))} onClick={event => runClickAction(event, () => onZoom(0.15))}>+</button></div></div>
         <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onPointerDown={event => runTouchAction(event, onToggleLandscape)} onClick={event => runClickAction(event, onToggleLandscape)}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
-        <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
-          <span>Escala da interface</span>
+        <div className="menu-interface-scale" role="group" aria-label="Escala dos controles">
+          <span>Escala dos controles</span>
           <div className="menu-interface-scale-options">
             {([70, 100] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
           </div>
