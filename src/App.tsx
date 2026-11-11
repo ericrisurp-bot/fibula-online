@@ -62,6 +62,7 @@ const initial: GameSnapshot = {
   activeMeals: [],
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
+  campfire: null,
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
