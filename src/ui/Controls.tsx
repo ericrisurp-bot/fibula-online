@@ -203,37 +203,6 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     onPointerMove={onSecondaryPointerMove}
     onPointerUp={onSecondaryPointerEnd}
     onPointerCancel={onSecondaryPointerEnd}>
-    <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
-      <span>{menuOpen ? '×' : '☰'}</span>
-    </button>
-    {menuOpen && <div
-      className="mobile-menu-backdrop"
-      aria-hidden="true"
-      onPointerDown={event => { if (event.pointerType !== 'mouse') { event.preventDefault(); event.stopPropagation(); lastTouchActionAt.current = Date.now(); setMenuOpen(false); } else event.stopPropagation(); }}
-      onClick={event => { event.stopPropagation(); if (event.detail !== 0 && Date.now() - lastTouchActionAt.current < 800) return; setMenuOpen(false); }}
-    />}
-    {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
-      <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onPointerDown={event => runTouchAction(event, () => setMenuOpen(false))} onClick={event => runClickAction(event, () => setMenuOpen(false))}>×</button></div>
-      <div className="menu-section-label">ÁUDIO</div>
-      <div className="menu-audio-volume">
-        <label htmlFor="game-master-volume">Volume geral <strong>{Math.round(audioVolume * 100)}%</strong></label>
-        <input id="game-master-volume" type="range" min="0" max="1" step="0.01" value={audioVolume} onChange={event => onAudioVolumeChange(Number(event.currentTarget.value))} aria-label="Volume geral do jogo" />
-        <div className="menu-audio-volume-labels"><span>Silencioso</span><span>Máximo</span></div>
-      </div>
-      <div className="menu-section-label">VISUALIZAÇÃO</div>
-      <div className="menu-action-list">
-        <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onPointerDown={event => runTouchAction(event, onRange)} onClick={event => runClickAction(event, onRange)}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
-        <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(-0.15))} onClick={event => runClickAction(event, () => onZoom(-0.15))}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(0.15))} onClick={event => runClickAction(event, () => onZoom(0.15))}>+</button></div></div>
-        <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onPointerDown={event => runTouchAction(event, onToggleLandscape)} onClick={event => runClickAction(event, onToggleLandscape)}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
-        <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
-          <span>Escala da interface</span>
-          <div className="menu-interface-scale-options">
-            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
-          </div>
-        </div>
-      </div>
-      <div className="menu-weapon"><span>ARMA ATUAL</span><strong>{weaponLabel}</strong></div>
-    </div>}
     <div className="joystick-touch-area"
       aria-label="Toque na parte inferior para movimentar"
       onPointerDown={onPointerDown}
