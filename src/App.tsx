@@ -161,10 +161,12 @@ const isProfileClassId = (value: unknown): value is ClassId =>
 
 const itemIcon = (itemId: string) => parseCoreItemId(itemId)?.kind === 'closed' ? '💎' : parseCoreItemId(itemId)?.kind === 'revealed' ? '💠' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
 const MATERIAL_SPRITE_FILES: Record<string, string> = { wood: 'wood.png', stone: 'stone.png', wolf_hide: 'wolf-hide.png', cotton: 'cotton.png', bronze: 'bronze.png', linen: 'linen.png', refined_leather: 'refined-leather.png' };
-const materialSpriteImages: Record<string, HTMLImageElement> = {};
-function drawMaterialSprite(ctx: CanvasRenderingContext2D, itemId: string, x: number, y: number, size: number): boolean {
- const file=MATERIAL_SPRITE_FILES[itemId]; if(!file||typeof Image==='undefined')return false;
- let sprite=materialSpriteImages[itemId]; if(!sprite){sprite=new Image();sprite.src=`/assets/items/${file}`;materialSpriteImages[itemId]=sprite;return false;}
+const INGREDIENT_SPRITE_FILES: Record<string, string> = { wolf_meat: 'wolf-meat.png', chicken_meat: 'chicken-meat.png', tomato: 'tomato.png', cabbage: 'cabbage.png', herbs: 'herbs.png', sugarcane: 'sugarcane.png', jabuticaba: 'jabuticaba.png', potato: 'potato.png', carrot: 'carrot.png', feather: 'feather.png' };
+const ITEM_SPRITE_FILES: Record<string, string> = { ...MATERIAL_SPRITE_FILES, ...INGREDIENT_SPRITE_FILES };
+const itemSpriteImages: Record<string, HTMLImageElement> = {};
+function drawItemSprite(ctx: CanvasRenderingContext2D, itemId: string, x: number, y: number, size: number): boolean {
+ const file=ITEM_SPRITE_FILES[itemId]; if(!file||typeof Image==='undefined')return false;
+ let sprite=itemSpriteImages[itemId]; if(!sprite){sprite=new Image();sprite.src=`/assets/items/${file}`;itemSpriteImages[itemId]=sprite;return false;}
  if(!sprite.complete||sprite.naturalWidth===0)return false;
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(sprite,x-size/2,y-size/2,size,size);ctx.restore();return true;
 }
@@ -178,7 +180,7 @@ const inventoryItemIcon = (itemId: string) => {
     pintado_surubim: 'fish-pintado-surubim.png', lambari: 'fish-lambari.png',
     tucunare: 'fish-tucunare.png',
   };
-  if (MATERIAL_SPRITE_FILES[base]) return <img src={`/assets/items/${MATERIAL_SPRITE_FILES[base]}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />;
+  if (ITEM_SPRITE_FILES[base]) return <img src={`/assets/items/${ITEM_SPRITE_FILES[base]}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />;
   if (fishFile[base]) return <img src={`/assets/items/${fishFile[base]}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'auto' }} />;
   const palette: Record<string, { fill: string; shade: string; line: string }> = {
     wood: { fill: '#bd8950', shade: '#80552f', line: '#4b3324' },
@@ -1633,12 +1635,14 @@ export default function App() {
       }
       for (const drop of s.jabuticabaDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
+          if (drawItemSprite(ctx, 'jabuticaba', drop.x, drop.y, 24)) return;
           ctx.fillStyle = '#342044'; ctx.beginPath(); ctx.arc(drop.x, drop.y, 5, 0, Math.PI * 2); ctx.fill();
         } });
       }
       for (const drop of s.vegetableDrops) {
         worldDrawables.push({ depth: drop.y + 5, draw: () => {
-          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 10, drop.rarity);
+          drawResourceRarityAura(ctx, drop.x, drop.y + 3, 17, drop.rarity);
+          if (drawItemSprite(ctx, drop.kind, drop.x, drop.y, 24)) return;
           ctx.save(); ctx.translate(drop.x, drop.y);
           // O item no chão representa uma unidade colhida, não o tamanho da planta de origem.
           if (drop.kind === 'tomato') { ctx.fillStyle = '#df392e'; ctx.strokeStyle = '#85251e'; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#4c8a36'; ctx.beginPath(); ctx.moveTo(0,-3); ctx.lineTo(-2,-5); ctx.lineTo(0,-4); ctx.lineTo(2,-5); ctx.fill(); }
@@ -1650,7 +1654,7 @@ export default function App() {
       for (const drop of s.cottonDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
           drawResourceRarityAura(ctx, drop.x, drop.y + 4, 18, drop.rarity);
-          if (drawMaterialSprite(ctx, 'cotton', drop.x, drop.y, 26)) return;
+          if (drawItemSprite(ctx, 'cotton', drop.x, drop.y, 26)) return;
           ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(1.12, 1.12);
           // Capulho de algodão em lóbulos facetados, mantendo o aspecto macio.
           ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#c8c3b6'; ctx.lineWidth = 1;
@@ -1668,7 +1672,7 @@ export default function App() {
       }
       for (const drop of s.linenDrops) {
         worldDrawables.push({ depth: drop.y + 5, draw: () => {
-          if (drawMaterialSprite(ctx, 'linen', drop.x, drop.y, 24)) return;
+          if (drawItemSprite(ctx, 'linen', drop.x, drop.y, 24)) return;
           ctx.save(); ctx.translate(drop.x, drop.y);
           ctx.fillStyle = '#e5d6b5'; ctx.strokeStyle = '#8b7857'; ctx.lineWidth = 1.3;
           ctx.fillRect(-6, -4, 12, 8); ctx.strokeRect(-6, -4, 12, 8);
@@ -1678,7 +1682,7 @@ export default function App() {
       }
       for (const drop of s.refinedLeatherDrops) {
         worldDrawables.push({ depth: drop.y + 5, draw: () => {
-          if (drawMaterialSprite(ctx, 'refined_leather', drop.x, drop.y, 24)) return;
+          if (drawItemSprite(ctx, 'refined_leather', drop.x, drop.y, 24)) return;
           ctx.save(); ctx.translate(drop.x, drop.y);
           ctx.fillStyle = '#986b49'; ctx.strokeStyle = '#3f2b20'; ctx.lineWidth = 1.3;
           ctx.beginPath(); ctx.moveTo(-7, -4); ctx.lineTo(-2, -6); ctx.lineTo(5, -4); ctx.lineTo(7, 2); ctx.lineTo(3, 6); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1689,7 +1693,7 @@ export default function App() {
       for (const drop of s.stoneDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
           drawResourceRarityAura(ctx, drop.x, drop.y + 6, 20, drop.rarity);
-          if (drawMaterialSprite(ctx, 'stone', drop.x, drop.y, 26)) return;
+          if (drawItemSprite(ctx, 'stone', drop.x, drop.y, 26)) return;
           ctx.save(); ctx.translate(drop.x, drop.y); ctx.scale(0.84, 0.84);
           // Pedra low-poly com a mesma paleta cinza da rocha minerável e dos slots.
           const facet = (points: Array<[number, number]>, fill: string) => {
@@ -1719,7 +1723,7 @@ export default function App() {
       }
       for (const drop of s.bronzeDrops) {
         worldDrawables.push({ depth: drop.y + 5, draw: () => {
-          if (drawMaterialSprite(ctx, 'bronze', drop.x, drop.y, 24)) return;
+          if (drawItemSprite(ctx, 'bronze', drop.x, drop.y, 24)) return;
           ctx.save(); ctx.translate(drop.x, drop.y);
           ctx.fillStyle = '#b87333'; ctx.strokeStyle = '#70451f'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.moveTo(-6, 2); ctx.lineTo(-4, -3); ctx.lineTo(0, -5); ctx.lineTo(5, -2); ctx.lineTo(6, 2); ctx.lineTo(1, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1730,9 +1734,10 @@ export default function App() {
       for (const drop of s.wildlifeDrops) {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
           drawResourceRarityAura(ctx, drop.x, drop.y + 3, 17, drop.rarity);
+          if (drawItemSprite(ctx, drop.kind, drop.x, drop.y, 24)) { if (drop.amount > 1) { ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), drop.x, drop.y - 12); } return; }
           ctx.save(); ctx.translate(drop.x, drop.y);
           ctx.font = '21px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          if (!drawMaterialSprite(ctx, drop.kind, 0, 0, 24)) ctx.fillText(itemIcon(drop.kind), 0, 0);
+          if (!drawItemSprite(ctx, drop.kind, 0, 0, 24)) ctx.fillText(itemIcon(drop.kind), 0, 0);
           if (drop.amount > 1) { ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), 0, -12); }
           ctx.restore();
         }});
@@ -1750,7 +1755,7 @@ export default function App() {
         worldDrawables.push({ depth: drop.y + 6, draw: () => {
           drawResourceRarityAura(ctx, drop.x, drop.y + 3, 22, drop.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y);
-          if (drawMaterialSprite(ctx, 'wood', 0, 0, 24)) { ctx.restore(); ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), drop.x, drop.y - 13); return; }
+          if (drawItemSprite(ctx, 'wood', 0, 0, 24)) { ctx.restore(); ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), drop.x, drop.y - 13); return; }
           // Usa o mesmo ícone da mochila, agora como um único tronco.
           ctx.font = '22px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillStyle = '#ffffff';
