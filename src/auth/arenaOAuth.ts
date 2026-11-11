@@ -1,9 +1,12 @@
+import { Capacitor } from '@capacitor/core';
+
 const ARENA_AUTH_BASE = 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1';
 const SESSION_KEY = 'fibula-arena-oauth-session';
 const STATE_KEY = 'fibula-arena-oauth-state';
 const VERIFIER_KEY = 'fibula-arena-oauth-verifier';
 const CALLBACK_PATH = '/auth/callback';
 const PRODUCTION_ORIGIN = 'https://fibula.iericris.com.br';
+const NATIVE_CALLBACK_URL = 'fibula://auth/callback';
 
 export type ArenaUser = {
   sub: string;
@@ -65,13 +68,23 @@ function getOAuthReturnOrigin(state: string | null): string | null {
     if (url.origin !== decodedOrigin || url.protocol !== 'https:') return null;
     const hostname = url.hostname;
     const isAllowedOrigin = hostname === 'fibula.iericris.com.br'
-      || /^[a-z0-9-]+\.fibula\.iericris\.com\.br$/i.test(hostname)
+      || /^[a-z0-9-]+\\.fibula\\.iericris\\.com\\.br$/i.test(hostname)
       || hostname === 'fibula-online.pages.dev'
-      || /^[a-z0-9-]+\.fibula-online\.pages\.dev$/i.test(hostname);
+      || /^[a-z0-9-]+\\.fibula-online\\.pages\\.dev$/i.test(hostname);
     return isAllowedOrigin ? url.origin : null;
   } catch {
     return null;
   }
+}
+
+function isNativeOAuthState(state: string | null): boolean {
+  return state?.split('.')[1] === 'native';
+}
+
+function isNativeCallbackUrl(url: URL): boolean {
+  return url.protocol === 'fibula:'
+    && url.hostname === 'auth'
+    && url.pathname === '/callback';
 }
 
 function randomBase64Url(): string {
@@ -214,7 +227,8 @@ export async function startArenaLogin(): Promise<void> {
   if (!clientId) throw new Error('O cliente OAuth da Arena ainda não foi configurado no ambiente do Fíbula.');
 
   const verifier = randomBase64Url();
-  const state = `${randomBase64Url()}.${encodeBase64Url(window.location.origin)}`;
+  const clientType = Capacitor.isNativePlatform() ? 'native' : 'web';
+  const state = `${randomBase64Url()}.${clientType}.${encodeBase64Url(window.location.origin)}`;
   const challenge = await createCodeChallenge(verifier);
   localStorage.setItem(STATE_KEY, state);
   localStorage.setItem(VERIFIER_KEY, verifier);
@@ -235,25 +249,45 @@ export async function startArenaLogin(): Promise<void> {
 
 let callbackInFlight: Promise<ArenaOAuthSession | null> | null = null;
 
-export function completeArenaLogin(): Promise<ArenaOAuthSession | null> {
+export function completeArenaLogin(callbackUrl?: string): Promise<ArenaOAuthSession | null> {
   if (callbackInFlight) return callbackInFlight;
-  if (window.location.pathname !== CALLBACK_PATH) return Promise.resolve(null);
-  callbackInFlight = completeArenaLoginOnce().finally(() => {
+
+  if (callbackUrl) {
+    let parsed: URL;
+    try {
+      parsed = new URL(callbackUrl);
+    } catch {
+      return Promise.resolve(null);
+    }
+    if (!isNativeCallbackUrl(parsed)) return Promise.resolve(null);
+  } else if (window.location.pathname !== CALLBACK_PATH) {
+    return Promise.resolve(null);
+  }
+
+  callbackInFlight = completeArenaLoginOnce(callbackUrl).finally(() => {
     callbackInFlight = null;
   });
   return callbackInFlight;
 }
 
-async function completeArenaLoginOnce(): Promise<ArenaOAuthSession | null> {
-  if (window.location.pathname !== CALLBACK_PATH) return null;
+async function completeArenaLoginOnce(callbackUrl?: string): Promise<ArenaOAuthSession | null> {
+  const callback = callbackUrl ? new URL(callbackUrl) : new URL(window.location.href);
+  const nativeCallback = isNativeCallbackUrl(callback);
+  if (!nativeCallback && window.location.pathname !== CALLBACK_PATH) return null;
 
-  const callback = new URL(window.location.href);
   const code = callback.searchParams.get('code');
   const returnedState = callback.searchParams.get('state');
   const oauthError = callback.searchParams.get('error');
   const errorDescription = callback.searchParams.get('error_description');
   const expectedState = localStorage.getItem(STATE_KEY);
   const verifier = localStorage.getItem(VERIFIER_KEY);
+
+  if (window.location.origin === PRODUCTION_ORIGIN && isNativeOAuthState(returnedState)) {
+    const relayUrl = new URL(NATIVE_CALLBACK_URL);
+    callback.searchParams.forEach((value, key) => relayUrl.searchParams.append(key, value));
+    window.location.replace(relayUrl.toString());
+    return null;
+  }
 
   if (window.location.origin === PRODUCTION_ORIGIN) {
     const returnOrigin = getOAuthReturnOrigin(returnedState);
@@ -265,7 +299,7 @@ async function completeArenaLoginOnce(): Promise<ArenaOAuthSession | null> {
     }
   }
 
-  cleanCallbackUrl();
+  if (!nativeCallback) cleanCallbackUrl();
 
   if (oauthError) {
     clearPendingAuthorization();
