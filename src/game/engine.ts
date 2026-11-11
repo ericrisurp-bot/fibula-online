@@ -2136,7 +2136,7 @@ export class GameEngine {
     const margin = CONFIG.map.wall + 80;
     if (x < margin || y < margin || x > this.world - margin || y > this.world - margin) return false;
     if (Math.hypot(x - this.state.player.x, y - this.state.player.y) < CONFIG.wildlife.playerClearRadius) return false;
-    if (this.obstacleCircles(false).some(obstacle => Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius + 8)) return false;
+    if (this.obstacleCircles(false, false, true).some(obstacle => Math.hypot(x - obstacle.x, y - obstacle.y) < radius + obstacle.radius + 8)) return false;
     for (const animal of this.state.enemies) {
       if (!animal.animalKind) continue;
       const separation = animal.animalKind === kind ? 42 : CONFIG.wildlife.speciesSeparation;
@@ -2811,7 +2811,7 @@ export class GameEngine {
     return 20 * this.treeScale(tree);
   }
 
-  private obstacleCircles(ignoreCart = false, useLakeSteering = false) {
+  private obstacleCircles(ignoreCart = false, useLakeSteering = false, includeUnbuiltMachines = false) {
     const circles: Array<Vec & { radius: number }> = this.state.trees.map(tree => ({
       ...this.treeBase(tree),
       radius: 9.6 * this.treeScale(tree),
@@ -2821,8 +2821,8 @@ export class GameEngine {
     circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     if (this.state.jabuticabaTree) circles.push({ x: this.state.jabuticabaTree.x, y: this.state.jabuticabaTree.y + 94.25, radius: 29 });
     if (this.state.house.built) circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
-    if (this.state.refinery.built) circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
-    if (this.state.tecelaria.built) circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
+    if (this.state.refinery.built || includeUnbuiltMachines) circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
+    if (this.state.tecelaria.built || includeUnbuiltMachines) circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
     circles.push(...(useLakeSteering ? this.lakeAvoidanceCircles : this.lakeCollisionCircles));
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius });
     return circles;
