@@ -20,6 +20,7 @@ export const RESOURCE_RARITY_RULES = {
 
 export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
+  campfire: { woodCost: 20, cottonCost: 5, buildRadius: 300, minDistance: 48 },
   lake: {
     sizes: { small: { rx: 120, ry: 85 }, medium: { rx: 200, ry: 145 }, large: { rx: 320, ry: 230 } },
     sizeWeights: { small: 1 / 3, medium: 1 / 3, large: 1 / 3 },
