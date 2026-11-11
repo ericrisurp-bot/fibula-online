@@ -31,7 +31,7 @@ jobs:
           VERSION_NAME: ${{ inputs.version_name }}
           VERSION_CODE: ${{ inputs.version_code }}
         run: |
-          if [[ ! "$VERSION_NAME" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
+          if [[ ! "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::version_name deve seguir o formato X.Y.Z."
             exit 1
           fi
@@ -125,7 +125,7 @@ jobs:
           VERSION_NAME: ${{ inputs.version_name }}
           VERSION_CODE: ${{ inputs.version_code }}
         run: |
-          printf '{\\n  "versionName": "%s",\\n  "versionCode": %s,\\n  "applicationId": "com.iericris.fibulaonline",\\n  "apk": "app-release.apk"\\n}\\n' \\
+          printf '{\n  "versionName": "%s",\n  "versionCode": %s,\n  "applicationId": "com.iericris.fibulaonline",\n  "apk": "app-release.apk"\n}\n' \
             "$VERSION_NAME" "$VERSION_CODE" > fibula-version.json
 
       - name: Upload signed APK validation artifact
@@ -144,9 +144,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION_NAME: ${{ inputs.version_name }}
         run: |
-          gh release create "android-v$VERSION_NAME" \\
-            android/app/build/outputs/apk/release/app-release.apk \\
-            fibula-version.json \\
-            --target "$GITHUB_SHA" \\
-            --title "Fíbula Online v$VERSION_NAME" \\
+          gh release create "android-v$VERSION_NAME" \
+            android/app/build/outputs/apk/release/app-release.apk \
+            fibula-version.json \
+            --target "$GITHUB_SHA" \
+            --title "Fíbula Online v$VERSION_NAME" \
             --notes "Instalador Android oficial do Fíbula Online v$VERSION_NAME. Código da versão: ${{ inputs.version_code }}."
