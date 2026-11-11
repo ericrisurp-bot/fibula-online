@@ -8606,6 +8606,53 @@ sem backdrop ou caixa de modal. */
 .duo-lobby-invite-toast button:first-child{border-color:#292720;background:#292720;color:#fffdf8}
 .duo-lobby-invite-toast button:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
 
+/* SP6.3 — Atalhos das estações no mesmo vidro escuro translúcido. */
+.lobby-screen .lobby-crafting-stations{
+  display:flex;
+  gap:4px;
+}
+.lobby-screen .lobby-crafting-trigger{
+  box-sizing:border-box;
+  width:clamp(54px,calc((100vw - 140px) / 4),64px);
+  min-width:clamp(54px,calc((100vw - 140px) / 4),64px);
+  height:56px;
+  min-height:56px;
+  padding:0 2px;
+  flex-shrink:0;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:10px;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.lobby-screen .lobby-crafting-trigger:hover,
+.lobby-screen .lobby-crafting-trigger:active{
+  background:rgba(24,21,17,.68);
+  color:#f6efe0;
+}
+.lobby-screen .lobby-crafting-trigger:focus-visible{
+  outline:2px solid #fff1c9;
+  outline-offset:2px;
+}
+.lobby-screen .lobby-crafting-icon{
+  font-size:20px;
+  line-height:1;
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+}
+.lobby-screen .lobby-crafting-trigger>span:last-child{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  line-height:1;
+  white-space:nowrap;
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+}
+
 /* SP5 — Amigos em página lateral clara e compacta. */
 .side-page.friends-side {
   display:flex;
