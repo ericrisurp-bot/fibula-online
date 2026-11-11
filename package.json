@@ -11,9 +11,11 @@
     "test:donkey-cart": "node tools/donkey-cart-smoke-test.mjs",
     "preview": "vite preview",
     "cap:sync": "cap sync",
-    "cap:open:android": "cap open android"
+    "cap:open:android": "cap open android",
+    "cap:android:prepare": "node tools/prepare-android.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.0",
     "@capacitor/core": "^7.4.3",
     "@supabase/supabase-js": "2.118.0",
     "react": "^18.3.1",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@capacitor/android": "^7.4.3",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.4.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

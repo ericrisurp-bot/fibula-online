@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import {
   clearArenaSession,
   completeArenaLogin,
@@ -33,15 +35,47 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let removeNativeListener: (() => void) | null = null;
 
     if (!configured) {
       setStatus('configuration');
       return () => { active = false; };
     }
 
+    const applyNativeCallback = async (url: string) => {
+      try {
+        const callbackSession = await completeArenaLogin(url);
+        if (!active || !callbackSession) return;
+        setSession(callbackSession);
+        setMessage('');
+        setStatus('signed-in');
+      } catch (error) {
+        if (!active) return;
+        setMessage(error instanceof Error ? error.message : 'Não foi possível validar sua sessão.');
+        setStatus('error');
+      }
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      void App.addListener('appUrlOpen', ({ url }) => {
+        void applyNativeCallback(url);
+      }).then(listener => {
+        if (active) {
+          removeNativeListener = () => { void listener.remove(); };
+        } else {
+          void listener.remove();
+        }
+      });
+    }
+
     const initialize = async () => {
       try {
-        const callbackSession = await completeArenaLogin();
+        let launchSession: ArenaOAuthSession | null = null;
+        if (Capacitor.isNativePlatform()) {
+          const launch = await App.getLaunchUrl();
+          if (launch?.url) launchSession = await completeArenaLogin(launch.url);
+        }
+        const callbackSession = launchSession ?? await completeArenaLogin();
         const currentSession = callbackSession ?? await getValidArenaSession();
         if (!active) return;
         if (currentSession) {
@@ -58,7 +92,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     };
 
     void initialize();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      removeNativeListener?.();
+    };
   }, [configured]);
 
   const handleLogin = useCallback(async () => {
