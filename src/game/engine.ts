@@ -560,7 +560,7 @@ export class GameEngine {
     const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
     const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
     const obstacles = [
-      { x: this.state.house.x, y: this.state.house.y + 1, radius: 38 },
+      ...(this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
       { x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 },
       { x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 },
       { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
@@ -587,6 +587,70 @@ export class GameEngine {
       }
     }
     this.state.campfire = { x: feet.x, y: feet.y };
+    this.emit();
+    return { ok: true };
+  }
+
+  getChestBuildStatus(): { ok: true } | { ok: false; reason: 'nofire' | 'already' | 'resources' | 'outside' | 'blocked' } {
+    const campfire = this.state.campfire;
+    if (!campfire) return { ok: false, reason: 'nofire' };
+    if (this.state.house.built) return { ok: false, reason: 'already' };
+
+    const feet = playerFeet(this.state.player);
+    if (Math.hypot(feet.x - campfire.x, feet.y - campfire.y) > CONFIG.campfire.buildRadius) {
+      return { ok: false, reason: 'outside' };
+    }
+
+    const countWood = (inventory: InventoryStack[]) => inventory.reduce(
+      (sum, stack) => sum + (getBaseItemId(stack.itemId) === 'wood' ? stack.quantity : 0),
+      0,
+    );
+    if (countWood(this.state.inventory) + countWood(this.state.cart.inventory) < CONFIG.campChest.woodCost) {
+      return { ok: false, reason: 'resources' };
+    }
+
+    const minDistance = CONFIG.campfire.minDistance;
+    const blockedByTree = this.state.trees.some(tree => Math.hypot(feet.x - this.treeBase(tree).x, feet.y - this.treeBase(tree).y) < minDistance + this.treeFootprintRadius(tree));
+    const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
+    const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
+    const obstacles = [
+      { x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 },
+      { x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 },
+      { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
+    ];
+    const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
+    const blockedByCampfire = Math.hypot(feet.x - campfire.x, feet.y - campfire.y) < minDistance;
+    const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
+    const outsideMap = feet.x < margin || feet.y < margin || feet.x > this.world - margin || feet.y > this.world - margin;
+    if (blockedByTree || blockedByRock || blockedByLake || blockedByStructure || blockedByCampfire || outsideMap) {
+      return { ok: false, reason: 'blocked' };
+    }
+    return { ok: true };
+  }
+
+  buildChest(): { ok: true } | { ok: false; reason: 'nofire' | 'already' | 'resources' | 'outside' | 'blocked' } {
+    const status = this.getChestBuildStatus();
+    if (!status.ok) return status;
+
+    const consumeWood = (inventory: InventoryStack[], requested: number) => {
+      let remaining = requested;
+      const next = inventory.flatMap(stack => {
+        if (getBaseItemId(stack.itemId) !== 'wood' || remaining <= 0) return [stack];
+        const used = Math.min(stack.quantity, remaining);
+        remaining -= used;
+        return stack.quantity > used ? [{ ...stack, quantity: stack.quantity - used }] : [];
+      });
+      return { inventory: next, consumed: requested - remaining };
+    };
+    const bagResult = consumeWood(this.state.inventory, CONFIG.campChest.woodCost);
+    this.state.inventory = bagResult.inventory;
+    const remaining = CONFIG.campChest.woodCost - bagResult.consumed;
+    if (remaining > 0) this.state.cart.inventory = consumeWood(this.state.cart.inventory, remaining).inventory;
+
+    const feet = playerFeet(this.state.player);
+    this.state.house.x = feet.x;
+    this.state.house.y = feet.y;
+    this.state.house.built = true;
     this.emit();
     return { ok: true };
   }
@@ -2641,7 +2705,7 @@ export class GameEngine {
     circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
     circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     if (this.state.jabuticabaTree) circles.push({ x: this.state.jabuticabaTree.x, y: this.state.jabuticabaTree.y + 94.25, radius: 29 });
-    circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
+    if (this.state.house.built) circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
     circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
     circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
     circles.push(...(useLakeSteering ? this.lakeAvoidanceCircles : this.lakeCollisionCircles));
