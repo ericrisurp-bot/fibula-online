@@ -902,10 +902,10 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [activeGameRoute.page, cookingClockOffset]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
-  const [interfaceScale, setInterfaceScale] = useState<100 | 130 | 160>(() => {
-    if (typeof window === 'undefined') return 130;
+  const [interfaceScale, setInterfaceScale] = useState<70 | 100>(() => {
+    if (typeof window === 'undefined') return 100;
     const saved = window.localStorage.getItem('fibula-interface-scale');
-    return saved === '100' || saved === '160' ? Number(saved) as 100 | 160 : 130;
+    return saved === '70' ? 70 : 100;
   });
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -3282,7 +3282,7 @@ export default function App() {
         </div>
       </div>
     {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura') && <StationNav current={activeCraftingStation.id} onLobby={closeGamePage} onOpenStation={openStation} />}
-      </PageFrame> : <main className="game-shell" style={{ '--interface-scale': interfaceScale / 100 } as CSSProperties}>
+      </PageFrame> : <main className="game-shell" style={{ '--interface-scale': 1, '--controller-scale-setting': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
