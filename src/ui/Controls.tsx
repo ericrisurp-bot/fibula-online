@@ -36,7 +36,7 @@ type Props = {
   inventoryPanelOpen: boolean;
   audioVolume: number;
   onAudioVolumeChange: (volume: number) => void;
-  interfaceScale: 100 | 130 | 160;
+  interfaceScale: 70 | 100;
   onInterfaceScaleChange: (scale: 100 | 130 | 160) => void;
   landscapeMode: boolean;
   onToggleLandscape: () => void;
@@ -188,7 +188,6 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       <span className="joystick-knob" style={{ transform: `translate(${stick.dx}px, ${stick.dy}px)` }} />
       
     </div>
-    <div className={stick.active ? 'joystick-guide-ring is-active' : 'joystick-guide-ring'} aria-hidden="true" />
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
@@ -226,7 +225,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
           <span>Escala da interface</span>
           <div className="menu-interface-scale-options">
-            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
+            {([70, 100] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
           </div>
         </div>
       </div>
