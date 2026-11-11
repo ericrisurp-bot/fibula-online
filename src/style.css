@@ -6838,7 +6838,7 @@ sem backdrop ou caixa de modal. */
   flex-direction:column;
   align-items:stretch;
   justify-content:center;
-  padding:max(5px,env(safe-area-inset-top)) 10px var(--back-button-clearance)!important;
+  padding:max(5px,env(safe-area-inset-top)) 10px var(--side-nav-clearance)!important;
   overflow-x:hidden;
   overflow-y:hidden;
   overscroll-behavior:contain;
@@ -7653,7 +7653,7 @@ sem backdrop ou caixa de modal. */
   min-height:0;
   flex-direction:column;
   align-items:stretch;
-  padding:max(8px,env(safe-area-inset-top)) 12px var(--back-button-clearance)!important;
+  padding:max(8px,env(safe-area-inset-top)) 12px var(--side-nav-clearance)!important;
   overflow-x:hidden;
   overflow-y:hidden;
   overscroll-behavior:contain;
@@ -8494,6 +8494,165 @@ sem backdrop ou caixa de modal. */
 }
 
 
+/* SP6 — Navegação lateral fixa e clareamento dos controles do Lobby. */
+:root { --side-nav-clearance:calc(40px + 10px + 8px + 6px + env(safe-area-inset-bottom)); }
+.side-nav{position:fixed;z-index:11000;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:4px;border:1px solid #e0d9ca;border-radius:12px;background:#fffdf8;box-shadow:0 4px 16px #29272024}
+.side-nav-button{display:flex;min-width:0;min-height:40px;align-items:center;justify-content:center;padding:4px 2px;border:1px solid #cfc6b3;border-radius:8px;background:#f1ece0;color:#292720;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.1;text-align:center;white-space:normal}
+.side-nav-button.is-active{border-color:#292720;background:#292720;color:#fffdf8}
+.side-nav-button.side-nav-lobby{border-color:#8a744c;background:#fffdf8;color:#292720}
+.side-nav-button:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
+
+/* Lobby: controles laterais translúcidos; sem alterar cenário ou atalhos das estações. */
+.lobby-screen .lobby-profile-trigger,
+.lobby-screen .lobby-status-trigger,
+.lobby-screen .lobby-arsenal-trigger,
+.lobby-screen .lobby-friends-trigger,
+.lobby-screen .lobby-chest-trigger,
+.lobby-screen .lobby-ranking-trigger{
+  box-sizing:border-box;
+  width:84px;
+  min-width:84px;
+  max-width:calc(50vw - 16px);
+  padding:0 8px;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:10px;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  font-family:inherit;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  line-height:1.1;
+  text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  animation:none;
+  white-space:nowrap;
+}
+.lobby-screen .lobby-profile-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-status-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-arsenal-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-friends-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-chest-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-ranking-trigger>span:not(.lobby-ranking-spark){
+  color:#f6efe0;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+  white-space:nowrap;
+}
+.lobby-screen .lobby-top-emoji,
+.lobby-screen .lobby-ranking-trophy{
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+}
+.lobby-screen .lobby-profile-trigger:hover,
+.lobby-screen .lobby-status-trigger:hover,
+.lobby-screen .lobby-arsenal-trigger:hover,
+.lobby-screen .lobby-friends-trigger:hover,
+.lobby-screen .lobby-chest-trigger:hover,
+.lobby-screen .lobby-ranking-trigger:hover,
+.lobby-screen .lobby-profile-trigger:active,
+.lobby-screen .lobby-status-trigger:active,
+.lobby-screen .lobby-arsenal-trigger:active,
+.lobby-screen .lobby-friends-trigger:active,
+.lobby-screen .lobby-chest-trigger:active,
+.lobby-screen .lobby-ranking-trigger:active{
+  background:rgba(24,21,17,.68);
+  color:#f6efe0;
+}
+.lobby-screen .lobby-ranking-trigger{
+  border-color:rgba(212,180,119,.6);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.lobby-screen .lobby-profile-trigger:focus-visible,
+.lobby-screen .lobby-status-trigger:focus-visible,
+.lobby-screen .lobby-arsenal-trigger:focus-visible,
+.lobby-screen .lobby-friends-trigger:focus-visible,
+.lobby-screen .lobby-chest-trigger:focus-visible,
+.lobby-screen .lobby-ranking-trigger:focus-visible,
+.lobby-screen .lobby-duo-invite:focus-visible{
+  outline:2px solid #fff1c9;
+  outline-offset:2px;
+}
+/* O "+" de convite permanece circular e recebe o mesmo acabamento translúcido. */
+.lobby-screen .lobby-duo-invite{
+  box-sizing:border-box;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:50%;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.lobby-screen .lobby-duo-invite:hover,
+.lobby-screen .lobby-duo-invite:active{background:rgba(24,21,17,.68);color:#f6efe0}
+.lobby-screen .lobby-character-profile-trigger:focus-visible{outline:2px solid #fff1c9;outline-offset:2px}
+
+/* O Jogar e o Pronto do Duo mantêm integralmente o estilo original da main. */
+.lobby-screen .lobby-duo-peer{padding:6px 8px;border:1px solid #e0d9ca;border-radius:10px;background:rgba(255,253,248,.92);color:#292720;box-shadow:0 3px 12px #0005;backdrop-filter:none;-webkit-backdrop-filter:none}
+.lobby-screen .lobby-duo-peer-name,.lobby-screen .lobby-duo-peer-status{color:#292720;text-shadow:none}
+.lobby-screen .lobby-duo-peer.connecting{opacity:1;filter:none}
+.lobby-screen .lobby-duo-peer-leave{min-height:24px;border:1px solid #cfc6b3;background:#f1ece0;color:#292720}
+.lobby-screen .lobby-duo-notice{border-color:#e0d9ca;background:rgba(255,253,248,.92);color:#292720;box-shadow:0 3px 12px #0005;font-size:11px}
+.lobby-screen .lobby-character-profile-trigger:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
+.duo-lobby-invite-toast{border-color:#e0d9ca;background:#fffdf8;color:#292720;box-shadow:0 12px 32px #29272040}
+.duo-lobby-invite-toast button,.duo-lobby-invite-toast button.secondary{border-color:#cfc6b3;background:#f1ece0;color:#292720}
+.duo-lobby-invite-toast button:first-child{border-color:#292720;background:#292720;color:#fffdf8}
+.duo-lobby-invite-toast button:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
+
+/* SP6.3 — Atalhos das estações no mesmo vidro escuro translúcido. */
+.lobby-screen .lobby-crafting-stations{
+  display:flex;
+  gap:4px;
+}
+.lobby-screen .lobby-crafting-trigger{
+  box-sizing:border-box;
+  width:clamp(54px,calc((100vw - 140px) / 4),64px);
+  min-width:clamp(54px,calc((100vw - 140px) / 4),64px);
+  height:56px;
+  min-height:56px;
+  padding:0 2px;
+  flex-shrink:0;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:10px;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.lobby-screen .lobby-crafting-trigger:hover,
+.lobby-screen .lobby-crafting-trigger:active{
+  background:rgba(24,21,17,.68);
+  color:#f6efe0;
+}
+.lobby-screen .lobby-crafting-trigger:focus-visible{
+  outline:2px solid #fff1c9;
+  outline-offset:2px;
+}
+.lobby-screen .lobby-crafting-icon{
+  font-size:20px;
+  line-height:1;
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+}
+.lobby-screen .lobby-crafting-trigger>span:last-child{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  line-height:1;
+  white-space:nowrap;
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
+}
+
 /* SP5 — Amigos em página lateral clara e compacta. */
 .side-page.friends-side {
   display:flex;
@@ -8515,7 +8674,7 @@ sem backdrop ou caixa de modal. */
   min-height:0;
   flex-direction:column;
   gap:7px;
-  padding:max(7px,env(safe-area-inset-top)) 8px var(--back-button-clearance)!important;
+  padding:max(7px,env(safe-area-inset-top)) 8px var(--side-nav-clearance)!important;
   overflow:hidden;
   background:#f7f4ed!important;
   color:#292720!important;
@@ -8786,7 +8945,7 @@ sem backdrop ou caixa de modal. */
 .side-page.bau-side,.side-page.bau-side *{box-sizing:border-box}
 .side-page.bau-side .station-page-content,.side-page.bau-side .side-page-content{
  display:flex;flex:1 1 auto;width:100%;min-width:0;min-height:0;flex-direction:column;gap:8px;
- padding:max(7px,env(safe-area-inset-top)) 8px var(--back-button-clearance)!important;overflow:hidden;
+ padding:max(7px,env(safe-area-inset-top)) 8px var(--side-nav-clearance)!important;overflow:hidden;
  background:#f7f4ed!important;color:#292720!important
 }
 .side-page.bau-side .bau-side-panel{
@@ -8961,7 +9120,7 @@ sem backdrop ou caixa de modal. */
   min-height:0;
   flex-direction:column;
   gap:8px;
-  padding:max(7px,env(safe-area-inset-top)) 8px var(--back-button-clearance)!important;
+  padding:max(7px,env(safe-area-inset-top)) 8px var(--side-nav-clearance)!important;
   overflow:hidden;
   background:#f7f4ed!important;
   color:#292720!important;
