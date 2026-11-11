@@ -8658,7 +8658,7 @@ sem backdrop ou caixa de modal. */
 .lobby-screen .lobby-crafting-stations{
   position:absolute;
   z-index:27;
-  left:12px;
+  left:max(12px,env(safe-area-inset-left));
   right:auto;
   top:auto;
   bottom:calc(10% - 45px);
@@ -8704,7 +8704,7 @@ sem backdrop ou caixa de modal. */
 }
 @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
   .lobby-screen .lobby-crafting-stations{
-    left:12px;
+    left:max(12px,env(safe-area-inset-left));
     right:auto;
     top:auto;
     bottom:max(10px,env(safe-area-inset-bottom));
@@ -8735,13 +8735,13 @@ sem backdrop ou caixa de modal. */
     max-height:48px;
     gap:6px;
   }
-  .lobby-screen .lobby-profile-trigger{right:10px}
-  .lobby-screen .lobby-status-trigger{right:64px}
-  .lobby-screen .lobby-arsenal-trigger{right:118px}
-  .lobby-screen .lobby-friends-trigger{right:172px}
-  .lobby-screen .lobby-chest-trigger{right:226px}
+  .lobby-screen .lobby-profile-trigger{right:max(10px,env(safe-area-inset-right))}
+  .lobby-screen .lobby-status-trigger{right:calc(max(10px,env(safe-area-inset-right)) + 54px)}
+  .lobby-screen .lobby-arsenal-trigger{right:calc(max(10px,env(safe-area-inset-right)) + 108px)}
+  .lobby-screen .lobby-friends-trigger{right:calc(max(10px,env(safe-area-inset-right)) + 162px)}
+  .lobby-screen .lobby-chest-trigger{right:calc(max(10px,env(safe-area-inset-right)) + 216px)}
   .lobby-screen .lobby-ranking-trigger{
-    left:12px;
+    left:max(12px,env(safe-area-inset-left));
     top:max(8px,env(safe-area-inset-top));
     width:48px;
     min-width:48px;
