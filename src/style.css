@@ -9010,7 +9010,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .camp-menu-backdrop{
  position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid;place-items:center;
  box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
- overflow:hidden;overscroll-behavior:contain;background:rgba(8,8,7,.58);touch-action:manipulation
+ overflow:hidden;overscroll-behavior:contain;background:rgba(8,8,7,.58);touch-action:none
 }
 .game-shell .camp-menu-panel{
  display:flex;box-sizing:border-box;width:min(320px,calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
