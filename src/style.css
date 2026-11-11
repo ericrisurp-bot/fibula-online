@@ -9777,6 +9777,7 @@ sem backdrop ou caixa de modal. */
 
 
 /* G2.2 — geometria ancorada ao campo, sem empilhar menu e ações secundárias. */
+.game-shell{--controller-scale:var(--interface-scale,1.3)}
 .game-shell .mobile-quick-buttons{
   position:absolute!important;
   inset:auto!important;
@@ -9790,7 +9791,7 @@ sem backdrop ou caixa de modal. */
   max-height:none;
   overflow:visible;
   zoom:1!important;
-  transform:scale(var(--controller-scale,var(--interface-scale,1.3)))!important;
+  transform:scale(var(--controller-scale))!important;
   transform-origin:bottom right!important;
   pointer-events:none;
 }
@@ -9871,11 +9872,11 @@ sem backdrop ou caixa de modal. */
   z-index:2147483008!important;
 }
 @media (max-width:420px){
-  .game-shell .mobile-quick-buttons{--controller-scale:min(var(--interface-scale,1.3),1.12)}
+  .game-shell{--controller-scale:min(var(--interface-scale,1.3),1.12)}
 }
 @media (pointer:coarse) and (orientation:portrait){
   .game-shell .house-meals-trigger{
-    bottom:calc(20px + 136px * var(--controller-scale,var(--interface-scale,1.3)))!important;
+    bottom:calc(20px + 136px * var(--controller-scale))!important;
   }
 }
 @media (pointer:coarse) and (orientation:landscape){
