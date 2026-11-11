@@ -2,9 +2,11 @@
 
 ## Objetivo desta etapa
 
-O workflow **Release Android APK** gera um APK de produção assinado e publica o arquivo em uma GitHub Release. A página de download do site e o aviso/instalador de atualização dentro do app serão etapas seguintes.
+O workflow **Release Android APK** gera um APK de produção assinado. Por padrão, ele apenas compila o APK e disponibiliza o resultado como artefato do GitHub Actions, sem criar uma GitHub Release pública.
 
-O workflow é manual de propósito: só publica uma versão quando o responsável decide liberar.
+A publicação oficial é uma opção manual separada: só marque **Publish GitHub Release** quando o APK já estiver validado e você decidir liberar a versão.
+
+A página de download do site e o aviso/instalador de atualização dentro do app serão etapas seguintes.
 
 ## Assinatura permanente (obrigatória)
 
@@ -21,7 +23,7 @@ Guarde o arquivo `fibula-release-key.jks` e as senhas em local seguro, com cópi
 Converta o arquivo para Base64 para cadastrar no GitHub:
 
 - Linux: `base64 -w 0 fibula-release-key.jks`
-- macOS: `base64 < fibula-release-key.jks | tr -d '\n'`
+- macOS: `base64 < fibula-release-key.jks | tr -d '\\n'`
 - Windows PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("fibula-release-key.jks")) | Set-Clipboard`
 
 Cadastre em **Repository → Settings → Secrets and variables → Actions → New repository secret**:
@@ -35,14 +37,27 @@ Cadastre em **Repository → Settings → Secrets and variables → Actions → 
 
 Não cadastre o conteúdo dessas secrets como Variables e não coloque valores no código.
 
-## Publicar uma versão
+## Validar o APK sem publicar
 
-Depois que esta PR estiver aprovada e mesclada e as quatro secrets estiverem configuradas:
+Depois que a PR da validação estiver aprovada e mesclada e as quatro secrets estiverem configuradas:
 
 1. Abra **Actions → Release Android APK**.
 2. Clique em **Run workflow** usando a branch `main`.
 3. Informe `version_name` no formato `X.Y.Z` (ex.: `0.1.1`).
-4. Informe `version_code` como inteiro sempre crescente (ex.: `2`, depois `3`, etc.).
+4. Informe `version_code` como inteiro positivo.
+5. Deixe **Publish GitHub Release** desmarcado.
+6. Execute e aguarde o workflow concluir.
+
+Nesse modo, o workflow compila o APK assinado e guarda o APK e o `fibula-version.json` como artefato por 30 dias. Nenhuma GitHub Release ou tag pública é criada. Baixe o artefato para conferir a assinatura e a instalação antes de liberar uma versão.
+
+## Publicar uma versão oficial
+
+Somente depois de validar o APK:
+
+1. Abra **Actions → Release Android APK** e clique em **Run workflow** usando `main`.
+2. Informe um `version_name` novo no formato `X.Y.Z`.
+3. Informe um `version_code` inteiro maior que todos os anteriores.
+4. Marque **Publish GitHub Release**.
 5. Execute e aguarde o workflow concluir.
 
 O workflow compila o app, aplica a mesma assinatura permanente, guarda um artifact por 30 dias e cria uma GitHub Release com o APK anexado. O tag segue o formato `android-vX.Y.Z`; uma versão/tag já existente não deve ser reutilizada.
