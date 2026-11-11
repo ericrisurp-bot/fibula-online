@@ -2769,7 +2769,6 @@ export default function App() {
   const toggleCart = () => engineRef.current?.toggleCart();
   const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
   const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
-  const transferHouseToBag = (itemId: string) => engineRef.current?.transferHouseToBag(itemId);
   const storeAllBagToHouse = () => engineRef.current?.storeAllBagToHouse();
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
   const buildHouse = () => engineRef.current?.buildHouse();
@@ -3680,59 +3679,34 @@ export default function App() {
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      {inventoryPanelOpen && !showStart && !state.dead && <div className="inventory-quick-panel" role="dialog" aria-label="Casa, mochila e carrinho">
-        <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onPointerDown={handleInventoryClosePointerDown} onClick={handleInventoryCloseClick} aria-label="Fechar mochila" title="Fechar">×</button></header>
-
-        <section>
-          <h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3>
-          <div className="quick-slot-grid bag">
-            {Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {
-              const item = state.inventory[index];
-              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} style={{ position: 'relative' }} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, padding: 0, lineHeight: '16px', borderRadius: 999, background: '#632f35', color: '#fff', border: '1px solid #d98b8b', fontSize: 14 }} onClick={(event) => { event.stopPropagation(); discardBagItem(index); }} aria-label={`Descartar ${item.itemId} x${item.quantity} da mochila`} title="Descartar item">×</button></> : <span className="quick-slot-empty">{index + 1}</span>}
-              </div>;
-            })}
-          </div>
-        </section>
-        <section>
-          <h3>Carrinho <small>{state.cart.inventory.length}/{CONFIG.cart.capacitySlots}</small></h3>
-          <div className="quick-slot-grid cart">
-            {Array.from({ length: CONFIG.cart.capacitySlots }, (_, index) => {
-              const item = state.cart.inventory[index];
-              return <div key={index} className={item ? 'quick-slot filled' : 'quick-slot'} aria-label={item ? `${item.itemId} x${item.quantity}` : `Espaço ${index + 1} vazio`}>
-                {item ? <button type="button" className="inventory-transfer-slot" disabled={!cartAccessible} onClick={(event) => { event.stopPropagation(); transferCartToBag(index); }} aria-label={`Retirar ${item.itemId} x${item.quantity} do carrinho para a mochila`} title="Retirar para a mochila"><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button> : <span className="quick-slot-empty">{index + 1}</span>}
-              </div>;
-            })}
-          </div>
-        </section>
-        {state.house.built && <section className="house-storage-section">
-          <h3>Armazém da casa</h3>
-          <nav className="house-storage-tabs" role="tablist" aria-label="Armazém da casa">
-            <button type="button" role="tab" aria-selected={houseStorageTab === 'resources'} className={houseStorageTab === 'resources' ? 'active' : ''} onClick={() => setHouseStorageTab('resources')}>Materiais</button>
-            <button type="button" role="tab" aria-selected={houseStorageTab === 'meals'} className={houseStorageTab === 'meals' ? 'active' : ''} onClick={() => setHouseStorageTab('meals')}>Refeições · {readyCookingMeals.length}</button>
-          </nav>
-          {houseStorageTab === 'resources' ? state.house.inventory.length > 0 ? <div className="quick-slot-grid house-storage">
-            {state.house.inventory.map(item => <button key={item.itemId} type="button" className="quick-slot filled inventory-transfer-slot" disabled={!houseAccessible} onClick={(event) => { event.stopPropagation(); transferHouseToBag(item.itemId); }} aria-label={`Retirar ${item.itemId} x${item.quantity} da casa para a mochila`} title={houseAccessible ? "Retirar para a mochila (até 5 por clique)" : "Aproxime-se da casa para retirar"}>
-              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
-            </button>)}
-          </div> : <p className="house-storage-empty">A casa está vazia. Use “Guardar tudo” quando quiser armazenar seus itens.</p>
-            : <div className="house-meals-grid">
-              {!cookingOnline && <p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
-              {readyCookingMeals.length ? readyCookingMeals.map(meal => {
-                const slotOccupied = state.activeMeals.some(active => active.slot === meal.slot);
-                return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible || !cookingOnline || slotOccupied}
-                  onClick={(event) => { event.stopPropagation(); void consumeReadyCookingMeal(meal); }}
-                  title={!houseAccessible ? 'Aproxime-se da casa para consumir' : !cookingOnline ? 'Sem conexão: cozinhar exige internet.' : slotOccupied ? 'Você já tem uma refeição deste tipo ativa' : 'Consumir refeição'}>
-                  <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                  <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
-                  <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b><b>Consumir</b>
-                </button>;
-              }) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
-            </div>}
-        </section>}
-      </div>}
-      {houseAccessible && !showStart && !state.dead && <button type="button" className="house-meals-trigger" onClick={() => { closeFlagMenu(); setHouseStorageTab('meals'); inventoryPanelOpenRef.current = true; setInventoryPanelOpen(true); }}>🏠 CASA · REFEIÇÕES</button>}
-
+      {inventoryPanelOpen && !showStart && !state.dead && <div className={\`inventory-quick-panel \${houseAccessible && state.house.built ? 'has-house' : ''}\`} role="dialog" aria-label="Casa, mochila e carrinho">
+<header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onPointerDown={handleInventoryClosePointerDown} onClick={handleInventoryCloseClick} aria-label="Fechar mochila" title="Fechar">×</button></header>
+<div className="inventory-quick-content">
+<div className="inventory-quick-column inventory-quick-left">
+<section><h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3><div className="quick-slot-grid bag">
+{Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {const item=state.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} style={{position:'relative'}} aria-label={item?\`\${item.itemId} x\${item.quantity}\`:\`Espaço \${index+1} vazio\`}>
+{item?<><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{position:'absolute',top:2,right:2,width:18,height:18,padding:0,lineHeight:'16px',borderRadius:999,background:'#632f35',color:'#fff',border:'1px solid #d98b8b',fontSize:14}} onClick={event=>{event.stopPropagation();discardBagItem(index);}} aria-label={\`Descartar \${item.itemId} x\${item.quantity} da mochila\`} title="Descartar item">×</button></>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
+</div></section>
+{state.cart.stage==='built'&&cartAccessible&&<section><h3>Carrinho <small>{state.cart.inventory.length}/{CONFIG.cart.capacitySlots}</small></h3><div className="quick-slot-grid cart">
+{Array.from({length:CONFIG.cart.capacitySlots},(_,index)=>{const item=state.cart.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?\`\${item.itemId} x\${item.quantity}\`:\`Espaço \${index+1} vazio\`}>
+{item?<button type="button" className="inventory-transfer-slot" disabled={!cartAccessible} onClick={event=>{event.stopPropagation();transferCartToBag(index);}} aria-label={\`Retirar \${item.itemId} x\${item.quantity} do carrinho para a mochila\`} title="Retirar para a mochila"><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
+</div></section>}
+</div>
+{houseAccessible&&state.house.built&&<div className="inventory-quick-column inventory-quick-house"><section className="house-storage-section">
+<h3>Casa</h3><nav className="house-storage-tabs" role="tablist" aria-label="Armazém da casa">
+<button type="button" role="tab" aria-selected={houseStorageTab==='resources'} className={houseStorageTab==='resources'?'active':''} onClick={()=>setHouseStorageTab('resources')}>Itens</button>
+<button type="button" role="tab" aria-selected={houseStorageTab==='meals'} className={houseStorageTab==='meals'?'active':''} onClick={()=>setHouseStorageTab('meals')}>Refeições · {readyCookingMeals.length}</button>
+</nav>
+{houseStorageTab==='resources'?state.house.inventory.length>0?<div className="quick-slot-grid house-storage">
+{state.house.inventory.map(item=>{const itemName=itemLabel(item.itemId);const accessibleName=\`\${itemName}, \${item.quantity} guardadas\`;return <div key={item.itemId} className="quick-slot filled house-storage-info-slot" title={accessibleName} aria-label={accessibleName}><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>×{item.quantity}</b></div>;})}
+</div>:<p className="house-storage-empty">Nada guardado ainda.</p>
+:<div className="house-meals-grid">
+{!cookingOnline&&<p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
+{readyCookingMeals.length?readyCookingMeals.map(meal=>{const slotOccupied=state.activeMeals.some(active=>active.slot===meal.slot);return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible||!cookingOnline||slotOccupied} onClick={event=>{event.stopPropagation();void consumeReadyCookingMeal(meal);}} title={!houseAccessible?'Aproxime-se da casa para consumir':!cookingOnline?'Sem conexão: cozinhar exige internet.':slotOccupied?'Você já tem uma refeição deste tipo ativa':'Consumir refeição'}>
+<span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small><b>{meal.slot==='quick'?'Simples':'Elaborada'}</b><b>Consumir</b></button>;}) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
+</div>}
+</section></div>}
+</div></div>}
 {!showStart && !state.dead && (() => {
   const recipe = cartBuildAccessible
     ? (state.cart.everBuilt ? [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 5 }] : [{ itemId: 'wood', quantity: 1 }])
