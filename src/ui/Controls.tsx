@@ -36,8 +36,8 @@ type Props = {
   inventoryPanelOpen: boolean;
   audioVolume: number;
   onAudioVolumeChange: (volume: number) => void;
-  interfaceScale: 70 | 100;
-  onInterfaceScaleChange: (scale: 70 | 100) => void;
+  interfaceScale: 70 | 100 | 130;
+  onInterfaceScaleChange: (scale: 70 | 100 | 130) => void;
   landscapeMode: boolean;
   onToggleLandscape: () => void;
 };
@@ -225,7 +225,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         <div className="menu-interface-scale" role="group" aria-label="Escala dos controles">
           <span>Escala dos controles</span>
           <div className="menu-interface-scale-options">
-            {([70, 100] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
+            {([70, 100, 130] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
           </div>
         </div>
       </div>
