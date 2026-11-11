@@ -8818,7 +8818,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .game-construction-recipe-item b{font-size:11px;font-weight:800}
 .game-shell .mobile-menu-backdrop{z-index:29}
 .game-shell .mobile-menu-panel{z-index:30}
-.game-shell .house-meals-trigger{bottom:calc(220px + env(safe-area-inset-bottom));font-size:11px}
+.game-shell .house-meals-trigger{bottom:calc(220px + env(safe-area-inset-bottom))}
 .game-shell .mobile-quick-buttons .mobile-quick-class,
 .game-shell .mobile-quick-buttons .mobile-quick-bag{width:44px;height:44px;min-height:44px;margin:0}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
