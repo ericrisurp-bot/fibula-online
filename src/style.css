@@ -9044,8 +9044,7 @@ sem backdrop ou caixa de modal. */
 .side-page.bau-side{display:flex;height:100dvh;min-height:0;flex-direction:column;overflow:hidden;background:#f7f4ed!important;color:#292720!important}
 .side-page.bau-side,.side-page.bau-side *{box-sizing:border-box}
 .side-page.bau-side .station-page-content,.side-page.bau-side .side-page-content{
- dis
-play:flex;flex:1 1 auto;width:100%;min-width:0;min-height:0;flex-direction:column;gap:8px;
+ display:flex;flex:1 1 auto;width:100%;min-width:0;min-height:0;flex-direction:column;gap:8px;
  padding:max(7px,env(safe-area-inset-top)) 8px var(--side-nav-clearance)!important;overflow:hidden;
  background:#f7f4ed!important;color:#292720!important
 }
