@@ -5678,7 +5678,7 @@ button,button *{
 .game-shell .mobile-action-diamond .action-b{right:0;top:52px;color:#ff6b5e}
 .game-shell .mobile-action-diamond .action-a{left:52px;bottom:0;color:#7bd65a}
 .game-shell .mobile-action-diamond .game-action-button.is-active{
-  opacity:1;border-color:currentColor;color:inherit;
+  opacity:1;border-color:currentColor;
   box-shadow:0 0 10px color-mix(in srgb,currentColor 40%,transparent);cursor:pointer;
 }
 .game-shell .mobile-action-diamond .game-action-button:disabled{
