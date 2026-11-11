@@ -8502,18 +8502,99 @@ sem backdrop ou caixa de modal. */
 .side-nav-button.side-nav-lobby{border-color:#8a744c;background:#fffdf8;color:#292720}
 .side-nav-button:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
 
-/* Lobby: apenas controles e rótulos; cenário, canvas e posições permanecem intactos. */
-.lobby-screen .lobby-profile-trigger,.lobby-screen .lobby-status-trigger,.lobby-screen .lobby-arsenal-trigger,.lobby-screen .lobby-friends-trigger,.lobby-screen .lobby-chest-trigger{min-height:40px;padding:3px 2px;border:1px solid #e0d9ca;border-radius:10px;background:#fffdf8;color:#292720;font-family:inherit;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.1;text-align:center;text-shadow:none;box-shadow:0 3px 12px #0006;backdrop-filter:none;-webkit-backdrop-filter:none;animation:none}
-.lobby-screen .lobby-profile-trigger span:not(.lobby-top-emoji),.lobby-screen .lobby-status-trigger span:not(.lobby-top-emoji),.lobby-screen .lobby-arsenal-trigger span:not(.lobby-top-emoji),.lobby-screen .lobby-friends-trigger span:not(.lobby-top-emoji),.lobby-screen .lobby-chest-trigger span:not(.lobby-top-emoji){color:#292720;font-size:11px;font-weight:800;letter-spacing:0}
-.lobby-screen .lobby-profile-trigger:hover,.lobby-screen .lobby-status-trigger:hover,.lobby-screen .lobby-arsenal-trigger:hover,.lobby-screen .lobby-friends-trigger:hover,.lobby-screen .lobby-chest-trigger:hover,.lobby-screen .lobby-ranking-trigger:hover{border-color:#cfc6b3;background:#f1ece0;color:#292720;box-shadow:0 3px 12px #0006}
-.lobby-screen .lobby-profile-trigger:active,.lobby-screen .lobby-status-trigger:active,.lobby-screen .lobby-arsenal-trigger:active,.lobby-screen .lobby-friends-trigger:active,.lobby-screen .lobby-chest-trigger:active,.lobby-screen .lobby-ranking-trigger:active{background:#f1ece0;color:#292720}
-.lobby-screen .lobby-profile-trigger:focus-visible,.lobby-screen .lobby-status-trigger:focus-visible,.lobby-screen .lobby-arsenal-trigger:focus-visible,.lobby-screen .lobby-friends-trigger:focus-visible,.lobby-screen .lobby-chest-trigger:focus-visible,.lobby-screen .lobby-ranking-trigger:focus-visible,.lobby-screen .lobby-play-trigger:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
-.lobby-screen .lobby-ranking-trigger{min-width:54px;min-height:54px;padding:4px 2px;border:1px solid #8a744c;border-radius:10px;background:#fffdf8;color:#292720;font-family:inherit;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.1;text-shadow:none;box-shadow:0 3px 12px #0006;backdrop-filter:none;-webkit-backdrop-filter:none;animation:none}
-.lobby-screen .lobby-ranking-trigger>span:not(.lobby-ranking-spark){color:#292720;font-size:11px;font-weight:800;letter-spacing:0}
-.lobby-screen .lobby-play-trigger{min-height:40px;border:1px solid #8a744c;border-radius:10px;background:#292720;color:#fffdf8;font-size:14px;font-weight:800;letter-spacing:0;text-shadow:none;box-shadow:0 4px 14px #0007}
-.lobby-screen .lobby-play-trigger:hover{background:#f1ece0;color:#292720;filter:none;box-shadow:0 4px 14px #0007}
-.lobby-screen .lobby-play-trigger:disabled{border-color:#cfc6b3!important;background:#e8e1d5!important;color:#6b6455!important;box-shadow:0 3px 10px #0005!important;opacity:1!important;cursor:not-allowed}
-.lobby-screen .lobby-play-trigger.duo-ready-trigger[aria-pressed="true"]{border-color:#8a744c;background:#292720;color:#fffdf8}
+/* Lobby: controles laterais translúcidos; sem alterar cenário ou atalhos das estações. */
+.lobby-screen .lobby-profile-trigger,
+.lobby-screen .lobby-status-trigger,
+.lobby-screen .lobby-arsenal-trigger,
+.lobby-screen .lobby-friends-trigger,
+.lobby-screen .lobby-chest-trigger,
+.lobby-screen .lobby-ranking-trigger{
+  box-sizing:border-box;
+  width:84px;
+  min-width:84px;
+  max-width:calc(50vw - 16px);
+  padding:0 8px;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:10px;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  font-family:inherit;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  line-height:1.1;
+  text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  animation:none;
+  white-space:nowrap;
+}
+.lobby-screen .lobby-profile-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-status-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-arsenal-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-friends-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-chest-trigger span:not(.lobby-top-emoji),
+.lobby-screen .lobby-ranking-trigger>span:not(.lobby-ranking-spark){
+  color:#f6efe0;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+  white-space:nowrap;
+}
+.lobby-screen .lobby-top-emoji,
+.lobby-screen .lobby-ranking-trophy{
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+}
+.lobby-screen .lobby-profile-trigger:hover,
+.lobby-screen .lobby-status-trigger:hover,
+.lobby-screen .lobby-arsenal-trigger:hover,
+.lobby-screen .lobby-friends-trigger:hover,
+.lobby-screen .lobby-chest-trigger:hover,
+.lobby-screen .lobby-ranking-trigger:hover,
+.lobby-screen .lobby-profile-trigger:active,
+.lobby-screen .lobby-status-trigger:active,
+.lobby-screen .lobby-arsenal-trigger:active,
+.lobby-screen .lobby-friends-trigger:active,
+.lobby-screen .lobby-chest-trigger:active,
+.lobby-screen .lobby-ranking-trigger:active{
+  background:rgba(24,21,17,.68);
+  color:#f6efe0;
+}
+.lobby-screen .lobby-ranking-trigger{
+  border-color:rgba(212,180,119,.6);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.lobby-screen .lobby-profile-trigger:focus-visible,
+.lobby-screen .lobby-status-trigger:focus-visible,
+.lobby-screen .lobby-arsenal-trigger:focus-visible,
+.lobby-screen .lobby-friends-trigger:focus-visible,
+.lobby-screen .lobby-chest-trigger:focus-visible,
+.lobby-screen .lobby-ranking-trigger:focus-visible,
+.lobby-screen .lobby-duo-invite:focus-visible{
+  outline:2px solid #fff1c9;
+  outline-offset:2px;
+}
+/* O "+" de convite permanece circular e recebe o mesmo acabamento translúcido. */
+.lobby-screen .lobby-duo-invite{
+  box-sizing:border-box;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:50%;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.lobby-screen .lobby-duo-invite:hover,
+.lobby-screen .lobby-duo-invite:active{background:rgba(24,21,17,.68);color:#f6efe0}
+.lobby-screen .lobby-character-profile-trigger:focus-visible{outline:2px solid #fff1c9;outline-offset:2px}
+
+/* O Jogar e o Pronto do Duo mantêm integralmente o estilo original da main. */
 .lobby-screen .lobby-duo-peer{padding:6px 8px;border:1px solid #e0d9ca;border-radius:10px;background:rgba(255,253,248,.92);color:#292720;box-shadow:0 3px 12px #0005;backdrop-filter:none;-webkit-backdrop-filter:none}
 .lobby-screen .lobby-duo-peer-name,.lobby-screen .lobby-duo-peer-status{color:#292720;text-shadow:none}
 .lobby-screen .lobby-duo-peer.connecting{opacity:1;filter:none}
