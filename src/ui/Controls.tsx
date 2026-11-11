@@ -12,11 +12,7 @@ type Props = {
   storeToHouseVisible: boolean;
   storeToHouseDisabled: boolean;
   onStoreToHouse: () => void;
-  buildRefineryVisible: boolean;
-  buildTecelariaVisible: boolean;
   buildCartVisible: boolean;
-  onBuildRefinery: () => void;
-  onBuildTecelaria: () => void;
   onBuildCart: () => void;
   campMenuVisible: boolean;
   onOpenCampMenu: () => void;
@@ -44,7 +40,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildRefinery, onBuildTecelaria, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -70,26 +66,20 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
-  const actionBVisible = buildCartVisible || buildRefineryVisible || buildTecelariaVisible || storeToHouseVisible || storeToCartVisible || campMenuVisible;
-  const actionBDisabled = buildCartVisible || buildRefineryVisible || buildTecelariaVisible
-    ? false
+  const actionBVisible = campMenuVisible || buildCartVisible || storeToHouseVisible || storeToCartVisible;
+  const actionBDisabled = campMenuVisible || buildCartVisible ? false
     : storeToHouseVisible ? storeToHouseDisabled
-    : storeToCartVisible ? storeToCartDisabled
-    : campMenuVisible ? false : true;
-  const actionBLabel = buildCartVisible ? 'Construir burrinho e carroça'
-    : buildRefineryVisible ? 'Construir refinaria'
-    : buildTecelariaVisible ? 'Construir tecelaria'
+    : storeToCartVisible ? storeToCartDisabled : true;
+  const actionBLabel = campMenuVisible ? 'Abrir menu do acampamento'
+    : buildCartVisible ? 'Construir burrinho e carroça'
     : storeToHouseVisible ? 'Guardar tudo no baú'
     : storeToCartVisible ? 'Guardar tudo no carrinho'
-    : campMenuVisible ? 'Abrir menu do acampamento'
     : 'Ação B indisponível';
   const runActionB = () => {
-    if (buildCartVisible) onBuildCart();
-    else if (buildRefineryVisible) onBuildRefinery();
-    else if (buildTecelariaVisible) onBuildTecelaria();
+    if (campMenuVisible) onOpenCampMenu();
+    else if (buildCartVisible) onBuildCart();
     else if (storeToHouseVisible) onStoreToHouse();
     else if (storeToCartVisible) onStoreToCart();
-    else if (campMenuVisible) onOpenCampMenu();
   };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
