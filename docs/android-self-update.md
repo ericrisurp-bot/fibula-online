@@ -23,7 +23,7 @@ Guarde o arquivo `fibula-release-key.jks` e as senhas em local seguro, com cópi
 Converta o arquivo para Base64 para cadastrar no GitHub:
 
 - Linux: `base64 -w 0 fibula-release-key.jks`
-- macOS: `base64 < fibula-release-key.jks | tr -d '\\n'`
+- macOS: `base64 < fibula-release-key.jks | tr -d '\n'`
 - Windows PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("fibula-release-key.jks")) | Set-Clipboard`
 
 Cadastre em **Repository → Settings → Secrets and variables → Actions → New repository secret**:
