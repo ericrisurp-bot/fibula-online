@@ -925,6 +925,9 @@ export default function App() {
   const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
   const inventoryPanelOpenRef = useRef(false);
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
+  const [campMenuOpen, setCampMenuOpen] = useState(false);
+  const campMenuOpenRef = useRef(false);
+  campMenuOpenRef.current = campMenuOpen;
   const lastTouchInventoryCloseAt = useRef(0);
   // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
   const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
@@ -934,7 +937,14 @@ export default function App() {
   const cartCanStore = state.cart.stage === 'built' && cartAccessible;
   const houseDistance = Math.hypot(feet.x - state.house.x, feet.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
-  const houseBuildAccessible = !state.house.built && houseDistance <= CONFIG.house.interactRadius;
+  const campfireDistance = state.campfire ? Math.hypot(feet.x - state.campfire.x, feet.y - state.campfire.y) : Infinity;
+  const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius;
+  const chestBuildStatus = engineRef.current?.getChestBuildStatus() ?? { ok: false as const, reason: 'nofire' as const };
+  const chestBuildStatusLabel = chestBuildStatus.ok ? 'Construir'
+    : chestBuildStatus.reason === 'already' ? 'Já construído'
+    : chestBuildStatus.reason === 'resources' ? 'Sem madeira'
+    : chestBuildStatus.reason === 'outside' ? 'Fora do raio'
+    : chestBuildStatus.reason === 'blocked' ? 'Local ocupado' : 'Sem fogueira';
   const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
   const refineryBuildAccessible = !state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
   const tecelariaDistance = Math.hypot(feet.x - state.tecelaria.x, feet.y - state.tecelaria.y);
@@ -1473,8 +1483,11 @@ export default function App() {
         if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color, s.elapsed) });
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color, s.elapsed) });
       }
-      if (s.campfire) worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
-      worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
+      if (s.campfire) {
+        if (campMenuOpenRef.current) worldDrawables.push({ depth: s.campfire.y + 10, draw: () => drawCampfireRange(ctx, s.campfire!) });
+        worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
+      }
+      if (s.house.built) worldDrawables.push({ depth: s.house.y + 28, draw: () => drawCampChest(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
@@ -1923,6 +1936,7 @@ export default function App() {
       if (k === 'escape') {
         closeFlagMenu();
         closeInventoryPanel();
+        setCampMenuOpen(false);
         return;
       }
       if (k === 'b' && !e.repeat) {
@@ -1948,7 +1962,6 @@ export default function App() {
         const currentFeet = playerFeet(current.player);
         const options: Array<{ distance: number; radius: number; available: boolean; build: () => void }> = [
           { distance: Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: current.cart.stage === 'broken', build: () => engine.buildCart() },
-          { distance: Math.hypot(currentFeet.x - current.house.x, currentFeet.y - current.house.y), radius: CONFIG.house.interactRadius, available: !current.house.built, build: () => engine.buildHouse() },
           { distance: Math.hypot(currentFeet.x - current.refinery.x, currentFeet.y - current.refinery.y), radius: CONFIG.refinery.interactRadius, available: !current.refinery.built, build: () => engine.buildRefinery() },
           { distance: Math.hypot(currentFeet.x - current.tecelaria.x, currentFeet.y - current.tecelaria.y), radius: CONFIG.tecelaria.interactRadius, available: !current.tecelaria.built, build: () => engine.buildTecelaria() },
         ];
@@ -2792,6 +2805,16 @@ export default function App() {
     inventoryPanelOpenRef.current = false;
     setInventoryPanelOpen(false);
   };
+  const closeCampMenu = () => setCampMenuOpen(false);
+  const openCampMenu = () => {
+    closeFlagMenu();
+    closeInventoryPanel();
+    setCampMenuOpen(true);
+  };
+  const buildCampChest = () => {
+    const result = engineRef.current?.buildChest();
+    if (result?.ok) closeCampMenu();
+  };
   const handleInventoryClosePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === 'mouse') return;
     event.preventDefault();
@@ -2809,6 +2832,7 @@ export default function App() {
   };
   const toggleInventoryPanel = () => {
     closeFlagMenu();
+    closeCampMenu();
     const nextOpen = !inventoryPanelOpenRef.current;
     inventoryPanelOpenRef.current = nextOpen;
     setInventoryPanelOpen(nextOpen);
@@ -3688,7 +3712,17 @@ export default function App() {
         <div className={`flag-wheel-option camp ${flagWheel?.selected === 'camp' ? 'selected' : ''} ${state.campfire ? 'disabled' : ''}`} style={flagWheel ? undefined : { display: 'none' }} aria-label="Fogueira" title="Fogueira">⛺<small>Acampar</small></div>
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Casa, mochila e carrinho">
+      {campMenuOpen && !showStart && !state.dead && state.campfire && <div className="camp-menu-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); closeCampMenu(); } }} onClick={event => { if (event.target === event.currentTarget) closeCampMenu(); }}>
+        <section className="camp-menu-panel" role="dialog" aria-modal="true" aria-label="Menu do acampamento" onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
+          <header><strong>ACAMPAMENTO</strong><button type="button" className="camp-menu-close" aria-label="Fechar menu do acampamento" onClick={closeCampMenu}>×</button></header>
+          <button type="button" className="camp-menu-row camp-menu-chest" disabled={!chestBuildStatus.ok} onClick={buildCampChest} aria-label={`Baú: ${chestBuildStatusLabel}`}>
+            <span className="camp-menu-icon">{inventoryItemIcon('wood')}</span><strong>Baú</strong><b>20</b><small>{chestBuildStatusLabel}</small>
+          </button>
+          <div className="camp-menu-row is-disabled" aria-disabled="true"><span className="camp-menu-icon">🔥</span><strong>Forno</strong><small>Em breve</small></div>
+          <div className="camp-menu-row is-disabled" aria-disabled="true"><span className="camp-menu-icon">🧵</span><strong>Tear</strong><small>Em breve</small></div>
+        </section>
+      </div>}
+      {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Baú, mochila e carrinho">
 <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onPointerDown={handleInventoryClosePointerDown} onClick={handleInventoryCloseClick} aria-label="Fechar mochila" title="Fechar">×</button></header>
 <div className="inventory-quick-content">
 <div className="inventory-quick-column inventory-quick-left">
@@ -3702,7 +3736,7 @@ export default function App() {
 </div></section>}
 </div>
 {houseAccessible&&state.house.built&&<div className="inventory-quick-column inventory-quick-house"><section className="house-storage-section">
-<h3>Casa</h3><nav className="house-storage-tabs" role="tablist" aria-label="Armazém da casa">
+<h3>Baú</h3><nav className="house-storage-tabs" role="tablist" aria-label="Itens do Baú">
 <button type="button" role="tab" aria-selected={houseStorageTab==='resources'} className={houseStorageTab==='resources'?'active':''} onClick={()=>setHouseStorageTab('resources')}>Itens</button>
 <button type="button" role="tab" aria-selected={houseStorageTab==='meals'} className={houseStorageTab==='meals'?'active':''} onClick={()=>setHouseStorageTab('meals')}>Refeições · {readyCookingMeals.length}</button>
 </nav>
@@ -3711,7 +3745,7 @@ export default function App() {
 </div>:<p className="house-storage-empty">Nada guardado ainda.</p>
 :<div className="house-meals-grid">
 {!cookingOnline&&<p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
-{readyCookingMeals.length?readyCookingMeals.map(meal=>{const slotOccupied=state.activeMeals.some(active=>active.slot===meal.slot);return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible||!cookingOnline||slotOccupied} onClick={event=>{event.stopPropagation();void consumeReadyCookingMeal(meal);}} title={!houseAccessible?'Aproxime-se da casa para consumir':!cookingOnline?'Sem conexão: cozinhar exige internet.':slotOccupied?'Você já tem uma refeição deste tipo ativa':'Consumir refeição'}>
+{readyCookingMeals.length?readyCookingMeals.map(meal=>{const slotOccupied=state.activeMeals.some(active=>active.slot===meal.slot);return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible||!cookingOnline||slotOccupied} onClick={event=>{event.stopPropagation();void consumeReadyCookingMeal(meal);}} title={!houseAccessible?'Aproxime-se do Baú para consumir':!cookingOnline?'Sem conexão: cozinhar exige internet.':slotOccupied?'Você já tem uma refeição deste tipo ativa':'Consumir refeição'}>
 <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small><b>{meal.slot==='quick'?'Simples':'Elaborada'}</b><b>Consumir</b></button>;}) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
 </div>}
 </section></div>}
@@ -3719,15 +3753,13 @@ export default function App() {
 {!showStart && !state.dead && (() => {
   const recipe = cartBuildAccessible
     ? (state.cart.everBuilt ? [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 5 }] : [{ itemId: 'wood', quantity: 1 }])
-    : houseBuildAccessible
-      ? [{ itemId: 'wood', quantity: CONFIG.house.buildCost }]
-      : refineryBuildAccessible
+    : refineryBuildAccessible
         ? [{ itemId: 'wood', quantity: CONFIG.refinery.buildCostWood }, { itemId: 'stone', quantity: CONFIG.refinery.buildCostStone }]
         : tecelariaBuildAccessible
           ? [{ itemId: 'bronze', quantity: CONFIG.tecelaria.buildCostBronze }, { itemId: 'wood', quantity: CONFIG.tecelaria.buildCostWood }, { itemId: 'cotton', quantity: CONFIG.tecelaria.buildCostCotton }, { itemId: 'stone', quantity: CONFIG.tecelaria.buildCostStone }]
           : null;
   if (!recipe) return null;
-  const name = cartBuildAccessible ? 'Carroça' : houseBuildAccessible ? 'Casa' : refineryBuildAccessible ? 'Refinaria' : 'Tecelaria';
+  const name = cartBuildAccessible ? 'Carroça' : refineryBuildAccessible ? 'Refinaria' : 'Tecelaria';
   const description = recipe.map(({ itemId, quantity }) => {
     const material = itemId === 'wood' ? (quantity === 1 ? 'madeira' : 'madeiras')
       : itemId === 'cotton' ? (quantity === 1 ? 'algodão' : 'algodões')
@@ -3741,7 +3773,7 @@ export default function App() {
     </span>)}
   </div>;
 })()}
-{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}
@@ -3752,6 +3784,16 @@ export default function App() {
     </div>}
     <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
   </>;
+}
+
+function drawCampfireRange(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,241,201,.06)';
+  ctx.strokeStyle = 'rgba(255,241,201,.55)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([9, 7]);
+  ctx.beginPath(); ctx.arc(campfire.x, campfire.y, CONFIG.campfire.buildRadius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
 }
 
 function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }, elapsed: number) {
@@ -3768,63 +3810,27 @@ function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: n
   ctx.restore();
 }
 
-function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
-  const { x, y, woodDelivered, built } = house;
+function drawCampChest(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
+  const { x, y } = house;
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,.28)';
-  ctx.beginPath(); ctx.ellipse(0, 20, 38, 12, 0, 0, Math.PI * 2); ctx.fill();
-  if (!built) ctx.scale(1.7, 1.7);
-  if (built) {
-    ctx.fillStyle = '#755038'; ctx.fillRect(-28, -10, 56, 38);
-    ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.strokeRect(-28, -10, 56, 38);
-    ctx.fillStyle = '#503323'; ctx.beginPath(); ctx.moveTo(-36, -10); ctx.lineTo(0, -38); ctx.lineTo(36, -10); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#2b211b'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.fillStyle = '#38271d'; ctx.fillRect(-7, 7, 14, 21);
-    ctx.fillStyle = '#b6d8ce'; ctx.fillRect(-21, 0, 10, 10); ctx.fillRect(11, 0, 10, 10);
-    ctx.strokeStyle = '#38271d'; ctx.lineWidth = 2; ctx.strokeRect(-21, 0, 10, 10); ctx.strokeRect(11, 0, 10, 10);
-  } else {
-    // Casa inacabada como ruína exclusivamente de madeira: vigas tombadas e paredes de tábuas partidas.
-    // Silhueta baixa e assimétrica para não confundir com as ruínas de pedra das oficinas.
-    ctx.lineCap = 'round';
-    // Poucas tábuas restantes numa parede lateral, com lacunas grandes.
-    ctx.fillStyle = '#795337'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(-29, 10); ctx.lineTo(-27, -8); ctx.lineTo(-20, -13); ctx.lineTo(-17, 7); ctx.lineTo(-22, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#a97949';
-    ctx.beginPath(); ctx.moveTo(-26, -7); ctx.lineTo(-20, -12); ctx.lineTo(-19, -3); ctx.lineTo(-25, 0); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#6a472e'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(20, 8); ctx.lineTo(23, -3); ctx.lineTo(30, 1); ctx.lineTo(28, 13); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Vigas expostas e quebradas, sem telhado completo.
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.moveTo(-25, 8); ctx.lineTo(-22, -14); ctx.stroke();
-    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3.5;
-    ctx.beginPath(); ctx.moveTo(-24, 7); ctx.lineTo(-21, -13); ctx.stroke();
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.moveTo(24, 9); ctx.lineTo(27, -2); ctx.stroke();
-    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3.5;
-    ctx.beginPath(); ctx.moveTo(24, 8); ctx.lineTo(27, -1); ctx.stroke();
-    // Restos de caibros caídos cruzados no chão.
-    ctx.save(); ctx.translate(-1, 9); ctx.rotate(-0.24);
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 8;
-    ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(19, 0); ctx.stroke();
-    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(-19, -1); ctx.lineTo(16, -1); ctx.stroke();
-    ctx.restore();
-    ctx.save(); ctx.translate(8, 15); ctx.rotate(0.18);
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.stroke();
-    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-12, -1); ctx.lineTo(12, -1); ctx.stroke();
-    ctx.restore();
-    // Pequenos pedaços de tábua espalhados; nenhuma pedra ou alvenaria.
-    ctx.fillStyle = '#a97949'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-34, 15); ctx.lineTo(-25, 12); ctx.lineTo(-22, 15); ctx.lineTo(-31, 18); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(17, 16); ctx.lineTo(27, 13); ctx.lineTo(30, 16); ctx.lineTo(20, 19); ctx.closePath(); ctx.fill(); ctx.stroke();
-    const progress = Math.min(1, woodDelivered / CONFIG.house.buildCost);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-24, -27, 48, 6);
-    ctx.fillStyle = '#8fceaa'; ctx.fillRect(-24, -27, 48 * progress, 6);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -27, 48, 6);
-  }
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(0, 19, 36, 10, 0, 0, Math.PI * 2); ctx.fill();
+
+  ctx.fillStyle = '#755038';
+  ctx.beginPath(); ctx.moveTo(-28, -5); ctx.lineTo(28, -5); ctx.lineTo(28, 22); ctx.quadraticCurveTo(0, 28, -28, 22); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.stroke();
+
+  ctx.fillStyle = '#503323';
+  ctx.beginPath(); ctx.moveTo(-28, -6); ctx.quadraticCurveTo(-28, -28, 0, -30); ctx.quadraticCurveTo(28, -28, 28, -6); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.stroke();
+
+  ctx.fillStyle = '#8d8b84'; ctx.strokeStyle = '#514f49'; ctx.lineWidth = 1.5;
+  ctx.fillRect(-23, -5, 5, 28); ctx.strokeRect(-23, -5, 5, 28);
+  ctx.fillRect(18, -5, 5, 28); ctx.strokeRect(18, -5, 5, 28);
+  ctx.fillRect(-28, 5, 56, 4); ctx.strokeRect(-28, 5, 56, 4);
+  ctx.fillRect(-5, 2, 10, 10); ctx.strokeRect(-5, 2, 10, 10);
+  ctx.fillStyle = '#38271d'; ctx.beginPath(); ctx.arc(0, 7, 2, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
