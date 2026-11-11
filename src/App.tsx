@@ -2934,7 +2934,7 @@ export default function App() {
     if (dragged && Math.hypot(dx, dy) >= 30) {
       const angle = Math.atan2(dy, dx);
       const sector = Math.PI / 8;
-      if (Math.abs(angle - Math.PI / 4) <= sector) selected = 'camp';
+      if (Math.abs(angle + Math.PI / 4) <= sector) selected = 'camp';
       else if (Math.abs(angle) <= sector) selected = 'green';
       else if (Math.abs(Math.abs(angle) - Math.PI) <= sector) selected = 'blue';
       else if (Math.abs(angle - Math.PI / 2) <= sector) selected = 'red';
