@@ -34,13 +34,15 @@ if (assetResult.status !== 0) {
 
 let manifest = readFileSync(manifestPath, 'utf8');
 if (!manifest.includes('android:scheme="@string/custom_url_scheme"')) {
-  const deepLinkFilter = '
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="@string/custom_url_scheme" android:host="auth" android:path="/callback" />
-            </intent-filter>';
+  const deepLinkFilter = [
+    '',
+    '            <intent-filter>',
+    '                <action android:name="android.intent.action.VIEW" />',
+    '                <category android:name="android.intent.category.DEFAULT" />',
+    '                <category android:name="android.intent.category.BROWSABLE" />',
+    '                <data android:scheme="@string/custom_url_scheme" android:host="auth" android:path="/callback" />',
+    '            </intent-filter>',
+  ].join('\n');
   const activityMatch = manifest.match(/<activity\b[\s\S]*?<\/activity>/);
   if (!activityMatch) throw new Error('Não foi possível localizar a Activity principal no AndroidManifest.xml.');
   manifest = manifest.replace(activityMatch[0], activityMatch[0].replace('</activity>', deepLinkFilter + '\n        </activity>'));
