@@ -9006,6 +9006,24 @@ sem backdrop ou caixa de modal. */
   .side-page.friends-side .friends-side-actions button {min-width:64px;padding-right:7px;padding-left:7px}
 }
 
+/* C3 — custos compactos das máquinas e rolagem interna com cabeçalho fixo. */
+.game-shell .camp-menu-panel.camp-menu-panel{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.game-shell .camp-menu-panel.camp-menu-panel>header{position:sticky;top:0;z-index:2;flex:0 0 40px;background:rgba(30,26,21,.99)}
+.game-shell .camp-menu-row.camp-menu-machine{
+  grid-template-columns:28px minmax(50px,1fr) minmax(84px,auto) minmax(76px,auto);
+  gap:5px;min-height:48px;padding:5px 6px
+}
+.game-shell .camp-menu-row.camp-menu-machine strong{min-width:0;overflow-wrap:anywhere}
+.game-shell .camp-menu-cost{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.game-shell .camp-menu-cost>span{display:inline-flex;align-items:center;gap:1px;color:#fff8e9;font-size:11px;font-weight:850}
+.game-shell .camp-menu-cost>span>b{color:#fff8e9;font-size:11px;font-weight:900}
+.game-shell .camp-menu-cost svg{width:14px;height:14px}
+.game-shell .camp-menu-row.camp-menu-machine small{min-width:0;text-align:right;white-space:normal}
+@media(max-width:380px){
+  .game-shell .camp-menu-row.camp-menu-machine{grid-template-columns:26px minmax(48px,1fr) minmax(80px,auto) minmax(70px,auto);gap:4px;padding-right:5px;padding-left:5px}
+  .game-shell .camp-menu-cost{gap:3px}
+}
+ 
 /* C2 — menu compacto do acampamento, independente do zoom da interface. */
 .game-shell .camp-menu-backdrop{
  position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid;place-items:center;
