@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
@@ -16,6 +16,8 @@ type Props = {
   buildRefineryVisible: boolean;
   buildTecelariaVisible: boolean;
   buildCartVisible: boolean;
+  buildCartCost?: Array<{ itemId: string; quantity: number }>;
+  buildCartItemIcon?: (itemId: string) => ReactNode;
   onBuildHouse: () => void;
   onBuildRefinery: () => void;
   onBuildTecelaria: () => void;
@@ -41,6 +43,13 @@ type Props = {
   landscapeMode: boolean;
   onToggleLandscape: () => void;
 };
+
+const buildCartCostDescription = (items: Props['buildCartCost'] = []) => items.map(({ itemId, quantity }) => {
+  const label = itemId === 'wood' ? (quantity === 1 ? 'madeira' : 'madeiras')
+    : itemId === 'cotton' ? (quantity === 1 ? 'algodão' : 'algodões')
+    : itemId;
+  return `${quantity} ${label}`;
+}).join(' + ');
 
 const STICK_RADIUS = 42;
 
@@ -74,7 +83,7 @@ function LowPolyBackpackIcon() {
   </svg>;
 }
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, buildCartCost, buildCartItemIcon, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -235,7 +244,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       {buildHouseVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildHouse(); }} title="Construir casa"><span aria-hidden="true">🔨</span><small>Construir</small></button>}
       {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
       {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
-      {buildCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} title="Construir burrinho e carroça"><span aria-hidden="true">🐴</span><small>Construir</small></button>}
+      {buildCartVisible && <button type="button" className="mobile-quick-action mobile-quick-build-cart" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} aria-label={`Construir burrinho e carroça: ${buildCartCostDescription(buildCartCost) || 'custo não informado'}`} title={`Construir burrinho e carroça: ${buildCartCostDescription(buildCartCost) || 'custo não informado'}`}><span className="mobile-quick-build-icon" aria-hidden="true">🐴</span><span className="mobile-quick-build-cost" aria-hidden="true">{(buildCartCost ?? []).map(item => <span key={item.itemId}>{buildCartItemIcon?.(item.itemId)}<b>{item.quantity}</b></span>)}</span><small>Construir</small></button>}
       <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
       <button type="button" className="mobile-quick-bag" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
     </div>
