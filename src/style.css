@@ -8653,6 +8653,109 @@ sem backdrop ou caixa de modal. */
   text-shadow:0 1px 2px rgba(0,0,0,.75), 0 0 6px rgba(0,0,0,.45);
 }
 
+
+/* SP6.4 — Grade das estações e prevenção de sobreposição em telas compactas. */
+.lobby-screen .lobby-crafting-stations{
+  position:absolute;
+  z-index:27;
+  left:12px;
+  right:auto;
+  top:auto;
+  bottom:calc(10% - 45px);
+  width:132px;
+  max-width:none;
+  display:grid;
+  grid-template-columns:repeat(2,64px);
+  grid-template-rows:repeat(2,56px);
+  align-items:stretch;
+  justify-items:stretch;
+  gap:4px;
+  transform:none;
+}
+.lobby-screen .lobby-crafting-trigger{
+  box-sizing:border-box;
+  width:64px;
+  min-width:64px;
+  max-width:64px;
+  height:56px;
+  min-height:56px;
+  max-height:56px;
+  padding:0 2px;
+  gap:4px;
+}
+.lobby-screen .lobby-crafting-trigger>span:last-child{
+  font-size:11px;
+  line-height:1;
+  white-space:nowrap;
+}
+@media(max-height:700px){
+  .lobby-screen .lobby-profile-trigger,
+  .lobby-screen .lobby-status-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-friends-trigger,
+  .lobby-screen .lobby-chest-trigger,
+  .lobby-screen .lobby-ranking-trigger{
+    box-sizing:border-box;
+    height:48px;
+    min-height:48px;
+    max-height:48px;
+    gap:2px;
+  }
+}
+@media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
+  .lobby-screen .lobby-crafting-stations{
+    left:12px;
+    right:auto;
+    top:auto;
+    bottom:max(10px,env(safe-area-inset-bottom));
+    width:268px;
+    grid-template-columns:repeat(4,64px);
+    grid-template-rows:56px;
+    gap:4px;
+    transform:none;
+  }
+  .lobby-screen .lobby-crafting-trigger{
+    width:64px;
+    min-width:64px;
+    max-width:64px;
+    height:56px;
+    min-height:56px;
+    max-height:56px;
+  }
+  .lobby-screen .lobby-profile-trigger,
+  .lobby-screen .lobby-status-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-friends-trigger,
+  .lobby-screen .lobby-chest-trigger{
+    width:48px;
+    min-width:48px;
+    max-width:48px;
+    height:48px;
+    min-height:48px;
+    max-height:48px;
+    gap:6px;
+  }
+  .lobby-screen .lobby-profile-trigger{right:10px}
+  .lobby-screen .lobby-status-trigger{right:64px}
+  .lobby-screen .lobby-arsenal-trigger{right:118px}
+  .lobby-screen .lobby-friends-trigger{right:172px}
+  .lobby-screen .lobby-chest-trigger{right:226px}
+  .lobby-screen .lobby-ranking-trigger{
+    left:12px;
+    top:max(8px,env(safe-area-inset-top));
+    width:48px;
+    min-width:48px;
+    max-width:48px;
+    height:48px;
+    min-height:48px;
+    max-height:48px;
+    transform:none;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{
+    font-size:25px!important;
+  }
+}
+
 /* SP5 — Amigos em página lateral clara e compacta. */
 .side-page.friends-side {
   display:flex;
