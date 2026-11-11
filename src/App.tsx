@@ -1940,7 +1940,12 @@ export default function App() {
         return;
       }
       if (k === 'b' && !e.repeat) {
-        toggleInventoryPanel();
+        const current = engine.state;
+        const currentFeet = playerFeet(current.player);
+        const campfireNear = !!current.campfire
+          && Math.hypot(currentFeet.x - current.campfire.x, currentFeet.y - current.campfire.y) <= CONFIG.house.interactRadius;
+        if (campfireNear) openCampMenu();
+        else toggleInventoryPanel();
         return;
       }
       if ((e.target instanceof HTMLElement) && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) return;
