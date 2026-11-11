@@ -8862,7 +8862,7 @@ sem backdrop ou caixa de modal. */
   object-fit:contain;
 }
 .game-shell .mobile-quick-buttons .mobile-quick-build-cost b{font-size:11px;line-height:1}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart>small{font-size:7px;line-height:1.05}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cart>small{max-width:54px;font-size:11px;line-height:1;transform:scaleX(.84);transform-origin:center}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
   .game-shell .hud-top .cooking-match-actions{right:-4px}
 }
