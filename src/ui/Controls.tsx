@@ -44,36 +44,6 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-function ClassWeaponIcon() {
-  return <svg className="class-switch-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="11,3 17,3 22,6 25,11 22,12 19,8 15,7 11,8 8,11 5,8" fill="#91b6bd" />
-    <polygon points="11,3 15,7 11,8 8,11 5,8" fill="#d0e0df" />
-    <polygon points="17,3 22,6 25,11 22,12 19,8 15,7" fill="#547d87" />
-    <polygon points="25,11 29,9 28,17 22,14" fill="#7199a1" />
-    <polygon points="29,9 28,17 25,14" fill="#3e6670" />
-    <polygon points="21,29 15,29 10,26 7,21 10,20 13,24 17,25 21,24 24,21 27,24" fill="#91b6bd" />
-    <polygon points="21,29 17,25 21,24 24,21 27,24" fill="#547d87" />
-    <polygon points="15,29 10,26 7,21 10,20 13,24 17,25" fill="#d0e0df" />
-    <polygon points="7,21 3,23 4,15 10,18" fill="#7199a1" />
-    <polygon points="3,23 4,15 7,18" fill="#3e6670" />
-  </svg>;
-}
-
-function LowPolyBackpackIcon() {
-  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <polygon points="11,5 13,2 19,2 21,5 24,7 26,12 25,27 22,30 10,30 7,27 6,12 8,7" fill="#a92f3c" stroke="#571e27" strokeWidth="1.4" strokeLinejoin="round" />
-    <polygon points="11,5 16,4 16,29 10,29 7,26 8,8" fill="#e04a52" />
-    <polygon points="16,4 21,5 24,8 25,26 22,29 16,29" fill="#8e2432" />
-    <polygon points="11,6 13,3 19,3 21,6 20,10 12,10" fill="#f18b78" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="10,12 22,12 23,22 9,22" fill="#bd3441" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="10,12 16,12 16,22 9,22" fill="#ed5a5b" />
-    <polygon points="16,12 22,12 23,22 16,22" fill="#9d2635" />
-    <polygon points="13,15 19,15 20,19 12,19" fill="#f2bd8b" stroke="#70202b" strokeWidth="1" strokeLinejoin="round" />
-    <polygon points="8,9 10,10 10,25 8,24" fill="#f28b79" />
-    <polygon points="22,10 24,9 24,24 22,25" fill="#6e1e2b" />
-  </svg>;
-}
-
 export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
@@ -218,23 +188,19 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       
     </div>
     <div className={stick.active ? 'joystick-guide-ring is-active' : 'joystick-guide-ring'} aria-hidden="true" />
+    <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
+      <span>{menuOpen ? '×' : '☰'}</span>
+    </button>
     <div className="mobile-quick-buttons" aria-label="Controles de ação">
-      <div className="mobile-secondary-actions">
-        <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
-          <span>{menuOpen ? '×' : '☰'}</span>
-        </button>
-        <button className="mobile-quick-class" type="button" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
-        <button className="mobile-quick-bag" type="button" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /></button>
-      </div>
       <div className="mobile-action-diamond" aria-label="Ações Y, X, B e A">
         <button type="button" className={cartActionVisible ? 'game-action-button action-y is-active' : 'game-action-button action-y'} disabled={!cartActionVisible} aria-disabled={!cartActionVisible} aria-label={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} title={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (cartActionVisible) onCartToggle(); }}>
           Y<span className={cartFollowing ? 'game-action-status is-following' : 'game-action-status is-stopped'} aria-hidden="true" />
         </button>
-        <button type="button" className="game-action-button action-x" disabled aria-disabled="true" aria-label="X reservado" title="Reservado">X</button>
+        <button type="button" className="game-action-button action-x is-active" aria-label="X: abrir mochila, casa e carrinho" title="X: abrir mochila, casa e carrinho" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })}>X</button>
         <button type="button" className={actionBVisible && !actionBDisabled ? 'game-action-button action-b is-active' : 'game-action-button action-b'} disabled={!actionBVisible || actionBDisabled} aria-disabled={!actionBVisible || actionBDisabled} aria-label={actionBLabel} title={actionBLabel} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (actionBVisible && !actionBDisabled) runActionB(); }}>
           B
         </button>
-        <button type="button" className="game-action-button action-a" disabled aria-disabled="true" aria-label="A reservado" title="Reservado">A</button>
+        <button type="button" className="game-action-button action-a is-active" aria-label={`A: trocar classe para ${CLASSES[nextClass].label}`} title={`A: trocar classe para ${CLASSES[nextClass].label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }}>A</button>
       </div>
     </div>
     {menuOpen && <div

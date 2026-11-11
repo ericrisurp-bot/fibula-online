@@ -465,9 +465,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .mobile-quick-buttons button:disabled{opacity:.4;cursor:not-allowed}
 .mobile-quick-buttons button svg{display:block;width:30px;height:30px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .mobile-quick-buttons button small{max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:850;line-height:1.15}
-.mobile-quick-buttons .mobile-quick-class{width:68px;height:68px}
-.mobile-quick-buttons .mobile-quick-class svg,.mobile-quick-buttons .mobile-quick-class canvas{width:30px;height:30px}
-.mobile-quick-buttons .mobile-quick-bag small{font-size:8px}
 
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
   .mobile-quick-buttons{right:12px;bottom:calc(16px + env(safe-area-inset-bottom));gap:8px}
@@ -476,14 +473,8 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   .mobile-quick-action>span{font-size:21px;line-height:1}
   .mobile-quick-action small{max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;font-weight:900}
   .mobile-quick-buttons button:disabled{opacity:.4;cursor:not-allowed}
-  .mobile-quick-buttons .mobile-quick-class{width:56px;height:56px;margin-bottom:0}
   .mobile-quick-buttons button svg{width:24px;height:24px}
   .mobile-quick-buttons button small{font-size:7px}
-  .mobile-quick-buttons .mobile-quick-bag small{font-size:7px}
-
-  .mobile-quick-class>span{font-size:24px;line-height:1}
-  .mobile-quick-class small{max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;font-weight:800}
-  .mobile-quick-bag>span{font-size:24px;line-height:1}
   .inventory-quick-panel{top:8px;left:8px;transform:none;max-height:calc(100% - 190px);width:calc(100% - 16px);padding:10px}
   .inventory-quick-panel>header{margin-bottom:8px;padding-bottom:7px}
   .inventory-quick-panel section+section{margin-top:8px;padding-top:7px}
@@ -499,8 +490,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 @media (max-width:360px){
   .mobile-quick-buttons{right:7px;bottom:calc(10px + env(safe-area-inset-bottom));gap:7px}
   .mobile-quick-buttons button{width:46px;height:46px}
-  .mobile-quick-buttons .mobile-quick-class{width:50px;height:50px}
-  .mobile-quick-class>span{font-size:21px}
   .inventory-quick-panel>header strong{font-size:9px}
   .inventory-quick-panel>header span{font-size:9px}
 }
@@ -624,20 +613,8 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .start-normal {
   background: rgba(34, 35, 34, 0.22) !important;
 }
-
-
-/* Ícones low-poly da mochila e das armas de troca de classe. */
-.mobile-quick-buttons .mobile-quick-bag svg{width:32px;height:32px;fill:none;stroke:none}
-.mobile-quick-buttons .mobile-quick-class svg{width:30px;height:30px;fill:none;stroke:none;display:block;flex-shrink:0}
 @media (pointer:coarse) and (max-width:950px){
-  .mobile-quick-buttons .mobile-quick-bag svg{width:28px;height:28px}
-  .mobile-quick-buttons .mobile-quick-class svg,.mobile-quick-buttons .mobile-quick-class canvas{width:28px;height:28px}
 }
-
-
-/* Ícone de classe é apenas um atalho de troca: sem rótulo/lista de classes no botão. */
-.mobile-quick-buttons .mobile-quick-class{gap:0}
-.mobile-quick-buttons .mobile-quick-class small{display:none}
 
 
 /* Escala da interface independente do zoom do mundo. Padrão: 130%. */
@@ -4176,13 +4153,13 @@ button, button * {
 .cooking-pending-empty{color:#9fa79e;font-size:10px}
 .house-meal-slot{min-height:126px}
 .house-meal-slot>.cooking-meal-rarity{font-size:8px!important}
-.cooking-match-actions{position:absolute;z-index:24;top:76px;right:12px;display:flex;align-items:flex-start;gap:6px;max-width:min(55vw,480px);flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
+
 .cooking-match-actions button,.cooking-active-meal{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:56px;min-height:52px;padding:5px 7px;border:1px solid #858b85;border-radius:8px;background:rgba(34,35,34,.94);color:#f2f2f2;box-shadow:0 2px 8px #0006}
 .cooking-match-actions button{cursor:pointer}
 .cooking-match-actions button>span,.cooking-active-meal>span{font-size:17px;line-height:1}
 .cooking-match-actions strong,.cooking-active-meal strong{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
 .cooking-match-actions small,.cooking-active-meal small{color:#c5c9c5;font-size:8px}
-@media(max-width:650px){.cooking-match-actions{top:74px;right:7px;max-width:58vw;gap:4px}.cooking-match-actions button,.cooking-active-meal{min-width:48px;min-height:46px;padding:4px}.cooking-match-actions button>span,.cooking-active-meal>span{font-size:15px}}
+@media(max-width:650px){.cooking-match-actions button,.cooking-active-meal{min-width:48px;min-height:46px;padding:4px}.cooking-match-actions button>span,.cooking-active-meal>span{font-size:15px}}
 
 .lobby-crafting-content{overflow-y:auto}
 
@@ -8756,167 +8733,6 @@ sem backdrop ou caixa de modal. */
   }
 }
 
-/* G2 — Layout de controle de videogame, escopado à partida. */
-.game-shell .mobile-quick-buttons{
-  position:absolute;inset:0;z-index:20;display:block;right:0;bottom:0;left:0;top:0;
-  gap:0;pointer-events:none;zoom:var(--interface-scale,1.3);
-}
-.game-shell .mobile-secondary-actions{
-  position:absolute;right:calc(140px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:0;
-  width:44px;pointer-events:auto;
-}
-.game-shell .mobile-secondary-actions button{
-  display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:5px;
-  border:1px solid rgba(235,235,235,.34);border-radius:12px;background:rgba(24,21,17,.52);color:#f2eee5;
-  box-shadow:0 3px 10px rgba(0,0,0,.24);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-}
-.game-shell .mobile-secondary-actions .mobile-menu-trigger{position:relative;top:auto;right:auto;zoom:1;width:44px;height:44px;min-height:44px;font-size:20px}
-.game-shell .mobile-secondary-actions .mobile-quick-class svg{width:25px;height:25px}
-.game-shell .mobile-secondary-actions .mobile-quick-bag svg{width:25px;height:25px}
-.game-shell .mobile-action-diamond{
-  position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:124px;height:124px;pointer-events:none;
-}
-.game-shell .mobile-action-diamond .game-action-button{
-  position:absolute;display:grid;place-items:center;width:56px;height:56px;min-height:56px;padding:0;
-  border:2px solid currentColor;border-radius:50%;background:rgba(24,21,17,.52);
-  font-size:20px;font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8);
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);appearance:none;-webkit-appearance:none;
-  pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;
-}
-.game-shell .mobile-action-diamond .action-y{left:34px;top:0;color:#f2c94c}
-.game-shell .mobile-action-diamond .action-x{left:0;top:34px;color:#5aa0ff}
-.game-shell .mobile-action-diamond .action-b{right:0;top:34px;color:#ff6b5e}
-.game-shell .mobile-action-diamond .action-a{left:34px;bottom:0;color:#7bd65a}
-.game-shell .mobile-action-diamond .game-action-button.is-active{
-  border-color:currentColor;box-shadow:0 0 10px color-mix(in srgb,currentColor 40%,transparent);
-}
-.game-shell .mobile-action-diamond .game-action-button:disabled{
-  opacity:1;border-color:color-mix(in srgb,currentColor 35%,transparent);color:color-mix(in srgb,currentColor 35%,transparent);
-  box-shadow:none;cursor:not-allowed;
-}
-.game-shell .mobile-action-diamond .game-action-button:focus-visible,
-.game-shell .mobile-secondary-actions button:focus-visible{outline:2px solid #f6efe0;outline-offset:3px}
-.game-shell .game-action-status{
-  position:absolute;top:5px;right:6px;width:6px;height:6px;border:1px solid rgba(20,20,20,.8);border-radius:50%;
-}
-.game-shell .game-action-status.is-following{background:#7bd65a}
-.game-shell .game-action-status.is-stopped{background:#ff6b5e}
-.game-shell .joystick-guide-ring{
-  position:absolute;z-index:3;left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));width:112px;height:112px;border:1px solid rgba(255,241,201,.28);
-  border-radius:50%;background:rgba(24,21,17,.18);pointer-events:none;
-}
-.game-shell .joystick-guide-ring.is-active{opacity:0}
-.game-shell .game-construction-recipe{
-  position:absolute;z-index:25;left:50%;top:calc(50% + 48px);transform:translateX(-50%);
-  display:flex;max-width:min(240px,calc(100% - 272px));flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
-  padding:5px 8px;border:1px solid rgba(235,235,235,.28);border-radius:9px;background:rgba(24,21,17,.62);
-  color:#f6efe0;pointer-events:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-}
-.game-shell .game-construction-recipe-item{display:inline-flex;align-items:center;gap:3px;min-height:18px;color:#f6efe0;font-size:11px;font-weight:800;line-height:1}
-.game-shell .game-construction-recipe-icon{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;overflow:hidden}
-.game-shell .game-construction-recipe-icon>*{transform:scale(.53);transform-origin:center;flex:0 0 auto}
-.game-shell .game-construction-recipe-item b{font-size:11px;font-weight:800}
-.game-shell .mobile-menu-backdrop{z-index:29}
-.game-shell .mobile-menu-panel{z-index:30}
-.game-shell .house-meals-trigger{bottom:calc(220px + env(safe-area-inset-bottom))}
-.game-shell .mobile-quick-buttons .mobile-quick-class,
-.game-shell .mobile-quick-buttons .mobile-quick-bag{width:44px;height:44px;min-height:44px;margin:0}
-@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
-  .game-shell .mobile-quick-buttons{display:block;inset:0}
-  .game-shell .mobile-secondary-actions{right:calc(140px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));gap:0}
-  .game-shell .mobile-action-diamond{right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom))}
-  .game-shell .mobile-secondary-actions button{width:44px;height:44px;min-height:44px}
-  .game-shell .mobile-secondary-actions .mobile-menu-trigger{width:44px;height:44px;min-height:44px}
-  .game-shell .joystick-guide-ring{left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));width:112px;height:112px}
-  .game-shell .house-meals-trigger{bottom:calc(190px + env(safe-area-inset-bottom))}
-}
-
-/* G1 — Chips compactos de refeições ativas. */
-.game-shell .hud-top .cooking-match-actions{
-  position:absolute;
-  top:42px;
-  right:-2px;
-  z-index:24;
-  display:flex;
-  width:min(92px,calc(100vw - 24px));
-  max-width:min(92px,calc(100vw - 24px));
-  flex-direction:row;
-  flex-wrap:wrap;
-  align-items:flex-start;
-  justify-content:flex-end;
-  gap:4px;
-  pointer-events:auto;
-}
-.game-shell .cooking-match-actions .cooking-active-meal{
-  display:flex;
-  flex:0 0 44px;
-  width:44px;
-  min-width:44px;
-  height:48px;
-  min-height:48px;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:2px;
-  padding:3px 2px;
-  overflow:hidden;
-  border:1px solid rgba(255,241,201,.32);
-  border-radius:8px;
-  background:rgba(24,21,17,.52);
-  color:#f6efe0;
-  box-shadow:none;
-  backdrop-filter:blur(4px);
-  -webkit-backdrop-filter:blur(4px);
-}
-.game-shell .cooking-active-meal>span{
-  position:relative;
-  display:flex;
-  width:100%;
-  height:27px;
-  align-items:center;
-  justify-content:center;
-  font-size:17px;
-  line-height:1;
-}
-.game-shell .cooking-active-meal .cooking-meal-artwork{transform:scale(.72);transform-origin:center}
-.game-shell .cooking-active-meal .cooking-herb-sparkle{position:absolute;top:0;right:1px;font-size:11px;line-height:1}
-.game-shell .cooking-active-meal strong{display:none!important}
-.game-shell .cooking-active-meal small{
-  display:block;
-  margin:0;
-  color:#f6efe0;
-  font-size:11px;
-  font-weight:900;
-  line-height:1;
-  font-variant-numeric:tabular-nums;
-}
-.game-shell .cooking-match-actions button{
-  min-width:40px;
-  min-height:40px;
-  border-color:rgba(255,241,201,.32);
-  background:rgba(24,21,17,.72);
-  color:#f6efe0;
-  font-size:11px;
-  backdrop-filter:blur(4px);
-  -webkit-backdrop-filter:blur(4px);
-}
-@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
-  .game-shell .hud-top .cooking-match-actions{right:6px}
-}
-@media (pointer:coarse) and (orientation:landscape) and (max-height:600px){
-  .game-shell .hud-top .cooking-match-actions{right:-40px}
-}
-
-@media (max-width:380px){
-  .game-shell .hud-left-stack{
-    width:min(192px,calc((100vw - 104px)/1.3));
-    max-width:min(192px,calc((100vw - 104px)/1.3));
-  }
-}
-@media (pointer:coarse) and (orientation:landscape) and (max-height:450px){
-  .game-shell .hud-top .cooking-match-actions{right:56px}
-}
-
 /* SP5 — Amigos em página lateral clara e compacta. */
 .side-page.friends-side {
   display:flex;
@@ -9773,4 +9589,95 @@ sem backdrop ou caixa de modal. */
   .side-page.arsenal-side .arsenal-inventory-section {padding:6px}
   .side-page.arsenal-side .arsenal-inventory-grid {grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
   .side-page.arsenal-side .arsenal-inventory-slot {min-height:54px}
+}
+
+/* G2.2 revisada + G2.3 — controles ancorados; X mochila, A classe. */
+.game-shell{--controller-scale:var(--interface-scale,1.3)}
+.game-shell .mobile-quick-buttons{
+  position:absolute!important;inset:auto!important;
+  right:calc(12px + env(safe-area-inset-right))!important;
+  bottom:calc(22px + env(safe-area-inset-bottom))!important;
+  left:auto!important;top:auto!important;z-index:20;display:block!important;
+  width:156px;height:156px;overflow:visible;zoom:1!important;
+  transform:scale(var(--controller-scale))!important;
+  transform-origin:bottom right!important;pointer-events:none;
+}
+.game-shell .mobile-action-diamond{position:absolute;inset:0;width:156px;height:156px;pointer-events:none}
+.game-shell .mobile-action-diamond .game-action-button{
+  position:absolute;display:grid;place-items:center;width:52px;height:52px;min-height:52px;padding:0;
+  border:2px solid currentColor;border-radius:50%;background:rgba(24,21,17,.52);
+  font-size:20px;font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);appearance:none;-webkit-appearance:none;
+  pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;
+}
+.game-shell .mobile-action-diamond .action-y{left:52px;top:0;color:#f2c94c}
+.game-shell .mobile-action-diamond .action-x{left:0;top:52px;color:#5aa0ff}
+.game-shell .mobile-action-diamond .action-b{right:0;top:52px;color:#ff6b5e}
+.game-shell .mobile-action-diamond .action-a{left:52px;bottom:0;color:#7bd65a}
+.game-shell .mobile-action-diamond .game-action-button.is-active{
+  opacity:1;border-color:currentColor;
+  box-shadow:0 0 10px color-mix(in srgb,currentColor 40%,transparent);cursor:pointer;
+}
+.game-shell .mobile-action-diamond .game-action-button:disabled{
+  opacity:.45;border-color:currentColor;color:currentColor;box-shadow:none;cursor:not-allowed;
+}
+.game-shell .mobile-action-diamond .game-action-button:focus-visible{outline:2px solid #f6efe0;outline-offset:3px}
+.game-shell .game-action-status{position:absolute;top:5px;right:6px;width:6px;height:6px;border:1px solid rgba(20,20,20,.8);border-radius:50%}
+.game-shell .game-action-status.is-following{background:#7bd65a}
+.game-shell .game-action-status.is-stopped{background:#ff6b5e}
+.game-shell .joystick-guide-ring{
+  position:absolute;z-index:3;left:calc(40px + env(safe-area-inset-left));bottom:calc(20px + env(safe-area-inset-bottom));
+  width:120px;height:120px;border:1px solid rgba(255,241,201,.28);border-radius:50%;
+  background:rgba(24,21,17,.18);pointer-events:none;
+}
+.game-shell .joystick-guide-ring.is-active{opacity:0}
+.game-shell .game-construction-recipe{
+  position:absolute;z-index:25;left:50%;top:calc(50% + 48px);transform:translateX(-50%);
+  display:flex;max-width:min(240px,calc(100% - 272px));flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
+  padding:5px 8px;border:1px solid rgba(235,235,235,.28);border-radius:9px;background:rgba(24,21,17,.62);
+  color:#f6efe0;pointer-events:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.game-shell .game-construction-recipe-item{display:inline-flex;align-items:center;gap:3px;min-height:18px;color:#f6efe0;font-size:11px;font-weight:800;line-height:1}
+.game-shell .game-construction-recipe-icon{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;overflow:hidden}
+.game-shell .game-construction-recipe-icon>*{transform:scale(.53);transform-origin:center;flex:0 0 auto}
+.game-shell .game-construction-recipe-item b{font-size:11px;font-weight:800}
+.game-shell .mobile-menu-trigger{
+  position:absolute!important;z-index:2147483010!important;
+  top:calc(12px + env(safe-area-inset-top))!important;right:calc(12px + env(safe-area-inset-right))!important;
+  left:auto!important;width:44px!important;height:44px!important;min-height:44px!important;
+  display:grid;place-items:center;pointer-events:auto;
+}
+.game-shell .mobile-menu-backdrop{z-index:2147483011!important}
+.game-shell .mobile-menu-panel{z-index:2147483012!important}
+
+/* G1 — chips em uma única regra, ao lado do HUD e sem offsets legados. */
+.game-shell .hud-top .cooking-match-actions{
+  position:absolute;top:0;left:calc(6px + clamp(132px,34vw,210px) + 8px);right:auto;z-index:24;
+  display:flex;width:auto;max-width:calc(100vw - 72px - clamp(132px,34vw,210px));
+  flex-direction:row;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:4px;pointer-events:auto;
+}
+.game-shell .cooking-match-actions .cooking-active-meal{
+  display:flex;flex:0 0 44px;width:44px;min-width:44px;height:48px;min-height:48px;
+  flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 2px;overflow:hidden;
+  border:1px solid rgba(255,241,201,.32);border-radius:8px;background:rgba(24,21,17,.52);color:#f6efe0;
+  box-shadow:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.game-shell .cooking-active-meal>span{position:relative;display:flex;width:100%;height:27px;align-items:center;justify-content:center;font-size:17px;line-height:1}
+.game-shell .cooking-active-meal .cooking-meal-artwork{transform:scale(.72);transform-origin:center}
+.game-shell .cooking-active-meal .cooking-herb-sparkle{position:absolute;top:0;right:1px;font-size:11px;line-height:1}
+.game-shell .cooking-active-meal strong{display:none!important}
+.game-shell .cooking-active-meal small{display:block;margin:0;color:#f6efe0;font-size:11px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.game-shell .cooking-match-actions button{
+  min-width:40px;min-height:40px;border-color:rgba(255,241,201,.32);background:rgba(24,21,17,.72);color:#f6efe0;font-size:11px;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+@media (max-width:420px){.game-shell{--controller-scale:min(var(--interface-scale,1.3),1.12)}}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:600px){
+  .game-shell .hud-top .cooking-match-actions{left:calc(6px + min(260px, calc((100vw - 84px) / var(--interface-scale,1.3))) + 8px);max-width:calc(100vw - 72px - min(260px, calc((100vw - 84px) / var(--interface-scale,1.3))))}
+}
+@media (pointer:coarse) and (orientation:portrait){
+  .game-shell .hud-top .cooking-match-actions{top:98px;left:calc(50% + 8px);max-width:calc(50% - 64px)}
+}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .game-shell .house-meals-trigger{bottom:calc(190px + env(safe-area-inset-bottom))}
 }
