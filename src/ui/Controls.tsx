@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import { CLASSES, type ClassId } from '../game/config';
 
 type Props = {
@@ -16,8 +16,6 @@ type Props = {
   buildRefineryVisible: boolean;
   buildTecelariaVisible: boolean;
   buildCartVisible: boolean;
-  buildCartCost?: Array<{ itemId: string; quantity: number }>;
-  buildCartItemIcon?: (itemId: string) => ReactNode;
   onBuildHouse: () => void;
   onBuildRefinery: () => void;
   onBuildTecelaria: () => void;
@@ -43,13 +41,6 @@ type Props = {
   landscapeMode: boolean;
   onToggleLandscape: () => void;
 };
-
-const buildCartCostDescription = (items: Props['buildCartCost'] = []) => items.map(({ itemId, quantity }) => {
-  const label = itemId === 'wood' ? (quantity === 1 ? 'madeira' : 'madeiras')
-    : itemId === 'cotton' ? (quantity === 1 ? 'algodão' : 'algodões')
-    : itemId;
-  return `${quantity} ${label}`;
-}).join(' + ');
 
 const STICK_RADIUS = 42;
 
@@ -83,7 +74,7 @@ function LowPolyBackpackIcon() {
   </svg>;
 }
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, buildCartCost, buildCartItemIcon, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -109,6 +100,26 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
+  const actionBVisible = buildCartVisible || buildHouseVisible || buildRefineryVisible || buildTecelariaVisible || storeToHouseVisible || storeToCartVisible;
+  const actionBDisabled = buildCartVisible || buildHouseVisible || buildRefineryVisible || buildTecelariaVisible
+    ? false
+    : storeToHouseVisible ? storeToHouseDisabled
+    : storeToCartVisible ? storeToCartDisabled : true;
+  const actionBLabel = buildCartVisible ? 'Construir burrinho e carroça'
+    : buildHouseVisible ? 'Construir casa'
+    : buildRefineryVisible ? 'Construir refinaria'
+    : buildTecelariaVisible ? 'Construir tecelaria'
+    : storeToHouseVisible ? 'Guardar tudo na casa'
+    : storeToCartVisible ? 'Guardar tudo no carrinho'
+    : 'Ação B indisponível';
+  const runActionB = () => {
+    if (buildCartVisible) onBuildCart();
+    else if (buildHouseVisible) onBuildHouse();
+    else if (buildRefineryVisible) onBuildRefinery();
+    else if (buildTecelariaVisible) onBuildTecelaria();
+    else if (storeToHouseVisible) onStoreToHouse();
+    else if (storeToCartVisible) onStoreToCart();
+  };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current) return;
@@ -235,18 +246,55 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       <span className="joystick-cross horizontal" />
       <span className="joystick-cross vertical" />
       <span className="joystick-knob" style={{ transform: `translate(${stick.dx}px, ${stick.dy}px)` }} />
-      <span className="joystick-label">MOVER</span>
+      
     </div>
-    <div className="mobile-quick-buttons" aria-label="Atalhos rápidos">
-      {cartActionVisible && <button type="button" className={cartFollowing ? 'mobile-quick-cart is-following' : 'mobile-quick-cart is-stopped'} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onCartToggle(); }} aria-label={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} title={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'}><span className="donkey-command-icon" aria-hidden="true">🐴</span><small>{cartFollowing ? 'PARAR' : 'SEGUIR'}</small></button>}
-      {storeToCartVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onStoreToCart(); }} disabled={storeToCartDisabled} title="Guardar tudo no carrinho"><span aria-hidden="true">📥</span><small>Guardar</small></button>}
-      {storeToHouseVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onStoreToHouse(); }} disabled={storeToHouseDisabled} title="Guardar tudo na casa"><span aria-hidden="true">🏠</span><small>Guardar</small></button>}
-      {buildHouseVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildHouse(); }} title="Construir casa"><span aria-hidden="true">🔨</span><small>Construir</small></button>}
-      {buildRefineryVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildRefinery(); }} title="Construir refinaria"><span aria-hidden="true">⚒️</span><small>Construir</small></button>}
-      {buildTecelariaVisible && <button type="button" className="mobile-quick-action" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildTecelaria(); }} title="Construir tecelaria"><span aria-hidden="true">🧵</span><small>Tecer</small></button>}
-      {buildCartVisible && <button type="button" className="mobile-quick-action mobile-quick-build-cart" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onBuildCart(); }} aria-label={`Construir burrinho e carroça: ${buildCartCostDescription(buildCartCost) || 'custo não informado'}`} title={`Construir burrinho e carroça: ${buildCartCostDescription(buildCartCost) || 'custo não informado'}`}><span className="mobile-quick-build-icon" aria-hidden="true">🐴</span><span className="mobile-quick-build-cost" aria-hidden="true">{(buildCartCost ?? []).map(item => <span key={item.itemId}>{buildCartItemIcon?.(item.itemId)}<b>{item.quantity}</b></span>)}</span><small>Construir</small></button>}
-      <button type="button" className="mobile-quick-class" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
-      <button type="button" className="mobile-quick-bag" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /><small>Mochila</small></button>
+    <div className={stick.active ? 'joystick-guide-ring is-active' : 'joystick-guide-ring'} aria-hidden="true" />
+    <div className="mobile-quick-buttons" aria-label="Controles de ação">
+      <div className="mobile-secondary-actions">
+        <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
+          <span>{menuOpen ? '×' : '☰'}</span>
+        </button>
+        <button className="mobile-quick-class" type="button" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
+        <button className="mobile-quick-bag" type="button" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /></button>
+      </div>
+      <div className="mobile-action-diamond" aria-label="Ações Y, X, B e A">
+        <button type="button" className={cartActionVisible ? 'game-action-button action-y is-active' : 'game-action-button action-y'} disabled={!cartActionVisible} aria-disabled={!cartActionVisible} aria-label={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} title={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (cartActionVisible) onCartToggle(); }}>
+          Y<span className={cartFollowing ? 'game-action-status is-following' : 'game-action-status is-stopped'} aria-hidden="true" />
+        </button>
+        <button type="button" className="game-action-button action-x" disabled aria-disabled="true" aria-label="X reservado" title="Reservado">X</button>
+        <button type="button" className={actionBVisible && !actionBDisabled ? 'game-action-button action-b is-active' : 'game-action-button action-b'} disabled={!actionBVisible || actionBDisabled} aria-disabled={!actionBVisible || actionBDisabled} aria-label={actionBLabel} title={actionBLabel} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (actionBVisible && !actionBDisabled) runActionB(); }}>
+          B
+        </button>
+        <button type="button" className="game-action-button action-a" disabled aria-disabled="true" aria-label="A reservado" title="Reservado">A</button>
+      </div>
     </div>
+    {menuOpen && <div
+      className="mobile-menu-backdrop"
+      aria-hidden="true"
+      onPointerDown={event => { if (event.pointerType !== 'mouse') { event.preventDefault(); event.stopPropagation(); lastTouchActionAt.current = Date.now(); setMenuOpen(false); } else event.stopPropagation(); }}
+      onClick={event => { event.stopPropagation(); if (event.detail !== 0 && Date.now() - lastTouchActionAt.current < 800) return; setMenuOpen(false); }}
+    />}
+    {menuOpen && <div className="mobile-menu-panel" role="dialog" aria-label="Menu de jogo">
+      <div className="mobile-menu-heading"><span>MENU</span><button type="button" aria-label="Fechar menu" onPointerDown={event => runTouchAction(event, () => setMenuOpen(false))} onClick={event => runClickAction(event, () => setMenuOpen(false))}>×</button></div>
+      <div className="menu-section-label">ÁUDIO</div>
+      <div className="menu-audio-volume">
+        <label htmlFor="game-master-volume">Volume geral <strong>{Math.round(audioVolume * 100)}%</strong></label>
+        <input id="game-master-volume" type="range" min="0" max="1" step="0.01" value={audioVolume} onChange={event => onAudioVolumeChange(Number(event.currentTarget.value))} aria-label="Volume geral do jogo" />
+        <div className="menu-audio-volume-labels"><span>Silencioso</span><span>Máximo</span></div>
+      </div>
+      <div className="menu-section-label">VISUALIZAÇÃO</div>
+      <div className="menu-action-list">
+        <button type="button" className={showRange ? 'selected' : ''} aria-pressed={showRange} onPointerDown={event => runTouchAction(event, onRange)} onClick={event => runClickAction(event, onRange)}><span>◉ Alcance</span><b>{showRange ? 'ATIVO' : 'OFF'}</b></button>
+        <div className="menu-zoom-row"><span>Zoom do jogo</span><div><button type="button" aria-label="Diminuir zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(-0.15))} onClick={event => runClickAction(event, () => onZoom(-0.15))}>−</button><button type="button" aria-label="Aumentar zoom do jogo" onPointerDown={event => runTouchAction(event, () => onZoom(0.15))} onClick={event => runClickAction(event, () => onZoom(0.15))}>+</button></div></div>
+        <button type="button" className={landscapeMode ? 'selected' : ''} aria-pressed={landscapeMode} onPointerDown={event => runTouchAction(event, onToggleLandscape)} onClick={event => runClickAction(event, onToggleLandscape)}><span>Jogar com celular deitado</span><b>{landscapeMode ? 'ATIVO' : 'TENTAR'}</b></button>
+        <div className="menu-interface-scale" role="group" aria-label="Escala da interface">
+          <span>Escala da interface</span>
+          <div className="menu-interface-scale-options">
+            {([100, 130, 160] as const).map(scale => <button key={scale} type="button" className={interfaceScale === scale ? 'selected' : ''} aria-pressed={interfaceScale === scale} onPointerDown={event => runTouchAction(event, () => onInterfaceScaleChange(scale))} onClick={event => runClickAction(event, () => onInterfaceScaleChange(scale))}>{scale}%</button>)}
+          </div>
+        </div>
+      </div>
+      <div className="menu-weapon"><span>ARMA ATUAL</span><strong>{weaponLabel}</strong></div>
+    </div>}
   </div>;
 }
