@@ -37,7 +37,7 @@ type Props = {
   audioVolume: number;
   onAudioVolumeChange: (volume: number) => void;
   interfaceScale: 70 | 100;
-  onInterfaceScaleChange: (scale: 100 | 130 | 160) => void;
+  onInterfaceScaleChange: (scale: 70 | 100) => void;
   landscapeMode: boolean;
   onToggleLandscape: () => void;
 };
