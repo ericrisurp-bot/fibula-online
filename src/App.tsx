@@ -2786,7 +2786,6 @@ export default function App() {
   const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
   const storeAllBagToHouse = () => engineRef.current?.storeAllBagToHouse();
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
-  const buildHouse = () => engineRef.current?.buildHouse();
   const buildRefinery = () => engineRef.current?.buildRefinery();
   const buildCart = () => engineRef.current?.buildCart();
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
