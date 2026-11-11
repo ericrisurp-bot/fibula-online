@@ -14,6 +14,13 @@ export default function InstallPrompt() {
   const [safari, setSafari] = useState(true);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('origem') !== 'arena') return;
+
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('origem');
+    window.history.replaceState(window.history.state, '', `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+
     const isInstalledApp = () =>
       window.matchMedia('(display-mode: fullscreen)').matches ||
       window.matchMedia('(display-mode: standalone)').matches ||
