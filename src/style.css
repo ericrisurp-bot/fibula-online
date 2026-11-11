@@ -8870,6 +8870,16 @@ sem backdrop ou caixa de modal. */
   .game-shell .hud-top .cooking-match-actions{right:-40px}
 }
 
+@media (max-width:380px){
+  .game-shell .hud-left-stack{
+    width:min(192px,calc((100vw - 104px)/1.3));
+    max-width:min(192px,calc((100vw - 104px)/1.3));
+  }
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:400px){
+  .game-shell .hud-top .cooking-match-actions{right:56px}
+}
+
 /* SP5 — Amigos em página lateral clara e compacta. */
 .side-page.friends-side {
   display:flex;
