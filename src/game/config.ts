@@ -22,6 +22,10 @@ export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
   campfire: { woodCost: 5, stoneCost: 5, cottonCost: 5, buildRadius: 300, minDistance: 48 },
   campChest: { woodCost: 20 },
+  campMachines: {
+    refinery: { woodCost: 5, stoneCost: 15, cottonCost: 5 },
+    tecelaria: { woodCost: 10, stoneCost: 5, cottonCost: 10 },
+  },
   lake: {
     sizes: { small: { rx: 120, ry: 85 }, medium: { rx: 200, ry: 145 }, large: { rx: 320, ry: 230 } },
     sizeWeights: { small: 1 / 3, medium: 1 / 3, large: 1 / 3 },
