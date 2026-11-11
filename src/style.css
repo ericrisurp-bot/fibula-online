@@ -8756,6 +8756,130 @@ sem backdrop ou caixa de modal. */
   }
 }
 
+/* G1 — Chips compactos de refeições ativas e custo no botão do burrinho. */
+.game-shell .hud-top .cooking-match-actions{
+  position:absolute;
+  top:42px;
+  right:-2px;
+  z-index:24;
+  display:flex;
+  width:min(92px,calc(100vw - 24px));
+  max-width:min(92px,calc(100vw - 24px));
+  flex-direction:row;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  justify-content:flex-end;
+  gap:4px;
+  pointer-events:auto;
+}
+.game-shell .cooking-match-actions .cooking-active-meal{
+  display:flex;
+  flex:0 0 44px;
+  width:44px;
+  min-width:44px;
+  height:48px;
+  min-height:48px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  padding:3px 2px;
+  overflow:hidden;
+  border:1px solid rgba(255,241,201,.32);
+  border-radius:8px;
+  background:rgba(24,21,17,.52);
+  color:#f6efe0;
+  box-shadow:none;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.game-shell .cooking-active-meal>span{
+  position:relative;
+  display:flex;
+  width:100%;
+  height:27px;
+  align-items:center;
+  justify-content:center;
+  font-size:17px;
+  line-height:1;
+}
+.game-shell .cooking-active-meal .cooking-meal-artwork{transform:scale(.72);transform-origin:center}
+.game-shell .cooking-active-meal .cooking-herb-sparkle{position:absolute;top:0;right:1px;font-size:11px;line-height:1}
+.game-shell .cooking-active-meal strong{display:none!important}
+.game-shell .cooking-active-meal small{
+  display:block;
+  margin:0;
+  color:#f6efe0;
+  font-size:11px;
+  font-weight:900;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.game-shell .cooking-match-actions button{
+  min-width:40px;
+  min-height:40px;
+  border-color:rgba(255,241,201,.32);
+  background:rgba(24,21,17,.72);
+  color:#f6efe0;
+  font-size:11px;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cart{
+  gap:1px;
+  padding:0;
+}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cart .mobile-quick-build-icon{
+  display:block;
+  font-size:14px;
+  line-height:1;
+}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cost{
+  display:flex;
+  max-width:100%;
+  align-items:center;
+  justify-content:center;
+  gap:1px;
+  white-space:nowrap;
+  line-height:1;
+}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cost>span{
+  display:inline-flex;
+  min-width:0;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  font-size:11px;
+  font-weight:900;
+  line-height:1;
+}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cost img,
+.game-shell .mobile-quick-buttons .mobile-quick-build-cost svg{
+  display:block;
+  width:10px!important;
+  height:10px!important;
+  flex:0 0 10px;
+  object-fit:contain;
+}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cost b{font-size:11px;line-height:1}
+.game-shell .mobile-quick-buttons .mobile-quick-build-cart>small{max-width:54px;font-size:11px;line-height:1;transform:scaleX(.84);transform-origin:center}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .game-shell .hud-top .cooking-match-actions{right:6px}
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:600px){
+  .game-shell .hud-top .cooking-match-actions{right:-40px}
+}
+
+@media (max-width:380px){
+  .game-shell .hud-left-stack{
+    width:min(192px,calc((100vw - 104px)/1.3));
+    max-width:min(192px,calc((100vw - 104px)/1.3));
+  }
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:450px){
+  .game-shell .hud-top .cooking-match-actions{right:56px}
+}
+
 /* SP5 — Amigos em página lateral clara e compacta. */
 .side-page.friends-side {
   display:flex;
