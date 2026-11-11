@@ -1733,7 +1733,7 @@ export default function App() {
           ctx.save(); ctx.translate(drop.x, drop.y);
           ctx.font = '21px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           if (!drawMaterialSprite(ctx, drop.kind, 0, 0, 24)) ctx.fillText(itemIcon(drop.kind), 0, 0);
-          if (drop.amount > 1 { ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), 0, -12); }
+          if (drop.amount > 1) { ctx.fillStyle = '#f3dfb5'; ctx.font = '900 10px ui-sans-serif, system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(String(drop.amount), 0, -12); }
           ctx.restore();
         }});
       }
