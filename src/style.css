@@ -8762,7 +8762,7 @@ sem backdrop ou caixa de modal. */
   gap:0;pointer-events:none;zoom:var(--interface-scale,1.3);
 }
 .game-shell .mobile-secondary-actions{
-  position:absolute;right:200px;bottom:138px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  position:absolute;right:calc(200px + env(safe-area-inset-right));bottom:calc(138px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:2px;
   width:44px;pointer-events:auto;
 }
 .game-shell .mobile-secondary-actions button{
@@ -8774,7 +8774,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .mobile-secondary-actions .mobile-quick-class svg{width:25px;height:25px}
 .game-shell .mobile-secondary-actions .mobile-quick-bag svg{width:25px;height:25px}
 .game-shell .mobile-action-diamond{
-  position:absolute;right:12px;bottom:12px;width:124px;height:124px;pointer-events:none;
+  position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:124px;height:124px;pointer-events:none;
 }
 .game-shell .mobile-action-diamond .game-action-button{
   position:absolute;display:grid;place-items:center;width:56px;height:56px;min-height:56px;padding:0;
@@ -8802,7 +8802,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .game-action-status.is-following{background:#7bd65a}
 .game-shell .game-action-status.is-stopped{background:#ff6b5e}
 .game-shell .joystick-guide-ring{
-  position:absolute;z-index:3;left:12px;bottom:12px;width:112px;height:112px;border:1px solid rgba(255,241,201,.28);
+  position:absolute;z-index:3;left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));width:112px;height:112px;border:1px solid rgba(255,241,201,.28);
   border-radius:50%;background:rgba(24,21,17,.18);pointer-events:none;
 }
 .game-shell .joystick-guide-ring.is-active{opacity:0}
@@ -8818,7 +8818,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .game-construction-recipe-item b{font-size:11px;font-weight:800}
 .game-shell .mobile-menu-backdrop{z-index:29}
 .game-shell .mobile-menu-panel{z-index:30}
-.game-shell .house-meals-trigger{bottom:190px;font-size:11px}
+.game-shell .house-meals-trigger{bottom:calc(190px + env(safe-area-inset-bottom));font-size:11px}
 .game-shell .mobile-quick-buttons .mobile-quick-class,
 .game-shell .mobile-quick-buttons .mobile-quick-bag{width:44px;height:44px;min-height:44px;margin:0}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
