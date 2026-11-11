@@ -9672,6 +9672,9 @@ sem backdrop ou caixa de modal. */
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
 }
 @media (max-width:420px){.game-shell{--controller-scale:min(var(--interface-scale,1.3),1.12)}}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:600px){
+  .game-shell .hud-top .cooking-match-actions{left:calc(6px + min(260px, calc((100vw - 84px) / var(--interface-scale,1.3))) + 8px);max-width:calc(100vw - 72px - min(260px, calc((100vw - 84px) / var(--interface-scale,1.3))))}
+}
 @media (pointer:coarse) and (orientation:portrait){
   .game-shell .hud-top .cooking-match-actions{top:98px;left:calc(50% + 8px);max-width:calc(50% - 64px)}
 }
