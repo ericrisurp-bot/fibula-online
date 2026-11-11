@@ -1003,8 +1003,7 @@ export default function App() {
     void fibulaSupabase.from('fibula_profiles')
       .update({ main_character: primaryCharacter, updated_at: new Date().toISOString() })
       .eq('user_id', session.user.sub)
-      .then(() => undefined)
-      .catch(() => undefined);
+      .then(() => undefined, () => undefined);
   }, [primaryCharacter, session.user.sub]);
 
   useEffect(() => {
