@@ -62,6 +62,7 @@ const initial: GameSnapshot = {
   activeMeals: [],
   player: { x: 1200, y: 1200, hp: 100, maxHp: 100, level: 0, xp: 0, nextXp: 4, moving: false, facingX: 0, facingY: 1 },
   house: { x: 600, y: 600, woodDelivered: 0, built: false, inventory: [] },
+  campfire: null,
   refinery: { x: 3000, y: 3000, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
@@ -1472,6 +1473,7 @@ export default function App() {
         if (!flag.attachedToCart) worldDrawables.push({ depth: flag.y + 15, draw: () => drawFlag(ctx, flag.x, flag.y, flag.color, s.elapsed) });
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color, s.elapsed) });
       }
+      if (s.campfire) worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
       worldDrawables.push({ depth: s.house.y + 28, draw: () => drawHouse(ctx, s.house) });
       worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
@@ -2930,8 +2932,13 @@ export default function App() {
     let selected: string | null = null;
     const dragged = Math.hypot(clientX - wheel.originX, clientY - wheel.originY) >= 30;
     if (dragged && Math.hypot(dx, dy) >= 30) {
-      if (Math.abs(dx) > Math.abs(dy)) selected = dx > 0 ? 'green' : 'blue';
-      else selected = dy > 0 ? 'red' : 'yellow';
+      const angle = Math.atan2(dy, dx);
+      const sector = Math.PI / 8;
+      if (Math.abs(angle + Math.PI / 4) <= sector) selected = 'camp';
+      else if (Math.abs(angle) <= sector) selected = 'green';
+      else if (Math.abs(Math.abs(angle) - Math.PI) <= sector) selected = 'blue';
+      else if (Math.abs(angle - Math.PI / 2) <= sector) selected = 'red';
+      else if (Math.abs(angle + Math.PI / 2) <= sector) selected = 'yellow';
     }
     if (wheel.selected !== selected) setWheel({ ...wheel, selected });
   };
@@ -2940,7 +2947,8 @@ export default function App() {
     if (flagWheelRef.current?.pointerId !== pointerId) return;
     updateWheelSelection(clientX, clientY, pointerId);
     const wheel = flagWheelRef.current;
-    const color = wheel?.selected ? CONFIG.flags.colors.find(item => item.id === wheel.selected) : null;
+    const color = wheel?.selected && wheel.selected !== 'camp' ? CONFIG.flags.colors.find(item => item.id === wheel.selected) : null;
+    if (wheel?.selected === 'camp') engineRef.current?.placeCampfire();
     const player = engineRef.current?.state.player;
     const cart = engineRef.current?.state.cart;
     if (color && player) {
@@ -3677,6 +3685,7 @@ export default function App() {
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
         {CONFIG.flags.colors.map(item => <div key={item.id} className={`flag-wheel-option ${item.id} ${flagWheel?.selected === item.id ? 'selected' : ''}`} aria-label={item.label} title={item.label}><span style={{ background: item.color }} /></div>)}
+        <div className={`flag-wheel-option camp ${flagWheel?.selected === 'camp' ? 'selected' : ''} ${state.campfire ? 'disabled' : ''}`} style={flagWheel ? undefined : { display: 'none' }} aria-label="Fogueira" title="Fogueira">⛺<small>Acampar</small></div>
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
       {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Casa, mochila e carrinho">
@@ -3743,6 +3752,20 @@ export default function App() {
     </div>}
     <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
   </>;
+}
+
+function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }, elapsed: number) {
+  const flicker = Math.sin(elapsed * 9) * 1.8 + Math.sin(elapsed * 15) * 1.1;
+  ctx.save(); ctx.translate(campfire.x, campfire.y);
+  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, 5, 27, 10, 0, 0, Math.PI * 2); ctx.fill();
+  for (let i = 0; i < 8; i++) { const angle = i * Math.PI / 4; ctx.save(); ctx.translate(Math.cos(angle) * 19, Math.sin(angle) * 7); ctx.rotate(angle); ctx.fillStyle = i % 2 ? '#77736a' : '#aaa397'; ctx.strokeStyle = '#45413b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(0, 0, 7, 4.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore(); }
+  ctx.lineCap = 'round'; ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(-11, 2); ctx.lineTo(11, -3); ctx.stroke();
+  ctx.strokeStyle = '#a87542'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-10, 1); ctx.lineTo(10, -2); ctx.stroke();
+  ctx.strokeStyle = '#4b3020'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(8, 4); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,115,25,.25)'; ctx.beginPath(); ctx.ellipse(0, -12, 13 + flicker, 17 + flicker, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f07822'; ctx.beginPath(); ctx.moveTo(-9, -5); ctx.quadraticCurveTo(-12, -17 - flicker, 0, -29 - flicker); ctx.quadraticCurveTo(13, -16 + flicker, 8, -5); ctx.quadraticCurveTo(0, 1, -9, -5); ctx.fill();
+  ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.moveTo(-4, -5); ctx.quadraticCurveTo(-4, -15 - flicker, 2, -22 - flicker); ctx.quadraticCurveTo(9, -12, 4, -5); ctx.quadraticCurveTo(0, 0, -4, -5); ctx.fill();
+  ctx.restore();
 }
 
 function drawHouse(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
