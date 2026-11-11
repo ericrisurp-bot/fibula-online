@@ -8791,7 +8791,7 @@ sem backdrop ou caixa de modal. */
   border-color:currentColor;box-shadow:0 0 10px color-mix(in srgb,currentColor 40%,transparent);
 }
 .game-shell .mobile-action-diamond .game-action-button:disabled{
-  border-color:color-mix(in srgb,currentColor 35%,transparent);color:color-mix(in srgb,currentColor 35%,transparent);
+  opacity:1;border-color:color-mix(in srgb,currentColor 35%,transparent);color:color-mix(in srgb,currentColor 35%,transparent);
   box-shadow:none;cursor:not-allowed;
 }
 .game-shell .mobile-action-diamond .game-action-button:focus-visible,
@@ -8829,7 +8829,7 @@ sem backdrop ou caixa de modal. */
   .game-shell .house-meals-trigger{bottom:190px}
 }
 
-/* G1 — Chips compactos de refeições ativas e custo no botão do burrinho. */
+/* G1 — Chips compactos de refeições ativas. */
 .game-shell .hud-top .cooking-match-actions{
   position:absolute;
   top:42px;
@@ -8898,44 +8898,6 @@ sem backdrop ou caixa de modal. */
   backdrop-filter:blur(4px);
   -webkit-backdrop-filter:blur(4px);
 }
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart{
-  gap:1px;
-  padding:0;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart .mobile-quick-build-icon{
-  display:block;
-  font-size:14px;
-  line-height:1;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost{
-  display:flex;
-  max-width:100%;
-  align-items:center;
-  justify-content:center;
-  gap:1px;
-  white-space:nowrap;
-  line-height:1;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost>span{
-  display:inline-flex;
-  min-width:0;
-  align-items:center;
-  justify-content:center;
-  gap:0;
-  font-size:11px;
-  font-weight:900;
-  line-height:1;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost img,
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost svg{
-  display:block;
-  width:10px!important;
-  height:10px!important;
-  flex:0 0 10px;
-  object-fit:contain;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost b{font-size:11px;line-height:1}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart>small{max-width:54px;font-size:11px;line-height:1;transform:scaleX(.84);transform-origin:center}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
   .game-shell .hud-top .cooking-match-actions{right:6px}
 }
