@@ -902,10 +902,10 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [activeGameRoute.page, cookingClockOffset]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
-  const [interfaceScale, setInterfaceScale] = useState<70 | 100>(() => {
+  const [interfaceScale, setInterfaceScale] = useState<70 | 100 | 130>(() => {
     if (typeof window === 'undefined') return 100;
     const saved = window.localStorage.getItem('fibula-interface-scale');
-    return saved === '70' ? 70 : 100;
+    return saved === '70' ? 70 : saved === '130' ? 130 : 100;
   });
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
