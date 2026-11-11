@@ -3733,7 +3733,32 @@ export default function App() {
       </div>}
       {houseAccessible && !showStart && !state.dead && <button type="button" className="house-meals-trigger" onClick={() => { closeFlagMenu(); setHouseStorageTab('meals'); inventoryPanelOpenRef.current = true; setInventoryPanelOpen(true); }}>🏠 CASA · REFEIÇÕES</button>}
 
-{!showStart && !state.dead &&             <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} buildCartCost={state.cart.everBuilt ? [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 5 }] : [{ itemId: 'wood', quantity: 1 }]} buildCartItemIcon={inventoryItemIcon} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && (() => {
+  const recipe = cartBuildAccessible
+    ? (state.cart.everBuilt ? [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 5 }] : [{ itemId: 'wood', quantity: 1 }])
+    : houseBuildAccessible
+      ? [{ itemId: 'wood', quantity: CONFIG.house.buildCost }]
+      : refineryBuildAccessible
+        ? [{ itemId: 'wood', quantity: CONFIG.refinery.buildCostWood }, { itemId: 'stone', quantity: CONFIG.refinery.buildCostStone }]
+        : tecelariaBuildAccessible
+          ? [{ itemId: 'bronze', quantity: CONFIG.tecelaria.buildCostBronze }, { itemId: 'wood', quantity: CONFIG.tecelaria.buildCostWood }, { itemId: 'cotton', quantity: CONFIG.tecelaria.buildCostCotton }, { itemId: 'stone', quantity: CONFIG.tecelaria.buildCostStone }]
+          : null;
+  if (!recipe) return null;
+  const name = cartBuildAccessible ? 'Carroça' : houseBuildAccessible ? 'Casa' : refineryBuildAccessible ? 'Refinaria' : 'Tecelaria';
+  const description = recipe.map(({ itemId, quantity }) => {
+    const material = itemId === 'wood' ? (quantity === 1 ? 'madeira' : 'madeiras')
+      : itemId === 'cotton' ? (quantity === 1 ? 'algodão' : 'algodões')
+      : itemId === 'stone' ? (quantity === 1 ? 'pedra' : 'pedras')
+      : (quantity === 1 ? 'bronze' : 'bronzes');
+    return `${quantity} ${material}`;
+  }).join(' + ');
+  return <div className="game-construction-recipe" aria-label={`${name}: ${description}`} title={`${name}: ${description}`}>
+    {recipe.map(item => <span className="game-construction-recipe-item" key={item.itemId}>
+      <span className="game-construction-recipe-icon">{inventoryItemIcon(item.itemId)}</span><b>{item.quantity}</b>
+    </span>)}
+  </div>;
+})()}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildHouseVisible={houseBuildAccessible && !state.dead && !showStart} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildHouse={buildHouse} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={closeFlagMenu} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}

@@ -8756,7 +8756,82 @@ sem backdrop ou caixa de modal. */
   }
 }
 
-/* G1 — Chips compactos de refeições ativas e custo no botão do burrinho. */
+/* G2 — Layout de controle de videogame, escopado à partida. */
+.game-shell .mobile-quick-buttons{
+  position:absolute;inset:0;z-index:20;display:block;right:0;bottom:0;left:0;top:0;
+  gap:0;pointer-events:none;zoom:var(--interface-scale,1.3);
+}
+.game-shell .mobile-secondary-actions{
+  position:absolute;right:calc(140px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:center;gap:0;
+  width:44px;pointer-events:auto;
+}
+.game-shell .mobile-secondary-actions button{
+  display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:5px;
+  border:1px solid rgba(235,235,235,.34);border-radius:12px;background:rgba(24,21,17,.52);color:#f2eee5;
+  box-shadow:0 3px 10px rgba(0,0,0,.24);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.game-shell .mobile-secondary-actions .mobile-menu-trigger{position:relative;top:auto;right:auto;zoom:1;width:44px;height:44px;min-height:44px;font-size:20px}
+.game-shell .mobile-secondary-actions .mobile-quick-class svg{width:25px;height:25px}
+.game-shell .mobile-secondary-actions .mobile-quick-bag svg{width:25px;height:25px}
+.game-shell .mobile-action-diamond{
+  position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:124px;height:124px;pointer-events:none;
+}
+.game-shell .mobile-action-diamond .game-action-button{
+  position:absolute;display:grid;place-items:center;width:56px;height:56px;min-height:56px;padding:0;
+  border:2px solid currentColor;border-radius:50%;background:rgba(24,21,17,.52);
+  font-size:20px;font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);appearance:none;-webkit-appearance:none;
+  pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;
+}
+.game-shell .mobile-action-diamond .action-y{left:34px;top:0;color:#f2c94c}
+.game-shell .mobile-action-diamond .action-x{left:0;top:34px;color:#5aa0ff}
+.game-shell .mobile-action-diamond .action-b{right:0;top:34px;color:#ff6b5e}
+.game-shell .mobile-action-diamond .action-a{left:34px;bottom:0;color:#7bd65a}
+.game-shell .mobile-action-diamond .game-action-button.is-active{
+  border-color:currentColor;box-shadow:0 0 10px color-mix(in srgb,currentColor 40%,transparent);
+}
+.game-shell .mobile-action-diamond .game-action-button:disabled{
+  opacity:1;border-color:color-mix(in srgb,currentColor 35%,transparent);color:color-mix(in srgb,currentColor 35%,transparent);
+  box-shadow:none;cursor:not-allowed;
+}
+.game-shell .mobile-action-diamond .game-action-button:focus-visible,
+.game-shell .mobile-secondary-actions button:focus-visible{outline:2px solid #f6efe0;outline-offset:3px}
+.game-shell .game-action-status{
+  position:absolute;top:5px;right:6px;width:6px;height:6px;border:1px solid rgba(20,20,20,.8);border-radius:50%;
+}
+.game-shell .game-action-status.is-following{background:#7bd65a}
+.game-shell .game-action-status.is-stopped{background:#ff6b5e}
+.game-shell .joystick-guide-ring{
+  position:absolute;z-index:3;left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));width:112px;height:112px;border:1px solid rgba(255,241,201,.28);
+  border-radius:50%;background:rgba(24,21,17,.18);pointer-events:none;
+}
+.game-shell .joystick-guide-ring.is-active{opacity:0}
+.game-shell .game-construction-recipe{
+  position:absolute;z-index:25;left:50%;top:calc(50% + 48px);transform:translateX(-50%);
+  display:flex;max-width:min(240px,calc(100% - 272px));flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
+  padding:5px 8px;border:1px solid rgba(235,235,235,.28);border-radius:9px;background:rgba(24,21,17,.62);
+  color:#f6efe0;pointer-events:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.game-shell .game-construction-recipe-item{display:inline-flex;align-items:center;gap:3px;min-height:18px;color:#f6efe0;font-size:11px;font-weight:800;line-height:1}
+.game-shell .game-construction-recipe-icon{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;overflow:hidden}
+.game-shell .game-construction-recipe-icon>*{transform:scale(.53);transform-origin:center;flex:0 0 auto}
+.game-shell .game-construction-recipe-item b{font-size:11px;font-weight:800}
+.game-shell .mobile-menu-backdrop{z-index:29}
+.game-shell .mobile-menu-panel{z-index:30}
+.game-shell .house-meals-trigger{bottom:calc(220px + env(safe-area-inset-bottom))}
+.game-shell .mobile-quick-buttons .mobile-quick-class,
+.game-shell .mobile-quick-buttons .mobile-quick-bag{width:44px;height:44px;min-height:44px;margin:0}
+@media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
+  .game-shell .mobile-quick-buttons{display:block;inset:0}
+  .game-shell .mobile-secondary-actions{right:calc(140px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));gap:0}
+  .game-shell .mobile-action-diamond{right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom))}
+  .game-shell .mobile-secondary-actions button{width:44px;height:44px;min-height:44px}
+  .game-shell .mobile-secondary-actions .mobile-menu-trigger{width:44px;height:44px;min-height:44px}
+  .game-shell .joystick-guide-ring{left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));width:112px;height:112px}
+  .game-shell .house-meals-trigger{bottom:calc(190px + env(safe-area-inset-bottom))}
+}
+
+/* G1 — Chips compactos de refeições ativas. */
 .game-shell .hud-top .cooking-match-actions{
   position:absolute;
   top:42px;
@@ -8825,44 +8900,6 @@ sem backdrop ou caixa de modal. */
   backdrop-filter:blur(4px);
   -webkit-backdrop-filter:blur(4px);
 }
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart{
-  gap:1px;
-  padding:0;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart .mobile-quick-build-icon{
-  display:block;
-  font-size:14px;
-  line-height:1;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost{
-  display:flex;
-  max-width:100%;
-  align-items:center;
-  justify-content:center;
-  gap:1px;
-  white-space:nowrap;
-  line-height:1;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost>span{
-  display:inline-flex;
-  min-width:0;
-  align-items:center;
-  justify-content:center;
-  gap:0;
-  font-size:11px;
-  font-weight:900;
-  line-height:1;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost img,
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost svg{
-  display:block;
-  width:10px!important;
-  height:10px!important;
-  flex:0 0 10px;
-  object-fit:contain;
-}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cost b{font-size:11px;line-height:1}
-.game-shell .mobile-quick-buttons .mobile-quick-build-cart>small{max-width:54px;font-size:11px;line-height:1;transform:scaleX(.84);transform-origin:center}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
   .game-shell .hud-top .cooking-match-actions{right:6px}
 }
