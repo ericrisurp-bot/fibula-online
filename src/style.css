@@ -8823,11 +8823,11 @@ sem backdrop ou caixa de modal. */
 .game-shell .mobile-quick-buttons .mobile-quick-bag{width:44px;height:44px;min-height:44px;margin:0}
 @media (pointer:coarse) and (max-width:950px),(pointer:coarse) and (max-height:600px){
   .game-shell .mobile-quick-buttons{display:block;inset:0}
-  .game-shell .mobile-secondary-actions{right:200px;bottom:138px;gap:2px}
+  .game-shell .mobile-secondary-actions{right:calc(200px + env(safe-area-inset-right));bottom:calc(138px + env(safe-area-inset-bottom));gap:2px}
   .game-shell .mobile-action-diamond{right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom))}
   .game-shell .mobile-secondary-actions button{width:44px;height:44px;min-height:44px}
   .game-shell .mobile-secondary-actions .mobile-menu-trigger{width:44px;height:44px;min-height:44px}
-  .game-shell .joystick-guide-ring{left:12px;bottom:12px;width:112px;height:112px}
+  .game-shell .joystick-guide-ring{left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));width:112px;height:112px}
   .game-shell .house-meals-trigger{bottom:calc(190px + env(safe-area-inset-bottom))}
 }
 
