@@ -552,8 +552,8 @@ export class GameEngine {
     const feet = playerFeet(this.state.player);
     const { woodCost, cottonCost, minDistance } = CONFIG.campfire;
     const count = (inventory: InventoryStack[], itemId: string) => inventory.reduce((sum, stack) => sum + (getBaseItemId(stack.itemId) === itemId ? stack.quantity : 0), 0);
-    if (count(this.state.inventory, 'wood') + count(this.state.cart.inventory, 'wood') < woodCost
-      || count(this.state.inventory, 'cotton') + count(this.state.cart.inventory, 'cotton') < cottonCost) return { ok: false, reason: 'resources' };
+    if (count(this.state.cart.inventory, 'wood') < woodCost
+      || count(this.state.cart.inventory, 'cotton') < cottonCost) return { ok: false, reason: 'resources' };
     const blockedByTree = this.state.trees.some(tree => Math.hypot(feet.x - this.treeBase(tree).x, feet.y - this.treeBase(tree).y) < minDistance + this.treeFootprintRadius(tree));
     const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
     const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
@@ -578,9 +578,7 @@ export class GameEngine {
     };
     for (const itemId of ['wood', 'cotton'] as const) {
       const cost = itemId === 'wood' ? woodCost : cottonCost;
-      const bag = consume(this.state.inventory, itemId, cost);
-      this.state.inventory = bag.inventory;
-      if (bag.consumed < cost) this.state.cart.inventory = consume(this.state.cart.inventory, itemId, cost - bag.consumed).inventory;
+      this.state.cart.inventory = consume(this.state.cart.inventory, itemId, cost).inventory;
     }
     this.state.campfire = { x: feet.x, y: feet.y };
     this.emit();
