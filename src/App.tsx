@@ -543,6 +543,24 @@ export default function App() {
     return () => window.removeEventListener('online', syncLatestHouseInventory);
   }, [houseInventoryJson, session.user.sub, houseLoadReady]);
 
+  const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<void> => {
+    const survivalNights = Math.max(0, snapshot.nightNumber - (snapshot.dayNight === 'night' ? 1 : 0));
+    const sessionId = matchSessionIdRef.current;
+    matchSessionIdRef.current = null;
+    if (!sessionId || !fibulaSupabase) return;
+    try {
+      const result = await finishSoloMatchSession(fibulaSupabase, sessionId, {
+        kills: snapshot.kills,
+        survivalNights,
+      });
+      if (result === 'rejected') {
+        window.alert('O servidor recusou o resultado desta partida por não passar na validação. Seu progresso não foi atualizado.');
+      }
+    } catch {
+      window.alert('Não foi possível validar o resultado no encerramento. Esta partida não foi salva no perfil.');
+    }
+  };
+
   useEffect(() => {
     if (!state.dead) {
       matchSummaryHandledRef.current = false;
@@ -585,19 +603,7 @@ export default function App() {
     const matchUsage = engineRef.current?.getClassUsage();
     if (matchUsage) setStatusUsage(recordClassUsage(session.user.sub, matchUsage));
 
-    const sessionId = matchSessionIdRef.current;
-    matchSessionIdRef.current = null;
-    if (!sessionId || !fibulaSupabase) return;
-    void finishSoloMatchSession(fibulaSupabase, sessionId, {
-      kills: state.kills,
-      survivalNights,
-    }).then((result) => {
-      if (result === 'rejected') {
-        window.alert('O servidor recusou o resultado desta partida por não passar na validação. Seu progresso não foi atualizado.');
-      }
-    }).catch(() => {
-      window.alert('Não foi possível validar o resultado no encerramento. Esta partida não foi salva no perfil.');
-    });
+    void submitSoloMatchResult(state);
   }, [state.dead, state.kills, state.nightNumber, state.dayNight]);
   const [avatarCharacter, setAvatarCharacter] = useState<ClassId>('guerreiro');
   const [accountLevel, setAccountLevel] = useState(0);
@@ -701,6 +707,7 @@ export default function App() {
     days: { position: null as number | null, total: 0, previous: null as number | null, error: false },
   });
   const lastReportedPdRef = useRef<{ userId: string; pd: number } | null>(null);
+  const lastReportedMainCharacterRef = useRef<{ userId: string; character: ClassId } | null>(null);
   useEffect(() => {
     if (!rankingOpen) return;
     const supabase = fibulaSupabase;
@@ -791,6 +798,14 @@ export default function App() {
   const statusDuoPower = statusPowerReady
     ? characterPreferences.reduce((sum, classId) => sum + (classId ? statusPowers[classId] ?? 0 : 0), 0)
     : 0;
+
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub || !statusPowerReady || statusDuoPower <= 0) return;
+    if (lastReportedPdRef.current?.userId === session.user.sub
+      && lastReportedPdRef.current.pd === statusDuoPower) return;
+    lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
+    void reportHighestPd(fibulaSupabase, statusDuoPower);
+  }, [statusPowerReady, statusDuoPower, session.user.sub]);
   const arsenalInventoryEntries = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
@@ -978,6 +993,19 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem('fibula-character-preferences', JSON.stringify(characterPreferences));
   }, [characterPreferences]);
+
+  const primaryCharacter = characterPreferences[0];
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub || !primaryCharacter) return;
+    if (lastReportedMainCharacterRef.current?.userId === session.user.sub
+      && lastReportedMainCharacterRef.current.character === primaryCharacter) return;
+    lastReportedMainCharacterRef.current = { userId: session.user.sub, character: primaryCharacter };
+    void fibulaSupabase.from('fibula_profiles')
+      .update({ main_character: primaryCharacter, updated_at: new Date().toISOString() })
+      .eq('user_id', session.user.sub)
+      .then(() => undefined)
+      .catch(() => undefined);
+  }, [primaryCharacter, session.user.sub]);
 
   useEffect(() => {
     window.localStorage.setItem('fibula-arsenal-items', JSON.stringify(arsenalItems));
@@ -2907,6 +2935,7 @@ export default function App() {
   const returnToLobby = () => {
     const engine = engineRef.current;
     if (!engine || gameStartPendingRef.current) return;
+    if (!engine.state.dead && matchSessionIdRef.current) void submitSoloMatchResult(engine.state);
     gameStartedRef.current = false;
     engine.restart();
     engine.stop();
@@ -2927,6 +2956,7 @@ export default function App() {
         throw new Error('Conecte-se à internet para iniciar outra partida com progresso validado.');
       }
       if (houseDeathFinalizeRef.current) await houseDeathFinalizeRef.current;
+      if (!engine.state.dead && matchSessionIdRef.current) await submitSoloMatchResult(engine.state);
       const sessionId = await startSoloMatchSession(fibulaSupabase);
       engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
