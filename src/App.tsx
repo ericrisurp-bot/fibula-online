@@ -1932,7 +1932,7 @@ export default function App() {
       if (!gameStartedRef.current) return;
       const k = e.key.toLowerCase();
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) closeFlagMenu();
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { closeFlagMenu(); closeCampMenu(); }
       if (k === 'escape') {
         closeFlagMenu();
         closeInventoryPanel();
