@@ -9881,7 +9881,7 @@ sem backdrop ou caixa de modal. */
 }
 @media (pointer:coarse) and (orientation:landscape){
   .game-shell .house-meals-trigger{
-    left:calc(50% - 100px)!important;
+    left:calc(50% - 320px)!important;
     right:auto!important;
     bottom:calc(136px + env(safe-area-inset-bottom))!important;
     transform:none!important;
