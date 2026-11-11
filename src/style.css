@@ -9006,6 +9006,31 @@ sem backdrop ou caixa de modal. */
   .side-page.friends-side .friends-side-actions button {min-width:64px;padding-right:7px;padding-left:7px}
 }
 
+/* C2 — menu compacto do acampamento, independente do zoom da interface. */
+.game-shell .camp-menu-backdrop{
+ position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid;place-items:center;
+ box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+ overflow:hidden;overscroll-behavior:contain;background:rgba(8,8,7,.58);touch-action:manipulation
+}
+.game-shell .camp-menu-panel{
+ display:flex;box-sizing:border-box;width:min(320px,calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+ max-width:100%;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+ flex-direction:column;gap:7px;padding:10px;overflow:hidden;zoom:1!important;transform:none!important;
+ border:1px solid rgba(255,241,201,.38);border-radius:12px;background:rgba(30,26,21,.97);color:#f6efe0;
+ box-shadow:0 12px 40px rgba(0,0,0,.55)
+}
+.game-shell .camp-menu-panel>header{display:flex;flex:0 0 40px;min-height:40px;align-items:center;justify-content:space-between;gap:8px;padding:0 0 6px;border-bottom:1px solid rgba(255,241,201,.22)}
+.game-shell .camp-menu-panel>header strong{color:#fff8e9;font-size:12px;letter-spacing:.12em}
+.game-shell .camp-menu-close{display:grid;flex:0 0 40px;width:40px;height:40px;min-height:40px;place-items:center;padding:0;border:1px solid rgba(255,241,201,.4);border-radius:8px;background:#514536;color:#fff8e9;font-size:25px;line-height:1}
+.game-shell .camp-menu-row{display:grid;grid-template-columns:32px minmax(0,1fr) 30px minmax(82px,auto);align-items:center;gap:7px;box-sizing:border-box;width:100%;min-height:48px;padding:5px 8px;border:1px solid rgba(255,241,201,.3);border-radius:8px;background:#403528;color:#fff8e9;text-align:left;font-size:12px}
+.game-shell .camp-menu-row strong,.game-shell .camp-menu-row b,.game-shell .camp-menu-row small{color:#fff8e9;font-size:11px;font-weight:800}
+.game-shell .camp-menu-row b{text-align:center}
+.game-shell .camp-menu-row small{text-align:right;font-weight:700}
+.game-shell .camp-menu-icon{display:grid;width:30px;height:30px;place-items:center;color:#fff8e9;font-size:22px;line-height:1}
+.game-shell .camp-menu-row:disabled,.game-shell .camp-menu-row.is-disabled{opacity:1;border-color:#625746;background:#29251f;color:#d8d0c2}
+.game-shell .camp-menu-row:disabled strong,.game-shell .camp-menu-row:disabled b,.game-shell .camp-menu-row:disabled small,.game-shell .camp-menu-row.is-disabled strong,.game-shell .camp-menu-row.is-disabled small{color:#d8d0c2}
+.game-shell .camp-menu-row:focus-visible,.game-shell .camp-menu-close:focus-visible{outline:2px solid #fff1c9;outline-offset:2px}
+
 /* G3 — painel único de inventário durante a partida. */
 .game-shell .inventory-quick-panel{position:fixed!important;z-index:2147483646!important;top:50dvh!important;left:50vw!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;transform-origin:center!important;box-sizing:border-box!important;width:min(560px,calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)))!important;max-width:calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))!important;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;display:flex;flex-direction:column;gap:8px;padding:10px!important;overflow:hidden!important;zoom:1!important;border:1px solid rgba(255,241,201,.32)!important;border-radius:12px!important;background:rgba(24,21,17,.88)!important;color:#f6efe0!important;box-shadow:0 12px 40px rgba(0,0,0,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .game-shell .inventory-quick-panel:not(.has-house){width:min(340px,calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)))!important}
