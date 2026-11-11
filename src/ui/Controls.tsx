@@ -12,14 +12,14 @@ type Props = {
   storeToHouseVisible: boolean;
   storeToHouseDisabled: boolean;
   onStoreToHouse: () => void;
-  buildHouseVisible: boolean;
   buildRefineryVisible: boolean;
   buildTecelariaVisible: boolean;
   buildCartVisible: boolean;
-  onBuildHouse: () => void;
   onBuildRefinery: () => void;
   onBuildTecelaria: () => void;
   onBuildCart: () => void;
+  campMenuVisible: boolean;
+  onOpenCampMenu: () => void;
   flagWheelOpen: boolean;
   onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
@@ -44,7 +44,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildHouseVisible, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildHouse, onBuildRefinery, onBuildTecelaria, onBuildCart, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildRefineryVisible, buildTecelariaVisible, buildCartVisible, onBuildRefinery, onBuildTecelaria, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -70,25 +70,26 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
-  const actionBVisible = buildCartVisible || buildHouseVisible || buildRefineryVisible || buildTecelariaVisible || storeToHouseVisible || storeToCartVisible;
-  const actionBDisabled = buildCartVisible || buildHouseVisible || buildRefineryVisible || buildTecelariaVisible
+  const actionBVisible = buildCartVisible || buildRefineryVisible || buildTecelariaVisible || storeToHouseVisible || storeToCartVisible || campMenuVisible;
+  const actionBDisabled = buildCartVisible || buildRefineryVisible || buildTecelariaVisible
     ? false
     : storeToHouseVisible ? storeToHouseDisabled
-    : storeToCartVisible ? storeToCartDisabled : true;
+    : storeToCartVisible ? storeToCartDisabled
+    : campMenuVisible ? false : true;
   const actionBLabel = buildCartVisible ? 'Construir burrinho e carroça'
-    : buildHouseVisible ? 'Construir casa'
     : buildRefineryVisible ? 'Construir refinaria'
     : buildTecelariaVisible ? 'Construir tecelaria'
-    : storeToHouseVisible ? 'Guardar tudo na casa'
+    : storeToHouseVisible ? 'Guardar tudo no baú'
     : storeToCartVisible ? 'Guardar tudo no carrinho'
+    : campMenuVisible ? 'Abrir menu do acampamento'
     : 'Ação B indisponível';
   const runActionB = () => {
     if (buildCartVisible) onBuildCart();
-    else if (buildHouseVisible) onBuildHouse();
     else if (buildRefineryVisible) onBuildRefinery();
     else if (buildTecelariaVisible) onBuildTecelaria();
     else if (storeToHouseVisible) onStoreToHouse();
     else if (storeToCartVisible) onStoreToCart();
+    else if (campMenuVisible) onOpenCampMenu();
   };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -196,7 +197,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         <button type="button" className={cartActionVisible ? 'game-action-button action-y is-active' : 'game-action-button action-y'} disabled={!cartActionVisible} aria-disabled={!cartActionVisible} aria-label={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} title={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (cartActionVisible) onCartToggle(); }}>
           Y<span className={cartFollowing ? 'game-action-status is-following' : 'game-action-status is-stopped'} aria-hidden="true" />
         </button>
-        <button type="button" className="game-action-button action-x is-active" aria-label="X: abrir mochila, casa e carrinho" title="X: abrir mochila, casa e carrinho" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })}>X</button>
+        <button type="button" className="game-action-button action-x is-active" aria-label="X: abrir mochila, baú e carrinho" title="X: abrir mochila, baú e carrinho" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })}>X</button>
         <button type="button" className={actionBVisible && !actionBDisabled ? 'game-action-button action-b is-active' : 'game-action-button action-b'} disabled={!actionBVisible || actionBDisabled} aria-disabled={!actionBVisible || actionBDisabled} aria-label={actionBLabel} title={actionBLabel} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (actionBVisible && !actionBDisabled) runActionB(); }}>
           B
         </button>
