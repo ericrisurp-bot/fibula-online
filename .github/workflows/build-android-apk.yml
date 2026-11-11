@@ -45,6 +45,9 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Prepare Android app icon and Arena deep link
+        run: npm run cap:android:prepare
+
       - name: Build debug APK
         working-directory: android
         run: |
