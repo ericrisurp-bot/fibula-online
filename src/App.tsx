@@ -169,6 +169,10 @@ const inventoryItemIcon = (itemId: string) => {
     tucunare: 'fish-tucunare.png',
   };
   if (fishFile[base]) return <img src={`/assets/items/${fishFile[base]}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'auto' }} />;
+  const agricultureSpriteFile: Record<string, string> = {
+    tomato: 'tomato.png', cabbage: 'cabbage.png', herbs: 'herbs.png', jabuticaba: 'jabuticaba.png',
+  };
+  if (agricultureSpriteFile[base]) return <img src={`/assets/items/${agricultureSpriteFile[base]}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />;
   const palette: Record<string, { fill: string; shade: string; line: string }> = {
     wood: { fill: '#bd8950', shade: '#80552f', line: '#4b3324' },
     stone: { fill: '#aab3b8', shade: '#68737a', line: '#3e474d' },
