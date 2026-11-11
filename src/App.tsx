@@ -945,10 +945,15 @@ export default function App() {
     : chestBuildStatus.reason === 'resources' ? 'Sem madeira'
     : chestBuildStatus.reason === 'outside' ? 'Fora do raio'
     : chestBuildStatus.reason === 'blocked' ? 'Local ocupado' : 'Sem fogueira';
-  const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
-  const refineryBuildAccessible = !state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
-  const tecelariaDistance = Math.hypot(feet.x - state.tecelaria.x, feet.y - state.tecelaria.y);
-  const tecelariaBuildAccessible = !state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
+  const refineryBuildStatus = engineRef.current?.getRefineryCampStatus() ?? { ok: false as const, reason: 'nofire' as const };
+  const tecelariaBuildStatus = engineRef.current?.getTecelariaCampStatus() ?? { ok: false as const, reason: 'nofire' as const };
+  const campMachineStatusLabel = (status: typeof refineryBuildStatus) => status.ok ? 'Construir'
+    : status.reason === 'already' ? 'Já construída'
+    : status.reason === 'resources' ? 'Sem material'
+    : status.reason === 'outside' ? 'Fora do raio'
+    : status.reason === 'blocked' ? 'Local ocupado' : 'Sem fogueira';
+  const refineryBuildStatusLabel = campMachineStatusLabel(refineryBuildStatus);
+  const tecelariaBuildStatusLabel = campMachineStatusLabel(tecelariaBuildStatus);
   const cartBuildAccessible = state.cart.stage === 'broken' && cartDistance <= CONFIG.cart.interactRadius;
   const donkeyX = state.cart.x + Math.cos(state.cart.angle) * CONFIG.donkey.cartDistance;
   const donkeyY = state.cart.y + Math.sin(state.cart.angle) * CONFIG.donkey.cartDistance;
@@ -1488,8 +1493,8 @@ export default function App() {
         worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
       }
       if (s.house.built) worldDrawables.push({ depth: s.house.y + 28, draw: () => drawCampChest(ctx, s.house) });
-      worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
-      worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
+      if (s.refinery.built) worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery, s.elapsed) });
+      if (s.tecelaria.built) worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
         const playerGround = playerFeet(s.player);
         drawCart(ctx, s.cart, Math.hypot(playerGround.x - s.cart.x, playerGround.y - s.cart.y) <= CONFIG.cart.interactRadius, s.elapsed, false, s.cart.wheelPhase);
@@ -1962,8 +1967,6 @@ export default function App() {
         const currentFeet = playerFeet(current.player);
         const options: Array<{ distance: number; radius: number; available: boolean; build: () => void }> = [
           { distance: Math.hypot(currentFeet.x - current.cart.x, currentFeet.y - current.cart.y), radius: CONFIG.cart.interactRadius, available: current.cart.stage === 'broken', build: () => engine.buildCart() },
-          { distance: Math.hypot(currentFeet.x - current.refinery.x, currentFeet.y - current.refinery.y), radius: CONFIG.refinery.interactRadius, available: !current.refinery.built, build: () => engine.buildRefinery() },
-          { distance: Math.hypot(currentFeet.x - current.tecelaria.x, currentFeet.y - current.tecelaria.y), radius: CONFIG.tecelaria.interactRadius, available: !current.tecelaria.built, build: () => engine.buildTecelaria() },
         ];
         const nearest = options.filter(option => option.available && option.distance <= option.radius).sort((a, b) => a.distance - b.distance)[0];
         nearest?.build();
@@ -2786,7 +2789,6 @@ export default function App() {
   const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
   const storeAllBagToHouse = () => engineRef.current?.storeAllBagToHouse();
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
-  const buildRefinery = () => engineRef.current?.buildRefinery();
   const buildCart = () => engineRef.current?.buildCart();
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
     flagWheelRef.current = next;
@@ -2812,6 +2814,14 @@ export default function App() {
   };
   const buildCampChest = () => {
     const result = engineRef.current?.buildChest();
+    if (result?.ok) closeCampMenu();
+  };
+  const buildCampRefinery = () => {
+    const result = engineRef.current?.buildRefineryAtCamp();
+    if (result?.ok) closeCampMenu();
+  };
+  const buildCampTecelaria = () => {
+    const result = engineRef.current?.buildTecelariaAtCamp();
     if (result?.ok) closeCampMenu();
   };
   const handleInventoryClosePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
@@ -3717,8 +3727,16 @@ export default function App() {
           <button type="button" className="camp-menu-row camp-menu-chest" disabled={!chestBuildStatus.ok} onClick={buildCampChest} aria-label={`Baú: ${chestBuildStatusLabel}`}>
             <span className="camp-menu-icon">{inventoryItemIcon('wood')}</span><strong>Baú</strong><b>20</b><small>{chestBuildStatusLabel}</small>
           </button>
-          <div className="camp-menu-row is-disabled" aria-disabled="true"><span className="camp-menu-icon">🔥</span><strong>Forno</strong><small>Em breve</small></div>
-          <div className="camp-menu-row is-disabled" aria-disabled="true"><span className="camp-menu-icon">🧵</span><strong>Tear</strong><small>Em breve</small></div>
+          <button type="button" className="camp-menu-row camp-menu-machine" disabled={!refineryBuildStatus.ok} onClick={buildCampRefinery} aria-label={`Refinaria: ${refineryBuildStatusLabel}`}>
+            <span className="camp-menu-icon">{inventoryItemIcon('stone')}</span><strong>Refinaria</strong>
+            <span className="camp-menu-cost"><span>{inventoryItemIcon('wood')}<b>5</b></span><span>{inventoryItemIcon('stone')}<b>15</b></span><span>{inventoryItemIcon('cotton')}<b>5</b></span></span>
+            <small>{refineryBuildStatusLabel}</small>
+          </button>
+          <button type="button" className="camp-menu-row camp-menu-machine" disabled={!tecelariaBuildStatus.ok} onClick={buildCampTecelaria} aria-label={`Tecelaria: ${tecelariaBuildStatusLabel}`}>
+            <span className="camp-menu-icon">🧵</span><strong>Tecelaria</strong>
+            <span className="camp-menu-cost"><span>{inventoryItemIcon('wood')}<b>10</b></span><span>{inventoryItemIcon('stone')}<b>5</b></span><span>{inventoryItemIcon('cotton')}<b>10</b></span></span>
+            <small>{tecelariaBuildStatusLabel}</small>
+          </button>
         </section>
       </div>}
       {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Baú, mochila e carrinho">
@@ -3749,30 +3767,19 @@ export default function App() {
 </div>}
 </section></div>}
 </div></div>}
-{!showStart && !state.dead && (() => {
-  const recipe = cartBuildAccessible
-    ? (state.cart.everBuilt ? [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 5 }] : [{ itemId: 'wood', quantity: 1 }])
-    : refineryBuildAccessible
-        ? [{ itemId: 'wood', quantity: CONFIG.refinery.buildCostWood }, { itemId: 'stone', quantity: CONFIG.refinery.buildCostStone }]
-        : tecelariaBuildAccessible
-          ? [{ itemId: 'bronze', quantity: CONFIG.tecelaria.buildCostBronze }, { itemId: 'wood', quantity: CONFIG.tecelaria.buildCostWood }, { itemId: 'cotton', quantity: CONFIG.tecelaria.buildCostCotton }, { itemId: 'stone', quantity: CONFIG.tecelaria.buildCostStone }]
-          : null;
-  if (!recipe) return null;
-  const name = cartBuildAccessible ? 'Carroça' : refineryBuildAccessible ? 'Refinaria' : 'Tecelaria';
+{!showStart && !state.dead && cartBuildAccessible && (() => {
+  const recipe = state.cart.everBuilt ? [{ itemId: 'wood', quantity: 10 }, { itemId: 'cotton', quantity: 5 }] : [{ itemId: 'wood', quantity: 1 }];
   const description = recipe.map(({ itemId, quantity }) => {
-    const material = itemId === 'wood' ? (quantity === 1 ? 'madeira' : 'madeiras')
-      : itemId === 'cotton' ? (quantity === 1 ? 'algodão' : 'algodões')
-      : itemId === 'stone' ? (quantity === 1 ? 'pedra' : 'pedras')
-      : (quantity === 1 ? 'bronze' : 'bronzes');
+    const material = itemId === 'wood' ? (quantity === 1 ? 'madeira' : 'madeiras') : (quantity === 1 ? 'algodão' : 'algodões');
     return `${quantity} ${material}`;
   }).join(' + ');
-  return <div className="game-construction-recipe" aria-label={`${name}: ${description}`} title={`${name}: ${description}`}>
+  return <div className="game-construction-recipe" aria-label={`Carroça: ${description}`} title={`Carroça: ${description}`}>
     {recipe.map(item => <span className="game-construction-recipe-item" key={item.itemId}>
       <span className="game-construction-recipe-icon">{inventoryItemIcon(item.itemId)}</span><b>{item.quantity}</b>
     </span>)}
   </div>;
 })()}
-{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildRefineryVisible={refineryBuildAccessible && !state.dead && !showStart} buildTecelariaVisible={tecelariaBuildAccessible && !state.dead && !showStart} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildRefinery={buildRefinery} onBuildTecelaria={() => engineRef.current?.buildTecelaria()} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}
@@ -3833,119 +3840,91 @@ function drawCampChest(ctx: CanvasRenderingContext2D, house: GameSnapshot['house
   ctx.restore();
 }
 
-function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery']) {
-  const { x, y, woodDelivered, stoneDelivered, built } = refinery;
+function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery'], elapsed: number) {
+  if (!refinery.built) return;
+  const { x, y } = refinery;
   ctx.save(); ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,.3)';
-  ctx.beginPath(); ctx.ellipse(0, 20, 42, 13, 0, 0, Math.PI * 2); ctx.fill();
-  if (!built) ctx.scale(1.7, 1.7);
-  if (!built) {
-    // Refinaria inacabada como ruína industrial low-poly, com forno quebrado.
-    const stone = (points: Array<[number, number]>, fill: string) => {
-      ctx.beginPath();
-      points.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
-      ctx.closePath(); ctx.fillStyle = fill; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
-    };
-    stone([[-38, 17], [-33, 5], [-22, 3], [-15, 12], [-19, 19]], '#788188');
-    stone([[-17, 18], [-14, 7], [-2, 5], [5, 14], [1, 19]], '#aab2b7');
-    stone([[10, 18], [8, 8], [19, 5], [28, 12], [25, 19]], '#68737a');
-    stone([[27, 14], [30, 4], [38, 7], [39, 16], [33, 19]], '#929ba1');
-    // Laterais quebradas do forno e abertura escura no centro.
-    stone([[-30, 8], [-29, -10], [-19, -19], [-10, -13], [-12, 8]], '#68747a');
-    stone([[12, 8], [10, -8], [19, -17], [29, -11], [29, 8]], '#899399');
-    stone([[-28, -10], [-19, -19], [-10, -13], [-19, -9]], '#aab2b7');
-    ctx.fillStyle = '#252d30'; ctx.beginPath(); ctx.moveTo(-10, 8); ctx.lineTo(-10, -5); ctx.lineTo(-3, -10); ctx.lineTo(10, -6); ctx.lineTo(11, 8); ctx.closePath(); ctx.fill();
-    // Viga caída e pequenos restos de madeira ao redor da estrutura.
-    ctx.lineCap = 'round'; ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.moveTo(-22, -2); ctx.lineTo(2, -12); ctx.stroke();
-    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3.5;
-    ctx.beginPath(); ctx.moveTo(-20, -3); ctx.lineTo(1, -12); ctx.stroke();
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(20, 12); ctx.lineTo(34, 8); ctx.stroke();
-    ctx.strokeStyle = '#b18350'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(21, 11); ctx.lineTo(33, 8); ctx.stroke();
-    const woodProgress = Math.min(1, woodDelivered / CONFIG.refinery.buildCostWood);
-    const stoneProgress = Math.min(1, stoneDelivered / CONFIG.refinery.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-24, -31, 48, 7);
-    ctx.fillStyle = '#b28a59'; ctx.fillRect(-24, -31, 48 * woodProgress, 3);
-    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-24, -28, 48 * stoneProgress, 3);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-24, -31, 48, 7);
-    ctx.restore(); return;
-  }
-  ctx.fillStyle = '#656d72'; ctx.strokeStyle = '#293438'; ctx.lineWidth = 3;
-  ctx.fillRect(-34, -14, 68, 39); ctx.strokeRect(-34, -14, 68, 39);
-  ctx.fillStyle = '#77838a';
-  ctx.beginPath(); ctx.moveTo(-40, -14); ctx.lineTo(-25, -34); ctx.lineTo(25, -34); ctx.lineTo(40, -14); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#2d3639'; ctx.fillRect(-8, 1, 16, 24);
-  ctx.fillStyle = built ? '#d98b50' : '#6c777b'; ctx.beginPath(); ctx.arc(0, 8, 7, 0, Math.PI * 2); ctx.fill();
-  if (!built) {
-    const woodProgress = woodDelivered / CONFIG.refinery.buildCostWood;
-    const stoneProgress = stoneDelivered / CONFIG.refinery.buildCostStone;
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-40, -49, 80, 8);
-    ctx.fillStyle = '#b28a59'; ctx.fillRect(-40, -49, 80 * woodProgress, 3);
-    ctx.fillStyle = '#9ba4aa'; ctx.fillRect(-40, -45, 80 * stoneProgress, 4);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-40, -49, 80, 8);
+  ctx.fillStyle = 'rgba(0,0,0,.32)';
+  ctx.beginPath(); ctx.ellipse(0, 20, 40, 12, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Moldura de madeira que sustenta o forno.
+  ctx.fillStyle = '#4b3020'; ctx.strokeStyle = '#2b1c14'; ctx.lineWidth = 2.5;
+  ctx.fillRect(-34, -20, 68, 43); ctx.strokeRect(-34, -20, 68, 43);
+  ctx.fillStyle = '#a87542';
+  ctx.fillRect(-31, -17, 5, 36); ctx.fillRect(26, -17, 5, 36);
+  ctx.fillRect(-30, -18, 60, 4); ctx.fillRect(-30, 17, 60, 3);
+
+  // Corpo de pedra com juntas visíveis.
+  ctx.fillStyle = '#8d8b84'; ctx.strokeStyle = '#5c5a55'; ctx.lineWidth = 1.5;
+  ctx.fillRect(-27, -13, 54, 34); ctx.strokeRect(-27, -13, 54, 34);
+  ctx.beginPath(); ctx.moveTo(-27, -2); ctx.lineTo(27, -2); ctx.moveTo(-27, 9); ctx.lineTo(27, 9);
+  ctx.moveTo(-9, -13); ctx.lineTo(-9, -2); ctx.moveTo(10, -2); ctx.lineTo(10, 9); ctx.moveTo(-10, 9); ctx.lineTo(-10, 21); ctx.stroke();
+
+  // Chaminé de pedra, com topo aberto.
+  ctx.fillStyle = '#8d8b84'; ctx.strokeStyle = '#5c5a55'; ctx.lineWidth = 2;
+  ctx.fillRect(12, -42, 15, 30); ctx.strokeRect(12, -42, 15, 30);
+  ctx.fillStyle = '#6d6b65'; ctx.fillRect(10, -44, 19, 5);
+  ctx.fillStyle = '#a9a69d'; ctx.fillRect(15, -38, 3, 20);
+
+  // Boca escura e brasa animada.
+  ctx.fillStyle = '#211b17'; ctx.strokeStyle = '#44352a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(-12, 1, 24, 20, 4); ctx.fill(); ctx.stroke();
+  const ember = 0.72 + Math.sin(elapsed * 5.5) * 0.18;
+  ctx.globalAlpha = ember; ctx.fillStyle = '#f0782f';
+  ctx.beginPath(); ctx.ellipse(0, 16, 7, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd06b'; ctx.beginPath(); ctx.ellipse(-2, 13, 2.3, 4.5, -.25, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Fumaça leve acima da chaminé.
+  for (let i = 0; i < 3; i++) {
+    const phase = (elapsed * 0.34 + i / 3) % 1;
+    const smokeY = -49 - phase * 19;
+    const smokeX = 20 + Math.sin(elapsed * 1.2 + i) * (3 + phase * 3);
+    ctx.globalAlpha = (1 - phase) * 0.24;
+    ctx.fillStyle = '#d8d5ce';
+    ctx.beginPath(); ctx.arc(smokeX, smokeY, 3 + phase * 3, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 }
 
 function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['tecelaria']) {
-  const { x, y, built, bronzeDelivered, woodDelivered, cottonDelivered, stoneDelivered } = building;
+  if (!building.built) return;
+  const { x, y } = building;
   ctx.save(); ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, 20, 43, 13, 0, 0, Math.PI * 2); ctx.fill();
-  if (!built) ctx.scale(1.7, 1.7);
-  if (!built) {
-    // Tecelaria inacabada como ruína low-poly: base quebrada, pedras e madeira partida.
-    const stone = (points: Array<[number, number]>, fill: string) => {
-      ctx.beginPath();
-      points.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
-      ctx.closePath(); ctx.fillStyle = fill; ctx.strokeStyle = '#454d53'; ctx.lineWidth = 1.4; ctx.fill(); ctx.stroke();
-    };
-    // Fundação irregular e fragmentada, com espaços abertos para parecer quebrada.
-    stone([[-35, 15], [-30, 5], [-18, 3], [-10, 9], [-13, 17]], '#788188');
-    stone([[-14, 17], [-12, 8], [-1, 6], [5, 14], [2, 18]], '#aab2b7');
-    stone([[9, 17], [8, 9], [19, 6], [27, 12], [25, 18]], '#68737a');
-    stone([[25, 10], [27, 2], [35, 4], [37, 13], [31, 16]], '#929ba1');
-    // Pilares de madeira quebrados e inclinados, sem fechar a silhueta numa armação.
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.moveTo(-27, 8); ctx.lineTo(-29, -11); ctx.lineTo(-22, -19); ctx.stroke();
-    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(-27, 7); ctx.lineTo(-29, -10); ctx.stroke();
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.moveTo(18, 8); ctx.lineTo(20, -8); ctx.lineTo(12, -15); ctx.stroke();
-    ctx.strokeStyle = '#9b754d'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(18, 7); ctx.lineTo(20, -7); ctx.stroke();
-    // Um pedaço de viga caída atravessa parte da base, como resto da obra.
-    ctx.strokeStyle = '#4b3323'; ctx.lineWidth = 6;
-    ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(3, -7); ctx.stroke();
-    ctx.strokeStyle = '#a97949'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(-18, -1); ctx.lineTo(1, -7); ctx.stroke();
-    // Materiais restantes reconhecíveis, desenhados com facetas coerentes com as pedras do mapa.
-    stone([[-5, 1], [0, -5], [7, -4], [11, 1], [6, 4]], '#8e989e');
-    stone([[3, 5], [9, 0], [15, 2], [16, 7], [8, 9]], '#69757c');
-    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#d8d0c1'; ctx.lineWidth = 1;
-    for (const puff of [{ x: 28, y: 0 }, { x: 33, y: 2 }, { x: 29, y: 4 }]) {
-      ctx.beginPath(); ctx.arc(puff.x - 2, puff.y, 3, 0, Math.PI * 2); ctx.arc(puff.x + 2, puff.y - 1, 3, 0, Math.PI * 2); ctx.arc(puff.x, puff.y + 2, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    }
-    const progress = Math.min(bronzeDelivered / CONFIG.tecelaria.buildCostBronze, woodDelivered / CONFIG.tecelaria.buildCostWood, cottonDelivered / CONFIG.tecelaria.buildCostCotton, stoneDelivered / CONFIG.tecelaria.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-25, -34, 50, 6);
-    ctx.fillStyle = '#d8c39a'; ctx.fillRect(-25, -34, 50 * progress, 6);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-25, -34, 50, 6);
-    ctx.restore(); return;
+  ctx.fillStyle = 'rgba(0,0,0,.32)';
+  ctx.beginPath(); ctx.ellipse(0, 20, 41, 12, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Dois pés de pedra sustentam a armação.
+  ctx.fillStyle = '#8d8b84'; ctx.strokeStyle = '#5c5a55'; ctx.lineWidth = 1.5;
+  ctx.fillRect(-29, 9, 15, 13); ctx.strokeRect(-29, 9, 15, 13);
+  ctx.fillRect(14, 9, 15, 13); ctx.strokeRect(14, 9, 15, 13);
+  ctx.beginPath(); ctx.moveTo(-29, 15); ctx.lineTo(-14, 15); ctx.moveTo(14, 15); ctx.lineTo(29, 15); ctx.stroke();
+
+  // Tear de madeira escura com realces nas travessas.
+  ctx.fillStyle = '#4b3020'; ctx.strokeStyle = '#2b1c14'; ctx.lineWidth = 3;
+  ctx.fillRect(-31, -27, 7, 39); ctx.strokeRect(-31, -27, 7, 39);
+  ctx.fillRect(24, -27, 7, 39); ctx.strokeRect(24, -27, 7, 39);
+  ctx.fillRect(-34, -30, 68, 7); ctx.strokeRect(-34, -30, 68, 7);
+  ctx.fillRect(-34, 5, 68, 6); ctx.strokeRect(-34, 5, 68, 6);
+  ctx.fillStyle = '#a87542';
+  ctx.fillRect(-29, -26, 3, 30); ctx.fillRect(26, -26, 3, 30);
+  ctx.fillRect(-31, -28, 62, 2); ctx.fillRect(-31, 7, 62, 2);
+
+  // Fios claros e tecido pronto no centro.
+  ctx.strokeStyle = '#f3efe4'; ctx.lineWidth = 1.4;
+  for (let i = -18; i <= 18; i += 6) {
+    ctx.beginPath(); ctx.moveTo(i, -21); ctx.lineTo(i, 5); ctx.stroke();
   }
-  ctx.fillStyle = '#6f624d'; ctx.strokeStyle = '#292820'; ctx.lineWidth = 3;
-  ctx.fillRect(-35, -15, 70, 40); ctx.strokeRect(-35, -15, 70, 40);
-  ctx.fillStyle = '#8d7857'; ctx.beginPath(); ctx.moveTo(-42, -15); ctx.lineTo(-25, -36); ctx.lineTo(25, -36); ctx.lineTo(42, -15); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#d8c39a'; ctx.fillRect(-22, -5, 44, 22); ctx.strokeStyle = '#3b3022'; ctx.lineWidth = 2; ctx.strokeRect(-22, -5, 44, 22);
-  ctx.strokeStyle = '#e4d8bb'; ctx.lineWidth = 2;
-  for (let xLine = -16; xLine <= 16; xLine += 8) { ctx.beginPath(); ctx.moveTo(xLine, -4); ctx.lineTo(xLine, 16); ctx.stroke(); }
-  for (let yLine = 0; yLine <= 12; yLine += 6) { ctx.beginPath(); ctx.moveTo(-21, yLine); ctx.lineTo(21, yLine); ctx.stroke(); }
-  if (!built) {
-    const progress = Math.min(bronzeDelivered / CONFIG.tecelaria.buildCostBronze, woodDelivered / CONFIG.tecelaria.buildCostWood, cottonDelivered / CONFIG.tecelaria.buildCostCotton, stoneDelivered / CONFIG.tecelaria.buildCostStone);
-    ctx.fillStyle = 'rgba(18,25,22,.9)'; ctx.fillRect(-42, -50, 84, 8); ctx.fillStyle = '#d8c39a'; ctx.fillRect(-42, -50, 84 * progress, 8);
-    ctx.strokeStyle = 'rgba(235,245,238,.7)'; ctx.lineWidth = 1; ctx.strokeRect(-42, -50, 84, 8);
+  ctx.fillStyle = '#e9e2cf'; ctx.strokeStyle = '#c7bda8'; ctx.lineWidth = 1.2;
+  ctx.fillRect(-18, -5, 36, 12); ctx.strokeRect(-18, -5, 36, 12);
+  ctx.strokeStyle = '#c7bda8'; ctx.lineWidth = 1;
+  for (let i = -14; i <= 14; i += 7) {
+    ctx.beginPath(); ctx.moveTo(i, -4); ctx.lineTo(i, 6); ctx.stroke();
   }
+
+  // Lançadeira escura apoiada na borda do tecido.
+  ctx.fillStyle = '#29231d'; ctx.strokeStyle = '#120f0c'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(-5, 1); ctx.lineTo(5, 1); ctx.lineTo(8, 4); ctx.lineTo(5, 7); ctx.lineTo(-5, 7); ctx.lineTo(-8, 4); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.restore();
 }
 
