@@ -218,11 +218,11 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       
     </div>
     <div className={stick.active ? 'joystick-guide-ring is-active' : 'joystick-guide-ring'} aria-hidden="true" />
+    <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
+      <span>{menuOpen ? '×' : '☰'}</span>
+    </button>
     <div className="mobile-quick-buttons" aria-label="Controles de ação">
       <div className="mobile-secondary-actions">
-        <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
-          <span>{menuOpen ? '×' : '☰'}</span>
-        </button>
         <button className="mobile-quick-class" type="button" onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }} aria-label={`Trocar classe para ${CLASSES[nextClass].label}`} title={`Próxima classe: ${CLASSES[nextClass].label}`}><ClassWeaponIcon /></button>
         <button className="mobile-quick-bag" type="button" onPointerDown={event => runTouchAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} onClick={event => runClickAction(event, () => { setMenuOpen(false); onInventoryToggle(); })} aria-label="Abrir mochila, casa e carrinho" title="Mochila e casa"><LowPolyBackpackIcon /></button>
       </div>
