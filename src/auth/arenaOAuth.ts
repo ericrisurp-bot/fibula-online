@@ -35,7 +35,7 @@ const getClientId = () => import.meta.env.VITE_ARENA_OAUTH_CLIENT_ID?.trim() ?? 
 
 export const isArenaOAuthConfigured = () => getClientId().length > 0;
 
-const getRedirectUri = () => `${PRODUCTION_ORIGIN}${CALLBACK_PATH}`;
+const getRedirectUri = () => PRODUCTION_ORIGIN + CALLBACK_PATH;
 
 function encodeBase64Url(value: string): string {
   return btoa(String.fromCharCode(...new TextEncoder().encode(value)))
@@ -68,9 +68,9 @@ function getOAuthReturnOrigin(state: string | null): string | null {
     if (url.origin !== decodedOrigin || url.protocol !== 'https:') return null;
     const hostname = url.hostname;
     const isAllowedOrigin = hostname === 'fibula.iericris.com.br'
-      || /^[a-z0-9-]+\\.fibula\\.iericris\\.com\\.br$/i.test(hostname)
+      || /^[a-z0-9-]+\.fibula\.iericris\.com\.br$/i.test(hostname)
       || hostname === 'fibula-online.pages.dev'
-      || /^[a-z0-9-]+\\.fibula-online\\.pages\\.dev$/i.test(hostname);
+      || /^[a-z0-9-]+\.fibula-online\.pages\.dev$/i.test(hostname);
     return isAllowedOrigin ? url.origin : null;
   } catch {
     return null;
@@ -162,7 +162,7 @@ async function exchangeAuthorizationCode(code: string, verifier: string): Promis
     code_verifier: verifier,
   });
 
-  const response = await fetch(`${ARENA_AUTH_BASE}/oauth/token`, {
+  const response = await fetch(ARENA_AUTH_BASE + '/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -179,7 +179,7 @@ async function refreshTokens(refreshToken: string): Promise<OAuthTokenResponse> 
     refresh_token: refreshToken,
   });
 
-  const response = await fetch(`${ARENA_AUTH_BASE}/oauth/token`, {
+  const response = await fetch(ARENA_AUTH_BASE + '/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -190,8 +190,8 @@ async function refreshTokens(refreshToken: string): Promise<OAuthTokenResponse> 
 }
 
 async function fetchArenaUser(accessToken: string): Promise<ArenaUser> {
-  const response = await fetch(`${ARENA_AUTH_BASE}/oauth/userinfo`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+  const response = await fetch(ARENA_AUTH_BASE + '/oauth/userinfo', {
+    headers: { Authorization: 'Bearer ' + accessToken },
     cache: 'no-store',
     credentials: 'omit',
   });
@@ -228,12 +228,12 @@ export async function startArenaLogin(): Promise<void> {
 
   const verifier = randomBase64Url();
   const clientType = Capacitor.isNativePlatform() ? 'native' : 'web';
-  const state = `${randomBase64Url()}.${clientType}.${encodeBase64Url(window.location.origin)}`;
+  const state = randomBase64Url() + '.' + clientType + '.' + encodeBase64Url(window.location.origin);
   const challenge = await createCodeChallenge(verifier);
   localStorage.setItem(STATE_KEY, state);
   localStorage.setItem(VERIFIER_KEY, verifier);
 
-  const authorizationUrl = new URL(`${ARENA_AUTH_BASE}/oauth/authorize`);
+  const authorizationUrl = new URL(ARENA_AUTH_BASE + '/oauth/authorize');
   authorizationUrl.search = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
