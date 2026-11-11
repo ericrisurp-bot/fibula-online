@@ -66,21 +66,20 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
   const classOrder = Object.keys(CLASSES) as ClassId[];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
-  const actionBVisible = buildCartVisible || storeToHouseVisible || storeToCartVisible || campMenuVisible;
-  const actionBDisabled = buildCartVisible ? false
+  const actionBVisible = buildCartVisible || campMenuVisible || storeToHouseVisible || storeToCartVisible;
+  const actionBDisabled = buildCartVisible || campMenuVisible ? false
     : storeToHouseVisible ? storeToHouseDisabled
-    : storeToCartVisible ? storeToCartDisabled
-    : campMenuVisible ? false : true;
+    : storeToCartVisible ? storeToCartDisabled : true;
   const actionBLabel = buildCartVisible ? 'Construir burrinho e carroça'
+    : campMenuVisible ? 'Abrir menu do acampamento'
     : storeToHouseVisible ? 'Guardar tudo no baú'
     : storeToCartVisible ? 'Guardar tudo no carrinho'
-    : campMenuVisible ? 'Abrir menu do acampamento'
     : 'Ação B indisponível';
   const runActionB = () => {
     if (buildCartVisible) onBuildCart();
+    else if (campMenuVisible) onOpenCampMenu();
     else if (storeToHouseVisible) onStoreToHouse();
     else if (storeToCartVisible) onStoreToCart();
-    else if (campMenuVisible) onOpenCampMenu();
   };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
