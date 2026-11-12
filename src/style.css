@@ -10610,3 +10610,6 @@ sem backdrop ou caixa de modal. */
 
 /* J2.4 — slot um pouco mais alto, abaixo da lâmpada. */
 .jewelry-core-slot{top:52%!important}
+
+/* J2.5 — remove a gema roxa decorativa sobre a gaveta central; manter o suporte. */
+.jewelry-cutting-stand::after{display:none!important}
