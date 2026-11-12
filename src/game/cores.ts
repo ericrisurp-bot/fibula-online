@@ -50,7 +50,7 @@ export function createClosedCore(random: () => number): ClosedCore {
 }
 export function closedCoreItemId(core: ClosedCore): string {
   if (core.category === 'weapon') return `core:${core.rarity}:weapon:${core.weaponModel ?? 'espada'}`;
-  return `core:${core.rarity}:${core.category}:${core.equipmentType ?? randomEquipmentType(() => 0, core.category)}`;
+  return core.equipmentType ? `core:${core.rarity}:${core.category}:${core.equipmentType}` : `core:${core.rarity}:${core.category}`;
 }
 export function revealCore(random: () => number, category: CoreCategory, rarity: CoreRarity, id: string, weaponModel?: CoreWeaponModel, equipmentType?: CoreEquipmentType): Core {
   const surp = random() < CORE_SURP_CHANCE;
