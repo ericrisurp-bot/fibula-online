@@ -10707,3 +10707,183 @@ sem backdrop ou caixa de modal. */
 @media(max-width:430px){
   .jewelry-raw-gem{top:29%;width:9px;height:12px}
 }
+
+
+/* J2.8 — reconstrução da bancada: marcenaria de precisão e runas de armas. */
+.jewelry-workbench{
+  left:3%;
+  right:3%;
+  height:45%;
+}
+.jewelry-bench-leg{
+  top:61%;
+  width:7%;
+  border:2px solid #35251e;
+  background:linear-gradient(90deg,#382820 0%,#785337 18%,#9a7048 48%,#65452f 82%,#30231e 100%);
+  box-shadow:inset 0 0 0 1px #d5ad7533,0 5px 7px #080d16aa;
+}
+.jewelry-bench-leg-left{left:8%}
+.jewelry-bench-leg-right{right:8%}
+.jewelry-bench-front{
+  left:2%;
+  right:2%;
+  top:20%;
+  height:70%;
+  border:2px solid #3a291f;
+  border-radius:4px 4px 7px 7px;
+  background:
+    linear-gradient(90deg,transparent 0 1.2%,#d0a16b22 1.5%,transparent 2.2% 98%,#d0a16b22 98.5%,transparent 99%),
+    repeating-linear-gradient(90deg,transparent 0 72px,#35251d28 73px 74px),
+    linear-gradient(180deg,#765238 0%,#986d46 12%,#805839 52%,#60432f 100%);
+  box-shadow:inset 0 2px 0 #e0bd8955,inset 0 -9px 13px #26191288,0 7px 12px #080d17bb;
+}
+.jewelry-bench-front:before{
+  top:0;
+  height:7px;
+  border-radius:2px 2px 0 0;
+  background:linear-gradient(180deg,#d7b27d 0%,#8b6441 48%,#493326 100%);
+  box-shadow:0 2px 4px #20140f99;
+}
+.jewelry-bench-drawer{
+  top:20%;
+  width:25%;
+  height:57%;
+  border:2px solid #493326;
+  border-radius:4px;
+  background:
+    linear-gradient(180deg,#c39a68 0%,#a77a4e 8%,#8d6543 52%,#704b34 100%);
+  box-shadow:inset 0 2px 0 #f0d3a455,inset 0 -3px 5px #39241977,0 2px 3px #2a1c1666;
+}
+.jewelry-bench-drawer:before{
+  display:block!important;
+  content:"";
+  position:absolute;
+  inset:4px;
+  border:1px solid #d8b27a55;
+  border-radius:2px;
+  background:linear-gradient(145deg,#5b402f22,#2d201822);
+  pointer-events:none;
+}
+.jewelry-bench-drawer:after{
+  top:50%;
+  width:15px;
+  height:4px;
+  border:1px solid #514538;
+  border-radius:3px;
+  background:linear-gradient(180deg,#f1e6ca,#9b8b6e);
+  box-shadow:0 1px 2px #21160fbb,0 0 0 2px #30221955;
+}
+.jewelry-bench-drawer-left{left:5%}
+.jewelry-bench-drawer-center{left:37.5%;width:25%;top:20%;height:57%}
+.jewelry-bench-drawer-right{right:5%}
+.jewelry-drawer-rune{
+  position:absolute;
+  z-index:2;
+  top:50%;
+  width:15px;
+  height:17px;
+  display:grid;
+  place-items:center;
+  transform:translateY(-50%);
+  border:1px solid #b99a6b88;
+  border-radius:2px;
+  background:linear-gradient(145deg,#302d38,#514454 55%,#28232e);
+  color:#c9b4df;
+  font:700 11px/1 Georgia,serif;
+  text-shadow:0 0 5px #b69be0aa;
+  box-shadow:inset 0 1px 0 #fff2,0 1px 2px #1d130f99;
+}
+.jewelry-drawer-rune:nth-child(1){left:17%}
+.jewelry-drawer-rune:nth-child(2){right:17%}
+.jewelry-bench-top{
+  top:0;
+  height:22%;
+  border:2px solid #4a3325;
+  border-radius:4px 4px 2px 2px;
+  background:
+    linear-gradient(180deg,#e0bd8955 0%,transparent 22%),
+    repeating-linear-gradient(90deg,transparent 0 62px,#4a302322 63px 64px),
+    linear-gradient(180deg,#c0925e 0%,#a8794d 38%,#805638 82%,#503626 100%);
+  box-shadow:inset 0 2px 0 #f3d7a477,inset 0 -4px 5px #3a261b99,0 6px 9px #080d17cc;
+}
+.jewelry-bench-top:before{
+  content:"";
+  position:absolute;
+  left:-1%;
+  right:-1%;
+  top:0;
+  height:5px;
+  border:1px solid #4a3325;
+  border-radius:3px;
+  background:linear-gradient(180deg,#e7c895,#a77a4d 58%,#68452e);
+  box-shadow:0 2px 3px #20140f99;
+}
+.jewelry-bench-top:after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:3px;
+  background:linear-gradient(180deg,#68472f,#39271e);
+  box-shadow:0 2px 3px #20140f88;
+}
+.jewelry-tool-tray{
+  top:24%;
+  width:19%;
+  height:53%;
+  border:2px solid #604631;
+  border-radius:5px;
+  background:linear-gradient(145deg,#302a2c,#584236 55%,#2b2425);
+  box-shadow:inset 0 0 0 2px #c29a6844,0 3px 4px #20171199;
+}
+.jewelry-bench-loupe{top:22%;right:12%}
+.jewelry-tweezers{top:49%;left:10%;width:15%}
+.jewelry-rune-plaque{
+  position:absolute;
+  z-index:3;
+  top:24%;
+  width:27px;
+  height:31px;
+  display:grid;
+  place-items:center;
+  border:1px solid #b89a6a;
+  border-radius:4px;
+  background:linear-gradient(145deg,#3d3545 0%,#211e2b 58%,#151923 100%);
+  box-shadow:inset 0 1px 0 #f4e6c055,inset 0 -2px 3px #090b14aa,0 3px 4px #211711aa;
+}
+.jewelry-rune-plaque:before{
+  content:"";
+  position:absolute;
+  inset:3px;
+  border:1px solid #c8a87866;
+  border-radius:2px;
+}
+.jewelry-rune-plaque i{
+  position:relative;
+  z-index:1;
+  color:#e1c58d;
+  font:700 17px/1 Georgia,serif;
+  font-style:normal;
+  text-shadow:0 0 5px #e4c58b99;
+}
+.jewelry-rune-plaque-left{left:42%}
+.jewelry-rune-plaque-center{left:calc(50% - 13px);top:17%;transform:translateY(-2px);border-color:#d8bd83;box-shadow:inset 0 0 0 1px #e8d2a833,0 0 9px #d9bd8055,0 3px 4px #211711aa}
+.jewelry-rune-plaque-right{right:42%}
+@media(max-width:430px){
+  .jewelry-workbench{left:2%;right:2%;height:44%}
+  .jewelry-bench-leg{width:7.5%}
+  .jewelry-bench-front{left:1%;right:1%;top:21%;height:68%}
+  .jewelry-bench-drawer{top:20%;height:55%;width:26%}
+  .jewelry-bench-drawer-left{left:4%}
+  .jewelry-bench-drawer-center{left:37%;width:26%;top:20%;height:55%}
+  .jewelry-bench-drawer-right{right:4%}
+  .jewelry-bench-top{height:23%}
+  .jewelry-rune-plaque{width:23px;height:27px}
+  .jewelry-rune-plaque-center{left:calc(50% - 11px)}
+  .jewelry-drawer-rune{width:12px;height:14px;font-size:9px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .jewelry-workbench{height:44%}
+  .jewelry-bench-top{height:22%}
+}
