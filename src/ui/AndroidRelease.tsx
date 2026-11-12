@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
+import { AppLauncher } from '@capacitor/app-launcher';
 import { Capacitor } from '@capacitor/core';
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
@@ -130,8 +130,13 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
         : 'Ainda não encontramos um APK oficial publicado. A página de Releases será aberta para você conferir.');
     }
     if (isAndroid) {
+      if (release) {
+        window.alert(
+          'O navegador externo será aberto para baixar o APK. Quando o download terminar, abra app-release.apk pela notificação ou pela pasta Downloads e confirme a instalação. Se o Android pedir, permita a instalação de apps pelo navegador.',
+        );
+      }
       try {
-        await Browser.open({ url: targetUrl });
+        await AppLauncher.openUrl({ url: targetUrl });
       } catch {
         window.location.assign(targetUrl);
       }
