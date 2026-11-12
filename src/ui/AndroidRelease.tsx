@@ -1,11 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { App } from '@capacitor/app';
 import { AppLauncher } from '@capacitor/app-launcher';
+import { FileTransfer } from '@capacitor/file-transfer';
+import { FileOpener } from '@capacitor-community/file-opener';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
 const RELEASES_PAGE_URL = 'https://github.com/ericrisurp-bot/fibula-online/releases';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const APK_MIME_TYPE = 'application/vnd.android.package-archive';
 
 type AndroidRelease = {
   versionName: string;
@@ -17,6 +21,8 @@ type AndroidReleaseContextValue = {
   release: AndroidRelease | null;
   updateAvailable: boolean;
   checking: boolean;
+  downloading: boolean;
+  downloadProgress: number;
   isSupported: boolean;
   downloadLatest: () => Promise<void>;
 };
@@ -31,7 +37,7 @@ function parseRelease(value: unknown): AndroidRelease | null {
     assets?: unknown;
   };
   if (typeof release.tag_name !== 'string') return null;
-  const versionMatch = /^android-v(\d+\.\d+\.\d+)$/.exec(release.tag_name);
+  const versionMatch = /^android-v(\\d+\\.\\d+\\.\\d+)$/.exec(release.tag_name);
   if (!versionMatch || !Array.isArray(release.assets)) return null;
 
   const apk = release.assets.find((asset) =>
@@ -42,7 +48,7 @@ function parseRelease(value: unknown): AndroidRelease | null {
   if (!apk) return null;
 
   const versionCodeMatch = typeof release.body === 'string'
-    ? /Código da versão:\s*(\d+)/i.exec(release.body)
+    ? /Código da versão:\\s*(\\d+)/i.exec(release.body)
     : null;
 
   return {
@@ -70,6 +76,8 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   const [currentVersionName, setCurrentVersionName] = useState<string | null>(null);
   const [currentVersionCode, setCurrentVersionCode] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const lastCheckAt = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -123,38 +131,83 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   );
 
   const downloadLatest = useCallback(async () => {
-    const targetUrl = release?.apkUrl ?? RELEASES_PAGE_URL;
+    if (downloading) return;
     if (!release) {
-      window.alert(checking
-        ? 'O Fíbula ainda está consultando as versões publicadas. Confira a página de Releases para acompanhar.'
-        : 'Ainda não encontramos um APK oficial publicado. A página de Releases será aberta para você conferir.');
-    }
-    if (isAndroid) {
-      if (release) {
-        window.alert(
-          'O navegador externo será aberto para baixar o APK. Quando o download terminar, abra app-release.apk pela notificação ou pela pasta Downloads e confirme a instalação. Se o Android pedir, permita a instalação de apps pelo navegador.',
-        );
+      const targetUrl = RELEASES_PAGE_URL;
+      if (isAndroid) {
+        window.alert(checking
+          ? 'O Fíbula ainda está consultando as versões publicadas. A página de Releases será aberta para você conferir.'
+          : 'Ainda não encontramos um APK oficial publicado. A página de Releases será aberta para você conferir.');
+        try {
+          await AppLauncher.openUrl({ url: targetUrl });
+        } catch {
+          window.location.assign(targetUrl);
+        }
+        return;
       }
+      const opened = window.open(targetUrl, '_blank');
+      if (opened) opened.opener = null;
+      else window.location.assign(targetUrl);
+      return;
+    }
+
+    if (isAndroid) {
+      setDownloading(true);
+      setDownloadProgress(0);
+      let progressListener: { remove: () => Promise<void> } | null = null;
       try {
-        const result = await AppLauncher.openUrl({ url: targetUrl });
-        if (!result.completed) window.location.assign(targetUrl);
+        const fileName = `fibula-online-${release.versionName}.apk`;
+        const destination = await Filesystem.getUri({
+          directory: Directory.Cache,
+          path: fileName,
+        });
+        progressListener = await FileTransfer.addListener('progress', ({ bytes, contentLength }) => {
+          if (contentLength > 0) {
+            setDownloadProgress(Math.min(100, Math.round((bytes / contentLength) * 100)));
+          }
+        });
+        await FileTransfer.downloadFile({
+          url: release.apkUrl,
+          path: destination.uri,
+          progress: true,
+        });
+        const downloadedFile = await Filesystem.stat({
+          directory: Directory.Cache,
+          path: fileName,
+        });
+        if (downloadedFile.size <= 0) throw new Error('O arquivo baixado está vazio.');
+
+        setDownloadProgress(100);
+        await FileOpener.open({
+          filePath: destination.uri,
+          contentType: APK_MIME_TYPE,
+          openWithDefault: true,
+        });
       } catch {
-        window.location.assign(targetUrl);
+        window.alert(
+          'Não foi possível concluir o download ou abrir o instalador. Tente novamente; se o problema continuar, baixe o APK pela página de Releases usando outro navegador, como o EG(G).',
+        );
+      } finally {
+        if (progressListener) await progressListener.remove();
+        setDownloading(false);
       }
       return;
     }
-    const opened = window.open(targetUrl, '_blank');
+
+    const opened = window.open(release.apkUrl, '_blank');
     if (opened) opened.opener = null;
-    else window.location.assign(targetUrl);
-  }, [checking, isAndroid, release]);
+    else window.location.assign(release.apkUrl);
+  }, [checking, downloading, isAndroid, release]);
 
   const value = useMemo(() => ({
     release,
     updateAvailable,
     checking,
+    downloading,
+    downloadProgress,
     isSupported,
     downloadLatest,
-  }), [release, updateAvailable, checking, isSupported, downloadLatest]);
+  }), [release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest]);
 
   return <AndroidReleaseContext.Provider value={value}>{children}</AndroidReleaseContext.Provider>;
 }
@@ -166,35 +219,41 @@ export function useAndroidRelease(): AndroidReleaseContextValue {
 }
 
 export function AndroidReleaseButton() {
-  const { release, updateAvailable, checking, isSupported, downloadLatest } = useAndroidRelease();
+  const { release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest } = useAndroidRelease();
   if (!isSupported) return null;
 
-  const label = checking && !release
-    ? 'Verificando versões publicadas'
-    : updateAvailable
-      ? 'Atualização obrigatória disponível. Baixar APK novo.'
-      : 'Baixar aplicativo oficial do Fíbula';
-  const title = checking && !release
-    ? 'Verificando se existe uma versão nova'
-    : updateAvailable
-      ? `NEW · Atualizar para a versão ${release?.versionName ?? ''}`
-      : release
-        ? 'Baixar APK oficial'
-        : 'Conferir versões publicadas no GitHub';
+  const label = downloading
+    ? `Baixando APK: ${downloadProgress}%`
+    : checking && !release
+      ? 'Verificando versões publicadas'
+      : updateAvailable
+        ? 'Atualização obrigatória disponível. Baixar APK novo.'
+        : 'Baixar aplicativo oficial do Fíbula';
+  const title = downloading
+    ? `Baixando APK: ${downloadProgress}%`
+    : checking && !release
+      ? 'Verificando se existe uma versão nova'
+      : updateAvailable
+        ? `NEW · Atualizar para a versão ${release?.versionName ?? ''}`
+        : release
+          ? 'Baixar APK oficial'
+          : 'Conferir versões publicadas no GitHub';
 
   return (
     <button
-      className={`lobby-release-button${checking && !release ? ' is-checking' : ''}`}
+      className={`lobby-release-button${checking && !release ? ' is-checking' : ''}${downloading ? ' is-downloading' : ''}`}
       type="button"
       aria-label={label}
       title={title}
-      aria-busy={checking}
+      aria-busy={checking || downloading}
+      disabled={downloading}
       onClick={() => { void downloadLatest(); }}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
       </svg>
-      {updateAvailable && <span className="lobby-release-new">NEW</span>}
+      {downloading && <span className="lobby-release-progress">{downloadProgress}%</span>}
+      {updateAvailable && !downloading && <span className="lobby-release-new">NEW</span>}
     </button>
   );
 }
