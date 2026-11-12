@@ -10606,3 +10606,7 @@ sem backdrop ou caixa de modal. */
 @media(prefers-reduced-motion:reduce){
   .jewelry-revealing .jewelry-scene-glow,.jewelry-revealing .jewelry-scene-spark,.jewelry-revealing .jewelry-result-card{animation:none!important;opacity:1!important}
 }
+
+
+/* J2.4 — slot um pouco mais alto, abaixo da lâmpada. */
+.jewelry-core-slot{top:52%!important}
