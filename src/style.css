@@ -9774,6 +9774,8 @@ sem backdrop ou caixa de modal. */
   stroke-linejoin:round;
 }
 .lobby-screen .lobby-release-button:disabled{opacity:.48;cursor:not-allowed}
+.lobby-screen .lobby-release-button.is-checking svg{animation:lobby-release-spin 1s linear infinite}
+@keyframes lobby-release-spin{to{transform:rotate(360deg)}}
 .lobby-screen .lobby-release-button:not(:disabled){cursor:pointer}
 .lobby-screen .lobby-release-button:focus-visible{outline:2px solid #fff1c9;outline-offset:3px}
 .lobby-screen .lobby-release-new{
