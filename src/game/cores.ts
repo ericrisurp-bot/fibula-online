@@ -1,10 +1,11 @@
 export type CoreRarity = 'normal' | 'common' | 'uncommon' | 'rare' | 'legendary';
 export type CoreCategory = 'weapon' | 'armor' | 'accessory';
 export type CoreWeaponModel = 'espada' | 'arco' | 'cajado';
+export type CoreEquipmentType = 'capacete' | 'peitoral' | 'leggings' | 'bota' | 'luva' | 'colar' | 'pulseira' | 'cinto';
 export type CoreAttributeKey = 'forca' | 'velocidadeAtaque' | 'inteligencia' | 'destreza' | 'vida' | 'armadura' | 'resistenciaMagica' | 'velocidadeMovimento' | 'esquiva';
 export type CoreAttribute = { key: CoreAttributeKey; value: number };
 export type ClosedCore = { category: CoreCategory; rarity: CoreRarity; weaponModel?: CoreWeaponModel };
-export type Core = { id: string; category: CoreCategory; rarity: CoreRarity; surp: boolean; attributes: CoreAttribute[]; weaponModel?: CoreWeaponModel; affinity?: 'dano' | 'natureza' };
+export type Core = { id: string; category: CoreCategory; rarity: CoreRarity; surp: boolean; attributes: CoreAttribute[]; weaponModel?: CoreWeaponModel; affinity?: 'dano' | 'natureza'; equipmentType?: CoreEquipmentType };
 export type CoreDrop = { id: number; x: number; y: number; age: number; core: ClosedCore };
 export const CORE_DROP_CHANCE = 0.02;
 export const CORE_SURP_CHANCE = 0.02;
@@ -26,6 +27,15 @@ const WEAPON_MODEL_ATTRIBUTES: Record<CoreWeaponModel, readonly CoreAttributeKey
 const isCategory = (v: unknown): v is CoreCategory => v === 'weapon' || v === 'armor' || v === 'accessory';
 const isRarity = (v: unknown): v is CoreRarity => CORE_RARITY_CHANCES.some(entry => entry.rarity === v);
 const isWeaponModel = (v: unknown): v is CoreWeaponModel => v === 'espada' || v === 'arco' || v === 'cajado';
+const ARMOR_EQUIPMENT_TYPES = ['capacete', 'peitoral', 'leggings', 'bota', 'luva'] as const;
+const ACCESSORY_EQUIPMENT_TYPES = ['colar', 'pulseira', 'cinto'] as const;
+const isEquipmentType = (v: unknown, category: CoreCategory): v is CoreEquipmentType =>
+  category === 'armor' ? ARMOR_EQUIPMENT_TYPES.includes(v as typeof ARMOR_EQUIPMENT_TYPES[number])
+    : category === 'accessory' ? ACCESSORY_EQUIPMENT_TYPES.includes(v as typeof ACCESSORY_EQUIPMENT_TYPES[number]) : false;
+const randomEquipmentType = (random: () => number, category: Exclude<CoreCategory, 'weapon'>): CoreEquipmentType => {
+  const types = category === 'armor' ? ARMOR_EQUIPMENT_TYPES : ACCESSORY_EQUIPMENT_TYPES;
+  return types[Math.min(types.length - 1, Math.floor(random() * types.length))];
+};
 const poolFor = (category: CoreCategory) => category === 'weapon' ? WEAPON_ATTRIBUTES : category === 'armor' ? ARMOR_ATTRIBUTES : ACCESSORY_ATTRIBUTES;
 export function createClosedCore(random: () => number): ClosedCore {
   const categoryRoll = random(); let categoryTotal = 0;
@@ -61,7 +71,7 @@ export function revealCore(random: () => number, category: CoreCategory, rarity:
     const potency = surp ? 1 : 0.5 + random() * 0.5;
     attributes.push({ key, value: ref * potency });
   }
-  return { id, category, rarity, surp, attributes };
+  return { id, category, rarity, surp, attributes, equipmentType: randomEquipmentType(random, category) };
 }
 export function coreAttributeTier(value: number, rarity: CoreRarity): 'ruim' | 'medio' | 'bom' | 'maximo' {
   const potency = value / CORE_RARITY_REFERENCE[rarity];
@@ -76,6 +86,7 @@ function parseOldCore(encoded: string): Core | null {
     const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
     const core = value as Partial<Core>;
     if (typeof core.id !== 'string' || !isCategory(core.category) || core.category === 'weapon' || !isRarity(core.rarity) || typeof core.surp !== 'boolean'
+      || (core.equipmentType !== undefined && !isEquipmentType(core.equipmentType, core.category))
       || !Array.isArray(core.attributes) || core.attributes.length === 0) return null;
     const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
     for (const a of core.attributes) {
@@ -107,6 +118,7 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
       if (core.surp !== allMaximum) return null;
     } else {
       if (core.weaponModel !== undefined || core.affinity !== undefined || ![2, 4].includes(core.attributes.length)
+        || (core.equipmentType !== undefined && !isEquipmentType(core.equipmentType, core.category))
         || core.surp !== (core.attributes.length === 4)) return null;
       const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>();
       for (const a of core.attributes) {
