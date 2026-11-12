@@ -3185,8 +3185,212 @@ export default function App() {
                     {(() => {
                       const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
                       if (!parsed || parsed.kind !== 'revealed') return null;
-                       return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
-                         <header><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
+                      return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
+                        <header><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
+                        <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}>
+                          <span>{weaponAttributeLabels[attribute.key]}</span>
+                          <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
+                        </li>)}</ul>
+                      </section>;
+                    })()}
+                  </div>
+                </JewelryScene>
+                <section className="forge-zone forge-nuclei-zone jewelry-nuclei-zone" aria-label="Núcleos fechados">
+                  <div className="forge-panel-heading">
+                    <strong>NÚCLEOS FECHADOS</strong>
+                    <span>Selecione 1 núcleo para revelar</span>
+                  </div>
+                  <div className="forge-core-strip">
+                    {jewelryClosedCoreStacks.map(item => <button type="button" key={item.itemId}
+                      className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
+                      aria-pressed={selectedJewelryCoreId === item.itemId}
+                      onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
+                      <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "2.5rem", height: "2.5rem", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
+                      <strong>{itemLabel(item.itemId)}</strong>
+                      <small>×{item.quantity}</small>
+                    </button>)}
+                    {jewelryClosedCoreStacks.length === 0 && <p className="forge-empty">Você não tem núcleos para revelar.</p>}
+                  </div>
+                </section>
+                <div className="jewelry-action-area">
+                  <button type="button" className="jewelry-reveal-button"
+                    disabled={jewelryRevealBusy || !selectedJewelryCoreId || !jewelryClosedCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
+                    onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
+                  {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
+                </div>
+              </div> : activeCraftingStation.id === 'bigorna' ? <>
+                <div className="forge-workspace">
+                  <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
+                    <div className="forge-recipe-slots" aria-label="Slots da receita">
+                      {selectedWeaponCore && weaponRecipeRows.map(row => {
+                        const partLabel = row.slot === 'mineral'
+                          ? selectedWeaponModel === 'espada' ? 'Lâmina' : 'Ponta'
+                          : row.slot === 'linen' ? 'Corda'
+                            : row.slot === 'wood' ? selectedWeaponModel === 'arco' ? 'Haste' : 'Cabo' : row.slot;
+                        const materialLabel = row.slot === 'mineral' ? 'Minério' : row.slot === 'wood' ? 'Madeira' : 'Linho';
+                        const order = row.slot === 'linen' ? -2 : row.slot === 'wood' ? -1 : 1;
+                        return <button type="button" key={row.slot}
+                          className={row.selection ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+                          style={{ order }}
+                          onClick={() => clearForgeMaterial(row.slot)}
+                          aria-label={row.selection ? 'Devolver ' + itemLabel(row.selection.itemId) + ' à grade' : 'Slot ' + partLabel}>
+                          <span>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
+                          <strong>{partLabel} · {materialLabel} ×{row.material.quantity}</strong>
+                          <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
+                        </button>;
+                      })}
+                      <button type="button" className={selectedWeaponCore ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
+                        style={{ order: 0 }}
+                        onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
+                        aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
+                        <span>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
+                        <strong>Núcleo</strong>
+                        <small>{selectedWeaponCore ? coreRarityLabel(selectedWeaponCore.rarity) : '0/1'}</small>
+                      </button>
+                    </div>
+                  </ForgeScene>
+                  <section className="forge-zone forge-nuclei-zone" aria-label="Núcleos">
+                    <div className="forge-panel-heading">
+                      <strong>NÚCLEOS</strong>
+                      <span>Núcleos revelados de arma</span>
+                    </div>
+                    <div className="forge-core-strip">
+                      {anvilWeaponCoreStacks.map(item => {
+                        const parsed = parseCoreItemId(item.itemId);
+                        if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
+                        const coreModel = parsed.core.weaponModel === 'cajado' ? parsed.core.affinity === 'natureza' ? 'bastão' : 'cajado' : parsed.core.weaponModel;
+                        return <button type="button" key={item.itemId}
+                          className={selectedWeaponCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
+                          disabled={weaponCraftBusy}
+                          onClick={() => selectForgeCore(item.itemId)}>
+                          <span>{inventoryItemIcon(item.itemId)}</span>
+                          <strong>Núcleo de {coreModel} · {coreRarityLabel(parsed.core.rarity)}</strong>
+                          <small>×{item.quantity}</small>
+                        </button>;
+                      })}
+                      {anvilWeaponCoreStacks.length === 0 && <p className="forge-empty">Nenhum núcleo revelado de arma no Baú.</p>}
+                    </div>
+                    <div className="forge-action-area">
+                      {forgeCraftResult ? <div className="forge-result" role="status">
+                        <strong>{forgeCraftResult}</strong>
+                        <button type="button" onClick={openCraftedWeaponInArsenal}>Ver no Arsenal</button>
+                        {weaponFeedback && <small>{weaponFeedback}</small>}
+                      </div> : <button type="button" className="forge-craft-button" onClick={() => void craftAnvilWeapon()}
+                        disabled={!selectedWeaponCore || !weaponMaterialsReady || !!weaponCompatibilityError || !cookingOnline || weaponCraftBusy}>
+                        {weaponCraftBusy ? 'Fabricando…' : 'Fabricar'}
+                      </button>}
+                      {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
+                      {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
+                    </div>
+                  </section>
+                  <section className="forge-zone forge-materials-zone" aria-label="Materiais">
+                    <div className="forge-panel-heading">
+                      <strong>MATERIAIS</strong>
+                      <span>Materiais de fabricação no Baú</span>
+                    </div>
+                    <div className="forge-material-grid" aria-label="Todos os materiais de fabricação no Baú">
+                      {anvilMaterialStacks.map(item => {
+                        const base = getBaseItemId(item.itemId);
+                        const rarity = getItemRarity(item.itemId) ?? 'normal';
+                        const slot = base === 'stone' || base === 'bronze' ? 'mineral' : base;
+                        const recipeRow = weaponRecipeRows.find(row => row.slot === slot);
+                        const canSelect = !!selectedWeaponCore && !!recipeRow && rarity === selectedWeaponCore.rarity;
+                        const selected = selectedWeaponMaterials.find(selection => selection.slot === slot && selection.itemId === item.itemId);
+                        return <button type="button" key={item.itemId}
+                          className={'forge-material-item' + (selected ? ' selected' : '')}
+                          disabled={weaponCraftBusy || !canSelect}
+                          onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
+                          <span>{inventoryItemIcon(item.itemId)}</span>
+                          <strong>{itemLabel(item.itemId)}{rarity !== 'normal' ? ' · ' + coreRarityLabel(rarity) : ''}</strong>
+                          <small>×{item.quantity}{selected ? ' · ' + selected.quantity + '/' + recipeRow?.material.quantity : ''}</small>
+                        </button>;
+                      })}
+                      {anvilMaterialStacks.length === 0 && <p className="forge-empty">Nenhum material de fabricação no Baú.</p>}
+                    </div>
+                  </section>
+                </div>
+              </> : activeCraftingStation.id === 'fogao' ? <>
+                <div className="cooking-station-form cooking-kitchen">
+                  <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : ''}`}>
+                    <div className="cooking-pot-heading">
+                      <div className="cooking-oven-heading-title">
+                        <strong>FORNO DE PEDRA</strong>
+                        
+                      </div>
+                      <span>{preparedCookingMeals.length}/3</span>
+                    </div>
+                    <div className="cooking-oven-mouth">
+                      <div className="cooking-oven-fire" aria-hidden="true"><i /><i /><i /></div>
+                      <div className="cooking-production-slots">
+                      {Array.from({ length: 3 }, (_, index) => {
+                        const meal = preparedCookingMeals[index];
+                        const remaining = meal ? Math.max(0, Math.ceil(((meal.productionReadyAt ?? 0) - cookingClock) / 1000)) : 0;
+                        return <div className={meal ? remaining > 0 ? 'cooking-production-slot cooking-in-progress' : 'cooking-production-slot cooking-ready' : 'cooking-production-slot'} key={meal?.id ?? 'production-' + index}>
+                          <strong>Produção {index + 1}</strong>
+                          {meal ? <>
+                            <span className="cooking-production-icon">{cookingMealArtwork(meal)}</span>
+                            <b>{meal.name}</b>
+                            {remaining > 0 ? <small>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</small>
+                              : <button type="button" disabled={!cookingOnline} onClick={() => void collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
+                          </> : <small>Livre</small>}
+                        </div>;
+                      })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="cooking-pot-panel cooking-ingredient-workbench">
+                    <div className="cooking-pot-heading"><strong>Ingredientes · 4 espaços</strong></div>
+                    <div className="cooking-pot-slots" aria-label="Quatro espaços de ingredientes">
+                      {Array.from({ length: 4 }, (_, index) => {
+                        const item = panCookingSelections[index];
+                        if (!item) return <div className="cooking-pot-slot" key={'empty-' + index}>
+                          <span>＋</span><small>Espaço {index + 1}</small>
+                        </div>;
+                        const nextTotal = cookingSelectedTotal - 1;
+                        const nextVarieties = panCookingSelections.length - (item.quantity === 1 ? 1 : 0);
+                        const cannotRemove = nextTotal > getCookingCapacity(nextVarieties);
+                        return <button type="button" className="cooking-pot-slot filled" key={item.itemId}
+                          aria-label={'Retirar uma unidade de ' + itemLabel(item.itemId)}
+                          onClick={() => removeCookingIngredientUnit(item.itemId)} disabled={cannotRemove}>
+                          <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b>
+                        </button>;
+                      })}
+                    </div>
+                    <button type="button" className="cooking-prepare-button" onClick={() => void prepareCookingMeal()}
+                      disabled={!cookingOnline || preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
+                    <div className="lobby-chest-grid cooking-ingredient-grid" aria-label="Ingredientes disponíveis no Baú">
+                      {cookingIngredientStacks.map(item => {
+                        const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
+                        const nextCapacity = getCookingCapacity(panCookingSelections.length + (selected === 0 ? 1 : 0));
+                        return <button type="button" className={selected > 0 ? 'quick-slot filled lobby-chest-slot cooking-ingredient selected' : 'quick-slot filled lobby-chest-slot cooking-ingredient'} key={item.itemId}
+                          onClick={() => addCookingIngredientUnit(item.itemId)}
+                          disabled={selected >= item.quantity || (selected === 0 && panCookingSelections.length >= 4)
+                            || cookingSelectedTotal >= nextCapacity}>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                          <small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
+                        </button>;
+                      })}
+                    </div>
+
+                  </div>
+                  {!cookingOnline && <small className="cooking-feedback" role="status">Sem conexão: cozinhar exige internet.</small>}
+                  {cookingFeedback && <small className="cooking-feedback" role="status">{cookingFeedback}</small>}
+                </div>
+              </> : <>
+                <div className="lobby-crafting-products"><span>PRODUÇÃO PREVISTA</span><strong>{stationPresentation.products}</strong></div>
+                <small>Os recursos disponíveis no Baú são usados diretamente na fabricação.</small>
+              </>}
+            
+        </div>
+      </div>
+    {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura') && <StationNav current={activeCraftingStation.id} onLobby={closeGamePage} onOpenStation={openStation} />}
+      </PageFrame> : <main className="game-shell" style={{ '--interface-scale': 1, '--controller-scale-setting': interfaceScale / 100 } as CSSProperties}>
+    <header className="topbar">
+      <div className="brand-mark">F<span>Í</span>BULA</div>
+      <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
+      <button className="help-button" onClick={() => { const nextMuted = !audioMuted; setAudioMuted(nextMuted); audioManager.setMuted(nextMuted); }} aria-label={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"} aria-pressed={!audioMuted} title={audioMuted ? "Ligar efeitos sonoros" : "Desligar efeitos sonoros"}>{audioMuted ? "🔇" : "🔊"}</button>
+      <button className="help-button" onClick={() => setShowHelp(v => !v)} aria-label="Ajuda">?</button>
+    </header>
     <section className="game-stage">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Campo de jogo 2D" onPointerDown={onFlagPointerDown} onPointerMove={onFlagPointerMove} onPointerUp={onFlagPointerUp} onPointerCancel={onFlagPointerUp} onContextMenu={onFlagContextMenu} />
       <div className="hud-top" aria-label="Status da partida">
