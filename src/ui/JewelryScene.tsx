@@ -6,7 +6,9 @@ type JewelrySceneProps = {
 export default function JewelryScene({ revealAnimating, children }: JewelrySceneProps) {
   return <section className={'jewelry-scene' + (revealAnimating ? ' jewelry-revealing' : '')} aria-label="Bancada de joalheiro">
     <div className="jewelry-scene-wall" aria-hidden="true">
+      <span className="jewelry-wall-stone-detail" />
       <span className="jewelry-wall-shelf" />
+      <span className="jewelry-shelf-gem-tray" />
       <span className="jewelry-lamp-arm" />
       <span className="jewelry-lamp-shade" />
       <span className="jewelry-loupe" />
@@ -16,6 +18,12 @@ export default function JewelryScene({ revealAnimating, children }: JewelryScene
     </div>
     <div className="jewelry-workbench" aria-hidden="true">
       <span className="jewelry-bench-edge" />
+      <span className="jewelry-bench-front" />
+      <span className="jewelry-bench-drawer jewelry-bench-drawer-left" />
+      <span className="jewelry-bench-drawer jewelry-bench-drawer-right" />
+      <span className="jewelry-tool-tray" />
+      <span className="jewelry-tweezers" />
+      <span className="jewelry-jeweler-hammer" />
       <span className="jewelry-velvet-pad" />
       <span className="jewelry-bench-inlay" />
     </div>
