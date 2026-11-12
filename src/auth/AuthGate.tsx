@@ -44,8 +44,15 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
     const applyNativeCallback = async (url: string) => {
       try {
+        console.info('[Arena OAuth] Link de retorno recebido pelo app nativo.');
         const callbackSession = await completeArenaLogin(url);
-        if (!active || !callbackSession) return;
+        if (!active) return;
+        if (!callbackSession) {
+          console.warn('[Arena OAuth] O link recebido não foi reconhecido como callback válido.');
+          setMessage('O Fíbula voltou para o aplicativo, mas não conseguiu reconhecer o retorno da Arena. Tente entrar novamente.');
+          setStatus('error');
+          return;
+        }
         setSession(callbackSession);
         setMessage('');
         setStatus('signed-in');
@@ -73,7 +80,12 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         let launchSession: ArenaOAuthSession | null = null;
         if (Capacitor.isNativePlatform()) {
           const launch = await App.getLaunchUrl();
-          if (launch?.url) launchSession = await completeArenaLogin(launch.url);
+          if (launch?.url) {
+            launchSession = await completeArenaLogin(launch.url);
+            if (!launchSession) {
+              throw new Error('O Android abriu o Fíbula por um link de retorno que não foi reconhecido. Inicie o login novamente.');
+            }
+          }
         }
         const callbackSession = launchSession ?? await completeArenaLogin();
         const currentSession = callbackSession ?? await getValidArenaSession();
