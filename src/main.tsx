@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import AuthGate from './auth/AuthGate';
 import InstallPrompt from './ui/InstallPrompt';
+import { AndroidReleaseProvider } from './ui/AndroidRelease';
 import WorldBackdropPreview from './ui/WorldBackdropPreview';
 import './style.css';
 
@@ -24,12 +25,12 @@ createRoot(document.getElementById('root')!).render(
     {isWorldPreview ? (
       <WorldBackdropPreview />
     ) : (
-      <>
+      <AndroidReleaseProvider>
         <AuthGate>
           <App />
         </AuthGate>
         <InstallPrompt />
-      </>
+      </AndroidReleaseProvider>
     )}
   </React.StrictMode>,
 );
