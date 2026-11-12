@@ -7,7 +7,7 @@ import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { consumeCookingIngredients, getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
+import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, reportHighestPd, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
@@ -2475,8 +2475,6 @@ export default function App() {
       setCookingFeedback('Não foi possível preparar esta receita.');
       return;
     }
-    const nextInventory = consumeCookingIngredients(lobbyChestItems, meal);
-    if (!nextInventory) { setCookingFeedback('Você não tem todas essas unidades disponíveis no Baú.'); return; }
     try {
       const result = await startCookingProduction(fibulaSupabase!, meal);
       applyCookingInventory(result.inventory);
