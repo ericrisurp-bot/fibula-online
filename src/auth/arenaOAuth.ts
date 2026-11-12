@@ -137,10 +137,11 @@ function isNativeOAuthState(state: string | null): boolean {
   return state?.split('.')[1] === 'native';
 }
 
-function isNativeCallbackUrl(url: URL): boolean {
-  return url.protocol === 'fibula:'
-    && url.hostname === 'auth'
-    && url.pathname === '/callback';
+export function isNativeCallbackUrl(url: URL): boolean {
+  return url.protocol === 'fibula:' && (
+    (url.hostname === 'auth' && url.pathname === '/callback')
+    || (url.hostname === '' && url.pathname === '//auth/callback')
+  );
 }
 
 function randomBase64Url(): string {

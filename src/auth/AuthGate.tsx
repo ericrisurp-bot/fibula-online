@@ -6,6 +6,7 @@ import {
   completeArenaLogin,
   getArenaOAuthDiagnostic,
   getValidArenaSession,
+  isNativeCallbackUrl,
   isArenaOAuthConfigured,
   resetArenaOAuthDiagnostic,
   startArenaLogin,
@@ -90,9 +91,7 @@ function logNativeCallbackTarget(source: 'appUrlOpen' | 'launchUrl', value: stri
       protocol: target.protocol,
       hostname: target.hostname,
       pathname: target.pathname,
-      recognized: target.protocol === 'fibula:'
-        && target.hostname === 'auth'
-        && target.pathname === '/callback',
+      recognized: isNativeCallbackUrl(target),
     });
   } catch {
     console.warn('[Arena OAuth] O Android entregou um link com formato inválido.', { source });
@@ -298,7 +297,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             <strong style={{ display: 'block', marginBottom: 5, color: '#f0f0f0' }}>Diagnóstico do login</strong>
             <div>Origem: {diagnostic.source}</div>
             <div>Protocolo: {diagnostic.protocol ?? 'indisponível'}</div>
-            <div>Host: {diagnostic.hostname ?? 'indisponível'}</div>
+            <div>Host: {diagnostic.hostname === null ? 'indisponível' : diagnostic.hostname || 'vazio'}</div>
             <div>Caminho: {diagnostic.pathname ?? 'indisponível'}</div>
             <div>Callback nativo reconhecido: {diagnostic.recognizedNativeCallback ? 'sim' : 'não'}</div>
             <div>Código presente: {diagnostic.codePresent ? 'sim' : 'não'}</div>
