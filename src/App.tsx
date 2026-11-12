@@ -675,6 +675,8 @@ export default function App() {
   const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
   const [jewelryRevealBusy, setJewelryRevealBusy] = useState(false);
   const [jewelryFeedback, setJewelryFeedback] = useState('');
+  const jewelrySlotCoreId = selectedJewelryCoreId ?? jewelryResultCoreId;
+  const jewelrySlotCore = jewelrySlotCoreId ? parseCoreItemId(jewelrySlotCoreId) : null;
   useEffect(() => {
     if (!jewelryResultCoreId) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -3173,26 +3175,26 @@ export default function App() {
               </div> : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
                 <JewelryScene revealAnimating={jewelryRevealAnimating}>
                   <div className="jewelry-scene-content">
-                    <button type="button" className={selectedJewelryCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
-                      onClick={() => { setSelectedJewelryCoreId(null); setJewelryFeedback(''); }}
-                      aria-label={selectedJewelryCoreId ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
-                      {selectedJewelryCoreId ? <>
+                    <button type="button" className={jewelrySlotCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
+                      onClick={() => { setSelectedJewelryCoreId(null); setJewelryResultCoreId(null); setJewelryFeedback(''); }}
+                      aria-label={jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : jewelrySlotCore?.kind === 'closed' ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
+                      {jewelrySlotCore?.kind === 'closed' ? <>
                         <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "3rem", height: "3rem", display: "block", objectFit: "contain", background: "none" }} />
-                        <strong>{itemLabel(selectedJewelryCoreId)}</strong>
-                        <small>{(() => { const core = parseCoreItemId(selectedJewelryCoreId); return core?.kind === 'closed' ? coreRarityLabel(core.rarity) : 'Núcleo fechado'; })()}</small>
+                        <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
+                        <small>{coreRarityLabel(jewelrySlotCore.rarity)}</small>
+                      </> : jewelrySlotCore?.kind === 'revealed' ? <>
+                        <img src={`/assets/cores/${CORE_SPRITE_FILES[jewelrySlotCore.core.category]}`} alt="" aria-hidden="true" draggable={false} style={{ width: "3rem", height: "3rem", display: "block", objectFit: "contain", imageRendering: "pixelated" }} />
+                        <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
+                        <small>{coreRarityLabel(jewelrySlotCore.core.rarity)}</small>
                       </> : <strong>＋ Núcleo 0/1</strong>}
                     </button>
-                    {(() => {
-                      const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
-                      if (!parsed || parsed.kind !== 'revealed') return null;
-                      return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
-                        <header><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
-                        <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}>
-                          <span>{weaponAttributeLabels[attribute.key]}</span>
-                          <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
-                        </li>)}</ul>
-                      </section>;
-                    })()}
+                    {jewelrySlotCore?.kind === 'revealed' && <section className="jewelry-result-card" aria-label="Atributos do núcleo revelado">
+                      <header><strong>{itemLabel(jewelrySlotCoreId!)}</strong></header>
+                      <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
+                        <span>{weaponAttributeLabels[attribute.key]}</span>
+                        <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
+                      </li>)}</ul>
+                    </section>}
                   </div>
                 </JewelryScene>
                 <section className="forge-zone forge-nuclei-zone jewelry-nuclei-zone" aria-label="Núcleos fechados">
@@ -3204,7 +3206,7 @@ export default function App() {
                     {jewelryClosedCoreStacks.map(item => <button type="button" key={item.itemId}
                       className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
-                      onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
+                      onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryResultCoreId(null); setJewelryFeedback(''); }}>
                       <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "2.5rem", height: "2.5rem", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
                       <strong>{itemLabel(item.itemId)}</strong>
                       <small>×{item.quantity}</small>
