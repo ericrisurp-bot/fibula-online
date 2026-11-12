@@ -9821,3 +9821,123 @@ sem backdrop ou caixa de modal. */
   font-weight:900;
   font-variant-numeric:tabular-nums;
 }
+
+ 
+/* J2 — Joalheria: oficina acolhedora, madeira e pedra clara, sem excesso de ornamentos. */
+.jewelry-scene{
+  border-color:#8b806d;
+  background:
+    radial-gradient(ellipse at 50% 72%,rgba(135,104,157,.18),transparent 42%),
+    linear-gradient(155deg,#d0c9b8 0%,#b9b09d 54%,#918a7b 100%);
+  box-shadow:inset 0 1px 0 #fff9e8,inset 0 -20px 32px #51473533,0 4px 12px #332b1c44;
+}
+.jewelry-scene-wall{
+  bottom:30%;
+  border-bottom:5px solid #80735d;
+  background:
+    linear-gradient(90deg,transparent 0 24%,#776d5c14 24.2% 24.6%,transparent 24.8% 74%,#776d5c14 74.2% 74.6%,transparent 74.8%),
+    repeating-linear-gradient(0deg,transparent 0 34px,#6f67551b 35px 36px),
+    linear-gradient(180deg,#e0d8c7 0%,#c8beaa 78%,#a99e88 100%);
+}
+.jewelry-wall-stone-detail{
+  position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent 0 78px,#756c5b12 79px 80px);
+  opacity:.8;
+}
+.jewelry-wall-shelf{
+  left:10%;right:10%;top:28%;height:8px;border:1px solid #64533d;border-radius:3px;
+  background:linear-gradient(180deg,#a88b61,#70583d 65%,#51412f);
+  box-shadow:0 4px 6px #40372255;
+}
+.jewelry-shelf-gem-tray{
+  position:absolute;z-index:1;left:40%;top:calc(28% - 22px);width:20%;height:20px;
+  border:1px solid #756044;border-radius:4px 4px 2px 2px;
+  background:linear-gradient(180deg,#d8c49c,#8f7857);
+  box-shadow:0 2px 4px #51452d55;
+}
+.jewelry-shelf-gem-tray:before{
+  content:"";position:absolute;left:10%;right:10%;top:4px;height:9px;border-radius:2px;
+  background:linear-gradient(90deg,#789a91 0 22%,#b38b9b 23% 47%,#8795ad 48% 72%,#c4a86f 73%);
+  box-shadow:inset 0 1px 2px #fff8;
+}
+.jewelry-lamp-arm{
+  right:20%;height:30%;background:linear-gradient(90deg,#756449,#d4b77e 48%,#6c5b40);
+}
+.jewelry-lamp-shade{
+  right:calc(20% - 25px);top:25%;width:52px;height:25px;
+  border-color:#806a46;background:linear-gradient(180deg,#f4e4bb,#c1a16b 58%,#826c49);
+  box-shadow:0 3px 7px #51452d66,0 0 12px #f4d78b33;
+}
+.jewelry-light-beam{
+  top:calc(25% + 22px);right:calc(20% - 38px);width:78px;height:42%;
+  background:linear-gradient(180deg,#f6e2b83d,transparent);
+}
+.jewelry-loupe{
+  border-color:#9a8056;background:radial-gradient(circle at 35% 30%,#f1e8d3,#a8b8b0 58%,#586d68);
+  box-shadow:0 3px 5px #4b403155,inset 0 0 0 2px #e6d6b8;
+}
+.jewelry-loupe:after{background:linear-gradient(90deg,#776344,#d6bb83,#766044)}
+.jewelry-decor-gem{filter:drop-shadow(0 2px 3px #453c3155)}
+.jewelry-workbench{
+  height:40%;bottom:-4%;border-top:3px solid #5b422d;
+  background:linear-gradient(180deg,#9a7950 0%,#795938 15%,#523e2d 100%);
+  box-shadow:0 -5px 14px #392a1d55,inset 0 7px 12px #f4dfb522;
+}
+.jewelry-bench-edge{
+  height:13px;border-bottom:1px solid #4e3928;
+  background:linear-gradient(180deg,#c2a171,#886542 58%,#60462e);
+  box-shadow:0 3px 5px #34251877;
+}
+.jewelry-bench-front{
+  position:absolute;left:5%;right:5%;top:18%;height:70%;
+  border:1px solid #4e3928;border-radius:2px 2px 5px 5px;
+  background:repeating-linear-gradient(90deg,#765638 0 38px,#684b31 39px 41px);
+  box-shadow:inset 0 3px 5px #e2c08b33;
+}
+.jewelry-bench-drawer{
+  position:absolute;z-index:2;top:31%;width:22%;height:28%;
+  border:1px solid #4d3929;border-radius:3px;
+  background:linear-gradient(180deg,#a17d50,#755435);
+  box-shadow:inset 0 1px 0 #e2c18b55,0 2px 3px #34251866;
+}
+.jewelry-bench-drawer:after{
+  content:"";position:absolute;left:50%;top:45%;width:13px;height:4px;
+  transform:translateX(-50%);border:1px solid #66502f;border-radius:4px;
+  background:linear-gradient(180deg,#e0c68d,#947747);
+}
+.jewelry-bench-drawer-left{left:8%}
+.jewelry-bench-drawer-right{right:8%}
+.jewelry-tool-tray{
+  position:absolute;z-index:3;left:8%;top:5%;width:22%;height:17%;
+  border:1px solid #59452f;border-radius:4px;
+  background:linear-gradient(180deg,#b99a6c,#806344);
+  box-shadow:0 2px 4px #34251866,inset 0 1px 0 #f4dfb555;
+}
+.jewelry-tweezers{
+  position:absolute;z-index:4;left:12%;top:6%;width:34px;height:3px;
+  border-radius:3px;background:#c8c0a8;transform:rotate(-18deg);
+  box-shadow:0 5px 0 -0.5px #77796f;
+}
+.jewelry-jeweler-hammer{
+  position:absolute;z-index:4;right:12%;top:2%;width:27px;height:7px;
+  border:1px solid #5a5145;border-radius:2px;
+  background:linear-gradient(180deg,#b7b9ad,#666c68);
+  transform:rotate(18deg);
+}
+.jewelry-jeweler-hammer:after{
+  content:"";position:absolute;left:12px;top:5px;width:4px;height:21px;
+  border-radius:2px;background:linear-gradient(90deg,#59452f,#c09a62,#624a31);
+}
+.jewelry-velvet-pad{
+  border-color:#a88d9d;
+  background:linear-gradient(155deg,#8b7189 0%,#654e6d 54%,#40364f 100%);
+  box-shadow:inset 0 2px 7px #fff2,inset 0 -5px 9px #090d1d55,0 7px 10px -7px #050914aa,0 0 10px #a78bd722;
+}
+.jewelry-velvet-pad:after{border-color:#e1d0d044}
+.jewelry-bench-inlay{background:#d6bd88;box-shadow:0 0 6px #d6bd8866}
+.jewelry-scene-header h2{color:#fff4dc;text-shadow:0 1px 3px #3e3022}
+@media(max-width:430px){
+  .jewelry-shelf-gem-tray{width:24%;left:38%}
+  .jewelry-bench-drawer{height:24%}
+  .jewelry-tool-tray{width:25%}
+}
