@@ -124,7 +124,11 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   const downloadLatest = useCallback(async () => {
     if (!release) return;
     if (isAndroid) {
-      await Browser.open({ url: release.apkUrl });
+      try {
+        await Browser.open({ url: release.apkUrl });
+      } catch {
+        window.location.assign(release.apkUrl);
+      }
       return;
     }
     const opened = window.open(release.apkUrl, '_blank');
