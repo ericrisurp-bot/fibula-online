@@ -31,7 +31,7 @@ export function getPlayerAttributes(classId: ClassId, level: number, pointsPerLe
     inteligencia: base('inteligencia') + gainedLevels * multipliers.inteligencia,
     destreza: base('destreza') + gainedLevels * multipliers.destreza,
     velocidadeMovimento: base('velocidadeMovimento') + gainedLevels * multipliers.velocidadeMovimento,
-    velocidadeAtaque: base('velocidadeAtaque') + gainedLevels * multipliers.velocidadeAtaque,
+    velocidadeAtaque: base('velocidadeAtaque') + gainedLevels * multipliers.velocidadeAtaque * ATTRIBUTE_USAGE[classId].velocidadeAtaque,
     alcanceAtaque: base('alcanceAtaque') + gainedLevels * multipliers.alcanceAtaque,
     esquiva: base('esquiva') + gainedLevels * multipliers.esquiva,
     areaAtaque: base('areaAtaque') + gainedLevels * multipliers.areaAtaque,
@@ -42,13 +42,23 @@ export function getPlayerAttributes(classId: ClassId, level: number, pointsPerLe
 // Nos atributos de dano (força, inteligência, destreza) os fatores de cada classe somam 1.
 // Quando uma classe passar a usar um atributo, é só mudar o valor aqui; o dano e o PD acompanham.
 export const ATTRIBUTE_USAGE: Record<ClassId, Record<AttributeKey, number>> = {
-  guerreiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 0, inteligencia: 0, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
-  mago: { vida: 1, forca: 0, armadura: 1, resistenciaMagica: 0, inteligencia: 1, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
-  arqueiro: { vida: 1, forca: CONFIG.attributes.archerDamageWeights.forca, armadura: 1, resistenciaMagica: 0, inteligencia: 0, destreza: CONFIG.attributes.archerDamageWeights.destreza, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
-  druida: { vida: 1, forca: 0, armadura: 1, resistenciaMagica: 0, inteligencia: 1, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 1, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  guerreiro: { vida: 1, forca: 1, armadura: 1, resistenciaMagica: 0, inteligencia: 0, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 0, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  mago: { vida: 1, forca: 0, armadura: 1, resistenciaMagica: 0, inteligencia: 1, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 0, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  arqueiro: { vida: 1, forca: CONFIG.attributes.archerDamageWeights.forca, armadura: 1, resistenciaMagica: 0, inteligencia: 0, destreza: CONFIG.attributes.archerDamageWeights.destreza, velocidadeMovimento: 1, velocidadeAtaque: 0, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
+  druida: { vida: 1, forca: 0, armadura: 1, resistenciaMagica: 0, inteligencia: 1, destreza: 0, velocidadeMovimento: 1, velocidadeAtaque: 0, alcanceAtaque: 0, esquiva: 1, areaAtaque: 0 },
 };
 
 const DAMAGE_ATTRIBUTES = ['forca', 'inteligencia', 'destreza'] as const;
+
+/** Converte o antigo ganho de ritmo de ataque por nível em dano proporcional,
+ * preservando dano por segundo enquanto o intervalo de ataque fica fixo.
+ */
+export function getAttackSpeedCompensationMultiplier(classId: ClassId, level: number, pointsPerLevel = 1): number {
+  const { gainPerLevel, classMultipliers, effectPerPointGained } = CONFIG.attributes;
+  const oldAttackSpeedFactor = 1 + Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel)
+    * classMultipliers[classId].velocidadeAtaque * effectPerPointGained.velocidadeAtaque;
+  return oldAttackSpeedFactor;
+}
 
 export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLevel = 1, baseBonuses: AttributeBaseBonuses = {}): number {
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
@@ -57,7 +67,8 @@ export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLe
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
   const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + (usage[key] > 0 ? baseBonuses[key] ?? 0 : 0) + gainedLevels * multipliers[key]), 0);
 
-  return damageAttributeValue / baseValue;
+  // O fator compensa exatamente o multiplicador de ataques/s removido do motor.
+  return (damageAttributeValue / baseValue) * getAttackSpeedCompensationMultiplier(classId, level, pointsPerLevel);
 }
 
 export function getAttributeEffectPerLevel(classId: ClassId, level: number, attribute: EffectAttribute, pointsPerLevel = 1): number {
