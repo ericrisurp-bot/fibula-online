@@ -39,6 +39,7 @@ import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
 import BackToLobbyButton from './ui/BackToLobbyButton';
 import SideNav, { type SideNavId } from './ui/SideNav';
+import { AndroidReleaseButton, useAndroidRelease } from './ui/AndroidRelease';
 type RankingEntry = {
   user_id: string;
   display_name: string | null;
@@ -430,6 +431,7 @@ function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot[
 
 export default function App() {
   const { session } = useArenaAuth();
+  const { updateAvailable } = useAndroidRelease();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const duoPeerCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -2523,6 +2525,7 @@ export default function App() {
   };
 
   const handleLobbyPlay = () => {
+    if (updateAvailable) return;
     if (duoPeer) {
       if (duoPeer.role === 'host' && duoPeer.status === 'connected' && duoPeer.peerReady) {
         duoStartActionRef.current?.();
@@ -3386,6 +3389,7 @@ export default function App() {
           <i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/>
           <i className="lobby-comet" aria-hidden="true"/>
         </div>
+        <AndroidReleaseButton />
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { navigateToPlayerProfile(session.user.sub); setActiveGameRoute({ page: 'jogador', playerId: session.user.sub }); setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>+</button>}</div>
@@ -3416,11 +3420,12 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">📊</span>
             <span>STATUS</span>
           </button>
-        {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
+        {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={updateAvailable || duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={updateAvailable ? 'Atualize o aplicativo para jogar' : duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
           {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
-        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={duoPeer ? duoPeer.status !== 'connected' || !duoPeer.peerReady ? `Aguardando ${duoPeer.friendName} ficar pronto` : 'Modo cooperativo em preparação' : 'Entrar no mundo'}>
+        </button> : <button className="lobby-play-trigger" type="button" onClick={handleLobbyPlay} disabled={updateAvailable || Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-disabled={updateAvailable || Boolean(duoPeer && (duoPeer.status !== 'connected' || !duoPeer.peerReady))} aria-label="Jogar" title={updateAvailable ? 'Atualize o aplicativo para entrar em uma partida' : duoPeer ? duoPeer.status !== 'connected' || !duoPeer.peerReady ? `Aguardando ${duoPeer.friendName} ficar pronto` : 'Modo cooperativo em preparação' : 'Entrar no mundo'}>
           Jogar
         </button>}
+        {updateAvailable && <p className="lobby-update-required" role="status">Atualização obrigatória: baixe a nova versão para jogar.</p>}
         {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
         <nav className="lobby-crafting-stations" aria-label="Estações de criação">
           {LOBBY_CRAFTING_STATIONS.map(station => <button

@@ -62,10 +62,22 @@ Somente depois de validar o APK:
 
 O workflow compila o app, aplica a mesma assinatura permanente, guarda um artifact por 30 dias e cria uma GitHub Release com o APK anexado. O tag segue o formato `android-vX.Y.Z`; uma versão/tag já existente não deve ser reutilizada.
 
-## O que ainda não faz parte desta etapa
+## Botão do Lobby e atualização obrigatória
 
-- Botão de download do APK no site Fíbula.
-- Consulta de versão nova dentro do app.
-- Download e abertura do instalador Android a partir do app.
+Depois da publicação de uma GitHub Release Android:
 
-Essas funções virão depois que a publicação de APKs assinados estiver validada.
+- O Lobby mostra um botão pequeno de download.
+- No navegador, o botão baixa o APK oficial mais recente.
+- No Android, o botão abre o download do APK no navegador do sistema.
+- Quando o `versionCode` da Release for maior que o instalado, o botão mostra `NEW`.
+- Enquanto houver uma versão mais nova, os botões **Jogar** e **Pronto** do Duo ficam bloqueados.
+- O aplicativo consulta a Release ao abrir e quando volta ao primeiro plano, respeitando um intervalo mínimo de cinco minutos entre consultas.
+- O APK continua hospedado somente nos assets do GitHub Releases; nenhum APK é copiado para o Cloudflare.
+
+O Android ainda exige que o jogador confirme a instalação do APK. O Fíbula não instala atualizações silenciosamente.
+
+### Primeira versão com atualizador
+
+A primeira versão publicada com este código precisa ser instalada pelos jogadores manualmente. APKs antigos que ainda não possuem o verificador não conseguem receber um bloqueio remoto retroativo. Depois que os jogadores instalarem essa versão-base, as próximas Releases serão detectadas e versões anteriores deixarão de iniciar novas partidas.
+
+A consulta é feita diretamente à API pública do GitHub. Se o GitHub estiver indisponível ou limitar a consulta, o jogo continua acessível; portanto, este bloqueio é uma proteção no cliente, não uma barreira inviolável contra clientes modificados ou versões antigas que nunca receberam o verificador.
