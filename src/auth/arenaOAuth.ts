@@ -31,6 +31,62 @@ type OAuthTokenResponse = {
   error_description?: unknown;
 };
 
+export type ArenaOAuthCallbackSource = 'appUrlOpen' | 'launchUrl' | 'web';
+
+export type ArenaOAuthDiagnostic = {
+  source: ArenaOAuthCallbackSource;
+  protocol: string | null;
+  hostname: string | null;
+  pathname: string | null;
+  recognizedNativeCallback: boolean;
+  codePresent: boolean;
+  statePresent: boolean;
+  expectedStatePresent: boolean;
+  verifierPresent: boolean;
+  stage: string;
+  reason: string;
+};
+
+let lastArenaOAuthDiagnostic: ArenaOAuthDiagnostic | null = null;
+
+export function getArenaOAuthDiagnostic(): ArenaOAuthDiagnostic | null {
+  return lastArenaOAuthDiagnostic ? { ...lastArenaOAuthDiagnostic } : null;
+}
+
+export function resetArenaOAuthDiagnostic(): void {
+  lastArenaOAuthDiagnostic = null;
+}
+
+function recordArenaOAuthDiagnostic(
+  callback: URL | null,
+  source: ArenaOAuthCallbackSource,
+  stage: string,
+  reason: string,
+): void {
+  let expectedStatePresent = false;
+  let verifierPresent = false;
+  try {
+    expectedStatePresent = localStorage.getItem(STATE_KEY) !== null;
+    verifierPresent = localStorage.getItem(VERIFIER_KEY) !== null;
+  } catch {
+    // Keep storage diagnostics limited to presence flags.
+  }
+
+  lastArenaOAuthDiagnostic = {
+    source,
+    protocol: callback?.protocol ?? null,
+    hostname: callback?.hostname ?? null,
+    pathname: callback?.pathname ?? null,
+    recognizedNativeCallback: callback ? isNativeCallbackUrl(callback) : false,
+    codePresent: callback?.searchParams.has('code') ?? false,
+    statePresent: callback?.searchParams.has('state') ?? false,
+    expectedStatePresent,
+    verifierPresent,
+    stage,
+    reason,
+  };
+}
+
 const getClientId = () => import.meta.env.VITE_ARENA_OAUTH_CLIENT_ID?.trim() ?? '';
 
 export const isArenaOAuthConfigured = () => getClientId().length > 0;
@@ -247,42 +303,68 @@ export async function startArenaLogin(): Promise<void> {
   window.location.assign(authorizationUrl.toString());
 }
 
-let callbackInFlight: Promise<ArenaOAuthSession | null> | null = null;
+const callbacksInFlight = new Map<string | undefined, Promise<ArenaOAuthSession | null>>();
+let callbackQueue: Promise<void> = Promise.resolve();
 
-export function completeArenaLogin(callbackUrl?: string): Promise<ArenaOAuthSession | null> {
-  if (callbackInFlight) return callbackInFlight;
-
+export function completeArenaLogin(
+  callbackUrl?: string,
+  source: ArenaOAuthCallbackSource = callbackUrl ? 'appUrlOpen' : 'web',
+): Promise<ArenaOAuthSession | null> {
   if (callbackUrl) {
     let parsed: URL;
     try {
       parsed = new URL(callbackUrl);
     } catch {
+      recordArenaOAuthDiagnostic(null, source, 'callback_parse', 'invalid_url');
       return Promise.resolve(null);
     }
-    if (!isNativeCallbackUrl(parsed)) return Promise.resolve(null);
+    if (!isNativeCallbackUrl(parsed)) {
+      recordArenaOAuthDiagnostic(parsed, source, 'callback_validation', 'unrecognized_callback');
+      return Promise.resolve(null);
+    }
   } else if (window.location.pathname !== CALLBACK_PATH) {
     return Promise.resolve(null);
   }
 
-  callbackInFlight = completeArenaLoginOnce(callbackUrl).finally(() => {
-    callbackInFlight = null;
-  });
-  return callbackInFlight;
+  const existing = callbacksInFlight.get(callbackUrl);
+  if (existing) return existing;
+
+  const task = callbackQueue.then(() => completeArenaLoginOnce(callbackUrl, source));
+  callbackQueue = task.then(() => undefined, () => undefined);
+  callbacksInFlight.set(callbackUrl, task);
+
+  const clearInFlight = () => {
+    if (callbacksInFlight.get(callbackUrl) === task) callbacksInFlight.delete(callbackUrl);
+  };
+  void task.then(clearInFlight, clearInFlight);
+  return task;
 }
 
-async function completeArenaLoginOnce(callbackUrl?: string): Promise<ArenaOAuthSession | null> {
+async function completeArenaLoginOnce(
+  callbackUrl: string | undefined,
+  source: ArenaOAuthCallbackSource,
+): Promise<ArenaOAuthSession | null> {
   const callback = callbackUrl ? new URL(callbackUrl) : new URL(window.location.href);
   const nativeCallback = isNativeCallbackUrl(callback);
   if (!nativeCallback && window.location.pathname !== CALLBACK_PATH) return null;
 
+  recordArenaOAuthDiagnostic(callback, source, 'callback_received', 'callback_received');
   const code = callback.searchParams.get('code');
   const returnedState = callback.searchParams.get('state');
   const oauthError = callback.searchParams.get('error');
-  const errorDescription = callback.searchParams.get('error_description');
-  const expectedState = localStorage.getItem(STATE_KEY);
-  const verifier = localStorage.getItem(VERIFIER_KEY);
+  let expectedState: string | null;
+  let verifier: string | null;
+  try {
+    expectedState = localStorage.getItem(STATE_KEY);
+    verifier = localStorage.getItem(VERIFIER_KEY);
+  } catch {
+    recordArenaOAuthDiagnostic(callback, source, 'callback_validation', 'storage_unavailable');
+    throw new Error('Não foi possível ler a autorização pendente.');
+  }
+  recordArenaOAuthDiagnostic(callback, source, 'callback_validation', 'checking_parameters');
 
   if (window.location.origin === PRODUCTION_ORIGIN && isNativeOAuthState(returnedState)) {
+    recordArenaOAuthDiagnostic(callback, source, 'callback_relay', 'forwarded_to_native');
     const relayUrl = new URL(NATIVE_CALLBACK_URL);
     callback.searchParams.forEach((value, key) => relayUrl.searchParams.append(key, value));
     window.location.replace(relayUrl.toString());
@@ -292,6 +374,7 @@ async function completeArenaLoginOnce(callbackUrl?: string): Promise<ArenaOAuthS
   if (window.location.origin === PRODUCTION_ORIGIN) {
     const returnOrigin = getOAuthReturnOrigin(returnedState);
     if (returnOrigin && returnOrigin !== PRODUCTION_ORIGIN) {
+      recordArenaOAuthDiagnostic(callback, source, 'callback_relay', 'forwarded_to_web');
       const relayUrl = new URL(CALLBACK_PATH, returnOrigin);
       callback.searchParams.forEach((value, key) => relayUrl.searchParams.append(key, value));
       window.location.replace(relayUrl.toString());
@@ -302,24 +385,75 @@ async function completeArenaLoginOnce(callbackUrl?: string): Promise<ArenaOAuthS
   if (!nativeCallback) cleanCallbackUrl();
 
   if (oauthError) {
+    recordArenaOAuthDiagnostic(
+      callback,
+      source,
+      'authorization_response',
+      oauthError === 'access_denied' ? 'access_denied' : 'provider_authorization_error',
+    );
     clearPendingAuthorization();
-    throw new Error(errorDescription || (oauthError === 'access_denied'
-      ? 'O acesso ao Fíbula foi recusado na Arena.'
-      : 'A Arena não conseguiu autorizar o acesso ao Fíbula.'));
+    throw new Error('A Arena não conseguiu autorizar o login.');
+  }
+
+  const validationReason = !code
+    ? 'missing_code'
+    : !returnedState
+      ? 'missing_state'
+      : !expectedState
+        ? 'missing_expected_state'
+        : returnedState !== expectedState
+          ? 'state_mismatch'
+          : !verifier
+            ? 'missing_verifier'
+            : null;
+  if (validationReason) {
+    recordArenaOAuthDiagnostic(callback, source, 'callback_validation', validationReason);
+    clearPendingAuthorization();
+    throw new Error('A validação de segurança do login falhou. Inicie o acesso novamente.');
   }
   if (!code || !returnedState || !expectedState || returnedState !== expectedState || !verifier) {
-    clearPendingAuthorization();
     throw new Error('A validação de segurança do login falhou. Inicie o acesso novamente.');
   }
 
   try {
-    const tokens = await exchangeAuthorizationCode(code, verifier);
+    recordArenaOAuthDiagnostic(callback, source, 'token_exchange', 'in_progress');
+    let tokens: OAuthTokenResponse;
+    try {
+      tokens = await exchangeAuthorizationCode(code, verifier);
+    } catch {
+      recordArenaOAuthDiagnostic(callback, source, 'token_exchange', 'request_failed');
+      throw new Error('Não foi possível trocar o código de autorização.');
+    }
     if (typeof tokens.access_token !== 'string' || !tokens.access_token) {
+      recordArenaOAuthDiagnostic(callback, source, 'token_exchange', 'invalid_token_response');
       throw new Error('A Arena não retornou um token de acesso válido.');
     }
-    const user = await fetchArenaUser(tokens.access_token);
-    const session = buildSession(tokens, user);
-    saveSession(session);
+
+    recordArenaOAuthDiagnostic(callback, source, 'user_info', 'in_progress');
+    let user: ArenaUser;
+    try {
+      user = await fetchArenaUser(tokens.access_token);
+    } catch {
+      recordArenaOAuthDiagnostic(callback, source, 'user_info', 'request_failed');
+      throw new Error('Não foi possível consultar o perfil da Arena.');
+    }
+
+    recordArenaOAuthDiagnostic(callback, source, 'session_validation', 'in_progress');
+    let session: ArenaOAuthSession;
+    try {
+      session = buildSession(tokens, user);
+    } catch {
+      recordArenaOAuthDiagnostic(callback, source, 'session_validation', 'invalid_token_response');
+      throw new Error('A resposta da Arena não contém uma sessão válida.');
+    }
+
+    try {
+      saveSession(session);
+    } catch {
+      recordArenaOAuthDiagnostic(callback, source, 'session_validation', 'storage_unavailable');
+      throw new Error('Não foi possível salvar a sessão com segurança.');
+    }
+    recordArenaOAuthDiagnostic(callback, source, 'complete', 'success');
     return session;
   } finally {
     clearPendingAuthorization();

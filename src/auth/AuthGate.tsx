@@ -1,12 +1,16 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import {
   clearArenaSession,
   completeArenaLogin,
+  getArenaOAuthDiagnostic,
   getValidArenaSession,
   isArenaOAuthConfigured,
+  resetArenaOAuthDiagnostic,
   startArenaLogin,
+  type ArenaOAuthCallbackSource,
+  type ArenaOAuthDiagnostic,
   type ArenaOAuthSession,
 } from './arenaOAuth';
 import { fibulaSupabase, isFibulaSupabaseConfigured } from './supabase';
@@ -20,6 +24,63 @@ type ArenaAuthContextValue = {
 };
 
 const ArenaAuthContext = createContext<ArenaAuthContextValue | null>(null);
+
+function createFallbackDiagnostic(
+  source: ArenaOAuthCallbackSource,
+  stage: string,
+  reason: string,
+): ArenaOAuthDiagnostic {
+  return {
+    source,
+    protocol: null,
+    hostname: null,
+    pathname: null,
+    recognizedNativeCallback: false,
+    codePresent: false,
+    statePresent: false,
+    expectedStatePresent: false,
+    verifierPresent: false,
+    stage,
+    reason,
+  };
+}
+
+const diagnosticStageLabels: Record<string, string> = {
+  callback_parse: 'Leitura do endereço',
+  callback_received: 'Recebimento do retorno',
+  callback_validation: 'Validação do retorno',
+  callback_relay: 'Redirecionamento do retorno',
+  authorization_response: 'Resposta de autorização',
+  token_exchange: 'Troca do código',
+  user_info: 'Consulta do perfil',
+  session_validation: 'Validação da sessão',
+  complete: 'Login',
+  login_start: 'Início do login',
+  session_check: 'Verificação da sessão',
+};
+
+const diagnosticReasonLabels: Record<string, string> = {
+  callback_received: 'Retorno recebido',
+  invalid_url: 'Formato de endereço inválido',
+  unrecognized_callback: 'Endereço não reconhecido como callback nativo',
+  checking_parameters: 'Conferindo parâmetros e armazenamento',
+  forwarded_to_native: 'Retorno encaminhado ao aplicativo',
+  forwarded_to_web: 'Retorno encaminhado ao endereço permitido',
+  access_denied: 'A autorização foi recusada',
+  provider_authorization_error: 'A Arena retornou um erro de autorização',
+  missing_code: 'Código ausente',
+  missing_state: 'State ausente',
+  missing_expected_state: 'State esperado ausente no armazenamento',
+  state_mismatch: 'State recebido não corresponde ao esperado',
+  missing_verifier: 'Verifier ausente no armazenamento',
+  in_progress: 'Etapa em andamento',
+  request_failed: 'Solicitação falhou',
+  invalid_token_response: 'Resposta de autenticação inválida',
+  success: 'Concluído',
+  authorization_request_failed: 'Não foi possível iniciar a autorização',
+  session_validation_failed: 'Não foi possível validar a sessão',
+  storage_unavailable: 'Não foi possível ler o armazenamento local',
+};
 
 function logNativeCallbackTarget(source: 'appUrlOpen' | 'launchUrl', value: string): void {
   try {
@@ -49,6 +110,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<ArenaOAuthSession | null>(null);
   const [message, setMessage] = useState('');
+  const [diagnostic, setDiagnostic] = useState<ArenaOAuthDiagnostic | null>(null);
+  const nativeCallbackReceived = useRef(false);
+  const nativeCallbackSucceeded = useRef(false);
+  const nativeCallbackTask = useRef<Promise<ArenaOAuthSession | null> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -59,30 +124,51 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       return () => { active = false; };
     }
 
-    const applyNativeCallback = async (url: string) => {
-      try {
-        logNativeCallbackTarget('appUrlOpen', url);
-        const callbackSession = await completeArenaLogin(url);
-        if (!active) return;
-        if (!callbackSession) {
-          console.warn('[Arena OAuth] O link recebido não foi reconhecido como callback válido.');
-          setMessage('O Fíbula voltou para o aplicativo, mas não conseguiu reconhecer o retorno da Arena. Tente entrar novamente.');
+    const applyNativeCallback = (
+      source: Exclude<ArenaOAuthCallbackSource, 'web'>,
+      url: string,
+    ): Promise<ArenaOAuthSession | null> => {
+      nativeCallbackReceived.current = true;
+      logNativeCallbackTarget(source, url);
+      if (nativeCallbackSucceeded.current) return Promise.resolve(null);
+      if (nativeCallbackTask.current) return nativeCallbackTask.current;
+
+      const task = (async () => {
+        try {
+          const callbackSession = await completeArenaLogin(url, source);
+          if (!active) return callbackSession;
+          setDiagnostic(getArenaOAuthDiagnostic());
+          if (!callbackSession) {
+            setMessage('O retorno recebido não pôde ser validado. Consulte o diagnóstico abaixo e tente novamente.');
+            setStatus('error');
+            return null;
+          }
+          nativeCallbackSucceeded.current = true;
+          setSession(callbackSession);
+          setMessage('');
+          setStatus('signed-in');
+          return callbackSession;
+        } catch {
+          if (!active) return null;
+          setDiagnostic(getArenaOAuthDiagnostic()
+            ?? createFallbackDiagnostic(source, 'callback_validation', 'session_validation_failed'));
+          setMessage('Não foi possível concluir o login. Consulte o diagnóstico abaixo.');
           setStatus('error');
-          return;
+          return null;
         }
-        setSession(callbackSession);
-        setMessage('');
-        setStatus('signed-in');
-      } catch (error) {
-        if (!active) return;
-        setMessage(error instanceof Error ? error.message : 'Não foi possível validar sua sessão.');
-        setStatus('error');
-      }
+      })();
+      nativeCallbackTask.current = task;
+      void task.then(() => {
+        if (nativeCallbackTask.current === task) nativeCallbackTask.current = null;
+      }, () => {
+        if (nativeCallbackTask.current === task) nativeCallbackTask.current = null;
+      });
+      return task;
     };
 
     if (Capacitor.isNativePlatform()) {
       void App.addListener('appUrlOpen', ({ url }) => {
-        void applyNativeCallback(url);
+        void applyNativeCallback('appUrlOpen', url);
       }).then(listener => {
         if (active) {
           removeNativeListener = () => { void listener.remove(); };
@@ -98,25 +184,26 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         if (Capacitor.isNativePlatform()) {
           const launch = await App.getLaunchUrl();
           if (launch?.url) {
-            logNativeCallbackTarget('launchUrl', launch.url);
-            launchSession = await completeArenaLogin(launch.url);
-            if (!launchSession) {
-              throw new Error('O Android abriu o Fíbula por um link de retorno que não foi reconhecido. Inicie o login novamente.');
-            }
+            launchSession = await applyNativeCallback('launchUrl', launch.url);
+            if (!launchSession) return;
           }
         }
-        const callbackSession = launchSession ?? await completeArenaLogin();
+        if (nativeCallbackReceived.current) return;
+
+        const callbackSession = await completeArenaLogin();
         const currentSession = callbackSession ?? await getValidArenaSession();
-        if (!active) return;
+        if (!active || nativeCallbackReceived.current) return;
         if (currentSession) {
           setSession(currentSession);
           setStatus('signed-in');
         } else {
           setStatus('signed-out');
         }
-      } catch (error) {
-        if (!active) return;
-        setMessage(error instanceof Error ? error.message : 'Não foi possível validar sua sessão.');
+      } catch {
+        if (!active || nativeCallbackReceived.current) return;
+        setDiagnostic(getArenaOAuthDiagnostic()
+          ?? createFallbackDiagnostic('web', 'session_check', 'session_validation_failed'));
+        setMessage('Não foi possível validar sua sessão. Consulte o diagnóstico abaixo.');
         setStatus('error');
       }
     };
@@ -130,10 +217,15 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
   const handleLogin = useCallback(async () => {
     setMessage('');
+    setDiagnostic(null);
+    nativeCallbackReceived.current = false;
+    nativeCallbackSucceeded.current = false;
+    resetArenaOAuthDiagnostic();
     try {
       await startArenaLogin();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Não foi possível iniciar o login.');
+    } catch {
+      setDiagnostic(createFallbackDiagnostic('web', 'login_start', 'authorization_request_failed'));
+      setMessage('Não foi possível iniciar o login.');
       setStatus('error');
     }
   }, []);
@@ -142,6 +234,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     clearArenaSession();
     setSession(null);
     setMessage('');
+    setDiagnostic(null);
+    nativeCallbackReceived.current = false;
+    nativeCallbackSucceeded.current = false;
+    resetArenaOAuthDiagnostic();
     setStatus('signed-out');
   }, []);
 
@@ -202,6 +298,27 @@ export default function AuthGate({ children }: { children: ReactNode }) {
           }}>
             {message}
           </p>
+        )}
+
+        {status === 'error' && diagnostic && (
+          <div role="status" aria-label="Diagnóstico do login OAuth" style={{
+            margin: '0 0 16px', padding: 12, borderRadius: 8, background: '#202120',
+            border: '1px solid rgba(190, 190, 190, .24)', color: '#d0d2d0',
+            fontSize: 11, lineHeight: 1.65, textAlign: 'left', maxHeight: 190, overflowY: 'auto',
+          }}>
+            <strong style={{ display: 'block', marginBottom: 5, color: '#f0f0f0' }}>Diagnóstico do login</strong>
+            <div>Origem: {diagnostic.source}</div>
+            <div>Protocolo: {diagnostic.protocol ?? 'indisponível'}</div>
+            <div>Host: {diagnostic.hostname ?? 'indisponível'}</div>
+            <div>Caminho: {diagnostic.pathname ?? 'indisponível'}</div>
+            <div>Callback nativo reconhecido: {diagnostic.recognizedNativeCallback ? 'sim' : 'não'}</div>
+            <div>Código presente: {diagnostic.codePresent ? 'sim' : 'não'}</div>
+            <div>State presente: {diagnostic.statePresent ? 'sim' : 'não'}</div>
+            <div>State esperado armazenado: {diagnostic.expectedStatePresent ? 'sim' : 'não'}</div>
+            <div>Verifier armazenado: {diagnostic.verifierPresent ? 'sim' : 'não'}</div>
+            <div>Etapa: {diagnosticStageLabels[diagnostic.stage] ?? 'Outra etapa'}</div>
+            <div>Motivo: {diagnosticReasonLabels[diagnostic.reason] ?? 'Falha não classificada'}</div>
+          </div>
         )}
 
         {isConfiguration ? (
