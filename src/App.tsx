@@ -3188,12 +3188,12 @@ export default function App() {
                       <div className="jewelry-scene-content">
                     <button type="button" className={jewelrySlotCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
                       onClick={() => { setSelectedJewelryCoreId(null); setJewelryResultCoreId(null); setJewelryFeedback(''); }}
-                      aria-label={jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : jewelrySlotCore?.kind === 'closed' ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
-                      {jewelrySlotCore?.kind === 'closed' ? <>
-                        <span style={itemRarityGlow(jewelrySlotCoreId!)}>
-                          <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none" }} />
+                      aria-label={selectedJewelryCoreId ? 'Devolver núcleo fechado à lista' : jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : 'Slot vazio: Núcleo 0 de 1'}>
+                      {selectedJewelryCoreId ? <>
+                        <span style={itemRarityGlow(`core:${selectedJewelryCoreId.slice('jewelry-closed:'.length)}:weapon`)}>
+                          <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" draggable={false} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none" }} />
                         </span>
-                        <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
+                        <strong>Núcleo fechado</strong>
                       </> : jewelrySlotCore?.kind === 'revealed' ? <>
                         <span style={itemRarityGlow(jewelrySlotCoreId!)}>
                           <img src={`/assets/cores/${CORE_SPRITE_FILES[jewelrySlotCore.core.category]}`} alt="" aria-hidden="true" draggable={false} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", imageRendering: "pixelated" }} />
