@@ -18,7 +18,10 @@
   "dependencies": {
     "@capacitor/app": "^7.1.0",
     "@capacitor/app-launcher": "^7.0.0",
+    "@capacitor-community/file-opener": "^7.0.0",
     "@capacitor/core": "^7.4.3",
+    "@capacitor/file-transfer": "^7.0.0",
+    "@capacitor/filesystem": "^7.1.0",
     "@supabase/supabase-js": "2.118.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
