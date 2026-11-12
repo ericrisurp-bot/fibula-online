@@ -9742,3 +9742,70 @@ sem backdrop ou caixa de modal. */
 @media (pointer:coarse) and (orientation:portrait){
   .game-shell .hud-top .cooking-match-actions{top:98px;left:calc(50% + 8px);max-width:calc(50% - 64px)}
 }
+
+
+/* Download do APK oficial e aviso de atualização obrigatória no Lobby. */
+.lobby-screen .lobby-release-button{
+  position:absolute;
+  z-index:35;
+  top:max(10px,env(safe-area-inset-top));
+  right:max(10px,env(safe-area-inset-right));
+  display:grid;
+  width:42px;
+  height:42px;
+  min-height:42px;
+  place-items:center;
+  padding:0;
+  border:1px solid rgba(255,241,201,.38);
+  border-radius:10px;
+  background:rgba(24,21,17,.68);
+  color:#f6efe0;
+  box-shadow:0 2px 8px rgba(0,0,0,.32);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.lobby-screen .lobby-release-button svg{
+  width:22px;
+  height:22px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.lobby-screen .lobby-release-button:disabled{opacity:.48;cursor:not-allowed}
+.lobby-screen .lobby-release-button:not(:disabled){cursor:pointer}
+.lobby-screen .lobby-release-button:focus-visible{outline:2px solid #fff1c9;outline-offset:3px}
+.lobby-screen .lobby-release-new{
+  position:absolute;
+  top:-6px;
+  right:-7px;
+  padding:2px 4px;
+  border:1px solid #f6efe0;
+  border-radius:5px;
+  background:#9d403b;
+  color:#fff;
+  font-size:9px;
+  font-weight:950;
+  line-height:1.1;
+  letter-spacing:.02em;
+}
+.lobby-screen .lobby-update-required{
+  position:absolute;
+  z-index:34;
+  top:calc(max(10px,env(safe-area-inset-top)) + 48px);
+  right:max(10px,env(safe-area-inset-right));
+  width:min(250px,calc(100vw - 24px));
+  margin:0;
+  padding:7px 9px;
+  border:1px solid rgba(255,241,201,.3);
+  border-radius:8px;
+  background:rgba(24,21,17,.82);
+  color:#f6efe0;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.35;
+  text-align:center;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
