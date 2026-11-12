@@ -252,16 +252,20 @@ const inventoryItemIcon = (itemId: string) => {
   </svg>;
 };
 const cookingMealArtwork = (meal: CookingMeal) => {
-  const mainIngredient = meal.ingredients.find(item => getBaseItemId(item.itemId) !== 'herbs')?.itemId ?? meal.ingredients[0]?.itemId ?? 'cabbage';
-  return <span className="cooking-meal-artwork" aria-hidden="true">
-    <svg viewBox="0 0 36 32" width="34" height="30" focusable="false">
-      <path d="M5 15h26l-3 11H8Z" fill="#777f78" stroke="#c2c9c0" strokeWidth="1.3"/>
-      <path d="M8 14c1-6 19-6 20 0" fill="#b7a17b" stroke="#e4d4b5" strokeWidth="1.2"/>
-      <path d="M3 16h30" stroke="#e4d4b5" strokeWidth="1.2" strokeLinecap="round"/>
-      <path d="M11 24h14" stroke="#414941" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-    <span className="cooking-meal-ingredient">{inventoryItemIcon(mainIngredient)}</span>
-  </span>;
+  const ingredients = meal.ingredients.map(item => getBaseItemId(item.itemId));
+  const hasVegetable = ingredients.some(item => item === 'tomato' || item === 'cabbage');
+  const protein = ingredients.find(item => item === 'wolf_meat' || item === 'chicken_meat'
+    || ['tilapia', 'tambaqui', 'pintado_surubim', 'lambari', 'tucunare'].includes(item));
+  const image = protein === 'wolf_meat'
+    ? (hasVegetable ? 'guisado-carne.png' : 'carne-grelhada.png')
+    : protein === 'chicken_meat'
+      ? (hasVegetable ? 'guisado-frango.png' : 'frango-grelhado.png')
+      : protein
+        ? (hasVegetable ? 'guisado-peixe.png' : 'peixe-grelhado.png')
+        : 'sopa-legumes.png';
+  return <img className="cooking-meal-artwork" src={`/assets/meals/${image}`} width="32" height="32"
+    alt="" aria-hidden="true" draggable={false}
+    style={{ display: 'block', width: 32, height: 32, objectFit: 'contain', imageRendering: 'pixelated' }} />;
 };
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
