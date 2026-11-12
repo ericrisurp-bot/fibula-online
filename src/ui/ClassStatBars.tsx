@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ATTRIBUTE_USAGE, getDamageMultiplier } from '../game/attributes';
+import { ATTRIBUTE_USAGE, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
 import { drawLadino } from '../game/ladino';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 
