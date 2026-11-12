@@ -136,7 +136,8 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
         );
       }
       try {
-        await AppLauncher.openUrl({ url: targetUrl });
+        const result = await AppLauncher.openUrl({ url: targetUrl });
+        if (!result.completed) window.location.assign(targetUrl);
       } catch {
         window.location.assign(targetUrl);
       }
