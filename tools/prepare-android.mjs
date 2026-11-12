@@ -76,7 +76,7 @@ if (!existsSync(javaRoot)) throw new Error('Diretório Java do Android não enco
 const mainActivityPath = findMainActivity(javaRoot);
 if (!mainActivityPath) throw new Error('MainActivity.java não encontrado no projeto Android gerado.');
 const mainActivity = readFileSync(mainActivityPath, 'utf8');
-const packageMatch = mainActivity.match(/^package\\s+([\\w.]+);/m);
+const packageMatch = mainActivity.match(/^package\s+([\w.]+);/m);
 if (!packageMatch) throw new Error('Não foi possível identificar o package da MainActivity.');
 const javaPackage = packageMatch[1];
 const javaDirectory = dirname(mainActivityPath);
@@ -85,7 +85,6 @@ const pluginPath = join(javaDirectory, 'ApkInstallerPlugin.java');
 const pluginSource = `package ${javaPackage};
 
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.Settings;
 
@@ -164,21 +163,20 @@ writeFileSync(pluginPath, pluginSource);
 
 let activitySource = mainActivity;
 if (!activitySource.includes('import android.os.Bundle;')) {
-  activitySource = activitySource.replace(/^(package [^;]+;\\s*)/m, '$1\\nimport android.os.Bundle;');
+  activitySource = activitySource.replace(/^(package [^;]+;\s*)/m, '$1\nimport android.os.Bundle;');
 }
 if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
-  if (/public void onCreate\\s*\\(/.test(activitySource)) {
-    activitySource = activitySource.replace(/(super\\.onCreate\\(savedInstanceState\\);)/, 'registerPlugin(ApkInstallerPlugin.class);\\n        $1');
+  if (/public void onCreate\s*\(/.test(activitySource)) {
+    activitySource = activitySource.replace(/(super\.onCreate\(savedInstanceState\);)/, 'registerPlugin(ApkInstallerPlugin.class);\n        $1');
   } else {
-    activitySource = activitySource.replace(/(public class MainActivity extends BridgeActivity\\s*\\{)/, '$1\\n    @Override\\n    public void onCreate(Bundle savedInstanceState) {\\n        registerPlugin(ApkInstallerPlugin.class);\\n        super.onCreate(savedInstanceState);\\n    }');
+    activitySource = activitySource.replace(/(public class MainActivity extends BridgeActivity\s*\{)/, '$1\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(ApkInstallerPlugin.class);\n        super.onCreate(savedInstanceState);\n    }');
   }
 }
 writeFileSync(mainActivityPath, activitySource);
 
 let installerManifest = readFileSync(manifestPath, 'utf8');
 if (!installerManifest.includes('android.permission.REQUEST_INSTALL_PACKAGES')) {
-  installerManifest = installerManifest.replace('<manifest', '<manifest');
-  installerManifest = installerManifest.replace(/(<application\\b)/, '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\\n\\n    $1');
+  installerManifest = installerManifest.replace(/(<application\b)/, '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n\n    $1');
 }
 if (!installerManifest.includes('.apkprovider')) {
   const provider = `
