@@ -1,13 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { App } from '@capacitor/app';
-import { AppLauncher } from '@capacitor/app-launcher';
 import { FileTransfer } from '@capacitor/file-transfer';
 import { FileOpener } from '@capacitor-community/file-opener';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
-const RELEASES_PAGE_URL = 'https://github.com/ericrisurp-bot/fibula-online/releases';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const APK_MIME_TYPE = 'application/vnd.android.package-archive';
 
@@ -133,21 +131,9 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   const downloadLatest = useCallback(async () => {
     if (downloading) return;
     if (!release) {
-      const targetUrl = RELEASES_PAGE_URL;
-      if (isAndroid) {
-        window.alert(checking
-          ? 'O Fíbula ainda está consultando as versões publicadas. A página de Releases será aberta para você conferir.'
-          : 'Ainda não encontramos um APK oficial publicado. A página de Releases será aberta para você conferir.');
-        try {
-          await AppLauncher.openUrl({ url: targetUrl });
-        } catch {
-          window.location.assign(targetUrl);
-        }
-        return;
-      }
-      const opened = window.open(targetUrl, '_blank');
-      if (opened) opened.opener = null;
-      else window.location.assign(targetUrl);
+      window.alert(checking
+        ? 'O Fíbula ainda está consultando a versão oficial. Aguarde alguns segundos e tente novamente.'
+        : 'Não encontramos um APK oficial disponível no momento. Tente novamente mais tarde.');
       return;
     }
 
@@ -200,9 +186,9 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const opened = window.open(release.apkUrl, '_blank');
-    if (opened) opened.opener = null;
-    else window.location.assign(release.apkUrl);
+    // A URL vem da Release mais recente e redireciona diretamente ao APK.
+    // Navegar na aba atual evita abrir a página do repositório em uma nova aba.
+    window.location.assign(release.apkUrl);
   }, [checking, downloading, isAndroid, release]);
 
   const value = useMemo(() => ({
@@ -243,7 +229,7 @@ export function AndroidReleaseButton() {
         ? `NEW · Atualizar para a versão ${release?.versionName ?? ''}`
         : release
           ? 'Baixar APK oficial'
-          : 'Conferir versões publicadas no GitHub';
+          : 'Baixar APK oficial do Fíbula';
 
   return (
     <button
