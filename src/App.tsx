@@ -2390,7 +2390,7 @@ export default function App() {
       const values = new Uint32Array(1); window.crypto.getRandomValues(values);
       return values[0] / 0x1_0000_0000;
     };
-    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID(), parsed.weaponModel, parsed.equipmentType));
+    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID(), parsed.weaponModel, parsed.weaponAffinity, parsed.equipmentType));
     const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
       : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
     if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
