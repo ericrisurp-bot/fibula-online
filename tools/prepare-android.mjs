@@ -184,7 +184,7 @@ if (!installerManifest.includes('.apkprovider')) {
   const provider = `
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.apkprovider"
+            android:authorities="\${applicationId}.apkprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
