@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { App } from '@capacitor/app';
-import { AppLauncher } from '@capacitor/app-launcher';
 import { FileTransfer } from '@capacitor/file-transfer';
 import { FileOpener } from '@capacitor-community/file-opener';
 import { Directory, Filesystem } from '@capacitor/filesystem';
