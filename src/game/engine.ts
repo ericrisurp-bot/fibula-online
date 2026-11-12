@@ -2,7 +2,7 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { ATTRIBUTE_USAGE, getAttributeBaseBonusEffect, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
+import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
@@ -1485,7 +1485,7 @@ export class GameEngine {
       if (p.facingX < -0.35) this.local.weaponSide = 1;
       else if (p.facingX > 0.35) this.local.weaponSide = -1;
     }
-    const speed = CONFIG.player.speed + this.getLevelStats().speed;
+    const speed = CONFIG.player.classSpeed[this.state.classId] + this.getLevelStats().speed;
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     this.resolvePlayerObstacles(p, false);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
@@ -2689,10 +2689,9 @@ export class GameEngine {
   private getLevelStats() {
     const { classId, player } = this.state;
     return {
-      speed: getAttributeBonus(classId, player.level, 'velocidadeMovimento', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento, this.pointsPerLevel()),
+      speed: getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (this.getWeaponAttributeBonuses().velocidadeMovimento ?? 0)),
       armor: getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
       dodge: getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
-      attackSpeed: getAttributeBonus(classId, player.level, 'velocidadeAtaque', this.pointsPerLevel()) + getAttributeBaseBonusEffect(classId, player.level, 'velocidadeAtaque', this.cookingBaseBonuses().velocidadeAtaque, this.pointsPerLevel()) + getAttributeBaseValueEffect('velocidadeAtaque', this.getWeaponAttributeBonuses().velocidadeAtaque ?? 0),
     };
   }
 
@@ -2724,7 +2723,8 @@ export class GameEngine {
       if (e.animalKind) { this.moveWildlife(e, dt, obstaclesWithCart); continue; }
       const dx = feet.x - e.x, dy = feet.y - e.y;
       const distanceToPlayer = Math.hypot(dx, dy);
-      const speed = CONFIG.enemy.speed + Math.floor((this.state.wave - 1) / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
+      // A onda é o número da noite: a primeira noite já recebe o primeiro incremento.
+      const speed = CONFIG.enemy.speed + Math.floor(this.state.wave / CONFIG.enemy.speedEveryWaves) * CONFIG.enemy.speedIncrease;
       const slowRemaining = e.slowRemaining ?? 0;
       const speedMultiplier = slowRemaining > 0 ? CONFIG.druidSlow.speedMultiplier : 1;
       e.slowRemaining = Math.max(0, slowRemaining - dt);
@@ -2942,8 +2942,7 @@ export class GameEngine {
   private autoAttack() {
     if (this.state.cart.carried) return;
     const weapon = CONFIG.weapons[this.state.weapon];
-    const speedBonus = this.getLevelStats().attackSpeed;
-    if (this.local.attackTimer < 1 / (weapon.attackSpeed * (1 + speedBonus))) return;
+    if (this.local.attackTimer < 1 / weapon.attackSpeed) return;
     const p = this.state.player;
     const targets = this.state.enemies
       .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))

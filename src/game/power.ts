@@ -1,5 +1,5 @@
 import { CONFIG, type ClassId } from './config';
-import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getDamageMultiplier, type AttributeKey, type EffectAttribute } from './attributes';
+import { ATTRIBUTE_USAGE, getAttributeBonus, getDamageMultiplier, type AttributeKey, type EffectAttribute } from './attributes';
 import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon } from './weapons';
 
 // Referências fixas do PD: cada capacidade vale 100 pontos quando está exatamente na referência.
@@ -8,7 +8,6 @@ export const POWER_REFERENCE = {
   vida: 125,
   armadura: 12,
   esquiva: 1.04,
-  velocidadeAtaque: 1.3,
   velocidadeMovimento: 145,
   dano: 16,
 } as const;
@@ -20,7 +19,7 @@ export type PowerBreakdown = { total: number; parts: Record<PowerPart, number> }
 // ainda não soma no PD; findUncoveredAttributes() acusa isso para o relatório.
 const COVERED_ATTRIBUTES: Record<AttributeKey, boolean> = {
   vida: true, forca: true, armadura: true, resistenciaMagica: false, inteligencia: true, destreza: true,
-  velocidadeMovimento: true, velocidadeAtaque: true, alcanceAtaque: false, esquiva: true, areaAtaque: false,
+  velocidadeMovimento: true, velocidadeAtaque: false, alcanceAtaque: false, esquiva: true, areaAtaque: false,
 };
 
 const WEAPON_BY_CLASS = { guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao' } as const;
@@ -35,8 +34,7 @@ export function getClassPower(classId: ClassId, level: number, pointsPerLevel = 
     vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel),
     armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel),
     esquiva: 1 / (1 - Math.min(0.35, CONFIG.player.dodge + usedBonus(classId, level, 'esquiva', pointsPerLevel))),
-    velocidadeAtaque: weapon.attackSpeed * (1 + usedBonus(classId, level, 'velocidadeAtaque', pointsPerLevel)),
-    velocidadeMovimento: CONFIG.player.speed + usedBonus(classId, level, 'velocidadeMovimento', pointsPerLevel),
+    velocidadeMovimento: CONFIG.player.classSpeed[classId],
     dano: weapon.damage * getDamageMultiplier(classId, level, pointsPerLevel),
   };
   const parts = {} as Record<PowerPart, number>;
@@ -78,14 +76,11 @@ export function getArmedClassPower(
   }
 
   const baseWeapon = CONFIG.weapons[WEAPON_BY_CLASS[classId]];
-  const attackSpeedBonus = usedBonus(classId, level, 'velocidadeAtaque', pointsPerLevel)
-    + getAttributeBaseValueEffect('velocidadeAtaque', weaponBonuses.velocidadeAtaque ?? 0);
   const stats: Record<PowerPart, number> = {
     vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel),
     armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel),
     esquiva: 1 / (1 - Math.min(0.35, CONFIG.player.dodge + usedBonus(classId, level, 'esquiva', pointsPerLevel))),
-    velocidadeAtaque: baseWeapon.attackSpeed * (1 + attackSpeedBonus),
-    velocidadeMovimento: CONFIG.player.speed + usedBonus(classId, level, 'velocidadeMovimento', pointsPerLevel),
+    velocidadeMovimento: CONFIG.player.classSpeed[classId],
     // O motor soma o dano-base da CONFIG ao dano armazenado na arma fabricada.
     dano: (baseWeapon.damage + weapon.damage) * getDamageMultiplier(classId, level, pointsPerLevel, weaponBonuses),
   };
