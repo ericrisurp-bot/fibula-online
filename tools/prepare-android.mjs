@@ -86,6 +86,7 @@ const pluginSource = `package ${javaPackage};
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.Settings;
 
 import androidx.core.content.FileProvider;
@@ -102,7 +103,8 @@ import java.io.File;
 public class ApkInstallerPlugin extends Plugin {
     @PluginMethod
     public void checkInstallPermission(PluginCall call) {
-        boolean allowed = getContext().getPackageManager().canRequestPackageInstalls();
+        boolean allowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.O
+            || getContext().getPackageManager().canRequestPackageInstalls();
         JSObject result = new JSObject();
         result.put("canInstall", allowed);
         call.resolve(result);
@@ -129,7 +131,8 @@ public class ApkInstallerPlugin extends Plugin {
             call.reject("Caminho do APK não informado.");
             return;
         }
-        if (!getContext().getPackageManager().canRequestPackageInstalls()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            && !getContext().getPackageManager().canRequestPackageInstalls()) {
             call.reject("O Fíbula ainda não tem autorização para solicitar instalações.");
             return;
         }
@@ -148,7 +151,7 @@ public class ApkInstallerPlugin extends Plugin {
                 apkFile
             );
             Intent intent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
-            intent.setData(contentUri);
+            intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getActivity().startActivity(intent);
