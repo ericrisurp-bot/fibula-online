@@ -222,7 +222,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
     pendingApkPath,
     isSupported,
     downloadLatest,
-  }), [release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest]);
+  }), [release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest]);
 
   return <AndroidReleaseContext.Provider value={value}>{children}</AndroidReleaseContext.Provider>;
 }
