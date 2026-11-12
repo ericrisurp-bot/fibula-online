@@ -3177,7 +3177,7 @@ export default function App() {
                       onClick={() => { setSelectedJewelryCoreId(null); setJewelryFeedback(''); }}
                       aria-label={selectedJewelryCoreId ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
                       {selectedJewelryCoreId ? <>
-                        <span className="jewelry-gem-icon" aria-hidden="true" />
+                        <img className="jewelry-gem-icon" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" />
                         <strong>{itemLabel(selectedJewelryCoreId)}</strong>
                         <small>{(() => { const core = parseCoreItemId(selectedJewelryCoreId); return core?.kind === 'closed' ? coreRarityLabel(core.rarity) : 'Núcleo fechado'; })()}</small>
                       </> : <strong>＋ Núcleo 0/1</strong>}
@@ -3207,7 +3207,7 @@ export default function App() {
                       className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
                       onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
-                      <span className="jewelry-list-gem" aria-hidden="true" />
+                      <img className="jewelry-list-gem" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" />
                       <strong>{itemLabel(item.itemId)}</strong>
                       <small>×{item.quantity}</small>
                     </button>)}
