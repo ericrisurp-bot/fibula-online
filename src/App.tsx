@@ -361,7 +361,7 @@ const jabuticabaLevelCost = (level: number) => {
 const LOBBY_CRAFTING_STATIONS = [
   { id: 'bigorna', label: 'BIGORNA', icon: '⚒️', title: 'Bigorna', description: 'Estação de metalurgia para fabricar e aprimorar equipamentos metálicos.', products: 'Armas, capacetes e peças de armadura' },
   { id: 'costura', label: 'COSTURA', icon: '🧵', title: 'Alfaiataria', description: 'Mesa de costura para trabalhar tecidos e materiais flexíveis.', products: 'Luvas, botas e peças de tecido' },
-  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Revele os núcleos fechados de suas armas e descubra seus atributos.', products: 'Revelação de núcleos de arma' },
+  { id: 'joalheria', label: 'JOIAS', icon: '💎', title: 'Joalheria', description: 'Revele núcleos fechados e descubra os atributos de armas, armaduras e acessórios.', products: 'Revelação de núcleos' },
   { id: 'fogao', label: 'FOGÃO', icon: '🍲', title: 'Fogão e Panela', description: 'Escolha os ingredientes do Baú e coloque cada unidade na panela para preparar sua refeição.', products: 'Sopas, grelhados, guisados e ensopados' },
 ] as const;
 
@@ -673,6 +673,7 @@ export default function App() {
   const [selectedJewelryCoreId, setSelectedJewelryCoreId] = useState<string | null>(null);
   const [jewelryResultCoreId, setJewelryResultCoreId] = useState<string | null>(null);
   const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
+  const [jewelryRevealBusy, setJewelryRevealBusy] = useState(false);
   const [jewelryFeedback, setJewelryFeedback] = useState('');
   useEffect(() => {
     if (!jewelryResultCoreId) return;
@@ -832,6 +833,8 @@ export default function App() {
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const openStation = (id: StationRouteId) => {
     navigateToStation(id);
+    const latestRevealedCore = [...lobbyChestItems].reverse().find(item => parseCoreItemId(item.itemId)?.kind === 'revealed');
+    setJewelryResultCoreId(id === 'joalheria' ? latestRevealedCore?.itemId ?? null : null);
     setActiveGameRoute({ page: id });
     setSelectedWeaponCoreId(null);
     setWeaponFeedback('');
@@ -870,9 +873,9 @@ export default function App() {
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
-  const jewelryWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+  const jewelryClosedCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     const parsed = parseCoreItemId(item.itemId);
-    if (parsed?.kind !== 'closed' || parsed.category !== 'weapon' || item.quantity <= 0) return stacks;
+    if (parsed?.kind !== 'closed' || item.quantity <= 0) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
@@ -2347,11 +2350,16 @@ export default function App() {
     return () => { active = false; };
   }, [session.user.sub, cookingOnline, statusOpen, characterPreferences[0], characterPreferences[1]]);
 
-  const revealCoreFromChest = (itemId: string) => {
+  const revealCoreFromChest = async (itemId: string) => {
+    if (jewelryRevealBusy) return;
     const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
     if (sourceIndex < 0) return;
     const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(itemId);
-    if (!parsed || parsed.kind !== 'closed' || parsed.category !== 'weapon') return;
+    if (!parsed || parsed.kind !== 'closed') return;
+    if (!fibulaSupabase || !session.user.sub) {
+      setJewelryFeedback('Entre na sua conta e conecte-se para salvar a revelação.');
+      return;
+    }
     if (source.quantity > 1 && lobbyChestItems.length >= 50) {
       setJewelryFeedback('Baú cheio: libere um espaço para revelar o núcleo'); return;
     }
@@ -2363,10 +2371,23 @@ export default function App() {
     const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
       : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
     if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
-    applyCookingInventory(next);
-    setSelectedJewelryCoreId(null);
-    setJewelryResultCoreId(revealedItemId);
-    setJewelryFeedback('');
+    setJewelryRevealBusy(true);
+    setJewelryFeedback('Salvando a revelação…');
+    try {
+      const saved = await syncHouseInventory(fibulaSupabase, session.user.sub, next);
+      if (!saved) throw new Error('Não foi possível confirmar o salvamento. O núcleo continua fechado no Baú.');
+      const snapshot = JSON.stringify(next);
+      lastSyncedHouseInventoryRef.current = snapshot;
+      pendingHouseInventoryRef.current = null;
+      applyCookingInventory(next);
+      setSelectedJewelryCoreId(null);
+      setJewelryResultCoreId(revealedItemId);
+      setJewelryFeedback('Núcleo revelado e salvo no Baú.');
+    } catch (cause) {
+      setJewelryFeedback(cause instanceof Error ? cause.message : 'Não foi possível salvar a revelação.');
+    } finally {
+      setJewelryRevealBusy(false);
+    }
   };
   const addCookingIngredientUnit = (itemId: string) => {
     const stack = cookingIngredientStacks.find(item => item.itemId === itemId);
@@ -3163,9 +3184,11 @@ export default function App() {
                     </button>
                     {(() => {
                       const parsed = jewelryResultCoreId ? parseCoreItemId(jewelryResultCoreId) : null;
-                      if (!parsed || parsed.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
+                      if (!parsed || parsed.kind !== 'revealed') return null;
+                      const categoryImage = parsed.core.category === 'weapon' ? 'nucleo-armas.png'
+                        : parsed.core.category === 'armor' ? 'nucleo-armaduras.png' : 'nucleo-acessorios.png';
                       return <section className="jewelry-result-card" aria-label="Resultado do núcleo revelado">
-                        <header><span className="jewelry-result-gem" aria-hidden="true" /><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
+                        <header><img className="jewelry-result-gem" src={'/assets/cores/' + categoryImage} alt="" aria-hidden="true" /><strong>{itemLabel(jewelryResultCoreId!)}</strong></header>
                         <ul>{parsed.core.attributes.map(attribute => <li key={attribute.key}>
                           <span>{weaponAttributeLabels[attribute.key]}</span>
                           <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
@@ -3180,7 +3203,7 @@ export default function App() {
                     <span>Selecione 1 núcleo para revelar</span>
                   </div>
                   <div className="forge-core-strip">
-                    {jewelryWeaponCoreStacks.map(item => <button type="button" key={item.itemId}
+                    {jewelryClosedCoreStacks.map(item => <button type="button" key={item.itemId}
                       className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
                       onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
@@ -3188,13 +3211,13 @@ export default function App() {
                       <strong>{itemLabel(item.itemId)}</strong>
                       <small>×{item.quantity}</small>
                     </button>)}
-                    {jewelryWeaponCoreStacks.length === 0 && <p className="forge-empty">Você não tem núcleos para revelar.</p>}
+                    {jewelryClosedCoreStacks.length === 0 && <p className="forge-empty">Você não tem núcleos para revelar.</p>}
                   </div>
                 </section>
                 <div className="jewelry-action-area">
                   <button type="button" className="jewelry-reveal-button"
-                    disabled={!selectedJewelryCoreId || !jewelryWeaponCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
-                    onClick={() => selectedJewelryCoreId && revealCoreFromChest(selectedJewelryCoreId)}>Revelar</button>
+                    disabled={jewelryRevealBusy || !selectedJewelryCoreId || !jewelryClosedCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
+                    onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
                   {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
                 </div>
               </div> : activeCraftingStation.id === 'bigorna' ? <>
