@@ -113,7 +113,6 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [diagnostic, setDiagnostic] = useState<ArenaOAuthDiagnostic | null>(null);
   const nativeCallbackReceived = useRef(false);
   const nativeCallbackSucceeded = useRef(false);
-  const nativeCallbackTask = useRef<Promise<ArenaOAuthSession | null> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -124,46 +123,36 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       return () => { active = false; };
     }
 
-    const applyNativeCallback = (
+    const applyNativeCallback = async (
       source: Exclude<ArenaOAuthCallbackSource, 'web'>,
       url: string,
     ): Promise<ArenaOAuthSession | null> => {
       nativeCallbackReceived.current = true;
       logNativeCallbackTarget(source, url);
-      if (nativeCallbackSucceeded.current) return Promise.resolve(null);
-      if (nativeCallbackTask.current) return nativeCallbackTask.current;
+      if (nativeCallbackSucceeded.current) return null;
 
-      const task = (async () => {
-        try {
-          const callbackSession = await completeArenaLogin(url, source);
-          if (!active) return callbackSession;
-          setDiagnostic(getArenaOAuthDiagnostic());
-          if (!callbackSession) {
-            setMessage('O retorno recebido não pôde ser validado. Consulte o diagnóstico abaixo e tente novamente.');
-            setStatus('error');
-            return null;
-          }
-          nativeCallbackSucceeded.current = true;
-          setSession(callbackSession);
-          setMessage('');
-          setStatus('signed-in');
-          return callbackSession;
-        } catch {
-          if (!active) return null;
-          setDiagnostic(getArenaOAuthDiagnostic()
-            ?? createFallbackDiagnostic(source, 'callback_validation', 'session_validation_failed'));
-          setMessage('Não foi possível concluir o login. Consulte o diagnóstico abaixo.');
+      try {
+        const callbackSession = await completeArenaLogin(url, source);
+        if (!active || nativeCallbackSucceeded.current) return callbackSession;
+        setDiagnostic(getArenaOAuthDiagnostic());
+        if (!callbackSession) {
+          setMessage('O retorno recebido não pôde ser validado. Consulte o diagnóstico abaixo e tente novamente.');
           setStatus('error');
           return null;
         }
-      })();
-      nativeCallbackTask.current = task;
-      void task.then(() => {
-        if (nativeCallbackTask.current === task) nativeCallbackTask.current = null;
-      }, () => {
-        if (nativeCallbackTask.current === task) nativeCallbackTask.current = null;
-      });
-      return task;
+        nativeCallbackSucceeded.current = true;
+        setSession(callbackSession);
+        setMessage('');
+        setStatus('signed-in');
+        return callbackSession;
+      } catch {
+        if (!active || nativeCallbackSucceeded.current) return null;
+        setDiagnostic(getArenaOAuthDiagnostic()
+          ?? createFallbackDiagnostic(source, 'callback_validation', 'session_validation_failed'));
+        setMessage('Não foi possível concluir o login. Consulte o diagnóstico abaixo.');
+        setStatus('error');
+        return null;
+      }
     };
 
     if (Capacitor.isNativePlatform()) {
