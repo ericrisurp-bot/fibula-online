@@ -92,6 +92,7 @@ function parseOldCore(encoded: string): Core | null {
     const value: unknown = JSON.parse(decodeURIComponent(encoded)); if (!value || typeof value !== 'object') return null;
     const core = value as Partial<Core>;
     if (typeof core.id !== 'string' || !isCategory(core.category) || core.category === 'weapon' || !isRarity(core.rarity) || typeof core.surp !== 'boolean'
+      || (core.equipmentType !== undefined && !isEquipmentType(core.equipmentType, core.category))
       || !Array.isArray(core.attributes) || core.attributes.length === 0) return null;
     const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
     for (const a of core.attributes) {
