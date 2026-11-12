@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
-import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
+import { parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getArmedClassPower } from './game/power';
@@ -70,9 +70,6 @@ const initial: GameSnapshot = {
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
   enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
-const cookingRarityLabel = (rarity: CookingMeal['rarity']) => ({
-  normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
-}[rarity]);
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada',
@@ -297,20 +294,16 @@ const itemLabel = (itemId: string) => {
     return `Núcleo de ${equipmentLabels[core.equipmentType ?? ''] ?? (core.category === 'armor' ? 'armadura' : 'acessório')}`;
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'refined_leather' ? 'Couro refinado' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
-  const rarity = getItemRarity(itemId);
-  const rarityLabel = rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : '';
-  return rarityLabel ? `${label} · ${rarityLabel}` : label;
+  return label;
 };
 
-const bauRarityLabel = (rarity: string | null | undefined) => rarity === 'common' ? 'Comum' : rarity === 'uncommon' ? 'Incomum' : rarity === 'rare' ? 'Raro' : rarity === 'legendary' ? 'Lendário' : 'Normal';
 const bauItemDetails = (itemId: string) => {
  const parsed = parseCoreItemId(itemId);
- if (parsed) return { rarity: coreRarityLabel(parsed.kind === 'closed' ? parsed.rarity : parsed.core.rarity),
-  usage: parsed.kind === 'closed' ? 'Leve à Joalheria para revelar.' : 'Usado na criação de equipamentos.', property: '' };
+ if (parsed) return { usage: parsed.kind === 'closed' ? 'Leve à Joalheria para revelar.' : 'Usado na criação de equipamentos.', property: '' };
  const recipe = isCookingIngredient(itemId) ? getQuickRecipe(itemId,10) : null;
  const labels: Record<string,string> = {forca:'força',destreza:'destreza',inteligencia:'inteligência',velocidadeAtaque:'velocidade de ataque',velocidadeMovimento:'velocidade de movimento',healingPerSecond:'regeneração'};
  const properties = recipe ? Object.entries(recipe.effects).filter(([,value]) => typeof value === 'number' && value > 0).map(([key]) => labels[key]).filter(Boolean) : [];
- return {rarity:bauRarityLabel(getItemRarity(itemId)),property:properties.length?'Propriedade: '+properties.join(' e '):'',
+ return {property:properties.length?'Propriedade: '+properties.join(' e '):'',
   usage:isCookingIngredient(itemId)?'Uso: usado em receitas':'Uso: usado em armas, armaduras, construção e outras criações.'};
 };
 const bauMealEffects = (meal: CookingMeal) => {
@@ -349,11 +342,15 @@ const weaponAttributeLabels: Record<CoreAttributeKey, string> = {
   forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
   vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
 };
+const rarityGlowStyle = (rarity: string | null | undefined): React.CSSProperties => {
+  const color = rarity === 'common' ? '#36d66f' : rarity === 'uncommon' ? '#348cff' : rarity === 'rare' ? '#a34be8' : rarity === 'legendary' ? '#ff8a24' : null;
+  return color ? { filter: `drop-shadow(0 0 5px ${color})` } : {};
+};
+const cleanItemName = (name: string) => name.replace(/\s*[·•]\s*(?:Normal|Comum|Incomum|Raro|Rara|Lendário|Lendária)$/i, '').trim();
 const itemRarityGlow = (itemId: string): React.CSSProperties => {
   const parsedCore = parseCoreItemId(itemId);
   const rarity = parsedCore ? (parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity) : getItemRarity(itemId);
-  const color = rarity === 'common' ? '#36d66f' : rarity === 'uncommon' ? '#348cff' : rarity === 'rare' ? '#a34be8' : rarity === 'legendary' ? '#ff8a24' : 'transparent';
-  return rarity ? { filter: `drop-shadow(0 0 5px ${color})` } : {};
+  return rarityGlowStyle(rarity);
 };
 
 const jabuticabaLevelCost = (level: number) => {
@@ -2295,7 +2292,7 @@ export default function App() {
         await new Promise(resolve => window.setTimeout(resolve, Math.max(0, 1500 - (Date.now() - animationStartedAt))));
       }
       setForgeHammering(false);
-      setForgeCraftResult(arsenalWeaponLabels[result.weapon.model] + ' · ' + coreRarityLabel(result.weapon.rarity) + ' fabricada!');
+      setForgeCraftResult(arsenalWeaponLabels[result.weapon.model] + ' fabricada!');
       setSelectedWeaponCoreId(null);
       setSelectedWeaponMaterials([]);
       try {
@@ -2806,7 +2803,7 @@ export default function App() {
         ...current,
         [activeArsenalClassId]: equipArsenalItem(current[activeArsenalClassId] ?? {}, action.item),
       }));
-      setWeaponFeedback(action.item.name + ' equipada.');
+      setWeaponFeedback(cleanItemName(action.item.name) + ' equipada.');
     }
     setArsenalActionItem(null);
   };
@@ -2820,7 +2817,7 @@ export default function App() {
         ...current,
         [activeArsenalClassId]: unequipArsenalSlot(current[activeArsenalClassId] ?? {}, action.item.slot),
       }));
-      setWeaponFeedback(action.item.name + ' desequipado.');
+      setWeaponFeedback(cleanItemName(action.item.name) + ' desequipado.');
     }
     setSelectedArsenalItemId(null);
     setArsenalActionItem(null);
@@ -2880,7 +2877,7 @@ export default function App() {
       return next;
     });
     setSelectedArsenalItemId(null);
-    setWeaponFeedback(item.name + ' excluído.');
+    setWeaponFeedback(cleanItemName(item.name) + ' excluído.');
     setArsenalDeleteConfirmation(null);
     setArsenalDeleteBusy(false);
   };
@@ -3315,7 +3312,7 @@ export default function App() {
                           disabled={weaponCraftBusy || !canSelect}
                           onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
                           <span>{inventoryItemIcon(item.itemId)}</span>
-                          <strong>{itemLabel(item.itemId)}{rarity !== 'normal' ? ' · ' + coreRarityLabel(rarity) : ''}</strong>
+                          <strong>{itemLabel(item.itemId)}</strong>
                           <small>×{item.quantity}{selected ? ' · ' + selected.quantity + '/' + recipeRow?.material.quantity : ''}</small>
                         </button>;
                       })}
@@ -3342,7 +3339,7 @@ export default function App() {
                         return <div className={meal ? remaining > 0 ? 'cooking-production-slot cooking-in-progress' : 'cooking-production-slot cooking-ready' : 'cooking-production-slot'} key={meal?.id ?? 'production-' + index}>
                           <strong>Produção {index + 1}</strong>
                           {meal ? <>
-                            <span className="cooking-production-icon">{cookingMealArtwork(meal)}</span>
+                            <span className="cooking-production-icon" style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span>
                             <b>{meal.name}</b>
                             {remaining > 0 ? <small>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</small>
                               : <button type="button" disabled={!cookingOnline} onClick={() => void collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
@@ -3508,17 +3505,16 @@ export default function App() {
                   {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
                     const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
                     const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                    const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] + ' · ' + coreRarityLabel(weaponEquipped.rarity) : equipped?.name;
+                    const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : equipped ? cleanItemName(equipped.name) : undefined;
                     const weaponIcon = weaponEquipped ? weaponEquipped.model === 'espada' ? '🗡️' : weaponEquipped.model === 'arco' ? '🏹' : weaponEquipped.model === 'cajado' ? '🔮' : '🌿' : null;
                     const rarity = weaponEquipped?.rarity ?? equipped?.rarity;
-                    const rarityColor = rarity === 'common' ? '#36a852' : rarity === 'uncommon' ? '#2874c7' : rarity === 'rare' ? '#8740bd' : rarity === 'legendary' ? '#b65b13' : 'transparent';
                     const info = ARSENAL_SLOT_INFO[slot];
-                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column, ...(rarityColor === 'transparent' ? {} : { borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}55` }) }} disabled={!equippedName} onClick={() => {
+                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
                       if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
                       else if (equipped) openArsenalEquipmentActions(equipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
                       {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
-                      {equippedName && <span className="arsenal-equipped-weapon-icon" aria-hidden="true">{weaponEquipped ? weaponIcon : equipped?.icon}</span>}
+                      {equippedName && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{weaponEquipped ? weaponIcon : equipped?.icon}</span>}
                     </button>;
                   })}
                 </div>
@@ -3533,19 +3529,16 @@ export default function App() {
                   {arsenalInventoryEntries.map(entry => {
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
-                      const weaponName = arsenalWeaponLabels[weapon.model] + ' · ' + coreRarityLabel(weapon.rarity);
-                      const rarityColor = weapon.rarity === 'common' ? '#36a852' : weapon.rarity === 'uncommon' ? '#2874c7' : weapon.rarity === 'rare' ? '#8740bd' : weapon.rarity === 'legendary' ? '#b65b13' : '#cfc6b3';
+                      const weaponName = arsenalWeaponLabels[weapon.model];
                       const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
-                      return <button type="button" key={weapon.id} className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''}`} style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}35` }} onClick={() => openArsenalWeaponActions(weapon, false)} aria-label={`${weaponName}. Abrir ações.`}>
-                        <span>{weaponIcon}</span><small>{weaponName}</small>
+                      return <button type="button" key={weapon.id} className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''}`} onClick={() => openArsenalWeaponActions(weapon, false)} aria-label={`${weaponName}. Abrir ações.`}>
+                        <span style={rarityGlowStyle(weapon.rarity)}>{weaponIcon}</span><small>{weaponName}</small>
                       </button>;
                     }
                     const item = entry.item;
                     const isEquipped = Object.values(equipmentLoadout).includes(item.id);
-                    const rarity = item.rarity ?? 'normal';
-                    const rarityColor = rarity === 'common' ? '#36a852' : rarity === 'uncommon' ? '#2874c7' : rarity === 'rare' ? '#8740bd' : rarity === 'legendary' ? '#b65b13' : '#cfc6b3';
-                    return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} style={{ borderColor: rarityColor, boxShadow: `0 0 8px ${rarityColor}35` }} onClick={() => openArsenalEquipmentActions(item, isEquipped)} aria-label={`${item.name}${isEquipped ? ', equipado' : ''}. Abrir ações.`}>
-                      <span>{item.icon}</span><small>{item.name}</small>{isEquipped && <em>EQUIPADO</em>}
+                    return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} onClick={() => openArsenalEquipmentActions(item, isEquipped)} aria-label={`${cleanItemName(item.name)}${isEquipped ? ', equipado' : ''}. Abrir ações.`}>
+                      <span style={rarityGlowStyle(item.rarity)}>{item.icon}</span><small>{cleanItemName(item.name)}</small>{isEquipped && <em>EQUIPADO</em>
                     </button>;
                   })}
                 </div>}
@@ -3555,10 +3548,8 @@ export default function App() {
           <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
-          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity) : arsenalActionItem.item.name} onClick={event => event.stopPropagation()}>
-            <header><strong>{arsenalActionItem.kind === 'weapon'
-              ? arsenalWeaponLabels[arsenalActionItem.weapon.model] + ' · ' + coreRarityLabel(arsenalActionItem.weapon.rarity)
-              : arsenalActionItem.item.name + ' · ' + (({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' } as Record<string, string>)[arsenalActionItem.item.rarity ?? 'normal'] ?? arsenalActionItem.item.rarity ?? 'Normal')}</strong>
+          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
+            <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)}</strong>
               <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
             {arsenalActionItem.equipped
@@ -3572,7 +3563,7 @@ export default function App() {
           <section className="arsenal-action-dialog arsenal-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmar exclusão" onClick={event => event.stopPropagation()}>
             <header><strong>Excluir {arsenalDeleteConfirmation.kind === 'weapon'
               ? arsenalWeaponLabels[arsenalDeleteConfirmation.weapon.model]
-              : arsenalDeleteConfirmation.item.name}?</strong></header>
+              : cleanItemName(arsenalDeleteConfirmation.item.name)}?</strong></header>
             <p>Esta ação não pode ser desfeita.</p>
             <div className="arsenal-confirm-actions">
               <button type="button" className="arsenal-action-button" autoFocus disabled={arsenalDeleteBusy} onClick={() => setArsenalDeleteConfirmation(null)}>Cancelar</button>
@@ -3581,10 +3572,8 @@ export default function App() {
           </section>
         </div>}
         {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>
-          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] + ' · ' + coreRarityLabel(weaponInfoModal.weapon.rarity) : weaponInfoModal.item.name} onClick={event => event.stopPropagation()}>
-            <header><strong>{weaponInfoModal.kind === 'weapon'
-              ? arsenalWeaponLabels[weaponInfoModal.weapon.model] + ' · ' + coreRarityLabel(weaponInfoModal.weapon.rarity)
-              : weaponInfoModal.item.name + ' · ' + (({ normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' } as Record<string, string>)[weaponInfoModal.item.rarity ?? 'normal'] ?? weaponInfoModal.item.rarity ?? 'Normal')}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>Fechar</button></header>
+          <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] : cleanItemName(weaponInfoModal.item.name)} onClick={event => event.stopPropagation()}>
+            <header><strong>{weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] : cleanItemName(weaponInfoModal.item.name)}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>Fechar</button></header>
             {weaponInfoModal.kind === 'weapon' ? <>
               <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.weapon.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
               <h3>Núcleo de {weaponInfoModal.weapon.model === 'bastao' ? 'cajado' : weaponInfoModal.weapon.model}</h3>
@@ -3637,8 +3626,8 @@ export default function App() {
               <div className="lobby-chest-grid lobby-chest-meals bau-side-grid" aria-label="Refeições prontas">
                 {readyCookingMeals.length ? readyCookingMeals.map(meal => <button type="button" key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card"
                   aria-label={meal.name + ': abrir ações'} onClick={() => openBauMealActions(meal)}>
-                  <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                  <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
+                  <span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
+                  
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                 </button>) : <p className="house-storage-empty bau-side-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
               </div>
@@ -3650,8 +3639,8 @@ export default function App() {
                     return <div key={slot} className="cooking-pending-slot">
                       <b>{slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                       {meal ? <>
-                        <span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                        <small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small>
+                        <span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
+                        
                         <button type="button" className="cooking-meal-action secondary" disabled={!cookingOnline} onClick={() => void returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
                       </> : <small className="cooking-pending-empty">Vazio</small>}
                     </div>;
@@ -3694,14 +3683,13 @@ export default function App() {
             </>:bauAction.view==='details'?<>
               <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
               {bauAction.kind==='meal'?<>
-                <p><b>Raridade:</b> {cookingRarityLabel(bauAction.meal.rarity)}</p><p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
+                <p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
                 <div className="bau-action-detail-section"><strong>Ingredientes</strong><ul>{bauAction.meal.ingredients.map((ingredient,index)=><li key={ingredient.itemId+'-'+index}>{bauIngredientName(ingredient.itemId)}</li>)}</ul></div>
                 <div className="bau-action-detail-section"><strong>Efeito</strong><ul>{bauMealEffects(bauAction.meal).map((effect,index)=><li key={effect+'-'+index}>{effect}</li>)}</ul>
                   {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
               </>:<>
-                <p><b>Raridade:</b> {bauItemDetails(bauAction.item.itemId).rarity}</p>
                 {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
                 <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
               </>}
@@ -3871,7 +3859,7 @@ export default function App() {
 :<div className="house-meals-grid">
 {!cookingOnline&&<p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
 {readyCookingMeals.length?readyCookingMeals.map(meal=>{const slotOccupied=state.activeMeals.some(active=>active.slot===meal.slot);return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible||!cookingOnline||slotOccupied} onClick={event=>{event.stopPropagation();void consumeReadyCookingMeal(meal);}} title={!houseAccessible?'Aproxime-se do Baú para consumir':!cookingOnline?'Sem conexão: cozinhar exige internet.':slotOccupied?'Você já tem uma refeição deste tipo ativa':'Consumir refeição'}>
-<span>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><small className="cooking-meal-rarity">{cookingRarityLabel(meal.rarity)}</small><b>{meal.slot==='quick'?'Simples':'Elaborada'}</b><b>Consumir</b></button>;}) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
+<span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><b>{meal.slot==='quick'?'Simples':'Elaborada'}</b><b>Consumir</b></button>;}) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
 </div>}
 </section></div>}
 </div></div>}
