@@ -21,6 +21,23 @@ type ArenaAuthContextValue = {
 
 const ArenaAuthContext = createContext<ArenaAuthContextValue | null>(null);
 
+function logNativeCallbackTarget(source: 'appUrlOpen' | 'launchUrl', value: string): void {
+  try {
+    const target = new URL(value);
+    console.info('[Arena OAuth] Destino do link recebido no Android.', {
+      source,
+      protocol: target.protocol,
+      hostname: target.hostname,
+      pathname: target.pathname,
+      recognized: target.protocol === 'fibula:'
+        && target.hostname === 'auth'
+        && target.pathname === '/callback',
+    });
+  } catch {
+    console.warn('[Arena OAuth] O Android entregou um link com formato inválido.', { source });
+  }
+}
+
 export function useArenaAuth(): ArenaAuthContextValue {
   const context = useContext(ArenaAuthContext);
   if (!context) throw new Error('useArenaAuth precisa ser usado dentro de AuthGate.');
@@ -44,7 +61,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
 
     const applyNativeCallback = async (url: string) => {
       try {
-        console.info('[Arena OAuth] Link de retorno recebido pelo app nativo.');
+        logNativeCallbackTarget('appUrlOpen', url);
         const callbackSession = await completeArenaLogin(url);
         if (!active) return;
         if (!callbackSession) {
@@ -81,6 +98,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         if (Capacitor.isNativePlatform()) {
           const launch = await App.getLaunchUrl();
           if (launch?.url) {
+            logNativeCallbackTarget('launchUrl', launch.url);
             launchSession = await completeArenaLogin(launch.url);
             if (!launchSession) {
               throw new Error('O Android abriu o Fíbula por um link de retorno que não foi reconhecido. Inicie o login novamente.');
