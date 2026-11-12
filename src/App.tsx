@@ -2479,7 +2479,7 @@ export default function App() {
     if (!nextInventory) { setCookingFeedback('Você não tem todas essas unidades disponíveis no Baú.'); return; }
     try {
       const result = await startCookingProduction(fibulaSupabase!, meal);
-      applyCookingInventory(nextInventory);
+      applyCookingInventory(result.inventory);
       applyCookingServerState(result);
       setPanCookingSelections([]);
       setCookingFeedback('Produção iniciada: ' + meal.name + '.');
