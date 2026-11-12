@@ -9809,3 +9809,6 @@ sem backdrop ou caixa de modal. */
   backdrop-filter:blur(4px);
   -webkit-backdrop-filter:blur(4px);
 }
+
+.lobby-screen .lobby-release-button.is-checking svg{animation:lobby-release-spin 1s linear infinite}
+@keyframes lobby-release-spin{to{transform:rotate(360deg)}}
