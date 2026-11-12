@@ -17,7 +17,7 @@ const CLASS_LABELS: Record<ClassId, string> = { guerreiro: 'Guerreiro', mago: 'M
 const DUEL_DEFINITIONS = [
   { key: 'damage', left: 'Dano físico', leftIcon: '⚔️', right: 'Dano mágico', rightIcon: '✨' },
   { key: 'survival', left: 'Sobrevivência', leftIcon: '❤️', right: 'Mobilidade', rightIcon: '🥾' },
-  { key: 'armor', left: 'Armadura', leftIcon: '🛡️', right: 'Vel. de ataque', rightIcon: '⚡' },
+  { key: 'armor', left: 'Armadura', leftIcon: '🛡️', right: 'Alcance', rightIcon: '🎯' },
 ] as const;
 type DuelKey = typeof DUEL_DEFINITIONS[number]['key'];
 type DuelShare = { left: number; right: number };
@@ -66,7 +66,7 @@ function getRawDuelValues() {
   const multipliers = CONFIG.attributes.classMultipliers;
   const physicalDamage = (id: ClassId) => ATTRIBUTE_USAGE[id].forca * multipliers[id].forca + ATTRIBUTE_USAGE[id].destreza * multipliers[id].destreza;
   const magicalDamage = (id: ClassId) => ATTRIBUTE_USAGE[id].inteligencia * multipliers[id].inteligencia;
-  const mobility = (id: ClassId) => (multipliers[id].velocidadeMovimento + multipliers[id].esquiva) / 2;
+  const mobility = (id: ClassId) => (CONFIG.player.classSpeed[id] / CONFIG.player.speed + multipliers[id].esquiva) / 2;
   const defensiveBase = (id: ClassId) => (multipliers[id].vida + multipliers[id].armadura) / 2;
   // Cura simples por ação: Druida cura por acertos básicos e orbes; Arqueiro por flechas.
   const healingRate = (id: ClassId) => id === 'druida'
@@ -77,8 +77,8 @@ function getRawDuelValues() {
   const survival = (id: ClassId) => defensiveBase(id) + (maxHealing > 0 ? healingRate(id) / maxHealing * maxDefense * 0.25 : 0);
   return Object.fromEntries(CLASS_IDS.map(id => [id, {
     physicalDamage: physicalDamage(id), magicalDamage: magicalDamage(id), survival: survival(id), mobility: mobility(id),
-    armor: multipliers[id].armadura, attackSpeed: multipliers[id].velocidadeAtaque,
-  }])) as Record<ClassId, { physicalDamage: number; magicalDamage: number; survival: number; mobility: number; armor: number; attackSpeed: number }>;
+    armor: multipliers[id].armadura, range: CONFIG.weapons[CLASS_WEAPONS[id]].range,
+  }])) as Record<ClassId, { physicalDamage: number; magicalDamage: number; survival: number; mobility: number; armor: number; range: number }>;
 }
 function normalizedValue(values: Record<ClassId, number>, id: ClassId) {
   const best = Math.max(...CLASS_IDS.map(classId => values[classId]));
@@ -92,7 +92,7 @@ export function deriveClassDuelPercentages(): ClassDuelPercentages {
   const keys = {
     physicalDamage: valuesFor('physicalDamage'), magicalDamage: valuesFor('magicalDamage'),
     survival: valuesFor('survival'), mobility: valuesFor('mobility'),
-    armor: valuesFor('armor'), attackSpeed: valuesFor('attackSpeed'),
+    armor: valuesFor('armor'), range: valuesFor('range'),
   };
   const duel = (leftKey: keyof typeof keys, rightKey: keyof typeof keys, id: ClassId): DuelShare => {
     const left = normalizedValue(keys[leftKey], id), right = normalizedValue(keys[rightKey], id), total = left + right;
@@ -101,7 +101,7 @@ export function deriveClassDuelPercentages(): ClassDuelPercentages {
     return { left: leftPercent, right: 100 - leftPercent };
   };
   return Object.fromEntries(CLASS_IDS.map(id => [id, {
-    damage: duel('physicalDamage', 'magicalDamage', id), survival: duel('survival', 'mobility', id), armor: duel('armor', 'attackSpeed', id),
+    damage: duel('physicalDamage', 'magicalDamage', id), survival: duel('survival', 'mobility', id), armor: duel('armor', 'range', id),
   }])) as ClassDuelPercentages;
 }
 
@@ -165,14 +165,12 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   classId: ClassId; preferences: [ClassId | null, ClassId | null]; onPreferencesChange: (next: [ClassId | null, ClassId | null]) => void;
 }) {
   const weapon = CONFIG.weapons[CLASS_WEAPONS[classId]];
-  const attributes = getPlayerAttributes(classId, 0);
-  // At level zero these resolve to the same CONFIG.player base values shown in the former profile.
-  const initialMobility = CONFIG.player.speed + (attributes.velocidadeMovimento - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.velocidadeMovimento;
+  const initialMobility = CONFIG.player.classSpeed[classId];
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
-    { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Vel. de ataque', value: weapon.attackSpeed.toFixed(2) },
+    { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Ataques/s', value: weapon.attackSpeed.toFixed(2) },
     { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. de movimento', value: initialMobility.toFixed(0) },
   ];
   const computedStats = computeClassStats(classId);
