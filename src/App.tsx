@@ -3172,7 +3172,7 @@ export default function App() {
                   <div className="forge-panel-heading"><strong>TECIDOS</strong><span>Materiais disponíveis no Baú</span></div>
                   <div className="forge-material-grid tailor-fabric-grid" aria-label="Tecidos disponíveis no Baú">
                     {tailorFabricStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
-                      <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                      <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
                     </div>)}
                     {tailorFabricStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum tecido no Baú.</p>}
                   </div>
@@ -3246,7 +3246,7 @@ export default function App() {
                           style={{ order }}
                           onClick={() => clearForgeMaterial(row.slot)}
                           aria-label={row.selection ? 'Devolver ' + itemLabel(row.selection.itemId) + ' à grade' : 'Slot ' + partLabel}>
-                          <span>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
+                          <span style={row.selection ? itemRarityGlow(row.selection.itemId) : undefined}>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
                           <strong>{partLabel} · {materialLabel} ×{row.material.quantity}</strong>
                           <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
                         </button>;
@@ -3311,7 +3311,7 @@ export default function App() {
                           className={'forge-material-item' + (selected ? ' selected' : '')}
                           disabled={weaponCraftBusy || !canSelect}
                           onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
-                          <span>{inventoryItemIcon(item.itemId)}</span>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                           <strong>{itemLabel(item.itemId)}</strong>
                           <small>×{item.quantity}{selected ? ' · ' + selected.quantity + '/' + recipeRow?.material.quantity : ''}</small>
                         </button>;
@@ -3363,7 +3363,7 @@ export default function App() {
                         return <button type="button" className="cooking-pot-slot filled" key={item.itemId}
                           aria-label={'Retirar uma unidade de ' + itemLabel(item.itemId)}
                           onClick={() => removeCookingIngredientUnit(item.itemId)} disabled={cannotRemove}>
-                          <span>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><b>×{item.quantity}</b>
                         </button>;
                       })}
                     </div>
@@ -3627,7 +3627,6 @@ export default function App() {
                 {readyCookingMeals.length ? readyCookingMeals.map(meal => <button type="button" key={meal.id} className="quick-slot filled lobby-chest-slot lobby-chest-meal-card"
                   aria-label={meal.name + ': abrir ações'} onClick={() => openBauMealActions(meal)}>
                   <span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                  
                   <b>{meal.slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                 </button>) : <p className="house-storage-empty bau-side-empty">Nenhuma refeição pronta. Retire as refeições concluídas no Fogão.</p>}
               </div>
@@ -3640,7 +3639,6 @@ export default function App() {
                       <b>{slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                       {meal ? <>
                         <span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                        
                         <button type="button" className="cooking-meal-action secondary" disabled={!cookingOnline} onClick={() => void returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
                       </> : <small className="cooking-pending-empty">Vazio</small>}
                     </div>;
