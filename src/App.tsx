@@ -3180,8 +3180,12 @@ export default function App() {
                 </section>
                 <div className="tailor-action-area"><button type="button" className="tailor-sew-button" disabled>Costurar · Em breve</button></div>
               </div> : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
-                <JewelryScene revealAnimating={jewelryRevealAnimating}>
-                  <div className="jewelry-scene-content">
+                <div className="jewelry-stage">
+                  <JewelryScene revealAnimating={jewelryRevealAnimating} />
+                  <div className="jewelry-ui-layer">
+                    <div className="jewelry-scene-header"><h2>JOALHERIA</h2></div>
+                    <div className="jewelry-scene-slots">
+                      <div className="jewelry-scene-content">
                     <button type="button" className={jewelrySlotCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
                       onClick={() => { setSelectedJewelryCoreId(null); setJewelryResultCoreId(null); setJewelryFeedback(''); }}
                       aria-label={jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : jewelrySlotCore?.kind === 'closed' ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
@@ -3204,7 +3208,9 @@ export default function App() {
                       </li>)}</ul>
                     </section>}
                   </div>
-                </JewelryScene>
+                    </div>
+                  </div>
+                </div>
                 <section className="forge-zone forge-nuclei-zone jewelry-nuclei-zone" aria-label="Núcleos fechados">
                   <div className="forge-panel-heading">
                     <strong>NÚCLEOS FECHADOS</strong>
