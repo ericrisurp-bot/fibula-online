@@ -164,6 +164,15 @@ const itemIcon = (itemId: string) => parseCoreItemId(itemId)?.kind === 'closed' 
 const MATERIAL_SPRITE_FILES: Record<string, string> = { wood: 'wood.png', stone: 'stone.png', wolf_hide: 'wolf-hide.png', cotton: 'cotton.png', bronze: 'bronze.png', linen: 'linen.png', refined_leather: 'refined-leather.png' };
 const INGREDIENT_SPRITE_FILES: Record<string, string> = { wolf_meat: 'wolf-meat.png', chicken_meat: 'chicken-meat.png', tomato: 'tomato.png', cabbage: 'cabbage.png', herbs: 'herbs.png', sugarcane: 'sugarcane.png', jabuticaba: 'jabuticaba.png', potato: 'potato.png', carrot: 'carrot.png', feather: 'feather.png' };
 const ITEM_SPRITE_FILES: Record<string, string> = { ...MATERIAL_SPRITE_FILES, ...INGREDIENT_SPRITE_FILES };
+const CORE_SPRITE_FILES = { closed: 'nucleo-fechado.png', weapon: 'nucleo-armas.png', armor: 'nucleo-armaduras.png', accessory: 'nucleo-acessorios.png' } as const;
+const coreSpriteImages: Record<string, HTMLImageElement> = {};
+function drawCoreSprite(ctx: CanvasRenderingContext2D, file: string, x: number, y: number, size: number): boolean {
+  if (typeof Image === 'undefined') return false;
+  let sprite = coreSpriteImages[file];
+  if (!sprite) { sprite = new Image(); sprite.src = `/assets/cores/${file}`; coreSpriteImages[file] = sprite; return false; }
+  if (!sprite.complete || sprite.naturalWidth === 0) return false;
+  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite, x - size / 2, y - size / 2, size, size); ctx.restore(); return true;
+}
 const itemSpriteImages: Record<string, HTMLImageElement> = {};
 function drawItemSprite(ctx: CanvasRenderingContext2D, itemId: string, x: number, y: number, size: number): boolean {
  const file=ITEM_SPRITE_FILES[itemId]; if(!file||typeof Image==='undefined')return false;
@@ -175,7 +184,10 @@ function drawItemSprite(ctx: CanvasRenderingContext2D, itemId: string, x: number
 const inventoryItemIcon = (itemId: string) => {
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
-  if (parsedCore) return <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1 }}>{parsedCore.kind === 'closed' ? '💎' : '💠'}</span>;
+  if (parsedCore) {
+    const coreFile = parsedCore.kind === 'closed' ? CORE_SPRITE_FILES.closed : CORE_SPRITE_FILES[parsedCore.core.category];
+    return <img src={`/assets/cores/${coreFile}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />;
+  }
   const fishFile: Record<string, string> = {
     tilapia: 'fish-tilapia.png', tambaqui: 'fish-tambaqui.png',
     pintado_surubim: 'fish-pintado-surubim.png', lambari: 'fish-lambari.png',
@@ -1784,8 +1796,10 @@ export default function App() {
         worldDrawables.push({ depth: drop.y + 7, draw: () => {
           drawResourceRarityAura(ctx, drop.x, drop.y + 3, 20, drop.core.rarity === 'normal' ? undefined : drop.core.rarity);
           ctx.save(); ctx.translate(drop.x, drop.y);
-          ctx.font = '24px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('💎', 0, 0);
+          if (!drawCoreSprite(ctx, CORE_SPRITE_FILES.closed, 0, 0, 24)) {
+            ctx.font = '24px ui-sans-serif, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('💎', 0, 0);
+          }
           ctx.restore();
         }});
       }
