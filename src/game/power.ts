@@ -19,7 +19,7 @@ export type PowerBreakdown = { total: number; parts: Record<PowerPart, number> }
 // ainda não soma no PD; findUncoveredAttributes() acusa isso para o relatório.
 const COVERED_ATTRIBUTES: Record<AttributeKey, boolean> = {
   vida: true, forca: true, armadura: true, resistenciaMagica: false, inteligencia: true, destreza: true,
-  velocidadeMovimento: true, velocidadeAtaque: true, alcanceAtaque: false, esquiva: true, areaAtaque: false,
+  velocidadeMovimento: true, velocidadeAtaque: false, alcanceAtaque: false, esquiva: true, areaAtaque: false,
 };
 
 const WEAPON_BY_CLASS = { guerreiro: 'espada', mago: 'cajado', arqueiro: 'arco', druida: 'bastao' } as const;
