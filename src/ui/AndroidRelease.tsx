@@ -188,7 +188,13 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
           'Não foi possível concluir o download ou abrir o instalador. Tente novamente; se o problema continuar, baixe o APK pela página de Releases usando outro navegador, como o EG(G).',
         );
       } finally {
-        if (progressListener) await progressListener.remove();
+        if (progressListener) {
+          try {
+            await progressListener.remove();
+          } catch {
+            // A falha ao remover o listener não deve deixar o botão preso.
+          }
+        }
         setDownloading(false);
       }
       return;
