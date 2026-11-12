@@ -23,6 +23,7 @@ export type CookingServerState = {
   ready: CookingMeal[];
   pending: CookingMeal[];
 };
+export type CookingProductionResult = CookingServerState & { inventory: InventoryStack[] };
 export type CookingPendingResult = { now_ms: number; meals: CookingMeal[] };
 export type CookingConsumeResult = CookingServerState & { meal: CookingMeal };
 
@@ -94,8 +95,16 @@ async function callCookingRpc(client: CookingRpcClient, name: string, args?: Rec
 export async function getCookingServerState(client: CookingRpcClient): Promise<CookingServerState> {
   return readCookingState(await callCookingRpc(client, 'fibula_cooking_get'));
 }
-export async function startCookingProduction(client: CookingRpcClient, meal: CookingMeal): Promise<CookingServerState> {
-  return readCookingState(await callCookingRpc(client, 'fibula_cooking_start', { p_meal: meal }));
+export async function startCookingProduction(client: CookingRpcClient, meal: CookingMeal): Promise<CookingProductionResult> {
+  const payload = readCookingObject(await callCookingRpc(client, 'fibula_cooking_start', { p_meal: meal }));
+  const inventory = payload.inventory;
+  if (!Array.isArray(inventory) || !inventory.every(item => !!item && typeof item === 'object'
+    && typeof (item as Record<string, unknown>).itemId === 'string'
+    && Number.isSafeInteger((item as Record<string, unknown>).quantity)
+    && ((item as Record<string, unknown>).quantity as number) > 0)) {
+    throw invalidCookingResponse('o inventário atualizado está ausente ou inválido.');
+  }
+  return { ...readCookingState(payload), inventory: inventory as InventoryStack[] };
 }
 export async function collectCookingMeal(client: CookingRpcClient, mealId: string): Promise<CookingServerState> {
   return readCookingState(await callCookingRpc(client, 'fibula_cooking_collect', { p_meal_id: mealId }));
