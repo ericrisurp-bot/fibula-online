@@ -349,17 +349,6 @@ const weaponAttributeLabels: Record<CoreAttributeKey, string> = {
   forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
   vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
 };
-const coreRarityBackground = (rarity: CoreRarity): React.CSSProperties => {
-  const colors: Record<CoreRarity, string> = {
-    normal: 'rgba(150,150,150,.22)', common: 'rgba(54,214,111,.24)', uncommon: 'rgba(52,140,255,.25)',
-    rare: 'rgba(163,75,232,.27)', legendary: 'rgba(255,138,36,.3)',
-  };
-  const borders: Record<CoreRarity, string> = {
-    normal: 'rgba(190,190,190,.38)', common: 'rgba(54,214,111,.65)', uncommon: 'rgba(52,140,255,.68)',
-    rare: 'rgba(163,75,232,.72)', legendary: 'rgba(255,138,36,.78)',
-  };
-  return { display: 'grid', placeItems: 'center', width: '3rem', height: '3rem', padding: '4px', borderRadius: '9px', background: colors[rarity], border: `1px solid ${borders[rarity]}`, boxSizing: 'border-box' };
-};
 const itemRarityGlow = (itemId: string): React.CSSProperties => {
   const parsedCore = parseCoreItemId(itemId);
   const rarity = parsedCore ? (parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity) : getItemRarity(itemId);
@@ -3200,12 +3189,12 @@ export default function App() {
                       onClick={() => { setSelectedJewelryCoreId(null); setJewelryResultCoreId(null); setJewelryFeedback(''); }}
                       aria-label={jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : jewelrySlotCore?.kind === 'closed' ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
                       {jewelrySlotCore?.kind === 'closed' ? <>
-                        <span style={coreRarityBackground(jewelrySlotCore.rarity)}>
+                        <span style={itemRarityGlow(jewelrySlotCoreId!)}>
                           <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none" }} />
                         </span>
                         <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
                       </> : jewelrySlotCore?.kind === 'revealed' ? <>
-                        <span style={coreRarityBackground(jewelrySlotCore.core.rarity)}>
+                        <span style={itemRarityGlow(jewelrySlotCoreId!)}>
                           <img src={`/assets/cores/${CORE_SPRITE_FILES[jewelrySlotCore.core.category]}`} alt="" aria-hidden="true" draggable={false} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", imageRendering: "pixelated" }} />
                         </span>
                         <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
@@ -3229,7 +3218,7 @@ export default function App() {
                       className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
                       onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryResultCoreId(null); setJewelryFeedback(''); }}>
-                      <span style={{ ...coreRarityBackground(item.itemId.slice('jewelry-closed:'.length) as CoreRarity), width: '2.5rem', height: '2.5rem' }}>
+                      <span style={itemRarityGlow(`core:${item.itemId.slice('jewelry-closed:'.length)}:weapon`)}>
                         <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
                       </span>
                       <strong>Núcleo fechado</strong>
@@ -3269,7 +3258,7 @@ export default function App() {
                         style={{ order: 0 }}
                         onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
                         aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
-                        <span style={selectedWeaponCore ? coreRarityBackground(selectedWeaponCore.rarity) : undefined}>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
+                        <span style={selectedWeaponCoreId ? itemRarityGlow(selectedWeaponCoreId) : undefined}>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
                         <strong>{selectedWeaponCoreId ? itemLabel(selectedWeaponCoreId) : 'Núcleo'}</strong>
                         {!selectedWeaponCore && <small>0/1</small>}
                       </button>
@@ -3288,7 +3277,7 @@ export default function App() {
                           className={selectedWeaponCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                           disabled={weaponCraftBusy}
                           onClick={() => selectForgeCore(item.itemId)}>
-                          <span style={coreRarityBackground(parsed.core.rarity)}>{inventoryItemIcon(item.itemId)}</span>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                           <strong>{itemLabel(item.itemId)}</strong>
                           <small>×{item.quantity}</small>
                         </button>;
