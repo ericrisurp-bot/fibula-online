@@ -10613,3 +10613,49 @@ sem backdrop ou caixa de modal. */
 
 /* J2.5 — remove a gema roxa decorativa sobre a gaveta central; manter o suporte. */
 .jewelry-cutting-stand::after{display:none!important}
+
+/* J2.6 — bancada de ourivesaria: marcenaria mais leve e de precisão. */
+.jewelry-bench-leg{
+  width:3.5%;
+  border-width:1px;
+  border-color:#493426;
+  background:linear-gradient(90deg,#493426 0%,#946b46 48%,#59402f 100%);
+  box-shadow:inset 0 0 0 1px #c0976222,0 2px 3px #090d1666;
+}
+.jewelry-bench-leg-left{left:9%}
+.jewelry-bench-leg-right{right:9%}
+.jewelry-bench-front{
+  top:9%;
+  height:75%;
+  border-width:1px;
+  border-radius:2px 2px 3px 3px;
+  box-shadow:inset 0 2px 3px #d8b27a22,inset 0 -4px 7px #291b1666,0 3px 5px #090d1666;
+}
+.jewelry-bench-front:before{
+  height:2px;
+  box-shadow:0 1px 2px #21171366;
+}
+.jewelry-bench-top{
+  height:10%;
+  border-width:1px;
+  border-radius:2px;
+  box-shadow:inset 0 1px 0 #f2d3a444,inset 0 -1px 2px #3a261b66,0 2px 3px #080d1766;
+}
+.jewelry-bench-drawer{
+  top:23%;
+  height:27%;
+  border-width:1px;
+  border-radius:2px;
+  background:linear-gradient(180deg,#b18a5b 0%,#89613e 58%,#704c32 100%);
+  box-shadow:inset 0 1px 0 #f1d8a433,0 1px 2px #21171466;
+}
+.jewelry-bench-drawer-left{left:7%}
+.jewelry-bench-drawer-center{left:38%;width:24%}
+.jewelry-bench-drawer-right{right:7%}
+.jewelry-bench-drawer:after{
+  width:9px;
+  height:2px;
+  border-width:1px;
+  border-radius:2px;
+  box-shadow:0 1px 1px #24191277;
+}
