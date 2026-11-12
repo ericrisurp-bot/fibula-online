@@ -16,7 +16,6 @@ export default function JewelryScene({ revealAnimating, children }: JewelryScene
       <span className="jewelry-gem-cluster jewelry-gem-cluster-right" />
       <span className="jewelry-lamp-arm" />
       <span className="jewelry-lamp-shade" />
-      <span className="jewelry-loupe" />
       <span className="jewelry-decor-gem jewelry-decor-gem-one" />
       <span className="jewelry-decor-gem jewelry-decor-gem-two" />
       <span className="jewelry-light-beam" />
@@ -31,7 +30,7 @@ export default function JewelryScene({ revealAnimating, children }: JewelryScene
       <span className="jewelry-velvet-case jewelry-velvet-case-right" />
       <span className="jewelry-tool-tray" />
       <span className="jewelry-tweezers" />
-      <span className="jewelry-jeweler-hammer" />
+      <span className="jewelry-bench-loupe" />
       <span className="jewelry-velvet-pad" />
       <span className="jewelry-bench-inlay" />
     </div>
