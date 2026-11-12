@@ -42,9 +42,7 @@ export default function JewelryScene({ revealAnimating }: JewelrySceneProps) {
         <span className="jewelry-tool-tray" />
         <span className="jewelry-tweezers" />
         <span className="jewelry-bench-loupe" />
-        <span className="jewelry-rune-plaque jewelry-rune-plaque-left"><i>ᚱ</i></span>
-        <span className="jewelry-rune-plaque jewelry-rune-plaque-center"><i>ᛟ</i></span>
-        <span className="jewelry-rune-plaque jewelry-rune-plaque-right"><i>ᚷ</i></span>
+        <span className="jewelry-velvet-cushion" />
       </div>
     </div>
     <span className="jewelry-scene-glow" aria-hidden="true" />
