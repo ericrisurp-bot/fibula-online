@@ -3269,9 +3269,9 @@ export default function App() {
                         style={{ order: 0 }}
                         onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
                         aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
-                        <span>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
-                        <strong>Núcleo</strong>
-                        <small>{selectedWeaponCore ? coreRarityLabel(selectedWeaponCore.rarity) : '0/1'}</small>
+                        <span style={selectedWeaponCore ? coreRarityBackground(selectedWeaponCore.rarity) : undefined}>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
+                        <strong>{selectedWeaponCoreId ? itemLabel(selectedWeaponCoreId) : 'Núcleo'}</strong>
+                        {!selectedWeaponCore && <small>0/1</small>}
                       </button>
                     </div>
                   </ForgeScene>
@@ -3284,13 +3284,12 @@ export default function App() {
                       {anvilWeaponCoreStacks.map(item => {
                         const parsed = parseCoreItemId(item.itemId);
                         if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
-                        const coreModel = parsed.core.weaponModel === 'cajado' ? parsed.core.affinity === 'natureza' ? 'bastão' : 'cajado' : parsed.core.weaponModel;
                         return <button type="button" key={item.itemId}
                           className={selectedWeaponCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                           disabled={weaponCraftBusy}
                           onClick={() => selectForgeCore(item.itemId)}>
-                          <span>{inventoryItemIcon(item.itemId)}</span>
-                          <strong>Núcleo de {coreModel} · {coreRarityLabel(parsed.core.rarity)}</strong>
+                          <span style={coreRarityBackground(parsed.core.rarity)}>{inventoryItemIcon(item.itemId)}</span>
+                          <strong>{itemLabel(item.itemId)}</strong>
                           <small>×{item.quantity}</small>
                         </button>;
                       })}
