@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
-import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
+import { coreRarityLabel, parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey, type CoreRarity } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getArmedClassPower } from './game/power';
@@ -282,15 +282,19 @@ const cookingMealArtwork = (meal: CookingMeal) => {
 const itemLabel = (itemId: string) => {
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
-  if (parsedCore) {
-    const category = parsedCore.kind === 'closed' ? parsedCore.category : parsedCore.core.category;
-    const rarity = parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity;
-    if (category === 'weapon') {
-      const model = parsedCore.kind === 'closed' ? parsedCore.weaponModel : parsedCore.core.weaponModel;
-      const modelLabel = model === 'arco' ? 'arco' : model === 'cajado' ? 'cajado' : 'espada';
-      return `Núcleo de ${modelLabel} · ${coreRarityLabel(rarity)}`;
+  if (parsedCore?.kind === 'closed') return 'Núcleo fechado';
+  if (parsedCore?.kind === 'revealed') {
+    const core = parsedCore.core;
+    if (core.category === 'weapon') {
+      const modelLabel = core.weaponModel === 'arco' ? 'arco' : core.weaponModel === 'cajado'
+        ? core.affinity === 'natureza' ? 'cajado da natureza' : 'cajado' : 'espada';
+      return `Núcleo de ${modelLabel}`;
     }
-    return `Núcleo de ${category === 'armor' ? 'armadura' : 'acessório'} · ${coreRarityLabel(rarity)}`;
+    const equipmentLabels: Record<string, string> = {
+      capacete: 'capacete', peitoral: 'peitoral', leggings: 'calça', bota: 'bota', luva: 'luva',
+      colar: 'colar', pulseira: 'pulseira', cinto: 'cinto',
+    };
+    return `Núcleo de ${equipmentLabels[core.equipmentType ?? ''] ?? (core.category === 'armor' ? 'armadura' : 'acessório')}`;
   }
   const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'refined_leather' ? 'Couro refinado' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   const rarity = getItemRarity(itemId);
@@ -344,6 +348,17 @@ function selectedWeaponForClass(weapons: CraftedWeapon[], selections: EquippedWe
 const weaponAttributeLabels: Record<CoreAttributeKey, string> = {
   forca: 'Força', inteligencia: 'Inteligência', destreza: 'Destreza', velocidadeAtaque: 'Velocidade de ataque',
   vida: 'Vida', armadura: 'Armadura', resistenciaMagica: 'Resistência mágica', velocidadeMovimento: 'Velocidade de movimento', esquiva: 'Esquiva',
+};
+const coreRarityBackground = (rarity: CoreRarity): React.CSSProperties => {
+  const colors: Record<CoreRarity, string> = {
+    normal: 'rgba(150,150,150,.22)', common: 'rgba(54,214,111,.24)', uncommon: 'rgba(52,140,255,.25)',
+    rare: 'rgba(163,75,232,.27)', legendary: 'rgba(255,138,36,.3)',
+  };
+  const borders: Record<CoreRarity, string> = {
+    normal: 'rgba(190,190,190,.38)', common: 'rgba(54,214,111,.65)', uncommon: 'rgba(52,140,255,.68)',
+    rare: 'rgba(163,75,232,.72)', legendary: 'rgba(255,138,36,.78)',
+  };
+  return { display: 'grid', placeItems: 'center', width: '3rem', height: '3rem', padding: '4px', borderRadius: '9px', background: colors[rarity], border: `1px solid ${borders[rarity]}`, boxSizing: 'border-box' };
 };
 const itemRarityGlow = (itemId: string): React.CSSProperties => {
   const parsedCore = parseCoreItemId(itemId);
@@ -878,9 +893,10 @@ export default function App() {
   const jewelryClosedCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     const parsed = parseCoreItemId(item.itemId);
     if (parsed?.kind !== 'closed' || item.quantity <= 0) return stacks;
-    const existing = stacks.find(stack => stack.itemId === item.itemId);
+    const stackId = `jewelry-closed:${parsed.rarity}`;
+    const existing = stacks.find(stack => stack.itemId === stackId);
     if (existing) existing.quantity += item.quantity;
-    else stacks.push({ itemId: item.itemId, quantity: item.quantity });
+    else stacks.push({ itemId: stackId, quantity: item.quantity });
     return stacks;
   }, []);
   const anvilWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
@@ -2354,9 +2370,14 @@ export default function App() {
 
   const revealCoreFromChest = async (itemId: string) => {
     if (jewelryRevealBusy) return;
-    const sourceIndex = lobbyChestItems.findIndex(item => item.itemId === itemId);
+    const selectedRarity = itemId.startsWith('jewelry-closed:') ? itemId.slice('jewelry-closed:'.length) : null;
+    if (!selectedRarity) return;
+    const sourceIndex = lobbyChestItems.findIndex(item => {
+      const parsed = parseCoreItemId(item.itemId);
+      return parsed?.kind === 'closed' && parsed.rarity === selectedRarity;
+    });
     if (sourceIndex < 0) return;
-    const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(itemId);
+    const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(source.itemId);
     if (!parsed || parsed.kind !== 'closed') return;
     if (!fibulaSupabase || !session.user.sub) {
       setJewelryFeedback('Entre na sua conta e conecte-se para salvar a revelação.');
@@ -2369,7 +2390,7 @@ export default function App() {
       const values = new Uint32Array(1); window.crypto.getRandomValues(values);
       return values[0] / 0x1_0000_0000;
     };
-    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID(), parsed.weaponModel));
+    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID(), parsed.weaponModel, parsed.equipmentType));
     const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
       : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
     if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
@@ -3179,17 +3200,18 @@ export default function App() {
                       onClick={() => { setSelectedJewelryCoreId(null); setJewelryResultCoreId(null); setJewelryFeedback(''); }}
                       aria-label={jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : jewelrySlotCore?.kind === 'closed' ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
                       {jewelrySlotCore?.kind === 'closed' ? <>
-                        <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "3rem", height: "3rem", display: "block", objectFit: "contain", background: "none" }} />
+                        <span style={coreRarityBackground(jewelrySlotCore.rarity)}>
+                          <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none" }} />
+                        </span>
                         <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
-                        <small>{coreRarityLabel(jewelrySlotCore.rarity)}</small>
                       </> : jewelrySlotCore?.kind === 'revealed' ? <>
-                        <img src={`/assets/cores/${CORE_SPRITE_FILES[jewelrySlotCore.core.category]}`} alt="" aria-hidden="true" draggable={false} style={{ width: "3rem", height: "3rem", display: "block", objectFit: "contain", imageRendering: "pixelated" }} />
+                        <span style={coreRarityBackground(jewelrySlotCore.core.rarity)}>
+                          <img src={`/assets/cores/${CORE_SPRITE_FILES[jewelrySlotCore.core.category]}`} alt="" aria-hidden="true" draggable={false} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", imageRendering: "pixelated" }} />
+                        </span>
                         <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
-                        <small>{coreRarityLabel(jewelrySlotCore.core.rarity)}</small>
                       </> : <strong>＋ Núcleo 0/1</strong>}
                     </button>
                     {jewelrySlotCore?.kind === 'revealed' && <section className="jewelry-result-card" aria-label="Atributos do núcleo revelado">
-                      <header><strong>{itemLabel(jewelrySlotCoreId!)}</strong></header>
                       <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
                         <span>{weaponAttributeLabels[attribute.key]}</span>
                         <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
@@ -3207,8 +3229,10 @@ export default function App() {
                       className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
                       onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryResultCoreId(null); setJewelryFeedback(''); }}>
-                      <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "2.5rem", height: "2.5rem", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
-                      <strong>{itemLabel(item.itemId)}</strong>
+                      <span style={{ ...coreRarityBackground(item.itemId.slice('jewelry-closed:'.length) as CoreRarity), width: '2.5rem', height: '2.5rem' }}>
+                        <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
+                      </span>
+                      <strong>Núcleo fechado</strong>
                       <small>×{item.quantity}</small>
                     </button>)}
                     {jewelryClosedCoreStacks.length === 0 && <p className="forge-empty">Você não tem núcleos para revelar.</p>}
