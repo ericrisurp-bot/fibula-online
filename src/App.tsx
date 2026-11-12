@@ -3177,7 +3177,7 @@ export default function App() {
                       onClick={() => { setSelectedJewelryCoreId(null); setJewelryFeedback(''); }}
                       aria-label={selectedJewelryCoreId ? 'Devolver núcleo fechado à lista' : 'Slot vazio: Núcleo 0 de 1'}>
                       {selectedJewelryCoreId ? <>
-                        <img className="jewelry-gem-icon" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" />
+                        <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "3rem", height: "3rem", display: "block", objectFit: "contain", background: "none" }} />
                         <strong>{itemLabel(selectedJewelryCoreId)}</strong>
                         <small>{(() => { const core = parseCoreItemId(selectedJewelryCoreId); return core?.kind === 'closed' ? coreRarityLabel(core.rarity) : 'Núcleo fechado'; })()}</small>
                       </> : <strong>＋ Núcleo 0/1</strong>}
