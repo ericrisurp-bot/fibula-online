@@ -34,19 +34,17 @@ export default function JewelryScene({ revealAnimating }: JewelrySceneProps) {
       <span className="jewelry-bench-leg jewelry-bench-leg-left" />
       <span className="jewelry-bench-leg jewelry-bench-leg-right" />
       <div className="jewelry-bench-front">
-        <span className="jewelry-bench-drawer jewelry-bench-drawer-left" />
-        <span className="jewelry-bench-drawer jewelry-bench-drawer-center" />
-        <span className="jewelry-bench-drawer jewelry-bench-drawer-right" />
+        <span className="jewelry-bench-drawer jewelry-bench-drawer-left"><i className="jewelry-drawer-rune">ᚠ</i><i className="jewelry-drawer-rune">ᚢ</i></span>
+        <span className="jewelry-bench-drawer jewelry-bench-drawer-center"><i className="jewelry-drawer-rune">ᛞ</i><i className="jewelry-drawer-rune">ᚱ</i></span>
+        <span className="jewelry-bench-drawer jewelry-bench-drawer-right"><i className="jewelry-drawer-rune">ᚷ</i><i className="jewelry-drawer-rune">ᛟ</i></span>
       </div>
       <div className="jewelry-bench-top">
         <span className="jewelry-tool-tray" />
         <span className="jewelry-tweezers" />
         <span className="jewelry-bench-loupe" />
-        <span className="jewelry-cutting-stand"><i /></span>
-        <span className="jewelry-gem-box jewelry-gem-box-left"><i /></span>
-        <span className="jewelry-gem-box jewelry-gem-box-right"><i /></span>
-        <span className="jewelry-raw-gem jewelry-raw-gem-ruby" />
-        <span className="jewelry-raw-gem jewelry-raw-gem-teal" />
+        <span className="jewelry-rune-plaque jewelry-rune-plaque-left"><i>ᚱ</i></span>
+        <span className="jewelry-rune-plaque jewelry-rune-plaque-center"><i>ᛟ</i></span>
+        <span className="jewelry-rune-plaque jewelry-rune-plaque-right"><i>ᚷ</i></span>
       </div>
     </div>
     <span className="jewelry-scene-glow" aria-hidden="true" />
