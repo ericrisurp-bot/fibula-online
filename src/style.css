@@ -10931,3 +10931,125 @@ sem backdrop ou caixa de modal. */
 @media(max-width:430px){
   .jewelry-velvet-cushion{left:37%;width:27%;height:57%}
 }
+
+
+/* J2.10 — gavetas com proporções de marcenaria e luz direcional da luminária. */
+.jewelry-bench-front{
+  background:
+    radial-gradient(ellipse 42% 72% at 50% 0%,#e6bd8052 0%,#bd8c5730 42%,transparent 100%),
+    linear-gradient(90deg,#241a17a8 0%,transparent 13%,#d1a16b16 50%,transparent 87%,#241a17a8 100%),
+    linear-gradient(180deg,#765238 0%,#986d46 12%,#805839 52%,#4a3025 100%);
+  box-shadow:
+    inset 0 3px 0 #f0c98a66,
+    inset 0 13px 15px #26191255,
+    inset 0 -13px 18px #160f0d99,
+    0 10px 16px #050910cc,
+    0 2px 0 #c69a6655;
+}
+.jewelry-bench-front:after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:0;
+  right:0;
+  top:0;
+  height:100%;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,#f1ce9255 0%,transparent 12%,transparent 72%,#160e0c55 100%),
+    linear-gradient(90deg,#120d0b44,transparent 12%,transparent 88%,#120d0b44);
+}
+.jewelry-bench-drawer{
+  z-index:1;
+  top:24%;
+  width:27%;
+  height:43%;
+  border:2px solid #39251b;
+  border-radius:7px 7px 5px 5px;
+  background:
+    linear-gradient(180deg,#e2bd8555 0%,transparent 13%),
+    linear-gradient(90deg,#4d3022 0%,#a8794c 9%,#946942 48%,#70472f 92%,#39251c 100%);
+  box-shadow:
+    inset 0 3px 2px #f3d7a466,
+    inset 0 -6px 8px #24150f99,
+    inset 3px 0 5px #2b1a1466,
+    0 5px 7px #130d0bcc,
+    0 0 0 2px #2c201a;
+}
+.jewelry-bench-drawer:before{
+  inset:5px 6px 6px;
+  border:1px solid #e1bd8255;
+  border-radius:4px;
+  background:
+    linear-gradient(180deg,#3c281d55 0%,transparent 25%,#2b1b1433 100%),
+    linear-gradient(90deg,#3a251c33,transparent 18%,transparent 82%,#2a1a1433);
+  box-shadow:inset 0 2px 3px #1b100c66,0 1px 0 #f0d3a322;
+}
+.jewelry-bench-drawer:after{
+  top:50%;
+  width:22px;
+  height:5px;
+  border:1px solid #4a3b2b;
+  border-radius:4px 4px 5px 5px;
+  background:linear-gradient(180deg,#fff0cf 0%,#c9b184 42%,#766044 100%);
+  box-shadow:0 2px 3px #160e0bcc,0 0 0 2px #35251b,0 0 5px #e8c78a44;
+}
+.jewelry-bench-drawer-left{left:3%;width:27%}
+.jewelry-bench-drawer-center{
+  left:32%;
+  width:36%;
+  top:18%;
+  height:51%;
+  border-radius:8px 8px 6px 6px;
+  background:
+    linear-gradient(180deg,#f0ce965f 0%,transparent 15%),
+    linear-gradient(90deg,#39241b 0%,#b18453 8%,#a77a4b 48%,#805337 92%,#38231a 100%);
+  box-shadow:
+    inset 0 4px 3px #f6dba477,
+    inset 0 -7px 9px #21130eaa,
+    inset 4px 0 6px #2b1a1466,
+    0 6px 9px #100a09dd,
+    0 0 0 2px #241812;
+}
+.jewelry-bench-drawer-right{right:3%;width:27%}
+.jewelry-bench-drawer-center:after{width:27px;height:6px}
+.jewelry-drawer-rune{
+  top:50%;
+  width:17px;
+  height:19px;
+  border-radius:3px;
+  box-shadow:inset 0 1px 0 #fff3,0 2px 3px #160e0bcc,0 0 0 1px #211713;
+}
+.jewelry-bench-top{
+  background:
+    radial-gradient(ellipse 48% 95% at 50% 0%,#f5d49a66 0%,#d7a96a25 48%,transparent 100%),
+    linear-gradient(90deg,#21171344 0%,transparent 15%,#f0c98a1c 50%,transparent 85%,#21171344 100%),
+    linear-gradient(180deg,#e0bd8955 0%,transparent 22%),
+    repeating-linear-gradient(90deg,transparent 0 62px,#4a302322 63px 64px),
+    linear-gradient(180deg,#c0925e 0%,#a8794d 38%,#805638 82%,#503626 100%);
+  box-shadow:
+    inset 0 3px 0 #f8dda188,
+    inset 0 -7px 9px #28180fbb,
+    0 8px 13px #050910dd,
+    0 2px 0 #d8ae7755;
+}
+.jewelry-bench-top:before{
+  height:7px;
+  background:linear-gradient(180deg,#f4d8a5 0%,#c0925e 38%,#805638 78%,#4b3022 100%);
+  box-shadow:0 3px 5px #160e0bcc,0 0 9px #f0c98755;
+}
+.jewelry-bench-top:after{
+  height:5px;
+  background:linear-gradient(180deg,#805638,#38251a);
+  box-shadow:0 3px 5px #100b0acc;
+}
+@media(max-width:430px){
+  .jewelry-bench-drawer{top:24%;width:27%;height:43%}
+  .jewelry-bench-drawer-left{left:3%}
+  .jewelry-bench-drawer-center{left:32%;width:36%;top:18%;height:51%}
+  .jewelry-bench-drawer-right{right:3%}
+  .jewelry-drawer-rune{width:13px;height:15px;font-size:9px}
+  .jewelry-bench-drawer:after{width:17px;height:4px}
+  .jewelry-bench-drawer-center:after{width:21px;height:5px}
+}
