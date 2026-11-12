@@ -45,7 +45,8 @@ export default function JewelryScene({ revealAnimating }: JewelrySceneProps) {
         <span className="jewelry-cutting-stand"><i /></span>
         <span className="jewelry-gem-box jewelry-gem-box-left"><i /></span>
         <span className="jewelry-gem-box jewelry-gem-box-right"><i /></span>
-        <span className="jewelry-velvet-pad" />
+        <span className="jewelry-raw-gem jewelry-raw-gem-ruby" />
+        <span className="jewelry-raw-gem jewelry-raw-gem-teal" />
       </div>
     </div>
     <span className="jewelry-scene-glow" aria-hidden="true" />
