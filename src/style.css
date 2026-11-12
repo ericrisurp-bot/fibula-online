@@ -10277,8 +10277,8 @@ sem backdrop ou caixa de modal. */
   border-bottom:7px solid #493a31;
   background:
     linear-gradient(90deg,transparent 0 24.7%,#a9a1b00a 25%,transparent 25.3% 74.7%,#a9a1b00a 75%,transparent 75.3%),
-    repeating-linear-gradient(0deg,transparent 0 47px,#a6a5b20b 48px 49px),
-    repeating-linear-gradient(90deg,transparent 0 67px,#080f1a18 68px 69px),
+    repeating-linear-gradient(0deg,transparent 0 47px,#a6b5c83a 48px 50px),
+    repeating-linear-gradient(90deg,transparent 0 67px,#080f1a35 68px 70px),
     linear-gradient(180deg,#26384a 0%,#1d3040 66%,#26313c 100%);
   box-shadow:inset 0 -8px 12px #080d17aa;
 }
@@ -10393,7 +10393,7 @@ sem backdrop ou caixa de modal. */
   position:absolute;z-index:1;left:50%;top:26%;width:42%;height:61%;
   transform:translateX(-50%);
   clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);
-  background:linear-gradient(180deg,#f2d99b38 0%,#e4cb8b18 48%,transparent 100%);
+  background:linear-gradient(180deg,#f2d99b58 0%,#e4cb8b2d 48%,transparent 100%);
   filter:blur(5px);
   pointer-events:none;
 }
@@ -10540,15 +10540,15 @@ sem backdrop ou caixa de modal. */
   position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;
 }
 .jewelry-core-slot{
-  position:absolute;left:50%;top:67%;z-index:4;
+  position:absolute;left:50%;top:56%;z-index:4;
   transform:translate(-50%,-50%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  width:min(34vw,130px);min-width:108px;min-height:65px;max-height:78px;
-  gap:3px;padding:5px 7px;pointer-events:auto;
-  border:1px dashed #e0c994;border-radius:8px;
-  background:linear-gradient(145deg,#191c2deF,#30243ceF);
-  color:#f5edff;font:inherit;text-align:center;
-  box-shadow:0 4px 9px #0a0c16aa,inset 0 1px 0 #fff3;
+  width:76px;min-width:76px;height:76px;min-height:76px;max-height:76px;
+  gap:3px;padding:4px;pointer-events:auto;
+  border:1px dashed #c4a5d080;border-radius:7px;
+  background:linear-gradient(145deg,rgba(38,30,57,.20),rgba(48,36,60,.25));
+  color:#e8dff0;font:inherit;text-align:center;
+  box-shadow:0 2px 5px #0a0c1640,inset 0 1px 0 #fff2;
 }
 .jewelry-core-slot.filled{
   border:1px solid #e1c17c;
@@ -10583,7 +10583,7 @@ sem backdrop ou caixa de modal. */
   .jewelry-workbench{left:3%;right:3%;height:42%}
   .jewelry-bench-drawer{height:36%}
   .jewelry-bench-top{height:25%}
-  .jewelry-core-slot{top:67%;width:min(36vw,122px);min-width:102px;min-height:60px}
+  .jewelry-core-slot{top:56%;width:68px;min-width:68px;height:68px;min-height:68px;max-height:68px}
   .jewelry-result-card{top:76%;max-height:18%;padding:4px 6px}
   .jewelry-lamp-shade{top:21%;width:52px;height:23px}
 }
@@ -10600,7 +10600,7 @@ sem backdrop ou caixa de modal. */
   .jewelry-scene-wall{inset:0 0 36%}
   .jewelry-wall-cabinet{height:61%}
   .jewelry-workbench{height:42%}
-  .jewelry-core-slot{top:67%;min-height:52px;max-height:60px}
+  .jewelry-core-slot{top:56%;width:64px;min-width:64px;height:64px;min-height:64px;max-height:64px}
   .jewelry-result-card{top:76%;max-height:16%}
 }
 @media(prefers-reduced-motion:reduce){
