@@ -3538,7 +3538,7 @@ export default function App() {
                     const item = entry.item;
                     const isEquipped = Object.values(equipmentLoadout).includes(item.id);
                     return <button type="button" key={item.id} className={`arsenal-inventory-slot filled ${item.id === selectedArsenalItemId ? 'selected' : ''} ${isEquipped ? 'is-equipped' : ''}`} onClick={() => openArsenalEquipmentActions(item, isEquipped)} aria-label={`${cleanItemName(item.name)}${isEquipped ? ', equipado' : ''}. Abrir ações.`}>
-                      <span style={rarityGlowStyle(item.rarity)}>{item.icon}</span><small>{cleanItemName(item.name)}</small>{isEquipped && <em>EQUIPADO</em>
+                      <span style={rarityGlowStyle(item.rarity)}>{item.icon}</span><small>{cleanItemName(item.name)}</small>{isEquipped && <em>EQUIPADO</em>}
                     </button>;
                   })}
                 </div>}
