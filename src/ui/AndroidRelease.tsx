@@ -4,6 +4,7 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
+const RELEASES_PAGE_URL = 'https://github.com/ericrisurp-bot/fibula-online/releases';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 type AndroidRelease = {
@@ -122,19 +123,24 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   );
 
   const downloadLatest = useCallback(async () => {
-    if (!release) return;
+    const targetUrl = release?.apkUrl ?? RELEASES_PAGE_URL;
+    if (!release) {
+      window.alert(checking
+        ? 'O Fíbula ainda está consultando as versões publicadas. Confira a página de Releases para acompanhar.'
+        : 'Ainda não encontramos um APK oficial publicado. A página de Releases será aberta para você conferir.');
+    }
     if (isAndroid) {
       try {
-        await Browser.open({ url: release.apkUrl });
+        await Browser.open({ url: targetUrl });
       } catch {
-        window.location.assign(release.apkUrl);
+        window.location.assign(targetUrl);
       }
       return;
     }
-    const opened = window.open(release.apkUrl, '_blank');
+    const opened = window.open(targetUrl, '_blank');
     if (opened) opened.opener = null;
-    else window.location.assign(release.apkUrl);
-  }, [isAndroid, release]);
+    else window.location.assign(targetUrl);
+  }, [checking, isAndroid, release]);
 
   const value = useMemo(() => ({
     release,
@@ -157,22 +163,26 @@ export function AndroidReleaseButton() {
   const { release, updateAvailable, checking, isSupported, downloadLatest } = useAndroidRelease();
   if (!isSupported) return null;
 
-  const label = updateAvailable
-    ? 'Atualização obrigatória disponível. Baixar APK novo.'
-    : 'Baixar aplicativo oficial do Fíbula';
-  const title = updateAvailable
-    ? `NEW · Atualizar para a versão ${release?.versionName ?? ''}`
-    : release
-      ? 'Baixar APK oficial'
-      : 'O APK oficial ainda não foi publicado no GitHub';
+  const label = checking && !release
+    ? 'Verificando versões publicadas'
+    : updateAvailable
+      ? 'Atualização obrigatória disponível. Baixar APK novo.'
+      : 'Baixar aplicativo oficial do Fíbula';
+  const title = checking && !release
+    ? 'Verificando se existe uma versão nova'
+    : updateAvailable
+      ? `NEW · Atualizar para a versão ${release?.versionName ?? ''}`
+      : release
+        ? 'Baixar APK oficial'
+        : 'Abrir Releases do Fíbula';
 
   return (
     <button
-      className="lobby-release-button"
+      className={`lobby-release-button${checking && !release ? ' is-checking' : ''}`}
       type="button"
       aria-label={label}
+      aria-busy={checking}
       title={title}
-      disabled={!release || (checking && !release)}
       onClick={() => { void downloadLatest(); }}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
