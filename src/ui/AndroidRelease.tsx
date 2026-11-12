@@ -6,7 +6,6 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
-const APK_MIME_TYPE = 'application/vnd.android.package-archive';
 
 type ApkInstallerPlugin = {
   checkInstallPermission: () => Promise<{ canInstall: boolean }>;
@@ -28,6 +27,7 @@ type AndroidReleaseContextValue = {
   checking: boolean;
   downloading: boolean;
   downloadProgress: number;
+  pendingApkPath: string | null;
   isSupported: boolean;
   downloadLatest: () => Promise<void>;
 };
@@ -219,6 +219,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
     checking,
     downloading,
     downloadProgress,
+    pendingApkPath,
     isSupported,
     downloadLatest,
   }), [release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest]);
@@ -233,7 +234,7 @@ export function useAndroidRelease(): AndroidReleaseContextValue {
 }
 
 export function AndroidReleaseButton() {
-  const { release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest } = useAndroidRelease();
+  const { release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest } = useAndroidRelease();
   if (!isSupported) return null;
 
   const label = downloading
