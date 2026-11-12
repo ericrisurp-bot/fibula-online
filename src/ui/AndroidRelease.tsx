@@ -1,13 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { App } from '@capacitor/app';
 import { FileTransfer } from '@capacitor/file-transfer';
-import { FileOpener } from '@capacitor-community/file-opener';
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
-const APK_MIME_TYPE = 'application/vnd.android.package-archive';
+
+type ApkInstallerPlugin = {
+  checkInstallPermission: () => Promise<{ canInstall: boolean }>;
+  openInstallSettings: () => Promise<void>;
+  installApk: (options: { filePath: string }) => Promise<void>;
+};
+
+const ApkInstaller = registerPlugin<ApkInstallerPlugin>('ApkInstaller');
 
 type AndroidRelease = {
   versionName: string;
@@ -21,6 +27,7 @@ type AndroidReleaseContextValue = {
   checking: boolean;
   downloading: boolean;
   downloadProgress: number;
+  pendingApkPath: string | null;
   isSupported: boolean;
   downloadLatest: () => Promise<void>;
 };
@@ -76,6 +83,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [pendingApkPath, setPendingApkPath] = useState<string | null>(null);
   const lastCheckAt = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -142,36 +150,50 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
       setDownloadProgress(0);
       let progressListener: { remove: () => Promise<void> } | null = null;
       try {
-        const fileName = `fibula-online-${release.versionName}.apk`;
-        const destination = await Filesystem.getUri({
-          directory: Directory.Cache,
-          path: fileName,
-        });
-        progressListener = await FileTransfer.addListener('progress', ({ bytes, contentLength }) => {
-          if (contentLength > 0) {
-            setDownloadProgress(Math.min(100, Math.round((bytes / contentLength) * 100)));
-          }
-        });
-        await FileTransfer.downloadFile({
-          url: release.apkUrl,
-          path: destination.uri,
-          progress: true,
-        });
-        const downloadedFile = await Filesystem.stat({
-          directory: Directory.Cache,
-          path: fileName,
-        });
-        if (downloadedFile.size <= 0) throw new Error('O arquivo baixado está vazio.');
+        let apkPath = pendingApkPath;
+        if (!apkPath) {
+          const fileName = `fibula-online-${release.versionName}.apk`;
+          const destination = await Filesystem.getUri({
+            directory: Directory.Cache,
+            path: fileName,
+          });
+          progressListener = await FileTransfer.addListener('progress', ({ bytes, contentLength }) => {
+            if (contentLength > 0) {
+              setDownloadProgress(Math.min(100, Math.round((bytes / contentLength) * 100)));
+            }
+          });
+          await FileTransfer.downloadFile({
+            url: release.apkUrl,
+            path: destination.uri,
+            progress: true,
+          });
+          const downloadedFile = await Filesystem.stat({
+            directory: Directory.Cache,
+            path: fileName,
+          });
+          if (downloadedFile.size <= 0) throw new Error('O arquivo baixado está vazio.');
+          setDownloadProgress(100);
+          apkPath = destination.uri;
+          setPendingApkPath(apkPath);
+        }
 
-        setDownloadProgress(100);
-        await FileOpener.open({
-          filePath: destination.uri,
-          contentType: APK_MIME_TYPE,
-          openWithDefault: true,
-        });
-      } catch {
+        const permission = await ApkInstaller.checkInstallPermission();
+        if (!permission.canInstall) {
+          window.alert(
+            'O APK foi baixado. Para instalar, autorize o Fíbula a instalar apps: ative “Permitir desta fonte” na tela que será aberta. Depois volte ao Fíbula e toque em “Concluir instalação”.',
+          );
+          await ApkInstaller.openInstallSettings();
+          return;
+        }
+
+        await ApkInstaller.installApk({ filePath: apkPath });
+        setPendingApkPath(null);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
         window.alert(
-          'Não foi possível concluir o download ou abrir o instalador. Tente novamente; se o problema continuar, baixe o APK pela página de Releases usando outro navegador, como o EG(G).',
+          message
+            ? `Não foi possível abrir o instalador do Android: ${message}`
+            : 'Não foi possível concluir o download ou abrir o instalador. Tente novamente.',
         );
       } finally {
         if (progressListener) {
@@ -189,7 +211,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
     // A URL vem da Release mais recente e redireciona diretamente ao APK.
     // Navegar na aba atual evita abrir a página do repositório em uma nova aba.
     window.location.assign(release.apkUrl);
-  }, [checking, downloading, isAndroid, release]);
+  }, [checking, downloading, isAndroid, pendingApkPath, release]);
 
   const value = useMemo(() => ({
     release,
@@ -197,9 +219,10 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
     checking,
     downloading,
     downloadProgress,
+    pendingApkPath,
     isSupported,
     downloadLatest,
-  }), [release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest]);
+  }), [release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest]);
 
   return <AndroidReleaseContext.Provider value={value}>{children}</AndroidReleaseContext.Provider>;
 }
@@ -211,11 +234,13 @@ export function useAndroidRelease(): AndroidReleaseContextValue {
 }
 
 export function AndroidReleaseButton() {
-  const { release, updateAvailable, checking, downloading, downloadProgress, isSupported, downloadLatest } = useAndroidRelease();
+  const { release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest } = useAndroidRelease();
   if (!isSupported) return null;
 
   const label = downloading
     ? `Baixando APK: ${downloadProgress}%`
+    : pendingApkPath
+      ? 'Concluir instalação do APK'
     : checking && !release
       ? 'Verificando versões publicadas'
       : updateAvailable
@@ -223,6 +248,8 @@ export function AndroidReleaseButton() {
         : 'Baixar aplicativo oficial do Fíbula';
   const title = downloading
     ? `Baixando APK: ${downloadProgress}%`
+    : pendingApkPath
+      ? 'Autorizar ou continuar a instalação do APK baixado'
     : checking && !release
       ? 'Verificando se existe uma versão nova'
       : updateAvailable
