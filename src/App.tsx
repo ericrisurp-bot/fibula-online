@@ -3207,7 +3207,7 @@ export default function App() {
                       className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
                       aria-pressed={selectedJewelryCoreId === item.itemId}
                       onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryFeedback(''); }}>
-                      <img className="jewelry-list-gem" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" />
+                      <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "2.5rem", height: "2.5rem", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
                       <strong>{itemLabel(item.itemId)}</strong>
                       <small>×{item.quantity}</small>
                     </button>)}
