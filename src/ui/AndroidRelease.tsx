@@ -37,7 +37,7 @@ function parseRelease(value: unknown): AndroidRelease | null {
     assets?: unknown;
   };
   if (typeof release.tag_name !== 'string') return null;
-  const versionMatch = /^android-v(\\d+\\.\\d+\\.\\d+)$/.exec(release.tag_name);
+  const versionMatch = /^android-v(\d+\.\d+\.\d+)$/.exec(release.tag_name);
   if (!versionMatch || !Array.isArray(release.assets)) return null;
 
   const apk = release.assets.find((asset) =>
@@ -48,7 +48,7 @@ function parseRelease(value: unknown): AndroidRelease | null {
   if (!apk) return null;
 
   const versionCodeMatch = typeof release.body === 'string'
-    ? /Código da versão:\\s*(\\d+)/i.exec(release.body)
+    ? /Código da versão:\s*(\d+)/i.exec(release.body)
     : null;
 
   return {
