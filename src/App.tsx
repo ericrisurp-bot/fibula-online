@@ -10,7 +10,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readLocalHouseInventory, reportHighestPd, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo } from './game/persistence';
+import { addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, syncHouseInventory, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -314,6 +314,17 @@ const bauMealEffects = (meal: CookingMeal) => {
 };
 const bauIngredientName = (itemId: string) => itemLabel(itemId).replace(/ · (Comum|Incomum|Raro|Lendário)$/,'');
 
+function applyHouseDeltaLocally(before: HouseStorageStack[], delta: HouseDeltaEntry[]): HouseStorageStack[] {
+  const inventory = new Map(before.map(item => [item.itemId, item.quantity]));
+  for (const entry of delta) {
+    const current = inventory.get(entry.itemId) ?? 0;
+    const next = current + entry.quantity;
+    if (next <= 0) inventory.delete(entry.itemId);
+    else if (inventory.has(entry.itemId) || inventory.size < 50) inventory.set(entry.itemId, next);
+  }
+  return Array.from(inventory, ([itemId, quantity]) => ({ itemId, quantity }));
+}
+
 const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão' };
 type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
 const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
@@ -460,9 +471,13 @@ export default function App() {
   const houseChangedDuringLoadRef = useRef(false);
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
   const lastSyncedHouseInventoryRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
+  const houseSyncBaselineRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
   const pendingCloudHouseInventoryRef = useRef<Array<{ itemId: string; quantity: number }> | null>(null);
   const pendingHouseInventoryRef = useRef<string | null>(null);
-  const houseSyncInFlightRef = useRef<Promise<void> | null>(null);
+  const houseSyncInFlightRef = useRef<Promise<'done' | 'network' | 'closed'> | null>(null);
+  const houseOutboxDrainRef = useRef<() => Promise<'done' | 'network' | 'closed'>>(async () => 'done');
+  const houseOutboxStartupReadyRef = useRef(false);
+  const houseNeedsReconcileRef = useRef(false);
   const houseMatchClosedRef = useRef(false);
   const houseDeathFinalizeRef = useRef<Promise<void> | null>(null);
   const matchSummaryHandledRef = useRef(false);
@@ -496,6 +511,7 @@ export default function App() {
         if (engineRef.current) engineRef.current.setHouseInventory(inventory);
         else pendingCloudHouseInventoryRef.current = inventory;
         lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+        houseSyncBaselineRef.current = JSON.stringify(inventory);
       } else {
         lastSyncedHouseInventoryRef.current = '';
       }
@@ -513,7 +529,7 @@ export default function App() {
   useEffect(() => {
     const userId = session.user.sub;
     if (!fibulaSupabase || !userId) return;
-    const supabaseClient = fibulaSupabase;
+    if (!houseOutboxStartupReadyRef.current) return;
     if (!houseLoadReadyRef.current) {
       if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
       return;
@@ -523,59 +539,32 @@ export default function App() {
       console.warn('[Baú] Sincronização ignorada: inventário da nuvem ainda não foi confirmado.');
       return;
     }
+    if (houseMatchClosedRef.current) return;
 
-    pendingHouseInventoryRef.current = houseInventoryJson;
+    const baseline = JSON.parse(houseSyncBaselineRef.current || '[]') as HouseStorageStack[];
+    const currentInventory = JSON.parse(houseInventoryJson) as HouseStorageStack[];
+    const delta = computeHouseDelta(baseline, currentInventory);
+    if (delta.length > 0) {
+      const queuedDelta: HouseDeltaEntry[] = [];
+      for (let index = 0; index < delta.length; index += 100) {
+        const batch = delta.slice(index, index + 100);
+        if (!addHouseOutboxOperation(batch)) {
+          if (queuedDelta.length > 0) {
+            houseSyncBaselineRef.current = JSON.stringify(applyHouseDeltaLocally(baseline, queuedDelta));
+          }
+          setChestTransferFeedback('Não foi possível guardar a operação do Baú neste dispositivo. A alteração ainda não foi sincronizada.');
+          return;
+        }
+        queuedDelta.push(...batch);
+      }
+      houseSyncBaselineRef.current = houseInventoryJson;
+    }
+
     const syncLatestHouseInventory = async (): Promise<void> => {
       if (houseMatchClosedRef.current) return;
-      if (houseSyncInFlightRef.current) return houseSyncInFlightRef.current;
-
-      const syncPromise = (async () => {
-        while (!houseMatchClosedRef.current && pendingHouseInventoryRef.current !== null) {
-          if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
-            console.warn('[Baú] Envio interrompido: inventário da nuvem não está carregado.');
-            return;
-          }
-          const snapshot = pendingHouseInventoryRef.current;
-          if (snapshot === lastSyncedHouseInventoryRef.current) {
-            pendingHouseInventoryRef.current = null;
-            continue;
-          }
-          const inventory = JSON.parse(snapshot) as Array<{ itemId: string; quantity: number }>;
-          const confirmedServerSnapshot = lastSyncedHouseInventoryRef.current;
-          let serverHasConfirmedNonEmptyInventory = false;
-          if (confirmedServerSnapshot) {
-            try {
-              const confirmedInventory = JSON.parse(confirmedServerSnapshot) as unknown;
-              serverHasConfirmedNonEmptyInventory = Array.isArray(confirmedInventory)
-                && confirmedInventory.length > 0;
-            } catch { /* Estado do servidor desconhecido: não autoriza limpar o baú. */ }
-          }
-          const confirmed = await syncHouseInventory(supabaseClient, userId, inventory, {
-            allowEmpty: serverHasConfirmedNonEmptyInventory,
-          });
-          if (!confirmed) break;
-          lastSyncedHouseInventoryRef.current = snapshot;
-          if (pendingHouseInventoryRef.current === snapshot) pendingHouseInventoryRef.current = null;
-        }
-      })();
-
-      houseSyncInFlightRef.current = syncPromise;
-      try {
-        await syncPromise;
-      } finally {
-        if (houseSyncInFlightRef.current === syncPromise) houseSyncInFlightRef.current = null;
-      }
+      await houseOutboxDrainRef.current();
     };
-
-    if (houseMatchClosedRef.current) {
-      pendingHouseInventoryRef.current = null;
-      return;
-    }
-    if (houseInventoryJson !== lastSyncedHouseInventoryRef.current || houseSyncInFlightRef.current) {
-      void syncLatestHouseInventory();
-    } else {
-      pendingHouseInventoryRef.current = null;
-    }
+    void syncLatestHouseInventory();
     window.addEventListener('online', syncLatestHouseInventory);
     return () => window.removeEventListener('online', syncLatestHouseInventory);
   }, [houseInventoryJson, session.user.sub, houseLoadReady, lobbyChestStatus]);
@@ -2117,6 +2106,7 @@ export default function App() {
       const inventory = await loadCloudHouseInventory(fibulaSupabase, userId);
       if (requestId !== lobbyChestRefreshRequestRef.current || session.user.sub !== userId) return false;
       lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+      houseSyncBaselineRef.current = JSON.stringify(inventory);
       pendingHouseInventoryRef.current = null;
       if (engineRef.current) engineRef.current.setHouseInventory(inventory);
       else pendingCloudHouseInventoryRef.current = inventory;
@@ -2137,16 +2127,27 @@ export default function App() {
 
   useEffect(() => {
     cloudChestLoadedRef.current = false;
+    houseOutboxStartupReadyRef.current = false;
     lobbyChestRefreshRequestRef.current += 1;
     setLobbyChestStatus('loading');
     setChestCloudReady(false);
     if (!fibulaSupabase || !session.user.sub) return;
     let active = true;
-    void refreshLobbyChestFromCloud().then(success => {
+    const retryOutboxWhenOnline = () => {
+      if (!houseMatchClosedRef.current) void houseOutboxDrainRef.current();
+    };
+    window.addEventListener('online', retryOutboxWhenOnline);
+    void (async () => {
+      await houseOutboxDrainRef.current();
+      if (!active) return;
+      houseOutboxStartupReadyRef.current = true;
+      const success = await refreshLobbyChestFromCloud();
       if (active && !success) setChestTransferFeedback('Não foi possível atualizar o Baú.');
-    });
+    })();
     return () => {
       active = false;
+      window.removeEventListener('online', retryOutboxWhenOnline);
+      houseOutboxStartupReadyRef.current = false;
       cloudChestLoadedRef.current = false;
       lobbyChestRefreshRequestRef.current += 1;
     };
@@ -2264,6 +2265,86 @@ export default function App() {
     engineRef.current?.setHouseInventory(nextInventory);
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
   };
+
+  const drainHouseOutbox = async (): Promise<'done' | 'network' | 'closed'> => {
+    if (!fibulaSupabase || !session.user.sub) return 'network';
+    if (houseSyncInFlightRef.current) return houseSyncInFlightRef.current;
+
+    const syncPromise = (async (): Promise<'done' | 'network' | 'closed'> => {
+      let lastServerInventory: HouseStorageStack[] | null = null;
+      while (true) {
+        if (houseMatchClosedRef.current) return 'closed';
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'network';
+        const operation = readHouseOutbox()[0];
+        if (!operation) {
+          if (houseNeedsReconcileRef.current && lastServerInventory) {
+            applyCookingInventory(lastServerInventory);
+            houseSyncBaselineRef.current = JSON.stringify(lastServerInventory);
+            houseNeedsReconcileRef.current = false;
+          }
+          return 'done';
+        }
+
+        let beforeInventory: HouseStorageStack[] = [];
+        try {
+          beforeInventory = JSON.parse(lastSyncedHouseInventoryRef.current || '[]') as HouseStorageStack[];
+        } catch { /* O inventário confirmado será reconciliado pela resposta do servidor. */ }
+        const expectedInventory = applyHouseDeltaLocally(beforeInventory, operation.delta);
+        const result = await applyHouseDelta(fibulaSupabase, operation.opId, operation.delta);
+
+        if (result.kind === 'network') return 'network';
+        if (result.kind === 'rejected') {
+          removeHouseOutboxOperation(operation.opId);
+          setChestTransferFeedback(result.message);
+          houseNeedsReconcileRef.current = true;
+          const refreshed = await refreshLobbyChestFromCloud();
+          if (!refreshed) return 'network';
+          try {
+            lastServerInventory = JSON.parse(lastSyncedHouseInventoryRef.current || '[]') as HouseStorageStack[];
+          } catch { lastServerInventory = []; }
+          continue;
+        }
+
+        removeHouseOutboxOperation(operation.opId);
+        lastServerInventory = result.inventory;
+        const serverSnapshot = JSON.stringify(result.inventory);
+        const expectedSnapshot = JSON.stringify(expectedInventory);
+        const hasOverflow = result.overflow.length > 0;
+        const hasShortfall = result.shortfall.length > 0;
+        const inventoryMismatch = serverSnapshot !== expectedSnapshot;
+        lastSyncedHouseInventoryRef.current = serverSnapshot;
+
+        if (hasOverflow || hasShortfall || inventoryMismatch) {
+          houseNeedsReconcileRef.current = true;
+          houseSyncBaselineRef.current = serverSnapshot;
+          const messages: string[] = [];
+          if (hasOverflow) {
+            messages.push('Alguns itens não couberam no Baú: ' + result.overflow
+              .map(item => Math.abs(item.quantity) + ' × ' + itemLabel(item.itemId)).join(', ') + '.');
+          }
+          if (hasShortfall) {
+            messages.push('Não havia quantidade suficiente no Baú para retirar: ' + result.shortfall
+              .map(item => Math.abs(item.quantity) + ' × ' + itemLabel(item.itemId)).join(', ') + '.');
+          }
+          if (messages.length === 0) messages.push('O servidor ajustou o inventário do Baú. O conteúdo foi atualizado.');
+          setChestTransferFeedback(messages.join(' '));
+        }
+      }
+    })();
+
+    houseSyncInFlightRef.current = syncPromise;
+    let outcome: 'done' | 'network' | 'closed' = 'network';
+    try {
+      outcome = await syncPromise;
+    } finally {
+      if (houseSyncInFlightRef.current === syncPromise) houseSyncInFlightRef.current = null;
+    }
+    if (outcome === 'done' && !houseMatchClosedRef.current && readHouseOutbox().length > 0) {
+      return drainHouseOutbox();
+    }
+    return outcome;
+  };
+  houseOutboxDrainRef.current = drainHouseOutbox;
   const openBauItemActions = (item:HouseStorageStack) => {setBauDeleteQuantity('1');setBauAction({kind:'item',item,view:'actions'});};
   const openBauMealActions = (meal:CookingMeal) => setBauAction({kind:'meal',meal,view:'actions'});
   const showBauActionDetails = () => setBauAction(current=>current?{...current,view:'details'}:null);
