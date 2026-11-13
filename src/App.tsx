@@ -608,6 +608,8 @@ export default function App() {
       const confirmedSnapshot = lastSyncedHouseInventoryRef.current
         || JSON.stringify(readConfirmedHouseInventory());
       const confirmedInventory = JSON.parse(confirmedSnapshot) as Array<{ itemId: string; quantity: number }>;
+      houseSyncBaselineRef.current = confirmedSnapshot;
+      if (readHouseOutbox().length > 0) houseNeedsReconcileRef.current = true;
       engineRef.current?.setHouseInventory(confirmedInventory);
     };
     houseDeathFinalizeRef.current = finalizeHouseFromConfirmedSnapshot();
@@ -2295,6 +2297,7 @@ export default function App() {
         if (result.kind === 'network') return 'network';
         if (result.kind === 'rejected') {
           removeHouseOutboxOperation(operation.opId);
+          if (readHouseOutbox()[0]?.opId === operation.opId) return 'network';
           setChestTransferFeedback(result.message);
           houseNeedsReconcileRef.current = true;
           const refreshed = await refreshLobbyChestFromCloud();
@@ -2306,6 +2309,7 @@ export default function App() {
         }
 
         removeHouseOutboxOperation(operation.opId);
+        if (readHouseOutbox()[0]?.opId === operation.opId) return 'network';
         lastServerInventory = result.inventory;
         const serverSnapshot = JSON.stringify(result.inventory);
         const expectedSnapshot = JSON.stringify(expectedInventory);
