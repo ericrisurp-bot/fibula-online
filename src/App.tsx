@@ -512,7 +512,7 @@ export default function App() {
       return;
     }
     if (pendingCloudHouseInventoryRef.current !== null) return;
-    if (!cloudChestLoadedRef.current) {
+    if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
       console.warn('[Baú] Sincronização ignorada: inventário da nuvem ainda não foi confirmado.');
       return;
     }
@@ -571,7 +571,7 @@ export default function App() {
     }
     window.addEventListener('online', syncLatestHouseInventory);
     return () => window.removeEventListener('online', syncLatestHouseInventory);
-  }, [houseInventoryJson, session.user.sub, houseLoadReady]);
+  }, [houseInventoryJson, session.user.sub, houseLoadReady, lobbyChestStatus]);
 
   const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<void> => {
     const survivalNights = Math.max(0, snapshot.nightNumber - (snapshot.dayNight === 'night' ? 1 : 0));
@@ -2112,7 +2112,8 @@ export default function App() {
       if (requestId !== lobbyChestRefreshRequestRef.current || session.user.sub !== userId) return false;
       lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
       pendingHouseInventoryRef.current = null;
-      engineRef.current?.setHouseInventory(inventory);
+      if (engineRef.current) engineRef.current.setHouseInventory(inventory);
+      else pendingCloudHouseInventoryRef.current = inventory;
       setLobbyChestItems(inventory);
       cloudChestLoadedRef.current = true;
       setLobbyChestStatus('ready');
@@ -3937,7 +3938,7 @@ export default function App() {
       <strong>Gire o celular para a posição vertical</strong>
       <p>O Lobby foi desenvolvido para jogar e organizar seus itens com o celular em pé.</p>
     </div>}
-    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().catch(cause => { setChestCloudReady(false); setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.'); }); }} />
+    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.'); }); }} />
   </>;
 }
 
