@@ -529,11 +529,11 @@ export default function App() {
   useEffect(() => {
     const userId = session.user.sub;
     if (!fibulaSupabase || !userId) return;
-    if (!houseOutboxStartupReadyRef.current) return;
     if (!houseLoadReadyRef.current) {
       if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
       return;
     }
+    if (!houseOutboxStartupReadyRef.current) return;
     if (pendingCloudHouseInventoryRef.current !== null) return;
     if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
       console.warn('[Baú] Sincronização ignorada: inventário da nuvem ainda não foi confirmado.');
@@ -2297,8 +2297,8 @@ export default function App() {
         if (result.kind === 'network') return 'network';
         if (result.kind === 'rejected') {
           removeHouseOutboxOperation(operation.opId);
-          if (readHouseOutbox()[0]?.opId === operation.opId) return 'network';
           setChestTransferFeedback(result.message);
+          if (readHouseOutbox()[0]?.opId === operation.opId) return 'network';
           houseNeedsReconcileRef.current = true;
           const refreshed = await refreshLobbyChestFromCloud();
           if (!refreshed) return 'network';
@@ -2321,6 +2321,7 @@ export default function App() {
         if (hasOverflow || hasShortfall || inventoryMismatch) {
           houseNeedsReconcileRef.current = true;
           houseSyncBaselineRef.current = serverSnapshot;
+          applyCookingInventory(result.inventory);
           const messages: string[] = [];
           if (hasOverflow) {
             messages.push('Alguns itens não couberam no Baú: ' + result.overflow
