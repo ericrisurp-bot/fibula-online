@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type C
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
-import { parseCoreItemId, revealCore, coreToItemId, type CoreAttributeKey } from './game/cores';
+import { parseCoreItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getArmedClassPower } from './game/power';
@@ -2284,13 +2284,25 @@ export default function App() {
     if(!fibulaSupabase||!session.user.sub){setChestTransferFeedback('O serviço de armazenamento não está disponível.');return;}
     setBauDeleteBusy(true);setChestTransferFeedback('');
     try {
-      const nextInventory=lobbyChestItems.flatMap(entry=>{if(entry.itemId!==currentItem.itemId)return [entry];const remaining=entry.quantity-quantity;return remaining>0?[{...entry,quantity:remaining}]:[];});
-      const saved=await syncHouseInventory(fibulaSupabase,session.user.sub,nextInventory,{allowEmpty:true});
-      if(!saved)throw new Error('Não foi possível confirmar a gravação do novo estoque. O Baú não foi alterado.');
+      const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
+        p_item_id: currentItem.itemId,
+        p_quantity: quantity,
+      });
+      if (error) throw new Error(error.message);
+      if (!data || !Array.isArray(data.inventory)) throw new Error('O servidor retornou um Baú inválido.');
+      const nextInventory = data.inventory as HouseStorageStack[];
+      applyCookingInventory(nextInventory);
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
-      applyCookingInventory(nextInventory);setBauAction(null);setChestTransferFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
-    } catch(cause){setChestTransferFeedback(cause instanceof Error?cause.message:'Não foi possível excluir o item.');}
-    finally{setBauDeleteBusy(false);}
+      pendingHouseInventoryRef.current = null;
+      setBauAction(null);
+      setChestTransferFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
+    } catch(cause){
+      const message = cause instanceof Error ? cause.message : 'Não foi possível excluir o item.';
+      await refreshLobbyChestFromCloud();
+      setChestTransferFeedback(message);
+    } finally {
+      setBauDeleteBusy(false);
+    }
   };
   const selectForgeCore = (itemId: string) => {
     setSelectedWeaponCoreId(current => current === itemId ? null : itemId);
@@ -2405,45 +2417,42 @@ export default function App() {
   }, [session.user.sub, cookingOnline, statusOpen, characterPreferences[0], characterPreferences[1]]);
 
   const revealCoreFromChest = async (itemId: string) => {
-    if (jewelryRevealBusy) return;
+    if (jewelryRevealBusy || lobbyChestStatus !== 'ready') return;
     const selectedRarity = itemId.startsWith('jewelry-closed:') ? itemId.slice('jewelry-closed:'.length) : null;
     if (!selectedRarity) return;
-    const sourceIndex = lobbyChestItems.findIndex(item => {
+    const source = lobbyChestItems.find(item => {
       const parsed = parseCoreItemId(item.itemId);
       return parsed?.kind === 'closed' && parsed.rarity === selectedRarity;
     });
-    if (sourceIndex < 0) return;
-    const source = lobbyChestItems[sourceIndex], parsed = parseCoreItemId(source.itemId);
+    if (!source) return;
+    const parsed = parseCoreItemId(source.itemId);
     if (!parsed || parsed.kind !== 'closed') return;
     if (!fibulaSupabase || !session.user.sub) {
       setJewelryFeedback('Entre na sua conta e conecte-se para salvar a revelação.');
       return;
     }
-    if (source.quantity > 1 && lobbyChestItems.length >= 50) {
-      setJewelryFeedback('Baú cheio: libere um espaço para revelar o núcleo'); return;
-    }
-    const random = () => {
-      const values = new Uint32Array(1); window.crypto.getRandomValues(values);
-      return values[0] / 0x1_0000_0000;
-    };
-    const revealedItemId = coreToItemId(revealCore(random, parsed.category, parsed.rarity, window.crypto.randomUUID(), parsed.weaponModel));
-    const next = lobbyChestItems.map((item, index) => index !== sourceIndex ? item
-      : source.quantity > 1 ? { ...item, quantity: item.quantity - 1 } : { itemId: revealedItemId, quantity: 1 });
-    if (source.quantity > 1) next.push({ itemId: revealedItemId, quantity: 1 });
     setJewelryRevealBusy(true);
     setJewelryFeedback('Salvando a revelação…');
     try {
-      const saved = await syncHouseInventory(fibulaSupabase, session.user.sub, next);
-      if (!saved) throw new Error('Não foi possível confirmar o salvamento. O núcleo continua fechado no Baú.');
-      const snapshot = JSON.stringify(next);
-      lastSyncedHouseInventoryRef.current = snapshot;
+      const { data, error } = await fibulaSupabase.rpc('fibula_core_reveal', {
+        p_item_id: source.itemId,
+      });
+      if (error) throw new Error(error.message);
+      if (!data || !Array.isArray(data.inventory) || typeof data.itemId !== 'string' || !data.itemId) {
+        throw new Error('O servidor retornou uma revelação inválida.');
+      }
+      const nextInventory = data.inventory as HouseStorageStack[];
+      const revealedItemId = data.itemId as string;
+      applyCookingInventory(nextInventory);
+      lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
-      applyCookingInventory(next);
       setSelectedJewelryCoreId(null);
       setJewelryResultCoreId(revealedItemId);
       setJewelryFeedback('Núcleo revelado e salvo no Baú.');
     } catch (cause) {
-      setJewelryFeedback(cause instanceof Error ? cause.message : 'Não foi possível salvar a revelação.');
+      const message = cause instanceof Error ? cause.message : 'Não foi possível salvar a revelação.';
+      await refreshLobbyChestFromCloud();
+      setJewelryFeedback(message);
     } finally {
       setJewelryRevealBusy(false);
     }
