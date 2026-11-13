@@ -315,7 +315,7 @@ const bauMealEffects = (meal: CookingMeal) => {
 const bauIngredientName = (itemId: string) => itemLabel(itemId).replace(/ · (Comum|Incomum|Raro|Lendário)$/,'');
 
 function applyHouseDeltaLocally(before: HouseStorageStack[], delta: HouseDeltaEntry[]): HouseStorageStack[] {
-  const inventory = new Map(before.map(item => [item.itemId, item.quantity]));
+  const inventory = new Map<string, number>(before.map(item => [item.itemId, item.quantity] as const));
   for (const entry of delta) {
     const current = inventory.get(entry.itemId) ?? 0;
     const next = current + entry.quantity;
@@ -2317,6 +2317,10 @@ export default function App() {
         const hasShortfall = result.shortfall.length > 0;
         const inventoryMismatch = serverSnapshot !== expectedSnapshot;
         lastSyncedHouseInventoryRef.current = serverSnapshot;
+        if (readHouseOutbox().length === 0
+          && JSON.stringify(engineRef.current?.state.house.inventory ?? []) !== serverSnapshot) {
+          houseNeedsReconcileRef.current = true;
+        }
 
         if (hasOverflow || hasShortfall || inventoryMismatch) {
           houseNeedsReconcileRef.current = true;
