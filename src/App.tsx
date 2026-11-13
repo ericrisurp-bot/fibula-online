@@ -478,9 +478,15 @@ export default function App() {
   useEffect(() => {
     const userId = session.user.sub;
     if (!fibulaSupabase || !userId) return;
+    const chestRefreshVersion = lobbyChestRefreshRequestRef.current;
     let cancelled = false;
     void loadHouseInventory(fibulaSupabase, userId).then(({ inventory, source }) => {
       if (cancelled) return;
+      if (chestRefreshVersion !== lobbyChestRefreshRequestRef.current) {
+        houseLoadReadyRef.current = true;
+        setHouseLoadReady(true);
+        return;
+      }
       const changedWhileLoading = houseChangedDuringLoadRef.current;
       const currentHouseInventory = engineRef.current?.state.house.inventory;
       const shouldApplyCloudInventory = source === 'cloud'
@@ -525,7 +531,7 @@ export default function App() {
 
       const syncPromise = (async () => {
         while (!houseMatchClosedRef.current && pendingHouseInventoryRef.current !== null) {
-          if (!cloudChestLoadedRef.current) {
+          if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
             console.warn('[Baú] Envio interrompido: inventário da nuvem não está carregado.');
             return;
           }
@@ -2048,7 +2054,7 @@ export default function App() {
         const canUseHouse = current.house.built && houseDistanceNow <= CONFIG.house.interactRadius;
         if (canUseCart || canUseHouse) {
           if (canUseCart && (!canUseHouse || cartDistanceNow <= houseDistanceNow)) engine.storeAllBagToCart();
-          else if (cloudChestLoadedRef.current) engine.storeAllBagToHouse();
+          else if (cloudChestLoadedRef.current && lobbyChestStatus === 'ready') engine.storeAllBagToHouse();
           else console.warn('[Baú] Depósito na casa bloqueado: inventário da nuvem ainda não foi confirmado.');
         }
         return;
@@ -2929,7 +2935,7 @@ export default function App() {
   const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
   const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
   const storeAllBagToHouse = () => {
-    if (!cloudChestLoadedRef.current) {
+    if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
       console.warn('[Baú] Depósito na casa bloqueado: inventário da nuvem ainda não foi confirmado.');
       return;
     }
