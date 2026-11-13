@@ -470,6 +470,8 @@ export default function App() {
   const gameStartPendingRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [houseLoadReady, setHouseLoadReady] = useState(false);
+  const cloudChestLoadedRef = useRef(false);
+  const lobbyChestRefreshRequestRef = useRef(0);
   const houseInventoryJson = JSON.stringify(state.house.inventory);
 
   useEffect(() => {
@@ -483,6 +485,7 @@ export default function App() {
       const shouldApplyCloudInventory = source === 'cloud'
         && (!changedWhileLoading || currentHouseInventory?.length === 0 || !engineRef.current);
       if (shouldApplyCloudInventory) {
+        cloudChestLoadedRef.current = true;
         if (engineRef.current) engineRef.current.setHouseInventory(inventory);
         else pendingCloudHouseInventoryRef.current = inventory;
         lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
@@ -509,6 +512,10 @@ export default function App() {
       return;
     }
     if (pendingCloudHouseInventoryRef.current !== null) return;
+    if (!cloudChestLoadedRef.current) {
+      console.warn('[Baú] Sincronização ignorada: inventário da nuvem ainda não foi confirmado.');
+      return;
+    }
 
     pendingHouseInventoryRef.current = houseInventoryJson;
     const syncLatestHouseInventory = async (): Promise<void> => {
@@ -517,6 +524,10 @@ export default function App() {
 
       const syncPromise = (async () => {
         while (!houseMatchClosedRef.current && pendingHouseInventoryRef.current !== null) {
+          if (!cloudChestLoadedRef.current) {
+            console.warn('[Baú] Envio interrompido: inventário da nuvem não está carregado.');
+            return;
+          }
           const snapshot = pendingHouseInventoryRef.current;
           if (snapshot === lastSyncedHouseInventoryRef.current) {
             pendingHouseInventoryRef.current = null;
@@ -659,6 +670,7 @@ export default function App() {
   const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
   const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
+  const [lobbyChestStatus, setLobbyChestStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
   const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
   const [chestTransferBusy, setChestTransferBusy] = useState(false);
@@ -835,6 +847,9 @@ export default function App() {
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const openStation = (id: StationRouteId) => {
+    if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
+      void refreshLobbyChestFromCloud();
+    }
     navigateToStation(id);
     const latestRevealedCore = [...lobbyChestItems].reverse().find(item => parseCoreItemId(item.itemId)?.kind === 'revealed');
     setJewelryResultCoreId(id === 'joalheria' ? latestRevealedCore?.itemId ?? null : null);
@@ -2033,7 +2048,8 @@ export default function App() {
         const canUseHouse = current.house.built && houseDistanceNow <= CONFIG.house.interactRadius;
         if (canUseCart || canUseHouse) {
           if (canUseCart && (!canUseHouse || cartDistanceNow <= houseDistanceNow)) engine.storeAllBagToCart();
-          else engine.storeAllBagToHouse();
+          else if (cloudChestLoadedRef.current) engine.storeAllBagToHouse();
+          else console.warn('[Baú] Depósito na casa bloqueado: inventário da nuvem ainda não foi confirmado.');
         }
         return;
       }
@@ -2081,15 +2097,53 @@ export default function App() {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   }, [activeGameRoute.page]);
 
-  const refreshLobbyChestFromCloud = async () => {
-    if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para atualizar o Baú.');
-    const inventory = await loadCloudHouseInventory(fibulaSupabase, session.user.sub);
-    lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
-    engineRef.current?.setHouseInventory(inventory);
-    setLobbyChestItems(inventory);
-    setChestCloudReady(true);
-    return inventory;
+  const refreshLobbyChestFromCloud = async (): Promise<boolean> => {
+    const userId = session.user.sub;
+    const requestId = ++lobbyChestRefreshRequestRef.current;
+    cloudChestLoadedRef.current = false;
+    setLobbyChestStatus('loading');
+    setChestCloudReady(false);
+    if (!fibulaSupabase || !userId) {
+      setLobbyChestStatus('error');
+      return false;
+    }
+    try {
+      const inventory = await loadCloudHouseInventory(fibulaSupabase, userId);
+      if (requestId !== lobbyChestRefreshRequestRef.current || session.user.sub !== userId) return false;
+      lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+      pendingHouseInventoryRef.current = null;
+      engineRef.current?.setHouseInventory(inventory);
+      setLobbyChestItems(inventory);
+      cloudChestLoadedRef.current = true;
+      setLobbyChestStatus('ready');
+      setChestCloudReady(true);
+      return true;
+    } catch {
+      if (requestId === lobbyChestRefreshRequestRef.current && session.user.sub === userId) {
+        cloudChestLoadedRef.current = false;
+        setLobbyChestStatus('error');
+        setChestCloudReady(false);
+      }
+      return false;
+    }
   };
+
+  useEffect(() => {
+    cloudChestLoadedRef.current = false;
+    lobbyChestRefreshRequestRef.current += 1;
+    setLobbyChestStatus('loading');
+    setChestCloudReady(false);
+    if (!fibulaSupabase || !session.user.sub) return;
+    let active = true;
+    void refreshLobbyChestFromCloud().then(success => {
+      if (active && !success) setChestTransferFeedback('Não foi possível atualizar o Baú.');
+    });
+    return () => {
+      active = false;
+      cloudChestLoadedRef.current = false;
+      lobbyChestRefreshRequestRef.current += 1;
+    };
+  }, [session.user.sub]);
 
   const loadAccountProgress = async () => {
     if (!fibulaSupabase || !session.user.sub) throw new Error('Entre na sua conta para carregar o progresso.');
@@ -2119,7 +2173,7 @@ export default function App() {
       setAccountLevel(level);
       setJabuticabaProgress(progress);
       engineRef.current?.setAccountLevel(level);
-      await refreshLobbyChestFromCloud();
+      if (!await refreshLobbyChestFromCloud()) throw new Error('Não foi possível atualizar o Baú após consumir a jabuticaba.');
       setJabuticabaFeedback(result.leveled_up === true
         ? `Nível geral aumentado para ${level}! O progresso da próxima etapa começou do zero.`
         : `Jabuticaba consumida: ${progress}/${Number(result.next_cost) || jabuticabaLevelCost(level)} para o próximo nível.`);
@@ -2137,12 +2191,9 @@ export default function App() {
     setChestOpen(true);
     setChestTransferItemId(null);
     setChestTransferFeedback('');
-    setChestCloudReady(false);
-    setLobbyChestItems(readSavedHouseStorage());
     if (!cookingOnline) setCookingFeedback('Sem conexão: cozinhar exige internet.');
-    void refreshLobbyChestFromCloud().catch(cause => {
-      setChestCloudReady(false);
-      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível atualizar o Baú.');
+    void refreshLobbyChestFromCloud().then(success => {
+      if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.');
     });
   };
 
@@ -2182,12 +2233,7 @@ export default function App() {
       await transferHouseStackToDuo(fibulaSupabase, peer.roomId, item.itemId, quantity);
       setChestTransferItemId(null);
       let senderRefreshFailed = false;
-      try {
-        await refreshLobbyChestFromCloud();
-      } catch {
-        setChestCloudReady(false);
-        senderRefreshFailed = true;
-      }
+      senderRefreshFailed = !await refreshLobbyChestFromCloud();
       let peerNotifyFailed = false;
       const notifyPeer = duoHouseNotifyActionRef.current;
       if (notifyPeer) {
@@ -2306,11 +2352,8 @@ export default function App() {
       setForgeCraftResult('');
       setWeaponFeedback(cause instanceof Error ? cause.message : 'Não foi possível fabricar a arma.');
       if (serverCallMade) {
-        try {
-          await refreshLobbyChestFromCloud();
-        } catch (refreshCause) {
-          setWeaponFeedback(current => current + ' Não foi possível recarregar o Baú da nuvem: '
-            + (refreshCause instanceof Error ? refreshCause.message : 'erro ao atualizar o Baú.'));
+        if (!await refreshLobbyChestFromCloud()) {
+          setWeaponFeedback(current => current + ' Não foi possível recarregar o Baú da nuvem.');
         }
       }
     } finally {
@@ -2884,7 +2927,13 @@ export default function App() {
   const toggleCart = () => engineRef.current?.toggleCart();
   const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
   const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
-  const storeAllBagToHouse = () => engineRef.current?.storeAllBagToHouse();
+  const storeAllBagToHouse = () => {
+    if (!cloudChestLoadedRef.current) {
+      console.warn('[Baú] Depósito na casa bloqueado: inventário da nuvem ainda não foi confirmado.');
+      return;
+    }
+    engineRef.current?.storeAllBagToHouse();
+  };
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
   const buildCart = () => engineRef.current?.buildCart();
   const setWheel = (next: { pointerId: number; screenX: number; screenY: number; originX: number; originY: number; selected: string | null } | null) => {
@@ -3160,7 +3209,9 @@ export default function App() {
 
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{stationPresentation.icon}</div>}
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
-              {activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
+              {lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
+                : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
+                : activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
                 <TailorScene>
                   <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
                     {['Peça', 'Forro', 'Costura'].map(label => <div className="tailor-preview-slot" key={label} aria-disabled="true"><strong>{label}</strong><small>Em breve</small></div>)}
@@ -3230,7 +3281,7 @@ export default function App() {
                 </section>
                 <div className="jewelry-action-area">
                   <button type="button" className="jewelry-reveal-button"
-                    disabled={jewelryRevealBusy || !selectedJewelryCoreId || !jewelryClosedCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
+                    disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId || !jewelryClosedCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
                     onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
                   {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
                 </div>
@@ -3291,7 +3342,7 @@ export default function App() {
                         <button type="button" onClick={openCraftedWeaponInArsenal}>Ver no Arsenal</button>
                         {weaponFeedback && <small>{weaponFeedback}</small>}
                       </div> : <button type="button" className="forge-craft-button" onClick={() => void craftAnvilWeapon()}
-                        disabled={!selectedWeaponCore || !weaponMaterialsReady || !!weaponCompatibilityError || !cookingOnline || weaponCraftBusy}>
+                        disabled={lobbyChestStatus !== 'ready' || !selectedWeaponCore || !weaponMaterialsReady || !!weaponCompatibilityError || !cookingOnline || weaponCraftBusy}>
                         {weaponCraftBusy ? 'Fabricando…' : 'Fabricar'}
                       </button>}
                       {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
@@ -3346,7 +3397,7 @@ export default function App() {
                             <span className="cooking-production-icon" style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span>
                             <b>{meal.name}</b>
                             {remaining > 0 ? <small>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</small>
-                              : <button type="button" disabled={!cookingOnline} onClick={() => void collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
+                              : <button type="button" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={() => void collectPreparedCookingMeal(meal)}>Pronta · Guardar no Baú</button>}
                           </> : <small>Livre</small>}
                         </div>;
                       })}
@@ -3372,7 +3423,7 @@ export default function App() {
                       })}
                     </div>
                     <button type="button" className="cooking-prepare-button" onClick={() => void prepareCookingMeal()}
-                      disabled={!cookingOnline || preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
+                      disabled={!cookingOnline || lobbyChestStatus !== 'ready' || preparedCookingMeals.length >= 3 || !panCookingSelections.length || cookingSelectedTotal < 10 || cookingSelectedTotal > cookingCapacity}>Iniciar produção · 30 min</button>
                     <div className="lobby-chest-grid cooking-ingredient-grid" aria-label="Ingredientes disponíveis no Baú">
                       {cookingIngredientStacks.map(item => {
                         const selected = panCookingSelections.find(selection => selection.itemId === item.itemId)?.quantity ?? 0;
@@ -3643,7 +3694,7 @@ export default function App() {
                       <b>{slot === 'quick' ? 'Simples' : 'Elaborada'}</b>
                       {meal ? <>
                         <span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small>
-                        <button type="button" className="cooking-meal-action secondary" disabled={!cookingOnline} onClick={() => void returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
+                        <button type="button" className="cooking-meal-action secondary" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={() => void returnPendingCookingMeal(meal)}>Devolver ao Baú</button>
                       </> : <small className="cooking-pending-empty">Vazio</small>}
                     </div>;
                   })}
@@ -3671,9 +3722,9 @@ export default function App() {
             {bauAction.view==='actions'?<>
               <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
               {bauAction.kind==='meal'?<>
-                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
                 <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
-                <button type="button" className="bau-action-button danger" disabled={!cookingOnline} onClick={requestBauActionDeletion}>Excluir</button>
+                <button type="button" className="bau-action-button danger" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={requestBauActionDeletion}>Excluir</button>
                 {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
@@ -3701,11 +3752,11 @@ export default function App() {
               <p>Esta ação não pode ser desfeita.</p>
               {bauAction.kind==='item'&&bauAction.item.quantity>1&&<>
                 <label className="bau-action-quantity">Quantidade a excluir<input type="number" min="1" max={lobbyChestItems.find(item=>item.itemId===bauAction.item.itemId)?.quantity??bauAction.item.quantity} step="1" value={bauDeleteQuantity} onChange={event=>setBauDeleteQuantity(event.target.value)}/></label>
-                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready'} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
               </>}
               <div className="bau-action-confirm-actions">
                 <button type="button" className="bau-action-button" autoFocus disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>Cancelar</button>
-                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy||(bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready' || (bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
               </div>
               {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
               {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
@@ -3860,7 +3911,7 @@ export default function App() {
 </div>:<p className="house-storage-empty">Nada guardado ainda.</p>
 :<div className="house-meals-grid">
 {!cookingOnline&&<p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
-{readyCookingMeals.length?readyCookingMeals.map(meal=>{const slotOccupied=state.activeMeals.some(active=>active.slot===meal.slot);return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible||!cookingOnline||slotOccupied} onClick={event=>{event.stopPropagation();void consumeReadyCookingMeal(meal);}} title={!houseAccessible?'Aproxime-se do Baú para consumir':!cookingOnline?'Sem conexão: cozinhar exige internet.':slotOccupied?'Você já tem uma refeição deste tipo ativa':'Consumir refeição'}>
+{readyCookingMeals.length?readyCookingMeals.map(meal=>{const slotOccupied=state.activeMeals.some(active=>active.slot===meal.slot);return <button key={meal.id} type="button" className="quick-slot filled house-meal-slot" disabled={!houseAccessible||!cookingOnline||lobbyChestStatus !== 'ready'||slotOccupied} onClick={event=>{event.stopPropagation();void consumeReadyCookingMeal(meal);}} title={!houseAccessible?'Aproxime-se do Baú para consumir':!cookingOnline?'Sem conexão: cozinhar exige internet.':slotOccupied?'Você já tem uma refeição deste tipo ativa':'Consumir refeição'}>
 <span style={rarityGlowStyle(meal.rarity)}>{cookingMealArtwork(meal)}</span><small>{meal.name}</small><b>{meal.slot==='quick'?'Simples':'Elaborada'}</b><b>Consumir</b></button>;}) : <p className="house-storage-empty">Nenhuma refeição pronta no Baú.</p>}
 </div>}
 </section></div>}
@@ -3877,7 +3928,7 @@ export default function App() {
     </span>)}
   </div>;
 })()}
-{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0)} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}
