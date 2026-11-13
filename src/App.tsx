@@ -472,6 +472,7 @@ export default function App() {
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const cloudChestLoadedRef = useRef(false);
   const lobbyChestRefreshRequestRef = useRef(0);
+  const [lobbyChestStatus, setLobbyChestStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const houseInventoryJson = JSON.stringify(state.house.inventory);
 
   useEffect(() => {
@@ -670,7 +671,6 @@ export default function App() {
   const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
   const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
-  const [lobbyChestStatus, setLobbyChestStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
   const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
   const [chestTransferBusy, setChestTransferBusy] = useState(false);
