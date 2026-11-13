@@ -2263,9 +2263,12 @@ export default function App() {
     }
   };
   const applyCookingInventory = (nextInventory: HouseStorageStack[]) => {
+    const serverSnapshot = JSON.stringify(nextInventory);
+    houseSyncBaselineRef.current = serverSnapshot;
+    lastSyncedHouseInventoryRef.current = serverSnapshot;
     setLobbyChestItems(nextInventory);
     engineRef.current?.setHouseInventory(nextInventory);
-    try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(nextInventory)); } catch { /* Armazenamento local indisponível. */ }
+    try { window.localStorage.setItem(HOUSE_STORAGE_KEY, serverSnapshot); } catch { /* Armazenamento local indisponível. */ }
   };
 
   const drainHouseOutbox = async (): Promise<'done' | 'network' | 'closed'> => {
