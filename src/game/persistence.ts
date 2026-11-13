@@ -44,8 +44,8 @@ function normalizeHouseDelta(value: unknown): HouseDeltaEntry[] {
 export function computeHouseDelta(before: unknown, after: unknown): HouseDeltaEntry[] {
   const beforeInventory = normalizeHouseInventory(before);
   const afterInventory = normalizeHouseInventory(after);
-  const beforeByItem = new Map(beforeInventory.map(item => [item.itemId, item.quantity]));
-  const afterByItem = new Map(afterInventory.map(item => [item.itemId, item.quantity]));
+  const beforeByItem = new Map<string, number>(beforeInventory.map(item => [item.itemId, item.quantity] as const));
+  const afterByItem = new Map<string, number>(afterInventory.map(item => [item.itemId, item.quantity] as const));
   const itemIds = new Set([...beforeByItem.keys(), ...afterByItem.keys()]);
   const delta: HouseDeltaEntry[] = [];
   for (const itemId of itemIds) {
