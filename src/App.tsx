@@ -3678,7 +3678,7 @@ export default function App() {
                       else if (equipped) openArsenalEquipmentActions(equipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
                       {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
-                      {equippedName && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{weaponEquipped ? <img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /> : equipped?.icon}</span>{weaponEquipped && <small className="arsenal-equipped-weapon-name">{equippedName}</small>}}
+                      {equippedName && <><span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{weaponEquipped ? <img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /> : equipped?.icon}</span>{weaponEquipped && <small className="arsenal-equipped-weapon-name">{equippedName}</small>}</>}
                     </button>;
                   })}
                 </div>
