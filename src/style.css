@@ -4770,6 +4770,14 @@ sem backdrop ou caixa de modal. */
   min-width:0;
   overflow:hidden;
 }
+.arsenal-equipped-weapon-name {
+  max-width:100%;
+  overflow-wrap:anywhere;
+  font-size:9px;
+  font-weight:900;
+  line-height:1.1;
+  text-transform:capitalize;
+}
 .arsenal-weapon-equipped-slot .arsenal-equipped-item {
   max-width:100%;
   overflow-wrap:anywhere;
