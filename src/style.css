@@ -9784,6 +9784,62 @@ sem backdrop ou caixa de modal. */
   line-height:1.1;
   letter-spacing:.02em;
 }
+/* Modal de apresentação e download do aplicativo. */
+.download-modal-backdrop{
+  position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+  padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left));
+  background:rgba(0,0,0,.78);overflow-y:auto;
+}
+.download-modal-dialog{
+  position:relative;width:min(620px,100%);max-height:min(92dvh,900px);overflow-y:auto;overflow-x:hidden;
+  padding:clamp(20px,4vw,32px);border:2px solid #52645a;border-radius:10px;
+  background:linear-gradient(160deg,#202b25,#111a16 72%);color:#e8f0e9;
+  box-shadow:0 22px 70px #000b;outline:none;overscroll-behavior:contain;
+}
+.download-modal-dialog h2{margin:0 42px 18px 0;text-align:center;font-size:clamp(24px,5vw,34px);font-weight:950;letter-spacing:.02em;color:#f0f7f1}
+.download-modal-close{
+  position:absolute;top:10px;right:10px;width:46px;height:46px;min-width:44px;min-height:44px;
+  border:1px solid #65766a;border-radius:6px;background:#27352d;color:#f4fff5;font-size:30px;line-height:1;
+}
+.download-modal-story{display:flex;flex-direction:column;gap:12px}
+.download-modal-story p{margin:0;color:#c5d1c8;font-size:clamp(13px,2.4vw,15px);line-height:1.62;overflow-wrap:anywhere}
+.download-modal-download-area{margin:22px 0 12px}
+.download-modal-download-button{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  width:100%;min-height:88px;padding:18px 16px;border:4px solid #173b20;border-radius:2px;
+  background:linear-gradient(145deg,#8ff36b 0%,#54c83f 48%,#319b2e 100%);
+  color:#102a13;font-size:clamp(17px,4vw,22px);font-weight:1000;text-align:center;
+  text-shadow:0 1px #d7ffc8;box-shadow:inset 4px 4px 0 #c4ff9d,inset -5px -5px 0 #237c25,0 6px 0 #102817,0 10px 18px #0006;
+  image-rendering:pixelated;transition:transform .07s,box-shadow .07s;
+}
+.download-modal-download-button:not(:disabled):active{
+  transform:translateY(5px);box-shadow:inset 3px 3px 0 #c4ff9d,inset -4px -4px 0 #237c25,0 1px 0 #102817,0 4px 9px #0006;
+}
+.download-modal-download-button:disabled{cursor:not-allowed;filter:saturate(.72) brightness(.86)}
+.download-modal-download-button:focus-visible,.download-modal-close:focus-visible{outline:3px solid #d5ffad;outline-offset:4px}
+.download-modal-new{
+  padding:4px 10px;border:2px solid #fff2a1;background:#f4d84e;color:#332900;
+  font-size:11px;font-weight:1000;letter-spacing:.12em;box-shadow:2px 2px 0 #674e10;
+}
+.download-modal-progress-track{display:block;width:min(100%,340px);height:10px;overflow:hidden;border:2px solid #173b20;background:#214b24}
+.download-modal-progress-track span{display:block;height:100%;background:#e1ff9b;transition:width .15s}
+.download-modal-version-info{margin:12px 0 0;text-align:center;color:#9eafa4;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.download-modal-previous{
+  display:flex;align-items:center;gap:9px;min-height:48px;margin-top:18px;padding:10px 12px;
+  border:1px solid #48524c;border-radius:4px;background:#242a26;color:#78817b;
+  font-size:12px;filter:grayscale(1);opacity:.72;cursor:not-allowed;
+}
+.download-modal-lock{font-size:16px;flex:0 0 auto}
+.download-modal-previous time{margin-left:auto;text-align:right;font-size:11px}
+@media(max-width:480px){
+  .download-modal-backdrop{align-items:flex-start;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+  .download-modal-dialog{width:100%;max-height:calc(100dvh - 20px);padding:20px 16px;border-radius:8px}
+  .download-modal-story{gap:10px}
+  .download-modal-story p{font-size:13px;line-height:1.5}
+  .download-modal-download-button{min-height:78px;padding:14px 10px}
+  .download-modal-previous{flex-wrap:wrap}
+  .download-modal-previous time{width:100%;margin-left:25px;text-align:left}
+}
 .lobby-screen .lobby-update-required{
   position:absolute;
   z-index:34;
