@@ -325,7 +325,8 @@ function applyHouseDeltaLocally(before: HouseStorageStack[], delta: HouseDeltaEn
   return Array.from(inventory, ([itemId, quantity]) => ({ itemId, quantity }));
 }
 
-const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão' };
+const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Sword Stone', arco: 'Arch Stone', cajado: 'Staff Stone', bastao: 'Rod Nature' };
+const ARSENAL_WEAPON_SPRITES: Record<WeaponModel, string> = { espada: 'sword-stone.png', arco: 'arch-stone.png', cajado: 'staff-stone.png', bastao: 'rod-nature.png' };
 type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
 const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
 function readEquippedWeaponSelections(userId: string): EquippedWeaponSelections {
@@ -3670,7 +3671,6 @@ export default function App() {
                     const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
                     const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
                     const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : equipped ? cleanItemName(equipped.name) : undefined;
-                    const weaponIcon = weaponEquipped ? weaponEquipped.model === 'espada' ? '🗡️' : weaponEquipped.model === 'arco' ? '🏹' : weaponEquipped.model === 'cajado' ? '🔮' : '🌿' : null;
                     const rarity = weaponEquipped?.rarity ?? equipped?.rarity;
                     const info = ARSENAL_SLOT_INFO[slot];
                     return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
@@ -3678,7 +3678,7 @@ export default function App() {
                       else if (equipped) openArsenalEquipmentActions(equipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
                       {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
-                      {equippedName && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{weaponEquipped ? weaponIcon : equipped?.icon}</span>}
+                      {equippedName && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{weaponEquipped ? <img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /> : equipped?.icon}</span>}
                     </button>;
                   })}
                 </div>
@@ -3694,9 +3694,8 @@ export default function App() {
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
                       const weaponName = arsenalWeaponLabels[weapon.model];
-                      const weaponIcon = weapon.model === 'espada' ? '🗡️' : weapon.model === 'arco' ? '🏹' : weapon.model === 'cajado' ? '🔮' : '🌿';
                       return <button type="button" key={weapon.id} className={`arsenal-inventory-slot filled arsenal-weapon-item ${weapon.id === selectedArsenalItemId ? 'selected' : ''}`} onClick={() => openArsenalWeaponActions(weapon, false)} aria-label={`${weaponName}. Abrir ações.`}>
-                        <span style={rarityGlowStyle(weapon.rarity)}>{weaponIcon}</span><small>{weaponName}</small>
+                        <span style={rarityGlowStyle(weapon.rarity)}><img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weapon.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /></span><small>{weaponName}</small>
                       </button>;
                     }
                     const item = entry.item;
