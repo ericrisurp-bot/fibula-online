@@ -3,8 +3,9 @@ import { App } from '@capacitor/app';
 import { FileTransfer } from '@capacitor/file-transfer';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { DownloadModal } from './DownloadModal';
 
-const LATEST_RELEASE_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases/latest';
+const RELEASES_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases?per_page=10';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 type ApkInstallerPlugin = {
@@ -19,10 +20,15 @@ type AndroidRelease = {
   versionName: string;
   versionCode: number | null;
   apkUrl: string;
+  publishedAt: string | null;
 };
 
 type AndroidReleaseContextValue = {
   release: AndroidRelease | null;
+  previousRelease: AndroidRelease | null;
+  currentVersionName: string | null;
+  currentVersionCode: number | null;
+  isAndroid: boolean;
   updateAvailable: boolean;
   checking: boolean;
   downloading: boolean;
@@ -78,6 +84,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   const isAndroid = platform === 'android';
   const isSupported = isAndroid || platform === 'web';
   const [release, setRelease] = useState<AndroidRelease | null>(null);
+  const [previousRelease, setPreviousRelease] = useState<AndroidRelease | null>(null);
   const [currentVersionName, setCurrentVersionName] = useState<string | null>(null);
   const [currentVersionCode, setCurrentVersionCode] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
@@ -104,16 +111,31 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const response = await fetch(LATEST_RELEASE_URL, {
+      const response = await fetch(RELEASES_URL, {
         headers: { Accept: 'application/vnd.github+json' },
         cache: 'no-cache',
       });
       if (response.status === 404) {
         setRelease(null);
+        setPreviousRelease(null);
         return;
       }
       if (!response.ok) throw new Error('Não foi possível consultar a versão publicada.');
-      setRelease(parseRelease(await response.json()));
+      const payload: unknown = await response.json();
+      if (!Array.isArray(payload)) throw new Error('A resposta de versões do GitHub é inválida.');
+      const validReleases = payload
+        .filter((item) => !!item && typeof item === 'object'
+          && (item as { draft?: unknown }).draft !== true
+          && (item as { prerelease?: unknown }).prerelease !== true)
+        .map((item) => {
+          const parsed = parseRelease(item);
+          if (!parsed) return null;
+          const publishedAt = (item as { published_at?: unknown }).published_at;
+          return { ...parsed, publishedAt: typeof publishedAt === 'string' ? publishedAt : null };
+        })
+        .filter((item): item is AndroidRelease => item !== null);
+      setRelease(validReleases[0] ?? null);
+      setPreviousRelease(validReleases[1] ?? null);
     } catch {
       // Falhas temporárias do GitHub não bloqueiam o acesso ao jogo.
     } finally {
@@ -215,6 +237,10 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     release,
+    previousRelease,
+    currentVersionName,
+    currentVersionCode,
+    isAndroid,
     updateAvailable,
     checking,
     downloading,
@@ -222,7 +248,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
     pendingApkPath,
     isSupported,
     downloadLatest,
-  }), [release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest]);
+  }), [release, previousRelease, currentVersionName, currentVersionCode, isAndroid, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest]);
 
   return <AndroidReleaseContext.Provider value={value}>{children}</AndroidReleaseContext.Provider>;
 }
@@ -234,7 +260,9 @@ export function useAndroidRelease(): AndroidReleaseContextValue {
 }
 
 export function AndroidReleaseButton() {
-  const { release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest } = useAndroidRelease();
+  const { release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported } = useAndroidRelease();
+  const [modalOpen, setModalOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   if (!isSupported) return null;
 
   const label = downloading
@@ -259,14 +287,16 @@ export function AndroidReleaseButton() {
           : 'Baixar APK oficial do Fíbula';
 
   return (
+    <>
     <button
+      ref={triggerRef}
       className={`lobby-release-button${checking && !release ? ' is-checking' : ''}${downloading ? ' is-downloading' : ''}`}
       type="button"
       aria-label={label}
       title={title}
       aria-busy={checking || downloading}
       disabled={downloading}
-      onClick={() => { void downloadLatest(); }}
+      onClick={() => setModalOpen(true)}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3" />
@@ -274,5 +304,7 @@ export function AndroidReleaseButton() {
       {downloading && <span className="lobby-release-progress">{downloadProgress}%</span>}
       {updateAvailable && !downloading && <span className="lobby-release-new">NEW</span>}
     </button>
+    {modalOpen && <DownloadModal onClose={() => setModalOpen(false)} triggerRef={triggerRef} />}
+    </>
   );
 }
