@@ -23,6 +23,115 @@ function normalizeHouseInventory(value: unknown): PersistedHouseStack[] {
   return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity })).slice(0, 50);
 }
 
+export type HouseDeltaEntry = { itemId: string; quantity: number };
+export type HouseOutboxOperation = { opId: string; delta: HouseDeltaEntry[] };
+export type HouseDeltaApplyResult =
+  | { kind: 'ok'; inventory: PersistedHouseStack[]; applied: boolean; overflow: HouseDeltaEntry[]; shortfall: HouseDeltaEntry[] }
+  | { kind: 'rejected'; message: string }
+  | { kind: 'network' };
+
+const HOUSE_OUTBOX_KEY = 'fibula-house-outbox';
+
+function normalizeHouseDelta(value: unknown): HouseDeltaEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry): HouseDeltaEntry[] => {
+    if (!entry || typeof entry.itemId !== 'string' || entry.itemId.length < 1 || entry.itemId.length > 1000
+      || !Number.isSafeInteger(entry.quantity) || entry.quantity === 0 || Math.abs(entry.quantity) > 999999) return [];
+    return [{ itemId: entry.itemId, quantity: entry.quantity }];
+  });
+}
+
+export function computeHouseDelta(before: unknown, after: unknown): HouseDeltaEntry[] {
+  const beforeInventory = normalizeHouseInventory(before);
+  const afterInventory = normalizeHouseInventory(after);
+  const beforeByItem = new Map<string, number>(beforeInventory.map(item => [item.itemId, item.quantity] as const));
+  const afterByItem = new Map<string, number>(afterInventory.map(item => [item.itemId, item.quantity] as const));
+  const itemIds = new Set([...beforeByItem.keys(), ...afterByItem.keys()]);
+  const delta: HouseDeltaEntry[] = [];
+  for (const itemId of itemIds) {
+    let remaining = (afterByItem.get(itemId) ?? 0) - (beforeByItem.get(itemId) ?? 0);
+    while (remaining !== 0) {
+      const quantity = Math.sign(remaining) * Math.min(Math.abs(remaining), 999999);
+      delta.push({ itemId, quantity });
+      remaining -= quantity;
+    }
+  }
+  return delta;
+}
+
+export function readHouseOutbox(): HouseOutboxOperation[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(HOUSE_OUTBOX_KEY) ?? '[]');
+    if (!Array.isArray(stored)) return [];
+    return stored.flatMap((entry): HouseOutboxOperation[] => {
+      if (!entry || typeof entry.opId !== 'string' || !entry.opId) return [];
+      const delta = normalizeHouseDelta(entry.delta);
+      return delta.length > 0 && delta.length <= 100 ? [{ opId: entry.opId, delta }] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function addHouseOutboxOperation(delta: HouseDeltaEntry[]): HouseOutboxOperation | null {
+  if (typeof window === 'undefined' || delta.length < 1 || delta.length > 100
+    || delta.some(entry => !entry || typeof entry.itemId !== 'string' || entry.itemId.length < 1
+      || entry.itemId.length > 1000 || !Number.isSafeInteger(entry.quantity)
+      || entry.quantity === 0 || Math.abs(entry.quantity) > 999999)) return null;
+  try {
+    const operation: HouseOutboxOperation = { opId: window.crypto.randomUUID(), delta: delta.map(entry => ({ ...entry })) };
+    const outbox = readHouseOutbox();
+    outbox.push(operation);
+    window.localStorage.setItem(HOUSE_OUTBOX_KEY, JSON.stringify(outbox));
+    return operation;
+  } catch {
+    return null;
+  }
+}
+
+export function removeHouseOutboxOperation(opId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const outbox = readHouseOutbox().filter(operation => operation.opId !== opId);
+    window.localStorage.setItem(HOUSE_OUTBOX_KEY, JSON.stringify(outbox));
+  } catch {
+    // A operação permanece na fila se o armazenamento local estiver indisponível.
+  }
+}
+
+export async function applyHouseDelta(
+  client: SupabaseClient,
+  opId: string,
+  delta: HouseDeltaEntry[],
+): Promise<HouseDeltaApplyResult> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return { kind: 'network' };
+  try {
+    const { data, error } = await client.rpc('fibula_house_apply_delta', {
+      p_op_id: opId,
+      p_delta: delta,
+    });
+    if (error) {
+      return typeof error.code === 'string' && error.code.length > 0
+        ? { kind: 'rejected', message: error.message || 'O servidor recusou a alteração do Baú.' }
+        : { kind: 'network' };
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return { kind: 'network' };
+    const result = data as Record<string, unknown>;
+    if (typeof result.applied !== 'boolean' || !Array.isArray(result.inventory)) return { kind: 'network' };
+    return {
+      kind: 'ok',
+      inventory: normalizeHouseInventory(result.inventory),
+      applied: result.applied,
+      overflow: normalizeHouseDelta(result.overflow),
+      shortfall: normalizeHouseDelta(result.shortfall),
+    };
+  } catch {
+    return { kind: 'network' };
+  }
+}
+
+
 export function readLocalHouseInventory(): PersistedHouseStack[] {
   if (typeof window === 'undefined') return [];
   try {
