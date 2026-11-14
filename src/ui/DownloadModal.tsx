@@ -14,6 +14,17 @@ const GAME_STORY = [
   'O jogo ainda está crescendo, e foi pensado para crescer junto com vocês. Obrigado por estarem aqui. Baixe, jogue e me conta o que achou.',
 ] as const;
 
+const SPARKLES = [
+  'download-modal-sparkle-1',
+  'download-modal-sparkle-2',
+  'download-modal-sparkle-3',
+  'download-modal-sparkle-4',
+  'download-modal-sparkle-5',
+  'download-modal-sparkle-6',
+  'download-modal-sparkle-7',
+  'download-modal-sparkle-8',
+] as const;
+
 function formatPublishedDate(value: string | null): string {
   if (!value) return 'Data não informada';
   const date = new Date(value);
@@ -92,15 +103,23 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
         aria-labelledby="download-modal-title"
         tabIndex={-1}
       >
-        <button className="download-modal-close" type="button" onClick={onClose} aria-label="Fechar janela">×</button>
-        <h2 id="download-modal-title">Fíbula Online</h2>
+        <div className="download-modal-header">
+          {SPARKLES.slice(0, 4).map((className) => (
+            <span key={className} className={`download-modal-sparkle ${className}`} aria-hidden="true">✦</span>
+          ))}
+          <button className="download-modal-close" type="button" onClick={onClose} aria-label="Fechar janela">×</button>
+          <h2 id="download-modal-title">Fíbula Online</h2>
+        </div>
         <div className="download-modal-story">
           {GAME_STORY.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </div>
 
         <div className="download-modal-download-area">
+          {SPARKLES.slice(4).map((className) => (
+            <span key={className} className={`download-modal-sparkle ${className}`} aria-hidden="true">✦</span>
+          ))}
           <button
-            className="download-modal-download-button"
+            className={`download-modal-download-button${!release ? ' is-unavailable' : ''}`}
             type="button"
             disabled={checking || downloading || !release}
             onClick={() => { void downloadLatest(); }}
