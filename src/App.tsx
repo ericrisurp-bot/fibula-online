@@ -325,7 +325,7 @@ function applyHouseDeltaLocally(before: HouseStorageStack[], delta: HouseDeltaEn
   return Array.from(inventory, ([itemId, quantity]) => ({ itemId, quantity }));
 }
 
-const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Espada', arco: 'Arco', cajado: 'Cajado', bastao: 'Bastão' };
+const arsenalWeaponLabels: Record<WeaponModel, string> = { espada: 'Sword Stone', arco: 'Arch Stone', cajado: 'Staff Stone', bastao: 'Rod Nature' };
 const ARSENAL_WEAPON_SPRITES: Record<WeaponModel, string> = { espada: 'sword-stone.png', arco: 'arch-stone.png', cajado: 'staff-stone.png', bastao: 'rod-nature.png' };
 type EquippedWeaponSelections = Partial<Record<ClassId, string>>;
 const equippedWeaponStorageKey = (userId: string) => `fibula-equipped-weapons:${userId}`;
