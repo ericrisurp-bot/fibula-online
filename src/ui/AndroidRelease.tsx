@@ -66,6 +66,7 @@ function parseRelease(value: unknown): AndroidRelease | null {
     versionName: versionMatch[1],
     versionCode: versionCodeMatch ? Number(versionCodeMatch[1]) : null,
     apkUrl: apk.browser_download_url,
+    publishedAt: null,
   };
 }
 
@@ -262,6 +263,7 @@ export function useAndroidRelease(): AndroidReleaseContextValue {
 export function AndroidReleaseButton() {
   const { release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported } = useAndroidRelease();
   const [modalOpen, setModalOpen] = useState(false);
+  const closeModal = useCallback(() => setModalOpen(false), []);
   const triggerRef = useRef<HTMLButtonElement>(null);
   if (!isSupported) return null;
 
@@ -304,7 +306,7 @@ export function AndroidReleaseButton() {
       {downloading && <span className="lobby-release-progress">{downloadProgress}%</span>}
       {updateAvailable && !downloading && <span className="lobby-release-new">NEW</span>}
     </button>
-    {modalOpen && <DownloadModal onClose={() => setModalOpen(false)} triggerRef={triggerRef} />}
+    {modalOpen && <DownloadModal onClose={closeModal} triggerRef={triggerRef} />}
     </>
   );
 }
