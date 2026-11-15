@@ -11421,3 +11421,66 @@ sem backdrop ou caixa de modal. */
   bottom: auto;
   left: auto;
 }
+
+
+/* Ranking volta à altura original, agora ancorado no lado direito do lobby. */
+.lobby-screen .lobby-ranking-trigger{
+  left:auto!important;
+  right:max(12px,env(safe-area-inset-right))!important;
+  top:calc(41% + 6px)!important;
+  width:64px;
+  min-width:64px;
+  max-width:64px;
+  height:64px;
+  min-height:64px;
+  max-height:64px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  padding:3px;
+  transform:none!important;
+}
+.lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{
+  position:relative;
+  left:auto;
+  top:auto;
+  display:block;
+  transform:none;
+  font-size:30px!important;
+  line-height:1;
+}
+.lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  position:static;
+  font-size:9px!important;
+  line-height:1;
+}
+@media(max-width:650px){
+  .lobby-screen .lobby-ranking-trigger{
+    top:calc(37% + 5px)!important;
+    width:56px;
+    min-width:56px;
+    max-width:56px;
+    height:56px;
+    min-height:56px;
+    max-height:56px;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:27px!important}
+}
+@media(max-width:360px){
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:24px!important}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-screen .lobby-ranking-trigger{
+    top:max(8px,env(safe-area-inset-top))!important;
+    right:max(12px,env(safe-area-inset-right))!important;
+    width:48px;
+    min-width:48px;
+    max-width:48px;
+    height:48px;
+    min-height:48px;
+    max-height:48px;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:25px!important}
+}
