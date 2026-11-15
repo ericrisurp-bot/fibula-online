@@ -3330,7 +3330,12 @@ export default function App() {
 
   const stationPresentation = activeCraftingStation as { icon: string; description: string; products: string };
 
-  return <>{activeCraftingStation ? <PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'joalheria' ? 'jewelry-page' : activeCraftingStation.id === 'costura' ? 'tailor-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
+  return <>{activeCraftingStation ? <><div className="lobby-screen is-page-backdrop" aria-hidden="true">
+      <div className="lobby-sky"><i className="lobby-moon"/><i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/><i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/><i className="lobby-comet"/></div>
+      <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor"/>
+      <i className="lobby-ground-light"/>
+      <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas"/></div>
+    </div><PageFrame eyebrow="ESTAÇÃO DE CRIAÇÃO" title={activeCraftingStation.title} onBack={closeGamePage} hideHeader={activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura'} stateClassName={activeCraftingStation.id === 'bigorna' ? 'forge-page' : activeCraftingStation.id === 'joalheria' ? 'jewelry-page' : activeCraftingStation.id === 'costura' ? 'tailor-page' : activeCraftingStation.id === 'fogao' ? (preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : 'is-idle') : undefined}>
       <div className="station-page-content">
         <div className="lobby-crafting-content">
 
@@ -3577,7 +3582,7 @@ export default function App() {
         </div>
       </div>
     {(activeCraftingStation.id === 'bigorna' || activeCraftingStation.id === 'fogao' || activeCraftingStation.id === 'joalheria' || activeCraftingStation.id === 'costura') && <StationNav current={activeCraftingStation.id} onLobby={closeGamePage} onOpenStation={openStation} />}
-      </PageFrame> : <main className="game-shell" style={{ '--interface-scale': 1, '--controller-scale-setting': interfaceScale / 100 } as CSSProperties}>
+      </PageFrame></> : <main className="game-shell" style={{ '--interface-scale': 1, '--controller-scale-setting': interfaceScale / 100 } as CSSProperties}>
     <header className="topbar">
       <div className="brand-mark">F<span>Í</span>BULA</div>
       <div className="subtitle">ONLINE <i /> SOBREVIVÊNCIA</div>
