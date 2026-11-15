@@ -1,5 +1,14 @@
 import { CONFIG, type ClassId } from './config';
 
+export function applyArmorToDamage(rawDamage: number, armor: number): number {
+  if (!CONFIG.rulesV2.enabled) return Math.max(1, Math.round(rawDamage - armor));
+  const reduction = Math.min(
+    CONFIG.rulesV2.armorMaxReduction,
+    Math.max(0, armor) * CONFIG.rulesV2.armorPercentPerPoint / 100,
+  );
+  return Math.max(1, Math.round(rawDamage * (1 - reduction)));
+}
+
 export type AttributeKey =
   | 'vida'
   | 'forca'
