@@ -71,6 +71,8 @@ const initial: GameSnapshot = {
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
   enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
 };
+const JEWELRY_POLISH_COTTON_COST = 5;
+const JEWELRY_RARITY_LABELS: Record<string, string> = { normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada',
@@ -914,6 +916,12 @@ export default function App() {
     else stacks.push({ itemId: stackId, quantity: item.quantity });
     return stacks;
   }, []);
+  const selectedJewelryCoreStack = jewelryClosedCoreStacks.find(item => item.itemId === selectedJewelryCoreId) ?? null;
+  const selectedJewelryCoreParsed = selectedJewelryCoreStack ? parseCoreItemId(`core:${selectedJewelryCoreStack.itemId.slice('jewelry-closed:'.length)}:weapon`) : null;
+  const selectedJewelryRarity = selectedJewelryCoreParsed?.kind === 'closed' ? selectedJewelryCoreParsed.rarity : null;
+  const jewelryCottonItemId = selectedJewelryRarity ? weaponMaterialItemId('cotton', selectedJewelryRarity) : null;
+  const jewelryCottonAvailable = jewelryCottonItemId ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0) : 0;
+  const jewelryCottonMissing = Math.max(0, JEWELRY_POLISH_COTTON_COST - jewelryCottonAvailable);
   const anvilWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     const parsed = parseCoreItemId(item.itemId);
     if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon' || item.quantity <= 0) return stacks;
@@ -2538,6 +2546,13 @@ export default function App() {
     if (!source) return;
     const parsed = parseCoreItemId(source.itemId);
     if (!parsed || parsed.kind !== 'closed') return;
+    const cottonItemId = weaponMaterialItemId('cotton', parsed.rarity);
+    const cottonAvailable = lobbyChestItems.reduce((total, item) => item.itemId === cottonItemId ? total + item.quantity : total, 0);
+    if (cottonAvailable < JEWELRY_POLISH_COTTON_COST) {
+      const rarityLabel = JEWELRY_RARITY_LABELS[parsed.rarity] ?? parsed.rarity;
+      setJewelryFeedback(`Faltam ${JEWELRY_POLISH_COTTON_COST - cottonAvailable} algodões ${rarityLabel} para polir.`);
+      return;
+    }
     if (!fibulaSupabase || !session.user.sub) {
       setJewelryFeedback('Entre na sua conta e conecte-se para salvar a revelação.');
       return;
@@ -3412,10 +3427,16 @@ export default function App() {
                   </div>
                 </section>
                 <div className="jewelry-action-area">
+                  {selectedJewelryCoreId && selectedJewelryRarity && jewelryCottonItemId && <div className="forge-material-item jewelry-polish-cost">
+                    <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
+                    <strong>{JEWELRY_POLISH_COTTON_COST} × Algodão {JEWELRY_RARITY_LABELS[selectedJewelryRarity] ?? selectedJewelryRarity}</strong>
+                    <small>tem {jewelryCottonAvailable}</small>
+                  </div>}
+                  <p className="jewelry-feedback jewelry-help-text">O algodão da mesma raridade é usado para polir a pedra e revelar o que ela faz.</p>
                   <button type="button" className="jewelry-reveal-button"
-                    disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId || !jewelryClosedCoreStacks.some(item => item.itemId === selectedJewelryCoreId)}
+                    disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId || !selectedJewelryCoreStack || jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST}
                     onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
-                  {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
+                  {(jewelryFeedback || (selectedJewelryCoreId && jewelryCottonMissing > 0 ? `Faltam ${jewelryCottonMissing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para polir.` : '')) && <p className="jewelry-feedback" role="status">{jewelryFeedback || `Faltam ${jewelryCottonMissing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para polir.`}</p>}
                 </div>
               </div> : activeCraftingStation.id === 'bigorna' ? <>
                 <div className="forge-workspace">
