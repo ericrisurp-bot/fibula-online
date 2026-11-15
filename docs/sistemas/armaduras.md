@@ -68,7 +68,7 @@ Cada peça recebe um forro, com valor de referência lendário, 1 estrela e `rol
 | Linho | Mobilidade | +2 |
 | Couro refinado | Ganho de XP dentro da partida | +0.015 (+1.5%) |
 
-O valor do forro usa a mesma escala de raridade × estrelas × `roll` da armadura. O `roll` é fornecido pelo chamador; esta etapa não define sua origem nem sorteia o valor.
+O valor do forro usa a mesma escala de raridade × estrelas × `roll` da armadura. Para armaduras, o `roll` do forro é o mesmo roll do núcleo da peça: média de `valor / referência da raridade` entre todos os atributos do núcleo, limitada a 0,5–1,0; núcleo SURP usa 1,0. A função recebe o roll já calculado; não o sorteia. Esta regra poderá ser revista futuramente.
 
 **Couro refinado vale somente para o XP obtido dentro da partida.** Não representa bônus de XP geral ou de conta.
 
@@ -109,10 +109,14 @@ Os multiplicadores ficam em `ARMOR_CLASS_USAGE`; `applyClassUsage(classId, attri
 
 Esse aproveitamento de esquiva da armadura é diferente da esquiva-base por classe já existente em `CONFIG.player.classDodge`. Um não substitui o outro.
 
-## Decisões em aberto
+## Limites e decisões resolvidas
 
-1. **Núcleo de armadura:** será específico por peça ou genérico?
-2. **Roll do forro:** de onde virá o `roll` do forro? A função recebe esse valor, mas esta etapa não escolhe sua origem.
-3. **Acúmulo entre peças:** qual será a regra de acúmulo dos atributos quando várias peças da mesma classe estiverem equipadas?
+- **Núcleo de armadura por peça — resolvido:** cada núcleo identifica uma peça (capacete, peitoral, leggings/calça, bota ou luva) e carrega a união dos atributos permitidos para essa peça em couro e bronze, derivada de `ARMOR_PIECE_ATTRIBUTES`.
+- **Roll do forro — resolvido:** usa o mesmo roll do núcleo da peça, calculado pela média de `valor / referência da raridade` dos atributos do núcleo, limitado a 0,5–1,0; SURP equivale a 1,0. A regra pode ser revista futuramente.
+- **Acúmulo entre peças — resolvido:** soma simples dos bônus, respeitando os tetos globais descritos abaixo.
+- **Redução de dano pela armadura:** teto de 60% (`CONFIG.rulesV2.armorMaxReduction = 0.6`). X pontos de armadura representam X% menos dano, respeitando o teto; cada golpe ainda causa no mínimo 1 de dano.
+- **Esquiva:** teto total de 35%, somando esquiva-base da classe (`CONFIG.player.classDodge`) + esquiva da luva + esquiva dos acessórios.
 
-Essas decisões não foram presumidas nem implementadas nesta etapa.
+## Limites desta etapa
+
+Esta etapa contém apenas dados e funções puras. Nenhuma regra está conectada ao jogo: não há integração com fabricação, inventário, equipamento, combate ou UI. `CONFIG.rulesV2.enabled` permanece `false`.
