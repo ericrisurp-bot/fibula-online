@@ -11484,3 +11484,36 @@ sem backdrop ou caixa de modal. */
   }
   .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:25px!important}
 }
+
+
+/* Auditoria tipográfica do lobby: Oficina usa a fonte global do jogo (Inter). */
+.lobby-screen .lobby-workshop-trigger{
+  font-family:inherit!important;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+
+/* Ranking: rótulo legível, sem sobreposição com o troféu e com a mesma tipografia. */
+.lobby-screen .lobby-ranking-trigger{
+  font-family:inherit!important;
+  font-weight:900;
+  letter-spacing:.01em;
+  overflow:visible;
+}
+.lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  position:static!important;
+  display:block;
+  transform:none!important;
+  width:100%;
+  margin-top:1px;
+  color:#f6efe0!important;
+  font-family:inherit!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  line-height:1.1!important;
+  letter-spacing:0!important;
+  text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.7)!important;
+  white-space:nowrap;
+}
