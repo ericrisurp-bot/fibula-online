@@ -11813,58 +11813,6 @@ sem backdrop ou caixa de modal. */
   text-shadow:0 1px 2px rgba(0,0,0,.75)!important;
 }
 
-/* Páginas laterais: superfícies carvão, sem tocar nos fundos/cenas das oficinas. */
-.side-page.classes-page,
-.side-page.friends-side{
-  background:var(--fibula-surface)!important;
-  color:var(--fibula-text)!important;
-}
-.side-page.classes-page .station-page-content,
-.side-page.classes-page .side-page-content,
-.side-page.friends-side .station-page-content,
-.side-page.friends-side .side-page-content{
-  background:var(--fibula-surface)!important;
-  color:var(--fibula-text)!important;
-}
-.side-page.classes-page .side-page-panel,
-.side-page.friends-side .friends-side-panel{
-  border:1px solid #505650!important;
-  border-radius:14px!important;
-  background:linear-gradient(160deg,#2d302e,#242624)!important;
-  color:var(--fibula-text)!important;
-  box-shadow:0 7px 22px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.035)!important;
-}
-.side-page.classes-page .classes-tabs .profile-class-tab,
-.side-page.friends-side button,
-.side-page.classes-page button{
-  font-family:inherit!important;
-}
-.side-page.classes-page .classes-tabs .profile-class-tab{
-  border-color:#596159!important;
-  border-radius:9px!important;
-  background:linear-gradient(180deg,#3b403c,#292c2a)!important;
-  color:#eeeade!important;
-}
-.side-page.classes-page .classes-tabs .profile-class-tab[aria-selected="true"],
-.side-page.classes-page .classes-tabs .profile-class-tab.is-active{
-  border-color:#b7a17b!important;
-  background:linear-gradient(180deg,#514b3d,#34322b)!important;
-  color:#fff8e9!important;
-}
-.side-page.friends-side input,
-.side-page.friends-side select,
-.side-page.friends-side textarea,
-.side-page.classes-page input,
-.side-page.classes-page select,
-.side-page.classes-page textarea{
-  border-color:#596159!important;
-  background:#202321!important;
-  color:#f3efe5!important;
-}
-.side-page.friends-side input::placeholder,
-.side-page.classes-page input::placeholder{color:#aaa99f!important}
-
-
 /* A estação atual deve permanecer destacada mesmo com as cores-base específicas de cada oficina. */
 .station-nav-button.is-active.station-nav-bigorna,
 .station-nav-button.is-active.station-nav-costura,
