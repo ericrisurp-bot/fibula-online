@@ -3640,9 +3640,9 @@ export default function App() {
             <span>ARSENAL</span>
           </button>
           <div className="lobby-social">
-            <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
+            <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Social" title="Social" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
               <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-              <span>AMIGOS</span>
+              <span>SOCIAL</span>
             </button>
           </div>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
