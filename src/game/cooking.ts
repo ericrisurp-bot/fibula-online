@@ -163,7 +163,7 @@ export function getQuickRecipe(itemId: string, quantity: number): CookingMeal | 
   } else if (base === 'chicken_meat') {
     name = 'Frango grelhado'; icon = '🍗'; effects.inteligencia = tier.damage * scale;
   } else if (FISH_ITEMS.includes(base)) {
-    name = 'Peixe grelhado'; icon = '🐟'; effects.velocidadeAtaque = tier.utility * scale;
+    name = 'Peixe grelhado'; icon = '🐟'; effects.velocidadeMovimento = tier.utility * scale;
   } else if (base === 'cabbage') {
     name = 'Sopa de repolho'; icon = '🥬'; effects.velocidadeMovimento = tier.utility * scale;
   } else if (base === 'tomato') {
