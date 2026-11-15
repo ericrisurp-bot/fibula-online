@@ -503,10 +503,10 @@ export const WEAPON_RECIPES: Record<WeaponModel, { materials: readonly WeaponRec
   bastao: { materials: [{ base: 'wood', quantity: 5 }, { base: 'mineral', quantity: 10 }] },
 };
 export const WEAPON_ACTIVE_ATTRIBUTES: Record<WeaponModel, readonly CoreAttributeKey[]> = {
-  espada: ['forca', 'velocidadeAtaque'],
-  arco: ['forca', 'destreza', 'velocidadeAtaque'],
-  cajado: ['inteligencia', 'velocidadeAtaque'],
-  bastao: ['inteligencia', 'velocidadeAtaque'],
+  espada: ['forca'],
+  arco: ['forca', 'destreza'],
+  cajado: ['inteligencia'],
+  bastao: ['inteligencia'],
 };
 export function weaponMaterialItemId(base: string, rarity: CoreRarity): string {
   return rarity === 'normal' ? base : base + ':' + rarity;
