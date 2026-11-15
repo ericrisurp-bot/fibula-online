@@ -11413,3 +11413,11 @@ sem backdrop ou caixa de modal. */
     bottom: max(10px, env(safe-area-inset-bottom));
   }
 }
+
+.lobby-screen .lobby-social .lobby-social-trigger {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+}
