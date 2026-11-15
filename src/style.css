@@ -11752,3 +11752,114 @@ sem backdrop ou caixa de modal. */
   .lobby-sky:after{inset:14% 4% 24% -38%}
   .lobby-ground-light{width:100%;height:30vh}
 }
+
+
+/* Identidade compartilhada das páginas — linguagem visual do Lobby. */
+:root{
+  --fibula-surface:#222322;
+  --fibula-surface-raised:#2d302e;
+  --fibula-surface-soft:#373b38;
+  --fibula-border:#626a64;
+  --fibula-border-highlight:#9b927d;
+  --fibula-text:#f3efe5;
+  --fibula-text-muted:#c2c0b7;
+  --fibula-accent:#b7a17b;
+}
+.station-nav,
+.side-nav{
+  border:1px solid var(--fibula-border)!important;
+  border-radius:12px!important;
+  background:linear-gradient(180deg,rgba(48,52,49,.98),rgba(30,32,30,.99))!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.09)!important;
+  backdrop-filter:blur(8px);
+}
+.station-nav-button,
+.side-nav-button{
+  min-height:40px;
+  border:1px solid #555d56!important;
+  border-radius:9px!important;
+  background:linear-gradient(180deg,#3b403c,#292c2a)!important;
+  color:var(--fibula-text)!important;
+  font-family:inherit!important;
+  font-weight:850!important;
+  letter-spacing:.01em!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.75);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 2px 4px rgba(0,0,0,.28)!important;
+  transition:filter .14s ease,border-color .14s ease,background .14s ease;
+}
+.station-nav-button:active,
+.side-nav-button:active{filter:brightness(1.16)}
+.station-nav-button:focus-visible,
+.side-nav-button:focus-visible{outline:2px solid #d6c49d!important;outline-offset:2px}
+.station-nav-button.is-active,
+.side-nav-button.is-active{
+  border-color:var(--fibula-border-highlight)!important;
+  background:linear-gradient(180deg,#555044,#37352f)!important;
+  color:#fff8e9!important;
+}
+.station-nav-button.station-nav-lobby,
+.side-nav-button.side-nav-lobby{
+  border-color:#9b927d!important;
+  background:linear-gradient(180deg,#4b4940,#302f2b)!important;
+  color:#fff8e9!important;
+}
+.station-nav-button.station-nav-bigorna,
+.station-nav-button.station-nav-fogao,
+.station-nav-button.station-nav-costura,
+.station-nav-button.station-nav-joalheria{
+  border-color:#626a64!important;
+  background:linear-gradient(180deg,#414642,#292d2a)!important;
+  color:#f3efe5!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.75)!important;
+}
+
+/* Páginas laterais: superfícies carvão, sem tocar nos fundos/cenas das oficinas. */
+.side-page.classes-page,
+.side-page.friends-side{
+  background:var(--fibula-surface)!important;
+  color:var(--fibula-text)!important;
+}
+.side-page.classes-page .station-page-content,
+.side-page.classes-page .side-page-content,
+.side-page.friends-side .station-page-content,
+.side-page.friends-side .side-page-content{
+  background:var(--fibula-surface)!important;
+  color:var(--fibula-text)!important;
+}
+.side-page.classes-page .side-page-panel,
+.side-page.friends-side .friends-side-panel{
+  border:1px solid #505650!important;
+  border-radius:14px!important;
+  background:linear-gradient(160deg,#2d302e,#242624)!important;
+  color:var(--fibula-text)!important;
+  box-shadow:0 7px 22px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab,
+.side-page.friends-side button,
+.side-page.classes-page button{
+  font-family:inherit!important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab{
+  border-color:#596159!important;
+  border-radius:9px!important;
+  background:linear-gradient(180deg,#3b403c,#292c2a)!important;
+  color:#eeeade!important;
+}
+.side-page.classes-page .classes-tabs .profile-class-tab[aria-selected="true"],
+.side-page.classes-page .classes-tabs .profile-class-tab.is-active{
+  border-color:#b7a17b!important;
+  background:linear-gradient(180deg,#514b3d,#34322b)!important;
+  color:#fff8e9!important;
+}
+.side-page.friends-side input,
+.side-page.friends-side select,
+.side-page.friends-side textarea,
+.side-page.classes-page input,
+.side-page.classes-page select,
+.side-page.classes-page textarea{
+  border-color:#596159!important;
+  background:#202321!important;
+  color:#f3efe5!important;
+}
+.side-page.friends-side input::placeholder,
+.side-page.classes-page input::placeholder{color:#aaa99f!important}
