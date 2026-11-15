@@ -1297,17 +1297,18 @@ button, button * {
   .lobby-character-canvas{transform:translate(-8vw,-4vh)}
 }
 
-/* Reflexo lunar localizado no chão; mantém o personagem sem iluminação artificial. */
+/* Reflexo lunar projetado exclusivamente sobre o piso, alinhado à lua. */
 .lobby-ground-light{
   position:absolute;
   z-index:2;
-  left:9%;
+  left:-10%;
   bottom:0;
-  width:58%;
+  width:120%;
   height:33.333vh;
+  border-radius:50% 50% 0 0 / 12% 12% 0 0;
   pointer-events:none;
-  background:radial-gradient(ellipse at 52% 12%,rgba(174,190,139,.19) 0%,rgba(132,153,113,.10) 32%,rgba(96,119,91,.035) 58%,transparent 76%);
-  filter:blur(8px);
+  background:radial-gradient(ellipse at 77% 9%,rgba(198,218,238,.20) 0%,rgba(165,194,220,.12) 24%,rgba(126,160,193,.055) 43%,transparent 66%);
+  filter:blur(16px);
 }
 
 
@@ -11739,18 +11740,10 @@ sem backdrop ou caixa de modal. */
 }
 .lobby-moon:after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 32% 27%,rgba(255,255,255,.24),transparent 52%)}
 .lobby-star{box-shadow:0 0 5px 1px rgba(215,231,255,.42),0 0 10px 2px rgba(155,190,232,.14)}
-.lobby-ground-light{
-  left:0;width:82%;height:37vh;
-  background:
-    radial-gradient(ellipse at 68% 8%,rgba(184,207,232,.24) 0%,rgba(155,184,214,.15) 28%,rgba(115,151,190,.065) 52%,transparent 76%),
-    linear-gradient(180deg,rgba(125,158,195,.07),rgba(5,15,28,.24));
-  filter:blur(12px);
-}
 .lobby-grass-floor{filter:brightness(.38) saturate(.64) contrast(1.1)}
 @media(max-width:650px){
   .lobby-moon{width:clamp(76px,19vw,126px);top:8%;right:12%}
   .lobby-sky:after{inset:14% 4% 24% -38%}
-  .lobby-ground-light{width:100%;height:30vh}
 }
 
 
