@@ -11752,3 +11752,169 @@ sem backdrop ou caixa de modal. */
   .lobby-sky:after{inset:14% 4% 24% -38%}
   .lobby-ground-light{width:100%;height:30vh}
 }
+
+
+/* Identidade compartilhada das páginas — linguagem visual do Lobby. */
+:root{
+  --fibula-surface:#222322;
+  --fibula-surface-raised:#2d302e;
+  --fibula-surface-soft:#373b38;
+  --fibula-border:#626a64;
+  --fibula-border-highlight:#9b927d;
+  --fibula-text:#f3efe5;
+  --fibula-text-muted:#c2c0b7;
+  --fibula-accent:#b7a17b;
+}
+.station-nav,
+.side-nav{
+  border:1px solid var(--fibula-border)!important;
+  border-radius:12px!important;
+  background:linear-gradient(180deg,rgba(48,52,49,.98),rgba(30,32,30,.99))!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.09)!important;
+  backdrop-filter:blur(8px);
+}
+.station-nav-button,
+.side-nav-button{
+  min-height:40px;
+  border:1px solid #555d56!important;
+  border-radius:9px!important;
+  background:linear-gradient(180deg,#3b403c,#292c2a)!important;
+  color:var(--fibula-text)!important;
+  font-family:inherit!important;
+  font-weight:850!important;
+  letter-spacing:.01em!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.75);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 2px 4px rgba(0,0,0,.28)!important;
+  transition:filter .14s ease,border-color .14s ease,background .14s ease;
+}
+.station-nav-button:active,
+.side-nav-button:active{filter:brightness(1.16)}
+.station-nav-button:focus-visible,
+.side-nav-button:focus-visible{outline:2px solid #d6c49d!important;outline-offset:2px}
+.station-nav-button.is-active,
+.side-nav-button.is-active{
+  border-color:var(--fibula-border-highlight)!important;
+  background:linear-gradient(180deg,#555044,#37352f)!important;
+  color:#fff8e9!important;
+}
+.station-nav-button.station-nav-lobby,
+.side-nav-button.side-nav-lobby{
+  border-color:#9b927d!important;
+  background:linear-gradient(180deg,#4b4940,#302f2b)!important;
+  color:#fff8e9!important;
+}
+.station-nav-button.station-nav-bigorna,
+.station-nav-button.station-nav-fogao,
+.station-nav-button.station-nav-costura,
+.station-nav-button.station-nav-joalheria{
+  border-color:#626a64!important;
+  background:linear-gradient(180deg,#414642,#292d2a)!important;
+  color:#f3efe5!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.75)!important;
+}
+
+/* A estação atual deve permanecer destacada mesmo com as cores-base específicas de cada oficina. */
+.station-nav-button.is-active.station-nav-bigorna,
+.station-nav-button.is-active.station-nav-costura,
+.station-nav-button.is-active.station-nav-joalheria,
+.station-nav-button.is-active.station-nav-fogao{
+  border-color:var(--fibula-border-highlight)!important;
+  background:linear-gradient(180deg,#555044,#37352f)!important;
+  color:#fff8e9!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 1px rgba(183,161,123,.22),0 3px 8px rgba(0,0,0,.35)!important;
+}
+
+
+/* Páginas em desktop: preserva o enquadramento vertical pensado para celular. */
+@media (min-width: 701px) and (orientation: landscape) {
+  html:has(.station-page),
+  body:has(.station-page),
+  #root:has(.station-page) {
+    background: transparent !important;
+  }
+  .station-page {
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: min(56.25dvh, 100vw) !important;
+    height: min(100dvh, 177.7778vw) !important;
+    min-height: 0 !important;
+    transform: translate(-50%, -50%);
+  }
+}
+
+
+/* Correção do enquadramento desktop: laterais no carvão do modal. */
+@media (min-width: 701px) and (orientation: landscape) {
+  html:has(.station-page),
+  body:has(.station-page),
+  #root:has(.station-page) {
+    background: transparent !important;
+  }
+}
+
+/* Bigorna: cena, núcleos e materiais em faixas verticais de largura total. */
+@media (min-width: 701px) and (orientation: landscape) {
+  .forge-page .forge-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(150px, .85fr) minmax(100px, .55fr) minmax(145px, 1fr) !important;
+    align-content: stretch;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 9px 8px !important;
+  }
+  .forge-page .forge-workspace > .forge-scene,
+  .forge-page .forge-workspace > .forge-zone {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .forge-page .forge-material-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  }
+}
+
+/* Cozinha: forno acima e bancada de ingredientes abaixo, sem colunas laterais. */
+@media (min-width: 701px) and (orientation: landscape) {
+  .station-page-no-header .lobby-crafting-content .cooking-kitchen {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, .9fr) minmax(0, 1.1fr) !important;
+    align-items: stretch;
+    gap: 8px !important;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+  }
+  .station-page-no-header .cooking-kitchen > .cooking-oven-panel,
+  .station-page-no-header .cooking-kitchen > .cooking-ingredient-workbench {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+}
+
+
+/* Páginas laterais: usam o cenário do Lobby no lugar do mundo da partida. */
+@media (min-width: 0px) {
+  .game-stage:has(.lobby-screen.is-page-backdrop) > .game-canvas,
+  .game-stage:has(.lobby-screen.is-page-backdrop) > .hud-top {
+    display: none !important;
+  }
+  .lobby-screen.is-page-backdrop {
+    z-index: 1;
+    pointer-events: none !important;
+  }
+  .lobby-screen.is-page-backdrop > :not(.lobby-sky):not(.lobby-grass-floor):not(.lobby-ground-light):not(.lobby-character-wrap) {
+    display: none !important;
+  }
+  .lobby-screen.is-page-backdrop .lobby-character-wrap button,
+  .lobby-screen.is-page-backdrop .lobby-character-wrap .lobby-duo-peer {
+    display: none !important;
+  }
+}
