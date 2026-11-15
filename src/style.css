@@ -11568,14 +11568,24 @@ sem backdrop ou caixa de modal. */
     right:max(12px,env(safe-area-inset-right))!important;
   }
   .lobby-screen .lobby-workshop-trigger,
-  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-social-trigger {
+    position:relative!important;
+    inset:auto!important;
+    display:flex!important;
+    width:68px!important;
+    height:68px!important;
+    min-width:68px!important;
+    min-height:68px!important;
+    box-sizing:border-box!important;
+    font-family:inherit!important;
+    font-size:10px!important;
+  }
+  /* Arsenal e Baú são os próprios elementos posicionados na tela; não podem virar filhos relativos. */
   .lobby-screen .lobby-arsenal-trigger,
   .lobby-screen .lobby-chest-trigger {
-    position:relative!important;
+    position:absolute!important;
     top:auto!important;
-    right:auto!important;
-    bottom:auto!important;
-    left:auto!important;
+    bottom:calc(10% - 51px)!important;
     display:flex!important;
     width:68px!important;
     height:68px!important;
