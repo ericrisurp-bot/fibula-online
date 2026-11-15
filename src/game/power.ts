@@ -34,8 +34,7 @@ export function getClassPower(classId: ClassId, level: number, pointsPerLevel = 
     vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel),
     armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel),
     esquiva: 1 / (1 - Math.min(0.35, (CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[classId] : CONFIG.player.dodge)
-      + usedBonus(classId, level, 'esquiva', pointsPerLevel)
-      + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) : 0))),
+      + usedBonus(classId, level, 'esquiva', pointsPerLevel))),
     velocidadeMovimento: CONFIG.player.classSpeed[classId],
     dano: weapon.damage * getDamageMultiplier(classId, level, pointsPerLevel),
   };
@@ -82,7 +81,9 @@ export function getArmedClassPower(
     vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel),
     armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel)
       + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) : 0),
-    esquiva: 1 / (1 - Math.min(0.35, CONFIG.player.dodge + usedBonus(classId, level, 'esquiva', pointsPerLevel))),
+    esquiva: 1 / (1 - Math.min(0.35, (CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[classId] : CONFIG.player.dodge)
+      + usedBonus(classId, level, 'esquiva', pointsPerLevel)
+      + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) : 0))),
     velocidadeMovimento: CONFIG.player.classSpeed[classId],
     // O motor soma o dano-base da CONFIG ao dano armazenado na arma fabricada.
     dano: (baseWeapon.damage + weapon.damage) * getDamageMultiplier(classId, level, pointsPerLevel, weaponBonuses),
