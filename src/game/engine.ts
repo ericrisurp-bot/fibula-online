@@ -2,7 +2,7 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { ATTRIBUTE_USAGE, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
+import { ATTRIBUTE_USAGE, applyArmorToDamage, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
@@ -2315,7 +2315,7 @@ export class GameEngine {
         animal.hitWait = CONFIG.wildlife.wolves.contactCooldown;
         const levelStats = this.getLevelStats();
         if (this.random() > this.getDodgeChance()) {
-          const damage = Math.max(1, Math.round(CONFIG.wildlife.wolves.contactDamage - CONFIG.player.armor - levelStats.armor));
+          const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor);
           this.state.player.hp -= damage;
           this.addFloatingDamage(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
@@ -2768,7 +2768,8 @@ export class GameEngine {
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (this.random() > this.getDodgeChance()) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
-          const damage = Math.max(1, Math.round(waveDamage * (this.getDayNightState().isNight ? 1 : 1.5) - CONFIG.player.armor - levelStats.armor));
+          const rawDamage = waveDamage * (this.getDayNightState().isNight ? 1 : 1.5);
+          const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor);
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
