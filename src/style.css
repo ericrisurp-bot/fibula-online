@@ -11201,3 +11201,144 @@ sem backdrop ou caixa de modal. */
   .jewelry-bench-drawer:after{width:17px;height:4px}
   .jewelry-bench-drawer-center:after{width:21px;height:5px}
 }
+
+
+/* Navegação inferior do lobby — cinco acessos, sem alterar o cenário. */
+.lobby-screen .lobby-workshop,
+.lobby-screen .lobby-social-trigger,
+.lobby-screen .lobby-arsenal-trigger,
+.lobby-screen .lobby-chest-trigger,
+.lobby-screen .lobby-play-trigger {
+  position: absolute;
+  z-index: 35;
+  top: auto;
+  bottom: calc(10% - 45px);
+  box-sizing: border-box;
+}
+.lobby-screen .lobby-workshop {
+  left: max(12px, env(safe-area-inset-left));
+  width: 64px;
+}
+.lobby-screen .lobby-workshop-trigger,
+.lobby-screen .lobby-social-trigger,
+.lobby-screen .lobby-arsenal-trigger,
+.lobby-screen .lobby-chest-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  padding: 3px;
+  border: 1px solid rgba(235,239,235,.28);
+  border-radius: 10px;
+  background: rgba(34,35,34,.86);
+  color: #f2f3ef;
+  font-family: "Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .02em;
+  box-shadow: 0 4px 13px rgba(0,0,0,.34), inset 0 1px 3px rgba(255,255,255,.12);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  -webkit-tap-highlight-color: transparent;
+}
+.lobby-screen .lobby-workshop-trigger { cursor: pointer; }
+.lobby-screen .lobby-workshop-icon,
+.lobby-screen .lobby-social-trigger .lobby-top-emoji,
+.lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+.lobby-screen .lobby-chest-trigger .lobby-top-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.lobby-screen .lobby-workshop-trigger:active,
+.lobby-screen .lobby-social-trigger:active,
+.lobby-screen .lobby-arsenal-trigger:active,
+.lobby-screen .lobby-chest-trigger:active {
+  background: rgba(62,65,62,.94);
+  transform: scale(.96);
+}
+.lobby-screen .lobby-workshop-trigger:focus-visible,
+.lobby-screen .lobby-social-trigger:focus-visible,
+.lobby-screen .lobby-arsenal-trigger:focus-visible,
+.lobby-screen .lobby-chest-trigger:focus-visible {
+  outline: 2px solid #e8e8e8;
+  outline-offset: 3px;
+}
+.lobby-screen .lobby-workshop-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 9px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
+  gap: 6px;
+  width: min(244px, calc(100vw - 24px));
+  padding: 8px;
+  border: 1px solid rgba(235,239,235,.28);
+  border-radius: 12px;
+  background: rgba(24,25,24,.96);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  backdrop-filter: blur(8px);
+}
+.lobby-screen .lobby-workshop-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 7px;
+  border: 1px solid rgba(235,239,235,.16);
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+  color: #f2f0e7;
+  font: 800 11px/1.15 "Trebuchet MS",Arial,sans-serif;
+  text-align: left;
+}
+.lobby-screen .lobby-workshop-menu button span:first-child { font-size: 19px; }
+.lobby-screen .lobby-social-trigger { left: calc(max(12px, env(safe-area-inset-left)) + 68px); }
+.lobby-screen .lobby-arsenal-trigger { left: auto; right: calc(max(12px, env(safe-area-inset-right)) + 68px); }
+.lobby-screen .lobby-chest-trigger { left: auto; right: max(12px, env(safe-area-inset-right)); }
+.lobby-screen .lobby-play-trigger {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: calc(10% - 61px);
+  width: 90px;
+  height: 90px;
+  min-width: 90px;
+  min-height: 90px;
+  padding: 0;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+.lobby-screen .lobby-play-trigger:active { transform: translateX(-50%) scale(.96); }
+@media (max-width: 390px) {
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger { bottom: calc(10% - 43px); }
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger { width: 52px; height: 52px; min-width: 52px; min-height: 52px; }
+  .lobby-screen .lobby-workshop { width: 56px; }
+  .lobby-screen .lobby-social-trigger { left: calc(max(8px, env(safe-area-inset-left)) + 58px); }
+  .lobby-screen .lobby-arsenal-trigger { right: calc(max(8px, env(safe-area-inset-right)) + 58px); }
+  .lobby-screen .lobby-chest-trigger { right: max(8px, env(safe-area-inset-right)); }
+  .lobby-screen .lobby-play-trigger { bottom: calc(10% - 55px); width: 76px; height: 76px; min-width: 76px; min-height: 76px; }
+}
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger { bottom: max(10px, env(safe-area-inset-bottom)); }
+  .lobby-screen .lobby-workshop { left: max(12px, env(safe-area-inset-left)); }
+  .lobby-screen .lobby-social-trigger { left: calc(max(12px, env(safe-area-inset-left)) + 68px); }
+  .lobby-screen .lobby-arsenal-trigger { right: calc(max(12px, env(safe-area-inset-right)) + 68px); }
+  .lobby-screen .lobby-chest-trigger { right: max(12px, env(safe-area-inset-right)); }
+  .lobby-screen .lobby-play-trigger { bottom: max(10px, env(safe-area-inset-bottom)); }
+}
