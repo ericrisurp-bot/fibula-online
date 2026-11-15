@@ -21,20 +21,21 @@ export function getPlayerAttributes(classId: ClassId, level: number, pointsPerLe
   const { baseValue, gainPerLevel, classMultipliers } = CONFIG.attributes;
   const multipliers = classMultipliers[classId];
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
+  const levelGain = (key: AttributeKey) => CONFIG.rulesV2.enabled && key !== 'vida' ? 0 : gainedLevels * multipliers[key];
   const base = (key: AttributeKey) => baseValue + (ATTRIBUTE_USAGE[classId][key] > 0 ? baseBonuses[key] ?? 0 : 0);
 
   return {
-    vida: base('vida') + gainedLevels * multipliers.vida,
-    forca: base('forca') + gainedLevels * multipliers.forca,
-    armadura: base('armadura') + gainedLevels * multipliers.armadura,
-    resistenciaMagica: base('resistenciaMagica') + gainedLevels * multipliers.resistenciaMagica,
-    inteligencia: base('inteligencia') + gainedLevels * multipliers.inteligencia,
-    destreza: base('destreza') + gainedLevels * multipliers.destreza,
-    velocidadeMovimento: base('velocidadeMovimento') + gainedLevels * multipliers.velocidadeMovimento,
-    velocidadeAtaque: base('velocidadeAtaque') + gainedLevels * multipliers.velocidadeAtaque * ATTRIBUTE_USAGE[classId].velocidadeAtaque,
-    alcanceAtaque: base('alcanceAtaque') + gainedLevels * multipliers.alcanceAtaque,
-    esquiva: base('esquiva') + gainedLevels * multipliers.esquiva,
-    areaAtaque: base('areaAtaque') + gainedLevels * multipliers.areaAtaque,
+    vida: base('vida') + levelGain('vida'),
+    forca: base('forca') + levelGain('forca'),
+    armadura: base('armadura') + levelGain('armadura'),
+    resistenciaMagica: base('resistenciaMagica') + levelGain('resistenciaMagica'),
+    inteligencia: base('inteligencia') + levelGain('inteligencia'),
+    destreza: base('destreza') + levelGain('destreza'),
+    velocidadeMovimento: base('velocidadeMovimento') + levelGain('velocidadeMovimento'),
+    velocidadeAtaque: base('velocidadeAtaque') + levelGain('velocidadeAtaque') * ATTRIBUTE_USAGE[classId].velocidadeAtaque,
+    alcanceAtaque: base('alcanceAtaque') + levelGain('alcanceAtaque'),
+    esquiva: base('esquiva') + levelGain('esquiva'),
+    areaAtaque: base('areaAtaque') + levelGain('areaAtaque'),
   };
 }
 
@@ -65,8 +66,10 @@ export function getDamageMultiplier(classId: ClassId, level: number, pointsPerLe
   const multipliers = classMultipliers[classId];
   const usage = ATTRIBUTE_USAGE[classId];
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
-  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + (usage[key] > 0 ? baseBonuses[key] ?? 0 : 0) + gainedLevels * multipliers[key]), 0);
+  const damageAttributeValue = DAMAGE_ATTRIBUTES.reduce((sum, key) => sum + usage[key] * (baseValue + (usage[key] > 0 ? baseBonuses[key] ?? 0 : 0) + (CONFIG.rulesV2.enabled ? 0 : gainedLevels * multipliers[key])), 0);
 
+  // Na v2 o dano não progride por nível e não usa a compensação de velocidade de ataque.
+  if (CONFIG.rulesV2.enabled) return damageAttributeValue / baseValue;
   // O fator compensa exatamente o multiplicador de ataques/s removido do motor.
   return (damageAttributeValue / baseValue) * getAttackSpeedCompensationMultiplier(classId, level, pointsPerLevel);
 }
@@ -96,8 +99,18 @@ export function getAttributeBaseBonusEffect(
   if (!Number.isFinite(baseBonus) || baseBonus <= 0) return 0;
   const { baseValue, gainPerLevel, classMultipliers, effectPerPointGained } = CONFIG.attributes;
   const gainedLevels = Math.max(0, level) * gainPerLevel * Math.max(1, pointsPerLevel);
-  const levelScale = 1 + gainedLevels * classMultipliers[classId][attribute] / baseValue;
+  const levelScale = CONFIG.rulesV2.enabled ? 1 : 1 + gainedLevels * classMultipliers[classId][attribute] / baseValue;
   return baseBonus * levelScale * effectPerPointGained[attribute];
+}
+
+export function getAccountMultiplier(accountLevel: number): number {
+  // reservada: +2,5% por nível da conta (jabuticaba), ainda NÃO ativado
+  void accountLevel;
+  return 1;
+}
+
+export function getAccountPointsPerLevel(accountLevel: number): number {
+  return CONFIG.rulesV2.enabled ? getAccountMultiplier(accountLevel) : 1 + Math.max(0, accountLevel) * 0.05;
 }
 
 export function getAttributeBonus(classId: ClassId, level: number, attribute: EffectAttribute, pointsPerLevel = 1): number {
