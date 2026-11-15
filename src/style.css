@@ -11911,3 +11911,84 @@ sem backdrop ou caixa de modal. */
     display: none !important;
   }
 }
+
+
+/* Ajuste desktop: atalhos quadrados, menores e simétricos em torno de Jogar.
+   Tipografia única (Inter herdada do :root) para todos os rótulos do lobby. */
+@media (min-width: 1025px) {
+  .lobby-screen .lobby-workshop {
+    left: calc(50% - 194px) !important;
+    width: 60px !important;
+    bottom: calc(10% - 30px) !important;
+  }
+  .lobby-screen .lobby-social {
+    left: calc(50% - 118px) !important;
+    width: 60px !important;
+    height: 60px !important;
+    bottom: calc(10% - 30px) !important;
+  }
+  .lobby-screen .lobby-arsenal-trigger {
+    left: calc(50% + 58px) !important;
+    right: auto !important;
+    bottom: calc(10% - 30px) !important;
+  }
+  .lobby-screen .lobby-chest-trigger {
+    left: calc(50% + 134px) !important;
+    right: auto !important;
+    bottom: calc(10% - 30px) !important;
+  }
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger {
+    width: 60px !important;
+    height: 60px !important;
+    min-width: 60px !important;
+    min-height: 60px !important;
+    padding: 3px !important;
+    font-family: inherit !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    letter-spacing: .01em !important;
+  }
+  .lobby-screen .lobby-workshop-trigger span:not(.lobby-workshop-icon),
+  .lobby-screen .lobby-social-trigger span:not(.lobby-top-emoji),
+  .lobby-screen .lobby-arsenal-trigger span:not(.lobby-top-emoji),
+  .lobby-screen .lobby-chest-trigger span:not(.lobby-top-emoji) {
+    font-family: inherit !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+  }
+  .lobby-screen .lobby-workshop-icon,
+  .lobby-screen .lobby-social-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji {
+    font-size: 22px !important;
+    line-height: 1 !important;
+  }
+  .lobby-screen .lobby-play-trigger {
+    width: 88px !important;
+    height: 88px !important;
+    min-width: 88px !important;
+    min-height: 88px !important;
+    bottom: calc(10% - 61px) !important;
+  }
+}
+
+/* Todos os modais compartilham a tipografia global do jogo (Inter). */
+.lobby-profile-modal,
+.lobby-crafting-modal,
+.lobby-friends-modal,
+.lobby-chest-modal,
+.lobby-ranking-modal,
+.player-profile-modal,
+.lobby-profile-modal *,
+.lobby-crafting-modal *,
+.lobby-friends-modal *,
+.lobby-chest-modal *,
+.lobby-ranking-modal *,
+.player-profile-modal * {
+  font-family: inherit !important;
+}
