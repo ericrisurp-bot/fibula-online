@@ -11201,3 +11201,470 @@ sem backdrop ou caixa de modal. */
   .jewelry-bench-drawer:after{width:17px;height:4px}
   .jewelry-bench-drawer-center:after{width:21px;height:5px}
 }
+
+
+/* Navegação inferior do lobby — cinco acessos, sem alterar o cenário. */
+.lobby-screen .lobby-workshop,
+.lobby-screen .lobby-social-trigger,
+.lobby-screen .lobby-arsenal-trigger,
+.lobby-screen .lobby-chest-trigger,
+.lobby-screen .lobby-play-trigger {
+  position: absolute;
+  z-index: 35;
+  top: auto;
+  bottom: calc(10% - 45px);
+  box-sizing: border-box;
+}
+.lobby-screen .lobby-workshop {
+  left: max(12px, env(safe-area-inset-left));
+  width: 64px;
+}
+.lobby-screen .lobby-workshop-trigger,
+.lobby-screen .lobby-social-trigger,
+.lobby-screen .lobby-arsenal-trigger,
+.lobby-screen .lobby-chest-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  padding: 3px;
+  border: 1px solid rgba(235,239,235,.28);
+  border-radius: 10px;
+  background: rgba(34,35,34,.86);
+  color: #f2f3ef;
+  font-family: "Trebuchet MS","Arial Rounded MT Bold",Arial,sans-serif;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .02em;
+  box-shadow: 0 4px 13px rgba(0,0,0,.34), inset 0 1px 3px rgba(255,255,255,.12);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  -webkit-tap-highlight-color: transparent;
+}
+.lobby-screen .lobby-workshop-trigger { cursor: pointer; }
+.lobby-screen .lobby-workshop-icon,
+.lobby-screen .lobby-social-trigger .lobby-top-emoji,
+.lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+.lobby-screen .lobby-chest-trigger .lobby-top-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.lobby-screen .lobby-workshop-trigger:active,
+.lobby-screen .lobby-social-trigger:active,
+.lobby-screen .lobby-arsenal-trigger:active,
+.lobby-screen .lobby-chest-trigger:active {
+  background: rgba(62,65,62,.94);
+  transform: scale(.96);
+}
+.lobby-screen .lobby-workshop-trigger:focus-visible,
+.lobby-screen .lobby-social-trigger:focus-visible,
+.lobby-screen .lobby-arsenal-trigger:focus-visible,
+.lobby-screen .lobby-chest-trigger:focus-visible {
+  outline: 2px solid #e8e8e8;
+  outline-offset: 3px;
+}
+.lobby-screen .lobby-workshop-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 9px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(112px, 1fr));
+  gap: 6px;
+  width: min(244px, calc(100vw - 24px));
+  padding: 8px;
+  border: 1px solid rgba(235,239,235,.28);
+  border-radius: 12px;
+  background: rgba(24,25,24,.96);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  backdrop-filter: blur(8px);
+}
+.lobby-screen .lobby-workshop-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 7px;
+  border: 1px solid rgba(235,239,235,.16);
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+  color: #f2f0e7;
+  font: 800 11px/1.15 "Trebuchet MS",Arial,sans-serif;
+  text-align: left;
+}
+.lobby-screen .lobby-workshop-menu button span:first-child { font-size: 19px; }
+.lobby-screen .lobby-social-trigger { left: calc(max(12px, env(safe-area-inset-left)) + 68px); }
+.lobby-screen .lobby-arsenal-trigger { left: auto; right: calc(max(12px, env(safe-area-inset-right)) + 68px); }
+.lobby-screen .lobby-chest-trigger { left: auto; right: max(12px, env(safe-area-inset-right)); }
+.lobby-screen .lobby-play-trigger {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: calc(10% - 61px);
+  width: 90px;
+  height: 90px;
+  min-width: 90px;
+  min-height: 90px;
+  padding: 0;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+.lobby-screen .lobby-play-trigger:active { transform: translateX(-50%) scale(.96); }
+@media (max-width: 390px) {
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger { bottom: calc(10% - 43px); }
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger { width: 52px; height: 52px; min-width: 52px; min-height: 52px; }
+  .lobby-screen .lobby-workshop { width: 56px; }
+  .lobby-screen .lobby-social-trigger { left: calc(max(8px, env(safe-area-inset-left)) + 58px); }
+  .lobby-screen .lobby-arsenal-trigger { right: calc(max(8px, env(safe-area-inset-right)) + 58px); }
+  .lobby-screen .lobby-chest-trigger { right: max(8px, env(safe-area-inset-right)); }
+  .lobby-screen .lobby-play-trigger { bottom: calc(10% - 55px); width: 76px; height: 76px; min-width: 76px; min-height: 76px; }
+}
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger { bottom: max(10px, env(safe-area-inset-bottom)); }
+  .lobby-screen .lobby-workshop { left: max(12px, env(safe-area-inset-left)); }
+  .lobby-screen .lobby-social-trigger { left: calc(max(12px, env(safe-area-inset-left)) + 68px); }
+  .lobby-screen .lobby-arsenal-trigger { right: calc(max(12px, env(safe-area-inset-right)) + 68px); }
+  .lobby-screen .lobby-chest-trigger { right: max(12px, env(safe-area-inset-right)); }
+  .lobby-screen .lobby-play-trigger { bottom: max(10px, env(safe-area-inset-bottom)); }
+}
+
+
+/* Menus da Oficina e Social em listas compactas que abrem para cima. */
+.lobby-screen .lobby-social {
+  position: absolute;
+  z-index: 36;
+  left: calc(max(12px, env(safe-area-inset-left)) + 68px);
+  bottom: calc(10% - 45px);
+  width: 64px;
+  box-sizing: border-box;
+}
+.lobby-screen .lobby-social-trigger {
+  position: relative;
+  inset: auto;
+}
+.lobby-screen .lobby-workshop-menu,
+.lobby-screen .lobby-social-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  gap: 4px;
+  width: max-content;
+  min-width: 112px;
+  max-width: min(156px, calc(100vw - 24px));
+  padding: 5px;
+  border: 1px solid rgba(235,239,235,.28);
+  border-radius: 10px;
+  background: rgba(24,25,24,.96);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.lobby-screen .lobby-workshop-menu button,
+.lobby-screen .lobby-social-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 1px solid rgba(235,239,235,.16);
+  border-radius: 7px;
+  background: rgba(255,255,255,.05);
+  color: #f2f0e7;
+  font: 800 10px/1.1 "Trebuchet MS",Arial,sans-serif;
+  text-align: left;
+  white-space: nowrap;
+}
+.lobby-screen .lobby-workshop-menu button span:first-child { font-size: 15px; }
+.lobby-screen .lobby-workshop-menu button:active,
+.lobby-screen .lobby-social-menu button:active {
+  background: rgba(255,255,255,.14);
+}
+@media (max-width: 390px) {
+  .lobby-screen .lobby-social {
+    left: calc(max(8px, env(safe-area-inset-left)) + 58px);
+    bottom: calc(10% - 43px);
+    width: 56px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  .lobby-screen .lobby-social {
+    left: calc(max(12px, env(safe-area-inset-left)) + 68px);
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
+
+.lobby-screen .lobby-social .lobby-social-trigger {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+}
+
+
+/* Ranking volta à altura original, agora ancorado no lado direito do lobby. */
+.lobby-screen .lobby-ranking-trigger{
+  left:auto!important;
+  right:max(12px,env(safe-area-inset-right))!important;
+  top:calc(41% + 6px)!important;
+  width:64px;
+  min-width:64px;
+  max-width:64px;
+  height:64px;
+  min-height:64px;
+  max-height:64px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  padding:3px;
+  transform:none!important;
+}
+.lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{
+  position:relative;
+  left:auto;
+  top:auto;
+  display:block;
+  transform:none;
+  font-size:30px!important;
+  line-height:1;
+}
+.lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  position:static;
+  font-size:9px!important;
+  line-height:1;
+}
+@media(max-width:650px){
+  .lobby-screen .lobby-ranking-trigger{
+    top:calc(37% + 5px)!important;
+    width:56px;
+    min-width:56px;
+    max-width:56px;
+    height:56px;
+    min-height:56px;
+    max-height:56px;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:27px!important}
+}
+@media(max-width:360px){
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:24px!important}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .lobby-screen .lobby-ranking-trigger{
+    top:max(8px,env(safe-area-inset-top))!important;
+    right:max(12px,env(safe-area-inset-right))!important;
+    width:48px;
+    min-width:48px;
+    max-width:48px;
+    height:48px;
+    min-height:48px;
+    max-height:48px;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:25px!important}
+}
+
+
+/* Auditoria tipográfica do lobby: Oficina usa a fonte global do jogo (Inter). */
+.lobby-screen .lobby-workshop-trigger{
+  font-family:inherit!important;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+
+/* Ranking: rótulo legível, sem sobreposição com o troféu e com a mesma tipografia. */
+.lobby-screen .lobby-ranking-trigger{
+  font-family:inherit!important;
+  font-weight:900;
+  letter-spacing:.01em;
+  overflow:visible;
+}
+.lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy+span{
+  position:static!important;
+  display:block;
+  transform:none!important;
+  width:100%;
+  margin-top:1px;
+  color:#f6efe0!important;
+  font-family:inherit!important;
+  font-size:9px!important;
+  font-weight:950!important;
+  line-height:1.1!important;
+  letter-spacing:0!important;
+  text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.7)!important;
+  white-space:nowrap;
+}
+
+
+/* Botão de iniciar produção mantém a tipografia global dos controles do jogo. */
+.station-page-no-header .cooking-prepare-button{
+  font-family:inherit;
+}
+
+
+
+/* Lobby responsivo — faixa inferior alinhada por wrappers e botões.
+   O Social é posicionado pelo contêiner .lobby-social, não pelo botão interno. */
+@media (min-width:651px) {
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger {
+    position:absolute!important;
+    top:auto!important;
+    bottom:calc(10% - 51px)!important;
+    z-index:35!important;
+  }
+  .lobby-screen .lobby-workshop {
+    left:max(12px,env(safe-area-inset-left))!important;
+    right:auto!important;
+    width:68px!important;
+  }
+  .lobby-screen .lobby-social {
+    left:calc(max(12px,env(safe-area-inset-left)) + 78px)!important;
+    right:auto!important;
+    bottom:calc(10% - 51px)!important;
+    width:68px!important;
+    height:68px!important;
+  }
+  .lobby-screen .lobby-social .lobby-social-trigger {
+    position:relative!important;
+    inset:auto!important;
+    display:flex!important;
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+  }
+  .lobby-screen .lobby-arsenal-trigger {
+    left:auto!important;
+    right:calc(max(12px,env(safe-area-inset-right)) + 78px)!important;
+  }
+  .lobby-screen .lobby-chest-trigger {
+    left:auto!important;
+    right:max(12px,env(safe-area-inset-right))!important;
+  }
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger {
+    position:relative!important;
+    inset:auto!important;
+    display:flex!important;
+    width:68px!important;
+    height:68px!important;
+    min-width:68px!important;
+    min-height:68px!important;
+    box-sizing:border-box!important;
+    font-family:inherit!important;
+    font-size:10px!important;
+  }
+  /* Arsenal e Baú são os próprios elementos posicionados na tela; não podem virar filhos relativos. */
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger {
+    position:absolute!important;
+    top:auto!important;
+    bottom:calc(10% - 51px)!important;
+    display:flex!important;
+    width:68px!important;
+    height:68px!important;
+    min-width:68px!important;
+    min-height:68px!important;
+    box-sizing:border-box!important;
+    font-family:inherit!important;
+    font-size:10px!important;
+  }
+  .lobby-screen .lobby-workshop-icon,
+  .lobby-screen .lobby-social-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji {font-size:25px!important}
+  .lobby-screen .lobby-play-trigger {
+    position:absolute!important;
+    top:auto!important;
+    left:50%!important;
+    right:auto!important;
+    bottom:calc(10% - 69px)!important;
+    width:100px!important;
+    height:100px!important;
+    min-width:100px!important;
+    min-height:100px!important;
+    transform:translateX(-50%)!important;
+  }
+  .lobby-screen .lobby-ranking-trigger {
+    width:68px!important;min-width:68px!important;max-width:68px!important;
+    height:68px!important;min-height:68px!important;max-height:68px!important;
+  }
+}
+@media (min-width:1025px) {
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger {bottom:calc(10% - 57px)!important}
+  /* Os quatro atalhos formam uma única faixa simétrica ao redor de Jogar. */
+  .lobby-screen .lobby-workshop {
+    left:calc(50% - 244px)!important;
+    right:auto!important;
+    width:76px!important;
+  }
+  .lobby-screen .lobby-social {
+    left:calc(50% - 150px)!important;
+    right:auto!important;
+    width:76px!important;height:76px!important;
+  }
+  .lobby-screen .lobby-arsenal-trigger {
+    left:calc(50% + 74px)!important;
+    right:auto!important;
+  }
+  .lobby-screen .lobby-chest-trigger {
+    left:calc(50% + 168px)!important;
+    right:auto!important;
+  }
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger {
+    width:76px!important;height:76px!important;
+    min-width:76px!important;min-height:76px!important;
+    font-size:11px!important;
+  }
+  .lobby-screen .lobby-workshop-icon,
+  .lobby-screen .lobby-social-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji {font-size:28px!important}
+  .lobby-screen .lobby-play-trigger {
+    bottom:calc(10% - 78px)!important;
+    width:112px!important;height:112px!important;
+    min-width:112px!important;min-height:112px!important;
+  }
+  .lobby-screen .lobby-ranking-trigger {
+    width:72px!important;min-width:72px!important;max-width:72px!important;
+    height:72px!important;min-height:72px!important;max-height:72px!important;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy {font-size:33px!important}
+}
+
+/* Produção: mesma cor clara dos rótulos dos botões principais do lobby. */
+.station-page-no-header .cooking-kitchen .cooking-prepare-button{
+  color:#f2f3ef!important;
+}

@@ -872,15 +872,30 @@ export default function App() {
   useEffect(() => {
     const syncGameRoute = () => {
       const route = readGameRoute(window.location.pathname) ?? { page: 'lobby' as const };
-      setActiveGameRoute(route);
-      setArsenalOpen(route.page === 'arsenal');
-      setFriendsOpen(route.page === 'amigos');
-      setChestOpen(route.page === 'bau');
-      setStatusOpen(route.page === 'status');
-      setProfileOpen(route.page === 'classes');
-      setRankingOpen(route.page === 'ranking');
-      setPlayerProfileOpen(route.page === 'jogador');
-      setViewedProfileUserId(route.page === 'jogador' ? route.playerId : null);
+      // O botão Voltar do navegador/dispositivo sempre encerra a navegação interna
+      // e retorna ao Lobby, em vez de restaurar a página anterior.
+      if (route.page !== 'lobby') {
+        navigateToLobby();
+        setActiveGameRoute({ page: 'lobby' });
+        setArsenalOpen(false);
+        setFriendsOpen(false);
+        setChestOpen(false);
+        setStatusOpen(false);
+        setProfileOpen(false);
+        setRankingOpen(false);
+        setPlayerProfileOpen(false);
+        setViewedProfileUserId(null);
+        return;
+      }
+      setActiveGameRoute({ page: 'lobby' });
+      setArsenalOpen(false);
+      setFriendsOpen(false);
+      setChestOpen(false);
+      setStatusOpen(false);
+      setProfileOpen(false);
+      setRankingOpen(false);
+      setPlayerProfileOpen(false);
+      setViewedProfileUserId(null);
     };
     window.addEventListener('popstate', syncGameRoute);
     if (!isKnownGamePath(window.location.pathname)) window.history.replaceState(null, '', '/');
@@ -3610,31 +3625,23 @@ export default function App() {
         <i className="lobby-ground-light" aria-hidden="true"/>
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { navigateToPlayerProfile(session.user.sub); setActiveGameRoute({ page: 'jogador', playerId: session.user.sub }); setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>+</button>}</div>
         
+          <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => { navigateToPage('ranking'); setActiveGameRoute({ page: 'ranking' }); setRankingOpen(true); }}>
+            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
+            <span>RANKING</span>
+          </button>
           <button className="lobby-arsenal-trigger" type="button" aria-label="Abrir Arsenal" title="Arsenal" onClick={() => { navigateToPage('arsenal'); setActiveGameRoute({ page: 'arsenal' }); setArsenalOpen(true); }}>
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
             <span>ARSENAL</span>
           </button>
-          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-            <span>AMIGOS</span>
-          </button>
+          <div className="lobby-social">
+            <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
+              <span className="lobby-top-emoji" aria-hidden="true">👥</span>
+              <span>AMIGOS</span>
+            </button>
+          </div>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
             <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
             <span>BAÚ</span>
-          </button>
-          <button className="lobby-profile-trigger" type="button" aria-label="Abrir seleção de classes" title="Classes" onClick={() => { navigateToPage('classes'); setActiveGameRoute({ page: 'classes' }); setProfileOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
-            <span>CLASSES</span>
-          </button>
-          <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => { navigateToPage('ranking'); setActiveGameRoute({ page: 'ranking' }); setRankingOpen(true); }}>
-            <span className="lobby-ranking-spark lobby-ranking-spark-one" aria-hidden="true">✦</span>
-            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
-            <span>RANKING</span>
-            <span className="lobby-ranking-spark lobby-ranking-spark-two" aria-hidden="true">✧</span>
-          </button>
-          <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => { navigateToPage('status'); setActiveGameRoute({ page: 'status' }); setStatusOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">📊</span>
-            <span>STATUS</span>
           </button>
         {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={updateAvailable || duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={updateAvailable ? 'Atualize o aplicativo para jogar' : duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
           {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
@@ -3643,19 +3650,12 @@ export default function App() {
         </button>}
         {updateAvailable && <p className="lobby-update-required" role="status">Atualização obrigatória: baixe a nova versão para jogar.</p>}
         {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
-        <nav className="lobby-crafting-stations" aria-label="Estações de criação">
-          {LOBBY_CRAFTING_STATIONS.map(station => <button
-            key={station.id}
-            className="lobby-crafting-trigger"
-            type="button"
-            aria-label={`Abrir estação: ${station.title}`}
-            title={station.title}
-            onClick={() => openStation(station.id)}
-          >
-            <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
-            <span>{station.label}</span>
-          </button>)}
-        </nav>
+        <div className="lobby-workshop">
+          <button className="lobby-workshop-trigger" type="button" aria-label="Abrir Oficina: Bigorna" title="Oficina — Bigorna" onClick={() => openStation('bigorna')}>
+            <span className="lobby-workshop-icon" aria-hidden="true">🔨</span>
+            <span>OFICINA</span>
+          </button>
+        </div>
       </div>}
                 {arsenalOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page arsenal-side">
           <div className="station-page-content side-page-content arsenal-side-content"><section className="side-page-panel arsenal-side-panel">
