@@ -656,6 +656,7 @@ export default function App() {
   });
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [workshopMenuOpen, setWorkshopMenuOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
   const [duoNotice, setDuoNotice] = useState('');
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
@@ -3614,27 +3615,13 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
             <span>ARSENAL</span>
           </button>
-          <button className="lobby-friends-trigger" type="button" aria-label="Abrir lista de amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
+          <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Social: amigos" title="Social" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
             <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-            <span>AMIGOS</span>
+            <span>SOCIAL</span>
           </button>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
             <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
             <span>BAÚ</span>
-          </button>
-          <button className="lobby-profile-trigger" type="button" aria-label="Abrir seleção de classes" title="Classes" onClick={() => { navigateToPage('classes'); setActiveGameRoute({ page: 'classes' }); setProfileOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">🧙</span>
-            <span>CLASSES</span>
-          </button>
-          <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => { navigateToPage('ranking'); setActiveGameRoute({ page: 'ranking' }); setRankingOpen(true); }}>
-            <span className="lobby-ranking-spark lobby-ranking-spark-one" aria-hidden="true">✦</span>
-            <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
-            <span>RANKING</span>
-            <span className="lobby-ranking-spark lobby-ranking-spark-two" aria-hidden="true">✧</span>
-          </button>
-          <button className="lobby-status-trigger" type="button" aria-label="Abrir status dos personagens" title="Status" onClick={() => { navigateToPage('status'); setActiveGameRoute({ page: 'status' }); setStatusOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">📊</span>
-            <span>STATUS</span>
           </button>
         {duoPeer?.role === 'guest' ? <button className="lobby-play-trigger duo-ready-trigger" type="button" disabled={updateAvailable || duoPeer.status !== 'connected'} aria-pressed={duoPeer.selfReady} onClick={() => duoReadyActionRef.current?.()} title={updateAvailable ? 'Atualize o aplicativo para jogar' : duoPeer.status === 'connected' ? 'Confirmar sua prontidão' : 'Aguardando conexão'}>
           {duoPeer.status !== 'connected' ? 'Conectando…' : duoPeer.selfReady ? 'CANCELAR PRONTO' : 'PRONTO'}
@@ -3643,19 +3630,17 @@ export default function App() {
         </button>}
         {updateAvailable && <p className="lobby-update-required" role="status">Atualização obrigatória: baixe a nova versão para jogar.</p>}
         {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
-        <nav className="lobby-crafting-stations" aria-label="Estações de criação">
-          {LOBBY_CRAFTING_STATIONS.map(station => <button
-            key={station.id}
-            className="lobby-crafting-trigger"
-            type="button"
-            aria-label={`Abrir estação: ${station.title}`}
-            title={station.title}
-            onClick={() => openStation(station.id)}
-          >
-            <span className="lobby-crafting-icon" aria-hidden="true">{station.icon}</span>
-            <span>{station.label}</span>
-          </button>)}
-        </nav>
+        <div className="lobby-workshop">
+          <button className="lobby-workshop-trigger" type="button" aria-label="Abrir Oficina" aria-expanded={workshopMenuOpen} onClick={() => setWorkshopMenuOpen(value => !value)}>
+            <span className="lobby-workshop-icon" aria-hidden="true">🔨</span>
+            <span>OFICINA</span>
+          </button>
+          {workshopMenuOpen && <div className="lobby-workshop-menu" role="menu" aria-label="Estações da Oficina">
+            {LOBBY_CRAFTING_STATIONS.map(station => <button key={station.id} type="button" role="menuitem" onClick={() => { setWorkshopMenuOpen(false); openStation(station.id); }}>
+              <span aria-hidden="true">{station.icon}</span><span>{station.title}</span>
+            </button>)}
+          </div>}
+        </div>
       </div>}
                 {arsenalOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page arsenal-side">
           <div className="station-page-content side-page-content arsenal-side-content"><section className="side-page-panel arsenal-side-panel">
