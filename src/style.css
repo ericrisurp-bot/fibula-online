@@ -11823,3 +11823,23 @@ sem backdrop ou caixa de modal. */
   color:#fff8e9!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 1px rgba(183,161,123,.22),0 3px 8px rgba(0,0,0,.35)!important;
 }
+
+
+/* Páginas em desktop: preserva o enquadramento vertical pensado para celular. */
+@media (min-width: 701px) and (orientation: landscape) {
+  html:has(.station-page),
+  body:has(.station-page),
+  #root:has(.station-page) {
+    background: #fff !important;
+  }
+  .station-page {
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: min(56.25dvh, 100vw) !important;
+    height: min(100dvh, 177.7778vw) !important;
+    min-height: 0 !important;
+    transform: translate(-50%, -50%);
+  }
+}
