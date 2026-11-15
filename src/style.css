@@ -11863,3 +11863,15 @@ sem backdrop ou caixa de modal. */
 }
 .side-page.friends-side input::placeholder,
 .side-page.classes-page input::placeholder{color:#aaa99f!important}
+
+
+/* A estação atual deve permanecer destacada mesmo com as cores-base específicas de cada oficina. */
+.station-nav-button.is-active.station-nav-bigorna,
+.station-nav-button.is-active.station-nav-costura,
+.station-nav-button.is-active.station-nav-joalheria,
+.station-nav-button.is-active.station-nav-fogao{
+  border-color:var(--fibula-border-highlight)!important;
+  background:linear-gradient(180deg,#555044,#37352f)!important;
+  color:#fff8e9!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 0 1px rgba(183,161,123,.22),0 3px 8px rgba(0,0,0,.35)!important;
+}
