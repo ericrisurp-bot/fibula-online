@@ -11524,6 +11524,78 @@ sem backdrop ou caixa de modal. */
   font-family:inherit;
 }
 
+
+
+/* Lobby responsivo — aplica a navegação inferior também em tablet e desktop,
+   preservando botões maiores que os do layout compacto de celular. */
+@media (min-width:651px) and (max-width:1024px){
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger{
+    bottom:calc(10% - 51px);
+  }
+  .lobby-screen .lobby-workshop{width:74px}
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger{
+    width:68px;height:68px;min-width:68px;min-height:68px;
+    font-family:inherit;font-size:10px;
+  }
+  .lobby-screen .lobby-workshop-icon,
+  .lobby-screen .lobby-social-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji{font-size:25px}
+  .lobby-screen .lobby-social{left:calc(max(12px,env(safe-area-inset-left)) + 74px);width:68px}
+  .lobby-screen .lobby-social-trigger{left:auto}
+  .lobby-screen .lobby-arsenal-trigger{right:calc(max(12px,env(safe-area-inset-right)) + 74px)}
+  .lobby-screen .lobby-chest-trigger{right:max(12px,env(safe-area-inset-right))}
+  .lobby-screen .lobby-play-trigger{
+    bottom:calc(10% - 69px);width:100px;height:100px;
+    min-width:100px;min-height:100px;
+  }
+  .lobby-screen .lobby-ranking-trigger{
+    width:68px;min-width:68px;max-width:68px;
+    height:68px;min-height:68px;max-height:68px;
+  }
+}
+@media (min-width:1025px){
+  .lobby-screen .lobby-workshop,
+  .lobby-screen .lobby-social,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger{
+    bottom:calc(10% - 55px);
+  }
+  .lobby-screen .lobby-workshop{width:82px}
+  .lobby-screen .lobby-workshop-trigger,
+  .lobby-screen .lobby-social-trigger,
+  .lobby-screen .lobby-arsenal-trigger,
+  .lobby-screen .lobby-chest-trigger{
+    width:76px;height:76px;min-width:76px;min-height:76px;
+    font-family:inherit;font-size:11px;
+  }
+  .lobby-screen .lobby-workshop-icon,
+  .lobby-screen .lobby-social-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji{font-size:28px}
+  .lobby-screen .lobby-social{left:calc(max(14px,env(safe-area-inset-left)) + 82px);width:76px}
+  .lobby-screen .lobby-social-trigger{left:auto}
+  .lobby-screen .lobby-arsenal-trigger{right:calc(max(14px,env(safe-area-inset-right)) + 82px)}
+  .lobby-screen .lobby-chest-trigger{right:max(14px,env(safe-area-inset-right))}
+  .lobby-screen .lobby-play-trigger{
+    bottom:calc(10% - 76px);width:112px;height:112px;
+    min-width:112px;min-height:112px;
+  }
+  .lobby-screen .lobby-ranking-trigger{
+    width:72px;min-width:72px;max-width:72px;
+    height:72px;min-height:72px;max-height:72px;
+  }
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:33px!important}
+}
+
 /* Produção: mesma cor clara dos rótulos dos botões principais do lobby. */
 .station-page-no-header .cooking-kitchen .cooking-prepare-button{
   color:#f2f3ef!important;
