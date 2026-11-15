@@ -1,3 +1,5 @@
+import { armorCoreAttributeKeys } from './armor';
+import type { ArmorCoreEquipmentType } from './armor';
 export type CoreRarity = 'normal' | 'common' | 'uncommon' | 'rare' | 'legendary';
 export type CoreCategory = 'weapon' | 'armor' | 'accessory';
 export type CoreWeaponModel = 'espada' | 'arco' | 'cajado';
@@ -71,6 +73,14 @@ export function revealCore(random: () => number, category: CoreCategory, rarity:
     const affinity = model === 'cajado' ? (random() < 0.5 ? 'dano' : 'natureza') : undefined;
     return { id, category, rarity, surp, attributes, weaponModel: model, ...(affinity ? { affinity } : {}) };
   }
+  const equipmentType = randomEquipmentType(random, category);
+  if (category === 'armor') {
+    const attributes = armorCoreAttributeKeys(equipmentType as ArmorCoreEquipmentType).map(key => ({
+      key,
+      value: ref * (surp ? 1 : 0.5 + random() * 0.5),
+    }));
+    return { id, category, rarity, surp, attributes, equipmentType };
+  }
   const count = surp ? 4 : 2, pool = [...poolFor(category)];
   const attributes: CoreAttribute[] = [];
   while (attributes.length < count && pool.length) {
@@ -78,8 +88,19 @@ export function revealCore(random: () => number, category: CoreCategory, rarity:
     const potency = surp ? 1 : 0.5 + random() * 0.5;
     attributes.push({ key, value: ref * potency });
   }
-  return { id, category, rarity, surp, attributes, equipmentType: randomEquipmentType(random, category) };
+  return { id, category, rarity, surp, attributes, equipmentType };
 }
+export function armorCoreRoll(core: Core): number | null {
+  if (core.category !== 'armor' || !core.equipmentType || !isEquipmentType(core.equipmentType, 'armor')) return null;
+  const expectedKeys = armorCoreAttributeKeys(core.equipmentType as ArmorCoreEquipmentType);
+  if (core.attributes.length !== expectedKeys.length
+    || !core.attributes.every((attribute, index) => attribute.key === expectedKeys[index])) return null;
+  if (core.surp) return 1.0;
+  const ref = CORE_RARITY_REFERENCE[core.rarity];
+  const average = core.attributes.reduce((total, attribute) => total + attribute.value / ref, 0) / core.attributes.length;
+  return Math.max(0.5, Math.min(1.0, average));
+}
+
 export function coreAttributeTier(value: number, rarity: CoreRarity): 'ruim' | 'medio' | 'bom' | 'maximo' {
   const potency = value / CORE_RARITY_REFERENCE[rarity];
   if (potency >= 1) return 'maximo';
@@ -128,6 +149,33 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
         if (a.value < ref - 0.000001) allMaximum = false;
       }
       if (core.surp !== allMaximum) return null;
+    } else if (core.category === 'armor' && core.equipmentType !== undefined) {
+      if (core.weaponModel !== undefined || core.affinity !== undefined
+        || !isEquipmentType(core.equipmentType, 'armor')) return null;
+      const expectedKeys = armorCoreAttributeKeys(core.equipmentType as ArmorCoreEquipmentType);
+      const keys = core.attributes.map(attribute => attribute?.key);
+      const isNewArmorFormat = keys.length === expectedKeys.length
+        && keys.every((key, index) => key === expectedKeys[index])
+        && new Set(keys).size === expectedKeys.length;
+      if (isNewArmorFormat) {
+        let allMaximum = true;
+        for (const attribute of core.attributes) {
+          if (!attribute || typeof attribute.key !== 'string'
+            || !Number.isFinite(attribute.value)
+            || attribute.value < ref * 0.5 - 0.005 || attribute.value > ref + 0.005) return null;
+          if (attribute.value < ref - 0.000001) allMaximum = false;
+        }
+        if (core.surp !== allMaximum) return null;
+      } else {
+        if (![2, 4].includes(core.attributes.length) || core.surp !== (core.attributes.length === 4)) return null;
+        const pool = poolFor('armor'), seen = new Set<CoreAttributeKey>();
+        for (const attribute of core.attributes) {
+          if (!attribute || typeof attribute.key !== 'string' || !pool.includes(attribute.key as CoreAttributeKey)
+            || seen.has(attribute.key as CoreAttributeKey) || !Number.isFinite(attribute.value)
+            || attribute.value < ref * 0.5 - 0.005 || attribute.value > ref + 0.005) return null;
+          seen.add(attribute.key as CoreAttributeKey);
+        }
+      }
     } else {
       if (core.weaponModel !== undefined || core.affinity !== undefined || ![2, 4].includes(core.attributes.length)
         || (core.equipmentType !== undefined && !isEquipmentType(core.equipmentType, core.category))

@@ -42,25 +42,27 @@ Não criar atributos formais novos como parte desta especificação. Dano e efei
 
 ### 4.1 Núcleos de armadura
 
-A categoria de armadura é defensiva e de mobilidade. Pode carregar:
+A categoria de armadura é defensiva e de mobilidade. O núcleo é específico por peça e contém todos os atributos permitidos para aquela peça, reunindo a união dos atributos definidos para couro e bronze:
 
-- Vida
-- Armadura
-- Resistência mágica
-- Velocidade de movimento
-- Esquiva
+| Peça | Atributos do núcleo |
+|---|---|
+| Capacete | Armadura, Vida, Mobilidade |
+| Peitoral | Armadura, Vida, Mobilidade |
+| Calça | Vida, Mobilidade |
+| Bota | Mobilidade |
+| Luva | Armadura, Esquiva, Mobilidade |
 
-**Não pode carregar força nem velocidade de ataque.** Esses atributos não devem aparecer em núcleos destinados a armaduras.
+**Não pode carregar força, resistência mágica nem velocidade de ataque.** A compatibilidade com o tipo de armadura continua sendo validada pela tabela de atributos da peça e do material.
 
-As cinco peças do conjunto são:
+Os identificadores internos do núcleo são traduzidos para os identificadores de armadura da seguinte forma:
 
-- Capacete
-- Peitoral
-- Calça
-- Botas
-- Luvas
+| Núcleo | Armadura |
+|---|---|
+| `leggings` | `calca` |
+| `velocidadeMovimento` | `mobilidade` |
+| Demais identificadores | Sem alteração |
 
-Cada peça poderá aproveitar no máximo quatro atributos compatíveis. A distribuição definitiva dos quatro atributos por peça ainda precisa ser fechada; não inferir que todas as peças aceitam os cinco atributos da categoria.
+O tipo de equipamento do núcleo é escolhido na geração; a peça e o tipo/material da armadura são escolhidos na fabricação. A lista de atributos do núcleo é derivada de `ARMOR_PIECE_ATTRIBUTES`, pela união dos atributos de couro e bronze para a peça correspondente.
 
 ### 4.2 Núcleos de armas
 
@@ -104,7 +106,8 @@ A forma de acumular dois ou mais multiplicadores que afetam o mesmo atributo ain
 
 ## 5. Quantidade de atributos por núcleo
 
-- Núcleos de armadura e acessório: dois atributos na geração comum e quatro no SURP.
+- Núcleos de armadura: todos os atributos permitidos para a peça indicada pelo próprio núcleo; a quantidade varia conforme a peça. A geração comum sorteia cada atributo entre 50% e menos de 100% da referência; SURP mantém todos os atributos em 100%.
+- Núcleos de acessório: dois atributos na geração comum e quatro no SURP.
 - Núcleos de arma: quantidade fixa por modelo, independentemente de SURP — Espada 1, Arco 2, Cajado 1. O Bastão da Natureza usa o conjunto de Inteligência do Cajado.
 - SURP continua significando que todos os atributos gerados naquele núcleo estão no máximo da raridade; portanto, Espada e Cajado têm um único atributo e esse único atributo precisa estar no máximo.
 - Núcleos antigos preservam seus atributos originais e continuam legíveis, inclusive velocidade de ataque inativa.
@@ -112,7 +115,7 @@ A forma de acumular dois ou mais multiplicadores que afetam o mesmo atributo ain
 - Não substituir, sortear novamente, reduzir ou recalcular os atributos/potências de um núcleo SURP na fabricação.
 - A quantidade de atributos é uma propriedade distinta da raridade e da potência.
 
-A regra acima define o núcleo básico com dois atributos e o SURP com quatro. Não adicionar atributos extras a núcleos não-SURP sem nova aprovação.
+A regra de dois atributos comuns e quatro atributos SURP aplica-se somente a acessórios. Núcleos de armadura seguem a lista completa de atributos permitidos pela peça; não reduzir essa lista para dois ou quatro.
 
 ## 6. Raridade e multiplicadores de referência
 
@@ -128,7 +131,7 @@ Progressão aprovada:
 
 A progressão mantém a proporção de 1:5 entre Normal e Lendário.
 
-Os valores são referências de bônus/multiplicador, não multiplicadores do atributo total por si só. A fórmula final de aplicação para núcleos de armadura e de arma deve ser fechada antes da implementação. Para acessórios, está aprovada a incidência sobre o atributo total do personagem; a regra de acúmulo entre acessórios continua pendente.
+Os valores são referências de bônus/multiplicador, não multiplicadores do atributo total por si só. Para núcleos de armadura, o roll do núcleo é a média de `valor / referência da raridade` entre todos os atributos da peça, limitado ao intervalo de 0,5 a 1,0; SURP equivale a 1,0. Esse mesmo roll é a origem do roll do forro. Esta regra pode ser revista em etapa futura. A fórmula de aplicação dos atributos do núcleo continua sujeita às regras específicas de armadura. Para acessórios, está aprovada a incidência sobre o atributo total do personagem; a regra de acúmulo entre acessórios continua pendente.
 
 ## 7. Variação de potência: piso de 50% e teto de 100%
 
@@ -237,7 +240,7 @@ Esta documentação não resolve por suposição os seguintes pontos:
 1. Valores numéricos de armadura do Tipo 1 (Couro) e do Tipo 2 (Bronze).
 2. Confirmação da quantidade exata de slots de forro e costura. A estrutura conceitual descrita nesta seção prevê um slot de forro e um slot de costura, além do slot de material-base; não ampliar nem reduzir essa quantidade sem aprovação.
 3. Números do couro refinado na Tecelaria: chance de refino, estoque e capacidade.
-4. Distribuição definitiva de até quatro atributos por peça individual de armadura.
+4. Fórmula exata de aplicação dos atributos dos núcleos de armadura e de armas.
 5. Matriz individual de atributos/efeitos por espada, arco, cajado e bastão da Natureza.
 6. Se `areaAtaque` pode aparecer em núcleos de armas e/ou acessórios.
 7. Se `alcanceAtaque` fica totalmente fora de qualquer núcleo/acessório (a regra atual mantém o alcance das armas fixo).
