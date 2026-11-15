@@ -11526,74 +11526,120 @@ sem backdrop ou caixa de modal. */
 
 
 
-/* Lobby responsivo — aplica a navegação inferior também em tablet e desktop,
-   preservando botões maiores que os do layout compacto de celular. */
-@media (min-width:651px) and (max-width:1024px){
+/* Lobby responsivo — faixa inferior alinhada por wrappers e botões.
+   O Social é posicionado pelo contêiner .lobby-social, não pelo botão interno. */
+@media (min-width:651px) {
   .lobby-screen .lobby-workshop,
   .lobby-screen .lobby-social,
-  .lobby-screen .lobby-social-trigger,
   .lobby-screen .lobby-arsenal-trigger,
-  .lobby-screen .lobby-chest-trigger{
-    bottom:calc(10% - 51px);
+  .lobby-screen .lobby-chest-trigger {
+    position:absolute!important;
+    top:auto!important;
+    bottom:calc(10% - 51px)!important;
+    z-index:35!important;
   }
-  .lobby-screen .lobby-workshop{width:74px}
+  .lobby-screen .lobby-workshop {
+    left:max(12px,env(safe-area-inset-left))!important;
+    right:auto!important;
+    width:68px!important;
+  }
+  .lobby-screen .lobby-social {
+    left:calc(max(12px,env(safe-area-inset-left)) + 78px)!important;
+    right:auto!important;
+    bottom:calc(10% - 51px)!important;
+    width:68px!important;
+    height:68px!important;
+  }
+  .lobby-screen .lobby-social .lobby-social-trigger {
+    position:relative!important;
+    inset:auto!important;
+    display:flex!important;
+    width:100%!important;
+    height:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+  }
+  .lobby-screen .lobby-arsenal-trigger {
+    left:auto!important;
+    right:calc(max(12px,env(safe-area-inset-right)) + 78px)!important;
+  }
+  .lobby-screen .lobby-chest-trigger {
+    left:auto!important;
+    right:max(12px,env(safe-area-inset-right))!important;
+  }
   .lobby-screen .lobby-workshop-trigger,
   .lobby-screen .lobby-social-trigger,
   .lobby-screen .lobby-arsenal-trigger,
-  .lobby-screen .lobby-chest-trigger{
-    width:68px;height:68px;min-width:68px;min-height:68px;
-    font-family:inherit;font-size:10px;
+  .lobby-screen .lobby-chest-trigger {
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    left:auto!important;
+    display:flex!important;
+    width:68px!important;
+    height:68px!important;
+    min-width:68px!important;
+    min-height:68px!important;
+    box-sizing:border-box!important;
+    font-family:inherit!important;
+    font-size:10px!important;
   }
   .lobby-screen .lobby-workshop-icon,
   .lobby-screen .lobby-social-trigger .lobby-top-emoji,
   .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
-  .lobby-screen .lobby-chest-trigger .lobby-top-emoji{font-size:25px}
-  .lobby-screen .lobby-social{left:calc(max(12px,env(safe-area-inset-left)) + 74px);width:68px}
-  .lobby-screen .lobby-social-trigger{left:auto}
-  .lobby-screen .lobby-arsenal-trigger{right:calc(max(12px,env(safe-area-inset-right)) + 74px)}
-  .lobby-screen .lobby-chest-trigger{right:max(12px,env(safe-area-inset-right))}
-  .lobby-screen .lobby-play-trigger{
-    bottom:calc(10% - 69px);width:100px;height:100px;
-    min-width:100px;min-height:100px;
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji {font-size:25px!important}
+  .lobby-screen .lobby-play-trigger {
+    position:absolute!important;
+    top:auto!important;
+    left:50%!important;
+    right:auto!important;
+    bottom:calc(10% - 69px)!important;
+    width:100px!important;
+    height:100px!important;
+    min-width:100px!important;
+    min-height:100px!important;
+    transform:translateX(-50%)!important;
   }
-  .lobby-screen .lobby-ranking-trigger{
-    width:68px;min-width:68px;max-width:68px;
-    height:68px;min-height:68px;max-height:68px;
+  .lobby-screen .lobby-ranking-trigger {
+    width:68px!important;min-width:68px!important;max-width:68px!important;
+    height:68px!important;min-height:68px!important;max-height:68px!important;
   }
 }
-@media (min-width:1025px){
+@media (min-width:1025px) {
   .lobby-screen .lobby-workshop,
   .lobby-screen .lobby-social,
-  .lobby-screen .lobby-social-trigger,
   .lobby-screen .lobby-arsenal-trigger,
-  .lobby-screen .lobby-chest-trigger{
-    bottom:calc(10% - 55px);
+  .lobby-screen .lobby-chest-trigger {bottom:calc(10% - 57px)!important}
+  .lobby-screen .lobby-workshop {width:80px!important}
+  .lobby-screen .lobby-social {
+    left:calc(max(14px,env(safe-area-inset-left)) + 90px)!important;
+    width:76px!important;height:76px!important;
   }
-  .lobby-screen .lobby-workshop{width:82px}
+  .lobby-screen .lobby-arsenal-trigger {right:calc(max(14px,env(safe-area-inset-right)) + 90px)!important}
+  .lobby-screen .lobby-chest-trigger {right:max(14px,env(safe-area-inset-right))!important}
   .lobby-screen .lobby-workshop-trigger,
   .lobby-screen .lobby-social-trigger,
   .lobby-screen .lobby-arsenal-trigger,
-  .lobby-screen .lobby-chest-trigger{
-    width:76px;height:76px;min-width:76px;min-height:76px;
-    font-family:inherit;font-size:11px;
+  .lobby-screen .lobby-chest-trigger {
+    width:76px!important;height:76px!important;
+    min-width:76px!important;min-height:76px!important;
+    font-size:11px!important;
   }
   .lobby-screen .lobby-workshop-icon,
   .lobby-screen .lobby-social-trigger .lobby-top-emoji,
   .lobby-screen .lobby-arsenal-trigger .lobby-top-emoji,
-  .lobby-screen .lobby-chest-trigger .lobby-top-emoji{font-size:28px}
-  .lobby-screen .lobby-social{left:calc(max(14px,env(safe-area-inset-left)) + 82px);width:76px}
-  .lobby-screen .lobby-social-trigger{left:auto}
-  .lobby-screen .lobby-arsenal-trigger{right:calc(max(14px,env(safe-area-inset-right)) + 82px)}
-  .lobby-screen .lobby-chest-trigger{right:max(14px,env(safe-area-inset-right))}
-  .lobby-screen .lobby-play-trigger{
-    bottom:calc(10% - 76px);width:112px;height:112px;
-    min-width:112px;min-height:112px;
+  .lobby-screen .lobby-chest-trigger .lobby-top-emoji {font-size:28px!important}
+  .lobby-screen .lobby-play-trigger {
+    bottom:calc(10% - 78px)!important;
+    width:112px!important;height:112px!important;
+    min-width:112px!important;min-height:112px!important;
   }
-  .lobby-screen .lobby-ranking-trigger{
-    width:72px;min-width:72px;max-width:72px;
-    height:72px;min-height:72px;max-height:72px;
+  .lobby-screen .lobby-ranking-trigger {
+    width:72px!important;min-width:72px!important;max-width:72px!important;
+    height:72px!important;min-height:72px!important;max-height:72px!important;
   }
-  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy{font-size:33px!important}
+  .lobby-screen .lobby-ranking-trigger>.lobby-ranking-trophy {font-size:33px!important}
 }
 
 /* Produção: mesma cor clara dos rótulos dos botões principais do lobby. */
