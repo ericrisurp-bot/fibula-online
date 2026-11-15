@@ -19,6 +19,7 @@ export const RESOURCE_RARITY_RULES = {
 } as const;
 
 export const CONFIG = {
+  rulesV2: { enabled: false },
   map: { size: 4320, wall: 34, grid: 80 },
   campfire: { woodCost: 5, stoneCost: 5, cottonCost: 5, buildRadius: 300, minDistance: 48 },
   campChest: { woodCost: 20 },
@@ -57,7 +58,7 @@ export const CONFIG = {
     },
   },
   player: { radius: 18, footOffset: 40, footRadius: 12, // footOffset ≈ ladinoFeetY(player.radius)
-    auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, classSpeed: { guerreiro: 145, mago: 150, druida: 150, arqueiro: 160 }, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
+    auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, classSpeed: { guerreiro: 145, mago: 150, druida: 150, arqueiro: 160 }, classDodge: { guerreiro: 0.032, mago: 0.04, druida: 0.04, arqueiro: 0.048 }, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
   interaction: { margin: 28, dropPickupRadius: 30 },
   enemy: {
     radius: 16,
