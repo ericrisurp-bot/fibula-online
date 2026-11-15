@@ -11363,7 +11363,7 @@ sem backdrop ou caixa de modal. */
   left: 0;
   bottom: calc(100% + 8px);
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: stretch;
   gap: 4px;
   width: max-content;
