@@ -110,7 +110,7 @@ export function getAccountMultiplier(accountLevel: number): number {
 }
 
 export function getAccountPointsPerLevel(accountLevel: number): number {
-  return CONFIG.rulesV2.enabled ? getAccountMultiplier(accountLevel) : 1 + Math.max(0, accountLevel) * 0.05;
+  return CONFIG.rulesV2.enabled ? getAccountMultiplier(accountLevel) : 1 + accountLevel * 0.05;
 }
 
 export function getAttributeBonus(classId: ClassId, level: number, attribute: EffectAttribute, pointsPerLevel = 1): number {
