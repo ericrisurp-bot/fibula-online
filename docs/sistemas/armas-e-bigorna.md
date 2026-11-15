@@ -127,7 +127,7 @@ Uma arma fabricada será SURP somente quando **todos os valores sorteados da arm
 
 Um núcleo SURP aumenta a chance de a arma fabricada sair SURP. **A chance exata está PENDENTE** e não deve ser presumida nem derivada da chance de geração de núcleos.
 
-No código atual, `revealCore` gera dois atributos em núcleos não-SURP e quatro em núcleos SURP. Para um núcleo SURP, os valores dos atributos gerados ficam em 100% da referência da raridade; nos demais, cada valor é sorteado entre 50% e 100%. `CORE_SURP_CHANCE` hoje vale 2% e é usado na geração/revelação do **núcleo**. Esse 2% não é a chance de uma arma fabricada ser SURP.
+Para armaduras e acessórios, `revealCore` mantém dois atributos em núcleos não-SURP e quatro em núcleos SURP. Para armas, a quantidade é fixa pelo modelo (Espada 1, Arco 2, Cajado 1), independentemente de SURP. Em núcleos SURP, todos os atributos presentes ficam em 100% da referência da raridade; nos demais, cada valor é sorteado entre 50% e 100%. `CORE_SURP_CHANCE` hoje vale 2% e é usado na geração/revelação do **núcleo**. Esse 2% não é a chance de uma arma fabricada ser SURP.
 
 ## 7. Fabricação no servidor: arquitetura definida
 
@@ -207,7 +207,7 @@ Em `src/game/config.ts`, os danos-base atuais são: Espada 16, Cajado 17, Arco 1
 
 ### 9.4 Atributos de arma fabricada ainda não integram o personagem
 
-`src/game/cores.ts` já define o pool de atributos possíveis para núcleos de arma e gera dois atributos, ou quatro em núcleo SURP. `src/game/attributes.ts` calcula atributos-base e ganhos por nível/classe, mas não recebe atributos de uma arma fabricada. A compatibilidade por modelo de arma e a soma dos bônus ativos ainda não estão ligadas ao cálculo atual.
+`src/game/cores.ts` define pools fixos por modelo para novos núcleos de arma (Espada = Força; Arco = Força/Destreza; Cajado = Inteligência). A geração de armaduras e acessórios permanece em dois atributos, ou quatro em núcleo SURP. `src/game/attributes.ts` calcula atributos-base e ganhos por nível/classe, mas não recebe atributos de uma arma fabricada. A compatibilidade por modelo de arma e a soma dos bônus ativos ainda não estão ligadas ao cálculo atual.
 
 ### 9.5 Arsenal atual não define limite específico de armas por conta
 
