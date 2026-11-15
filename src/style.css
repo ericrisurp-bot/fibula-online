@@ -11517,3 +11517,9 @@ sem backdrop ou caixa de modal. */
   text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.7)!important;
   white-space:nowrap;
 }
+
+
+/* Botão de iniciar produção mantém a tipografia global dos controles do jogo. */
+.station-page-no-header .cooking-prepare-button{
+  font-family:inherit;
+}
