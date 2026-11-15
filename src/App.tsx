@@ -1309,7 +1309,8 @@ export default function App() {
   }, [showStart, activeGameRoute.page]);
 
   useEffect(() => {
-    if (!showStart || activeGameRoute.page !== 'lobby') return;
+    const showLobbyBackdrop = showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page));
+    if (!showLobbyBackdrop) return;
     const canvas = lobbyCharacterCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
