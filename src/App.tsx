@@ -3613,7 +3613,7 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showStart && activeGameRoute.page === 'lobby' && <div className="lobby-screen" role="dialog" aria-label="Lobby do Fíbula Online">
+      {showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page)) && <div className={`lobby-screen${activeGameRoute.page === 'lobby' ? '' : ' is-page-backdrop'}`} role="dialog" aria-label="Lobby do Fíbula Online">
         <div className="lobby-sky" aria-hidden="true">
           <i className="lobby-moon"/>
           <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
