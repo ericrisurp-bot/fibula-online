@@ -1285,7 +1285,7 @@ export default function App() {
   }, [arsenalOpen, arsenalCharacterTab, characterPreferences]);
 
   useEffect(() => {
-    if (!showStart || activeGameRoute.page !== 'lobby') return;
+    if (!showStart || (activeGameRoute.page !== 'lobby' && !['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page) && !activeCraftingStation)) return;
     const canvas = lobbyGrassCanvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
@@ -1309,7 +1309,7 @@ export default function App() {
   }, [showStart, activeGameRoute.page]);
 
   useEffect(() => {
-    const showLobbyBackdrop = showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page));
+    const showLobbyBackdrop = showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page) || Boolean(activeCraftingStation));
     if (!showLobbyBackdrop) return;
     const canvas = lobbyCharacterCanvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -3614,7 +3614,7 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page)) && <div className={`lobby-screen${activeGameRoute.page === 'lobby' ? '' : ' is-page-backdrop'}`} role="dialog" aria-label="Lobby do Fíbula Online">
+      {showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau'].includes(activeGameRoute.page) || Boolean(activeCraftingStation)) && <div className={`lobby-screen${activeGameRoute.page === 'lobby' ? '' : ' is-page-backdrop'}`} role="dialog" aria-label="Lobby do Fíbula Online">
         <div className="lobby-sky" aria-hidden="true">
           <i className="lobby-moon"/>
           <i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/>
