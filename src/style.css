@@ -11621,13 +11621,25 @@ sem backdrop ou caixa de modal. */
   .lobby-screen .lobby-social,
   .lobby-screen .lobby-arsenal-trigger,
   .lobby-screen .lobby-chest-trigger {bottom:calc(10% - 57px)!important}
-  .lobby-screen .lobby-workshop {width:80px!important}
+  /* Os quatro atalhos formam uma única faixa simétrica ao redor de Jogar. */
+  .lobby-screen .lobby-workshop {
+    left:calc(50% - 244px)!important;
+    right:auto!important;
+    width:76px!important;
+  }
   .lobby-screen .lobby-social {
-    left:calc(max(14px,env(safe-area-inset-left)) + 90px)!important;
+    left:calc(50% - 150px)!important;
+    right:auto!important;
     width:76px!important;height:76px!important;
   }
-  .lobby-screen .lobby-arsenal-trigger {right:calc(max(14px,env(safe-area-inset-right)) + 90px)!important}
-  .lobby-screen .lobby-chest-trigger {right:max(14px,env(safe-area-inset-right))!important}
+  .lobby-screen .lobby-arsenal-trigger {
+    left:calc(50% + 74px)!important;
+    right:auto!important;
+  }
+  .lobby-screen .lobby-chest-trigger {
+    left:calc(50% + 168px)!important;
+    right:auto!important;
+  }
   .lobby-screen .lobby-workshop-trigger,
   .lobby-screen .lobby-social-trigger,
   .lobby-screen .lobby-arsenal-trigger,
