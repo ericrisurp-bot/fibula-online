@@ -11898,3 +11898,23 @@ sem backdrop ou caixa de modal. */
     min-height: 0;
   }
 }
+
+
+/* Páginas laterais: usam o cenário do Lobby no lugar do mundo da partida. */
+@media (min-width: 0px) {
+  .game-stage:has(.lobby-screen.is-page-backdrop) > .game-canvas,
+  .game-stage:has(.lobby-screen.is-page-backdrop) > .hud-top {
+    display: none !important;
+  }
+  .lobby-screen.is-page-backdrop {
+    z-index: 1;
+    pointer-events: none !important;
+  }
+  .lobby-screen.is-page-backdrop > :not(.lobby-sky):not(.lobby-grass-floor):not(.lobby-ground-light):not(.lobby-character-wrap) {
+    display: none !important;
+  }
+  .lobby-screen.is-page-backdrop .lobby-character-wrap button,
+  .lobby-screen.is-page-backdrop .lobby-character-wrap .lobby-duo-peer {
+    display: none !important;
+  }
+}
