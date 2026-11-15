@@ -11830,7 +11830,7 @@ sem backdrop ou caixa de modal. */
   html:has(.station-page),
   body:has(.station-page),
   #root:has(.station-page) {
-    background: #fff !important;
+    background: transparent !important;
   }
   .station-page {
     top: 50% !important;
@@ -11850,7 +11850,7 @@ sem backdrop ou caixa de modal. */
   html:has(.station-page),
   body:has(.station-page),
   #root:has(.station-page) {
-    background: #222322 !important;
+    background: transparent !important;
   }
 }
 
