@@ -11523,3 +11523,8 @@ sem backdrop ou caixa de modal. */
 .station-page-no-header .cooking-prepare-button{
   font-family:inherit;
 }
+
+/* Produção: mesma cor clara dos rótulos dos botões principais do lobby. */
+.station-page-no-header .cooking-kitchen .cooking-prepare-button{
+  color:#f2f3ef!important;
+}
