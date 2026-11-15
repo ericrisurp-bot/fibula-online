@@ -2766,7 +2766,7 @@ export class GameEngine {
       if (!targetsCart && playerContact && e.hitWait <= 0) {
         // Slimes que não escolheram a carroça mantêm a regra normal de dano ao jogador.
         e.hitWait = CONFIG.enemy.contactCooldown;
-        if (this.random() > CONFIG.player.dodge + levelStats.dodge) {
+        if (this.random() > this.getDodgeChance()) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const damage = Math.max(1, Math.round(waveDamage * (this.getDayNightState().isNight ? 1 : 1.5) - CONFIG.player.armor - levelStats.armor));
           p.hp -= damage;
