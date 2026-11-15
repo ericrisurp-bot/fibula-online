@@ -4,6 +4,38 @@ import type { CoreRarity } from './cores';
 export type ArmorPiece = 'capacete' | 'peitoral' | 'calca' | 'bota' | 'luva';
 export type ArmorType = 'couro' | 'bronze';
 export type ArmorAttribute = 'armadura' | 'vida' | 'mobilidade' | 'esquiva';
+export type ArmorCoreEquipmentType = 'capacete' | 'peitoral' | 'leggings' | 'bota' | 'luva';
+export type ArmorCoreAttributeKey = 'armadura' | 'vida' | 'velocidadeMovimento' | 'esquiva';
+
+export const ARMOR_CORE_EQUIPMENT_TO_PIECE: Record<ArmorCoreEquipmentType, ArmorPiece> = {
+  capacete: 'capacete',
+  peitoral: 'peitoral',
+  leggings: 'calca',
+  bota: 'bota',
+  luva: 'luva',
+};
+
+export const ARMOR_PIECE_TO_CORE_EQUIPMENT: Record<ArmorPiece, ArmorCoreEquipmentType> = {
+  capacete: 'capacete',
+  peitoral: 'peitoral',
+  calca: 'leggings',
+  bota: 'bota',
+  luva: 'luva',
+};
+
+export const ARMOR_CORE_ATTRIBUTE_TO_ARMOR: Record<ArmorCoreAttributeKey, ArmorAttribute> = {
+  armadura: 'armadura',
+  vida: 'vida',
+  velocidadeMovimento: 'mobilidade',
+  esquiva: 'esquiva',
+};
+
+export const ARMOR_ATTRIBUTE_TO_CORE_ATTRIBUTE: Record<ArmorAttribute, ArmorCoreAttributeKey> = {
+  armadura: 'armadura',
+  vida: 'vida',
+  mobilidade: 'velocidadeMovimento',
+  esquiva: 'esquiva',
+};
 
 export const ARMOR_PIECE_ATTRIBUTES: Record<ArmorType, Record<ArmorPiece, readonly ArmorAttribute[]>> = {
   couro: {
@@ -21,6 +53,18 @@ export const ARMOR_PIECE_ATTRIBUTES: Record<ArmorType, Record<ArmorPiece, readon
     luva: ['armadura', 'esquiva'],
   },
 };
+
+export function armorCoreAttributeKeys(equipmentType: ArmorCoreEquipmentType): ArmorCoreAttributeKey[] {
+  const piece = ARMOR_CORE_EQUIPMENT_TO_PIECE[equipmentType];
+  const keys: ArmorCoreAttributeKey[] = [];
+  for (const type of ['couro', 'bronze'] as const) {
+    for (const attribute of ARMOR_PIECE_ATTRIBUTES[type][piece]) {
+      const key = ARMOR_ATTRIBUTE_TO_CORE_ATTRIBUTE[attribute];
+      if (!keys.includes(key)) keys.push(key);
+    }
+  }
+  return keys;
+}
 
 export const ARMOR_BASE_VALUES: Record<ArmorType, Record<ArmorPiece, Partial<Record<ArmorAttribute, number>>>> = {
   couro: {
