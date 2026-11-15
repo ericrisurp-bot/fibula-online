@@ -3432,7 +3432,7 @@ export default function App() {
                     <strong>{JEWELRY_POLISH_COTTON_COST} × Algodão {JEWELRY_RARITY_LABELS[selectedJewelryRarity] ?? selectedJewelryRarity}</strong>
                     <small>tem {jewelryCottonAvailable}</small>
                   </div>}
-                  <p className="jewelry-feedback jewelry-help-text">O algodão da mesma raridade é usado para polir a pedra e revelar o que ela faz.</p>
+                  <p className="jewelry-help-text">O algodão da mesma raridade é usado para polir a pedra e revelar o que ela faz.</p>
                   <button type="button" className="jewelry-reveal-button"
                     disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId || !selectedJewelryCoreStack || jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST}
                     onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
