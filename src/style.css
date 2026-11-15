@@ -11668,3 +11668,128 @@ sem backdrop ou caixa de modal. */
 .station-page-no-header .cooking-kitchen .cooking-prepare-button{
   color:#f2f3ef!important;
 }
+
+
+/* Lobby — identidade de céu profundo, lua craterada e horizonte azul-noturno. */
+.lobby-screen .lobby-sky{
+  background:
+    radial-gradient(ellipse at 76% 22%,rgba(79,111,145,.20),transparent 34%),
+    radial-gradient(ellipse at 28% 48%,rgba(49,77,105,.18),transparent 42%),
+    linear-gradient(180deg,#030914 0%,#071426 48%,#10243a 82%,#142b3c 100%);
+}
+.lobby-screen .lobby-sky:before{
+  display:block;
+  content:"";
+  position:absolute;
+  inset:0;
+  opacity:.82;
+  background-image:
+    radial-gradient(circle at 3% 8%,#dcecff 0 1px,transparent 1.8px),
+    radial-gradient(circle at 8% 31%,#c9d9ef 0 .8px,transparent 1.7px),
+    radial-gradient(circle at 14% 14%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 19% 43%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 24% 7%,#d8e8ff 0 1px,transparent 2px),
+    radial-gradient(circle at 29% 27%,#fff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 35% 12%,#dcecff 0 1px,transparent 2px),
+    radial-gradient(circle at 41% 39%,#c7d8ee 0 .8px,transparent 1.7px),
+    radial-gradient(circle at 47% 5%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 53% 22%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 59% 44%,#e4efff 0 1px,transparent 2px),
+    radial-gradient(circle at 65% 9%,#fff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 71% 33%,#cbdcf2 0 1px,transparent 2px),
+    radial-gradient(circle at 77% 5%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 84% 27%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 91% 12%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 97% 42%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 5% 58%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 17% 67%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 32% 59%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 45% 72%,#fff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 61% 63%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 74% 76%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 88% 61%,#dcecff 0 .8px,transparent 1.8px),
+    radial-gradient(circle at 96% 82%,#fff 0 .8px,transparent 1.8px);
+  background-size:100% 100%;
+}
+.lobby-screen .lobby-sky:after{
+  content:"";
+  position:absolute;
+  inset:12% 20% 20% -18%;
+  pointer-events:none;
+  opacity:.5;
+  transform:rotate(-24deg);
+  background:
+    radial-gradient(ellipse at 43% 46%,rgba(174,195,220,.20),transparent 18%),
+    radial-gradient(ellipse at 49% 52%,rgba(131,158,190,.16),transparent 29%),
+    radial-gradient(ellipse at 36% 58%,rgba(122,150,183,.13),transparent 34%),
+    radial-gradient(ellipse at 55% 44%,rgba(205,216,231,.10),transparent 38%);
+  filter:blur(13px);
+}
+.lobby-screen .lobby-moon{
+  z-index:2;
+  top:9%;
+  right:15%;
+  width:clamp(92px,10vw,184px);
+  aspect-ratio:1;
+  overflow:hidden;
+  border-radius:50%;
+  background:
+    radial-gradient(ellipse at 28% 25%,rgba(255,255,255,.92) 0%,rgba(238,241,240,.58) 18%,transparent 43%),
+    radial-gradient(ellipse at 63% 66%,rgba(79,88,96,.46) 0 7%,transparent 15%),
+    radial-gradient(ellipse at 34% 62%,rgba(91,99,104,.36) 0 9%,transparent 17%),
+    radial-gradient(ellipse at 70% 31%,rgba(88,97,105,.32) 0 6%,transparent 13%),
+    radial-gradient(ellipse at 49% 43%,rgba(110,118,123,.28) 0 12%,transparent 20%),
+    radial-gradient(circle at 36% 32%,#f3f3ed 0%,#d5d9d8 48%,#aeb7bc 76%,#78858e 100%);
+  box-shadow:
+    inset -12px -9px 22px rgba(25,37,49,.34),
+    inset 7px 5px 14px rgba(255,255,255,.42),
+    0 0 28px 9px rgba(195,214,235,.18),
+    0 0 82px 25px rgba(144,174,207,.12);
+}
+.lobby-screen .lobby-moon:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:
+    radial-gradient(ellipse at 24% 48%,rgba(90,99,105,.34) 0 4%,transparent 8%),
+    radial-gradient(ellipse at 54% 20%,rgba(92,101,108,.28) 0 5%,transparent 10%),
+    radial-gradient(ellipse at 73% 54%,rgba(78,87,96,.30) 0 7%,transparent 12%),
+    radial-gradient(ellipse at 43% 78%,rgba(90,98,105,.26) 0 5%,transparent 10%),
+    radial-gradient(ellipse at 83% 77%,rgba(255,255,255,.20),transparent 14%);
+  mix-blend-mode:multiply;
+  opacity:.88;
+}
+.lobby-screen .lobby-moon:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:radial-gradient(circle at 32% 27%,rgba(255,255,255,.26),transparent 52%);
+}
+.lobby-screen .lobby-star{
+  width:2px;
+  height:2px;
+  opacity:.42;
+  box-shadow:0 0 5px 1px rgba(215,231,255,.42);
+}
+.lobby-screen .lobby-ground-light{
+  left:0;
+  width:100%;
+  height:34vh;
+  background:
+    radial-gradient(ellipse at 76% 8%,rgba(155,185,213,.16),transparent 42%),
+    linear-gradient(180deg,rgba(8,22,37,.22),rgba(5,15,28,.58));
+  filter:blur(9px);
+}
+.lobby-screen .lobby-grass-floor{
+  filter:brightness(.34) saturate(.55) contrast(1.12);
+}
+@media(max-width:650px){
+  .lobby-screen .lobby-moon{
+    width:clamp(76px,19vw,132px);
+    top:8%;
+    right:12%;
+  }
+  .lobby-screen .lobby-sky:after{inset:14% 4% 24% -38%}
+}
