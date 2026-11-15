@@ -657,6 +657,7 @@ export default function App() {
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [workshopMenuOpen, setWorkshopMenuOpen] = useState(false);
+  const [socialMenuOpen, setSocialMenuOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
   const [duoNotice, setDuoNotice] = useState('');
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
@@ -3615,10 +3616,17 @@ export default function App() {
             <span className="lobby-top-emoji" aria-hidden="true">⚔️</span>
             <span>ARSENAL</span>
           </button>
-          <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Social: amigos" title="Social" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
-            <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-            <span>SOCIAL</span>
-          </button>
+          <div className="lobby-social">
+            <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Social" title="Social" aria-expanded={socialMenuOpen} onClick={() => setSocialMenuOpen(value => !value)}>
+              <span className="lobby-top-emoji" aria-hidden="true">👥</span>
+              <span>SOCIAL</span>
+            </button>
+            {socialMenuOpen && <div className="lobby-social-menu" role="menu" aria-label="Opções sociais">
+              <button type="button" role="menuitem" onClick={() => { setSocialMenuOpen(false); navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>Amigos</button>
+              <button type="button" role="menuitem" onClick={() => { setSocialMenuOpen(false); navigateToPage('status'); setActiveGameRoute({ page: 'status' }); setStatusOpen(true); }}>Status</button>
+              <button type="button" role="menuitem" onClick={() => { setSocialMenuOpen(false); navigateToPage('classes'); setActiveGameRoute({ page: 'classes' }); setProfileOpen(true); }}>Classes</button>
+            </div>}
+          </div>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
             <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
             <span>BAÚ</span>
