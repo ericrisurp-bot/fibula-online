@@ -84,21 +84,23 @@ Na fabricação, o dano final de cada arma é sorteado entre **50% e 100%** do v
 
 ## 5. Atributos do núcleo aplicados à arma
 
-Um núcleo de arma revelado contém:
+A geração atual de núcleos de arma é fixa por modelo (não usa a contagem genérica de 2/4):
 
-- **2 atributos** em um núcleo comum;
-- **4 atributos** quando o núcleo é SURP.
+- **Espada:** somente Força (1 atributo).
+- **Arco:** Força e Destreza (2 atributos).
+- **Cajado:** somente Inteligência (1 atributo).
+- **Bastão da Natureza:** somente Inteligência (1 atributo, mesmo conjunto do Cajado).
 
-Os atributos possíveis no pool de armas são Força, Inteligência, Destreza e Velocidade de ataque. A combinação é sorteada sem repetir a mesma chave no núcleo.
+Velocidade de ataque está banida do sorteio de novos núcleos. Núcleos antigos que contenham esse atributo continuam válidos e legíveis, mas velocidade de ataque fica inativa. A condição SURP continua exigindo que todos os atributos presentes estejam no máximo; para Espada, Cajado e Bastão, isso significa que o único atributo precisa estar no máximo.
 
 A arma ativa somente os atributos compatíveis com seu modelo:
 
 | Arma | Atributos ativos |
 |---|---|
-| Espada | Força e Velocidade de ataque |
-| Arco | Força, Destreza e Velocidade de ataque |
-| Cajado | Inteligência e Velocidade de ataque |
-| Bastão da Natureza | Inteligência e Velocidade de ataque |
+| Espada | Força |
+| Arco | Força e Destreza |
+| Cajado | Inteligência |
+| Bastão da Natureza | Inteligência |
 
 Os atributos incompatíveis permanecem registrados no núcleo/arma, mas não somam ao personagem enquanto aquela arma estiver sendo usada. Não são convertidos, substituídos ou sorteados novamente.
 
@@ -111,7 +113,7 @@ O código atual em `src/game/attributes.ts` funciona assim:
 1. `getPlayerAttributes(classId, level, pointsPerLevel)` parte de `CONFIG.attributes.baseValue` (hoje 100).
 2. O ganho de nível é calculado como `max(0, level) × gainPerLevel × max(1, pointsPerLevel)`.
 3. Cada atributo recebe esse ganho multiplicado pelo multiplicador de classe correspondente. Esses multiplicadores afetam o ganho por nível, não substituem o valor-base inicial.
-4. `getDamageMultiplier` calcula o multiplicador de dano usando os atributos de dano da classe e divide a soma ponderada pelo valor-base. Hoje: Guerreiro usa Força; Mago usa Inteligência; Arqueiro combina 35% Força e 65% Destreza; Druida usa Inteligência. Velocidade de ataque não entra nessa soma de dano.
+4. `getDamageMultiplier` calcula o multiplicador de dano usando os atributos de dano da classe e divide a soma ponderada pelo valor-base. Hoje: Guerreiro usa Força; Mago usa Inteligência; Arqueiro combina 35% Força e 65% Destreza; Druida usa Inteligência. Velocidade de ataque não entra nessa soma de dano e está banida da geração de novos núcleos.
 5. A interface do perfil usa o dano configurado da arma multiplicado por `getDamageMultiplier`.
 
 Assim, o código atual já tem base de atributos, ganhos por nível, pesos de classe e multiplicador de dano. **Ainda não soma atributos fabricados de armas ao personagem nem integra esses bônus na fórmula.** A ordem e a fórmula de integração dos bônus da arma devem respeitar essa distinção e ser implementadas em etapa própria.
@@ -125,7 +127,7 @@ Uma arma fabricada será SURP somente quando **todos os valores sorteados da arm
 
 Um núcleo SURP aumenta a chance de a arma fabricada sair SURP. **A chance exata está PENDENTE** e não deve ser presumida nem derivada da chance de geração de núcleos.
 
-No código atual, `revealCore` gera dois atributos em núcleos não-SURP e quatro em núcleos SURP. Para um núcleo SURP, os valores dos atributos gerados ficam em 100% da referência da raridade; nos demais, cada valor é sorteado entre 50% e 100%. `CORE_SURP_CHANCE` hoje vale 2% e é usado na geração/revelação do **núcleo**. Esse 2% não é a chance de uma arma fabricada ser SURP.
+Para armaduras e acessórios, `revealCore` mantém dois atributos em núcleos não-SURP e quatro em núcleos SURP. Para armas, a quantidade é fixa pelo modelo (Espada 1, Arco 2, Cajado 1), independentemente de SURP. Em núcleos SURP, todos os atributos presentes ficam em 100% da referência da raridade; nos demais, cada valor é sorteado entre 50% e 100%. `CORE_SURP_CHANCE` hoje vale 2% e é usado na geração/revelação do **núcleo**. Esse 2% não é a chance de uma arma fabricada ser SURP.
 
 ## 7. Fabricação no servidor: arquitetura definida
 
@@ -205,7 +207,7 @@ Em `src/game/config.ts`, os danos-base atuais são: Espada 16, Cajado 17, Arco 1
 
 ### 9.4 Atributos de arma fabricada ainda não integram o personagem
 
-`src/game/cores.ts` já define o pool de atributos possíveis para núcleos de arma e gera dois atributos, ou quatro em núcleo SURP. `src/game/attributes.ts` calcula atributos-base e ganhos por nível/classe, mas não recebe atributos de uma arma fabricada. A compatibilidade por modelo de arma e a soma dos bônus ativos ainda não estão ligadas ao cálculo atual.
+`src/game/cores.ts` define pools fixos por modelo para novos núcleos de arma (Espada = Força; Arco = Força/Destreza; Cajado = Inteligência). A geração de armaduras e acessórios permanece em dois atributos, ou quatro em núcleo SURP. `src/game/attributes.ts` calcula atributos-base e ganhos por nível/classe, mas não recebe atributos de uma arma fabricada. A compatibilidade por modelo de arma e a soma dos bônus ativos ainda não estão ligadas ao cálculo atual.
 
 ### 9.5 Arsenal atual não define limite específico de armas por conta
 
@@ -214,3 +216,12 @@ Em `src/game/config.ts`, os danos-base atuais são: Espada 16, Cajado 17, Arco 1
 ## 10. Limites desta etapa
 
 Este PR adiciona somente esta documentação. Não implementa receitas, afinidade, fabricação, funções Supabase, tabelas, consumo de materiais, aleatoriedade de servidor, dano, atributos de arma, SURP de arma, entrega ao Arsenal ou alterações de interface.
+
+
+## 11. Velocidade de ataque e compatibilidade histórica
+
+Velocidade de ataque está banida como atributo ativo de armas e da geração de novos núcleos de arma/acessório. Núcleos e armas já existentes que contenham esse atributo permanecem válidos, legíveis e persistidos; o atributo fica inativo, sem ser apagado, migrado ou substituído. A lista de chaves aceita na leitura/validação de armas legadas é preservada para evitar rejeição de itens antigos.
+
+A geração de núcleos de acessório também não sorteia mais velocidade de ataque. Os demais atributos do pool permanecem disponíveis. Como trabalho futuro separado, deverá ser feita uma auditoria dos efeitos extras de acessórios: dano de explosão, cura, sangramento e perfuração. Nada disso é implementado nesta etapa.
+
+A função do servidor responsável por sortear atributos de núcleo não foi alterada nesta etapa; seu ajuste é separado.

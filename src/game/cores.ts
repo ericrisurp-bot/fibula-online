@@ -16,10 +16,17 @@ export const CORE_RARITY_CHANCES: ReadonlyArray<{ rarity: CoreRarity; chance: nu
   { rarity: 'normal', chance: 50 }, { rarity: 'common', chance: 25 }, { rarity: 'uncommon', chance: 15 }, { rarity: 'rare', chance: 8 }, { rarity: 'legendary', chance: 2 },
 ];
 export const CORE_RARITY_REFERENCE: Record<CoreRarity, number> = { normal: 0.2, common: 0.4, uncommon: 0.6, rare: 0.8, legendary: 1 };
-const WEAPON_ATTRIBUTES: CoreAttributeKey[] = ['forca', 'inteligencia', 'destreza', 'velocidadeAtaque'];
+const WEAPON_ATTRIBUTES: CoreAttributeKey[] = ['forca', 'inteligencia', 'destreza'];
 const ARMOR_ATTRIBUTES: CoreAttributeKey[] = ['vida', 'armadura', 'velocidadeMovimento', 'esquiva'];
 const ACCESSORY_ATTRIBUTES: CoreAttributeKey[] = [...WEAPON_ATTRIBUTES, ...ARMOR_ATTRIBUTES];
+// Pools históricos aceitos somente na leitura de núcleos já existentes.
+const LEGACY_ACCESSORY_ATTRIBUTES: CoreAttributeKey[] = [...ACCESSORY_ATTRIBUTES, 'velocidadeAtaque'];
 const WEAPON_MODEL_ATTRIBUTES: Record<CoreWeaponModel, readonly CoreAttributeKey[]> = {
+  espada: ['forca'],
+  arco: ['forca', 'destreza'],
+  cajado: ['inteligencia'],
+};
+const LEGACY_WEAPON_MODEL_ATTRIBUTES: Record<CoreWeaponModel, readonly CoreAttributeKey[]> = {
   espada: ['forca', 'velocidadeAtaque'],
   arco: ['forca', 'destreza', 'velocidadeAtaque'],
   cajado: ['inteligencia', 'velocidadeAtaque'],
@@ -88,7 +95,7 @@ function parseOldCore(encoded: string): Core | null {
     if (typeof core.id !== 'string' || !isCategory(core.category) || core.category === 'weapon' || !isRarity(core.rarity) || typeof core.surp !== 'boolean'
       || (core.equipmentType !== undefined && !isEquipmentType(core.equipmentType, core.category))
       || !Array.isArray(core.attributes) || core.attributes.length === 0) return null;
-    const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
+    const pool = core.category === 'accessory' ? LEGACY_ACCESSORY_ATTRIBUTES : poolFor(core.category), seen = new Set<CoreAttributeKey>(), ref = CORE_RARITY_REFERENCE[core.rarity];
     for (const a of core.attributes) {
       if (!a || typeof a.key !== 'string' || !pool.includes(a.key as CoreAttributeKey) || seen.has(a.key as CoreAttributeKey)
         || !Number.isFinite(a.value) || a.value < ref * 0.5 - 0.005 || a.value > ref + 0.005) return null;
@@ -106,12 +113,17 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
     const ref = CORE_RARITY_REFERENCE[core.rarity];
     if (core.category === 'weapon') {
       if (!isWeaponModel(core.weaponModel) || (core.affinity !== undefined && (core.weaponModel !== 'cajado' || (core.affinity !== 'dano' && core.affinity !== 'natureza')))) return null;
-      const expected = WEAPON_MODEL_ATTRIBUTES[core.weaponModel];
-      if (core.attributes.length !== expected.length || core.attributes.some(a => !a || !expected.includes(a.key as CoreAttributeKey))
-        || new Set(core.attributes.map(a => a?.key)).size !== expected.length) return null;
+      const current = WEAPON_MODEL_ATTRIBUTES[core.weaponModel];
+      const legacy = LEGACY_WEAPON_MODEL_ATTRIBUTES[core.weaponModel];
+      const keys = core.attributes.map(a => a?.key);
+      const matchesPool = (pool: readonly CoreAttributeKey[]) =>
+        keys.length === pool.length && keys.every(key => pool.includes(key as CoreAttributeKey))
+          && new Set(keys).size === pool.length;
+      const acceptedPool = matchesPool(current) ? current : matchesPool(legacy) ? legacy : null;
+      if (!acceptedPool) return null;
       let allMaximum = true;
       for (const a of core.attributes) {
-        if (!a || typeof a.key !== 'string' || !expected.includes(a.key as CoreAttributeKey)
+        if (!a || typeof a.key !== 'string' || !acceptedPool.includes(a.key as CoreAttributeKey)
           || !Number.isFinite(a.value) || a.value < ref * 0.5 - 0.005 || a.value > ref + 0.005) return null;
         if (a.value < ref - 0.000001) allMaximum = false;
       }
@@ -120,7 +132,7 @@ function parseNewCore(encoded: string, rarityPart: string): Core | null {
       if (core.weaponModel !== undefined || core.affinity !== undefined || ![2, 4].includes(core.attributes.length)
         || (core.equipmentType !== undefined && !isEquipmentType(core.equipmentType, core.category))
         || core.surp !== (core.attributes.length === 4)) return null;
-      const pool = poolFor(core.category), seen = new Set<CoreAttributeKey>();
+      const pool = core.category === 'accessory' ? LEGACY_ACCESSORY_ATTRIBUTES : poolFor(core.category), seen = new Set<CoreAttributeKey>();
       for (const a of core.attributes) {
         if (!a || typeof a.key !== 'string' || !pool.includes(a.key as CoreAttributeKey) || seen.has(a.key as CoreAttributeKey)
           || !Number.isFinite(a.value) || a.value < ref * 0.5 - 0.005 || a.value > ref + 0.005) return null;

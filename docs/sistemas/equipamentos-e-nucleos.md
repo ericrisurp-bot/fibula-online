@@ -67,11 +67,10 @@ Cada peça poderá aproveitar no máximo quatro atributos compatíveis. A distri
 A categoria de armas é ofensiva. A matriz aprovada permite:
 
 - Força
-- Velocidade de ataque
 - Inteligência
 - Destreza
 
-Força e velocidade de ataque são atributos próprios da categoria de armas; também podem aparecer em núcleos de acessórios, mas nunca em núcleos de armadura.
+Velocidade de ataque está banida da geração de novos núcleos. Os conjuntos atuais são definidos por modelo: Espada = Força; Arco = Força e Destreza; Cajado e Bastão da Natureza = Inteligência. Núcleos antigos que contenham velocidade de ataque continuam válidos e legíveis, mas esse atributo fica inativo.
 
 Armas existentes na especificação:
 
@@ -95,7 +94,7 @@ Estruturas previstas:
 - Pulseira
 - Cinto
 
-Qualquer tipo de acessório pode receber qualquer núcleo, desde que o núcleo seja válido e seus atributos sejam compatíveis com o sistema. Acessórios podem carregar atributos defensivos e ofensivos, incluindo força e velocidade de ataque.
+Qualquer tipo de acessório pode receber qualquer núcleo, desde que o núcleo seja válido e seus atributos sejam compatíveis com o sistema. Novos núcleos de acessório sorteiam entre Força, Inteligência, Destreza, Vida, Armadura, Velocidade de movimento e Esquiva; Velocidade de ataque foi removida do pool de geração. Núcleos antigos com velocidade de ataque continuam válidos e legíveis, mas o atributo fica inativo.
 
 O acessório não concede bônus intrínseco por ser anel, colar, pulseira ou cinto. Os atributos e multiplicadores vêm do núcleo instalado.
 
@@ -105,9 +104,11 @@ A forma de acumular dois ou mais multiplicadores que afetam o mesmo atributo ain
 
 ## 5. Quantidade de atributos por núcleo
 
-- Núcleo de geração comum: dois atributos.
-- Núcleo SURP: exatamente quatro atributos.
-- O núcleo SURP preserva exatamente os quatro atributos e as respectivas potências durante a fabricação.
+- Núcleos de armadura e acessório: dois atributos na geração comum e quatro no SURP.
+- Núcleos de arma: quantidade fixa por modelo, independentemente de SURP — Espada 1, Arco 2, Cajado 1. O Bastão da Natureza usa o conjunto de Inteligência do Cajado.
+- SURP continua significando que todos os atributos gerados naquele núcleo estão no máximo da raridade; portanto, Espada e Cajado têm um único atributo e esse único atributo precisa estar no máximo.
+- Núcleos antigos preservam seus atributos originais e continuam legíveis, inclusive velocidade de ataque inativa.
+- O núcleo SURP preserva exatamente os atributos e as respectivas potências durante a fabricação.
 - Não substituir, sortear novamente, reduzir ou recalcular os atributos/potências de um núcleo SURP na fabricação.
 - A quantidade de atributos é uma propriedade distinta da raridade e da potência.
 
@@ -220,7 +221,7 @@ Fluxo conceitual:
 ## 11. Regras de balanceamento que devem ser preservadas
 
 - Armaduras não recebem força nem velocidade de ataque.
-- Força e velocidade de ataque podem aparecer em núcleos de armas e de acessórios.
+- Velocidade de ataque está banida de todos os pools de geração de novos núcleos; núcleos antigos que a contenham continuam válidos, mas o atributo fica inativo.
 - Inteligência e destreza podem aparecer em núcleos de armas e de acessórios.
 - Atributos defensivos/de mobilidade da categoria de armadura também podem aparecer em acessórios.
 - Acessórios não possuem atributos próprios: o núcleo é a fonte dos efeitos.
@@ -246,6 +247,7 @@ Esta documentação não resolve por suposição os seguintes pontos:
 11. Como efeitos especiais (empurrão, perfuração, explosão, veneno, cura etc.) são escalados e quais armas podem receber cada efeito.
 12. Se um núcleo SURP tem alguma chance específica de produzir equipamento SURP além de preservar os quatro atributos/potências do núcleo. Não assumir chance de 80% ou 100% sem aprovação explícita.
 13. Quais atributos formais já possuem efeito real no combate e quais exigem implementação própria. A auditoria do código deve preceder qualquer alteração de gameplay.
+14. Auditoria futura dos efeitos extras dos acessórios: dano de explosão, cura, sangramento e perfuração. Esta etapa não implementa nem altera esses efeitos.
 
 ## 13. Limites desta etapa
 
