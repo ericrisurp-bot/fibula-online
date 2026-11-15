@@ -823,7 +823,7 @@ export default function App() {
     for (const classId of characterPreferences) {
       if (!classId) continue;
       const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, classId);
-      statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, 1 + accountLevel * 0.05, {
+      statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, getAccountPointsPerLevel(accountLevel), {
         weapon: weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null,
       }).total);
     }
