@@ -872,15 +872,30 @@ export default function App() {
   useEffect(() => {
     const syncGameRoute = () => {
       const route = readGameRoute(window.location.pathname) ?? { page: 'lobby' as const };
-      setActiveGameRoute(route);
-      setArsenalOpen(route.page === 'arsenal');
-      setFriendsOpen(route.page === 'amigos');
-      setChestOpen(route.page === 'bau');
-      setStatusOpen(route.page === 'status');
-      setProfileOpen(route.page === 'classes');
-      setRankingOpen(route.page === 'ranking');
-      setPlayerProfileOpen(route.page === 'jogador');
-      setViewedProfileUserId(route.page === 'jogador' ? route.playerId : null);
+      // O botão Voltar do navegador/dispositivo sempre encerra a navegação interna
+      // e retorna ao Lobby, em vez de restaurar a página anterior.
+      if (route.page !== 'lobby') {
+        navigateToLobby();
+        setActiveGameRoute({ page: 'lobby' });
+        setArsenalOpen(false);
+        setFriendsOpen(false);
+        setChestOpen(false);
+        setStatusOpen(false);
+        setProfileOpen(false);
+        setRankingOpen(false);
+        setPlayerProfileOpen(false);
+        setViewedProfileUserId(null);
+        return;
+      }
+      setActiveGameRoute({ page: 'lobby' });
+      setArsenalOpen(false);
+      setFriendsOpen(false);
+      setChestOpen(false);
+      setStatusOpen(false);
+      setProfileOpen(false);
+      setRankingOpen(false);
+      setPlayerProfileOpen(false);
+      setViewedProfileUserId(null);
     };
     window.addEventListener('popstate', syncGameRoute);
     if (!isKnownGamePath(window.location.pathname)) window.history.replaceState(null, '', '/');
