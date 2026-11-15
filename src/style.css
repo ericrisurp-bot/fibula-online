@@ -11342,3 +11342,74 @@ sem backdrop ou caixa de modal. */
   .lobby-screen .lobby-chest-trigger { right: max(12px, env(safe-area-inset-right)); }
   .lobby-screen .lobby-play-trigger { bottom: max(10px, env(safe-area-inset-bottom)); }
 }
+
+
+/* Menus da Oficina e Social em listas compactas que abrem para cima. */
+.lobby-screen .lobby-social {
+  position: absolute;
+  z-index: 36;
+  left: calc(max(12px, env(safe-area-inset-left)) + 68px);
+  bottom: calc(10% - 45px);
+  width: 64px;
+  box-sizing: border-box;
+}
+.lobby-screen .lobby-social-trigger {
+  position: relative;
+  inset: auto;
+}
+.lobby-screen .lobby-workshop-menu,
+.lobby-screen .lobby-social-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: max-content;
+  min-width: 112px;
+  max-width: min(156px, calc(100vw - 24px));
+  padding: 5px;
+  border: 1px solid rgba(235,239,235,.28);
+  border-radius: 10px;
+  background: rgba(24,25,24,.96);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.lobby-screen .lobby-workshop-menu button,
+.lobby-screen .lobby-social-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 1px solid rgba(235,239,235,.16);
+  border-radius: 7px;
+  background: rgba(255,255,255,.05);
+  color: #f2f0e7;
+  font: 800 10px/1.1 "Trebuchet MS",Arial,sans-serif;
+  text-align: left;
+  white-space: nowrap;
+}
+.lobby-screen .lobby-workshop-menu button span:first-child { font-size: 15px; }
+.lobby-screen .lobby-workshop-menu button:active,
+.lobby-screen .lobby-social-menu button:active {
+  background: rgba(255,255,255,.14);
+}
+@media (max-width: 390px) {
+  .lobby-screen .lobby-social {
+    left: calc(max(8px, env(safe-area-inset-left)) + 58px);
+    bottom: calc(10% - 43px);
+    width: 56px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  .lobby-screen .lobby-social {
+    left: calc(max(12px, env(safe-area-inset-left)) + 68px);
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
