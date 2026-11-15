@@ -5,6 +5,7 @@ import { getBaseItemId, getItemRarity } from './game/inventory';
 import { parseCoreItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
+import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
@@ -807,7 +808,7 @@ export default function App() {
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalArmedPower = activeArsenalClassId
-    ? getArmedClassPower(activeArsenalClassId, 0, 1 + accountLevel * 0.05, {
+    ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
       weapon: equippedArsenalWeapon ? {
         model: equippedArsenalWeapon.model,
         damage: equippedArsenalWeapon.damage,
