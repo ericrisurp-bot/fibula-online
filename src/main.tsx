@@ -4,6 +4,7 @@ import App from './App';
 import AuthGate from './auth/AuthGate';
 import InstallPrompt from './ui/InstallPrompt';
 import { AndroidReleaseProvider } from './ui/AndroidRelease';
+import PublicDownloadPage from './ui/PublicDownloadPage';
 import WorldBackdropPreview from './ui/WorldBackdropPreview';
 import './style.css';
 
@@ -19,6 +20,7 @@ const hostname = window.location.hostname;
 const isPreviewHost = hostname.endsWith('.fibula.iericris.com.br')
   || hostname.endsWith('.fibula-online.pages.dev');
 const isWorldPreview = isPreviewHost && window.location.pathname === '/preview-cenario';
+const isPublicDownload = window.location.pathname === '/download';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -26,10 +28,16 @@ createRoot(document.getElementById('root')!).render(
       <WorldBackdropPreview />
     ) : (
       <AndroidReleaseProvider>
-        <AuthGate>
-          <App />
-        </AuthGate>
-        <InstallPrompt />
+        {isPublicDownload ? (
+          <PublicDownloadPage />
+        ) : (
+          <>
+            <AuthGate>
+              <App />
+            </AuthGate>
+            <InstallPrompt />
+          </>
+        )}
       </AndroidReleaseProvider>
     )}
   </React.StrictMode>,

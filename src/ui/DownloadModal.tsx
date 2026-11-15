@@ -3,7 +3,7 @@ import { useAndroidRelease } from './AndroidRelease';
 
 type DownloadModalProps = {
   onClose: () => void;
-  triggerRef: RefObject<HTMLButtonElement | null>;
+  triggerRef?: RefObject<HTMLButtonElement | null>;
 };
 
 const GAME_STORY = [
@@ -72,7 +72,7 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      triggerRef.current?.focus();
+      triggerRef?.current?.focus();
     };
   }, [onClose, triggerRef]);
 
