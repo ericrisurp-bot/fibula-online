@@ -656,8 +656,6 @@ export default function App() {
   });
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
-  const [workshopMenuOpen, setWorkshopMenuOpen] = useState(false);
-  const [socialMenuOpen, setSocialMenuOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
   const [duoNotice, setDuoNotice] = useState('');
   const duoLeaveActionRef = useRef<(() => void) | null>(null);
@@ -3617,15 +3615,10 @@ export default function App() {
             <span>ARSENAL</span>
           </button>
           <div className="lobby-social">
-            <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Social" title="Social" aria-expanded={socialMenuOpen} onClick={() => setSocialMenuOpen(value => !value)}>
+            <button className="lobby-friends-trigger lobby-social-trigger" type="button" aria-label="Abrir Amigos" title="Amigos" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>
               <span className="lobby-top-emoji" aria-hidden="true">👥</span>
-              <span>SOCIAL</span>
+              <span>AMIGOS</span>
             </button>
-            {socialMenuOpen && <div className="lobby-social-menu" role="menu" aria-label="Opções sociais">
-              <button type="button" role="menuitem" onClick={() => { setSocialMenuOpen(false); navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>Amigos</button>
-              <button type="button" role="menuitem" onClick={() => { setSocialMenuOpen(false); navigateToPage('status'); setActiveGameRoute({ page: 'status' }); setStatusOpen(true); }}>Status</button>
-              <button type="button" role="menuitem" onClick={() => { setSocialMenuOpen(false); navigateToPage('classes'); setActiveGameRoute({ page: 'classes' }); setProfileOpen(true); }}>Classes</button>
-            </div>}
           </div>
           <button className="lobby-chest-trigger" type="button" aria-label="Abrir Baú de recursos" title="Baú" onClick={openLobbyChest}>
             <span className="lobby-top-emoji" aria-hidden="true">🧰</span>
@@ -3639,15 +3632,10 @@ export default function App() {
         {updateAvailable && <p className="lobby-update-required" role="status">Atualização obrigatória: baixe a nova versão para jogar.</p>}
         {duoNotice && <p className="lobby-duo-notice" role="status">{duoNotice}</p>}
         <div className="lobby-workshop">
-          <button className="lobby-workshop-trigger" type="button" aria-label="Abrir Oficina" aria-expanded={workshopMenuOpen} onClick={() => setWorkshopMenuOpen(value => !value)}>
+          <button className="lobby-workshop-trigger" type="button" aria-label="Abrir Oficina: Bigorna" title="Oficina — Bigorna" onClick={() => openStation('bigorna')}>
             <span className="lobby-workshop-icon" aria-hidden="true">🔨</span>
             <span>OFICINA</span>
           </button>
-          {workshopMenuOpen && <div className="lobby-workshop-menu" role="menu" aria-label="Estações da Oficina">
-            {LOBBY_CRAFTING_STATIONS.map(station => <button key={station.id} type="button" role="menuitem" onClick={() => { setWorkshopMenuOpen(false); openStation(station.id); }}>
-              <span aria-hidden="true">{station.icon}</span><span>{station.title}</span>
-            </button>)}
-          </div>}
         </div>
       </div>}
                 {arsenalOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page arsenal-side">
