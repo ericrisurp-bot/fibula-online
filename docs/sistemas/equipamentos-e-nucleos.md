@@ -67,7 +67,6 @@ Cada peça poderá aproveitar no máximo quatro atributos compatíveis. A distri
 A categoria de armas é ofensiva. A matriz aprovada permite:
 
 - Força
-- Velocidade de ataque
 - Inteligência
 - Destreza
 
