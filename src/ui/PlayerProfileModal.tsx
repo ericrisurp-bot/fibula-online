@@ -293,13 +293,13 @@ export default function PlayerProfileModal({
               <div><span>SEXO</span><strong>{profile.sex ? profile.sex.charAt(0).toUpperCase() + profile.sex.slice(1) : 'Não informado'}</strong></div>
               <div><span>CONTA NO FÍBULA DESDE</span><strong>{createdAt ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(createdAt) : '—'}</strong><small>{createdAt ? `Há ${accountDays} dias` : ''}</small></div>
               <div><span>ELIMINAÇÕES</span><strong>{profile.kills}</strong></div>
-              <div><span>ATRIBUTOS POR NÍVEL</span><strong>{profile.attribute_gain_per_level}</strong></div>
+              {!CONFIG.rulesV2.enabled && <div><span>ATRIBUTOS POR NÍVEL</span><strong>{profile.attribute_gain_per_level}</strong></div>}
               <div><span>RECORDE DE SOBREVIVÊNCIA</span><strong>Nível {profile.highest_survival_level}</strong></div>
               <div><span>MAIOR PD</span><strong>{profile.highest_pd}</strong></div>
             </div>
             <section className="player-profile-attributes"><h4>Atributos do personagem</h4><div>
               {Object.entries(profile.attributes ?? {}).map(([key, value]) => <div key={key}><span>{key}</span><strong>{Number(value).toFixed(1)}</strong></div>)}
-              {!Object.keys(profile.attributes ?? {}).length && <small>Os atributos aparecerão conforme o personagem evoluir.</small>}
+              {!Object.keys(profile.attributes ?? {}).length && <small>{CONFIG.rulesV2.enabled ? 'A vida aumenta com o nível; dano, armadura e esquiva vêm de equipamentos e refeições, enquanto o movimento é fixo.' : 'Os atributos aparecerão conforme o personagem evoluir.'}</small>}
             </div></section>
             {canCompleteIdentity && <button type="button" className="player-profile-edit" onClick={() => { setEditing(true); setError(''); }}>{profile.display_name ? 'Completar dados do perfil' : 'Criar meu perfil'}</button>}
           </>}
