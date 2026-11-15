@@ -2,7 +2,7 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
+import { ATTRIBUTE_USAGE, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
@@ -361,7 +361,7 @@ export class GameEngine {
   }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
-  private pointsPerLevel(): number { return 1 + this.accountLevel * 0.05; }
+  private pointsPerLevel(): number { return getAccountPointsPerLevel(this.accountLevel); }
 
   /** Configura uma nova partida cooperativa neste motor local, antes de restart(). */
   configureCooperativeMatch(seed: number, cooperative: NonNullable<GameEngineOptions['cooperative']>): void {
@@ -2314,7 +2314,7 @@ export class GameEngine {
       if (Math.hypot(feet.x - animal.x, feet.y - animal.y) <= rules.radius + CONFIG.player.footRadius + 3) {
         animal.hitWait = CONFIG.wildlife.wolves.contactCooldown;
         const levelStats = this.getLevelStats();
-        if (this.random() > CONFIG.player.dodge + levelStats.dodge) {
+        if (this.random() > this.getDodgeChance()) {
           const damage = Math.max(1, Math.round(CONFIG.wildlife.wolves.contactDamage - CONFIG.player.armor - levelStats.armor));
           this.state.player.hp -= damage;
           this.addFloatingDamage(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
@@ -2688,11 +2688,22 @@ export class GameEngine {
 
   private getLevelStats() {
     const { classId, player } = this.state;
+    const weaponBonuses = this.getWeaponAttributeBonuses();
     return {
-      speed: getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (this.getWeaponAttributeBonuses().velocidadeMovimento ?? 0)),
-      armor: getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
-      dodge: getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
+      speed: getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)),
+      armor: CONFIG.rulesV2.enabled
+        ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0)
+        : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
+      dodge: CONFIG.rulesV2.enabled
+        ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0)
+        : getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
     };
+  }
+
+  private getDodgeChance(): number {
+    const baseDodge = CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[this.state.classId] : CONFIG.player.dodge;
+    const chance = baseDodge + this.getLevelStats().dodge;
+    return CONFIG.rulesV2.enabled ? Math.min(0.35, chance) : chance;
   }
 
   /** A carroça só fica exposta enquanto o burrinho está efetivamente em deslocamento de acompanhamento. */
