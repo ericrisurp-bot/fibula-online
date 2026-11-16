@@ -478,6 +478,7 @@ export default function App() {
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const equippedArmorsRef = useRef<Partial<Record<ArmorPiece, CraftedArmor>>>({});
   const applyClassAndEquippedWeaponRef = useRef<(id: ClassId) => void>(() => {});
   const houseLoadReadyRef = useRef(false);
   const houseChangedDuringLoadRef = useRef(false);
@@ -929,6 +930,7 @@ export default function App() {
   const equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = CONFIG.rulesV2.armorCraftingEnabled && armorListReady
     ? resolveEquippedArmors(craftedArmors, equippedArmorIds)
     : {};
+  equippedArmorsRef.current = equippedArmors;
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
@@ -2188,6 +2190,11 @@ export default function App() {
   }, [activeGameRoute.page]);
 
   useEffect(() => {
+    if (!CONFIG.rulesV2.armorCraftingEnabled) return;
+    engineRef.current?.setEquippedArmors(armorListReady ? equippedArmorsRef.current : {});
+  }, [activeGameRoute.page, armorListReady, craftedArmors, equippedArmorIds]);
+
+  useEffect(() => {
     const engine = engineRef.current; if (!engine || activeGameRoute.page !== 'lobby') return;
     const down = (e: KeyboardEvent) => {
       if (!gameStartedRef.current) return;
@@ -2899,6 +2906,7 @@ export default function App() {
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
       await prepareEquippedWeaponForClass(engine, selectedClass);
+      if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current);
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
