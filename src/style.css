@@ -12278,7 +12278,7 @@ sem backdrop ou caixa de modal. */
 
 /* Bigorna — mesma divisão proporcional da Cozinha (0.9fr / 1.1fr). */
 .forge-workspace{
-  grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;
+  grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;
 }
 .forge-production-result{
   position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -12317,7 +12317,7 @@ sem backdrop ou caixa de modal. */
 .forge-chest-zone .forge-material-item strong{font-size:7px}
 .forge-chest-zone .forge-material-item small{font-size:7px}
 @media(max-width:430px){
-  .forge-workspace{grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;gap:5px;padding:5px 6px calc(6px + env(safe-area-inset-bottom))!important}
+  .forge-workspace{grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;gap:5px;padding:5px 6px calc(6px + env(safe-area-inset-bottom))!important}
   .forge-lower-panel{gap:5px}
   .forge-selection-zone{padding:5px;gap:4px}
   .forge-selection-zone .forge-recipe-slot{min-height:44px}
@@ -12328,7 +12328,7 @@ sem backdrop ou caixa de modal. */
   .forge-production-result{min-width:68%;min-height:70px;padding:8px}
 }
 @media(max-height:650px){
-  .forge-workspace{grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important}
+  .forge-workspace{grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important}
   .forge-selection-zone .forge-recipe-slot{min-height:39px}
   .forge-chest-zone .forge-material-item{min-height:38px}
 }
@@ -12336,7 +12336,7 @@ sem backdrop ou caixa de modal. */
 
 /* Bigorna — reduz a altura visual do cenário em 5% para alinhar com o forno. */
 .forge-page .forge-workspace > .forge-scene{
-  height:87%;
+  height:100%;
   min-height:0;
-  align-self:start;
+  align-self:stretch;
 }
