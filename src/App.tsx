@@ -938,6 +938,7 @@ export default function App() {
     const syncGameRoute = () => {
       if (gameStartedRef.current) {
         window.history.pushState({ fibulaGameBackGuard: true }, '', window.location.href);
+        setExitConfirmationError('');
         setExitConfirmationOpen(true);
         return;
       }
@@ -1070,6 +1071,7 @@ export default function App() {
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
+  const [exitConfirmationError, setExitConfirmationError] = useState('');
   const [mobileLobbyLandscape, setMobileLobbyLandscape] = useState(false);
   const gameStartedRef = useRef(false);
   const gameBackGuardRef = useRef(false);
@@ -3257,6 +3259,7 @@ export default function App() {
     }
     gameStartedRef.current = false;
     setExitConfirmationOpen(false);
+    setExitConfirmationError('');
     engine.restart();
     engine.stop();
     flagsRef.current = [];
@@ -3277,9 +3280,14 @@ export default function App() {
         setDuoNotice('Não foi possível confirmar sua saída da partida Duo. Tente novamente.');
         return;
       }
-      const left = await duoLeaveActionRef.current();
-      if (left === false) {
-        setDuoNotice('Não foi possível sair da partida Duo. Você continua na partida.');
+      try {
+        const left = await duoLeaveActionRef.current();
+        if (left === false) {
+          setExitConfirmationError('Não foi possível sair da partida Duo. Você continua na partida.');
+          return;
+        }
+      } catch {
+        setExitConfirmationError('Não foi possível sair da partida Duo. Você continua na partida.');
         return;
       }
     }
@@ -4179,9 +4187,10 @@ export default function App() {
       <section className="match-exit-dialog" role="dialog" aria-modal="true" aria-labelledby="match-exit-title" aria-describedby="match-exit-description">
         <h2 id="match-exit-title">Abandonar partida?</h2>
         <p id="match-exit-description">Deseja sair desta partida e voltar ao Lobby?</p>
+        {exitConfirmationError && <p className="match-exit-error" role="alert">{exitConfirmationError}</p>}
         <div className="match-exit-actions">
           <button type="button" className="match-exit-confirm" onClick={() => { void confirmExitToLobby(); }}>SIM</button>
-          <button type="button" className="match-exit-cancel" onClick={() => setExitConfirmationOpen(false)}>NÃO</button>
+          <button type="button" className="match-exit-cancel" onClick={() => { setExitConfirmationOpen(false); setExitConfirmationError(''); }}>NÃO</button>
         </div>
       </section>
     </div>}
