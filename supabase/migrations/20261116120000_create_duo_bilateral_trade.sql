@@ -353,9 +353,931 @@ begin
         v_item_id := v_entry ->> 'itemId';
         v_quantity := (v_entry ->> 'quantity')::bigint;
         select inventory into v_inventory from public.fibula_house_storage where user_id = v_owner;
+        if exists (select 1 from jsonb_array_elements(v_inventory) e
+                   where e.value ->> 'itemId' = v_item_id
+                     and coalesce(e.value ->> 'quantity','') !~ '^[1-9][0-9]*
+        if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current > v_quantity then
+          v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current-v_quantity));
+        end if;
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_owner;
+
+        select inventory into v_inventory from public.fibula_house_storage where user_id = v_receiver;
+        if exists (select 1 from jsonb_array_elements(v_inventory) e
+                   where e.value ->> 'itemId' = v_item_id
+                     and coalesce(e.value ->> 'quantity','') !~ '^[1-9][0-9]*
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+) then
+          raise exception 'O Baú contém uma quantidade inválida para um item da oferta.';
+        end if;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*
+        if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current > v_quantity then
+          v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current-v_quantity));
+        end if;
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_owner;
+
+        select inventory into v_inventory from public.fibula_house_storage where user_id = v_receiver;
         select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
           from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
             and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*$';
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+;
+        if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current > v_quantity then
+          v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current-v_quantity));
+        end if;
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_owner;
+
+        select inventory into v_inventory from public.fibula_house_storage where user_id = v_receiver;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*$';
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+) then
+          raise exception 'O Baú de destino contém uma quantidade inválida para um item da oferta.';
+        end if;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+) then
+          raise exception 'O Baú contém uma quantidade inválida para um item da oferta.';
+        end if;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*
+        if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current > v_quantity then
+          v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current-v_quantity));
+        end if;
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_owner;
+
+        select inventory into v_inventory from public.fibula_house_storage where user_id = v_receiver;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*$';
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+;
+        if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current > v_quantity then
+          v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current-v_quantity));
+        end if;
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_owner;
+
+        select inventory into v_inventory from public.fibula_house_storage where user_id = v_receiver;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*$';
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+) then
+          raise exception 'O Baú contém uma quantidade inválida para um item da oferta.';
+        end if;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*
+        if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current > v_quantity then
+          v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current-v_quantity));
+        end if;
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_owner;
+
+        select inventory into v_inventory from public.fibula_house_storage where user_id = v_receiver;
+        select coalesce(sum((e.value ->> 'quantity')::bigint),0) into v_current
+          from jsonb_array_elements(v_inventory) e where e.value ->> 'itemId' = v_item_id
+            and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*$';
+        select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
+          from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
+         where e.value ->> 'itemId' <> v_item_id;
+        if v_current = 0 and jsonb_array_length(v_inventory) >= 50 then raise exception 'O Baú do outro jogador está cheio.'; end if;
+        if v_current + v_quantity > 1000000000 then raise exception 'Quantidade máxima excedida no Baú.'; end if;
+        v_next := v_next || jsonb_build_array(jsonb_build_object('itemId',v_item_id,'quantity',v_current+v_quantity));
+        update public.fibula_house_storage set inventory = v_next, updated_at = pg_catalog.now() where user_id = v_receiver;
+
+      elsif v_entry ->> 'kind' = 'weapon' then
+        v_weapon_id := (v_entry ->> 'weaponId')::uuid;
+        update public.fibula_weapons set user_id = v_receiver
+         where id = v_weapon_id and user_id = v_owner;
+        if not found then raise exception 'Uma arma da oferta não está mais disponível.'; end if;
+
+      elsif v_entry ->> 'kind' = 'meal' then
+        v_meal_id := v_entry ->> 'mealId';
+        v_meal_state := v_entry ->> 'mealState';
+        select prepared, ready, pending into v_source_prepared, v_source_ready, v_source_pending
+          from public.fibula_cooking_state where user_id = v_owner;
+        select prepared, ready, pending into v_target_prepared, v_target_ready, v_target_pending
+          from public.fibula_cooking_state where user_id = v_receiver;
+        v_source := case v_meal_state when 'prepared' then v_source_prepared when 'ready' then v_source_ready else v_source_pending end;
+        v_target := case v_meal_state when 'prepared' then v_target_prepared when 'ready' then v_target_ready else v_target_pending end;
+        select m.value into v_meal from jsonb_array_elements(v_source) m where m.value ->> 'id' = v_meal_id;
+        if v_meal is null then raise exception 'Uma refeição da oferta não está mais disponível.'; end if;
+        if exists (select 1 from jsonb_array_elements(v_target) m where m.value ->> 'id' = v_meal_id) then
+          raise exception 'A refeição já existe no inventário de destino.';
+        end if;
+        if v_meal_state = 'prepared' and jsonb_array_length(v_target) >= 3
+          or v_meal_state = 'pending' and jsonb_array_length(v_target) >= 2
+          or v_meal_state = 'ready' and jsonb_array_length(v_target) >= 200 then
+          raise exception 'O espaço de refeições do outro jogador está cheio.';
+        end if;
+        select coalesce(jsonb_agg(m.value order by m.ordinality),'[]'::jsonb) into v_source_next
+          from jsonb_array_elements(v_source) with ordinality m(value, ordinality)
+         where m.value ->> 'id' <> v_meal_id;
+        v_target_next := v_target || jsonb_build_array(v_meal);
+        if v_owner = v_trade.host_id then
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        else
+          v_source_prepared := case when v_meal_state='prepared' then v_source_next else v_source_prepared end;
+          v_source_ready := case when v_meal_state='ready' then v_source_next else v_source_ready end;
+          v_source_pending := case when v_meal_state='pending' then v_source_next else v_source_pending end;
+          v_target_prepared := case when v_meal_state='prepared' then v_target_next else v_target_prepared end;
+          v_target_ready := case when v_meal_state='ready' then v_target_next else v_target_ready end;
+          v_target_pending := case when v_meal_state='pending' then v_target_next else v_target_pending end;
+        end if;
+        update public.fibula_cooking_state set prepared=v_source_prepared, ready=v_source_ready, pending=v_source_pending, updated_at=pg_catalog.now() where user_id=v_owner;
+        update public.fibula_cooking_state set prepared=v_target_prepared, ready=v_target_ready, pending=v_target_pending, updated_at=pg_catalog.now() where user_id=v_receiver;
+      end if;
+    end loop;
+  end loop;
+
+  update public.fibula_duo_trade_sessions
+     set status='completed', completed_at=pg_catalog.now(), updated_at=pg_catalog.now()
+   where id=p_trade_id;
+  return true;
+end;
+$function$;
+
+create or replace function public.fibula_duo_trade_cancel(p_trade_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
+begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
+  update public.fibula_duo_trade_sessions
+     set status='cancelled', updated_at=pg_catalog.now()
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  return found;
+end;
+$function$;
+
+revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
+revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
+revoke all on function public.fibula_duo_trade_snapshot(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_set_offer(uuid, jsonb) from public, anon;
+revoke all on function public.fibula_duo_trade_confirm(uuid) from public, anon;
+revoke all on function public.fibula_duo_trade_cancel(uuid) from public, anon;
+
+grant execute on function public.fibula_duo_trade_request(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_answer(uuid, boolean) to authenticated;
+grant execute on function public.fibula_duo_trade_snapshot(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_set_offer(uuid, jsonb) to authenticated;
+grant execute on function public.fibula_duo_trade_confirm(uuid) to authenticated;
+grant execute on function public.fibula_duo_trade_cancel(uuid) to authenticated;
+;
         if v_current < v_quantity then raise exception 'Um recurso da oferta não está mais disponível.'; end if;
         select coalesce(jsonb_agg(e.value order by e.ordinality), '[]'::jsonb) into v_next
           from jsonb_array_elements(v_inventory) with ordinality e(value, ordinality)
