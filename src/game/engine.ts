@@ -2745,8 +2745,9 @@ export class GameEngine {
     const weaponBonuses = this.getWeaponAttributeBonuses();
     const armorBonuses = CONFIG.rulesV2.enabled ? this.getArmorBonuses() : null;
     return {
-      speed: getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0))
-        + (armorBonuses?.mobilidade ?? 0),
+      speed: CONFIG.rulesV2.enabled
+        ? getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)) + (armorBonuses?.mobilidade ?? 0)
+        : getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)),
       armor: CONFIG.rulesV2.enabled
         ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) + (armorBonuses?.armadura ?? 0)
         : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
@@ -3406,14 +3407,14 @@ export class GameEngine {
       const dx = p.x - orb.x, dy = p.y - orb.y;
       const distance = Math.hypot(dx, dy) || 1;
       if (distance <= CONFIG.player.pickupRadius) {
-        this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value * xpMultiplier;
+        this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += armorBonuses ? orb.value * xpMultiplier : orb.value;
       } else if (distance <= XP_ATTRACTION_RADIUS) {
         const step = Math.min(distance - CONFIG.player.pickupRadius, (CONFIG.xp.attractionSpeed + playerSpeed) * dt);
         orb.x += dx / distance * step;
         orb.y += dy / distance * step;
         if (Math.hypot(p.x - orb.x, p.y - orb.y) <= CONFIG.player.pickupRadius + 0.001) {
           this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id);
-          p.xp += orb.value;
+          p.xp += armorBonuses ? orb.value * xpMultiplier : orb.value;
         }
       }
     }
