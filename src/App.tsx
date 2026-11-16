@@ -921,9 +921,6 @@ export default function App() {
   const equippedArmors = CONFIG.rulesV2.armorCraftingEnabled && armorsLoaded
     ? resolveEquippedArmors(craftedArmors, equippedArmorIds)
     : {};
-  const armorBonusesForClass = (classId: ClassId) => CONFIG.rulesV2.armorCraftingEnabled
-    ? computeArmorBonuses(equippedArmors, classId)
-    : undefined;
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalArmedPower = activeArsenalClassId
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
@@ -3958,7 +3955,7 @@ export default function App() {
                     const equippedName = equippedArmor ? ARSENAL_ARMOR_PIECE_LABELS[equippedArmor.piece] : weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : legacyEquipped ? cleanItemName(legacyEquipped.name) : undefined;
                     const rarity = equippedArmor?.rarity ?? weaponEquipped?.rarity ?? legacyEquipped?.rarity;
                     const info = ARSENAL_SLOT_INFO[slot];
-                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
+                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''} ${armorPiece ? 'arsenal-armor-equipment-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
                       if (equippedArmor) openArsenalArmorActions(equippedArmor);
                       else if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
                       else if (legacyEquipped) openArsenalEquipmentActions(legacyEquipped, true);
@@ -3971,7 +3968,7 @@ export default function App() {
                   })}
                 </div>
               </div>
-              {CONFIG.rulesV2.armorCraftingEnabled && <ArmorBonusSummary classDodge={CONFIG.player.classDodge} rulesV2Enabled={CONFIG.rulesV2.enabled} classId={activeArsenalClassId} bonuses={activeArsenalClassId ? computeArmorBonuses(equippedArmors, activeArsenalClassId) : null} equippedCount={ARMOR_PIECE_ORDER.filter(piece => Boolean(equippedArmors[piece])).length} />}
+              {CONFIG.rulesV2.armorCraftingEnabled && armorsLoaded && <ArmorBonusSummary classDodge={CONFIG.player.classDodge} rulesV2Enabled={CONFIG.rulesV2.enabled} classId={activeArsenalClassId} bonuses={activeArsenalClassId ? computeArmorBonuses(equippedArmors, activeArsenalClassId) : null} equippedCount={ARMOR_PIECE_ORDER.filter(piece => Boolean(equippedArmors[piece])).length} />}
             </section>
             <section className="arsenal-inventory-section" aria-label="Inventário de equipamentos">
               <div className="arsenal-section-heading"><strong>INVENTÁRIO</strong><span>{arsenalInventoryEntries.length}/{arsenalInventoryCapacity}</span></div>
