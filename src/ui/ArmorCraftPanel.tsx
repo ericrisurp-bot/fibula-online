@@ -87,20 +87,22 @@ export default function ArmorCraftPanel({
   const [busy, setBusy] = useState(false);
   const craftLockRef = useRef(false);
 
-  const armorCores = useMemo(() => {
-    const merged = new Map<string, { itemId: string; quantity: number; core: Core; piece: ArmorPiece }>();
+  const chestStacks = useMemo(() => {
+    const merged = new Map<string, number>();
     for (const stack of chestItems) {
       if (stack.quantity <= 0) continue;
-      const parsed = parseCoreItemId(stack.itemId);
-      if (parsed?.kind !== 'revealed' || armorCoreRoll(parsed.core) === null) continue;
-      const piece = corePiece(parsed.core);
-      if (!piece) continue;
-      const current = merged.get(stack.itemId);
-      if (current) current.quantity += stack.quantity;
-      else merged.set(stack.itemId, { itemId: stack.itemId, quantity: stack.quantity, core: parsed.core, piece });
+      merged.set(stack.itemId, (merged.get(stack.itemId) ?? 0) + stack.quantity);
     }
-    return Array.from(merged.values());
+    return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity }))
+      .sort((a, b) => Number(parseCoreItemId(b.itemId) !== null) - Number(parseCoreItemId(a.itemId) !== null));
   }, [chestItems]);
+
+  const armorCores = useMemo(() => chestStacks.flatMap(stack => {
+    const parsed = parseCoreItemId(stack.itemId);
+    if (parsed?.kind !== 'revealed' || armorCoreRoll(parsed.core) === null) return [];
+    const piece = corePiece(parsed.core);
+    return piece ? [{ ...stack, core: parsed.core, piece }] : [];
+  }), [chestStacks]);
 
   const selectedCore = armorCores.find(entry => entry.itemId === selectedCoreId) ?? null;
   const selectedPiece = selectedCore?.piece ?? null;
@@ -193,28 +195,36 @@ export default function ArmorCraftPanel({
 
   return <section className="armor-craft-panel" aria-label={type === 'couro' ? 'Fabricação de armadura de couro' : 'Fabricação de armadura de bronze'}>
     <div className="armor-craft-scroll">
-      <section className="armor-craft-section" aria-label="Núcleos revelados">
-        <header className="armor-craft-heading"><strong>NÚCLEO</strong><span>Escolha uma peça revelada no Baú</span></header>
-        <div className="armor-craft-core-grid">
-          {armorCores.map(entry => <button
-            type="button"
-            key={entry.itemId}
-            className={`armor-craft-core-card${selectedCoreId === entry.itemId ? ' armor-craft-is-selected' : ''}`}
-            onClick={() => { setSelectedCoreId(entry.itemId); setFeedback(''); }}
-            aria-pressed={selectedCoreId === entry.itemId}
-          >
-            <img
-              className="armor-craft-piece-image"
-              src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[entry.piece]}.png`}
-              alt=""
-              aria-hidden="true"
-              draggable={false}
-            />
-            <strong>{PIECE_LABELS[entry.piece]}</strong>
-            <small>{RARITY_LABELS[entry.core.rarity]}{entry.core.surp ? ' · SURP' : ''}</small>
-            {entry.quantity > 1 && <em>×{entry.quantity}</em>}
-          </button>)}
-          {armorCores.length === 0 && <p className="armor-craft-empty">Nenhum núcleo revelado de armadura no Baú.</p>}
+      <section className="armor-craft-section" aria-label="Baú completo">
+        <header className="armor-craft-heading"><strong>BAÚ</strong><span>Núcleos de armadura primeiro · Todos os itens</span></header>
+        <div className="armor-craft-chest-grid">
+          {chestStacks.map(stack => {
+            const armorCore = armorCores.find(entry => entry.itemId === stack.itemId);
+            const cardContent = <>
+              {armorCore
+                ? <img
+                    className="armor-craft-piece-image"
+                    src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[armorCore.piece]}.png`}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                  />
+                : <span className="armor-craft-chest-icon" style={glowStyle(stack.itemId)}>{renderIcon(stack.itemId)}</span>}
+              <strong>{armorCore ? PIECE_LABELS[armorCore.piece] : label(stack.itemId)}</strong>
+              <small>{armorCore ? `${RARITY_LABELS[armorCore.core.rarity]}${armorCore.core.surp ? ' · SURP' : ''}` : 'No Baú'}</small>
+              <em>×{stack.quantity}</em>
+            </>;
+            return armorCore
+              ? <button
+                  type="button"
+                  key={stack.itemId}
+                  className={`armor-craft-core-card armor-craft-chest-card${selectedCoreId === stack.itemId ? ' armor-craft-is-selected' : ''}`}
+                  onClick={() => { setSelectedCoreId(stack.itemId); setFeedback(''); }}
+                  aria-pressed={selectedCoreId === stack.itemId}
+                >{cardContent}</button>
+              : <div key={stack.itemId} className="armor-craft-core-card armor-craft-chest-card is-inert" aria-disabled="true">{cardContent}</div>;
+          })}
+          {chestStacks.length === 0 && <p className="armor-craft-empty">O Baú está vazio.</p>}
         </div>
       </section>
 
