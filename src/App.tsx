@@ -1059,13 +1059,18 @@ export default function App() {
   const jewelryCottonAvailable = jewelryCottonItemId ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0) : 0;
   const anvilChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     if (item.quantity <= 0) return stacks;
+    const parsedCore = parseCoreItemId(item.itemId);
+    const base = getBaseItemId(item.itemId);
+    const isRevealedCore = parsedCore?.kind === 'revealed';
+    const isEquipmentMaterial = !parsedCore && ['wood', 'stone', 'bronze', 'linen'].includes(base);
+    if (!isRevealedCore && !isEquipmentMaterial) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
   }, []).sort((a, b) => {
-    const aIsCore = parseCoreItemId(a.itemId) !== null;
-    const bIsCore = parseCoreItemId(b.itemId) !== null;
+    const aIsCore = parseCoreItemId(a.itemId)?.kind === 'revealed';
+    const bIsCore = parseCoreItemId(b.itemId)?.kind === 'revealed';
     return Number(bIsCore) - Number(aIsCore);
   });
   const tailorFabricStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
@@ -3766,9 +3771,9 @@ export default function App() {
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
-                      <span>Núcleos primeiro · Todos os itens disponíveis</span>
+                      <span>Núcleos revelados · Materiais para equipamentos</span>
                     </div>
-                    <div className="forge-material-grid forge-chest-grid" aria-label="Todos os itens do Baú, com núcleos primeiro">
+                    <div className="forge-material-grid forge-chest-grid" aria-label="Núcleos revelados e materiais para equipamentos no Baú">
                       {anvilChestStacks.map(item => {
                         const parsedCore = parseCoreItemId(item.itemId);
                         if (parsedCore) {
