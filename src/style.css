@@ -12211,3 +12211,44 @@ sem backdrop ou caixa de modal. */
 .side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-armor-details-close{min-width:44px;min-height:44px}
 @media(max-width:420px){.arsenal-armor-bonus-summary{padding:7px;gap:4px}.arsenal-armor-bonus-summary>strong{font-size:9px}.arsenal-armor-bonus-summary>div,.arsenal-armor-bonus-summary>div b{font-size:9px}.arsenal-armor-inventory-item{min-height:58px}}
 @media(orientation:landscape) and (max-height:520px){.arsenal-armor-equipment-slot{min-height:44px}.arsenal-armor-bonus-summary{gap:3px;margin-top:5px;padding:5px 7px}.arsenal-armor-bonus-summary>div{padding-top:2px}}
+
+
+/* Bigorna — baú completo em uma única grade, núcleos priorizados e ação fixa. */
+.forge-workspace{
+  display:grid!important;
+  grid-template-rows:minmax(155px,29%) minmax(0,1fr)!important;
+  min-height:0;
+  overflow:hidden;
+}
+.forge-chest-zone{min-height:0;overflow:hidden}
+.forge-chest-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  align-content:start;
+  min-height:0;
+  flex:1 1 auto;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.forge-chest-grid .forge-material-item{min-height:58px}
+.forge-chest-grid .forge-core-item{flex-basis:auto}
+.forge-chest-item.is-inert{opacity:.62}
+.forge-chest-action{
+  flex:0 0 auto;
+  min-height:40px;
+  padding-top:5px;
+  border-top:1px solid #ffffff18;
+}
+.forge-chest-action .forge-result{width:100%}
+.forge-chest-action .forge-feedback,
+.forge-chest-action .forge-offline{font-size:9px}
+@media(max-width:430px){
+  .forge-workspace{grid-template-rows:minmax(145px,26%) minmax(0,1fr)!important;gap:6px}
+  .forge-chest-zone{padding:6px;gap:4px}
+  .forge-chest-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .forge-chest-grid .forge-material-item{min-height:52px;padding:3px 2px}
+  .forge-chest-action{min-height:37px}
+}
+@media(min-width:700px){
+  .forge-workspace{grid-template-rows:minmax(190px,34%) minmax(0,1fr)!important}
+  .forge-chest-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
+}
