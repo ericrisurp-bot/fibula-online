@@ -16,7 +16,9 @@ import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/ma
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
-import { listMyArmors, type CraftedArmor } from './game/armorCrafting';
+import { deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
+import { ARMOR_PIECE_ORDER, computeArmorBonuses, readEquippedArmorSelections, resolveEquippedArmors, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
+import type { ArmorPiece } from './game/armor';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -38,6 +40,7 @@ import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import ArmorCraftPanel from './ui/ArmorCraftPanel';
+import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
@@ -91,6 +94,8 @@ const ARSENAL_SLOT_INFO: Record<EquipmentSlotId, { label: string }> = {
   colar: { label: 'colar' }, bolsa: { label: 'bolsa' },
   pulseira: { label: 'pulseira' }, cinto: { label: 'cinto' },
 };
+const ARSENAL_ARMOR_SLOT_PIECES: Partial<Record<EquipmentSlotId, ArmorPiece>> = { capacete: 'capacete', peitoral: 'peitoral', leggings: 'calca', bota: 'bota', luva: 'luva' };
+const ARSENAL_ARMOR_PIECE_LABELS: Record<ArmorPiece, string> = { capacete: 'Capacete', peitoral: 'Peitoral', calca: 'Calça', bota: 'Bota', luva: 'Luva' };
 const ARSENAL_SLOT_LAYOUT: { slot: EquipmentSlotId; row: number; column: number }[] = [
   { slot: 'colar', row: 1, column: 1 }, { slot: 'capacete', row: 1, column: 2 },
   { slot: 'bolsa', row: 1, column: 3 }, { slot: 'arma', row: 2, column: 1 },
@@ -879,31 +884,64 @@ export default function App() {
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
+  const [equippedArmorIds, setEquippedArmorIds] = useState<EquippedArmorSelections>(() => CONFIG.rulesV2.armorCraftingEnabled ? readEquippedArmorSelections(session.user.sub) : {});
+  const [armorsLoaded, setArmorsLoaded] = useState(false);
+  const [armorsSettled, setArmorsSettled] = useState(false);
+  const [armorsLoadedForUserId, setArmorsLoadedForUserId] = useState<string | null>(null);
+  const [armorActionArmor, setArmorActionArmor] = useState<CraftedArmor | null>(null);
+  const [armorDeleteConfirmation, setArmorDeleteConfirmation] = useState(false);
+  const [armorDeleteBusy, setArmorDeleteBusy] = useState(false);
   const [forgeTab, setForgeTab] = useState<'armas' | 'armaduras'>('armas');
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
+    setEquippedArmorIds(readEquippedArmorSelections(session.user.sub));
+  }, [session.user.sub]);
+  useEffect(() => {
+    if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
-      setCraftedArmors([]);
+      setArmorsLoaded(false);
+      setArmorsLoadedForUserId(null);
+      setArmorsSettled(true);
       return;
     }
     let active = true;
+    setArmorsLoaded(false);
+    setArmorsLoadedForUserId(null);
+    setArmorsSettled(false);
     void listMyArmors(fibulaSupabase)
-      .then(armors => { if (active) setCraftedArmors(armors); })
-      .catch(() => { if (active) setCraftedArmors([]); });
+      .then(armors => { if (active) { setCraftedArmors(armors); setArmorsLoaded(true); setArmorsLoadedForUserId(session.user.sub); } })
+      .catch(() => { if (active) { setArmorsLoaded(false); setArmorsLoadedForUserId(null); } })
+      .finally(() => { if (active) setArmorsSettled(true); });
     return () => { active = false; };
   }, [session.user.sub, cookingOnline]);
+  const armorListReady = armorsLoaded && armorsLoadedForUserId === session.user.sub;
+  useEffect(() => {
+    if (!CONFIG.rulesV2.armorCraftingEnabled || !armorListReady) return;
+    const resolved = resolveEquippedArmors(craftedArmors, equippedArmorIds);
+    const validSelections: EquippedArmorSelections = {};
+    for (const piece of ARMOR_PIECE_ORDER) {
+      const armor = resolved[piece];
+      if (armor) validSelections[piece] = armor.id;
+    }
+    writeEquippedArmorSelections(session.user.sub, validSelections);
+    if (JSON.stringify(validSelections) !== JSON.stringify(equippedArmorIds)) setEquippedArmorIds(validSelections);
+  }, [armorListReady, craftedArmors, equippedArmorIds, session.user.sub]);
+  const equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = CONFIG.rulesV2.armorCraftingEnabled && armorListReady
+    ? resolveEquippedArmors(craftedArmors, equippedArmorIds)
+    : {};
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
-  const arsenalArmedPower = activeArsenalClassId
+  const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
       weapon: equippedArsenalWeapon ? {
         model: equippedArsenalWeapon.model,
         damage: equippedArsenalWeapon.damage,
         attributes: equippedArsenalWeapon.attributes,
       } : null,
+      ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmors, activeArsenalClassId) } : {}),
     })
     : null;
   const arsenalPowerValue = arsenalArmedPower ? Math.round(arsenalArmedPower.total) : null;
-  const statusPowerReady = weaponsLoaded && !weaponsLoading;
+  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled);
   const statusPowers: Partial<Record<ClassId, number>> = {};
   if (statusPowerReady) {
     for (const classId of characterPreferences) {
@@ -911,6 +949,7 @@ export default function App() {
       const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, classId);
       statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, getAccountPointsPerLevel(accountLevel), {
         weapon: weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null,
+        ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmors, classId) } : {}),
       }).total);
     }
   }
@@ -925,9 +964,14 @@ export default function App() {
     lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
     void reportHighestPd(fibulaSupabase, statusDuoPower);
   }, [statusPowerReady, statusDuoPower, session.user.sub]);
-  const arsenalInventoryEntries = [
+  const arsenalInventoryEntries: Array<
+    | { kind: 'equipment'; item: ArsenalEquipment }
+    | { kind: 'weapon'; weapon: CraftedWeapon }
+    | { kind: 'armor'; armor: CraftedArmor }
+  > = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
+    ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => equippedArmorIds[armor.piece] !== armor.id).map(armor => ({ kind: 'armor' as const, armor })) : []),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
@@ -3021,6 +3065,56 @@ export default function App() {
     if (engineRef.current?.state.classId === classId) engineRef.current.setEquippedWeapon(null);
     setWeaponFeedback(arsenalWeaponLabels[weapon.model] + ' desequipada.');
   };
+  const openArsenalArmorActions = (armor: CraftedArmor) => { setSelectedArsenalItemId(armor.id); setArmorActionArmor(armor); };
+  const equipArsenalArmor = () => {
+    if (!armorActionArmor) return;
+    const next = { ...equippedArmorIds, [armorActionArmor.piece]: armorActionArmor.id };
+    setEquippedArmorIds(next);
+    writeEquippedArmorSelections(session.user.sub, next);
+    setWeaponFeedback(ARSENAL_ARMOR_PIECE_LABELS[armorActionArmor.piece] + ' equipada.');
+    setSelectedArsenalItemId(null);
+    setArmorActionArmor(null);
+  };
+  const unequipArsenalArmor = () => {
+    if (!armorActionArmor) return;
+    const next = { ...equippedArmorIds };
+    if (next[armorActionArmor.piece] === armorActionArmor.id) delete next[armorActionArmor.piece];
+    setEquippedArmorIds(next);
+    writeEquippedArmorSelections(session.user.sub, next);
+    setWeaponFeedback(ARSENAL_ARMOR_PIECE_LABELS[armorActionArmor.piece] + ' desequipada.');
+    setSelectedArsenalItemId(null);
+    setArmorActionArmor(null);
+  };
+  const confirmArsenalArmorDeletion = async () => {
+    const armor = armorActionArmor;
+    if (!armor || armorDeleteBusy) return;
+    if (!fibulaSupabase || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      setWeaponFeedback('Não foi possível excluir agora. Tente de novo.');
+      setArmorDeleteConfirmation(false);
+      return;
+    }
+    setArmorDeleteBusy(true);
+    try {
+      const deleted = await deleteArmor(fibulaSupabase, armor.id);
+      if (!deleted) throw new Error('A armadura não foi excluída.');
+      if (equippedArmorIds[armor.piece] === armor.id) {
+        const next = { ...equippedArmorIds };
+        delete next[armor.piece];
+        setEquippedArmorIds(next);
+        writeEquippedArmorSelections(session.user.sub, next);
+      }
+      setCraftedArmors(current => current.filter(item => item.id !== armor.id));
+      setWeaponFeedback('Armadura excluída.');
+      setSelectedArsenalItemId(null);
+      setArmorActionArmor(null);
+      setArmorDeleteConfirmation(false);
+    } catch {
+      setWeaponFeedback('Não foi possível excluir agora. Tente de novo.');
+      setArmorDeleteConfirmation(false);
+    } finally {
+      setArmorDeleteBusy(false);
+    }
+  };
   const openArsenalWeaponActions = (weapon: CraftedWeapon, equipped: boolean) => {
     setSelectedArsenalItemId(weapon.id);
     setArsenalActionItem({ kind: 'weapon', weapon, equipped });
@@ -3869,29 +3963,40 @@ export default function App() {
                 {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                 <div className="arsenal-equipment-grid">
                   {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
+                    const armorPiece: ArmorPiece | undefined = CONFIG.rulesV2.armorCraftingEnabled ? ARSENAL_ARMOR_SLOT_PIECES[slot] : undefined;
+                    const equippedArmor = armorPiece ? equippedArmors[armorPiece] : null;
                     const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
-                    const equipped = weaponEquipped ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                    const equippedName = weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : equipped ? cleanItemName(equipped.name) : undefined;
-                    const rarity = weaponEquipped?.rarity ?? equipped?.rarity;
+                    const legacyEquipped = armorPiece ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                    const equippedName = equippedArmor ? ARSENAL_ARMOR_PIECE_LABELS[equippedArmor.piece] : weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : legacyEquipped ? cleanItemName(legacyEquipped.name) : undefined;
+                    const rarity = equippedArmor?.rarity ?? weaponEquipped?.rarity ?? legacyEquipped?.rarity;
                     const info = ARSENAL_SLOT_INFO[slot];
-                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
-                      if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
-                      else if (equipped) openArsenalEquipmentActions(equipped, true);
+                    return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''} ${armorPiece ? 'arsenal-armor-equipment-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
+                      if (equippedArmor) openArsenalArmorActions(equippedArmor);
+                      else if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
+                      else if (legacyEquipped) openArsenalEquipmentActions(legacyEquipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
                       {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
-                      {equippedName && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{weaponEquipped ? <img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /> : equipped?.icon}</span>}
+                      {equippedArmor && <><ArmorPieceIcon armor={equippedArmor} className="arsenal-equipped-weapon-icon" /><span className="arsenal-armor-stars">{'★'.repeat(equippedArmor.stars)}</span></>}
+                      {weaponEquipped && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true"><img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /></span>}
+                      {legacyEquipped && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{legacyEquipped.icon}</span>}
                     </button>;
                   })}
                 </div>
               </div>
+              {CONFIG.rulesV2.armorCraftingEnabled && armorListReady && <ArmorBonusSummary classDodge={CONFIG.player.classDodge} rulesV2Enabled={CONFIG.rulesV2.enabled} classId={activeArsenalClassId} bonuses={activeArsenalClassId ? computeArmorBonuses(equippedArmors, activeArsenalClassId) : null} equippedCount={ARMOR_PIECE_ORDER.filter(piece => Boolean(equippedArmors[piece])).length} />}
             </section>
             <section className="arsenal-inventory-section" aria-label="Inventário de equipamentos">
               <div className="arsenal-section-heading"><strong>INVENTÁRIO</strong><span>{arsenalInventoryEntries.length}/{arsenalInventoryCapacity}</span></div>
               {weaponsLoading && <p className="arsenal-weapon-feedback" role="status">Carregando armas…</p>}
+              {CONFIG.rulesV2.armorCraftingEnabled && !armorsSettled && <p className="arsenal-weapon-feedback" role="status">Carregando armaduras…</p>}
+              {CONFIG.rulesV2.armorCraftingEnabled && armorsSettled && !armorListReady && <p className="arsenal-weapon-feedback" role="status">Não foi possível carregar as armaduras.</p>}
               {!weaponsLoading && arsenalInventoryEntries.length === 0
                 ? <p className="arsenal-inventory-empty">Nenhum equipamento no inventário.</p>
                 : <div className="arsenal-inventory-grid">
                   {arsenalInventoryEntries.map(entry => {
+                    if (entry.kind === 'armor') {
+                      return <ArmorInventoryCard key={entry.armor.id} armor={entry.armor} selected={entry.armor.id === selectedArsenalItemId} onClick={() => openArsenalArmorActions(entry.armor)} />;
+                    }
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
                       const weaponName = arsenalWeaponLabels[weapon.model];
@@ -3911,6 +4016,7 @@ export default function App() {
           </section></div>
           <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
+        {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && equippedArmorIds[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)}</strong>

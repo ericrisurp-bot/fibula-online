@@ -194,3 +194,19 @@ O cálculo agregado segue esta ordem, para cada peça equipada:
 4. Aplicar os limites somente ao converter os totais para seus efeitos finais: redução de dano por armadura limitada a **60%** (`CONFIG.rulesV2.armorMaxReduction`) e esquiva total limitada a **35%** (esquiva-base da classe + armadura e demais fontes aplicáveis).
 
 `armorReductionFromPoints` e `armorTotalDodge` expõem as conversões com esses limites. Esta etapa entrega apenas persistência local, resolução de seleções e cálculo puro dos bônus agregados. A interface de equipamento será feita na **A5.2** e a integração com o motor na **A5.3**.
+
+
+## A5.2 — Armaduras fabricadas no Arsenal
+
+A interface de equipamento das armaduras é controlada exclusivamente por `CONFIG.rulesV2.armorCraftingEnabled`.
+
+- Com a chave desligada, a grade, os itens do inventário, os diálogos e os bônus de armadura não são renderizados; a seleção local de armaduras não é lida e a listagem `listMyArmors` não é chamada. Os cinco espaços legados permanecem com a apresentação e os dados anteriores.
+- Com a chave ligada, capacete, peitoral, leggings/calça, bota e luva mostram as armaduras fabricadas equipadas, usando os assets `/assets/armors/zeryn-*.png` para couro e `/assets/armors/vark-*.png` para bronze. A raridade controla o brilho e as estrelas são exibidas junto à peça.
+- As armaduras fabricadas não equipadas aparecem no inventário do Arsenal e são contadas na capacidade exibida. Armas e os espaços de colar, pulseira, cinto e bolsa mantêm seus fluxos anteriores.
+- O conjunto equipado é único e compartilhado entre as abas Principal e Secundário. A seleção fica em `fibula:equipped-armors:<userId>`; ao carregar com sucesso a lista de armaduras, seleções inexistentes ou incompatíveis são removidas e persistidas novamente. Falha na listagem não apaga a seleção salva nem marca os dados como carregados.
+- O diálogo oferece Equipar, Desequipar, Detalhes e Excluir. A exclusão só atualiza a lista e a seleção local após confirmação de sucesso de `deleteArmor`; sem conexão ou cliente, nenhuma peça é removida localmente.
+- Os detalhes mostram tipo, raridade, estrelas, SURP, atributos efetivos com estrelas e valor efetivo do forro, sem aproveitamento de classe.
+- O resumo por classe reutiliza exclusivamente `computeArmorBonuses`, `armorReductionFromPoints` e `armorTotalDodge`. Mostra redução de dano limitada a 60%, esquiva total limitada a 35% e XP da partida quando houver couro refinado.
+- Os dois cálculos de PD no Arsenal e no Status recebem `armorBonuses` somente com a chave ligada. O Status aguarda também a conclusão bem-sucedida da listagem de armaduras. A integração dos bônus no motor continua reservada à A5.3; esta etapa não altera `engine.ts`.
+
+O sistema antigo de itens de equipamento do Arsenal (`arsenalItems`) e sua persistência local não são apagados nem migrados. Os cinco espaços de armadura apenas deixam de exibi-los enquanto a chave estiver ligada; com a chave desligada, o comportamento legado permanece.
