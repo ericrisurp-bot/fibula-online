@@ -12475,7 +12475,7 @@ sem backdrop ou caixa de modal. */
   .armor-craft-lining-picker .armor-craft-lining-button{min-height:29px}
 }
 
-/* Alfaiataria — divide igualmente o espaço entre cenário e Baú. */
+/* Alfaiataria — cenário 30% e Baú 70%. */
 .armor-craft-workspace{
-  grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,.6fr) minmax(0,1.4fr)!important;
 }
