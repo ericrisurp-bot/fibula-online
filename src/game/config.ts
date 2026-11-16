@@ -19,7 +19,7 @@ export const RESOURCE_RARITY_RULES = {
 } as const;
 
 export const CONFIG = {
-  rulesV2: { enabled: false, armorPercentPerPoint: 1, armorMaxReduction: 0.6 },
+  rulesV2: { enabled: false, armorCraftingEnabled: false, armorPercentPerPoint: 1, armorMaxReduction: 0.6 },
   map: { size: 4320, wall: 34, grid: 80 },
   campfire: { woodCost: 5, stoneCost: 5, cottonCost: 5, buildRadius: 300, minDistance: 48 },
   campChest: { woodCost: 20 },

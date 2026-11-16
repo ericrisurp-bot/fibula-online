@@ -16,6 +16,7 @@ import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/ma
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
+import { listMyArmors, type CraftedArmor } from './game/armorCrafting';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -35,6 +36,7 @@ import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
+import ArmorCraftPanel from './ui/ArmorCraftPanel';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
@@ -878,6 +880,19 @@ export default function App() {
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
+  const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
+  useEffect(() => {
+    if (!CONFIG.rulesV2.armorCraftingEnabled) return;
+    if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
+      setCraftedArmors([]);
+      return;
+    }
+    let active = true;
+    void listMyArmors(fibulaSupabase)
+      .then(armors => { if (active) setCraftedArmors(armors); })
+      .catch(() => { if (active) setCraftedArmors([]); });
+    return () => { active = false; };
+  }, [session.user.sub, cookingOnline]);
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalArmedPower = activeArsenalClassId
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
@@ -3522,7 +3537,23 @@ export default function App() {
 
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{stationPresentation.icon}</div>}
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
-              {lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
+              {activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
+                    <div className="armor-craft-scene" aria-hidden="true"><TailorScene /></div>
+                    <ArmorCraftPanel
+                      type="couro"
+                      chestItems={lobbyChestItems}
+                      chestReady={lobbyChestStatus === 'ready'}
+                      online={cookingOnline}
+                      client={fibulaSupabase}
+                      applyInventory={applyCookingInventory}
+                      refreshChest={refreshLobbyChestFromCloud}
+                      onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
+                      renderIcon={inventoryItemIcon}
+                      glowStyle={itemRarityGlow}
+                      label={itemLabel}
+                    />
+                  </div>
+                : lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
                 : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
                 : activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
                 <TailorScene>
