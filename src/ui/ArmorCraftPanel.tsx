@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import './ArmorCraftPanel.css';
 import {
   ARMOR_ATTRIBUTE_TO_CORE_ATTRIBUTE,
   ARMOR_CORE_EQUIPMENT_TO_PIECE,
