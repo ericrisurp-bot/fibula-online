@@ -12286,3 +12286,66 @@ sem backdrop ou caixa de modal. */
 .armor-craft-chest-icon img{display:block;width:30px;height:30px;object-fit:contain;image-rendering:pixelated}
 @media(max-width:430px){.armor-craft-chest-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.armor-craft-chest-card{min-height:64px;padding:4px 2px}.armor-craft-chest-icon{width:34px;height:34px}.armor-craft-chest-icon img{width:27px;height:27px}}
 @media(orientation:landscape) and (max-height:520px){.armor-craft-chest-card{min-height:56px;padding:3px 2px}.armor-craft-chest-icon{width:30px;height:30px}.armor-craft-chest-icon img{width:24px;height:24px}}
+
+/* Oficina — proporção comum: cenário 45%, área de seleção e produção 55%. */
+.forge-page .forge-workspace,
+.forge-workspace{
+  grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;
+  min-height:0;
+  overflow:hidden;
+}
+.forge-page .forge-workspace>.forge-scene,
+.forge-page .forge-workspace>.forge-chest-zone{
+  min-height:0;
+}
+.jewelry-page .jewelry-workspace{
+  grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;
+  min-height:0;
+}
+.jewelry-page .jewelry-nuclei-zone{
+  grid-row:2;
+  min-height:0;
+  padding-bottom:44px;
+}
+.jewelry-page .jewelry-action-area{
+  grid-row:2;
+  align-self:end;
+  z-index:6;
+  min-height:38px;
+  padding:3px 2px 2px;
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(25,29,44,.12),rgba(25,29,44,.96) 35%);
+}
+.armor-craft-workspace{
+  grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;
+  min-height:0;
+  overflow:hidden;
+}
+.armor-craft-workspace>.tailor-scene{
+  width:100%;
+  height:100%;
+  max-width:100%;
+  aspect-ratio:auto;
+  justify-self:stretch;
+  align-self:stretch;
+}
+@media(max-width:430px){
+  .forge-page .forge-workspace,
+  .forge-workspace,
+  .jewelry-page .jewelry-workspace,
+  .armor-craft-workspace{
+    grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;
+  }
+  .jewelry-page .jewelry-nuclei-zone{padding-bottom:42px}
+  .jewelry-page .jewelry-action-area{min-height:36px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .forge-page .forge-workspace,
+  .forge-workspace,
+  .jewelry-page .jewelry-workspace,
+  .armor-craft-workspace{
+    grid-template-rows:minmax(0,.9fr) minmax(0,1.1fr)!important;
+  }
+  .jewelry-page .jewelry-nuclei-zone{padding-bottom:38px}
+  .jewelry-page .jewelry-action-area{min-height:32px}
+}
