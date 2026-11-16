@@ -1,7 +1,7 @@
 export type DuoTradeItem =
   | { kind: 'stack'; itemId: string; quantity: number }
-  | { kind: 'weapon'; weaponId: string }
-  | { kind: 'meal'; mealId: string; mealState: 'prepared' | 'ready' | 'pending' };
+  | { kind: 'weapon'; weaponId: string; label?: string; rarity?: string; tier?: number }
+  | { kind: 'meal'; mealId: string; mealState: 'prepared' | 'ready' | 'pending'; label?: string; icon?: string; rarity?: string };
 
 export type DuoTradeStatus = 'requested' | 'open' | 'completed' | 'cancelled';
 export type DuoTradeSnapshot = {
@@ -39,11 +39,11 @@ function readTradeItem(value: unknown): DuoTradeItem {
     return { kind: 'stack', itemId: row.itemId, quantity: row.quantity as number };
   }
   if (row.kind === 'weapon' && typeof row.weaponId === 'string') {
-    return { kind: 'weapon', weaponId: row.weaponId };
+    return { kind: 'weapon', weaponId: row.weaponId, ...(typeof row.label === 'string' ? { label: row.label } : {}), ...(typeof row.rarity === 'string' ? { rarity: row.rarity } : {}), ...(Number.isSafeInteger(row.tier) ? { tier: row.tier as number } : {}) };
   }
   if (row.kind === 'meal' && typeof row.mealId === 'string'
     && (row.mealState === 'prepared' || row.mealState === 'ready' || row.mealState === 'pending')) {
-    return { kind: 'meal', mealId: row.mealId, mealState: row.mealState };
+    return { kind: 'meal', mealId: row.mealId, mealState: row.mealState, ...(typeof row.label === 'string' ? { label: row.label } : {}), ...(typeof row.icon === 'string' ? { icon: row.icon } : {}), ...(typeof row.rarity === 'string' ? { rarity: row.rarity } : {}) };
   }
   throw new Error('O servidor retornou um item de troca inválido.');
 }
