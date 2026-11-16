@@ -152,6 +152,149 @@ begin
 end;
 $function$;
 
+-- A disconnected player cannot initialize or rejoin the same match.
+create or replace function public.fibula_start_duo_session(p_room_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_user_id uuid := (select auth.uid());
+  v_room public.fibula_duo_rooms%rowtype;
+  v_session public.fibula_duo_match_sessions%rowtype;
+  v_host_id uuid;
+  v_guest_id uuid;
+  v_alive_count integer;
+  v_host_seed bigint;
+  v_guest_seed bigint;
+  v_session_seed bigint;
+  v_own_seed bigint;
+  v_own_role text;
+  v_own_status text;
+  v_ruleset text := 'duo-v1';
+begin
+  if v_user_id is null
+    or (select auth.jwt() ->> 'iss') is distinct from 'https://bqzplfvjvdylbwmulisz.supabase.co/auth/v1' then
+    raise exception 'Sessão Arena não autorizada.';
+  end if;
+
+  select r.* into v_room
+    from public.fibula_duo_rooms r
+   where r.id = p_room_id
+   for update;
+
+  if not found or v_room.phase <> 'playing'
+    or v_room.match_id is null or v_room.match_seed is null then
+    raise exception 'A sala Duo não possui uma partida ativa.';
+  end if;
+
+  if not exists (
+    select 1
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id
+       and p.user_id = v_user_id
+       and p.left_at is null
+  ) then
+    raise exception 'Você não participa desta partida Duo.';
+  end if;
+
+  select s.* into v_session
+    from public.fibula_duo_match_sessions s
+   where s.match_id = v_room.match_id
+   for update;
+
+  if not found then
+    select count(*) filter (where p.left_at is null)::integer
+      into v_alive_count
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id;
+
+    select p.user_id into v_host_id
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id
+       and p.role = 'host' and p.left_at is null
+     limit 1;
+
+    select p.user_id into v_guest_id
+      from public.fibula_duo_room_participants p
+     where p.room_id = p_room_id
+       and p.role = 'guest' and p.left_at is null
+     limit 1;
+
+    if v_alive_count <> 2
+      or v_host_id is distinct from v_room.host_id
+      or v_guest_id is distinct from v_room.guest_id
+      or v_guest_id is null then
+      raise exception 'A partida precisa manter os dois participantes originais ativos.';
+    end if;
+
+    insert into public.fibula_duo_match_sessions (
+      match_id, room_id, ruleset_version, session_seed, started_at
+    ) values (
+      v_room.match_id, p_room_id, v_ruleset,
+      (('x' || pg_catalog.substr(pg_catalog.md5(pg_catalog.gen_random_uuid()::text), 1, 16))::bit(64)::bigint),
+      v_room.started_at
+    );
+
+    select s.session_seed into v_session_seed
+      from public.fibula_duo_match_sessions s
+     where s.match_id = v_room.match_id;
+
+    v_host_seed := (
+      ('x' || pg_catalog.substr(
+        pg_catalog.md5(v_session_seed::text || ':' || v_host_id::text), 1, 7
+      ))::bit(28)::bigint
+    ) + 1;
+    v_guest_seed := (
+      ('x' || pg_catalog.substr(
+        pg_catalog.md5(v_session_seed::text || ':' || v_guest_id::text), 1, 7
+      ))::bit(28)::bigint
+    ) + 1;
+    if v_guest_seed = v_host_seed then
+      v_guest_seed := (v_guest_seed % 268435456) + 1;
+    end if;
+
+    insert into public.fibula_duo_match_players
+      (match_id, user_id, role, player_seed)
+    values
+      (v_room.match_id, v_host_id, 'host', v_host_seed),
+      (v_room.match_id, v_guest_id, 'guest', v_guest_seed);
+
+    select s.* into v_session
+      from public.fibula_duo_match_sessions s
+     where s.match_id = v_room.match_id;
+  end if;
+
+  select p.player_seed, p.role, p.player_status
+    into v_own_seed, v_own_role, v_own_status
+    from public.fibula_duo_match_players p
+   where p.match_id = v_session.match_id
+     and p.user_id = v_user_id;
+
+  if not found then
+    raise exception 'Você não participa desta partida Duo.';
+  end if;
+  if v_session.status <> 'playing' then
+    raise exception 'Esta partida Duo já foi encerrada.';
+  end if;
+  if v_own_status <> 'alive' then
+    raise exception 'Você foi desconectado desta partida Duo e não pode retornar.';
+  end if;
+
+  return pg_catalog.jsonb_build_object(
+    'match_id', v_session.match_id,
+    'night_number', v_session.current_night,
+    'player_seed', v_own_seed,
+    'player_role', v_own_role,
+    'ruleset_version', v_session.ruleset_version,
+    'horde_target', public.fibula_duo_player_horde_target(
+      v_session.match_id, v_user_id, v_session.current_night
+    )
+  );
+end;
+$function$;
+
 -- Reject new night reports after either side of the coordinated lifecycle
 -- has closed. Exact duplicate retries remain idempotent after completion.
 create or replace function public.fibula_duo_report_night(
