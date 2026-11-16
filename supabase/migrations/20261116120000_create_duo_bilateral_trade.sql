@@ -193,8 +193,12 @@ begin
    where id = v_trade.room_id for update;
   if v_room_phase is distinct from 'lobby'
     or (select count(*) from public.fibula_duo_room_participants p
-         where p.room_id = v_trade.room_id and p.left_at is null) <> 2 then
-    raise exception 'A oferta só pode ser alterada enquanto os dois jogadores estiverem no lobby.';
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2
+    or not exists (select 1 from public.fibula_duo_room_participants p
+                    where p.room_id=v_trade.room_id and p.user_id=v_trade.host_id and p.left_at is null)
+    or not exists (select 1 from public.fibula_duo_room_participants p
+                    where p.room_id=v_trade.room_id and p.user_id=v_trade.guest_id and p.left_at is null) then
+    raise exception 'A oferta só pode ser alterada enquanto os dois participantes originais estiverem no lobby.';
   end if;
   select * into v_trade from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'open' for update;
@@ -311,8 +315,12 @@ begin
    where id = p_trade_id and status = 'open' for update;
   if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id)
     or (select count(*) from public.fibula_duo_room_participants p
-         where p.room_id = v_trade.room_id and p.left_at is null) <> 2 then
-    raise exception 'Os dois participantes precisam continuar no lobby.';
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2
+    or not exists (select 1 from public.fibula_duo_room_participants p
+                    where p.room_id=v_trade.room_id and p.user_id=v_trade.host_id and p.left_at is null)
+    or not exists (select 1 from public.fibula_duo_room_participants p
+                    where p.room_id=v_trade.room_id and p.user_id=v_trade.guest_id and p.left_at is null) then
+    raise exception 'Os dois participantes originais precisam continuar no lobby.';
   end if;
 
   update public.fibula_duo_trade_sessions
