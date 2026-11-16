@@ -153,7 +153,7 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
         <button type="button" disabled={busy} onClick={() => void run(() => answerDuoTradeRequest(client, trade!.id, true), 'Troca aceita.')}>Aceitar</button>
         <button type="button" className="secondary" disabled={busy} onClick={() => void run(() => answerDuoTradeRequest(client, trade!.id, false), 'Solicitação recusada.')}>Recusar</button>
       </div>}
-      {waitingRequest && <p>Aguardando {friendName} aceitar a solicitação…</p>}
+      {waitingRequest && <div className="duo-trade-request"><p>Aguardando {friendName} aceitar a solicitação…</p><button type="button" className="secondary" disabled={busy} onClick={() => void run(() => cancelDuoTrade(client, trade!.id), 'Solicitação cancelada.')}>Cancelar solicitação</button></div>}
       {trade?.status === 'open' && <>
         <div className="duo-trade-columns">
           <section><h3>Sua oferta <small>{ownOffer.length}/5</small></h3>
