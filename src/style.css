@@ -12090,7 +12090,7 @@ sem backdrop ou caixa de modal. */
 
 /* A4.3a — painel de fabricação de armadura na Alfaiataria. */
 .armor-craft-scene{display:block;grid-row:1;min-width:0;min-height:0;height:100%;overflow:hidden}
-.armor-craft-workspace{grid-template-rows:minmax(118px,.34fr) minmax(0,.66fr)!important;min-height:0;overflow:hidden}
+.armor-craft-workspace{grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;min-height:0;overflow:hidden}
 .armor-craft-panel{grid-row:2;display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0;min-height:0;overflow:hidden;gap:6px;padding:7px;border:1px solid #8b8064;border-radius:10px;background:linear-gradient(155deg,#e8dfc9,#cfc4a9 58%,#b7ad92);color:#353329}
 .armor-craft-scroll{display:grid;align-content:start;gap:7px;min-width:0;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:1px}
 .armor-craft-section{display:grid;gap:5px;min-width:0;padding:6px;border:1px solid #a99b7b;border-radius:8px;background:linear-gradient(150deg,#f1e8d5,#d8ccb1);box-shadow:inset 0 1px 0 #fff9}
@@ -12477,7 +12477,7 @@ sem backdrop ou caixa de modal. */
 
 /* Alfaiataria — cenário 30% e Baú 70%. */
 .armor-craft-workspace{
-  grid-template-rows:minmax(0,.6fr) minmax(0,1.4fr)!important;
+  grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;
 }
 
 
