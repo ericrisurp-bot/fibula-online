@@ -11,7 +11,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -729,11 +729,7 @@ export default function App() {
   const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
   const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
-  const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
-  const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
-  const [chestTransferBusy, setChestTransferBusy] = useState(false);
   const [chestCloudReady, setChestCloudReady] = useState(false);
-  const [chestTransferFeedback, setChestTransferFeedback] = useState('');
   const [bauAction, setBauAction] = useState<
     | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm' }
     | { kind:'meal'; meal:CookingMeal; view:'actions'|'details'|'confirm' }
@@ -2359,44 +2355,6 @@ export default function App() {
     setViewedProfileUserId(null);
   };
 
-  const sendLobbyChestItem = async () => {
-    const peer = duoPeer;
-    const item = lobbyChestItems.find(entry => entry.itemId === chestTransferItemId);
-    const quantity = Number(chestTransferQuantity);
-    if (!peer || peer.status !== 'connected' || peer.matchId || !item || !chestCloudReady) return;
-    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > item.quantity) {
-      setChestTransferFeedback('Informe uma quantidade válida para enviar.');
-      return;
-    }
-    if (!fibulaSupabase) {
-      setChestTransferFeedback('O serviço de armazenamento não está disponível.');
-      return;
-    }
-    setChestTransferBusy(true);
-    setChestTransferFeedback('');
-    try {
-      await transferHouseStackToDuo(fibulaSupabase, peer.roomId, item.itemId, quantity);
-      setChestTransferItemId(null);
-      let senderRefreshFailed = false;
-      senderRefreshFailed = !await refreshLobbyChestFromCloud();
-      let peerNotifyFailed = false;
-      const notifyPeer = duoHouseNotifyActionRef.current;
-      if (notifyPeer) {
-        try { await notifyPeer(); } catch { peerNotifyFailed = true; }
-      } else {
-        peerNotifyFailed = true;
-      }
-      if (senderRefreshFailed || peerNotifyFailed) {
-        setChestTransferFeedback('Item enviado para ' + peer.friendName + '. Um dos Baús não atualizou automaticamente; feche e abra o Baú novamente para sincronizar.');
-      } else {
-        setChestTransferFeedback('Enviado: ' + quantity + ' × ' + itemLabel(item.itemId) + ' para ' + peer.friendName + '.');
-      }
-    } catch (cause) {
-      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível enviar o item.');
-    } finally {
-      setChestTransferBusy(false);
-    }
-  };
   const applyCookingInventory = (nextInventory: HouseStorageStack[]) => {
     const serverSnapshot = JSON.stringify(nextInventory);
     houseSyncBaselineRef.current = serverSnapshot;
@@ -4005,9 +3963,6 @@ export default function App() {
                     aria-label={`${itemLabel(item.itemId)}: abrir ações`} onClick={() => openBauItemActions(item)}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                   </button>
-                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
-                    event.stopPropagation();setChestTransferItemId(item.itemId);setChestTransferQuantity('1');setChestTransferFeedback('');
-                  }}>{chestCloudReady?'Enviar':'Indisponível'}</button>}
                 </div>;
               })}
             </div> : <>
@@ -4034,15 +3989,7 @@ export default function App() {
                 </div>
               </section>
             </>}
-            {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
-              <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
-              <label>Quantidade
-                <input type="number" min="1" max={lobbyChestItems.find(item => item.itemId === chestTransferItemId)?.quantity ?? 1} step="1" value={chestTransferQuantity} onChange={event => setChestTransferQuantity(event.target.value)} />
-              </label>
-              <div><button type="button" disabled={chestTransferBusy} onClick={() => void sendLobbyChestItem()}>{chestTransferBusy ? 'Enviando…' : 'Confirmar envio'}</button><button type="button" className="secondary" disabled={chestTransferBusy} onClick={() => setChestTransferItemId(null)}>Cancelar</button></div>
-            </div>}
             {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-            {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
           </section></div>
