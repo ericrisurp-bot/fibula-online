@@ -1057,26 +1057,21 @@ export default function App() {
   const selectedJewelryRarity = selectedJewelryCoreParsed?.kind === 'closed' ? selectedJewelryCoreParsed.rarity : null;
   const jewelryCottonItemId = selectedJewelryRarity ? weaponMaterialItemId('cotton', selectedJewelryRarity) : null;
   const jewelryCottonAvailable = jewelryCottonItemId ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0) : 0;
-  const anvilWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
-    const parsed = parseCoreItemId(item.itemId);
-    if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon' || item.quantity <= 0) return stacks;
+  const anvilChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+    if (item.quantity <= 0) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
-  }, []);
+  }, []).sort((a, b) => {
+    const aIsCore = parseCoreItemId(a.itemId) !== null;
+    const bIsCore = parseCoreItemId(b.itemId) !== null;
+    return Number(bIsCore) - Number(aIsCore);
+  });
   const tailorFabricStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     const base = getBaseItemId(item.itemId);
     if (!['cotton', 'linen', 'refined_leather'].includes(base) || item.quantity <= 0) return stacks;
     const existing = stacks.find(stack => getBaseItemId(stack.itemId) === base);
-    if (existing) existing.quantity += item.quantity;
-    else stacks.push({ itemId: item.itemId, quantity: item.quantity });
-    return stacks;
-  }, []);
-  const anvilMaterialStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
-    const base = getBaseItemId(item.itemId);
-    if (!['wood', 'stone', 'bronze', 'linen'].includes(base) || item.quantity <= 0) return stacks;
-    const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
@@ -3744,27 +3739,49 @@ export default function App() {
                       </button>
                     </div>
                   </ForgeScene>
-                  <section className="forge-zone forge-nuclei-zone" aria-label="Núcleos">
+                  <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
-                      <strong>NÚCLEOS</strong>
-                      <span>Núcleos revelados de arma</span>
+                      <strong>BAÚ</strong>
+                      <span>Núcleos primeiro · Todos os itens disponíveis</span>
                     </div>
-                    <div className="forge-core-strip">
-                      {anvilWeaponCoreStacks.map(item => {
-                        const parsed = parseCoreItemId(item.itemId);
-                        if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon') return null;
+                    <div className="forge-material-grid forge-chest-grid" aria-label="Todos os itens do Baú, com núcleos primeiro">
+                      {anvilChestStacks.map(item => {
+                        const parsedCore = parseCoreItemId(item.itemId);
+                        if (parsedCore) {
+                          const isWeaponCore = parsedCore.kind === 'revealed' && parsedCore.core.category === 'weapon';
+                          return isWeaponCore ? <button type="button" key={item.itemId}
+                            className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
+                            disabled={weaponCraftBusy}
+                            aria-pressed={selectedWeaponCoreId === item.itemId}
+                            onClick={() => selectForgeCore(item.itemId)}>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                            <strong>{itemLabel(item.itemId)}</strong>
+                            <small>×{item.quantity}</small>
+                          </button> : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                            <strong>{itemLabel(item.itemId)}</strong>
+                            <small>×{item.quantity}</small>
+                          </div>;
+                        }
+                        const base = getBaseItemId(item.itemId);
+                        const rarity = getItemRarity(item.itemId) ?? 'normal';
+                        const slot = base === 'stone' || base === 'bronze' ? 'mineral' : base;
+                        const recipeRow = weaponRecipeRows.find(row => row.slot === slot);
+                        const canSelect = ['wood', 'stone', 'bronze', 'linen'].includes(base)
+                          && !!selectedWeaponCore && !!recipeRow && rarity === selectedWeaponCore.rarity;
+                        const selected = selectedWeaponMaterials.find(selection => selection.slot === slot && selection.itemId === item.itemId);
                         return <button type="button" key={item.itemId}
-                          className={selectedWeaponCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
-                          disabled={weaponCraftBusy}
-                          onClick={() => selectForgeCore(item.itemId)}>
+                          className={'forge-material-item forge-chest-item' + (selected ? ' selected' : '') + (!canSelect ? ' incompatible' : '')}
+                          disabled={weaponCraftBusy || !canSelect}
+                          onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
                           <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                           <strong>{itemLabel(item.itemId)}</strong>
-                          <small>×{item.quantity}</small>
+                          <small>×{item.quantity}{selected ? ' · ' + selected.quantity + '/' + recipeRow?.material.quantity : ''}</small>
                         </button>;
                       })}
-                      {anvilWeaponCoreStacks.length === 0 && <p className="forge-empty">Nenhum núcleo revelado de arma no Baú.</p>}
+                      {anvilChestStacks.length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
                     </div>
-                    <div className="forge-action-area">
+                    <div className="forge-action-area forge-chest-action">
                       {forgeCraftResult ? <div className="forge-result" role="status">
                         <strong>{forgeCraftResult}</strong>
                         <button type="button" onClick={openCraftedWeaponInArsenal}>Ver no Arsenal</button>
@@ -3775,31 +3792,6 @@ export default function App() {
                       </button>}
                       {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
                       {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
-                    </div>
-                  </section>
-                  <section className="forge-zone forge-materials-zone" aria-label="Materiais">
-                    <div className="forge-panel-heading">
-                      <strong>MATERIAIS</strong>
-                      <span>Materiais de fabricação no Baú</span>
-                    </div>
-                    <div className="forge-material-grid" aria-label="Todos os materiais de fabricação no Baú">
-                      {anvilMaterialStacks.map(item => {
-                        const base = getBaseItemId(item.itemId);
-                        const rarity = getItemRarity(item.itemId) ?? 'normal';
-                        const slot = base === 'stone' || base === 'bronze' ? 'mineral' : base;
-                        const recipeRow = weaponRecipeRows.find(row => row.slot === slot);
-                        const canSelect = !!selectedWeaponCore && !!recipeRow && rarity === selectedWeaponCore.rarity;
-                        const selected = selectedWeaponMaterials.find(selection => selection.slot === slot && selection.itemId === item.itemId);
-                        return <button type="button" key={item.itemId}
-                          className={'forge-material-item' + (selected ? ' selected' : '')}
-                          disabled={weaponCraftBusy || !canSelect}
-                          onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
-                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                          <strong>{itemLabel(item.itemId)}</strong>
-                          <small>×{item.quantity}{selected ? ' · ' + selected.quantity + '/' + recipeRow?.material.quantity : ''}</small>
-                        </button>;
-                      })}
-                      {anvilMaterialStacks.length === 0 && <p className="forge-empty">Nenhum material de fabricação no Baú.</p>}
                     </div>
                   </section>
                 </div>}
