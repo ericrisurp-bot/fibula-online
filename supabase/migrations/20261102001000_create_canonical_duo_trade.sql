@@ -186,7 +186,7 @@ begin
   perform public.fibula_inventory_assert_session();
 
   if p_offer is null or jsonb_typeof(p_offer) <> 'array'
-    or jsonb_array_length(p_offer) > 40 then
+    or jsonb_array_length(p_offer) > 5 then
     raise exception 'Oferta inválida.';
   end if;
 
