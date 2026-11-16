@@ -28,7 +28,7 @@ export const ARMOR_PIECE_ORDER: ArmorPiece[] = [
   'luva',
 ];
 
-const equippedArmorStorageKey = (userId: string) => \`fibula:equipped-armors:\${userId}\`;
+const equippedArmorStorageKey = (userId: string) => 'fibula:equipped-armors:' + userId;
 
 export function readEquippedArmorSelections(userId: string): EquippedArmorSelections {
   try {
