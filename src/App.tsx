@@ -601,13 +601,18 @@ export default function App() {
   const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<boolean> => {
     const sessionId = matchSessionIdRef.current;
     if (!sessionId) return true;
+    // Sair vivo abandona a sessão: nunca gera resultado nem entra na fila do ranking.
+    if (!snapshot.dead) {
+      matchSessionIdRef.current = null;
+      return true;
+    }
     if (!session.user.sub) return false;
     const survivalNights = Math.max(0, snapshot.nightNumber - (snapshot.dayNight === 'night' ? 1 : 0));
     // A gravação local acontece antes de limpar o ID ou depender da rede.
     if (!enqueueSoloMatchResult(session.user.sub, sessionId, {
       kills: snapshot.kills,
       survivalNights,
-    })) {
+    }, snapshot.dead)) {
       window.alert('Não foi possível guardar o resultado desta partida neste dispositivo. Mantenha esta tela aberta e tente novamente.');
       return false;
     }
