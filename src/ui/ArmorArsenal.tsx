@@ -45,12 +45,13 @@ const LINING_LABELS: Record<CraftedArmor['lining'], string> = {
   linho: 'Linho',
   couro_refinado: 'Couro refinado',
 };
-const rarityColor = (rarity: CraftedArmor['rarity']) => ({
+const RARITY_COLORS: Record<string, string> = {
   common: '#36d66f',
   uncommon: '#348cff',
   rare: '#a34be8',
   legendary: '#ff8a24',
-}[rarity] ?? null);
+};
+const rarityColor = (rarity: CraftedArmor['rarity']) => RARITY_COLORS[rarity] ?? null;
 const numberLabel = (value: number, maximumFractionDigits = 2) =>
   value.toLocaleString('pt-BR', { maximumFractionDigits });
 
