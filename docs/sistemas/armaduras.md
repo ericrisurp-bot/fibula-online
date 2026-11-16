@@ -152,3 +152,18 @@ A quantidade de cada material vem de `ARMOR_RECIPES[type][piece]`. Núcleo, mate
 ## Limites desta etapa
 
 Esta etapa contém apenas dados e funções puras, além da camada de dados cliente isolada. Nenhuma regra está conectada ao jogo: não há integração com telas, fluxo de fabricação, inventário, equipamento ou combate. `CONFIG.rulesV2.enabled` permanece `false`.
+
+## A4.3a — painel de fabricação na Alfaiataria (couro)
+
+A tela de fabricação de armadura de couro fica na estação **Alfaiataria** e é controlada exclusivamente por `CONFIG.rulesV2.armorCraftingEnabled`, cujo valor inicial é `false`.
+
+- Com o interruptor desligado, a Alfaiataria permanece exatamente na apresentação anterior: espaços de prévia, tecidos no Baú e botão **Costurar · Em breve**. A Bigorna e a fabricação de armas não são alteradas.
+- Com o interruptor ligado, a tela substitui esses espaços, a zona de tecidos e o botão de costura pelo painel de fabricação de couro, mantendo a cena visual da Alfaiataria.
+- O jogador escolhe somente um núcleo de armadura revelado e um forro obrigatório (algodão, linho ou couro refinado). A peça é determinada pelo `equipmentType` do núcleo. Núcleos legados ou que não passam em `armorCoreRoll(core)` não são exibidos.
+- Os materiais não são escolhidos manualmente: o painel calcula a receita de `armorMaterialItemIds` e mostra quanto existe e quanto falta no Baú. Material-base e material do forro precisam ter a mesma raridade do núcleo.
+- A prévia é informativa e sempre em 1★. O roll de cada atributo é derivado do valor do núcleo dividido pela fração da raridade, limitado a 0,5–1,0; núcleo SURP usa 1,0. O forro usa `armorCoreRoll(core)`. O resultado definitivo é sempre o retornado pelo servidor.
+- Ao fabricar, o cliente aplica somente o inventário retornado pela RPC, limpa a seleção e exibe a quantidade de estrelas recebida. Em erro, apresenta a mensagem e tenta atualizar o Baú.
+- A fabricação exige conexão, Baú confirmado e materiais suficientes. Não existe nesta etapa botão para abrir o Arsenal; isso pertence à A5.
+
+**O servidor da A4.1 ainda não foi aplicado ao banco.** Portanto, o interruptor permanece desligado por padrão e, enquanto estiver `false`, o cliente não chama `listMyArmors` nem qualquer RPC nova de fabricação de armadura. Nenhuma integração fica ativa por padrão.
+
