@@ -886,6 +886,7 @@ export default function App() {
   const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
   const [equippedArmorIds, setEquippedArmorIds] = useState<EquippedArmorSelections>(() => CONFIG.rulesV2.armorCraftingEnabled ? readEquippedArmorSelections(session.user.sub) : {});
   const [armorsLoaded, setArmorsLoaded] = useState(false);
+  const [armorsSettled, setArmorsSettled] = useState(false);
   const [armorsLoadedForUserId, setArmorsLoadedForUserId] = useState<string | null>(null);
   const [armorActionArmor, setArmorActionArmor] = useState<CraftedArmor | null>(null);
   const [armorDeleteConfirmation, setArmorDeleteConfirmation] = useState(false);
@@ -899,14 +900,18 @@ export default function App() {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
       setArmorsLoaded(false);
+      setArmorsLoadedForUserId(null);
+      setArmorsSettled(true);
       return;
     }
     let active = true;
     setArmorsLoaded(false);
     setArmorsLoadedForUserId(null);
+    setArmorsSettled(false);
     void listMyArmors(fibulaSupabase)
       .then(armors => { if (active) { setCraftedArmors(armors); setArmorsLoaded(true); setArmorsLoadedForUserId(session.user.sub); } })
-      .catch(() => { if (active) { setArmorsLoaded(false); setArmorsLoadedForUserId(null); } });
+      .catch(() => { if (active) { setArmorsLoaded(false); setArmorsLoadedForUserId(null); } })
+      .finally(() => { if (active) setArmorsSettled(true); });
     return () => { active = false; };
   }, [session.user.sub, cookingOnline]);
   const armorListReady = armorsLoaded && armorsLoadedForUserId === session.user.sub;
@@ -925,7 +930,7 @@ export default function App() {
     ? resolveEquippedArmors(craftedArmors, equippedArmorIds)
     : {};
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
-  const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorListReady)
+  const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
       weapon: equippedArsenalWeapon ? {
         model: equippedArsenalWeapon.model,
@@ -936,7 +941,7 @@ export default function App() {
     })
     : null;
   const arsenalPowerValue = arsenalArmedPower ? Math.round(arsenalArmedPower.total) : null;
-  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorListReady);
+  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled);
   const statusPowers: Partial<Record<ClassId, number>> = {};
   if (statusPowerReady) {
     for (const classId of characterPreferences) {
@@ -3983,7 +3988,8 @@ export default function App() {
             <section className="arsenal-inventory-section" aria-label="Inventário de equipamentos">
               <div className="arsenal-section-heading"><strong>INVENTÁRIO</strong><span>{arsenalInventoryEntries.length}/{arsenalInventoryCapacity}</span></div>
               {weaponsLoading && <p className="arsenal-weapon-feedback" role="status">Carregando armas…</p>}
-              {CONFIG.rulesV2.armorCraftingEnabled && !armorListReady && <p className="arsenal-weapon-feedback" role="status">Carregando armaduras…</p>}
+              {CONFIG.rulesV2.armorCraftingEnabled && !armorsSettled && <p className="arsenal-weapon-feedback" role="status">Carregando armaduras…</p>}
+              {CONFIG.rulesV2.armorCraftingEnabled && armorsSettled && !armorListReady && <p className="arsenal-weapon-feedback" role="status">Não foi possível carregar as armaduras.</p>}
               {!weaponsLoading && arsenalInventoryEntries.length === 0
                 ? <p className="arsenal-inventory-empty">Nenhum equipamento no inventário.</p>
                 : <div className="arsenal-inventory-grid">
