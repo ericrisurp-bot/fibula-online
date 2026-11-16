@@ -87,20 +87,35 @@ export default function ArmorCraftPanel({
   const [busy, setBusy] = useState(false);
   const craftLockRef = useRef(false);
 
-  const armorCores = useMemo(() => {
-    const merged = new Map<string, { itemId: string; quantity: number; core: Core; piece: ArmorPiece }>();
+  const chestStacks = useMemo(() => {
+    const merged = new Map<string, number>();
     for (const stack of chestItems) {
       if (stack.quantity <= 0) continue;
       const parsed = parseCoreItemId(stack.itemId);
-      if (parsed?.kind !== 'revealed' || armorCoreRoll(parsed.core) === null) continue;
-      const piece = corePiece(parsed.core);
-      if (!piece) continue;
-      const current = merged.get(stack.itemId);
-      if (current) current.quantity += stack.quantity;
-      else merged.set(stack.itemId, { itemId: stack.itemId, quantity: stack.quantity, core: parsed.core, piece });
+      const isUsableArmorCore = parsed?.kind === 'revealed'
+        && armorCoreRoll(parsed.core) !== null
+        && corePiece(parsed.core) !== null;
+      const materialBases = type === 'couro'
+        ? ['wolf_hide', 'cotton', 'linen', 'refined_leather']
+        : ['bronze', 'cotton', 'linen', 'refined_leather'];
+      const isArmorMaterial = materialBases.some(base =>
+        stack.itemId === base || stack.itemId.startsWith(base + ':'),
+      );
+      if (!isUsableArmorCore && !isArmorMaterial) continue;
+      merged.set(stack.itemId, (merged.get(stack.itemId) ?? 0) + stack.quantity);
     }
-    return Array.from(merged.values());
-  }, [chestItems]);
+    return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity }))
+      .sort((a, b) => Number(parseCoreItemId(b.itemId)?.kind === 'revealed') - Number(parseCoreItemId(a.itemId)?.kind === 'revealed'));
+  }, [chestItems, type]);
+
+  const armorCores = useMemo(() => chestStacks.flatMap(stack => {
+    const parsed = parseCoreItemId(stack.itemId);
+    if (parsed?.kind !== 'revealed' || armorCoreRoll(parsed.core) === null) return [];
+    const piece = corePiece(parsed.core);
+    return piece ? [{ ...stack, core: parsed.core, piece }] : [];
+  }), [chestStacks]);
+
+  const armorMaterialStacks = chestStacks.filter(stack => parseCoreItemId(stack.itemId) === null);
 
   const selectedCore = armorCores.find(entry => entry.itemId === selectedCoreId) ?? null;
   const selectedPiece = selectedCore?.piece ?? null;
@@ -215,6 +230,18 @@ export default function ArmorCraftPanel({
             {entry.quantity > 1 && <em>×{entry.quantity}</em>}
           </button>)}
           {armorCores.length === 0 && <p className="armor-craft-empty">Nenhum núcleo revelado de armadura no Baú.</p>}
+        </div>
+      </section>
+
+      <section className="armor-craft-section" aria-label="Materiais para armaduras no Baú">
+        <header className="armor-craft-heading"><strong>MATERIAIS NO BAÚ</strong><span>Somente materiais de armadura</span></header>
+        <div className="armor-craft-materials">
+          {armorMaterialStacks.map(stack => <div className="armor-craft-material-row" key={stack.itemId}>
+            <span className="armor-craft-material-icon" style={glowStyle(stack.itemId)}>{renderIcon(stack.itemId)}</span>
+            <strong>{label(stack.itemId)}</strong>
+            <small>×{stack.quantity}</small>
+          </div>)}
+          {armorMaterialStacks.length === 0 && <p className="armor-craft-empty">Nenhum material de armadura no Baú.</p>}
         </div>
       </section>
 
