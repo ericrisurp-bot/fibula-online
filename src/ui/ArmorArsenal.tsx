@@ -135,7 +135,7 @@ export function ArmorActionDialogs({ armor, equipped, deleteConfirmation, busy, 
   };
   return <>
     {!detailsOpen && !deleteConfirmation && <div className="arsenal-action-backdrop" role="presentation" onClick={onClose}>
-      <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={pieceLabel} onClick={event => event.stopPropagation()}>
+      <section className="arsenal-action-dialog arsenal-armor-action-dialog" role="dialog" aria-modal="true" aria-label={pieceLabel} onClick={event => event.stopPropagation()}>
         <header><strong>{pieceLabel}</strong><button type="button" aria-label="Fechar" onClick={onClose}>×</button></header>
         {equipped
           ? <button type="button" className="arsenal-action-button" autoFocus onClick={onUnequip}>Desequipar</button>
@@ -146,7 +146,7 @@ export function ArmorActionDialogs({ armor, equipped, deleteConfirmation, busy, 
     </div>}
     {detailsOpen && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => setDetailsOpen(false)}>
       <section className="arsenal-weapon-info-card arsenal-armor-details" role="dialog" aria-modal="true" aria-label={pieceLabel} onClick={event => event.stopPropagation()}>
-        <header><strong>{pieceLabel}</strong><button type="button" onClick={() => setDetailsOpen(false)}>Fechar</button></header>
+        <header><strong>{pieceLabel}</strong><button type="button" className="arsenal-armor-details-close" onClick={() => setDetailsOpen(false)}>Fechar</button></header>
         <div className="arsenal-item-info-details">
           <div><span>Tipo</span><b>{armor.type === 'couro' ? 'Couro' : 'Bronze'}</b></div>
           <div><span>Raridade</span><b>{RARITY_LABELS[armor.rarity]}</b></div>
@@ -160,7 +160,7 @@ export function ArmorActionDialogs({ armor, equipped, deleteConfirmation, busy, 
       </section>
     </div>}
     {deleteConfirmation && <div className="arsenal-action-backdrop arsenal-confirm-backdrop" role="presentation" onClick={() => { if (!busy) onCancelDelete(); }}>
-      <section className="arsenal-action-dialog arsenal-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmar exclusão" onClick={event => event.stopPropagation()}>
+      <section className="arsenal-action-dialog arsenal-confirm-dialog arsenal-armor-action-dialog" role="dialog" aria-modal="true" aria-label="Confirmar exclusão" onClick={event => event.stopPropagation()}>
         <header><strong>Excluir {pieceLabel}?</strong></header>
         <p>Esta ação não pode ser desfeita.</p>
         <div className="arsenal-confirm-actions">
