@@ -3565,6 +3565,7 @@ export default function App() {
                     {selectedJewelryCoreId && selectedJewelryRarity && jewelryCottonItemId && <div className="jewelry-material-slot" aria-label="Material necessário para revelar o núcleo">
                       <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
                       <strong>Algodão {JEWELRY_RARITY_LABELS[selectedJewelryRarity] ?? selectedJewelryRarity}</strong>
+                      <small>X{JEWELRY_POLISH_COTTON_COST}</small>
                     </div>}
                     {jewelrySlotCore?.kind === 'revealed' && <section className="jewelry-result-card" aria-label="Atributos do núcleo revelado">
                       <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
