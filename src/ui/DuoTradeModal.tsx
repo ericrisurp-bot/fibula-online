@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getCookingServerState } from '../game/cooking';
 import {
   answerDuoTradeRequest, cancelDuoTrade, confirmDuoTrade, getDuoTradeSnapshot,
   requestDuoTrade, setDuoTradeOffer, type DuoTradeItem, type DuoTradeSnapshot,
@@ -61,17 +62,16 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
         const [house, weaponRows, cooking] = await Promise.all([
           client.from('fibula_house_storage').select('inventory').eq('user_id', userId).maybeSingle(),
           client.from('fibula_weapons').select('id,model,rarity,tier,damage,surp,core_surp').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
-          client.from('fibula_cooking_state').select('prepared,ready,pending').eq('user_id', userId).maybeSingle(),
+          getCookingServerState(client),
         ]);
         if (house.error) throw house.error;
         if (weaponRows.error) throw weaponRows.error;
-        if (cooking.error) throw cooking.error;
         if (!active) return;
         setStacks(Array.isArray(house.data?.inventory) ? house.data.inventory.filter((v: any) => v && typeof v.itemId === 'string' && Number.isSafeInteger(v.quantity) && v.quantity > 0) : []);
         setWeapons(Array.isArray(weaponRows.data) ? weaponRows.data as Weapon[] : []);
         const mealRows: Array<Meal & { mealState: 'prepared' | 'ready' | 'pending' }> = [];
         for (const mealState of ['prepared', 'ready', 'pending'] as const) {
-          const rows = cooking.data?.[mealState];
+          const rows = cooking[mealState];
           if (Array.isArray(rows)) for (const meal of rows) {
             if (meal && typeof meal.id === 'string') mealRows.push({ ...meal, mealState });
           }
