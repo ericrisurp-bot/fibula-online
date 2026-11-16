@@ -12075,3 +12075,20 @@ sem backdrop ou caixa de modal. */
   color: #ffaaa0 !important;
   font-size: 13px !important;
 }
+
+
+/* J2.7 — posiciona o slot de algodão ao lado do núcleo na bancada. */
+.jewelry-material-slot{
+  position:absolute;
+  z-index:4;
+  left:calc(50% + 42px);
+  top:52%;
+  transform:translateY(-50%);
+  width:min(112px,calc(50% - 48px));
+  min-width:0;
+  min-height:76px;
+  max-height:104px;
+  box-sizing:border-box;
+  padding:5px 4px;
+  pointer-events:none;
+}
