@@ -180,3 +180,17 @@ Com `CONFIG.rulesV2.armorCraftingEnabled` ligado, a Bigorna apresenta duas abas 
 - Com `armorCraftingEnabled = false`, a barra de abas e o painel de bronze não são renderizados; a Bigorna mantém o conteúdo de armas anterior e o estado inicial da aba é **Armas**.
 
 **Limite de servidor:** o servidor da A4.1 ainda não foi aplicado ao banco. Não considerar as RPCs de fabricação de armadura disponíveis até a aplicação e validação dessa etapa.
+
+
+## Armadura equipada (A5.1)
+
+A camada de dados de equipamento define um **conjunto único de armaduras compartilhado por todas as classes**: cada personagem mantém no aparelho uma seleção por espaço (capacete, peitoral, calça, bota e luva), com no máximo uma peça em cada espaço. As seleções são persistidas localmente por usuário em `fibula:equipped-armors:<userId>`; não há persistência remota nem sincronização entre aparelhos nesta etapa. Se uma peça selecionada não existir mais na lista de armaduras fabricadas ou não corresponder ao espaço selecionado, ela é ignorada sem erro.
+
+O cálculo agregado segue esta ordem, para cada peça equipada:
+
+1. Obter o valor efetivo de cada atributo com estrelas (`armorEffectiveValue`) e o valor efetivo do forro (`armorLiningEffectiveValue`).
+2. Aplicar uma única vez o aproveitamento da classe (`applyClassUsage`) aos atributos de armadura, vida, mobilidade e esquiva. O forro de algodão (vida) e de linho (mobilidade) também recebe esse aproveitamento; couro refinado soma XP de partida sem multiplicador de classe.
+3. Somar simplesmente os resultados de todas as peças, sem aplicar tetos durante a agregação. A camada `armorEquipment.ts` é o único ponto em que o aproveitamento por classe é aplicado; o motor da A5.3 não deve reaplicá-lo.
+4. Aplicar os limites somente ao converter os totais para seus efeitos finais: redução de dano por armadura limitada a **60%** (`CONFIG.rulesV2.armorMaxReduction`) e esquiva total limitada a **35%** (esquiva-base da classe + armadura e demais fontes aplicáveis).
+
+`armorReductionFromPoints` e `armorTotalDodge` expõem as conversões com esses limites. Esta etapa entrega apenas persistência local, resolução de seleções e cálculo puro dos bônus agregados. A interface de equipamento será feita na **A5.2** e a integração com o motor na **A5.3**.
