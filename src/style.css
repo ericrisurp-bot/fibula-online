@@ -12140,3 +12140,33 @@ sem backdrop ou caixa de modal. */
 .jewelry-material-slot>span{display:flex;align-items:center;justify-content:center;min-height:22px}
 .jewelry-material-slot>strong{max-width:100%;font-size:clamp(8px,2.2vw,9px);line-height:1.15;overflow-wrap:anywhere}
 .jewelry-material-slot>small{color:#e4c68d;font-size:8px;font-weight:850;line-height:1.2}
+
+
+/* Bilateral Duo trade */
+.lobby-duo-trade-trigger{display:block;margin:4px auto 0;padding:5px 9px;border:1px solid #a77c4c;border-radius:7px;background:#292a28;color:#f0d4a4;font:700 10px inherit;cursor:pointer}
+.duo-trade-backdrop{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:12px;background:#000b}
+.duo-trade-dialog{width:min(760px,100%);max-height:min(88dvh,850px);overflow:auto;padding:16px;border:1px solid #62513e;border-radius:14px;background:#222322;color:#eee9df;box-shadow:0 12px 45px #000b}
+.duo-trade-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.duo-trade-dialog>header small{color:#c7a77a;font-size:10px;font-weight:800;letter-spacing:.12em}
+.duo-trade-dialog h2{margin:2px 0;font-size:20px}
+.duo-trade-dialog>header button{border:0;background:transparent;color:#eee;font-size:28px}
+.duo-trade-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.duo-trade-columns>section{min-width:0;padding:10px;border:1px solid #49443b;border-radius:10px;background:#292a28}
+.duo-trade-columns h3{display:flex;justify-content:space-between;margin:0 0 8px;font-size:14px}
+.duo-trade-columns h3 small{color:#d0b58e}
+.duo-trade-columns h4{margin:12px 0 6px;font-size:12px;color:#d6c3a4}
+.duo-trade-columns ul{min-height:42px;margin:0;padding-left:18px;font-size:12px}
+.duo-trade-inventory{display:grid;gap:6px;max-height:260px;overflow:auto}
+.duo-trade-inventory>div{display:grid;grid-template-columns:minmax(0,1fr) 58px auto;align-items:center;gap:5px;padding:5px;border-bottom:1px solid #403d37;font-size:11px}
+.duo-trade-inventory input{width:58px;min-width:0;padding:5px;border:1px solid #635b4e;border-radius:5px;background:#171817;color:#fff}
+.duo-trade-dialog button{padding:7px 10px;border:1px solid #8a704e;border-radius:7px;background:#8a6841;color:#fff;font-size:11px;font-weight:750;cursor:pointer}
+.duo-trade-dialog button.secondary{background:#343532;border-color:#55534d}
+.duo-trade-dialog button:disabled{opacity:.5;cursor:not-allowed}
+.duo-trade-columns>section>button{margin-top:8px;width:100%}
+.duo-trade-private-note,.duo-trade-hint{font-size:11px;line-height:1.45;color:#c4b9a7}
+.duo-trade-confirmations{display:flex;justify-content:space-around;gap:8px;margin:12px 0;padding:9px;border-radius:8px;background:#30312e;font-size:11px}
+.duo-trade-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.duo-trade-error{color:#ff9b91;font-size:12px}
+.duo-trade-notice{color:#d8c49f;font-size:12px}
+.duo-trade-dialog footer{display:flex;justify-content:flex-end;margin-top:10px}
+@media(max-width:560px){.duo-trade-columns{grid-template-columns:1fr}.duo-trade-inventory>div{grid-template-columns:minmax(0,1fr) 52px auto}.duo-trade-dialog{padding:11px}.duo-trade-confirmations{flex-direction:column}}
