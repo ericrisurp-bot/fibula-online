@@ -997,7 +997,6 @@ export default function App() {
   const selectedJewelryRarity = selectedJewelryCoreParsed?.kind === 'closed' ? selectedJewelryCoreParsed.rarity : null;
   const jewelryCottonItemId = selectedJewelryRarity ? weaponMaterialItemId('cotton', selectedJewelryRarity) : null;
   const jewelryCottonAvailable = jewelryCottonItemId ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0) : 0;
-  const jewelryCottonMissing = Math.max(0, JEWELRY_POLISH_COTTON_COST - jewelryCottonAvailable);
   const anvilWeaponCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     const parsed = parseCoreItemId(item.itemId);
     if (parsed?.kind !== 'revealed' || parsed.core.category !== 'weapon' || item.quantity <= 0) return stacks;
