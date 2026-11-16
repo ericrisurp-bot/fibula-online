@@ -322,6 +322,107 @@ export async function finishSoloMatchSession(
 }
 
 
+type SoloMatchResultOutboxEntry = {
+  userId: string;
+  sessionId: string;
+  kills: number;
+  survivalNights: number;
+  createdAt: string;
+};
+
+const SOLO_MATCH_RESULT_OUTBOX_KEY = 'fibula-solo-match-result-outbox';
+
+function isValidSoloMatchResultOutboxEntry(value: unknown): value is SoloMatchResultOutboxEntry {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as Record<string, unknown>;
+  return typeof entry.userId === 'string' && entry.userId.length > 0
+    && typeof entry.sessionId === 'string' && entry.sessionId.length > 0
+    && Number.isSafeInteger(entry.kills) && (entry.kills as number) >= 0
+    && Number.isSafeInteger(entry.survivalNights) && (entry.survivalNights as number) >= 0
+    && typeof entry.createdAt === 'string' && Number.isFinite(Date.parse(entry.createdAt));
+}
+
+export function readSoloMatchResultOutbox(): SoloMatchResultOutboxEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(SOLO_MATCH_RESULT_OUTBOX_KEY) ?? '[]');
+    return Array.isArray(stored) ? stored.filter(isValidSoloMatchResultOutboxEntry) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function enqueueSoloMatchResult(
+  userId: string,
+  sessionId: string,
+  result: SoloMatchResult,
+): boolean {
+  if (typeof window === 'undefined' || !userId || !sessionId
+    || !Number.isSafeInteger(result.kills) || result.kills < 0
+    || !Number.isSafeInteger(result.survivalNights) || result.survivalNights < 0) return false;
+  try {
+    const outbox = readSoloMatchResultOutbox();
+    const existing = outbox.find(entry => entry.userId === userId && entry.sessionId === sessionId);
+    if (existing) {
+      return existing.kills === result.kills && existing.survivalNights === result.survivalNights;
+    }
+    outbox.push({
+      userId,
+      sessionId,
+      kills: result.kills,
+      survivalNights: result.survivalNights,
+      createdAt: new Date().toISOString(),
+    });
+    window.localStorage.setItem(SOLO_MATCH_RESULT_OUTBOX_KEY, JSON.stringify(outbox));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function flushSoloMatchResultOutbox(
+  client: SupabaseClient,
+  userId: string,
+): Promise<{ accepted: number; duplicate: number; rejected: number; pending: number }> {
+  let accepted = 0;
+  let duplicate = 0;
+  let rejected = 0;
+  const pending = readSoloMatchResultOutbox().filter(entry => entry.userId === userId);
+  for (const entry of pending) {
+    try {
+      const result = await finishSoloMatchSession(client, entry.sessionId, {
+        kills: entry.kills,
+        survivalNights: entry.survivalNights,
+      });
+      if (result === 'accepted') accepted += 1;
+      else if (result === 'duplicate') duplicate += 1;
+      else rejected += 1;
+      removeSoloMatchResultOutboxEntry(userId, entry.sessionId);
+    } catch {
+      // Falhas de rede ou respostas inesperadas mantêm o resultado para nova tentativa.
+      break;
+    }
+  }
+  return {
+    accepted,
+    duplicate,
+    rejected,
+    pending: readSoloMatchResultOutbox().filter(entry => entry.userId === userId).length,
+  };
+}
+
+function removeSoloMatchResultOutboxEntry(userId: string, sessionId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const outbox = readSoloMatchResultOutbox().filter(entry =>
+      entry.userId !== userId || entry.sessionId !== sessionId,
+    );
+    window.localStorage.setItem(SOLO_MATCH_RESULT_OUTBOX_KEY, JSON.stringify(outbox));
+  } catch {
+    // Se a confirmação não puder ser removida localmente, o retry será idempotente.
+  }
+}
+
 export async function reportHighestPd(client: SupabaseClient, pd: number): Promise<number | null> {
   if (!Number.isSafeInteger(pd) || pd <= 0 || pd > 3000) return null;
   try {
