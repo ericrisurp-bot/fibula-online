@@ -191,7 +191,7 @@ export default function ArmorCraftPanel({
     }
   };
 
-  return <section className="armor-craft-panel" aria-label="Fabricação de armadura de couro">
+  return <section className="armor-craft-panel" aria-label={type === 'couro' ? 'Fabricação de armadura de couro' : 'Fabricação de armadura de bronze'}>
     <div className="armor-craft-scroll">
       <section className="armor-craft-section" aria-label="Núcleos revelados">
         <header className="armor-craft-heading"><strong>NÚCLEO</strong><span>Escolha uma peça revelada no Baú</span></header>
