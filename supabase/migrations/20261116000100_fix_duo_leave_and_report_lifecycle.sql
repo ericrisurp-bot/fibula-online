@@ -123,6 +123,10 @@ begin
     update public.fibula_duo_room_participants
        set left_at = v_now, ready = false
      where room_id = p_room_id and left_at is null;
+  elsif v_room.phase = 'finished' then
+    update public.fibula_duo_room_participants
+       set left_at = coalesce(left_at, v_now), ready = false
+     where room_id = p_room_id;
   elsif v_role = 'host' then
     update public.fibula_duo_rooms
        set phase = 'cancelled', finished_at = v_now, updated_at = v_now
