@@ -87,19 +87,21 @@ export function ArmorInventoryCard({ armor, selected, onClick }: {
   </button>;
 }
 
-export function ArmorBonusSummary({ classId, bonuses, equippedCount }: {
+export function ArmorBonusSummary({ classId, bonuses, equippedCount, rulesV2Enabled, classDodge }: {
   classId: ClassId | null;
   bonuses: ArmorBonuses | null;
   equippedCount: number;
+  rulesV2Enabled: boolean;
+  classDodge: Record<ClassId, number>;
 }) {
   if (!classId || !bonuses) return null;
   if (equippedCount === 0) return <section className="arsenal-armor-bonus-summary">
     <strong>BÔNUS DA ARMADURA · {({ guerreiro: 'Guerreiro', mago: 'Mago', arqueiro: 'Arqueiro', druida: 'Druida' } as const)[classId]}</strong>
     <p>Nenhuma armadura equipada.</p>
-    {!CONFIG_RULES_V2_ENABLED && <small>Estes bônus passam a valer no jogo quando as Regras v2 forem ativadas.</small>}
+    {!rulesV2Enabled && <small>Estes bônus passam a valer no jogo quando as Regras v2 forem ativadas.</small>}
   </section>;
   const reduction = armorReductionFromPoints(bonuses.armadura);
-  const totalDodge = armorTotalDodge(CONFIG_CLASS_DODGE[classId], bonuses.esquiva);
+  const totalDodge = armorTotalDodge(classDodge[classId], bonuses.esquiva);
   return <section className="arsenal-armor-bonus-summary">
     <strong>BÔNUS DA ARMADURA · {({ guerreiro: 'Guerreiro', mago: 'Mago', arqueiro: 'Arqueiro', druida: 'Druida' } as const)[classId]}</strong>
     <div><span>Vida</span><b>+{numberLabel(bonuses.vida)}</b></div>
@@ -109,16 +111,6 @@ export function ArmorBonusSummary({ classId, bonuses, equippedCount }: {
     {bonuses.xpPartida > 0 && <div><span>XP da partida</span><b>+{numberLabel(bonuses.xpPartida * 100)}%</b></div>}
     {!CONFIG_RULES_V2_ENABLED && <small>Estes bônus passam a valer no jogo quando as Regras v2 forem ativadas.</small>}
   </section>;
-}
-
-// Os valores são passados pelo App para manter o componente apenas de apresentação.
-let CONFIG_RULES_V2_ENABLED = false;
-let CONFIG_CLASS_DODGE: Record<ClassId, number> = {
-  guerreiro: 0.032, mago: 0.04, arqueiro: 0.048, druida: 0.04,
-};
-export function configureArmorBonusPresentation(rulesV2Enabled: boolean, classDodge: Record<ClassId, number>) {
-  CONFIG_RULES_V2_ENABLED = rulesV2Enabled;
-  CONFIG_CLASS_DODGE = classDodge;
 }
 
 export function ArmorActionDialogs({ armor, equipped, deleteConfirmation, busy, onClose, onEquip, onUnequip, onRequestDelete, onCancelDelete, onConfirmDelete }: {
