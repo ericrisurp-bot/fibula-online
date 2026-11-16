@@ -251,17 +251,23 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     }
     const friendId = other?.user_id ?? invitedUserId;
     if (!friendId) {
-      let leaveError: string | null = null;
-      try {
-        await leaveDuoRoom(room.id);
-      } catch (cause) {
-        leaveError = cause instanceof Error ? cause.message : 'Falha ao encerrar a sala órfã.';
+      if (room.match_id) {
+        // Never use the legacy lobby cleanup to close a coordinated match.
+        clearLobby();
+        notify('A partida Duo ativa foi preservada no servidor, mas não foi possível restaurar o parceiro nesta tela.');
+      } else {
+        let leaveError: string | null = null;
+        try {
+          await leaveDuoRoom(room.id);
+        } catch (cause) {
+          leaveError = cause instanceof Error ? cause.message : 'Falha ao encerrar a sala órfã.';
+        }
+        clearLobby();
+        notify('A sala Duo sem convidado não pôde ser restaurada porque não foi possível recuperar o amigo convidado. ' + (leaveError ? `Falha ao encerrar: ${leaveError}` : invitationLookupError ? `Consulta do convite: ${invitationLookupError}. A sala foi encerrada para evitar ficar órfã.` : 'A sala foi encerrada para evitar ficar órfã.'));
       }
-      clearLobby();
-      notify('A sala Duo sem convidado não pôde ser restaurada porque não foi possível recuperar o amigo convidado. ' + (leaveError ? `Falha ao encerrar: ${leaveError}` : invitationLookupError ? `Consulta do convite: ${invitationLookupError}. A sala foi encerrada para evitar ficar órfã.` : 'A sala foi encerrada para evitar ficar órfã.'));
       return;
     }
-    if (friendListLoadSucceededRef.current && !friendIdsRef.current.includes(friendId)) {
+    if (!room.match_id && friendListLoadSucceededRef.current && !friendIdsRef.current.includes(friendId)) {
       await leaveDuoRoom(room.id);
       clearLobby();
       notify('A sala Duo foi encerrada porque o outro participante não é mais um amigo aceito.');
