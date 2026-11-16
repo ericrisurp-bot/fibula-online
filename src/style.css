@@ -1297,7 +1297,29 @@ button, button * {
   .lobby-character-canvas{transform:translate(-8vw,-4vh)}
 }
 
-/* Reflexo lunar projetado exclusivamente sobre o piso, alinhado à lua. */
+/* Reflexo lunar: a projeção desktop é alongada até o canto inferior direito.
+   O foco em 77% do elemento coincide com o centro da lua (right:14%, width:clamp(...)).
+   Em telas menores, preservamos exatamente o gradiente anterior, já validado visualmente. */
+.lobby-screen{
+  --lobby-ground-light-background:
+    radial-gradient(ellipse 56% 128% at 77% 0%,
+      rgba(205,222,240,.17) 0%,
+      rgba(182,205,230,.12) 34%,
+      rgba(154,184,216,.07) 62%,
+      rgba(135,166,201,.025) 84%,
+      transparent 100%),
+    radial-gradient(ellipse 78% 150% at 77% 0%,
+      rgba(169,194,221,.055) 0%,
+      rgba(148,177,209,.035) 58%,
+      transparent 100%);
+  --lobby-ground-light-filter:none;
+}
+@media(max-width:1024px){
+  .lobby-screen{
+    --lobby-ground-light-background:radial-gradient(ellipse at 77% 9%,rgba(198,218,238,.20) 0%,rgba(165,194,220,.12) 24%,rgba(126,160,193,.055) 43%,transparent 66%);
+    --lobby-ground-light-filter:blur(16px);
+  }
+}
 .lobby-ground-light{
   position:absolute;
   z-index:2;
@@ -1307,8 +1329,9 @@ button, button * {
   height:33.333vh;
   border-radius:50% 50% 0 0 / 12% 12% 0 0;
   pointer-events:none;
-  background:radial-gradient(ellipse at 77% 9%,rgba(198,218,238,.20) 0%,rgba(165,194,220,.12) 24%,rgba(126,160,193,.055) 43%,transparent 66%);
-  filter:blur(16px);
+  overflow:hidden;
+  background:var(--lobby-ground-light-background);
+  filter:var(--lobby-ground-light-filter);
 }
 
 
