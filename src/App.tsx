@@ -3540,7 +3540,7 @@ export default function App() {
               {lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
                 : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
                 : activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
-                    <TailorScene />
+                    <div className="armor-craft-scene" aria-hidden="true"><TailorScene /></div>
                     <ArmorCraftPanel
                       type="couro"
                       chestItems={lobbyChestItems}
