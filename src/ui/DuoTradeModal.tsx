@@ -135,6 +135,13 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
     setQuantities(current => ({ ...current, [key]: current[key] || '1' }));
   };
 
+  const selected = (item: DuoTradeItem) => offer.some(entry => {
+    if (item.kind !== entry.kind) return false;
+    if (item.kind === 'stack' && entry.kind === 'stack') return item.itemId === entry.itemId;
+    if (item.kind === 'weapon' && entry.kind === 'weapon') return item.weaponId === entry.weaponId;
+    return item.kind === 'meal' && entry.kind === 'meal' && item.mealId === entry.mealId;
+  });
+
   const saveOffer = () => run(async () => {
     await setDuoTradeOffer(client, trade!.id, offer);
     setOffer([]);
@@ -158,20 +165,20 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
         <div className="duo-trade-columns">
           <section><h3>Sua oferta <small>{ownOffer.length}/5</small></h3>
             <ul>{ownLabels.length ? ownLabels.map((label, i) => <li key={i}>{label}</li>) : <li>Nenhum item oferecido</li>}</ul>
-            <h4>Escolha no seu inventário</h4>
+            <h4>Escolha no seu inventário · seleção {offer.length}/5</h4>
             <div className="duo-trade-inventory">
               {stacks.map(stack => <div key={'s:'+stack.itemId}>
                 <span>{itemName[stack.itemId] || stack.itemId} · disponível {stack.quantity}</span>
                 <input aria-label={'Quantidade de '+stack.itemId} type="number" min="1" max={stack.quantity} value={quantities[stack.itemId] || '1'} onChange={e => setQuantities(v => ({...v,[stack.itemId]:e.target.value}))}/>
-                <button type="button" disabled={busy} onClick={() => { const qty=Number(quantities[stack.itemId] || 1); if (!Number.isSafeInteger(qty)||qty<1||qty>stack.quantity) {setError('Quantidade inválida.');return;} toggle({kind:'stack',itemId:stack.itemId,quantity:qty},stack.itemId); }}>Selecionar</button>
+                <button type="button" disabled={busy} onClick={() => { const qty=Number(quantities[stack.itemId] || 1); if (!Number.isSafeInteger(qty)||qty<1||qty>stack.quantity) {setError('Quantidade inválida.');return;} toggle({kind:'stack',itemId:stack.itemId,quantity:qty},stack.itemId); }}>{selected({kind:'stack',itemId:stack.itemId,quantity:Number(quantities[stack.itemId] || 1)})?'Remover':'Selecionar'}</button>
               </div>)}
               {weapons.map(weapon => <div key={'w:'+weapon.id}>
                 <span>{weaponName[weapon.model] || weapon.model} · {rarityName[weapon.rarity] || weapon.rarity} · T{weapon.tier}</span>
-                <button type="button" disabled={busy} onClick={() => toggle({kind:'weapon',weaponId:weapon.id},weapon.id)}>Selecionar</button>
+                <button type="button" disabled={busy} onClick={() => toggle({kind:'weapon',weaponId:weapon.id},weapon.id)}>{selected({kind:'weapon',weaponId:weapon.id})?'Remover':'Selecionar'}</button>
               </div>)}
               {meals.map(meal => <div key={'m:'+meal.id}>
                 <span>{meal.icon || '🍲'} {meal.name} · {meal.mealState === 'pending' ? 'Próxima partida' : meal.mealState === 'prepared' ? 'Preparada' : 'Pronta'}</span>
-                <button type="button" disabled={busy} onClick={() => toggle({kind:'meal',mealId:meal.id,mealState:meal.mealState},meal.id)}>Selecionar</button>
+                <button type="button" disabled={busy} onClick={() => toggle({kind:'meal',mealId:meal.id,mealState:meal.mealState},meal.id)}>{selected({kind:'meal',mealId:meal.id,mealState:meal.mealState})?'Remover':'Selecionar'}</button>
               </div>)}
               {!stacks.length && !weapons.length && !meals.length && <p>Seu inventário não tem itens disponíveis para troca.</p>}
             </div>
