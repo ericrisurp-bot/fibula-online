@@ -3537,9 +3537,7 @@ export default function App() {
 
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{stationPresentation.icon}</div>}
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
-              {lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
-                : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
-                : activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
+              {activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
                     <div className="armor-craft-scene" aria-hidden="true"><TailorScene /></div>
                     <ArmorCraftPanel
                       type="couro"
@@ -3555,6 +3553,8 @@ export default function App() {
                       label={itemLabel}
                     />
                   </div>
+                : lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
+                : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
                 : activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
                 <TailorScene>
                   <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
