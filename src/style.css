@@ -12143,7 +12143,7 @@ sem backdrop ou caixa de modal. */
 
 
 /* Bilateral Duo trade */
-.lobby-duo-trade-trigger{display:block;margin:4px auto 0;padding:5px 9px;border:1px solid #a77c4c;border-radius:7px;background:#292a28;color:#f0d4a4;font:700 10px inherit;cursor:pointer}
+.lobby-duo-trade-trigger{display:block;margin:4px auto 0;padding:5px 9px;border:1px solid #a77c4c;border-radius:7px;background:#292a28;color:#f0d4a4;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer}
 .duo-trade-backdrop{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:12px;background:#000b}
 .duo-trade-dialog{width:min(760px,100%);max-height:min(88dvh,850px);overflow:auto;padding:16px;border:1px solid #62513e;border-radius:14px;background:#222322;color:#eee9df;box-shadow:0 12px 45px #000b}
 .duo-trade-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
