@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 
 const storage = new Map();
+Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
+
 globalThis.window = {
   localStorage: {
     getItem: key => storage.has(key) ? storage.get(key) : null,
