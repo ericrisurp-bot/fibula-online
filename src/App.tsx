@@ -706,7 +706,7 @@ export default function App() {
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
   const [duoNotice, setDuoNotice] = useState('');
-  const duoLeaveActionRef = useRef<(() => void) | null>(null);
+  const duoLeaveActionRef = useRef<(() => void | Promise<boolean>) | null>(null);
   const duoReadyActionRef = useRef<(() => void) | null>(null);
   const duoStartActionRef = useRef<(() => void) | null>(null);
   const duoHouseNotifyActionRef = useRef<(() => Promise<void>) | null>(null);
