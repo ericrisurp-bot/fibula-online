@@ -300,6 +300,23 @@ export async function startSoloMatchSession(client: SupabaseClient): Promise<str
   return data;
 }
 
+export async function abandonSoloMatchSession(
+  client: SupabaseClient,
+  sessionId: string,
+): Promise<'accepted' | 'duplicate' | 'rejected'> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('Sem conexão: o servidor não confirmou o abandono da partida.');
+  }
+  const { data, error } = await client.rpc('fibula_abandon_solo_match', {
+    p_session_id: sessionId,
+  });
+  if (error) throw error;
+  if (data !== 'accepted' && data !== 'duplicate' && data !== 'rejected') {
+    throw new Error('O servidor retornou uma resposta inválida para o abandono da partida.');
+  }
+  return data;
+}
+
 export async function finishSoloMatchSession(
   client: SupabaseClient,
   sessionId: string,
