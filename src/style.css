@@ -12474,5 +12474,5 @@ sem backdrop ou caixa de modal. */
 
 /* Alfaiataria — aumenta em 30% a faixa vertical do cenário visual. */
 .armor-craft-workspace{
-  grid-template-rows:minmax(0,1.425fr) minmax(0,1.217fr)!important;
+  grid-template-rows:minmax(0,1.71fr) minmax(0,1.217fr)!important;
 }
