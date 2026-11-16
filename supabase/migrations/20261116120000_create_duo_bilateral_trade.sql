@@ -456,7 +456,6 @@ begin
   return found;
 end;
 $function$;
-
 revoke all on function public.fibula_duo_trade_assert_user() from public, anon, authenticated;
 revoke all on function public.fibula_duo_trade_request(uuid) from public, anon;
 revoke all on function public.fibula_duo_trade_answer(uuid, boolean) from public, anon;
