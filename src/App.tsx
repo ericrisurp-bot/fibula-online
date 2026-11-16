@@ -3563,6 +3563,12 @@ export default function App() {
                         <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
                       </> : <strong>＋ Núcleo 0/1</strong>}
                     </button>
+                    {selectedJewelryCoreId && selectedJewelryRarity && jewelryCottonItemId && <div className="jewelry-material-slot" aria-label="Material necessário para revelar o núcleo">
+                      <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
+                      <strong>Algodão {JEWELRY_RARITY_LABELS[selectedJewelryRarity] ?? selectedJewelryRarity}</strong>
+                      <small>Necessário: ×{JEWELRY_POLISH_COTTON_COST}</small>
+                      <small>Tem: {jewelryCottonAvailable}/{JEWELRY_POLISH_COTTON_COST}</small>
+                    </div>}
                     {jewelrySlotCore?.kind === 'revealed' && <section className="jewelry-result-card" aria-label="Atributos do núcleo revelado">
                       <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
                         <span>{weaponAttributeLabels[attribute.key]}</span>
@@ -3593,16 +3599,10 @@ export default function App() {
                   </div>
                 </section>
                 <div className="jewelry-action-area">
-                  {selectedJewelryCoreId && selectedJewelryRarity && jewelryCottonItemId && <div className="forge-material-item jewelry-polish-cost">
-                    <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
-                    <strong>{JEWELRY_POLISH_COTTON_COST} × Algodão {JEWELRY_RARITY_LABELS[selectedJewelryRarity] ?? selectedJewelryRarity}</strong>
-                    <small>tem {jewelryCottonAvailable}</small>
-                  </div>}
-                  <p className="jewelry-help-text">O algodão da mesma raridade é usado para polir a pedra e revelar o que ela faz.</p>
                   <button type="button" className="jewelry-reveal-button"
                     disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId || !selectedJewelryCoreStack || jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST}
                     onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
-                  {(jewelryFeedback || (selectedJewelryCoreId && jewelryCottonMissing > 0 ? `Faltam ${jewelryCottonMissing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para polir.` : '')) && <p className="jewelry-feedback" role="status">{jewelryFeedback || `Faltam ${jewelryCottonMissing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para polir.`}</p>}
+                  {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
                 </div>
               </div> : activeCraftingStation.id === 'bigorna' ? <>
                 <div className="forge-workspace">
