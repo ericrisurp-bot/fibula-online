@@ -4040,7 +4040,6 @@ export default function App() {
               </div>
               {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
               {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
-              {bauAction.kind==='item'&&chestTransferFeedback&&<p role="status">{chestTransferFeedback}</p>}
             </>}
           </section>
         </div>}
