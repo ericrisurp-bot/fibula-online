@@ -165,6 +165,11 @@ declare
   v_meal_id text;
   v_meal_state text;
   v_array jsonb;
+  v_meal jsonb;
+  v_label text;
+  v_rarity text;
+  v_tier smallint;
+  v_normalized_offer jsonb := '[]'::jsonb;
   v_count integer := 0;
 begin
   if p_offer is null or jsonb_typeof(p_offer) <> 'array' or jsonb_array_length(p_offer) > 5 then
@@ -201,16 +206,21 @@ begin
           and coalesce(e.value ->> 'quantity','') ~ '^[1-9][0-9]*$'
           and (e.value ->> 'quantity')::bigint >= v_quantity
       ) then raise exception 'Quantidade insuficiente no seu Baú.'; end if;
-      if exists (select 1 from jsonb_array_elements(p_offer) e
-                 where e.value ->> 'kind' = 'stack' and e.value ->> 'itemId' = v_item_id
-                   and e.value <> v_entry) then
+      if (select count(*) from jsonb_array_elements(p_offer) e
+           where e.value ->> 'kind' = 'stack' and e.value ->> 'itemId' = v_item_id) > 1 then
         raise exception 'Use apenas uma entrada por tipo de recurso.';
       end if;
+      v_normalized_offer := v_normalized_offer || jsonb_build_array(v_entry);
     elsif v_kind = 'weapon' then
       v_weapon_id := (v_entry ->> 'weaponId')::uuid;
-      if not exists (select 1 from public.fibula_weapons w where w.id = v_weapon_id and w.user_id = v_user_id) then
-        raise exception 'A arma selecionada não pertence mais a você.';
-      end if;
+      select w.model, w.rarity, w.tier into v_label, v_rarity, v_tier
+        from public.fibula_weapons w where w.id = v_weapon_id and w.user_id = v_user_id;
+      if not found then raise exception 'A arma selecionada não pertence mais a você.'; end if;
+      v_entry := v_entry || jsonb_build_object(
+        'label', case v_label when 'espada' then 'Espada' when 'arco' then 'Arco' when 'cajado' then 'Cajado' else 'Bastão da Natureza' end,
+        'rarity', v_rarity, 'tier', v_tier
+      );
+      v_normalized_offer := v_normalized_offer || jsonb_build_array(v_entry);
     elsif v_kind = 'meal' then
       v_meal_id := v_entry ->> 'mealId';
       v_meal_state := v_entry ->> 'mealState';
@@ -219,9 +229,14 @@ begin
       end if;
       select case v_meal_state when 'prepared' then prepared when 'ready' then ready else pending end
         into v_array from public.fibula_cooking_state where user_id = v_user_id;
-      if not exists (select 1 from jsonb_array_elements(coalesce(v_array, '[]'::jsonb)) m where m.value ->> 'id' = v_meal_id) then
-        raise exception 'A refeição selecionada não está mais disponível.';
-      end if;
+      select m.value into v_meal from jsonb_array_elements(coalesce(v_array, '[]'::jsonb)) m where m.value ->> 'id' = v_meal_id;
+      if v_meal is null then raise exception 'A refeição selecionada não está mais disponível.'; end if;
+      v_entry := v_entry || jsonb_build_object(
+        'label', coalesce(v_meal ->> 'name', 'Refeição'),
+        'icon', coalesce(v_meal ->> 'icon', '🍲'),
+        'rarity', coalesce(v_meal ->> 'rarity', 'normal')
+      );
+      v_normalized_offer := v_normalized_offer || jsonb_build_array(v_entry);
     else
       raise exception 'Categoria de item não permitida na troca.';
     end if;
@@ -230,12 +245,12 @@ begin
 
   if v_user_id = v_trade.host_id then
     update public.fibula_duo_trade_sessions
-       set host_offer = p_offer, host_confirmed = false, guest_confirmed = false,
+       set host_offer = v_normalized_offer, host_confirmed = false, guest_confirmed = false,
            revision = revision + 1, updated_at = pg_catalog.now()
      where id = p_trade_id;
   else
     update public.fibula_duo_trade_sessions
-       set guest_offer = p_offer, host_confirmed = false, guest_confirmed = false,
+       set guest_offer = v_normalized_offer, host_confirmed = false, guest_confirmed = false,
            revision = revision + 1, updated_at = pg_catalog.now()
      where id = p_trade_id;
   end if;
