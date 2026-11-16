@@ -96,12 +96,13 @@ declare
   v_user_id uuid := public.fibula_duo_trade_assert_user();
   v_trade public.fibula_duo_trade_sessions%rowtype;
   v_phase text;
+  v_room_id uuid;
 begin
-  select room_id into v_trade.room_id from public.fibula_duo_trade_sessions
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'requested';
   if not found then raise exception 'Solicitação não encontrada ou você não pode responder a ela.'; end if;
   select phase into v_phase from public.fibula_duo_rooms
-   where id = v_trade.room_id for update;
+   where id = v_room_id for update;
   select * into v_trade from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'requested' for update;
   if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id)
@@ -282,6 +283,7 @@ declare
   v_user_id uuid := public.fibula_duo_trade_assert_user();
   v_trade public.fibula_duo_trade_sessions%rowtype;
   v_room_phase text;
+  v_room_id uuid;
   v_owner uuid;
   v_receiver uuid;
   v_offer jsonb;
@@ -306,14 +308,14 @@ declare
   v_target_ready jsonb;
   v_target_pending jsonb;
 begin
-  select room_id into v_trade.room_id
+  select room_id into v_room_id
     from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'open';
   if not found then raise exception 'Troca não encontrada ou encerrada.'; end if;
 
   select phase into v_room_phase
     from public.fibula_duo_rooms
-   where id = v_trade.room_id
+   where id = v_room_id
    for update;
   if v_room_phase is distinct from 'lobby' then
     raise exception 'A troca só pode ser concluída no lobby.';
