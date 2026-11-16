@@ -11,7 +11,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, finishSoloMatchSession, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
+import { addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -486,6 +486,8 @@ export default function App() {
   const houseDeathFinalizeRef = useRef<Promise<void> | null>(null);
   const matchSummaryHandledRef = useRef(false);
   const matchSessionIdRef = useRef<string | null>(null);
+  const matchResultDrainRef = useRef<Promise<number> | null>(null);
+  const matchResultDrainRequestedRef = useRef(false);
   const gameStartPendingRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [houseLoadReady, setHouseLoadReady] = useState(false);
@@ -573,23 +575,62 @@ export default function App() {
     return () => window.removeEventListener('online', syncLatestHouseInventory);
   }, [houseInventoryJson, session.user.sub, houseLoadReady, lobbyChestStatus]);
 
-  const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<void> => {
-    const survivalNights = Math.max(0, snapshot.nightNumber - (snapshot.dayNight === 'night' ? 1 : 0));
-    const sessionId = matchSessionIdRef.current;
-    matchSessionIdRef.current = null;
-    if (!sessionId || !fibulaSupabase) return;
+  const drainSoloMatchResults = async (): Promise<number> => {
+    if (!fibulaSupabase || !session.user.sub) return 0;
+    if (matchResultDrainRef.current) {
+      matchResultDrainRequestedRef.current = true;
+      return matchResultDrainRef.current;
+    }
+    const pendingDrain = (async () => {
+      let rejected = 0;
+      do {
+        matchResultDrainRequestedRef.current = false;
+        const summary = await flushSoloMatchResultOutbox(fibulaSupabase, session.user.sub);
+        rejected += summary.rejected;
+      } while (matchResultDrainRequestedRef.current);
+      return rejected;
+    })();
+    matchResultDrainRef.current = pendingDrain;
     try {
-      const result = await finishSoloMatchSession(fibulaSupabase, sessionId, {
-        kills: snapshot.kills,
-        survivalNights,
-      });
-      if (result === 'rejected') {
-        window.alert('O servidor recusou o resultado desta partida por não passar na validação. Seu progresso não foi atualizado.');
-      }
-    } catch {
-      window.alert('Não foi possível validar o resultado no encerramento. Esta partida não foi salva no perfil.');
+      return await pendingDrain;
+    } finally {
+      if (matchResultDrainRef.current === pendingDrain) matchResultDrainRef.current = null;
     }
   };
+
+  const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<boolean> => {
+    const sessionId = matchSessionIdRef.current;
+    if (!sessionId) return true;
+    if (!session.user.sub) return false;
+    const survivalNights = Math.max(0, snapshot.nightNumber - (snapshot.dayNight === 'night' ? 1 : 0));
+    // A gravação local acontece antes de limpar o ID ou depender da rede.
+    if (!enqueueSoloMatchResult(session.user.sub, sessionId, {
+      kills: snapshot.kills,
+      survivalNights,
+    })) {
+      window.alert('Não foi possível guardar o resultado desta partida neste dispositivo. Mantenha esta tela aberta e tente novamente.');
+      return false;
+    }
+    matchSessionIdRef.current = null;
+    const rejected = await drainSoloMatchResults();
+    if (rejected > 0) {
+      window.alert('O servidor recusou um resultado por não passar na validação. Esse resultado não atualizou o perfil.');
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    const retryPendingResults = () => {
+      void drainSoloMatchResults().then(rejected => {
+        if (rejected > 0) {
+          window.alert('O servidor recusou um resultado por não passar na validação. Esse resultado não atualizou o perfil.');
+        }
+      });
+    };
+    retryPendingResults();
+    window.addEventListener('online', retryPendingResults);
+    return () => window.removeEventListener('online', retryPendingResults);
+  }, [session.user.sub]);
 
   useEffect(() => {
     if (!state.dead) {
@@ -3171,10 +3212,13 @@ export default function App() {
     flagsRef.current = next;
     setFlags(next);
   };
-  const returnToLobby = () => {
+  const returnToLobby = async () => {
     const engine = engineRef.current;
     if (!engine || gameStartPendingRef.current) return;
-    if (!engine.state.dead && matchSessionIdRef.current) void submitSoloMatchResult(engine.state);
+    if (matchSessionIdRef.current) {
+      const queued = await submitSoloMatchResult(engine.state);
+      if (!queued) return;
+    }
     gameStartedRef.current = false;
     engine.restart();
     engine.stop();
@@ -3195,7 +3239,9 @@ export default function App() {
         throw new Error('Conecte-se à internet para iniciar outra partida com progresso validado.');
       }
       if (houseDeathFinalizeRef.current) await houseDeathFinalizeRef.current;
-      if (!engine.state.dead && matchSessionIdRef.current) await submitSoloMatchResult(engine.state);
+      if (matchSessionIdRef.current && !(await submitSoloMatchResult(engine.state))) {
+        throw new Error('O resultado da partida anterior ainda não foi guardado neste dispositivo.');
+      }
       const sessionId = await startSoloMatchSession(fibulaSupabase);
       engine.configureSoloMatch();
       matchSessionIdRef.current = sessionId;
