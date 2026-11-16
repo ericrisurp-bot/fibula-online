@@ -97,14 +97,23 @@ declare
   v_trade public.fibula_duo_trade_sessions%rowtype;
   v_phase text;
 begin
+  select room_id into v_trade.room_id from public.fibula_duo_trade_sessions
+   where id = p_trade_id and status = 'requested';
+  if not found then raise exception 'Solicitação não encontrada ou você não pode responder a ela.'; end if;
+  select phase into v_phase from public.fibula_duo_rooms
+   where id = v_trade.room_id for update;
   select * into v_trade from public.fibula_duo_trade_sessions
    where id = p_trade_id and status = 'requested' for update;
   if not found or v_user_id not in (v_trade.host_id, v_trade.guest_id)
-    or v_user_id = v_trade.requester_id then
+    or v_user_id = v_trade.requester_id
+    or (select count(*) from public.fibula_duo_room_participants p
+         where p.room_id = v_trade.room_id and p.left_at is null) <> 2
+    or not exists (select 1 from public.fibula_duo_room_participants p
+                    where p.room_id = v_trade.room_id and p.user_id = v_trade.host_id and p.left_at is null)
+    or not exists (select 1 from public.fibula_duo_room_participants p
+                    where p.room_id = v_trade.room_id and p.user_id = v_trade.guest_id and p.left_at is null) then
     raise exception 'Solicitação não encontrada ou você não pode responder a ela.';
   end if;
-  select phase into v_phase from public.fibula_duo_rooms
-   where id = v_trade.room_id for update;
   if v_phase is distinct from 'lobby' then
     update public.fibula_duo_trade_sessions set status = 'cancelled', updated_at = pg_catalog.now()
      where id = p_trade_id;
@@ -423,8 +432,15 @@ language plpgsql
 security definer
 set search_path = ''
 as $function$
-declare v_user_id uuid := public.fibula_duo_trade_assert_user();
+declare
+  v_user_id uuid := public.fibula_duo_trade_assert_user();
+  v_room_id uuid;
 begin
+  select room_id into v_room_id from public.fibula_duo_trade_sessions
+   where id=p_trade_id and status in ('requested','open')
+     and v_user_id in (host_id,guest_id);
+  if not found then return false; end if;
+  perform 1 from public.fibula_duo_rooms where id=v_room_id for update;
   update public.fibula_duo_trade_sessions
      set status='cancelled', updated_at=pg_catalog.now()
    where id=p_trade_id and status in ('requested','open')
