@@ -11,7 +11,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -1072,6 +1072,8 @@ export default function App() {
   const [showStart, setShowStart] = useState(true);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [exitConfirmationError, setExitConfirmationError] = useState('');
+  const [exitConfirmationBusy, setExitConfirmationBusy] = useState(false);
+  const exitConfirmationBusyRef = useRef(false);
   const [mobileLobbyLandscape, setMobileLobbyLandscape] = useState(false);
   const gameStartedRef = useRef(false);
   const gameBackGuardRef = useRef(false);
@@ -3275,24 +3277,64 @@ export default function App() {
     }
   };
   const confirmExitToLobby = async () => {
-    if (duoPeer?.matchId) {
-      if (!duoLeaveActionRef.current) {
-        setExitConfirmationError('Não foi possível confirmar sua saída da partida Duo. Tente novamente.');
-        return;
-      }
-      try {
-        const left = await duoLeaveActionRef.current();
-        if (left === false) {
-          setExitConfirmationError('Não foi possível sair da partida Duo. Você continua na partida.');
-          return;
+    if (exitConfirmationBusyRef.current) return;
+    exitConfirmationBusyRef.current = true;
+    setExitConfirmationBusy(true);
+    setExitConfirmationError('');
+
+    // Fecha novas gravações do Baú imediatamente. Uma operação já enviada ao
+    // servidor pode terminar; o restante da fila ainda não confirmado será descartado.
+    houseMatchClosedRef.current = true;
+    try {
+      const inFlightSync = houseSyncInFlightRef.current;
+      if (inFlightSync) await inFlightSync;
+
+      const activeDuoMatchId = duoStartedMatchIdRef.current;
+      if (activeDuoMatchId) {
+        if (!duoLeaveActionRef.current) {
+          throw new Error('Não foi possível confirmar sua saída da partida Duo. Tente novamente.');
         }
-      } catch {
-        setExitConfirmationError('Não foi possível sair da partida Duo. Você continua na partida.');
-        return;
+        const left = await duoLeaveActionRef.current();
+        if (left !== true) {
+          throw new Error('O servidor não confirmou sua saída da partida Duo. Você continua na partida.');
+        }
+      } else {
+        const sessionId = matchSessionIdRef.current;
+        if (sessionId) {
+          if (!fibulaSupabase) throw new Error('Não foi possível conectar ao servidor para finalizar a partida.');
+          const result = await abandonSoloMatchSession(fibulaSupabase, sessionId);
+          if (result === 'rejected') {
+            throw new Error('O Supabase não confirmou o encerramento desta partida. Você continua nela.');
+          }
+          matchSessionIdRef.current = null;
+        }
       }
+
+      // Somente o inventário cuja gravação foi confirmada permanece. Operações
+      // ainda na fila local não podem ser enviadas depois que a partida terminou.
+      for (const operation of readHouseOutbox()) removeHouseOutboxOperation(operation.opId);
+      pendingHouseInventoryRef.current = null;
+      houseNeedsReconcileRef.current = false;
+      const confirmedSnapshot = lastSyncedHouseInventoryRef.current
+        || JSON.stringify(readConfirmedHouseInventory());
+      const confirmedInventory = JSON.parse(confirmedSnapshot) as HouseStorageStack[];
+      houseSyncBaselineRef.current = confirmedSnapshot;
+      applyCookingInventory(confirmedInventory);
+
+      setExitConfirmationOpen(false);
+      await returnToLobby();
+    } catch (cause) {
+      // Se o servidor não confirmou o encerramento, a partida continua ativa.
+      // Reabre a sincronização para que o jogador possa tentar novamente.
+      houseMatchClosedRef.current = false;
+      void houseOutboxDrainRef.current();
+      setExitConfirmationError(cause instanceof Error
+        ? cause.message
+        : 'Não foi possível finalizar a partida. Você continua nela.');
+    } finally {
+      exitConfirmationBusyRef.current = false;
+      setExitConfirmationBusy(false);
     }
-    setExitConfirmationOpen(false);
-    await returnToLobby();
   };
   const restart = async () => {
     const engine = engineRef.current;
@@ -4189,8 +4231,8 @@ export default function App() {
         <p id="match-exit-description">Deseja sair desta partida e voltar ao Lobby?</p>
         {exitConfirmationError && <p className="match-exit-error" role="alert">{exitConfirmationError}</p>}
         <div className="match-exit-actions">
-          <button type="button" className="match-exit-confirm" onClick={() => { void confirmExitToLobby(); }}>SIM</button>
-          <button type="button" className="match-exit-cancel" onClick={() => { setExitConfirmationOpen(false); setExitConfirmationError(''); }}>NÃO</button>
+          <button type="button" className="match-exit-confirm" disabled={exitConfirmationBusy} onClick={() => { void confirmExitToLobby(); }}>{exitConfirmationBusy ? 'FINALIZANDO…' : 'SIM'}</button>
+          <button type="button" className="match-exit-cancel" disabled={exitConfirmationBusy} onClick={() => { setExitConfirmationOpen(false); setExitConfirmationError(''); }}>NÃO</button>
         </div>
       </section>
     </div>}
