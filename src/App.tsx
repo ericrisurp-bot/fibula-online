@@ -16,6 +16,7 @@ import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/ma
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
+import { listMyArmors, type CraftedArmor } from './game/armorCrafting';
 
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
@@ -35,6 +36,7 @@ import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
+import ArmorCraftPanel from './ui/ArmorCraftPanel';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
@@ -878,6 +880,19 @@ export default function App() {
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
+  const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
+  useEffect(() => {
+    if (!CONFIG.rulesV2.armorCraftingEnabled) return;
+    if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
+      setCraftedArmors([]);
+      return;
+    }
+    let active = true;
+    void listMyArmors(fibulaSupabase)
+      .then(armors => { if (active) setCraftedArmors(armors); })
+      .catch(() => { if (active) setCraftedArmors([]); });
+    return () => { active = false; };
+  }, [session.user.sub, cookingOnline]);
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalArmedPower = activeArsenalClassId
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
@@ -3524,24 +3539,41 @@ export default function App() {
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
               {lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
                 : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
-                : activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
-                <TailorScene>
-                  <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
-                    {['Peça', 'Forro', 'Costura'].map(label => <div className="tailor-preview-slot" key={label} aria-disabled="true"><strong>{label}</strong><small>Em breve</small></div>)}
+                : activeCraftingStation.id === 'costura' ? (CONFIG.rulesV2.armorCraftingEnabled
+                  ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
+                    <TailorScene />
+                    <ArmorCraftPanel
+                      type="couro"
+                      chestItems={lobbyChestItems}
+                      chestReady={lobbyChestStatus === 'ready'}
+                      online={cookingOnline}
+                      client={fibulaSupabase}
+                      applyInventory={applyCookingInventory}
+                      refreshChest={refreshLobbyChestFromCloud}
+                      onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
+                      renderIcon={inventoryItemIcon}
+                      glowStyle={itemRarityGlow}
+                      label={itemLabel}
+                    />
                   </div>
-                </TailorScene>
-                <section className="forge-zone tailor-fabrics-zone" aria-label="Tecidos no Baú">
-                  <div className="forge-panel-heading"><strong>TECIDOS</strong><span>Materiais disponíveis no Baú</span></div>
-                  <div className="forge-material-grid tailor-fabric-grid" aria-label="Tecidos disponíveis no Baú">
-                    {tailorFabricStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
-                      <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                    </div>)}
-                    {tailorFabricStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum tecido no Baú.</p>}
-                  </div>
-                  <p className="tailor-fabric-note">Aqui serão feitas as armaduras: couro (tipo 1) e bronze (tipo 2), com forro e costura.</p>
-                </section>
-                <div className="tailor-action-area"><button type="button" className="tailor-sew-button" disabled>Costurar · Em breve</button></div>
-              </div> : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
+                  : <div className="tailor-workspace">
+                    <TailorScene>
+                      <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
+                        {['Peça', 'Forro', 'Costura'].map(label => <div className="tailor-preview-slot" key={label} aria-disabled="true"><strong>{label}</strong><small>Em breve</small></div>)}
+                      </div>
+                    </TailorScene>
+                    <section className="forge-zone tailor-fabrics-zone" aria-label="Tecidos no Baú">
+                      <div className="forge-panel-heading"><strong>TECIDOS</strong><span>Materiais disponíveis no Baú</span></div>
+                      <div className="forge-material-grid tailor-fabric-grid" aria-label="Tecidos disponíveis no Baú">
+                        {tailorFabricStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                        </div>)}
+                        {tailorFabricStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum tecido no Baú.</p>}
+                      </div>
+                      <p className="tailor-fabric-note">Aqui serão feitas as armaduras: couro (tipo 1) e bronze (tipo 2), com forro e costura.</p>
+                    </section>
+                    <div className="tailor-action-area"><button type="button" className="tailor-sew-button" disabled>Costurar · Em breve</button></div>
+                  </div>) : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
                 <div className="jewelry-stage">
                   <JewelryScene revealAnimating={jewelryRevealAnimating} />
                   <div className="jewelry-ui-layer">
