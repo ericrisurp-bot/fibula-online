@@ -1,6 +1,7 @@
 import { CONFIG, type ClassId } from './config';
 import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getDamageMultiplier, type AttributeKey, type EffectAttribute } from './attributes';
 import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon } from './weapons';
+import type { ArmorBonuses } from './armorEquipment';
 
 // Referências fixas do PD: cada capacidade vale 100 pontos quando está exatamente na referência.
 // São os pontos de calibração do balanceamento; mudar uma delas muda o PD de todas as classes.
@@ -51,8 +52,33 @@ export function getClassPower(classId: ClassId, level: number, pointsPerLevel = 
 // Equipamento é aberto para receber armadura/acessórios em etapas futuras.
 export type ArmedClassPowerEquipment = {
   weapon?: EquippedWeapon | null;
+  armorBonuses?: ArmorBonuses | null;
   [slot: string]: unknown;
 };
+
+
+
+function addArmorBonusesToPower(
+  base: PowerBreakdown,
+  classId: ClassId,
+  level: number,
+  pointsPerLevel: number,
+  armorBonuses: ArmorBonuses,
+): PowerBreakdown {
+  const parts = { ...base.parts };
+  parts.vida += 100 * armorBonuses.vida / POWER_REFERENCE.vida;
+  parts.armadura += 100 * armorBonuses.armadura / POWER_REFERENCE.armadura;
+  parts.velocidadeMovimento += 100
+    * getAttributeBaseValueEffect('velocidadeMovimento', armorBonuses.mobilidade)
+    / POWER_REFERENCE.velocidadeMovimento;
+  const dodgeBeforeArmor = CONFIG.player.classDodge[classId]
+    + usedBonus(classId, level, 'esquiva', pointsPerLevel);
+  parts.esquiva = 100
+    / (1 - Math.min(0.35, dodgeBeforeArmor + armorBonuses.esquiva))
+    / POWER_REFERENCE.esquiva;
+  const total = (Object.values(parts) as number[]).reduce((sum, value) => sum + value, 0);
+  return { total, parts };
+}
 
 export function getArmedClassPower(
   classId: ClassId,
@@ -61,8 +87,12 @@ export function getArmedClassPower(
   equipment: ArmedClassPowerEquipment,
 ): PowerBreakdown {
   const weapon = equipment.weapon;
+  const armorBonuses = CONFIG.rulesV2.enabled ? equipment.armorBonuses : null;
   if (!weapon || WEAPON_CLASS_BY_MODEL[weapon.model] !== classId) {
-    return getClassPower(classId, level, pointsPerLevel);
+    const basePower = getClassPower(classId, level, pointsPerLevel);
+    return armorBonuses
+      ? addArmorBonusesToPower(basePower, classId, level, pointsPerLevel, armorBonuses)
+      : basePower;
   }
 
   // Espelha o motor: bônus da arma só entram se o modelo estiver ativo para a classe
@@ -78,13 +108,17 @@ export function getArmedClassPower(
 
   const baseWeapon = CONFIG.weapons[WEAPON_BY_CLASS[classId]];
   const stats: Record<PowerPart, number> = {
-    vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel),
+    vida: CONFIG.attributes.classStartHealth[classId] + usedBonus(classId, level, 'vida', pointsPerLevel)
+      + (armorBonuses?.vida ?? 0),
     armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel)
-      + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) : 0),
+      + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) : 0)
+      + (armorBonuses?.armadura ?? 0),
     esquiva: 1 / (1 - Math.min(0.35, (CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[classId] : CONFIG.player.dodge)
       + usedBonus(classId, level, 'esquiva', pointsPerLevel)
-      + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) : 0))),
-    velocidadeMovimento: CONFIG.player.classSpeed[classId],
+      + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) : 0)
+      + (armorBonuses?.esquiva ?? 0))),
+    velocidadeMovimento: CONFIG.player.classSpeed[classId]
+      + (armorBonuses ? getAttributeBaseValueEffect('velocidadeMovimento', armorBonuses.mobilidade) : 0),
     // O motor soma o dano-base da CONFIG ao dano armazenado na arma fabricada.
     dano: (baseWeapon.damage + weapon.damage) * getDamageMultiplier(classId, level, pointsPerLevel, weaponBonuses),
   };
