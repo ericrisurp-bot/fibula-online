@@ -140,7 +140,7 @@ begin
     'revision', t.revision
   ) into v_result
   from public.fibula_duo_trade_sessions t
-  where t.room_id = p_room_id and t.status in ('requested', 'open')
+  where t.room_id = p_room_id
     and v_user_id in (t.host_id, t.guest_id)
   order by t.created_at desc limit 1;
   return v_result;
