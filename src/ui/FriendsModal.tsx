@@ -34,7 +34,7 @@ type Props = {
   onOpenSidePage: (id: SideNavId) => void;
   onLobby: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
+  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void | Promise<boolean>) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
   onLobbyConnected: () => void;
   onLobbyNotice: (message: string) => void;
   onHouseInventoryChanged: () => void;
@@ -310,14 +310,14 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     setLobbyInvite({ room_id: invite.room_id, from: invite.host_id, sender_name: profile?.display_name || 'Seu amigo' });
   };
 
-  async function leaveLobby() {
+  async function leaveLobby(): Promise<boolean> {
     const current = lobbyRef.current;
-    if (!current) return;
+    if (!current) return true;
     try {
       await leaveDuoRoom(current.roomId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível sair da sala Duo.');
-      return;
+      return false;
     }
     clearLobby();
     setLobbyInvite(null);
@@ -332,6 +332,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
         setError(cause instanceof Error ? cause.message : 'Você saiu da sala, mas o aviso ao outro jogador falhou.');
       }
     }
+    return true;
   }
 
   async function toggleReady() {
