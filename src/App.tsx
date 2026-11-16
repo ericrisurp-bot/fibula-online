@@ -3277,7 +3277,7 @@ export default function App() {
   const confirmExitToLobby = async () => {
     if (duoPeer?.matchId) {
       if (!duoLeaveActionRef.current) {
-        setDuoNotice('Não foi possível confirmar sua saída da partida Duo. Tente novamente.');
+        setExitConfirmationError('Não foi possível confirmar sua saída da partida Duo. Tente novamente.');
         return;
       }
       try {
