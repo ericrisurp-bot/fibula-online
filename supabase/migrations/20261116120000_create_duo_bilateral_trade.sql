@@ -237,7 +237,7 @@ begin
     elsif v_kind = 'meal' then
       v_meal_id := v_entry ->> 'mealId';
       v_meal_state := v_entry ->> 'mealState';
-      if v_meal_state not in ('prepared', 'ready', 'pending') or v_meal_id is null then
+      if v_meal_state is null or v_meal_state not in ('prepared', 'ready', 'pending') or v_meal_id is null then
         raise exception 'Refeição inválida.';
       end if;
       select case v_meal_state when 'prepared' then prepared when 'ready' then ready else pending end
