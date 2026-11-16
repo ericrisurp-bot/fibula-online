@@ -12348,3 +12348,30 @@ sem backdrop ou caixa de modal. */
   min-height:0;
   align-self:stretch;
 }
+
+
+/* Bigorna — materiais selecionados e Baú em uma bancada única, como na Cozinha. */
+.forge-lower-panel{
+  padding:7px;
+  border:1px solid rgba(160,132,96,.38);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(62,51,38,.92),rgba(34,33,29,.98));
+  box-shadow:inset 0 1px 0 rgba(255,230,190,.06),0 8px 22px rgba(0,0,0,.16);
+}
+.forge-lower-panel > .forge-zone{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  padding:3px;
+}
+.forge-lower-panel > .forge-selection-zone{
+  border-bottom:1px solid rgba(166,137,98,.28);
+  padding-bottom:7px;
+}
+.forge-lower-panel .forge-panel-heading strong{color:#ead8b9}
+.forge-lower-panel .forge-panel-heading span{color:#c8b18d}
+@media(max-width:430px){
+  .forge-lower-panel{padding:5px;gap:4px}
+  .forge-lower-panel > .forge-selection-zone{padding-bottom:5px}
+}
