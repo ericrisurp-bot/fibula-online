@@ -167,3 +167,16 @@ A tela de fabricação de armadura de couro fica na estação **Alfaiataria** e 
 
 **O servidor da A4.1 ainda não foi aplicado ao banco.** Portanto, o interruptor permanece desligado por padrão e, enquanto estiver `false`, o cliente não chama `listMyArmors` nem qualquer RPC nova de fabricação de armadura. Nenhuma integração fica ativa por padrão.
 
+
+
+## A4.3b — aba Armaduras na Bigorna (bronze, Tipo 2)
+
+Com `CONFIG.rulesV2.armorCraftingEnabled` ligado, a Bigorna apresenta duas abas acessíveis: **Armas** e **Armaduras**. A aba **Armas** mantém o fluxo atual de fabricação de armas; a aba **Armaduras** reutiliza `ArmorCraftPanel` com `type="bronze"` e as mesmas integrações de inventário, Baú e atualização de `craftedArmors` usadas pela Alfaiataria.
+
+- A aba Armaduras lista exclusivamente núcleos revelados válidos de armadura; o próprio painel valida a categoria e o roll do núcleo.
+- O material-base do Tipo 2 é `bronze`; o material do forro é escolhido entre algodão, linho e couro refinado. Quantidades e raridade seguem `ARMOR_RECIPES` e `armorMaterialItemIds` do módulo `src/game/armor.ts` / camada `src/game/armorCrafting.ts`.
+- A Alfaiataria continua usando somente `type="couro"` (Tipo 1).
+- A seleção da aba é estado local da tela. Alternar entre abas não reinicia os estados de fabricação mantidos no `App` nem inicia RPC por si só. A fabricação continua dependendo da ação explícita no painel correspondente.
+- Com `armorCraftingEnabled = false`, a barra de abas e o painel de bronze não são renderizados; a Bigorna mantém o conteúdo de armas anterior e o estado inicial da aba é **Armas**.
+
+**Limite de servidor:** o servidor da A4.1 ainda não foi aplicado ao banco. Não considerar as RPCs de fabricação de armadura disponíveis até a aplicação e validação dessa etapa.
