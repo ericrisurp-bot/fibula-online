@@ -11,6 +11,9 @@ import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons
 import { distanceToLakeEdge, isInsideLake, lakeColliderCircles, lakeSteeringCircles, lakeSlideDirection, pushOutOfLake, type Lake, type LakeCircle } from './lake';
 import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon, type WeaponModel } from './weapons';
 import type { MatchClassUsage } from './classUsage';
+import type { ArmorPiece } from './armor';
+import type { CraftedArmor } from './armorCrafting';
+import { ARMOR_PIECE_ORDER, computeArmorBonuses, type ArmorBonuses } from './armorEquipment';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -157,6 +160,8 @@ class PrimaryPlayerView implements PlayerEntity {
     readonly runtime: PlayerRuntime,
     private readonly onChange: () => void,
     private readonly getPointsPerLevel: () => number,
+    private readonly getArmorHealthBonus: (classId: ClassId) => number,
+    private readonly setAppliedArmorHealth: (value: number) => void,
   ) {}
 
   get classId(): ClassId { return this.getState().classId; }
@@ -189,6 +194,9 @@ class PrimaryPlayerView implements PlayerEntity {
       for (let level = 1; level <= player.level; level++) {
         classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida', this.getPointsPerLevel());
       }
+      const armorHealth = CONFIG.rulesV2.enabled ? this.getArmorHealthBonus(classId) : 0;
+      classMaxHp += armorHealth;
+      this.setAppliedArmorHealth(armorHealth);
       const previousMaxHp = player.maxHp;
       const pendingHealth = this.runtime.healthTransitionRemaining;
       this.runtime.healthTransitionRemaining = 0;
@@ -307,6 +315,9 @@ export class GameEngine {
   private headless: boolean;
   private cooperativeOptions: GameEngineOptions['cooperative'];
   private equippedWeapon: EquippedWeapon | null = null;
+  private equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = {};
+  private armorBonusCache: { classId: ClassId; bonuses: ArmorBonuses } | null = null;
+  private appliedArmorHealth = 0;
   private waitingForCooperativeNightRelease = false;
   private lakeCollisionCircles: LakeCircle[] = [];
   private lakeAvoidanceCircles: LakeCircle[] = [];
@@ -327,7 +338,14 @@ export class GameEngine {
     this.randomState = this.seed;
     this.headless = options.headless ?? false;
     this.state = this.freshState();
-    this.players = [new PrimaryPlayerView(() => this.state, this.local, () => this.emit(), () => this.pointsPerLevel())];
+    this.players = [new PrimaryPlayerView(
+      () => this.state,
+      this.local,
+      () => this.emit(),
+      () => this.pointsPerLevel(),
+      classId => this.getArmorBonuses(classId)?.vida ?? 0,
+      value => { this.appliedArmorHealth = value; },
+    )];
     this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
     this.placeHouse();
@@ -377,6 +395,7 @@ export class GameEngine {
   configureSoloMatch(): void {
     this.cooperativeOptions = undefined;
     this.waitingForCooperativeNightRelease = false;
+    this.appliedArmorHealth = this.getArmorBonuses()?.vida ?? 0;
   }
 
   /** Indica que a horda local terminou e o avanço aguarda a coordenação Duo. */
@@ -484,6 +503,37 @@ export class GameEngine {
     this.getActiveEquippedWeapon();
   }
 
+  private getArmorBonuses(classId: ClassId = this.state.classId): ArmorBonuses | null {
+    if (!CONFIG.rulesV2.enabled || !ARMOR_PIECE_ORDER.some(piece => Boolean(this.equippedArmors[piece]))) return null;
+    if (this.armorBonusCache?.classId === classId) return this.armorBonusCache.bonuses;
+    const bonuses = computeArmorBonuses(this.equippedArmors, classId);
+    this.armorBonusCache = { classId, bonuses };
+    return bonuses;
+  }
+
+  setEquippedArmors(armors: Partial<Record<ArmorPiece, CraftedArmor>>): void {
+    const valid: Partial<Record<ArmorPiece, CraftedArmor>> = {};
+    for (const piece of ARMOR_PIECE_ORDER) {
+      const armor = armors?.[piece];
+      if (!armor || typeof armor.id !== 'string' || !armor.id.trim() || armor.piece !== piece
+        || !Array.isArray(armor.attributes)
+        || !armor.attributes.every(attribute => !!attribute && typeof attribute.key === 'string' && Number.isFinite(attribute.value))
+        || !Number.isFinite(armor.liningValue)) continue;
+      valid[piece] = { ...armor, attributes: armor.attributes.map(attribute => ({ ...attribute })) };
+    }
+    this.equippedArmors = valid;
+    this.armorBonusCache = null;
+    const nextArmorHealth = this.getArmorBonuses()?.vida ?? 0;
+    const healthIncrease = nextArmorHealth - this.appliedArmorHealth;
+    if (healthIncrease !== 0) {
+      const player = this.state.player;
+      player.maxHp = Math.max(1, player.maxHp + healthIncrease);
+      if (healthIncrease > 0) player.hp = Math.min(player.maxHp, player.hp + healthIncrease);
+      else player.hp = Math.min(player.hp, player.maxHp);
+    }
+    this.appliedArmorHealth = nextArmorHealth;
+  }
+
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
     persistHouseStorage(this.state.house.inventory);
@@ -497,7 +547,9 @@ export class GameEngine {
       arqueiro: 'arco',
       druida: 'bastao',
     };
-    const startingHealth = CONFIG.attributes.classStartHealth[classId];
+    const armorHealth = CONFIG.rulesV2.enabled ? this.getArmorBonuses(classId)?.vida ?? 0 : 0;
+    const startingHealth = CONFIG.attributes.classStartHealth[classId] + armorHealth;
+    this.appliedArmorHealth = armorHealth;
     return {
       activeMeals: [],
       player: { x: this.world / 2, y: this.world / 2, hp: startingHealth, maxHp: startingHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
@@ -544,7 +596,9 @@ export class GameEngine {
   setKey(key: string, down: boolean) { this.primaryPlayer.setKey(key, down); }
   setMove(x: number, y: number) { this.primaryPlayer.setMove(x, y); }
   setClass(classId: ClassId) {
+    const previousClassId = this.state.classId;
     this.primaryPlayer.setClass(classId);
+    if (this.state.classId !== previousClassId) this.armorBonusCache = null;
     // Revalida o modelo equipado para a classe que acabou de ser selecionada.
     this.getActiveEquippedWeapon();
   }
@@ -2689,13 +2743,16 @@ export class GameEngine {
   private getLevelStats() {
     const { classId, player } = this.state;
     const weaponBonuses = this.getWeaponAttributeBonuses();
+    const armorBonuses = CONFIG.rulesV2.enabled ? this.getArmorBonuses() : null;
     return {
-      speed: getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)),
+      speed: CONFIG.rulesV2.enabled
+        ? getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)) + (armorBonuses?.mobilidade ?? 0)
+        : getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)),
       armor: CONFIG.rulesV2.enabled
-        ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0)
+        ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) + (armorBonuses?.armadura ?? 0)
         : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
       dodge: CONFIG.rulesV2.enabled
-        ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0)
+        ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) + (armorBonuses?.esquiva ?? 0)
         : getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
     };
   }
@@ -3344,18 +3401,20 @@ export class GameEngine {
 
   private collectXp(dt: number, playerSpeed: number) {
     const p = this.state.player;
+    const armorBonuses = CONFIG.rulesV2.enabled ? this.getArmorBonuses() : null;
+    const xpMultiplier = armorBonuses ? 1 + armorBonuses.xpPartida : 1;
     for (const orb of [...this.state.xpOrbs]) {
       const dx = p.x - orb.x, dy = p.y - orb.y;
       const distance = Math.hypot(dx, dy) || 1;
       if (distance <= CONFIG.player.pickupRadius) {
-        this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += orb.value;
+        this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id); p.xp += armorBonuses ? orb.value * xpMultiplier : orb.value;
       } else if (distance <= XP_ATTRACTION_RADIUS) {
         const step = Math.min(distance - CONFIG.player.pickupRadius, (CONFIG.xp.attractionSpeed + playerSpeed) * dt);
         orb.x += dx / distance * step;
         orb.y += dy / distance * step;
         if (Math.hypot(p.x - orb.x, p.y - orb.y) <= CONFIG.player.pickupRadius + 0.001) {
           this.state.xpOrbs = this.state.xpOrbs.filter(o => o.id !== orb.id);
-          p.xp += orb.value;
+          p.xp += armorBonuses ? orb.value * xpMultiplier : orb.value;
         }
       }
     }
