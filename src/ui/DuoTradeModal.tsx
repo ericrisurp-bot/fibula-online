@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   answerDuoTradeRequest, cancelDuoTrade, confirmDuoTrade, getDuoTradeSnapshot,
@@ -44,11 +44,12 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const completedNotifiedRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const next = await getDuoTradeSnapshot(client, roomId);
     setTrade(next);
-    if (next?.status === 'completed') onCompleted();
+    if (next?.status === 'completed' && !completedNotifiedRef.current) { completedNotifiedRef.current = true; onCompleted(); }
   }, [client, roomId, onCompleted]);
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
     const poll = async () => {
       if (!active || running) return;
       running = true;
-      try { const next = await getDuoTradeSnapshot(client, roomId); if (active) { setTrade(next); if (next?.status === 'completed') onCompleted(); } }
+      try { const next = await getDuoTradeSnapshot(client, roomId); if (active) { setTrade(next); if (next?.status === 'completed' && !completedNotifiedRef.current) { completedNotifiedRef.current = true; onCompleted(); } } }
       catch (cause) { if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a troca.'); }
       finally { running = false; }
     };
@@ -114,8 +115,11 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
 
   const toggle = (item: DuoTradeItem, key: string) => {
     setOffer(current => {
-      const exists = current.some(entry => JSON.stringify(entry) === JSON.stringify(item));
-      if (exists) return current.filter(entry => JSON.stringify(entry) !== JSON.stringify(item));
+      const keyOf = (entry: DuoTradeItem) => entry.kind === 'stack' ? 'stack:' + entry.itemId
+        : entry.kind === 'weapon' ? 'weapon:' + entry.weaponId : 'meal:' + entry.mealId;
+      const key = keyOf(item);
+      const exists = current.some(entry => keyOf(entry) === key);
+      if (exists) return current.filter(entry => keyOf(entry) !== key);
       if (current.length >= 5) { setError('Você pode selecionar no máximo 5 itens.'); return current; }
       return [...current, item];
     });
