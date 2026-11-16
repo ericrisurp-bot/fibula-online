@@ -109,7 +109,7 @@ export function ArmorBonusSummary({ classId, bonuses, equippedCount, rulesV2Enab
     <div><span>Mobilidade</span><b>+{numberLabel(bonuses.mobilidade)}</b></div>
     <div><span>Esquiva</span><b>+{numberLabel(bonuses.esquiva * 100)}% da armadura · total {numberLabel(totalDodge * 100)}%{totalDodge >= 0.35 ? ' · teto 35%' : ''}</b></div>
     {bonuses.xpPartida > 0 && <div><span>XP da partida</span><b>+{numberLabel(bonuses.xpPartida * 100)}%</b></div>}
-    {!CONFIG_RULES_V2_ENABLED && <small>Estes bônus passam a valer no jogo quando as Regras v2 forem ativadas.</small>}
+    {!rulesV2Enabled && <small>Estes bônus passam a valer no jogo quando as Regras v2 forem ativadas.</small>}
   </section>;
 }
 
