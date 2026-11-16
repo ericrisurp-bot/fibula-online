@@ -356,8 +356,9 @@ export function enqueueSoloMatchResult(
   userId: string,
   sessionId: string,
   result: SoloMatchResult,
+  deathConfirmed: boolean,
 ): boolean {
-  if (typeof window === 'undefined' || !userId || !sessionId
+  if (deathConfirmed !== true || typeof window === 'undefined' || !userId || !sessionId
     || !Number.isSafeInteger(result.kills) || result.kills < 0
     || !Number.isSafeInteger(result.survivalNights) || result.survivalNights < 0) return false;
   try {
