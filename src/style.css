@@ -6506,8 +6506,8 @@ sem backdrop ou caixa de modal. */
   border:1px solid #a98bc0;border-radius:12px;background:linear-gradient(150deg,#20243aF2,#292d43F5);
   color:#f2eaff;text-align:center;box-shadow:0 3px 12px #080b19bb,inset 0 1px 0 #fff2;
 }
-.jewelry-material-slot>span{display:flex;align-items:center;justify-content:center;min-height:27px}
-.jewelry-material-slot>strong{max-width:100%;font-size:clamp(9px,2.5vw,11px);line-height:1.2;overflow-wrap:anywhere}
+.jewelry-material-slot>span{display:flex;align-items:center;justify-content:center;min-height:22px}
+.jewelry-material-slot>strong{max-width:100%;font-size:clamp(8px,2.2vw,9px);line-height:1.15;overflow-wrap:anywhere}
 .jewelry-material-slot>small{color:#e4c68d;font-size:8px;font-weight:850;line-height:1.2}
 
 .jewelry-gem-icon,.jewelry-list-gem,.jewelry-result-gem{
@@ -12084,11 +12084,13 @@ sem backdrop ou caixa de modal. */
   left:calc(50% + 42px);
   top:52%;
   transform:translateY(-50%);
-  width:min(112px,calc(50% - 48px));
+  width:min(76px,calc(50% - 48px));
   min-width:0;
-  min-height:76px;
-  max-height:104px;
+  height:62px;
+  min-height:62px;
+  max-height:62px;
   box-sizing:border-box;
-  padding:5px 4px;
+  padding:4px 3px;
+  gap:2px;
   pointer-events:none;
 }
