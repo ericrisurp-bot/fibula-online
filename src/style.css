@@ -12077,7 +12077,7 @@ sem backdrop ou caixa de modal. */
 .armor-craft-heading span{min-width:0;color:#665d49;font-size:8px;text-align:right}
 .armor-craft-core-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:5px;min-width:0}
 .armor-craft-core-card{position:relative;display:flex;min-width:0;min-height:82px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 3px;border:1px solid #a99b7b;border-radius:7px;background:linear-gradient(180deg,#e8dcc2,#c9b995);color:#373a2b;font:inherit;text-align:center;cursor:pointer}
-.armor-craft-core-card.is-selected{border:2px solid #6b7048;background:linear-gradient(180deg,#f4e9cf,#d8c69e);box-shadow:0 0 0 2px #8b906044,inset 0 1px 0 #fff}
+.armor-craft-core-card.armor-craft-is-selected{border:2px solid #6b7048;background:linear-gradient(180deg,#f4e9cf,#d8c69e);box-shadow:0 0 0 2px #8b906044,inset 0 1px 0 #fff}
 .armor-craft-piece-image{display:block;width:42px;height:42px;max-width:100%;object-fit:contain;image-rendering:pixelated}
 .armor-craft-core-card strong{font-size:9px;line-height:1.1}
 .armor-craft-core-card small{font-size:8px;color:#68583f;line-height:1.15}
@@ -12087,7 +12087,7 @@ sem backdrop ou caixa de modal. */
 .armor-craft-lining-button{display:flex;min-width:0;min-height:43px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 3px;border:1px solid #a99b7b;border-radius:7px;background:#e4d8bf;color:#39392e;font:inherit;text-align:center}
 .armor-craft-lining-button strong{font-size:9px;line-height:1.1}
 .armor-craft-lining-button small{font-size:8px;color:#6b604c}
-.armor-craft-lining-button.is-selected{border:2px solid #6b7048;background:#d5d7b6;box-shadow:inset 0 1px 0 #fff}
+.armor-craft-lining-button.armor-craft-is-selected{border:2px solid #6b7048;background:#d5d7b6;box-shadow:inset 0 1px 0 #fff}
 .armor-craft-materials{display:grid;gap:4px;min-width:0}
 .armor-craft-material-row{display:grid;grid-template-columns:27px minmax(0,1fr) auto 16px;align-items:center;gap:5px;min-width:0;padding:3px 4px;border:1px solid #b6a989;border-radius:5px;background:#e8ddc7}
 .armor-craft-material-icon{display:grid;width:26px;height:26px;place-items:center}
