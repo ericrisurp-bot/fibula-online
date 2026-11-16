@@ -550,6 +550,13 @@ export default function App() {
     const baseline = JSON.parse(houseSyncBaselineRef.current || '[]') as HouseStorageStack[];
     const currentInventory = JSON.parse(houseInventoryJson) as HouseStorageStack[];
     const delta = computeHouseDelta(baseline, currentInventory);
+    // Um inventário local vazio nunca deve ser interpretado como ordem automática
+    // para apagar todo o Baú. Exclusões intencionais usam a RPC explícita de descarte.
+    if (baseline.length > 0 && currentInventory.length === 0) {
+      console.warn('[Baú] Sincronização bloqueada: tentativa de esvaziar o Baú por diferença automática.');
+      setChestTransferFeedback('O Baú foi protegido contra uma sincronização vazia. Reabra o Baú para confirmar o conteúdo do servidor.');
+      return;
+    }
     if (delta.length > 0) {
       const queuedDelta: HouseDeltaEntry[] = [];
       for (let index = 0; index < delta.length; index += 100) {
@@ -2241,15 +2248,22 @@ export default function App() {
     if (!fibulaSupabase || !session.user.sub) return;
     let active = true;
     const retryOutboxWhenOnline = () => {
-      if (!houseMatchClosedRef.current) void houseOutboxDrainRef.current();
+      if (houseOutboxStartupReadyRef.current && !houseMatchClosedRef.current) {
+        void houseOutboxDrainRef.current();
+      }
     };
     window.addEventListener('online', retryOutboxWhenOnline);
     void (async () => {
-      await houseOutboxDrainRef.current();
-      if (!active) return;
-      houseOutboxStartupReadyRef.current = true;
+      // Primeiro confirma o estado atual do servidor; só depois reaplica operações
+      // que ficaram pendentes no dispositivo. Nunca drenar a fila contra baseline vazio.
       const success = await refreshLobbyChestFromCloud();
-      if (active && !success) setChestTransferFeedback('Não foi possível atualizar o Baú.');
+      if (!active) return;
+      if (!success) {
+        setChestTransferFeedback('Não foi possível confirmar o Baú no servidor. As alterações pendentes foram preservadas.');
+        return;
+      }
+      houseOutboxStartupReadyRef.current = true;
+      await houseOutboxDrainRef.current();
     })();
     return () => {
       active = false;
