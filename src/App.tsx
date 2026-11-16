@@ -3056,13 +3056,14 @@ export default function App() {
     if (engineRef.current?.state.classId === classId) engineRef.current.setEquippedWeapon(null);
     setWeaponFeedback(arsenalWeaponLabels[weapon.model] + ' desequipada.');
   };
-  const openArsenalArmorActions = (armor: CraftedArmor) => setArmorActionArmor(armor);
+  const openArsenalArmorActions = (armor: CraftedArmor) => { setSelectedArsenalItemId(armor.id); setArmorActionArmor(armor); };
   const equipArsenalArmor = () => {
     if (!armorActionArmor) return;
     const next = { ...equippedArmorIds, [armorActionArmor.piece]: armorActionArmor.id };
     setEquippedArmorIds(next);
     writeEquippedArmorSelections(session.user.sub, next);
     setWeaponFeedback(ARSENAL_ARMOR_PIECE_LABELS[armorActionArmor.piece] + ' equipada.');
+    setSelectedArsenalItemId(null);
     setArmorActionArmor(null);
   };
   const unequipArsenalArmor = () => {
@@ -3072,6 +3073,7 @@ export default function App() {
     setEquippedArmorIds(next);
     writeEquippedArmorSelections(session.user.sub, next);
     setWeaponFeedback(ARSENAL_ARMOR_PIECE_LABELS[armorActionArmor.piece] + ' desequipada.');
+    setSelectedArsenalItemId(null);
     setArmorActionArmor(null);
   };
   const confirmArsenalArmorDeletion = async () => {
@@ -3094,6 +3096,7 @@ export default function App() {
       }
       setCraftedArmors(current => current.filter(item => item.id !== armor.id));
       setWeaponFeedback('Armadura excluída.');
+      setSelectedArsenalItemId(null);
       setArmorActionArmor(null);
       setArmorDeleteConfirmation(false);
     } catch {
@@ -4003,7 +4006,7 @@ export default function App() {
           </section></div>
           <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
-        {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && equippedArmorIds[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => setArmorActionArmor(null)} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
+        {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && equippedArmorIds[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)}</strong>
