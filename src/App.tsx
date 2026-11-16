@@ -487,6 +487,7 @@ export default function App() {
   const matchSummaryHandledRef = useRef(false);
   const matchSessionIdRef = useRef<string | null>(null);
   const matchResultDrainRef = useRef<Promise<number> | null>(null);
+  const matchResultDrainRequestedRef = useRef(false);
   const gameStartPendingRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [houseLoadReady, setHouseLoadReady] = useState(false);
@@ -576,9 +577,19 @@ export default function App() {
 
   const drainSoloMatchResults = async (): Promise<number> => {
     if (!fibulaSupabase || !session.user.sub) return 0;
-    if (matchResultDrainRef.current) return matchResultDrainRef.current;
-    const pendingDrain = flushSoloMatchResultOutbox(fibulaSupabase, session.user.sub)
-      .then(summary => summary.rejected);
+    if (matchResultDrainRef.current) {
+      matchResultDrainRequestedRef.current = true;
+      return matchResultDrainRef.current;
+    }
+    const pendingDrain = (async () => {
+      let rejected = 0;
+      do {
+        matchResultDrainRequestedRef.current = false;
+        const summary = await flushSoloMatchResultOutbox(fibulaSupabase, session.user.sub);
+        rejected += summary.rejected;
+      } while (matchResultDrainRequestedRef.current);
+      return rejected;
+    })();
     matchResultDrainRef.current = pendingDrain;
     try {
       return await pendingDrain;
@@ -3204,7 +3215,7 @@ export default function App() {
   const returnToLobby = async () => {
     const engine = engineRef.current;
     if (!engine || gameStartPendingRef.current) return;
-    if (!engine.state.dead && matchSessionIdRef.current) {
+    if (matchSessionIdRef.current) {
       const queued = await submitSoloMatchResult(engine.state);
       if (!queued) return;
     }
