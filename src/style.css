@@ -12479,3 +12479,26 @@ sem backdrop ou caixa de modal. */
 .armor-craft-workspace{
   grid-template-rows:minmax(0,.6fr) minmax(0,1.4fr)!important;
 }
+
+
+/* Alfaiataria — garante que o layout 30/70 ocupe a altura disponível. */
+.tailor-workspace.armor-craft-workspace{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,.6fr) minmax(0,1.4fr)!important;
+  flex:1 1 0!important;
+  width:100%!important;
+  height:100%!important;
+  max-height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.tailor-workspace.armor-craft-workspace>.armor-craft-scene{
+  grid-row:1!important;
+  min-height:0!important;
+}
+.tailor-workspace.armor-craft-workspace>.armor-craft-panel{
+  grid-row:2!important;
+  min-height:0!important;
+  max-height:100%!important;
+}
