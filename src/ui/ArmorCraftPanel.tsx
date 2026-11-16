@@ -162,7 +162,7 @@ export default function ArmorCraftPanel({
 
   const canCraft = Boolean(
     selectedCore && selectedPiece && selectedLining && hasMaterials
-      && online && chestReady && !busy,
+      && Boolean(client) && online && chestReady && !busy,
   );
 
   const handleCraft = async () => {
