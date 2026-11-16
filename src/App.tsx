@@ -800,8 +800,12 @@ export default function App() {
       return;
     }
     let active = true;
+    let requestInFlight = false;
+    let hasLoaded = false;
     const loadRanking = async () => {
-      setRankingLoading(true);
+      if (!active || requestInFlight) return;
+      requestInFlight = true;
+      if (!hasLoaded) setRankingLoading(true);
       setRankingError('');
       const valueField = rankingCategory === 'power'
         ? 'highest_pd'
@@ -824,14 +828,27 @@ export default function App() {
         if (!active) return;
         setRankingRows((boardResult.data ?? []) as RankingEntry[]);
         setRankingOwnProfile(ownResult.data as RankingEntry | null);
+        hasLoaded = true;
       } catch (cause) {
         if (active) setRankingError(cause instanceof Error ? cause.message : 'Não foi possível carregar o ranking.');
       } finally {
+        requestInFlight = false;
         if (active) setRankingLoading(false);
       }
     };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void loadRanking();
+    };
     void loadRanking();
-    return () => { active = false; };
+    const refreshTimer = window.setInterval(() => { void loadRanking(); }, 30_000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
 
   const [activeGameRoute, setActiveGameRoute] = useState<GameRoute>(() => readGameRoute() ?? { page: 'lobby' });
