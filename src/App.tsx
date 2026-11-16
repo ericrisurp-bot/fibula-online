@@ -993,7 +993,7 @@ export default function App() {
     return stacks;
   }, []);
   const selectedJewelryCoreStack = jewelryClosedCoreStacks.find(item => item.itemId === selectedJewelryCoreId) ?? null;
-  const selectedJewelryCoreParsed = selectedJewelryCoreStack ? parseCoreItemId(`core:${selectedJewelryCoreStack.itemId.slice('jewelry-closed:'.length)}:weapon`) : null;
+  const selectedJewelryCoreParsed = selectedJewelryCoreStack ? parseCoreItemId(`core:${selectedJewelryCoreStack.itemId.slice('jewelry-closed:'.length)}:weapon:espada`) : null;
   const selectedJewelryRarity = selectedJewelryCoreParsed?.kind === 'closed' ? selectedJewelryCoreParsed.rarity : null;
   const jewelryCottonItemId = selectedJewelryRarity ? weaponMaterialItemId('cotton', selectedJewelryRarity) : null;
   const jewelryCottonAvailable = jewelryCottonItemId ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0) : 0;
