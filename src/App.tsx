@@ -11,7 +11,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -24,6 +24,7 @@ import { drawLake } from './game/lakeRender';
 import Controls from './ui/Controls';
 import PlayerProfileModal from './ui/PlayerProfileModal';
 import FriendsModal from './ui/FriendsModal';
+import DuoTradeModal from './ui/DuoTradeModal';
 import { useArenaAuth } from './auth/AuthGate';
 import { fibulaSupabase } from './auth/supabase';
 import { audioManager } from './audio/audioManager';
@@ -556,7 +557,7 @@ export default function App() {
     // para apagar todo o Baú. Exclusões intencionais usam a RPC explícita de descarte.
     if (baseline.length > 0 && currentInventory.length === 0) {
       console.warn('[Baú] Sincronização bloqueada: tentativa de esvaziar o Baú por diferença automática.');
-      setChestTransferFeedback('O Baú foi protegido contra uma sincronização vazia. Reabra o Baú para confirmar o conteúdo do servidor.');
+      setCookingFeedback('O Baú foi protegido contra uma sincronização vazia. Reabra o Baú para confirmar o conteúdo do servidor.');
       return;
     }
     if (delta.length > 0) {
@@ -567,7 +568,7 @@ export default function App() {
           if (queuedDelta.length > 0) {
             houseSyncBaselineRef.current = JSON.stringify(applyHouseDeltaLocally(baseline, queuedDelta));
           }
-          setChestTransferFeedback('Não foi possível guardar a operação do Baú neste dispositivo. A alteração ainda não foi sincronizada.');
+          setCookingFeedback('Não foi possível guardar a operação do Baú neste dispositivo. A alteração ainda não foi sincronizada.');
           return;
         }
         queuedDelta.push(...batch);
@@ -714,6 +715,7 @@ export default function App() {
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
+  const [duoTradeOpen, setDuoTradeOpen] = useState(false);
   const [duoNotice, setDuoNotice] = useState('');
   const duoLeaveActionRef = useRef<(() => void | Promise<boolean>) | null>(null);
   const duoReadyActionRef = useRef<(() => void) | null>(null);
@@ -727,11 +729,7 @@ export default function App() {
   const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
   const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
-  const [chestTransferItemId, setChestTransferItemId] = useState<string | null>(null);
-  const [chestTransferQuantity, setChestTransferQuantity] = useState('1');
-  const [chestTransferBusy, setChestTransferBusy] = useState(false);
   const [chestCloudReady, setChestCloudReady] = useState(false);
-  const [chestTransferFeedback, setChestTransferFeedback] = useState('');
   const [bauAction, setBauAction] = useState<
     | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm' }
     | { kind:'meal'; meal:CookingMeal; view:'actions'|'details'|'confirm' }
@@ -2273,7 +2271,7 @@ export default function App() {
       const success = await refreshLobbyChestFromCloud();
       if (!active) return;
       if (!success) {
-        setChestTransferFeedback('Não foi possível confirmar o Baú no servidor. As alterações pendentes foram preservadas.');
+        setCookingFeedback('Não foi possível confirmar o Baú no servidor. As alterações pendentes foram preservadas.');
         return;
       }
       houseOutboxStartupReadyRef.current = true;
@@ -2332,11 +2330,10 @@ export default function App() {
     setActiveGameRoute({ page: 'bau' });
     setChestTab('resources');
     setChestOpen(true);
-    setChestTransferItemId(null);
-    setChestTransferFeedback('');
+    setCookingFeedback('');
     if (!cookingOnline) setCookingFeedback('Sem conexão: cozinhar exige internet.');
     void refreshLobbyChestFromCloud().then(success => {
-      if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.');
+      if (!success) setCookingFeedback('Não foi possível atualizar o Baú.');
     });
   };
 
@@ -2357,44 +2354,6 @@ export default function App() {
     setViewedProfileUserId(null);
   };
 
-  const sendLobbyChestItem = async () => {
-    const peer = duoPeer;
-    const item = lobbyChestItems.find(entry => entry.itemId === chestTransferItemId);
-    const quantity = Number(chestTransferQuantity);
-    if (!peer || peer.status !== 'connected' || peer.matchId || !item || !chestCloudReady) return;
-    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > item.quantity) {
-      setChestTransferFeedback('Informe uma quantidade válida para enviar.');
-      return;
-    }
-    if (!fibulaSupabase) {
-      setChestTransferFeedback('O serviço de armazenamento não está disponível.');
-      return;
-    }
-    setChestTransferBusy(true);
-    setChestTransferFeedback('');
-    try {
-      await transferHouseStackToDuo(fibulaSupabase, peer.roomId, item.itemId, quantity);
-      setChestTransferItemId(null);
-      let senderRefreshFailed = false;
-      senderRefreshFailed = !await refreshLobbyChestFromCloud();
-      let peerNotifyFailed = false;
-      const notifyPeer = duoHouseNotifyActionRef.current;
-      if (notifyPeer) {
-        try { await notifyPeer(); } catch { peerNotifyFailed = true; }
-      } else {
-        peerNotifyFailed = true;
-      }
-      if (senderRefreshFailed || peerNotifyFailed) {
-        setChestTransferFeedback('Item enviado para ' + peer.friendName + '. Um dos Baús não atualizou automaticamente; feche e abra o Baú novamente para sincronizar.');
-      } else {
-        setChestTransferFeedback('Enviado: ' + quantity + ' × ' + itemLabel(item.itemId) + ' para ' + peer.friendName + '.');
-      }
-    } catch (cause) {
-      setChestTransferFeedback(cause instanceof Error ? cause.message : 'Não foi possível enviar o item.');
-    } finally {
-      setChestTransferBusy(false);
-    }
-  };
   const applyCookingInventory = (nextInventory: HouseStorageStack[]) => {
     const serverSnapshot = JSON.stringify(nextInventory);
     houseSyncBaselineRef.current = serverSnapshot;
@@ -2433,7 +2392,7 @@ export default function App() {
         if (result.kind === 'network') return 'network';
         if (result.kind === 'rejected') {
           removeHouseOutboxOperation(operation.opId);
-          setChestTransferFeedback(result.message);
+          setCookingFeedback(result.message);
           if (readHouseOutbox()[0]?.opId === operation.opId) return 'network';
           houseNeedsReconcileRef.current = true;
           const refreshed = await refreshLobbyChestFromCloud();
@@ -2472,7 +2431,7 @@ export default function App() {
               .map(item => Math.abs(item.quantity) + ' × ' + itemLabel(item.itemId)).join(', ') + '.');
           }
           if (messages.length === 0) messages.push('O servidor ajustou o inventário do Baú. O conteúdo foi atualizado.');
-          setChestTransferFeedback(messages.join(' '));
+          setCookingFeedback(messages.join(' '));
         }
       }
     })();
@@ -2504,11 +2463,11 @@ export default function App() {
   const discardBauItem = async (deleteAll=false) => {
     if(bauAction?.kind!=='item'||bauDeleteBusy)return;
     const currentItem=lobbyChestItems.find(entry=>entry.itemId===bauAction.item.itemId);
-    if(!currentItem){setChestTransferFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
+    if(!currentItem){setCookingFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
     const quantity=deleteAll?currentItem.quantity:Number(bauDeleteQuantity);
-    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setChestTransferFeedback('Informe uma quantidade válida para excluir.');return;}
-    if(!fibulaSupabase||!session.user.sub){setChestTransferFeedback('O serviço de armazenamento não está disponível.');return;}
-    setBauDeleteBusy(true);setChestTransferFeedback('');
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setCookingFeedback('Informe uma quantidade válida para excluir.');return;}
+    if(!fibulaSupabase||!session.user.sub){setCookingFeedback('O serviço de armazenamento não está disponível.');return;}
+    setBauDeleteBusy(true);setCookingFeedback('');
     try {
       const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
         p_item_id: currentItem.itemId,
@@ -2521,11 +2480,11 @@ export default function App() {
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
       setBauAction(null);
-      setChestTransferFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
+      setCookingFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
     } catch(cause){
       const message = cause instanceof Error ? cause.message : 'Não foi possível excluir o item.';
       await refreshLobbyChestFromCloud();
-      setChestTransferFeedback(message);
+      setCookingFeedback(message);
     } finally {
       setBauDeleteBusy(false);
     }
@@ -3845,7 +3804,7 @@ export default function App() {
         <AndroidReleaseButton />
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor" aria-hidden="true"/>
         <i className="lobby-ground-light" aria-hidden="true"/>
-        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { navigateToPlayerProfile(session.user.sub); setActiveGameRoute({ page: 'jogador', playerId: session.user.sub }); setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/><button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>+</button>}</div>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas" aria-hidden="true"/><button type="button" className="lobby-character-profile-trigger" aria-label="Abrir meu perfil de jogador" title="Meu perfil" onClick={() => { navigateToPlayerProfile(session.user.sub); setActiveGameRoute({ page: 'jogador', playerId: session.user.sub }); setViewedProfileUserId(session.user.sub); setPlayerProfileOpen(true); }}/>{duoPeer ? <div className={`lobby-duo-peer ${duoPeer.status === 'connecting' ? 'connecting' : ''}`} role="group" aria-label={`Parceiro: ${duoPeer.friendName}`}><strong className="lobby-duo-peer-name">{duoPeer.friendName}</strong><small className={`lobby-duo-peer-status ${duoPeer.status !== 'connecting' && duoPeer.matchId === null && duoPeer.peerReady ? 'lobby-duo-peer-ready' : ''}`}>{duoPeer.status === 'connecting' ? 'Conectando…' : duoPeer.matchId !== null ? 'Em jogo' : duoPeer.peerReady ? 'Pronto' : duoPeer.role === 'host' ? 'Aguardando prontidão' : 'Online'}</small><canvas ref={duoPeerCanvasRef} className="lobby-duo-peer-avatar" aria-hidden="true"/>{duoPeer.status === 'connected' && duoPeer.matchId === null && <button type="button" className="lobby-duo-trade-trigger" onClick={() => setDuoTradeOpen(true)}>Solicitar troca</button>}<button type="button" className="lobby-duo-peer-leave" aria-label="Sair do grupo" title="Sair do grupo" onClick={() => duoLeaveActionRef.current?.()}>Sair</button></div> : <button className="lobby-duo-invite" type="button" aria-label="Convidar amigo para jogar em duo" title="Convidar amigo" onClick={() => { navigateToPage('amigos'); setActiveGameRoute({ page: 'amigos' }); setFriendsOpen(true); }}>+</button>}</div>
         
           <button className="lobby-ranking-trigger" type="button" aria-label="Abrir Ranking" title="Ranking" onClick={() => { navigateToPage('ranking'); setActiveGameRoute({ page: 'ranking' }); setRankingOpen(true); }}>
             <span className="lobby-ranking-trophy" aria-hidden="true">🏆</span>
@@ -4003,9 +3962,6 @@ export default function App() {
                     aria-label={`${itemLabel(item.itemId)}: abrir ações`} onClick={() => openBauItemActions(item)}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                   </button>
-                  {duoPeer?.status === 'connected' && !duoPeer.matchId && <button type="button" className="lobby-chest-send-button" disabled={!chestCloudReady || chestTransferBusy} onClick={event => {
-                    event.stopPropagation();setChestTransferItemId(item.itemId);setChestTransferQuantity('1');setChestTransferFeedback('');
-                  }}>{chestCloudReady?'Enviar':'Indisponível'}</button>}
                 </div>;
               })}
             </div> : <>
@@ -4032,15 +3988,7 @@ export default function App() {
                 </div>
               </section>
             </>}
-            {chestTransferItemId && duoPeer?.status === 'connected' && !duoPeer.matchId && <div className="lobby-chest-transfer">
-              <strong>Enviar {itemLabel(chestTransferItemId)} para {duoPeer.friendName}</strong>
-              <label>Quantidade
-                <input type="number" min="1" max={lobbyChestItems.find(item => item.itemId === chestTransferItemId)?.quantity ?? 1} step="1" value={chestTransferQuantity} onChange={event => setChestTransferQuantity(event.target.value)} />
-              </label>
-              <div><button type="button" disabled={chestTransferBusy} onClick={() => void sendLobbyChestItem()}>{chestTransferBusy ? 'Enviando…' : 'Confirmar envio'}</button><button type="button" className="secondary" disabled={chestTransferBusy} onClick={() => setChestTransferItemId(null)}>Cancelar</button></div>
-            </div>}
             {jabuticabaFeedback && <p className="lobby-chest-feedback" role="status">{jabuticabaFeedback}</p>}
-            {chestTransferFeedback && <p className="lobby-chest-feedback" role="status">{chestTransferFeedback}</p>}
             {!cookingOnline && <p className="lobby-chest-feedback" role="status">Sem conexão: cozinhar exige internet.</p>}
             {cookingFeedback && <p className="lobby-chest-feedback" role="status">{cookingFeedback}</p>}
           </section></div>
@@ -4091,7 +4039,6 @@ export default function App() {
               </div>
               {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
               {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
-              {bauAction.kind==='item'&&chestTransferFeedback&&<p role="status">{chestTransferFeedback}</p>}
             </>}
           </section>
         </div>}
@@ -4279,7 +4226,8 @@ export default function App() {
         </div>
       </section>
     </div>}
-    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.'); }); }} />
+    {duoTradeOpen && duoPeer?.status === 'connected' && duoPeer.matchId === null && fibulaSupabase && <DuoTradeModal client={fibulaSupabase} userId={session.user.sub} roomId={duoPeer.roomId} friendName={duoPeer.friendName} onClose={() => setDuoTradeOpen(false)} onCompleted={() => { void (async () => { try { const ownedWeapons = await listMyWeapons(fibulaSupabase); setCraftedWeapons(ownedWeapons); const ownedIds = new Set(ownedWeapons.map(weapon => weapon.id)); setEquippedWeaponIds(current => { const next = { ...current }; (Object.keys(next) as ClassId[]).forEach(classId => { if (!ownedIds.has(next[classId]!)) delete next[classId]; }); return next; }); } catch { /* A próxima abertura do Arsenal fará nova leitura. */ } try { await refreshLobbyChestFromCloud(); } catch { /* A próxima abertura do Baú fará nova leitura. */ } try { await refreshCookingState(); } catch { /* A próxima abertura do Fogão fará nova leitura. */ } })(); }} />}
+    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { setDuoTradeOpen(false); duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setCookingFeedback('Não foi possível atualizar o Baú.'); }); }} />
   </>;
 }
 
