@@ -69,7 +69,7 @@ function addArmorBonusesToPower(
   parts.vida += 100 * armorBonuses.vida / POWER_REFERENCE.vida;
   parts.armadura += 100 * armorBonuses.armadura / POWER_REFERENCE.armadura;
   parts.velocidadeMovimento += 100
-    * getAttributeBaseValueEffect('velocidadeMovimento', armorBonuses.mobilidade)
+    * armorBonuses.mobilidade
     / POWER_REFERENCE.velocidadeMovimento;
   const dodgeBeforeArmor = CONFIG.player.classDodge[classId]
     + usedBonus(classId, level, 'esquiva', pointsPerLevel);
@@ -118,7 +118,7 @@ export function getArmedClassPower(
       + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) : 0)
       + (armorBonuses?.esquiva ?? 0))),
     velocidadeMovimento: CONFIG.player.classSpeed[classId]
-      + (armorBonuses ? getAttributeBaseValueEffect('velocidadeMovimento', armorBonuses.mobilidade) : 0),
+      + (armorBonuses?.mobilidade ?? 0),
     // O motor soma o dano-base da CONFIG ao dano armazenado na arma fabricada.
     dano: (baseWeapon.damage + weapon.damage) * getDamageMultiplier(classId, level, pointsPerLevel, weaponBonuses),
   };
