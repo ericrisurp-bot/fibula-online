@@ -12336,7 +12336,7 @@ sem backdrop ou caixa de modal. */
 
 /* Bigorna — reduz a altura visual do cenário em 5% para alinhar com o forno. */
 .forge-page .forge-workspace > .forge-scene{
-  height:90%;
+  height:87%;
   min-height:0;
   align-self:start;
 }
