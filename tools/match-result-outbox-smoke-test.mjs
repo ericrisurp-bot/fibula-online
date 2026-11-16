@@ -30,10 +30,15 @@ try {
   const sessionId = 'session-r1-test';
   const result = { kills: 17, survivalNights: 4 };
 
-  assert.equal(enqueueSoloMatchResult(userId, sessionId, result), true);
-  assert.equal(enqueueSoloMatchResult(userId, sessionId, result), true,
+  assert.equal(enqueueSoloMatchResult(userId, sessionId, result, false), false,
+    'Uma sessão abandonada viva nunca pode entrar na fila do ranking.');
+  assert.equal(readSoloMatchResultOutbox().length, 0,
+    'Abandonar vivo não deve persistir nenhum resultado.');
+  assert.equal(enqueueSoloMatchResult(userId, sessionId, result, true), true,
+    'Somente uma morte confirmada pode enfileirar o resultado.');
+  assert.equal(enqueueSoloMatchResult(userId, sessionId, result, true), true,
     'Repetir o mesmo enfileiramento deve ser idempotente.');
-  assert.equal(enqueueSoloMatchResult(userId, sessionId, { kills: 18, survivalNights: 4 }), false,
+  assert.equal(enqueueSoloMatchResult(userId, sessionId, { kills: 18, survivalNights: 4 }, true), false,
     'Uma sessão não pode receber outro resultado depois de enfileirada.');
   assert.equal(readSoloMatchResultOutbox().length, 1);
 
@@ -50,7 +55,7 @@ try {
     'Resposta duplicate confirma que o resultado já foi processado e pode sair da fila.');
 
   const secondSession = 'session-r1-accepted';
-  assert.equal(enqueueSoloMatchResult(userId, secondSession, result), true);
+  assert.equal(enqueueSoloMatchResult(userId, secondSession, result, true), true);
   const accepted = await flushSoloMatchResultOutbox({
     rpc: async () => ({ data: 'accepted', error: null }),
   }, userId);
@@ -58,7 +63,7 @@ try {
   assert.equal(accepted.pending, 0);
 
   const rejectedSession = 'session-r1-rejected';
-  assert.equal(enqueueSoloMatchResult(userId, rejectedSession, result), true);
+  assert.equal(enqueueSoloMatchResult(userId, rejectedSession, result, true), true);
   const rejected = await flushSoloMatchResultOutbox({
     rpc: async () => ({ data: 'rejected', error: null }),
   }, userId);
