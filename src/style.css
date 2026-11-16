@@ -12475,7 +12475,7 @@ sem backdrop ou caixa de modal. */
   .armor-craft-lining-picker .armor-craft-lining-button{min-height:29px}
 }
 
-/* Alfaiataria — aumenta em 30% a faixa vertical do cenário visual. */
+/* Alfaiataria — divide igualmente o espaço entre cenário e Baú. */
 .armor-craft-workspace{
-  grid-template-rows:minmax(0,2.394fr) minmax(0,1.217fr)!important;
+  grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important;
 }
