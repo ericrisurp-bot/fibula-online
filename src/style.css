@@ -12274,3 +12274,104 @@ sem backdrop ou caixa de modal. */
   .forge-workspace{grid-template-rows:minmax(190px,34%) minmax(0,1fr)!important}
   .forge-chest-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
 }
+
+
+/* Bigorna — mesma divisão proporcional da Cozinha (0.9fr / 1.1fr). */
+.forge-workspace{
+  grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;
+}
+.forge-production-result{
+  position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;min-width:min(72%,260px);min-height:82px;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  padding:10px 16px;border:1px solid #d7a56f;border-radius:11px;
+  background:linear-gradient(150deg,#302b25ed,#171a18f2);color:#fff0d9;
+  box-shadow:0 4px 16px #0009,inset 0 1px 0 #ffffff20;text-align:center;
+}
+.forge-production-result>span{font-size:26px;line-height:1}
+.forge-production-result>strong{font-size:11px}
+.forge-production-result>small{color:#d2b99e;font-size:9px}
+.forge-lower-panel{
+  display:flex;min-width:0;min-height:0;flex-direction:column;gap:6px;overflow:hidden;
+}
+.forge-selection-zone{flex:0 0 auto;gap:5px;padding:6px 7px}
+.forge-selection-zone .forge-recipe-slots{
+  display:flex;width:100%;min-height:0;align-items:stretch;justify-content:center;gap:clamp(3px,1.1vw,7px);
+}
+.forge-selection-zone .forge-recipe-slot{
+  flex:1 1 0;min-width:0;max-width:100px;min-height:49px;padding:3px 2px;
+}
+.forge-selection-zone .forge-recipe-slot.forge-core-recipe-slot{
+  flex:0 0 clamp(48px,15vw,62px);max-width:68px;
+}
+.forge-selection-zone .forge-recipe-slot>strong{
+  white-space:normal;overflow-wrap:anywhere;text-align:center;font-size:clamp(6px,1.7vw,8px);line-height:1.1;
+}
+.forge-selection-zone .forge-recipe-slot>small{font-size:7px}
+.forge-selection-action{width:100%;min-height:29px}
+.forge-selection-action .forge-craft-button{
+  display:block;
+  width:100%;
+  min-width:0;
+  min-height:clamp(30px,4vh,38px);
+  margin:0;
+  padding:5px 12px;
+}
+.forge-selection-action .forge-result button{min-height:29px;padding:5px 18px}
+.forge-chest-zone{flex:1 1 auto;min-height:0}
+.forge-chest-zone .forge-material-grid{grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:4px}
+.forge-chest-zone .forge-material-item{min-height:49px;padding:3px 2px}
+.forge-chest-zone .forge-material-item>span{min-height:19px}
+.forge-chest-zone .forge-material-item>span img{max-width:20px;max-height:20px}
+.forge-chest-zone .forge-material-item strong{font-size:7px}
+.forge-chest-zone .forge-material-item small{font-size:7px}
+@media(max-width:430px){
+  .forge-workspace{grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;gap:5px;padding:5px 6px calc(6px + env(safe-area-inset-bottom))!important}
+  .forge-lower-panel{gap:5px}
+  .forge-selection-zone{padding:5px;gap:4px}
+  .forge-selection-zone .forge-recipe-slot{min-height:44px}
+  .forge-selection-zone .forge-recipe-slot.forge-core-recipe-slot{flex-basis:clamp(43px,14vw,54px)}
+  .forge-chest-zone{padding:5px;gap:4px}
+  .forge-chest-zone .forge-material-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
+  .forge-chest-zone .forge-material-item{min-height:43px;padding:2px 1px}
+  .forge-production-result{min-width:68%;min-height:70px;padding:8px}
+}
+@media(max-height:650px){
+  .forge-workspace{grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important}
+  .forge-selection-zone .forge-recipe-slot{min-height:39px}
+  .forge-chest-zone .forge-material-item{min-height:38px}
+}
+
+
+/* Bigorna — reduz a altura visual do cenário em 5% para alinhar com o forno. */
+.forge-page .forge-workspace > .forge-scene{
+  height:100%;
+  min-height:0;
+  align-self:stretch;
+}
+
+
+/* Bigorna — materiais selecionados e Baú em uma bancada única, como na Cozinha. */
+.forge-lower-panel{
+  padding:7px;
+  border:1px solid rgba(160,132,96,.38);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(62,51,38,.92),rgba(34,33,29,.98));
+  box-shadow:inset 0 1px 0 rgba(255,230,190,.06),0 8px 22px rgba(0,0,0,.16);
+}
+.forge-lower-panel > .forge-zone{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  padding:3px;
+}
+.forge-lower-panel > .forge-selection-zone{
+  border-bottom:1px solid rgba(166,137,98,.28);
+  padding-bottom:7px;
+}
+.forge-lower-panel .forge-panel-heading strong{color:#ead8b9}
+.forge-lower-panel .forge-panel-heading span{color:#c8b18d}
+@media(max-width:430px){
+  .forge-lower-panel{padding:5px;gap:4px}
+  .forge-lower-panel > .forge-selection-zone{padding-bottom:5px}
+}

@@ -6,7 +6,7 @@ type ForgeSceneProps = {
 
 export default function ForgeScene({ intensity: _intensity, hammering, children }: ForgeSceneProps) {
   return <section className={'forge-scene' + (hammering ? ' forge-sparking' : '')} aria-label="Bigorna de fabricação">
-    <svg className="forge-backdrop" viewBox="0 0 360 210" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bigorna de ferro em uma parede de pedra">
+    <svg className="forge-backdrop" viewBox="0 0 360 210" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Bigorna de ferro em uma parede de pedra">
       <defs>
         <linearGradient id="anvil-wall" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#a28a70"/><stop offset="1" stopColor="#625b54"/>
