@@ -3539,8 +3539,7 @@ export default function App() {
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
               {lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
                 : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
-                : activeCraftingStation.id === 'costura' ? (CONFIG.rulesV2.armorCraftingEnabled
-                  ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
+                : activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
                     <TailorScene />
                     <ArmorCraftPanel
                       type="couro"
@@ -3556,24 +3555,24 @@ export default function App() {
                       label={itemLabel}
                     />
                   </div>
-                  : <div className="tailor-workspace">
-                    <TailorScene>
-                      <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
-                        {['Peça', 'Forro', 'Costura'].map(label => <div className="tailor-preview-slot" key={label} aria-disabled="true"><strong>{label}</strong><small>Em breve</small></div>)}
-                      </div>
-                    </TailorScene>
-                    <section className="forge-zone tailor-fabrics-zone" aria-label="Tecidos no Baú">
-                      <div className="forge-panel-heading"><strong>TECIDOS</strong><span>Materiais disponíveis no Baú</span></div>
-                      <div className="forge-material-grid tailor-fabric-grid" aria-label="Tecidos disponíveis no Baú">
-                        {tailorFabricStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
-                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                        </div>)}
-                        {tailorFabricStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum tecido no Baú.</p>}
-                      </div>
-                      <p className="tailor-fabric-note">Aqui serão feitas as armaduras: couro (tipo 1) e bronze (tipo 2), com forro e costura.</p>
-                    </section>
-                    <div className="tailor-action-area"><button type="button" className="tailor-sew-button" disabled>Costurar · Em breve</button></div>
-                  </div>) : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
+                : activeCraftingStation.id === 'costura' ? <div className="tailor-workspace">
+                <TailorScene>
+                  <div className="tailor-preview-slots" aria-label="Prévia dos espaços de armadura">
+                    {['Peça', 'Forro', 'Costura'].map(label => <div className="tailor-preview-slot" key={label} aria-disabled="true"><strong>{label}</strong><small>Em breve</small></div>)}
+                  </div>
+                </TailorScene>
+                <section className="forge-zone tailor-fabrics-zone" aria-label="Tecidos no Baú">
+                  <div className="forge-panel-heading"><strong>TECIDOS</strong><span>Materiais disponíveis no Baú</span></div>
+                  <div className="forge-material-grid tailor-fabric-grid" aria-label="Tecidos disponíveis no Baú">
+                    {tailorFabricStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
+                      <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                    </div>)}
+                    {tailorFabricStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum tecido no Baú.</p>}
+                  </div>
+                  <p className="tailor-fabric-note">Aqui serão feitas as armaduras: couro (tipo 1) e bronze (tipo 2), com forro e costura.</p>
+                </section>
+                <div className="tailor-action-area"><button type="button" className="tailor-sew-button" disabled>Costurar · Em breve</button></div>
+              </div> : activeCraftingStation.id === 'joalheria' ? <div className="jewelry-workspace">
                 <div className="jewelry-stage">
                   <JewelryScene revealAnimating={jewelryRevealAnimating} />
                   <div className="jewelry-ui-layer">
