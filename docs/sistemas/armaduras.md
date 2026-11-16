@@ -207,7 +207,7 @@ A interface de equipamento das armaduras é controlada exclusivamente por `CONFI
 - O diálogo oferece Equipar, Desequipar, Detalhes e Excluir. A exclusão só atualiza a lista e a seleção local após confirmação de sucesso de `deleteArmor`; sem conexão ou cliente, nenhuma peça é removida localmente.
 - Os detalhes mostram tipo, raridade, estrelas, SURP, atributos efetivos com estrelas e valor efetivo do forro, sem aproveitamento de classe.
 - O resumo por classe reutiliza exclusivamente `computeArmorBonuses`, `armorReductionFromPoints` e `armorTotalDodge`. Mostra redução de dano limitada a 60%, esquiva total limitada a 35% e XP da partida quando houver couro refinado.
-- Os dois cálculos de PD no Arsenal e no Status recebem `armorBonuses` somente com a chave ligada. O Status aguarda também a conclusão bem-sucedida da listagem de armaduras. A integração dos bônus no motor continua reservada à A5.3; esta etapa não altera `engine.ts`.
+- Os dois cálculos de PD no Arsenal e no Status recebem `armorBonuses` somente com a chave ligada. O Status aguarda a conclusão da tentativa de listagem de armaduras; uma falha não bloqueia o cálculo de PD. A integração dos bônus no motor continua reservada à A5.3; esta etapa não altera `engine.ts`.
 
 O sistema antigo de itens de equipamento do Arsenal (`arsenalItems`) e sua persistência local não são apagados nem migrados. Os cinco espaços de armadura apenas deixam de exibi-los enquanto a chave estiver ligada; com a chave desligada, o comportamento legado permanece.
 
