@@ -11,7 +11,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, transferHouseStackToDuo, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -706,7 +706,7 @@ export default function App() {
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
   const [duoNotice, setDuoNotice] = useState('');
-  const duoLeaveActionRef = useRef<(() => void) | null>(null);
+  const duoLeaveActionRef = useRef<(() => void | Promise<boolean>) | null>(null);
   const duoReadyActionRef = useRef<(() => void) | null>(null);
   const duoStartActionRef = useRef<(() => void) | null>(null);
   const duoHouseNotifyActionRef = useRef<(() => Promise<void>) | null>(null);
@@ -936,6 +936,12 @@ export default function App() {
   };
   useEffect(() => {
     const syncGameRoute = () => {
+      if (gameStartedRef.current) {
+        window.history.pushState({ fibulaGameBackGuard: true }, '', window.location.href);
+        setExitConfirmationError('');
+        setExitConfirmationOpen(true);
+        return;
+      }
       const route = readGameRoute(window.location.pathname) ?? { page: 'lobby' as const };
       // O botão Voltar do navegador/dispositivo sempre encerra a navegação interna
       // e retorna ao Lobby, em vez de restaurar a página anterior.
@@ -1064,8 +1070,18 @@ export default function App() {
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
+  const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
+  const [exitConfirmationError, setExitConfirmationError] = useState('');
+  const [exitConfirmationBusy, setExitConfirmationBusy] = useState(false);
+  const exitConfirmationBusyRef = useRef(false);
   const [mobileLobbyLandscape, setMobileLobbyLandscape] = useState(false);
   const gameStartedRef = useRef(false);
+  const gameBackGuardRef = useRef(false);
+  const installGameBackGuard = () => {
+    if (gameBackGuardRef.current) return;
+    window.history.pushState({ fibulaGameBackGuard: true }, '', window.location.href);
+    gameBackGuardRef.current = true;
+  };
   const zoomRef = useRef(window.matchMedia('(pointer: coarse)').matches ? 1.55 : 1.3);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
@@ -2854,6 +2870,7 @@ export default function App() {
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
+      installGameBackGuard();
       setShowStart(false);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Não foi possível registrar o início da partida. Tente novamente.');
@@ -2973,6 +2990,7 @@ export default function App() {
         engine.restart();
         await activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
+        installGameBackGuard();
         setShowStart(false);
         setDuoNotice('Duo conectado. O avanço das noites agora depende da confirmação do servidor.');
       } catch (cause) {
@@ -3242,6 +3260,8 @@ export default function App() {
       if (!queued) return;
     }
     gameStartedRef.current = false;
+    setExitConfirmationOpen(false);
+    setExitConfirmationError('');
     engine.restart();
     engine.stop();
     flagsRef.current = [];
@@ -3251,6 +3271,70 @@ export default function App() {
     closeInventoryPanel();
     setShowHelp(false);
     setShowStart(true);
+    if (gameBackGuardRef.current) {
+      gameBackGuardRef.current = false;
+      window.history.back();
+    }
+  };
+  const confirmExitToLobby = async () => {
+    if (exitConfirmationBusyRef.current) return;
+    exitConfirmationBusyRef.current = true;
+    setExitConfirmationBusy(true);
+    setExitConfirmationError('');
+
+    // Fecha novas gravações do Baú imediatamente. Uma operação já enviada ao
+    // servidor pode terminar; o restante da fila ainda não confirmado será descartado.
+    houseMatchClosedRef.current = true;
+    try {
+      const inFlightSync = houseSyncInFlightRef.current;
+      if (inFlightSync) await inFlightSync;
+
+      const activeDuoMatchId = duoStartedMatchIdRef.current;
+      if (activeDuoMatchId) {
+        if (!duoLeaveActionRef.current) {
+          throw new Error('Não foi possível confirmar sua saída da partida Duo. Tente novamente.');
+        }
+        const left = await duoLeaveActionRef.current();
+        if (left !== true) {
+          throw new Error('O servidor não confirmou sua saída da partida Duo. Você continua na partida.');
+        }
+      } else {
+        const sessionId = matchSessionIdRef.current;
+        if (sessionId) {
+          if (!fibulaSupabase) throw new Error('Não foi possível conectar ao servidor para finalizar a partida.');
+          const result = await abandonSoloMatchSession(fibulaSupabase, sessionId);
+          if (result === 'rejected') {
+            throw new Error('O Supabase não confirmou o encerramento desta partida. Você continua nela.');
+          }
+          matchSessionIdRef.current = null;
+        }
+      }
+
+      // Somente o inventário cuja gravação foi confirmada permanece. Operações
+      // ainda na fila local não podem ser enviadas depois que a partida terminou.
+      for (const operation of readHouseOutbox()) removeHouseOutboxOperation(operation.opId);
+      pendingHouseInventoryRef.current = null;
+      houseNeedsReconcileRef.current = false;
+      const confirmedSnapshot = lastSyncedHouseInventoryRef.current
+        || JSON.stringify(readConfirmedHouseInventory());
+      const confirmedInventory = JSON.parse(confirmedSnapshot) as HouseStorageStack[];
+      houseSyncBaselineRef.current = confirmedSnapshot;
+      applyCookingInventory(confirmedInventory);
+
+      setExitConfirmationOpen(false);
+      await returnToLobby();
+    } catch (cause) {
+      // Se o servidor não confirmou o encerramento, a partida continua ativa.
+      // Reabre a sincronização para que o jogador possa tentar novamente.
+      houseMatchClosedRef.current = false;
+      void houseOutboxDrainRef.current();
+      setExitConfirmationError(cause instanceof Error
+        ? cause.message
+        : 'Não foi possível finalizar a partida. Você continua nela.');
+    } finally {
+      exitConfirmationBusyRef.current = false;
+      setExitConfirmationBusy(false);
+    }
   };
   const restart = async () => {
     const engine = engineRef.current;
@@ -4140,6 +4224,17 @@ export default function App() {
       <div className="lobby-orientation-guard-icon" aria-hidden="true"><span>▯</span><i>↻</i></div>
       <strong>Gire o celular para a posição vertical</strong>
       <p>O Lobby foi desenvolvido para jogar e organizar seus itens com o celular em pé.</p>
+    </div>}
+    {exitConfirmationOpen && !showStart && <div className="match-exit-backdrop">
+      <section className="match-exit-dialog" role="dialog" aria-modal="true" aria-labelledby="match-exit-title" aria-describedby="match-exit-description">
+        <h2 id="match-exit-title">Abandonar partida?</h2>
+        <p id="match-exit-description">Deseja sair desta partida e voltar ao Lobby?</p>
+        {exitConfirmationError && <p className="match-exit-error" role="alert">{exitConfirmationError}</p>}
+        <div className="match-exit-actions">
+          <button type="button" className="match-exit-confirm" disabled={exitConfirmationBusy} onClick={() => { void confirmExitToLobby(); }}>{exitConfirmationBusy ? 'FINALIZANDO…' : 'SIM'}</button>
+          <button type="button" className="match-exit-cancel" disabled={exitConfirmationBusy} onClick={() => { setExitConfirmationOpen(false); setExitConfirmationError(''); }}>NÃO</button>
+        </div>
+      </section>
     </div>}
     <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.'); }); }} />
   </>;

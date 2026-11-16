@@ -11992,3 +11992,76 @@ sem backdrop ou caixa de modal. */
 .player-profile-modal * {
   font-family: inherit !important;
 }
+
+
+/* Confirmação de saída da partida pelo botão Voltar do Android. */
+.match-exit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.match-exit-dialog {
+  width: min(360px, 100%);
+  padding: 24px 20px 20px;
+  border: 1px solid #68645b;
+  border-radius: 14px;
+  background: #222322;
+  color: #f2eee5;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .55);
+  text-align: center;
+}
+.match-exit-dialog h2 {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+.match-exit-dialog p {
+  margin: 0;
+  color: #d0ccc2;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.match-exit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+.match-exit-actions button {
+  flex: 1;
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.match-exit-confirm {
+  background: #873c3c;
+  border-color: #b66a63 !important;
+  color: #fff;
+}
+.match-exit-cancel {
+  background: #383b38;
+  border-color: #777d74 !important;
+  color: #fff;
+}
+.match-exit-actions button:focus-visible {
+  outline: 3px solid #f2eee5;
+  outline-offset: 3px;
+}
+
+.match-exit-error {
+  margin-top: 12px !important;
+  color: #ffaaa0 !important;
+  font-size: 13px !important;
+}
