@@ -21,6 +21,7 @@ export type CraftedArmor = {
   attributes: Array<{ key: ArmorAttribute; value: number }>;
   lining: ArmorLining;
   liningValue: number;
+  craftedBy: string | null;
   createdAt: string;
 };
 
@@ -100,6 +101,7 @@ function readCraftedArmor(value: unknown): CraftedArmor {
     attributes: readArmorAttributes(row.attributes, row.piece as ArmorPiece, row.type as ArmorType),
     lining: row.lining as ArmorLining,
     liningValue: row.liningValue,
+    craftedBy: typeof row.craftedBy === 'string' ? row.craftedBy.trim().slice(0, 60).trim() || null : null,
     createdAt: row.createdAt,
   };
 }
@@ -116,6 +118,7 @@ function readStoredArmor(value: unknown): CraftedArmor {
     attributes: row.attributes,
     lining: row.lining,
     liningValue: row.lining_value,
+    craftedBy: row.crafted_by,
     createdAt: row.created_at,
   });
 }
@@ -204,7 +207,7 @@ export async function listMyArmors(client: ArmorClient): Promise<CraftedArmor[]>
     };
   };
   const { data, error } = await queryClient.from('fibula_armors')
-    .select('id,piece,type,rarity,stars,surp,attributes,lining,lining_value,created_at')
+    .select('id,piece,type,rarity,stars,surp,attributes,lining,lining_value,crafted_by,created_at')
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw new Error(error.message || 'Não foi possível carregar as armaduras fabricadas.');
