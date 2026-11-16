@@ -12,6 +12,7 @@ import {
 } from '../game/armor';
 import { armorCoreRoll, parseCoreItemId, type Core, type CoreRarity } from '../game/cores';
 import { armorMaterialItemIds, craftArmor, type CraftedArmor } from '../game/armorCrafting';
+import { getBaseItemId } from '../game/inventory';
 
 type ChestStack = { itemId: string; quantity: number };
 
@@ -101,6 +102,19 @@ export default function ArmorCraftPanel({
     }
     return Array.from(merged.values());
   }, [chestItems]);
+
+  const armorMaterialStacks = useMemo(() => {
+    const allowedBases = type === 'couro'
+      ? ['wolf_hide', 'cotton', 'linen', 'refined_leather']
+      : ['bronze', 'cotton', 'linen', 'refined_leather'];
+    const merged = new Map<string, number>();
+    for (const stack of chestItems) {
+      if (stack.quantity <= 0 || parseCoreItemId(stack.itemId)) continue;
+      if (!allowedBases.includes(getBaseItemId(stack.itemId))) continue;
+      merged.set(stack.itemId, (merged.get(stack.itemId) ?? 0) + stack.quantity);
+    }
+    return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity }));
+  }, [chestItems, type]);
 
   const selectedCore = armorCores.find(entry => entry.itemId === selectedCoreId) ?? null;
   const selectedPiece = selectedCore?.piece ?? null;
@@ -192,75 +206,91 @@ export default function ArmorCraftPanel({
   };
 
   return <section className="armor-craft-panel" aria-label={type === 'couro' ? 'Fabricação de armadura de couro' : 'Fabricação de armadura de bronze'}>
-    <div className="armor-craft-scroll">
-      <section className="armor-craft-section" aria-label="Núcleos revelados">
-        <header className="armor-craft-heading"><strong>NÚCLEO</strong><span>Escolha uma peça revelada no Baú</span></header>
-        <div className="armor-craft-core-grid">
-          {armorCores.map(entry => <button
-            type="button"
-            key={entry.itemId}
-            className={`armor-craft-core-card${selectedCoreId === entry.itemId ? ' armor-craft-is-selected' : ''}`}
-            onClick={() => { setSelectedCoreId(entry.itemId); setFeedback(''); }}
-            aria-pressed={selectedCoreId === entry.itemId}
-          >
-            <img
-              className="armor-craft-piece-image"
-              src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[entry.piece]}.png`}
-              alt=""
-              aria-hidden="true"
-              draggable={false}
-            />
-            <strong>{PIECE_LABELS[entry.piece]}</strong>
-            <small>{RARITY_LABELS[entry.core.rarity]}{entry.core.surp ? ' · SURP' : ''}</small>
-            {entry.quantity > 1 && <em>×{entry.quantity}</em>}
-          </button>)}
-          {armorCores.length === 0 && <p className="armor-craft-empty">Nenhum núcleo revelado de armadura no Baú.</p>}
+    <section className="armor-craft-selection-zone" aria-label="Materiais selecionados para fabricação">
+      <header className="armor-craft-heading"><strong>MATERIAIS SELECIONADOS</strong><span>Núcleo e forro da armadura</span></header>
+      <div className="armor-craft-slots">
+        <button type="button" className={selectedCore ? 'armor-craft-slot filled' : 'armor-craft-slot'}
+          onClick={() => { setSelectedCoreId(null); setFeedback(''); }}
+          aria-label={selectedCore ? 'Devolver núcleo à lista do Baú' : 'Espaço do núcleo'}>
+          {selectedCore ? <span style={glowStyle(selectedCore.itemId)}>{renderIcon(selectedCore.itemId)}</span> : <span>＋</span>}
+          <strong>{selectedCore ? PIECE_LABELS[selectedCore.piece] : 'NÚCLEO'}</strong>
+          <small>{selectedCore ? RARITY_LABELS[selectedCore.core.rarity] : 'Escolha no Baú'}</small>
+        </button>
+        <div className={selectedLining ? 'armor-craft-slot filled' : 'armor-craft-slot'} aria-label="Espaço do material">
+          <span>{selectedLiningInfo ? (selectedLining === 'algodao' ? '☁️' : selectedLining === 'linho' ? '🧵' : '🟫') : '＋'}</span>
+          <strong>{selectedLiningInfo?.label ?? 'MATERIAL'}</strong>
+          <small>{selectedLiningInfo?.effect ?? 'Escolha o forro'}</small>
         </div>
-      </section>
-
-      <section className="armor-craft-section" aria-label="Escolha do forro">
-        <header className="armor-craft-heading"><strong>FORRO</strong><span>Escolha obrigatória</span></header>
-        <div className="armor-craft-linings">
-          {LININGS.map(item => <button
-            key={item.id}
-            type="button"
-            className={`armor-craft-lining-button${selectedLining === item.id ? ' armor-craft-is-selected' : ''}`}
-            aria-pressed={selectedLining === item.id}
-            onClick={() => { setSelectedLining(item.id); setFeedback(''); }}
-          >
-            <strong>{item.label}</strong><small>{item.effect}</small>
-          </button>)}
+      </div>
+      <div className="armor-craft-lining-picker" aria-label="Escolha do material de forro">
+        {LININGS.map(item => <button
+          key={item.id}
+          type="button"
+          className={`armor-craft-lining-button${selectedLining === item.id ? ' armor-craft-is-selected' : ''}`}
+          aria-pressed={selectedLining === item.id}
+          onClick={() => { setSelectedLining(item.id); setFeedback(''); }}
+        >
+          <strong>{item.label}</strong><small>{item.effect}</small>
+        </button>)}
+      </div>
+      {selectedCore && selectedPiece && selectedLining && materials && <section className="armor-craft-requirements" aria-label="Materiais necessários">
+        <header className="armor-craft-heading"><strong>NECESSÁRIO</strong><span>{RARITY_LABELS[selectedCore.core.rarity]}</span></header>
+        <div className="armor-craft-materials">
+          {materialStatus.map(material => <div className="armor-craft-material-row" key={material.itemId}>
+            <span className="armor-craft-material-icon" style={glowStyle(material.itemId)}>{renderIcon(material.itemId)}</span>
+            <strong>{label(material.itemId)}</strong>
+            <small>{material.available}/{material.quantity}</small>
+            <span className={material.available >= material.quantity ? 'armor-craft-ok' : 'armor-craft-missing'} aria-label={material.available >= material.quantity ? 'Material suficiente' : 'Material insuficiente'}>{material.available >= material.quantity ? '✓' : '!'}</span>
+          </div>)}
         </div>
-      </section>
-
-      {selectedCore && selectedPiece && selectedLining && materials && <>
-        <section className="armor-craft-section" aria-label="Materiais necessários">
-          <header className="armor-craft-heading"><strong>MATERIAIS</strong><span>Mesma raridade do núcleo · {RARITY_LABELS[selectedCore.core.rarity]}</span></header>
-          <div className="armor-craft-materials">
-            {materialStatus.map(material => <div className="armor-craft-material-row" key={material.itemId}>
-              <span className="armor-craft-material-icon" style={glowStyle(material.itemId)}>{renderIcon(material.itemId)}</span>
-              <strong>{label(material.itemId)}</strong>
-              <small>Tem {material.available} / precisa {material.quantity}</small>
-              <span className={material.available >= material.quantity ? 'armor-craft-ok' : 'armor-craft-missing'} aria-label={material.available >= material.quantity ? 'Material suficiente' : 'Material insuficiente'}>{material.available >= material.quantity ? '✓' : '!'}</span>
+        <div className="armor-craft-preview-grid">
+          {preview.map(item => <div className="armor-craft-preview-row" key={item.key}><span>{item.label}</span><strong>{item.display}</strong></div>)}
+          <div className="armor-craft-preview-row"><span>{selectedLiningInfo?.label}</span><strong>{liningDisplay}</strong></div>
+        </div>
+      </section>}
+      <footer className="armor-craft-footer">
+        {feedback && <p role="status" className="armor-craft-feedback">{feedback}</p>}
+        {!online && <p role="status" className="armor-craft-hint">Sem conexão: fabricar exige internet.</p>}
+        <button type="button" className="armor-craft-submit" disabled={!canCraft} onClick={() => { void handleCraft(); }}>
+          {busy ? 'Fabricando…' : 'Fabricar'}
+        </button>
+      </footer>
+    </section>
+    <section className="armor-craft-chest-zone" aria-label="Baú da Alfaiataria">
+      <header className="armor-craft-heading"><strong>BAÚ</strong><span>Núcleos revelados e materiais de armadura</span></header>
+      <div className="armor-craft-chest-scroll">
+        <section className="armor-craft-chest-group" aria-label="Núcleos de armadura">
+          <header className="armor-craft-subheading">NÚCLEOS</header>
+          <div className="armor-craft-core-grid">
+            {armorCores.map(entry => <button
+              type="button"
+              key={entry.itemId}
+              className={`armor-craft-core-card${selectedCoreId === entry.itemId ? ' armor-craft-is-selected' : ''}`}
+              onClick={() => { setSelectedCoreId(entry.itemId); setFeedback(''); }}
+              aria-pressed={selectedCoreId === entry.itemId}
+            >
+              <img className="armor-craft-piece-image"
+                src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[entry.piece]}.png`}
+                alt="" aria-hidden="true" draggable={false}/>
+              <strong>{PIECE_LABELS[entry.piece]}</strong>
+              <small>{RARITY_LABELS[entry.core.rarity]}{entry.core.surp ? ' · SURP' : ''}</small>
+              {entry.quantity > 1 && <em>×{entry.quantity}</em>}
+            </button>)}
+            {armorCores.length === 0 && <p className="armor-craft-empty">Nenhum núcleo revelado de armadura no Baú.</p>}
+          </div>
+        </section>
+        <section className="armor-craft-chest-group" aria-label="Materiais de armadura">
+          <header className="armor-craft-subheading">MATERIAIS</header>
+          <div className="armor-craft-chest-material-grid">
+            {armorMaterialStacks.map(stack => <div className="armor-craft-chest-material" key={stack.itemId}>
+              <span style={glowStyle(stack.itemId)}>{renderIcon(stack.itemId)}</span>
+              <strong>{label(stack.itemId)}</strong>
+              <small>×{stack.quantity}</small>
             </div>)}
+            {armorMaterialStacks.length === 0 && <p className="armor-craft-empty">Nenhum material de armadura no Baú.</p>}
           </div>
         </section>
-
-        <section className="armor-craft-section armor-craft-preview" aria-label="Prévia da armadura">
-          <header className="armor-craft-heading"><strong>PRÉVIA</strong><span>Valores informativos · 1★</span></header>
-          <div className="armor-craft-preview-grid">
-            {preview.map(item => <div className="armor-craft-preview-row" key={item.key}><span>{item.label}</span><strong>{item.display}</strong></div>)}
-            <div className="armor-craft-preview-row"><span>{selectedLiningInfo?.label}</span><strong>{liningDisplay}</strong></div>
-          </div>
-        </section>
-      </>}
-    </div>
-    <footer className="armor-craft-footer">
-      {feedback && <p role="status" className="armor-craft-feedback">{feedback}</p>}
-      {!online && <p role="status" className="armor-craft-hint">Sem conexão: fabricar exige internet.</p>}
-      <button type="button" className="armor-craft-submit" disabled={!canCraft} onClick={() => { void handleCraft(); }}>
-        {busy ? 'Fabricando…' : 'Fabricar'}
-      </button>
-    </footer>
+      </div>
+    </section>
   </section>;
 }
