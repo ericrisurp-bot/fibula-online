@@ -12307,8 +12307,16 @@ sem backdrop ou caixa de modal. */
   white-space:normal;overflow-wrap:anywhere;text-align:center;font-size:clamp(6px,1.7vw,8px);line-height:1.1;
 }
 .forge-selection-zone .forge-recipe-slot>small{font-size:7px}
-.forge-selection-action{min-height:29px}
-.forge-selection-action .forge-craft-button,.forge-selection-action .forge-result button{min-height:29px;padding:5px 18px}
+.forge-selection-action{width:100%;min-height:29px}
+.forge-selection-action .forge-craft-button{
+  display:block;
+  width:100%;
+  min-width:0;
+  min-height:clamp(36px,5vh,48px);
+  margin:0;
+  padding:8px 12px;
+}
+.forge-selection-action .forge-result button{min-height:29px;padding:5px 18px}
 .forge-chest-zone{flex:1 1 auto;min-height:0}
 .forge-chest-zone .forge-material-grid{grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:4px}
 .forge-chest-zone .forge-material-item{min-height:49px;padding:3px 2px}
