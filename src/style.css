@@ -12170,3 +12170,14 @@ sem backdrop ou caixa de modal. */
 .duo-trade-notice{color:#d8c49f;font-size:12px}
 .duo-trade-dialog footer{display:flex;justify-content:flex-end;margin-top:10px}
 @media(max-width:560px){.duo-trade-columns{grid-template-columns:1fr}.duo-trade-inventory>div{grid-template-columns:minmax(0,1fr) 52px auto}.duo-trade-dialog{padding:11px}.duo-trade-confirmations{flex-direction:column}}
+
+
+/* A4.3b — abas da Bigorna para armas e armaduras de bronze. */
+.forge-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%;min-width:0;margin:0 0 9px}
+.forge-tabs-button{display:flex;min-width:0;min-height:46px;align-items:center;justify-content:center;padding:9px 12px;border:1px solid #756047;border-radius:9px;background:linear-gradient(180deg,#35322c,#242522);color:#e8dcc8;font:inherit;font-size:13px;font-weight:850;letter-spacing:.04em;cursor:pointer;touch-action:manipulation}
+.forge-tabs-button.is-active{border-color:#c28b4c;background:linear-gradient(180deg,#76512f,#4b3525);color:#fff1d8;box-shadow:inset 0 1px 0 #fff3,0 2px 0 #211b15}
+.forge-tabs-button:focus-visible{outline:2px solid #e4bd7b;outline-offset:2px}
+.forge-tabs-armor-workspace{display:flex;width:100%;min-width:0;min-height:0;max-height:100%;flex:1 1 auto;overflow:hidden}
+.forge-tabs-armor-workspace .armor-craft-panel{width:100%;min-width:0;min-height:0;max-height:100%}
+@media(max-width:430px){.forge-tabs{gap:5px;margin-bottom:6px}.forge-tabs-button{min-height:44px;padding:8px 5px;font-size:12px}.forge-tabs-armor-workspace{min-height:0}}
+@media(orientation:landscape) and (max-height:520px){.forge-tabs{gap:4px;margin-bottom:4px}.forge-tabs-button{min-height:38px;padding:5px 8px;font-size:11px}}
