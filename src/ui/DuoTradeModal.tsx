@@ -30,8 +30,8 @@ const weaponName: Record<string, string> = { espada: 'Espada', arco: 'Arco', caj
 
 function offerLabel(item: DuoTradeItem): string {
   if (item.kind === 'stack') return (itemName[item.itemId] || item.itemId) + ' ×' + item.quantity;
-  if (item.kind === 'weapon') return 'Arma fabricada';
-  return 'Refeição';
+  if (item.kind === 'weapon') return (item.label || 'Arma') + (item.rarity ? ' · ' + (rarityName[item.rarity] || item.rarity) : '') + (item.tier ? ' · T' + item.tier : '');
+  return (item.icon || '🍲') + ' ' + (item.label || 'Refeição') + (item.rarity ? ' · ' + (rarityName[item.rarity] || item.rarity) : '');
 }
 
 export default function DuoTradeModal({ client, userId, roomId, friendName, onClose, onCompleted }: Props) {
@@ -102,6 +102,7 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
   const ownOffer = isHost ? trade?.hostOffer ?? [] : trade?.guestOffer ?? [];
   const peerOffer = isHost ? trade?.guestOffer ?? [] : trade?.hostOffer ?? [];
   const peerConfirmed = isHost ? trade?.guestConfirmed : trade?.hostConfirmed;
+  useEffect(() => { if (trade?.status !== 'completed') completedNotifiedRef.current = false; }, [trade?.id, trade?.status]);
   const selfConfirmed = isHost ? trade?.hostConfirmed : trade?.guestConfirmed;
   const incomingRequest = trade?.status === 'requested' && trade.requesterId !== userId;
   const waitingRequest = trade?.status === 'requested' && trade.requesterId === userId;
@@ -118,8 +119,13 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
       const keyOf = (entry: DuoTradeItem) => entry.kind === 'stack' ? 'stack:' + entry.itemId
         : entry.kind === 'weapon' ? 'weapon:' + entry.weaponId : 'meal:' + entry.mealId;
       const key = keyOf(item);
-      const exists = current.some(entry => keyOf(entry) === key);
-      if (exists) return current.filter(entry => keyOf(entry) !== key);
+      const existing = current.find(entry => keyOf(entry) === key);
+      if (existing) {
+        if (item.kind === 'stack' && existing.kind === 'stack' && existing.quantity !== item.quantity) {
+          return current.map(entry => keyOf(entry) === key ? item : entry);
+        }
+        return current.filter(entry => keyOf(entry) !== key);
+      }
       if (current.length >= 5) { setError('Você pode selecionar no máximo 5 itens.'); return current; }
       return [...current, item];
     });
