@@ -210,3 +210,18 @@ A interface de equipamento das armaduras é controlada exclusivamente por `CONFI
 - Os dois cálculos de PD no Arsenal e no Status recebem `armorBonuses` somente com a chave ligada. O Status aguarda também a conclusão bem-sucedida da listagem de armaduras. A integração dos bônus no motor continua reservada à A5.3; esta etapa não altera `engine.ts`.
 
 O sistema antigo de itens de equipamento do Arsenal (`arsenalItems`) e sua persistência local não são apagados nem migrados. Os cinco espaços de armadura apenas deixam de exibi-los enquanto a chave estiver ligada; com a chave desligada, o comportamento legado permanece.
+
+
+## A5.3 — Integração da armadura equipada no motor
+
+A integração é ativada somente quando `CONFIG.rulesV2.enabled === true`. O `App` sincroniza a seleção resolvida com `GameEngine.setEquippedArmors` quando a lista está pronta ou muda; se a listagem não estiver pronta ou falhar, envia um conjunto vazio. Antes de `engine.start()`, envia novamente o valor mais recente por uma ref, evitando depender da ordem dos efeitos React. A chamada não ocorre quando `armorCraftingEnabled` está desligada.
+
+O motor valida cada peça recebida (ID, correspondência do espaço, atributos finitos e valor finito do forro), mantém uma cópia e invalida o cache agregado. `getArmorBonuses` calcula `computeArmorBonuses` uma vez por classe e não reaplica aproveitamento de classe nem conversão de atributo-base: os valores agregados já estão em unidades finais.
+
+- **Armadura:** soma diretamente a `getLevelStats().armor`; a redução continua centralizada em `applyArmorToDamage`, com o teto global de 60%.
+- **Esquiva:** soma diretamente a `getLevelStats().dodge`; `getDodgeChance` mantém o teto total de 35%.
+- **Mobilidade:** soma diretamente a `getLevelStats().speed`, em unidade final de velocidade.
+- **XP da partida:** os dois caminhos de coleta de orbes multiplicam o XP por `1 + xpPartida`. XP de lobby/conta e o ganho de vida por nível não são alterados.
+- **Vida:** `freshState` inclui o bônus no HP e no máximo inicial; ao equipar/desequipar, o máximo muda pela diferença do bônus aplicado e o HP acompanha aumentos ou é limitado ao novo máximo em reduções. Na troca de classe, o bônus da nova classe entra no novo máximo antes da transição proporcional de vida já existente.
+
+Com `rulesV2.enabled = false`, `getArmorBonuses` retorna `null`; não há bônus de armadura no motor, o cálculo legado de armadura/esquiva permanece e a coleta de XP usa o valor original. O motor não altera a regra de ganho de vida por nível.
