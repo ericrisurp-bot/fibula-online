@@ -12471,3 +12471,8 @@ sem backdrop ou caixa de modal. */
   .armor-craft-slot{min-height:34px}
   .armor-craft-lining-picker .armor-craft-lining-button{min-height:29px}
 }
+
+/* Alfaiataria — aumenta em 30% a faixa vertical do cenário visual. */
+.armor-craft-workspace{
+  grid-template-rows:minmax(0,1.018fr) minmax(0,1.217fr)!important;
+}
