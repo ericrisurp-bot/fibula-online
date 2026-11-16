@@ -36,6 +36,7 @@ function offerLabel(item: DuoTradeItem): string {
 
 export default function DuoTradeModal({ client, userId, roomId, friendName, onClose, onCompleted }: Props) {
   const [trade, setTrade] = useState<DuoTradeSnapshot | null>(null);
+  const [snapshotLoaded, setSnapshotLoaded] = useState(false);
   const [stacks, setStacks] = useState<Stack[]>([]);
   const [weapons, setWeapons] = useState<Weapon[]>([]);
   const [meals, setMeals] = useState<Array<Meal & { mealState: 'prepared' | 'ready' | 'pending' }>>([]);
@@ -49,6 +50,7 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
   const refresh = useCallback(async () => {
     const next = await getDuoTradeSnapshot(client, roomId);
     setTrade(next);
+    setSnapshotLoaded(true);
     if (next?.status === 'completed' && !completedNotifiedRef.current) { completedNotifiedRef.current = true; onCompleted(); }
   }, [client, roomId, onCompleted]);
 
@@ -89,7 +91,7 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
     const poll = async () => {
       if (!active || running) return;
       running = true;
-      try { const next = await getDuoTradeSnapshot(client, roomId); if (active) { setTrade(next); if (next?.status === 'completed' && !completedNotifiedRef.current) { completedNotifiedRef.current = true; onCompleted(); } } }
+      try { const next = await getDuoTradeSnapshot(client, roomId); if (active) { setTrade(next); setSnapshotLoaded(true); if (next?.status === 'completed' && !completedNotifiedRef.current) { completedNotifiedRef.current = true; onCompleted(); } } }
       catch (cause) { if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível atualizar a troca.'); }
       finally { running = false; }
     };
@@ -146,7 +148,7 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
       <header><div><small>TROCA DO DUO</small><h2>{friendName}</h2></div><button type="button" aria-label="Fechar" onClick={onClose}>×</button></header>
       {error && <p className="duo-trade-error" role="alert">{error}</p>}
       {notice && <p className="duo-trade-notice" role="status">{notice}</p>}
-      {!trade && <p>Verificando solicitação de troca…</p>}
+      {!snapshotLoaded && <p>Verificando solicitação de troca…</p>}
       {incomingRequest && <div className="duo-trade-request"><strong>{friendName} quer trocar itens com você.</strong><p>Você verá somente os itens que ele escolher oferecer.</p>
         <button type="button" disabled={busy} onClick={() => void run(() => answerDuoTradeRequest(client, trade!.id, true), 'Troca aceita.')}>Aceitar</button>
         <button type="button" className="secondary" disabled={busy} onClick={() => void run(() => answerDuoTradeRequest(client, trade!.id, false), 'Solicitação recusada.')}>Recusar</button>
@@ -185,14 +187,15 @@ export default function DuoTradeModal({ client, userId, roomId, friendName, onCl
           <span>{friendName}: {peerConfirmed ? 'Confirmou' : 'Aguardando confirmação'}</span>
         </div>
         <div className="duo-trade-actions">
-          <button type="button" disabled={busy} onClick={() => void run(() => confirmDuoTrade(client, trade.id), 'Confirmação registrada. A transferência só ocorre após os dois confirmarem.')}>Trocar / Confirmar</button>
+          <button type="button" disabled={busy || offer.length > 0} onClick={() => void run(() => confirmDuoTrade(client, trade.id), 'Confirmação registrada. A transferência só ocorre após os dois confirmarem.')}>Trocar / Confirmar</button>
           <button type="button" className="secondary" disabled={busy} onClick={() => void run(() => cancelDuoTrade(client, trade.id), 'Troca cancelada.')}>Cancelar troca</button>
         </div>
+        {offer.length > 0 && <p className="duo-trade-hint">Salve sua seleção antes de confirmar a troca.</p>}
         <p className="duo-trade-hint">Você pode receber itens sem oferecer nada. Basta deixar sua oferta vazia e confirmar.</p>
       </>}
       {trade?.status === 'completed' && <p role="status">Troca concluída! Os itens foram transferidos.</p>}
       {trade?.status === 'cancelled' && <p role="status">Esta solicitação de troca foi encerrada.</p>}
-      {!trade && <button type="button" className="secondary" onClick={() => void run(() => requestDuoTrade(client, roomId))}>Solicitar troca</button>}
+      {snapshotLoaded && !trade && <button type="button" className="secondary" onClick={() => void run(() => requestDuoTrade(client, roomId))}>Solicitar troca</button>}
       {trade?.status === 'cancelled' && <button type="button" onClick={() => void run(() => requestDuoTrade(client, roomId))}>Solicitar nova troca</button>}
       <footer><button type="button" className="secondary" onClick={onClose}>Fechar</button></footer>
     </section>
