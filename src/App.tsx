@@ -2248,7 +2248,9 @@ export default function App() {
     if (!fibulaSupabase || !session.user.sub) return;
     let active = true;
     const retryOutboxWhenOnline = () => {
-      if (!houseMatchClosedRef.current) void houseOutboxDrainRef.current();
+      if (houseOutboxStartupReadyRef.current && !houseMatchClosedRef.current) {
+        void houseOutboxDrainRef.current();
+      }
     };
     window.addEventListener('online', retryOutboxWhenOnline);
     void (async () => {
