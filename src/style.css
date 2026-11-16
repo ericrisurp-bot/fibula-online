@@ -1329,7 +1329,6 @@ button, button * {
   height:33.333vh;
   border-radius:50% 50% 0 0 / 12% 12% 0 0;
   pointer-events:none;
-  overflow:hidden;
   background:var(--lobby-ground-light-background);
   filter:var(--lobby-ground-light-filter);
 }
