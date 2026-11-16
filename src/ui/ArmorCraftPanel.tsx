@@ -199,7 +199,7 @@ export default function ArmorCraftPanel({
           {armorCores.map(entry => <button
             type="button"
             key={entry.itemId}
-            className={`armor-craft-core-card${selectedCoreId === entry.itemId ? ' is-selected' : ''}`}
+            className={`armor-craft-core-card${selectedCoreId === entry.itemId ? ' armor-craft-is-selected' : ''}`}
             onClick={() => { setSelectedCoreId(entry.itemId); setFeedback(''); }}
             aria-pressed={selectedCoreId === entry.itemId}
           >
@@ -224,7 +224,7 @@ export default function ArmorCraftPanel({
           {LININGS.map(item => <button
             key={item.id}
             type="button"
-            className={`armor-craft-lining-button${selectedLining === item.id ? ' is-selected' : ''}`}
+            className={`armor-craft-lining-button${selectedLining === item.id ? ' armor-craft-is-selected' : ''}`}
             aria-pressed={selectedLining === item.id}
             onClick={() => { setSelectedLining(item.id); setFeedback(''); }}
           >
