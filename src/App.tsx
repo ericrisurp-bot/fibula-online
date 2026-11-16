@@ -921,7 +921,7 @@ export default function App() {
     writeEquippedArmorSelections(session.user.sub, validSelections);
     if (JSON.stringify(validSelections) !== JSON.stringify(equippedArmorIds)) setEquippedArmorIds(validSelections);
   }, [armorListReady, craftedArmors, equippedArmorIds, session.user.sub]);
-  const equippedArmors = CONFIG.rulesV2.armorCraftingEnabled && armorListReady
+  const equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = CONFIG.rulesV2.armorCraftingEnabled && armorListReady
     ? resolveEquippedArmors(craftedArmors, equippedArmorIds)
     : {};
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
@@ -959,10 +959,14 @@ export default function App() {
     lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
     void reportHighestPd(fibulaSupabase, statusDuoPower);
   }, [statusPowerReady, statusDuoPower, session.user.sub]);
-  const arsenalInventoryEntries = [
+  const arsenalInventoryEntries: Array<
+    | { kind: 'equipment'; item: ArsenalEquipment }
+    | { kind: 'weapon'; weapon: CraftedWeapon }
+    | { kind: 'armor'; armor: CraftedArmor }
+  > = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
-    ...(CONFIG.rulesV2.armorCraftingEnabled ? craftedArmors.filter(armor => equippedArmorIds[armor.piece] !== armor.id).map(armor => ({ kind: 'armor' as const, armor })) : []),
+    ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => equippedArmorIds[armor.piece] !== armor.id).map(armor => ({ kind: 'armor' as const, armor })) : []),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
@@ -3954,7 +3958,7 @@ export default function App() {
                 {characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1] ? <canvas ref={arsenalCharacterCanvasRef} className="arsenal-character-canvas" aria-label={`Personagem ${CLASSES[characterPreferences[arsenalCharacterTab === 'principal' ? 0 : 1]!].label} com sua arma flutuante`} /> : <div className="arsenal-no-character">Nenhum personagem selecionado nesta posição.</div>}
                 <div className="arsenal-equipment-grid">
                   {ARSENAL_SLOT_LAYOUT.map(({ slot, row, column }) => {
-                    const armorPiece = CONFIG.rulesV2.armorCraftingEnabled ? ARSENAL_ARMOR_SLOT_PIECES[slot] : undefined;
+                    const armorPiece: ArmorPiece | undefined = CONFIG.rulesV2.armorCraftingEnabled ? ARSENAL_ARMOR_SLOT_PIECES[slot] : undefined;
                     const equippedArmor = armorPiece ? equippedArmors[armorPiece] : null;
                     const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
                     const legacyEquipped = armorPiece ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
