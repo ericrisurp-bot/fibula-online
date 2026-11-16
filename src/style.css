@@ -12067,6 +12067,7 @@ sem backdrop ou caixa de modal. */
 }
 
 /* A4.3a — painel de fabricação de armadura na Alfaiataria. */
+.armor-craft-scene{display:contents}
 .armor-craft-workspace{grid-template-rows:minmax(118px,.34fr) minmax(0,.66fr)!important;min-height:0;overflow:hidden}
 .armor-craft-panel{grid-row:2;display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0;min-height:0;overflow:hidden;gap:6px;padding:7px;border:1px solid #8b8064;border-radius:10px;background:linear-gradient(155deg,#e8dfc9,#cfc4a9 58%,#b7ad92);color:#353329}
 .armor-craft-scroll{display:grid;align-content:start;gap:7px;min-width:0;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:1px}
