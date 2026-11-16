@@ -557,7 +557,7 @@ export default function App() {
     // para apagar todo o Baú. Exclusões intencionais usam a RPC explícita de descarte.
     if (baseline.length > 0 && currentInventory.length === 0) {
       console.warn('[Baú] Sincronização bloqueada: tentativa de esvaziar o Baú por diferença automática.');
-      setChestTransferFeedback('O Baú foi protegido contra uma sincronização vazia. Reabra o Baú para confirmar o conteúdo do servidor.');
+      setCookingFeedback('O Baú foi protegido contra uma sincronização vazia. Reabra o Baú para confirmar o conteúdo do servidor.');
       return;
     }
     if (delta.length > 0) {
@@ -568,7 +568,7 @@ export default function App() {
           if (queuedDelta.length > 0) {
             houseSyncBaselineRef.current = JSON.stringify(applyHouseDeltaLocally(baseline, queuedDelta));
           }
-          setChestTransferFeedback('Não foi possível guardar a operação do Baú neste dispositivo. A alteração ainda não foi sincronizada.');
+          setCookingFeedback('Não foi possível guardar a operação do Baú neste dispositivo. A alteração ainda não foi sincronizada.');
           return;
         }
         queuedDelta.push(...batch);
@@ -2271,7 +2271,7 @@ export default function App() {
       const success = await refreshLobbyChestFromCloud();
       if (!active) return;
       if (!success) {
-        setChestTransferFeedback('Não foi possível confirmar o Baú no servidor. As alterações pendentes foram preservadas.');
+        setCookingFeedback('Não foi possível confirmar o Baú no servidor. As alterações pendentes foram preservadas.');
         return;
       }
       houseOutboxStartupReadyRef.current = true;
@@ -2330,11 +2330,10 @@ export default function App() {
     setActiveGameRoute({ page: 'bau' });
     setChestTab('resources');
     setChestOpen(true);
-    setChestTransferItemId(null);
-    setChestTransferFeedback('');
+    setCookingFeedback('');
     if (!cookingOnline) setCookingFeedback('Sem conexão: cozinhar exige internet.');
     void refreshLobbyChestFromCloud().then(success => {
-      if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.');
+      if (!success) setCookingFeedback('Não foi possível atualizar o Baú.');
     });
   };
 
@@ -2393,7 +2392,7 @@ export default function App() {
         if (result.kind === 'network') return 'network';
         if (result.kind === 'rejected') {
           removeHouseOutboxOperation(operation.opId);
-          setChestTransferFeedback(result.message);
+          setCookingFeedback(result.message);
           if (readHouseOutbox()[0]?.opId === operation.opId) return 'network';
           houseNeedsReconcileRef.current = true;
           const refreshed = await refreshLobbyChestFromCloud();
@@ -2432,7 +2431,7 @@ export default function App() {
               .map(item => Math.abs(item.quantity) + ' × ' + itemLabel(item.itemId)).join(', ') + '.');
           }
           if (messages.length === 0) messages.push('O servidor ajustou o inventário do Baú. O conteúdo foi atualizado.');
-          setChestTransferFeedback(messages.join(' '));
+          setCookingFeedback(messages.join(' '));
         }
       }
     })();
@@ -2464,11 +2463,11 @@ export default function App() {
   const discardBauItem = async (deleteAll=false) => {
     if(bauAction?.kind!=='item'||bauDeleteBusy)return;
     const currentItem=lobbyChestItems.find(entry=>entry.itemId===bauAction.item.itemId);
-    if(!currentItem){setChestTransferFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
+    if(!currentItem){setCookingFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
     const quantity=deleteAll?currentItem.quantity:Number(bauDeleteQuantity);
-    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setChestTransferFeedback('Informe uma quantidade válida para excluir.');return;}
-    if(!fibulaSupabase||!session.user.sub){setChestTransferFeedback('O serviço de armazenamento não está disponível.');return;}
-    setBauDeleteBusy(true);setChestTransferFeedback('');
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setCookingFeedback('Informe uma quantidade válida para excluir.');return;}
+    if(!fibulaSupabase||!session.user.sub){setCookingFeedback('O serviço de armazenamento não está disponível.');return;}
+    setBauDeleteBusy(true);setCookingFeedback('');
     try {
       const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
         p_item_id: currentItem.itemId,
@@ -2481,11 +2480,11 @@ export default function App() {
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
       setBauAction(null);
-      setChestTransferFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
+      setCookingFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
     } catch(cause){
       const message = cause instanceof Error ? cause.message : 'Não foi possível excluir o item.';
       await refreshLobbyChestFromCloud();
-      setChestTransferFeedback(message);
+      setCookingFeedback(message);
     } finally {
       setBauDeleteBusy(false);
     }
@@ -4228,7 +4227,7 @@ export default function App() {
       </section>
     </div>}
     {duoTradeOpen && duoPeer?.status === 'connected' && duoPeer.matchId === null && fibulaSupabase && <DuoTradeModal client={fibulaSupabase} userId={session.user.sub} roomId={duoPeer.roomId} friendName={duoPeer.friendName} onClose={() => setDuoTradeOpen(false)} onCompleted={() => { void (async () => { try { const ownedWeapons = await listMyWeapons(fibulaSupabase); setCraftedWeapons(ownedWeapons); const ownedIds = new Set(ownedWeapons.map(weapon => weapon.id)); setEquippedWeaponIds(current => { const next = { ...current }; (Object.keys(next) as ClassId[]).forEach(classId => { if (!ownedIds.has(next[classId]!)) delete next[classId]; }); return next; }); } catch { /* A próxima abertura do Arsenal fará nova leitura. */ } try { await refreshLobbyChestFromCloud(); } catch { /* A próxima abertura do Baú fará nova leitura. */ } try { await refreshCookingState(); } catch { /* A próxima abertura do Fogão fará nova leitura. */ } })(); }} />}
-    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { setDuoTradeOpen(false); duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setChestTransferFeedback('Não foi possível atualizar o Baú.'); }); }} />
+    <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { setDuoTradeOpen(false); duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setCookingFeedback('Não foi possível atualizar o Baú.'); }); }} />
   </>;
 }
 
