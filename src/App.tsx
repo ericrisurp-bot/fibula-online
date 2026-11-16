@@ -3711,34 +3711,58 @@ export default function App() {
                   />
                 </div> : <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
-                    <div className="forge-recipe-slots" aria-label="Slots da receita">
-                      {selectedWeaponCore && weaponRecipeRows.map(row => {
-                        const partLabel = row.slot === 'mineral'
-                          ? selectedWeaponModel === 'espada' ? 'Lâmina' : 'Ponta'
-                          : row.slot === 'linen' ? 'Corda'
-                            : row.slot === 'wood' ? selectedWeaponModel === 'arco' ? 'Haste' : 'Cabo' : row.slot;
-                        const materialLabel = row.slot === 'mineral' ? 'Minério' : row.slot === 'wood' ? 'Madeira' : 'Linho';
-                        const order = row.slot === 'linen' ? -2 : row.slot === 'wood' ? -1 : 1;
-                        return <button type="button" key={row.slot}
-                          className={row.selection ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
-                          style={{ order }}
-                          onClick={() => clearForgeMaterial(row.slot)}
-                          aria-label={row.selection ? 'Devolver ' + itemLabel(row.selection.itemId) + ' à grade' : 'Slot ' + partLabel}>
-                          <span style={row.selection ? itemRarityGlow(row.selection.itemId) : undefined}>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
-                          <strong>{partLabel} · {materialLabel} ×{row.material.quantity}</strong>
-                          <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
-                        </button>;
-                      })}
-                      <button type="button" className={selectedWeaponCore ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
-                        style={{ order: 0 }}
-                        onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
-                        aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
-                        <span style={selectedWeaponCoreId ? itemRarityGlow(selectedWeaponCoreId) : undefined}>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
-                        <strong>{selectedWeaponCoreId ? itemLabel(selectedWeaponCoreId) : 'Núcleo'}</strong>
-                        {!selectedWeaponCore && <small>0/1</small>}
-                      </button>
-                    </div>
+                    {forgeCraftResult && <button type="button" className="forge-production-result"
+                      onClick={openCraftedWeaponInArsenal} aria-label="Abrir arma fabricada no Arsenal">
+                      <span aria-hidden="true">⚔️</span>
+                      <strong>{forgeCraftResult}</strong>
+                      <small>Clique para abrir no Arsenal</small>
+                    </button>}
                   </ForgeScene>
+                  <div className="forge-lower-panel">
+                    <section className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
+                      <div className="forge-panel-heading">
+                        <strong>MATERIAIS SELECIONADOS</strong>
+                        <span>Núcleo e componentes da receita</span>
+                      </div>
+                      <div className="forge-recipe-slots" aria-label="Slots da receita">
+                        {selectedWeaponCore && weaponRecipeRows.map(row => {
+                          const partLabel = row.slot === 'mineral'
+                            ? selectedWeaponModel === 'espada' ? 'Lâmina' : 'Ponta'
+                            : row.slot === 'linen' ? 'Corda'
+                              : row.slot === 'wood' ? selectedWeaponModel === 'arco' ? 'Haste' : 'Cabo' : row.slot;
+                          const materialLabel = row.slot === 'mineral' ? 'Minério' : row.slot === 'wood' ? 'Madeira' : 'Linho';
+                          const order = row.slot === 'linen' ? -2 : row.slot === 'wood' ? -1 : 1;
+                          return <button type="button" key={row.slot}
+                            className={row.selection ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+                            style={{ order }}
+                            onClick={() => clearForgeMaterial(row.slot)}
+                            aria-label={row.selection ? 'Devolver ' + itemLabel(row.selection.itemId) + ' à grade' : 'Slot ' + partLabel}>
+                            <span style={row.selection ? itemRarityGlow(row.selection.itemId) : undefined}>{row.selection ? inventoryItemIcon(row.selection.itemId) : '＋'}</span>
+                            <strong>{partLabel} · {materialLabel} ×{row.material.quantity}</strong>
+                            <small>{row.selection?.quantity ?? 0}/{row.material.quantity}</small>
+                          </button>;
+                        })}
+                        <button type="button" className={selectedWeaponCore ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
+                          style={{ order: 0 }}
+                          onClick={() => { if (weaponCraftBusy) return; setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
+                          aria-label={selectedWeaponCore ? 'Devolver núcleo à grade' : 'Slot vazio do núcleo'}>
+                          <span style={selectedWeaponCoreId ? itemRarityGlow(selectedWeaponCoreId) : undefined}>{selectedWeaponCoreId ? inventoryItemIcon(selectedWeaponCoreId) : '＋'}</span>
+                          <strong>{selectedWeaponCoreId ? itemLabel(selectedWeaponCoreId) : 'Núcleo'}</strong>
+                          {!selectedWeaponCore && <small>0/1</small>}
+                        </button>
+                      </div>
+                      <div className="forge-action-area forge-selection-action">
+                        {forgeCraftResult ? <div className="forge-result" role="status">
+                          <strong>{forgeCraftResult}</strong>
+                          <button type="button" onClick={openCraftedWeaponInArsenal}>Ver no Arsenal</button>
+                        </div> : <button type="button" className="forge-craft-button" onClick={() => void craftAnvilWeapon()}
+                          disabled={lobbyChestStatus !== 'ready' || !selectedWeaponCore || !weaponMaterialsReady || !!weaponCompatibilityError || !cookingOnline || weaponCraftBusy}>
+                          {weaponCraftBusy ? 'Fabricando…' : 'Fabricar'}
+                        </button>}
+                        {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
+                        {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
+                      </div>
+                    </section>
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
@@ -3781,19 +3805,8 @@ export default function App() {
                       })}
                       {anvilChestStacks.length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
                     </div>
-                    <div className="forge-action-area forge-chest-action">
-                      {forgeCraftResult ? <div className="forge-result" role="status">
-                        <strong>{forgeCraftResult}</strong>
-                        <button type="button" onClick={openCraftedWeaponInArsenal}>Ver no Arsenal</button>
-                        {weaponFeedback && <small>{weaponFeedback}</small>}
-                      </div> : <button type="button" className="forge-craft-button" onClick={() => void craftAnvilWeapon()}
-                        disabled={lobbyChestStatus !== 'ready' || !selectedWeaponCore || !weaponMaterialsReady || !!weaponCompatibilityError || !cookingOnline || weaponCraftBusy}>
-                        {weaponCraftBusy ? 'Fabricando…' : 'Fabricar'}
-                      </button>}
-                      {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
-                      {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
-                    </div>
-                  </section>
+                    </section>
+                  </div>
                 </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form cooking-kitchen">
