@@ -12059,3 +12059,9 @@ sem backdrop ou caixa de modal. */
   outline: 3px solid #f2eee5;
   outline-offset: 3px;
 }
+
+.match-exit-error {
+  margin-top: 12px !important;
+  color: #ffaaa0 !important;
+  font-size: 13px !important;
+}
