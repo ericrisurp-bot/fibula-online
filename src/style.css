@@ -12332,3 +12332,11 @@ sem backdrop ou caixa de modal. */
   .forge-selection-zone .forge-recipe-slot{min-height:39px}
   .forge-chest-zone .forge-material-item{min-height:38px}
 }
+
+
+/* Bigorna — reduz a altura visual do cenário em 5% para alinhar com o forno. */
+.forge-page .forge-workspace > .forge-scene{
+  height:95%;
+  min-height:0;
+  align-self:start;
+}
