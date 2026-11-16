@@ -117,6 +117,38 @@ Esse aproveitamento de esquiva da armadura é diferente da esquiva-base por clas
 - **Redução de dano pela armadura:** teto de 60% (`CONFIG.rulesV2.armorMaxReduction = 0.6`). X pontos de armadura representam X% menos dano, respeitando o teto; cada golpe ainda causa no mínimo 1 de dano.
 - **Esquiva:** teto total de 35%, somando esquiva-base da classe (`CONFIG.player.classDodge`) + esquiva da luva + esquiva dos acessórios.
 
+## A4.2 — camada de dados da fabricação no cliente
+
+O módulo `src/game/armorCrafting.ts` define somente o contrato de dados no cliente. Ele não é importado por telas nem conectado a qualquer fluxo do jogo.
+
+### Contrato RPC e tabela
+
+- `fibula_craft_armor(p_piece, p_type, p_lining, p_core_item_id)`: retorna um objeto `{ armor, inventory }`. A armadura contém os campos persistidos; os atributos são uma lista de 1 a 3 objetos `{ key, value }`.
+- `fibula_delete_armor(p_armor_id)`: recebe o UUID da armadura e retorna boolean.
+- `fibula_armors`: tabela legível pelo próprio jogador, com `id, piece, type, rarity, stars, surp, attributes, lining, lining_value, created_at`. A listagem do cliente ordena por `created_at` decrescente e limita o resultado a 50 linhas.
+- Peças: `capacete | peitoral | calca | bota | luva`.
+- Tipos: `couro | bronze`.
+- Forros: `algodao | linho | couro_refinado`.
+- `attributes` aceita somente chaves permitidas em `ARMOR_PIECE_ATTRIBUTES[type][piece]`; cada valor precisa ser finito e maior que zero.
+- `stars` é inteiro de 1 até o teto definido por `ARMOR_MAX_STARS[rarity]`. `lining_value` também precisa ser finito e maior que zero.
+- Os valores de `attributes` e `lining_value` são armazenados na escala de 1★. O cliente aplica `armorStarMultiplier` ao consultar o valor efetivo, sem aplicar aproveitamento por classe.
+
+### Materiais e raridade
+
+| Tipo / escolha | Item-base |
+|---|---|
+| Couro | `wolf_hide` |
+| Bronze | `bronze` |
+| Forro algodão | `cotton` |
+| Forro linho | `linen` |
+| Forro couro refinado | `refined_leather` |
+
+A quantidade de cada material vem de `ARMOR_RECIPES[type][piece]`. Núcleo, material-base e material de forro devem ter sempre a mesma raridade. Itens normais usam o ID sem sufixo; nas demais raridades, o ID recebe `:<rarity>` (por exemplo, `wolf_hide:rare` e `cotton:rare`).
+
+### Situação de implementação
+
+**O servidor da A4.1 ainda não foi aplicado ao banco.** As RPCs e a tabela descritas acima são contrato decidido, não objetos disponíveis para execução neste momento. A A4.2 apenas prepara as funções tipadas do cliente para esse contrato: não tenta chamar as RPCs durante esta etapa, não altera banco, não consome materiais e não conecta fabricação, inventário, equipamento, combate ou UI ao jogo. Nada está ligado ao jogo.
+
 ## Limites desta etapa
 
-Esta etapa contém apenas dados e funções puras. Nenhuma regra está conectada ao jogo: não há integração com fabricação, inventário, equipamento, combate ou UI. `CONFIG.rulesV2.enabled` permanece `false`.
+Esta etapa contém apenas dados e funções puras, além da camada de dados cliente isolada. Nenhuma regra está conectada ao jogo: não há integração com telas, fluxo de fabricação, inventário, equipamento ou combate. `CONFIG.rulesV2.enabled` permanece `false`.
