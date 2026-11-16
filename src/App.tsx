@@ -879,6 +879,7 @@ export default function App() {
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
+  const [forgeTab, setForgeTab] = useState<'armas' | 'armaduras'>('armas');
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
@@ -3593,7 +3594,25 @@ export default function App() {
                   {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
                 </div>
               </div> : activeCraftingStation.id === 'bigorna' ? <>
-                <div className="forge-workspace">
+                {CONFIG.rulesV2.armorCraftingEnabled && <div className="forge-tabs" role="tablist" aria-label="Tipo de fabricação da Bigorna">
+                  <button type="button" role="tab" aria-pressed={forgeTab === 'armas'} className={forgeTab === 'armas' ? 'forge-tabs-button is-active' : 'forge-tabs-button'} onClick={() => setForgeTab('armas')}>Armas</button>
+                  <button type="button" role="tab" aria-pressed={forgeTab === 'armaduras'} className={forgeTab === 'armaduras' ? 'forge-tabs-button is-active' : 'forge-tabs-button'} onClick={() => setForgeTab('armaduras')}>Armaduras</button>
+                </div>}
+                {CONFIG.rulesV2.armorCraftingEnabled && forgeTab === 'armaduras' ? <div className="forge-tabs-armor-workspace">
+                  <ArmorCraftPanel
+                    type="bronze"
+                    chestItems={lobbyChestItems}
+                    chestReady={lobbyChestStatus === 'ready'}
+                    online={cookingOnline}
+                    client={fibulaSupabase}
+                    applyInventory={applyCookingInventory}
+                    refreshChest={refreshLobbyChestFromCloud}
+                    onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
+                    renderIcon={inventoryItemIcon}
+                    glowStyle={itemRarityGlow}
+                    label={itemLabel}
+                  />
+                </div> : <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
                     <div className="forge-recipe-slots" aria-label="Slots da receita">
                       {selectedWeaponCore && weaponRecipeRows.map(row => {
@@ -3681,7 +3700,7 @@ export default function App() {
                       {anvilMaterialStacks.length === 0 && <p className="forge-empty">Nenhum material de fabricação no Baú.</p>}
                     </div>
                   </section>
-                </div>
+                </div>}
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form cooking-kitchen">
                   <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : ''}`}>
