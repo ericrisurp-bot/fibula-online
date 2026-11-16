@@ -12312,9 +12312,9 @@ sem backdrop ou caixa de modal. */
   display:block;
   width:100%;
   min-width:0;
-  min-height:clamp(36px,5vh,48px);
+  min-height:clamp(30px,4vh,38px);
   margin:0;
-  padding:8px 12px;
+  padding:5px 12px;
 }
 .forge-selection-action .forge-result button{min-height:29px;padding:5px 18px}
 .forge-chest-zone{flex:1 1 auto;min-height:0}
