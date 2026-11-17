@@ -298,6 +298,6 @@ No Baú do Lobby, o clique continua abrindo a janela de ações já existente, s
 - **Armas:** modelo (Espada, Arco, Cajado ou Bastão da Natureza), raridade, SURP quando existente e todos os atributos do núcleo. Os valores mantêm o formato já usado pela Joalheria (valor × WEAPON_CORE_POINTS_PER_VALUE, com uma casa decimal e vírgula). Atributos incompatíveis com o modelo aparecem riscados e identificados como “não conta nesta arma”. O detalhe informa que dano e efeito da arma são sorteados na fabricação.
 - **Armaduras:** peça, raridade, SURP quando existente e prévia dos atributos a 1★, usando `armorAttributeValue` e o mesmo roll por atributo do painel de fabricação. A Bigorna apresenta Bronze; a Alfaiataria apresenta Couro; Joalheria e Baú do Lobby apresentam as duas opções.
 - **Acessórios:** raridade, SURP quando existente e atributos no mesmo formato atualmente exibido pela Joalheria. D1 não define nem altera uma conversão de atributo de acessório.
-- **Núcleos fechados:** não exibem botão de atributos; após revelar, os detalhes ficam disponíveis.
+- **Núcleos fechados:** não exibem atributos; a opção Propriedades mostra o aviso de que os atributos aparecem depois de revelar na Joalheria.
 
 A interface não apresenta classificações “bom”, “médio” ou “ruim”. SURP é a única indicação de qualidade exibida. D1 é somente informativo: não altera valores, fórmulas, compatibilidade, receitas, custos, raridades, revelação, fabricação, persistência ou regras de jogo.
