@@ -74,7 +74,7 @@ function addEquipmentBonusesToPower(
   parts.velocidadeMovimento += 100 * ((armorBonuses?.mobilidade ?? 0)
     + getAttributeBaseValueEffect('velocidadeMovimento', accessoryBonuses.velocidadeMovimento ?? 0))
     / POWER_REFERENCE.velocidadeMovimento;
-  const dodgeBeforeEquipment = CONFIG.player.classDodge[classId]
+  const dodgeBeforeEquipment = (CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[classId] : CONFIG.player.dodge)
     + usedBonus(classId, level, 'esquiva', pointsPerLevel)
     + getAttributeBaseValueEffect('esquiva', accessoryBonuses.esquiva ?? 0);
   parts.esquiva = 100
