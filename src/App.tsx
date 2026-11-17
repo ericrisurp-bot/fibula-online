@@ -833,6 +833,7 @@ export default function App() {
     days: { position: null as number | null, total: 0, previous: null as number | null, error: false },
   });
   const lastReportedPdRef = useRef<{ userId: string; loadout: string } | null>(null);
+  const pdLoadoutSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const lastReportedMainCharacterRef = useRef<{ userId: string; character: ClassId } | null>(null);
   useEffect(() => {
     if (!rankingOpen) return;
@@ -1037,18 +1038,22 @@ export default function App() {
       && lastReportedPdRef.current.loadout === loadoutSignature) return;
 
     lastReportedPdRef.current = { userId: session.user.sub, loadout: loadoutSignature };
-    void savePdLoadout(fibulaSupabase, {
-      primaryClass,
-      secondaryClass,
-      weapons: equippedWeaponIds,
-      armors: effectiveEquippedArmorIds,
-    }).then(saved => {
-      if (saved) void reportHighestPd(fibulaSupabase);
-      else if (lastReportedPdRef.current?.userId === session.user.sub
+    const reportUserId = session.user.sub;
+    pdLoadoutSaveQueueRef.current = pdLoadoutSaveQueueRef.current.then(async () => {
+      const saved = await savePdLoadout(fibulaSupabase, {
+        primaryClass,
+        secondaryClass,
+        weapons: equippedWeaponIds,
+        armors: effectiveEquippedArmorIds,
+      });
+      if (saved && lastReportedPdRef.current?.userId === reportUserId
+        && lastReportedPdRef.current.loadout === loadoutSignature) {
+        void reportHighestPd(fibulaSupabase);
+      } else if (!saved && lastReportedPdRef.current?.userId === reportUserId
         && lastReportedPdRef.current.loadout === loadoutSignature) {
         lastReportedPdRef.current = null;
       }
-    });
+    }).catch(() => undefined);
   }, [
     statusPowerReady,
     armorListReady,
