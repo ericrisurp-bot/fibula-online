@@ -4031,7 +4031,7 @@ export default function App() {
                       <span>Núcleos e materiais disponíveis</span>
                     </div>
                     <div className="forge-material-grid forge-chest-grid jewelry-chest-grid" aria-label="Itens do Baú">
-                      {jewelryChestStacks.map(item => {
+                      {jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:') || parseCoreItemId(item.itemId)?.kind === 'revealed' || getBaseItemId(item.itemId) === 'cotton').map(item => {
                         if (item.itemId.startsWith('jewelry-closed:')) {
                           const selected = selectedJewelryCoreId === item.itemId;
                           const rarity = item.itemId.slice('jewelry-closed:'.length);
@@ -4094,7 +4094,7 @@ export default function App() {
                           }}>{content}</button>
                           : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>{content}</div>;
                       })}
-                      {jewelryChestStacks.length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
+                      {jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:') || parseCoreItemId(item.itemId)?.kind === 'revealed' || getBaseItemId(item.itemId) === 'cotton').length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
                     </div>
                   </section>
                 </div>
