@@ -1,5 +1,5 @@
 import type { CraftedWeapon } from '../game/weapons';
-import type { CraftedArmor } from '../game/armorCrafting';
+import { armorEffectiveValue, armorLiningEffectiveValue, type CraftedArmor } from '../game/armorCrafting';
 import { ArmorPieceIcon } from './ArmorArsenal';
 
 type ForgeProductionPreviewProps =
@@ -34,7 +34,7 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
   const rarity = isWeapon ? props.weapon.rarity : props.armor.rarity;
   const stars = isWeapon ? null : props.armor.stars;
   const surp = isWeapon ? props.weapon.surp : props.armor.surp;
-  const attributes = isWeapon ? props.weapon.attributes : props.armor.attributes;
+  const attributes = isWeapon ? props.weapon.attributes : props.armor.attributes.map(attribute => ({ ...attribute, value: armorEffectiveValue(props.armor, attribute.key) }));
 
   return <section className="forge-production-result" aria-label="Equipamento recém-fabricado">
     <div className="forge-production-result-main">
@@ -62,7 +62,7 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
           <span>{(isWeapon ? weaponAttributeLabels : armorAttributeLabels)[attribute.key] ?? attribute.key}</span>
           <strong>{attribute.value}</strong>
         </div>)}
-        {!isWeapon && <div><span>Forro</span><strong>{liningLabels[props.armor.lining]} · {props.armor.liningValue}</strong></div>}
+        {!isWeapon && <div><span>Forro</span><strong>{liningLabels[props.armor.lining]} · {armorLiningEffectiveValue(props.armor)}</strong></div>}
       </div>
     </details>
     <p>Equipamento salvo no Arsenal. Feche a Bigorna para acessá-lo.</p>
