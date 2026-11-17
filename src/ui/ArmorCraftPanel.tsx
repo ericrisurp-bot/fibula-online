@@ -216,7 +216,7 @@ export default function ArmorCraftPanel({
             <img className="armor-craft-piece-image" src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[selectedPiece]}.png`} alt="" aria-hidden="true" draggable={false}/>
             <strong>{PIECE_LABELS[selectedPiece]}</strong>
             <small>{RARITY_LABELS[selectedCore.core.rarity]}{selectedCore.core.surp ? ' · SURP' : ''}</small>
-            <button type="button" disabled={busy} onClick={() => { onClearCore?.(); setFeedback(''); setSelectedLining(null); }}>Trocar núcleo</button>
+            <button type="button" disabled={busy} onClick={() => { onClearCore?.(); setFeedback(''); setInternalLining(null); }}>Trocar núcleo</button>
           </> : <p className="armor-craft-empty">Selecione um núcleo de armadura no Baú da estação.</p>}
         </div>
       </section> : <section className="armor-craft-section" aria-label="Núcleos revelados">
