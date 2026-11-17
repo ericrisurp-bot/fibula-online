@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
@@ -4578,7 +4579,7 @@ export default function App() {
           </section></div>
           <SideNav current="bau" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
-        {bauAction && <div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
+        {bauAction && createPortal(<div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
           <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}${bauAction.view==='details' && bauAction.kind==='item' && (parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:')) ? ' bau-action-core-details' : ''}`} role="dialog" aria-modal="true"
             aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
             onClick={event=>event.stopPropagation()}>
@@ -4631,7 +4632,7 @@ export default function App() {
               {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
             </>}
           </section>
-        </div>}
+        </div>, document.body)}
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
             <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => openSidePage('classes')} />
