@@ -1037,6 +1037,7 @@ export default function App() {
     const latestRevealedCore = [...lobbyChestItems].reverse().find(item => parseCoreItemId(item.itemId)?.kind === 'revealed');
     setJewelryResultCoreId(id === 'joalheria' ? latestRevealedCore?.itemId ?? null : null);
     setActiveGameRoute({ page: id });
+    if (id === 'costura') tailorPreviewSessionRef.current += 1;
     setSelectedWeaponCoreId(null);
     setSelectedTailorCoreId(null);
     setTailorCraftBusy(false);
