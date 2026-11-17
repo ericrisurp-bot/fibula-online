@@ -12,7 +12,7 @@ import { GameEngine, type GameSnapshot } from './game/engine';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, savePdLoadout, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
@@ -832,7 +832,7 @@ export default function App() {
     power: { position: null as number | null, total: 0, previous: null as number | null, error: false },
     days: { position: null as number | null, total: 0, previous: null as number | null, error: false },
   });
-  const lastReportedPdRef = useRef<{ userId: string; pd: number } | null>(null);
+  const lastReportedPdRef = useRef<{ userId: string; loadout: string } | null>(null);
   const lastReportedMainCharacterRef = useRef<{ userId: string; character: ClassId } | null>(null);
   useEffect(() => {
     if (!rankingOpen) return;
@@ -1022,12 +1022,41 @@ export default function App() {
     : 0;
 
   useEffect(() => {
-    if (!fibulaSupabase || !session.user.sub || !statusPowerReady || statusDuoPower <= 0) return;
+    const primaryClass = characterPreferences[0];
+    const secondaryClass = characterPreferences[1];
+    if (!fibulaSupabase || !session.user.sub || !statusPowerReady
+      || (!primaryClass && !secondaryClass)
+      || (CONFIG.rulesV2.armorCraftingEnabled && !armorListReady)) return;
+
+    const loadoutSignature = JSON.stringify({
+      classes: characterPreferences,
+      weapons: equippedWeaponIds,
+      armors: effectiveEquippedArmorIds,
+    });
     if (lastReportedPdRef.current?.userId === session.user.sub
-      && lastReportedPdRef.current.pd === statusDuoPower) return;
-    lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
-    void reportHighestPd(fibulaSupabase, statusDuoPower);
-  }, [statusPowerReady, statusDuoPower, session.user.sub]);
+      && lastReportedPdRef.current.loadout === loadoutSignature) return;
+
+    lastReportedPdRef.current = { userId: session.user.sub, loadout: loadoutSignature };
+    void savePdLoadout(fibulaSupabase, {
+      primaryClass,
+      secondaryClass,
+      weapons: equippedWeaponIds,
+      armors: effectiveEquippedArmorIds,
+    }).then(saved => {
+      if (saved) void reportHighestPd(fibulaSupabase);
+      else if (lastReportedPdRef.current?.userId === session.user.sub
+        && lastReportedPdRef.current.loadout === loadoutSignature) {
+        lastReportedPdRef.current = null;
+      }
+    });
+  }, [
+    statusPowerReady,
+    armorListReady,
+    characterPreferences,
+    equippedWeaponIds,
+    effectiveEquippedArmorIds,
+    session.user.sub,
+  ]);
   const arsenalInventoryEntries: Array<
     | { kind: 'equipment'; item: ArsenalEquipment }
     | { kind: 'weapon'; weapon: CraftedWeapon }
