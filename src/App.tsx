@@ -4167,8 +4167,7 @@ export default function App() {
                         {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
                       </div>
                     </section>}
-                  {selectedArmorCore && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} mode="inline" armorTypes={['bronze']}/>}
-                  {selectedWeaponCore && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} mode="inline" armorTypes={['bronze']}/>}
+                  {(selectedArmorCore || selectedWeaponCore) && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} mode="inline" armorTypes={['bronze']}/>}
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
