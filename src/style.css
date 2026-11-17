@@ -12640,3 +12640,32 @@ sem backdrop ou caixa de modal. */
  .tailor-chest-item>span{width:18px;height:18px;flex-basis:18px}
  .tailor-chest-item>span img{width:17px;height:17px}
 }
+
+/* Alfaiataria — proporções e empilhamento no padrão visual da Bigorna. */
+.tailor-workspace.armor-craft-workspace{
+  display:grid!important;
+  grid-template-rows:minmax(0,25fr) minmax(0,75fr)!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:6px!important;
+}
+.tailor-workspace.armor-craft-workspace>.tailor-scene{grid-row:1;min-height:0;height:100%;max-height:none}
+.tailor-lower-panel{
+  grid-row:2;grid-column:1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr) minmax(0,2fr);
+  gap:5px;
+}
+.tailor-lower-panel>.armor-craft-panel{grid-column:1;grid-row:1;min-height:0;max-height:none}
+.tailor-lower-panel>.tailor-chest-zone{grid-column:1;grid-row:2;min-height:0}
+.tailor-lower-panel:not(.has-selected-core)>.tailor-chest-zone{grid-column:1;grid-row:1/-1}
+.tailor-chest-grid{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}
+@media(max-width:430px){
+  .tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,25fr) minmax(0,75fr)!important;gap:4px!important}
+  .tailor-lower-panel{grid-template-rows:minmax(0,1fr) minmax(0,2fr);gap:3px;padding:3px}
+  .tailor-chest-grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:2px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,25fr) minmax(0,75fr)!important}
+  .tailor-lower-panel{grid-template-rows:minmax(0,1fr) minmax(0,2fr)}
+}
