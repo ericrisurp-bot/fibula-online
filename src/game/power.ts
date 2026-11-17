@@ -1,5 +1,5 @@
 import { CONFIG, type ClassId } from './config';
-import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getDamageMultiplier, type AttributeKey, type EffectAttribute } from './attributes';
+import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getDamageMultiplier, type AttributeKey, type EffectAttribute, type AttributeBaseBonuses } from './attributes';
 import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon } from './weapons';
 import type { ArmorBonuses } from './armorEquipment';
 
@@ -91,7 +91,7 @@ export function getArmedClassPower(
   equipment: ArmedClassPowerEquipment,
 ): PowerBreakdown {
   const weapon = equipment.weapon;
-  const armorBonuses = CONFIG.rulesV2.enabled ? equipment.armorBonuses : null;
+  const armorBonuses = CONFIG.rulesV2.enabled ? (equipment.armorBonuses ?? null) : null;
   const accessoryBonuses = equipment.accessoryBonuses ?? {};
   if (!weapon || WEAPON_CLASS_BY_MODEL[weapon.model] !== classId) {
     const basePower = getClassPower(classId, level, pointsPerLevel, accessoryBonuses);
