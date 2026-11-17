@@ -12708,3 +12708,7 @@ sem backdrop ou caixa de modal. */
   .tailor-chest-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px}
   .tailor-chest-grid .forge-material-item{min-height:52px;padding:3px 2px}
 }
+
+@media(min-width:700px){
+  .tailor-chest-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))!important}
+}
