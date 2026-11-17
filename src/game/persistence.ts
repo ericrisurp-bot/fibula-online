@@ -441,10 +441,30 @@ function removeSoloMatchResultOutboxEntry(userId: string, sessionId: string): vo
   }
 }
 
-export async function reportHighestPd(client: SupabaseClient, pd: number): Promise<number | null> {
-  if (!Number.isSafeInteger(pd) || pd <= 0 || pd > 3000) return null;
+export type PdLoadout = {
+  primaryClass: string | null;
+  secondaryClass: string | null;
+  weapons: object;
+  armors: object;
+};
+
+export async function savePdLoadout(client: SupabaseClient, loadout: PdLoadout): Promise<boolean> {
   try {
-    const { data, error } = await client.rpc('fibula_report_pd', { p_pd: pd });
+    const { data, error } = await client.rpc('fibula_save_pd_loadout', {
+      p_primary_class: loadout.primaryClass,
+      p_secondary_class: loadout.secondaryClass,
+      p_weapons: loadout.weapons,
+      p_armors: loadout.armors,
+    });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function reportHighestPd(client: SupabaseClient): Promise<number | null> {
+  try {
+    const { data, error } = await client.rpc('fibula_report_pd');
     if (error || typeof data !== 'number' || !Number.isSafeInteger(data)) return null;
     return data;
   } catch {

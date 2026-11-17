@@ -184,7 +184,7 @@ Com `CONFIG.rulesV2.armorCraftingEnabled` ligado, a Bigorna apresenta duas abas 
 
 ## Armadura equipada (A5.1)
 
-A camada de dados de equipamento define um **conjunto único de armaduras compartilhado por todas as classes**: cada personagem mantém no aparelho uma seleção por espaço (capacete, peitoral, calça, bota e luva), com no máximo uma peça em cada espaço. As seleções são persistidas localmente por usuário em `fibula:equipped-armors:<userId>`; não há persistência remota nem sincronização entre aparelhos nesta etapa. Se uma peça selecionada não existir mais na lista de armaduras fabricadas ou não corresponder ao espaço selecionado, ela é ignorada sem erro.
+A camada de dados de equipamento mantém **um conjunto independente de armaduras por classe**: cada classe tem sua própria seleção por espaço (capacete, peitoral, calça, bota e luva). Cada peça fabricada é exclusiva de uma única classe por vez: o mesmo ID não pode estar equipado simultaneamente na principal e na secundária. Para transferir uma peça, o jogador precisa desequipá-la da classe atual e então equipá-la na outra. As seleções são mantidas localmente por usuário em `fibula:equipped-armors:<userId>`, agrupadas por classe, e sincronizadas com o registro remoto de loadout usado pelo ranking de PD. A seleção local continua sendo o estado imediato da interface; o servidor valida propriedade, compatibilidade e exclusividade antes de aceitar o loadout. O formato antigo compartilhado é migrado para a classe principal, sem duplicar as peças na secundária. Se uma peça selecionada não existir mais na lista de armaduras fabricadas ou não corresponder ao espaço selecionado, ela é ignorada sem erro.
 
 O cálculo agregado segue esta ordem, para cada peça equipada:
 
@@ -203,7 +203,7 @@ A interface de equipamento das armaduras é controlada exclusivamente por `CONFI
 - Com a chave desligada, a grade, os itens do inventário, os diálogos e os bônus de armadura não são renderizados; a seleção local de armaduras não é lida e a listagem `listMyArmors` não é chamada. Os cinco espaços legados permanecem com a apresentação e os dados anteriores.
 - Com a chave ligada, capacete, peitoral, leggings/calça, bota e luva mostram as armaduras fabricadas equipadas, usando os assets `/assets/armors/zeryn-*.png` para couro e `/assets/armors/vark-*.png` para bronze. A raridade controla o brilho e as estrelas são exibidas junto à peça.
 - As armaduras fabricadas não equipadas aparecem no inventário do Arsenal e são contadas na capacidade exibida. Armas e os espaços de colar, pulseira, cinto e bolsa mantêm seus fluxos anteriores.
-- O conjunto equipado é único e compartilhado entre as abas Principal e Secundário. A seleção fica em `fibula:equipped-armors:<userId>`; ao carregar com sucesso a lista de armaduras, seleções inexistentes ou incompatíveis são removidas e persistidas novamente. Falha na listagem não apaga a seleção salva nem marca os dados como carregados.
+- Cada aba (Principal e Secundário) exibe e calcula somente o conjunto equipado da classe correspondente. Um ID de armadura pode aparecer em apenas uma classe por vez; uma peça equipada em outra classe não fica disponível no inventário, e precisa ser desequipada antes de ser equipada na classe de destino. Ao carregar com sucesso a lista de armaduras, seleções inexistentes, incompatíveis ou repetidas entre classes são removidas e persistidas novamente. Falha na listagem não apaga a seleção salva nem marca os dados como carregados.
 - O diálogo oferece Equipar, Desequipar, Detalhes e Excluir. A exclusão só atualiza a lista e a seleção local após confirmação de sucesso de `deleteArmor`; sem conexão ou cliente, nenhuma peça é removida localmente.
 - Os detalhes mostram tipo, raridade, estrelas, SURP, atributos efetivos com estrelas e valor efetivo do forro, sem aproveitamento de classe.
 - O resumo por classe reutiliza exclusivamente `computeArmorBonuses`, `armorReductionFromPoints` e `armorTotalDodge`. Mostra redução de dano limitada a 60%, esquiva total limitada a 35% e XP da partida quando houver couro refinado.
@@ -251,3 +251,13 @@ Com `CONFIG.rulesV2.armorCraftingEnabled = true`, a Alfaiataria usa a mesma comp
 - A fabricação de armadura continua chamando `craftArmor()` com tipo `bronze` na Bigorna e `couro` na Alfaiataria. A RPC e a persistência não são alteradas.
 - A cena SVG da Alfaiataria usa manequim de costura com pescoço, ombros inclinados, tronco, cintura/quadril, haste e base tripé/disco, preservando paleta e posição.
 - `ArmorCraftPanel.tsx` permanece no repositório sem remoção; a Bigorna deixa de renderizá-lo para fabricação de armaduras.
+
+## A5.4 — Loadout e ranking de PD validados pelo servidor
+
+- O cliente envia as classes principal/secundária e os IDs de armas/armaduras equipados por classe pela RPC `fibula_save_pd_loadout`. O servidor valida que cada item pertence ao jogador, que a arma corresponde à classe, que cada armadura corresponde ao espaço e que um mesmo ID de armadura não está equipado em duas classes.
+- O loadout validado é armazenado em `private.fibula_pd_loadouts`, fora do schema exposto pela Data API. A tabela não concede leitura ou escrita direta aos papéis `anon` e `authenticated`; a gravação ocorre pela RPC autenticada.
+- `fibula_report_pd()` não recebe mais um número calculado pelo cliente. O servidor lê o loadout persistido, calcula o PD de cada classe ativa com os valores armazenados em `fibula_weapons` e `fibula_armors`, arredonda cada classe como o cliente fazia e soma principal + secundária.
+- O cálculo reproduz as referências e os multiplicadores atuais de `getArmedClassPower` / `computeArmorBonuses`: vida, armadura, esquiva, mobilidade e dano. Couro refinado continua fora do PD porque aumenta somente o XP da partida.
+- `highest_pd` só é atualizado quando o novo total calculado pelo servidor supera o recorde atual. Não há recálculo retroativo nem alteração de recordes históricos.
+- A antiga assinatura `fibula_report_pd(integer)`, que aceitava o valor do cliente, é removida. A nova assinatura não recebe parâmetros.
+- A migration `20261117160000_authoritative_pd_loadouts.sql` precisa ser aplicada no Supabase depois da revisão/aprovação da PR. A alteração de código nesta PR não aplica a migration nem publica o jogo.
