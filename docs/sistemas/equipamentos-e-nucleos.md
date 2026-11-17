@@ -87,22 +87,25 @@ Os efeitos especiais devem respeitar a identidade e as capacidades reais de cada
 
 ### 4.3 Núcleos de acessórios
 
-Acessórios são suportes para núcleos, não fontes de atributos próprios.
+Acessórios são estruturas sem bônus intrínseco: **somente o núcleo concede atributos**.
 
-Estruturas previstas:
+Existem três vagas, uma de cada tipo: **Colar, Pulseira e Cinto**. Anel e amuleto ficam fora da especificação. O jogador escolhe o tipo durante a fabricação; o tipo não altera os atributos e qualquer núcleo de acessório válido pode ser aplicado a qualquer um dos três tipos. O metadado `equipmentType` que a geração atual possa anexar ao núcleo não determina nem restringe o tipo final.
 
-- Anel
-- Colar
-- Pulseira
-- Cinto
+Cada núcleo comum contém dois atributos e cada núcleo SURP contém quatro. O conjunto válido é: Força, Inteligência, Destreza, Vida, Armadura, Mobilidade e Esquiva. Velocidade de ataque e resistência mágica ficam fora do conjunto.
 
-Qualquer tipo de acessório pode receber qualquer núcleo, desde que o núcleo seja válido e seus atributos sejam compatíveis com o sistema. Novos núcleos de acessório sorteiam entre Força, Inteligência, Destreza, Vida, Armadura, Velocidade de movimento e Esquiva; Velocidade de ataque foi removida do pool de geração. Núcleos antigos com velocidade de ataque continuam válidos e legíveis, mas o atributo fica inativo.
+**Regras v2 — valor fixo (substitui a regra A):** os bônus são valores fixos em unidades finais, não multiplicadores nem percentuais do atributo total do personagem. Vida é em HP; Armadura em pontos (X pontos = X%); Esquiva em fração (0,008 = 0,8%); Mobilidade é bruta; Força, Inteligência e Destreza são pontos. A referência Lendário 1★ com roll máximo é: Vida 12, Armadura 0,8, Esquiva 0,008, Mobilidade 2 e 10 pontos para cada atributo primário.
 
-O acessório não concede bônus intrínseco por ser anel, colar, pulseira ou cinto. Os atributos e multiplicadores vêm do núcleo instalado.
+A raridade usa as frações Normal 0,2; Comum 0,4; Incomum 0,6; Raro 0,8; Lendário 1,0. O roll é o valor do atributo no núcleo dividido pela referência da raridade, limitado a 0,5–1,0; SURP equivale a 1,0. Cada estrela acima da primeira acrescenta 25% do valor. A peça nasce em 1★; Bronze limita em 2★. Ferro, futuro, terá teto de 4★.
 
-**Regra aprovada:** os multiplicadores de acessórios incidem sobre o atributo total do personagem, incluindo classe, níveis e equipamentos (regra A).
+A receita é sempre **3 barras de bronze + 8 unidades de alça**, escolhendo Linho ou Couro refinado. Núcleo e materiais devem ter a mesma raridade; as quantidades não mudam por raridade. Material Normal não recebe sufixo; as demais raridades usam `item:raridade`. A alça não altera bônus: somente o núcleo determina os atributos.
 
-A forma de acumular dois ou mais multiplicadores que afetam o mesmo atributo ainda está pendente de decisão: soma aditiva ou composição multiplicativa. Não escolher uma fórmula por conta própria.
+Os bônus de vários acessórios no mesmo atributo são **aditivos**. Os tetos globais continuam valendo: redução de Armadura limitada a 60% e Esquiva limitada a 35%.
+
+Se a classe não utiliza um atributo (por exemplo, Força para o Mago), esse atributo não soma e aparece riscado, seguindo a regra visual de atributos inativos das armas. A peça fabricada guarda o nome de quem a criou em `crafted_by`, como armas e armaduras.
+
+Explosão, cura, sangramento e perfuração estão fora desta etapa.
+
+**Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as Regras v2 de valor fixo acima.
 
 ## 5. Quantidade de atributos por núcleo
 
