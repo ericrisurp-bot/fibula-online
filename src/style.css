@@ -12572,7 +12572,7 @@ sem backdrop ou caixa de modal. */
 
 /* A4.5 — Alfaiataria no mesmo fluxo visual da Bigorna, sem tocar nas regras globais. */
 .tailor-page .tailor-forge-workspace{
-  display:grid!important;grid-template-rows:minmax(125px,.72fr) minmax(0,1.28fr);
+  display:grid!important;
   flex:1 1 auto;min-height:0;max-height:100%;overflow:hidden;gap:6px;
 }
 .tailor-page .tailor-forge-workspace>.tailor-scene{height:auto;min-height:0;max-height:none}
@@ -12611,7 +12611,7 @@ sem backdrop ou caixa de modal. */
 
 /* A4.5b — Alfaiataria com slots escuros e Baú integral, sem ArmorCraftPanel. */
 .tailor-page .tailor-forge-workspace{
-  display:grid!important;grid-template-rows:minmax(112px,.58fr) minmax(0,1.42fr);
+  display:grid!important;
   width:100%;max-width:none;min-width:0;min-height:0;flex:1 1 auto;overflow:hidden;gap:6px;
 }
 .tailor-page .tailor-forge-workspace>.tailor-scene{height:100%;min-height:0;max-height:none}
@@ -12687,7 +12687,7 @@ sem backdrop ou caixa de modal. */
   width:100%;
   height:100%;
 }
-.tailor-page .tailor-scene-slots{
+ .tailor-page .tailor-forge-workspace .tailor-scene-slots{
   position:absolute;
   z-index:5;
   inset:0;
@@ -12698,7 +12698,7 @@ sem backdrop ou caixa de modal. */
   height:100%;
   min-width:0;
   min-height:0;
-  padding:8px;
+  padding:8px!important;
   box-sizing:border-box;
   pointer-events:auto;
 }
