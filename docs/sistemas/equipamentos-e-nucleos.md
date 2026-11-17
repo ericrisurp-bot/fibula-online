@@ -119,7 +119,7 @@ Se a classe não utiliza um atributo (por exemplo, Força para o Mago), esse atr
 
 Explosão, cura, sangramento e perfuração estão fora desta etapa.
 
-**Servidor (J3) — a aplicar no banco:** a tabela `fibula_accessories` terá as colunas `id`, `user_id`, `type`, `rarity`, `metal`, `stars`, `surp`, `attributes`, `lining`, `created_at` e `crafted_by`. As funções previstas são `fibula_craft_accessory(p_lining text, p_core_item_id text)` → `{accessory, inventory}` e `fibula_delete_accessory(p_accessory_id uuid)` → `boolean`. Tabela e funções ainda não existem no banco; esta seção é somente documentação e não aplica SQL.
+**Servidor (J3) — já aplicado no Supabase `fibula-online` pela migration `20261117154440_fibula_acessorios_fabricados`:** a tabela `fibula_accessories` contém `id`, `user_id`, `type`, `rarity`, `metal`, `stars`, `surp`, `attributes`, `lining`, `created_at` e `crafted_by`. As RPCs existentes são `fibula_craft_accessory(p_lining text, p_core_item_id text)` → `{accessory, inventory}` e `fibula_delete_accessory(p_accessory_id uuid)` → `boolean`. O arquivo SQL dessa versão foi restaurado nesta PR porque estava ausente da `main`; não reaplicar no projeto que já registra essa migration.
 
 **Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as regras de valor fixo acima. Esta definição também substitui as menções antigas a multiplicação pelo atributo total que ainda constem nas seções 6 e 11 deste documento.
 ## 5. Quantidade de atributos por núcleo
