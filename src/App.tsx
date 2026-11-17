@@ -1167,8 +1167,10 @@ export default function App() {
   const selectedTailorCore = CONFIG.rulesV2.armorCraftingEnabled && selectedTailorCoreParsed?.kind === 'revealed'
     && selectedTailorCoreParsed.core.category === 'armor' && !!selectedTailorCoreParsed.core.equipmentType
     ? selectedTailorCoreParsed.core : null;
-  const selectedTailorPiece = selectedTailorCore?.equipmentType && selectedTailorCore.equipmentType !== 'colar'
-    ? ARMOR_CORE_EQUIPMENT_TO_PIECE[selectedTailorCore.equipmentType] : null;
+  const selectedTailorPiece = selectedTailorCore?.equipmentType
+    && Object.prototype.hasOwnProperty.call(ARMOR_CORE_EQUIPMENT_TO_PIECE, selectedTailorCore.equipmentType)
+    ? ARMOR_CORE_EQUIPMENT_TO_PIECE[selectedTailorCore.equipmentType as keyof typeof ARMOR_CORE_EQUIPMENT_TO_PIECE]
+    : null;
   const tailorBaseRecipe = selectedTailorCore && selectedTailorPiece
     ? armorMaterialItemIds('couro', selectedTailorPiece, 'algodao', selectedTailorCore.rarity) : null;
   const tailorHideRequired = tailorBaseRecipe?.base.quantity ?? 0;
