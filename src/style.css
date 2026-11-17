@@ -12658,7 +12658,7 @@ sem backdrop ou caixa de modal. */
 }
 .tailor-lower-panel>.armor-craft-panel{grid-column:1;grid-row:1;min-height:0;max-height:none}
 .tailor-lower-panel>.tailor-chest-zone{grid-column:1;grid-row:2;min-height:0}
-.tailor-lower-panel:not(.has-selected-core)>.tailor-chest-zone{grid-column:1;grid-row:1/-1}
+
 .tailor-chest-grid{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}
 @media(max-width:430px){
   .tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,25fr) minmax(0,75fr)!important;gap:4px!important}
@@ -12668,4 +12668,43 @@ sem backdrop ou caixa de modal. */
 @media(orientation:landscape) and (max-height:520px){
   .tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,25fr) minmax(0,75fr)!important}
   .tailor-lower-panel{grid-template-rows:minmax(0,1fr) minmax(0,2fr)}
+}
+
+
+/* Alfaiataria — etapas de seleção no painel superior e slots idênticos aos da Bigorna. */
+.tailor-selection-zone{
+  min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;
+}
+.tailor-lining-choice-grid,.tailor-core-choice-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:6px;
+  min-height:0;flex:1 1 auto;padding:2px;overflow:auto;
+}
+.tailor-lining-choice{
+  display:flex;min-width:0;min-height:58px;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:5px 3px;border:1px solid #56636a;border-radius:8px;background:linear-gradient(150deg,#39444b,#252d32);
+  color:#e4e9eb;font:inherit;text-align:center;
+}
+.tailor-lining-choice>span{display:flex;min-height:25px;align-items:center;justify-content:center;font-size:20px}
+.tailor-lining-choice strong{max-width:100%;color:#f0d2b7;font-size:9px;line-height:1.2}
+.tailor-lining-choice small{color:#aeb9be;font-size:8px;line-height:1.2}
+.tailor-change-lining{
+  flex:0 0 auto;align-self:center;padding:3px 9px;border:1px solid #56636a;border-radius:6px;
+  background:#252d32;color:#e4e9eb;font:inherit;font-size:9px;
+}
+.tailor-chest-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-content:start;gap:6px;overflow-y:auto;
+}
+.tailor-chest-grid .forge-material-item{
+  min-height:58px;padding:4px 3px;gap:3px;
+}
+.tailor-chest-grid .forge-material-item>span{min-height:25px}
+.tailor-chest-grid .forge-material-item strong{font-size:9px}
+.tailor-chest-grid .forge-material-item small{font-size:8px}
+@media(max-width:430px){
+  .tailor-lining-choice-grid,.tailor-core-choice-grid{gap:3px;padding:1px}
+  .tailor-lining-choice{min-height:48px;padding:3px 2px}
+  .tailor-lining-choice>span{min-height:19px;font-size:17px}
+  .tailor-chest-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px}
+  .tailor-chest-grid .forge-material-item{min-height:52px;padding:3px 2px}
 }
