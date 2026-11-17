@@ -4579,7 +4579,7 @@ export default function App() {
           <SideNav current="bau" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         {bauAction && <div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
-          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}${bauAction.view==='details' && bauAction.kind==='item' && parseCoreItemId(bauAction.item.itemId) ? ' bau-action-core-details' : ''}`} role="dialog" aria-modal="true"
+          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}${bauAction.view==='details' && bauAction.kind==='item' && (parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:')) ? ' bau-action-core-details' : ''}`} role="dialog" aria-modal="true"
             aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
             onClick={event=>event.stopPropagation()}>
             {bauAction.view==='actions'?<>
