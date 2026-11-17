@@ -134,7 +134,7 @@ function CoreDetailContent({ core, armorTypes }: { core: Core; armorTypes: Armor
 
 export default function CoreDetail({ itemId, armorTypes = ['couro', 'bronze'] }: CoreDetailProps) {
   const parsed = parseCoreItemId(itemId);
-  if (parsed?.kind === 'closed') {
+  if (parsed?.kind === 'closed' || itemId.startsWith('jewelry-closed:')) {
     return <section className="core-detail-card" aria-label="Propriedades do núcleo fechado">
       <strong className="core-detail-heading">DETALHES DO NÚCLEO</strong>
       <p className="core-detail-note">Núcleo fechado. Os atributos aparecem depois de revelar na Joalheria.</p>
