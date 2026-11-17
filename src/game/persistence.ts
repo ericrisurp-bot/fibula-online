@@ -444,8 +444,8 @@ function removeSoloMatchResultOutboxEntry(userId: string, sessionId: string): vo
 export type PdLoadout = {
   primaryClass: string | null;
   secondaryClass: string | null;
-  weapons: Partial<Record<string, string>>;
-  armors: Partial<Record<string, Partial<Record<string, string>>>>;
+  weapons: object;
+  armors: object;
 };
 
 export async function savePdLoadout(client: SupabaseClient, loadout: PdLoadout): Promise<boolean> {
