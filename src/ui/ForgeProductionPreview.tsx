@@ -57,6 +57,7 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
         <div><span>Raridade</span><strong>{rarityLabels[rarity]}</strong></div>
         {stars !== null && <div><span>Estrelas</span><strong>{'★'.repeat(stars)}</strong></div>}
         {surp && <div><span>SURP</span><strong>Sim</strong></div>}
+        {isWeapon && <div><span>Tier</span><strong>{props.weapon.tier}</strong></div>}
         {isWeapon && <div><span>Dano</span><strong>{props.weapon.damage}</strong></div>}
         {attributes.map(attribute => <div key={attribute.key}>
           <span>{(isWeapon ? weaponAttributeLabels : armorAttributeLabels)[attribute.key] ?? attribute.key}</span>
