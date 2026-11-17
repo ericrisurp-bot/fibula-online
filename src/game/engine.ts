@@ -2787,6 +2787,7 @@ export class GameEngine {
   private getLevelStats() {
     const { classId, player } = this.state;
     const weaponBonuses = this.getWeaponAttributeBonuses();
+    const accessoryBonuses = this.getAccessoryAttributeBonuses();
     const armorBonuses = CONFIG.rulesV2.enabled ? this.getArmorBonuses() : null;
     return {
       speed: CONFIG.rulesV2.enabled
@@ -2794,10 +2795,12 @@ export class GameEngine {
         : getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)),
       armor: CONFIG.rulesV2.enabled
         ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) + (armorBonuses?.armadura ?? 0)
-        : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
+        : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel())
+          + getAttributeBaseValueEffect('armadura', accessoryBonuses.armadura ?? 0),
       dodge: CONFIG.rulesV2.enabled
         ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) + (armorBonuses?.esquiva ?? 0)
-        : getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
+        : getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel())
+          + getAttributeBaseValueEffect('esquiva', accessoryBonuses.esquiva ?? 0),
     };
   }
 
