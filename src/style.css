@@ -12517,3 +12517,42 @@ sem backdrop ou caixa de modal. */
 .armor-craft-selected-core strong{min-width:0;color:#373a2b;font-size:9px}
 .armor-craft-selected-core small{color:#68583f;font-size:8px}
 .armor-craft-selected-core button{margin-left:auto;min-height:28px;padding:4px 8px;border:1px solid #a99b7b;border-radius:6px;background:#d8ccb1;color:#39392e;font:inherit;font-size:8px;font-weight:800}
+
+
+/* Bigorna — prévia temporária do equipamento fabricado, sem ação de retirada. */
+.forge-production-result{
+  position:absolute;z-index:5;left:50%;top:54%;transform:translate(-50%,-50%);
+  display:flex;width:min(310px,calc(100% - 24px));max-height:calc(100% - 58px);
+  min-width:0;flex-direction:column;align-items:stretch;gap:6px;overflow:auto;
+  padding:8px 10px;border:1px solid #d7a56f;border-radius:11px;
+  background:linear-gradient(150deg,#302b25ed,#171a18f5);color:#fff0d9;
+  box-shadow:0 4px 16px #0009,inset 0 1px 0 #ffffff20;
+}
+.forge-production-result-main{display:flex;min-width:0;align-items:center;justify-content:center;gap:10px}
+.forge-production-result-art{display:flex;width:48px;height:48px;flex:0 0 48px;align-items:center;justify-content:center}
+.forge-production-result-art img{display:block;width:44px;height:44px;object-fit:contain;image-rendering:pixelated}
+.forge-production-result-art .arsenal-armor-art{width:44px;height:44px}
+.forge-production-result-art .arsenal-armor-art img{max-width:44px;max-height:44px}
+.forge-production-result-copy{display:flex;min-width:0;flex-direction:column;gap:3px}
+.forge-production-result-copy>strong{font-size:12px;line-height:1.2;overflow-wrap:anywhere}
+.forge-production-result-copy>span{color:#e1c7a5;font-size:9px}
+.forge-production-result-copy>small{color:#f1d18d;font-size:10px;font-weight:900}
+.forge-production-details{border-top:1px solid #ffffff24;padding-top:4px}
+.forge-production-details>summary{color:#f0d2a8;font-size:9px;font-weight:850;text-align:center;cursor:pointer;list-style:none}
+.forge-production-details>summary::-webkit-details-marker{display:none}
+.forge-production-details>summary::after{content:' ＋'}
+.forge-production-details[open]>summary::after{content:' −'}
+.forge-production-details-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 9px;padding-top:6px}
+.forge-production-details-content>div{display:flex;min-width:0;justify-content:space-between;gap:5px;padding:3px 0;border-bottom:1px solid #ffffff12;font-size:8px}
+.forge-production-details-content>div span{color:#cbb79c}
+.forge-production-details-content>div strong{text-align:right;overflow-wrap:anywhere}
+.forge-production-result>p{margin:0;color:#cbb79c;font-size:8px;text-align:center}
+.forge-workspace{grid-template-rows:minmax(118px,.62fr) minmax(0,1.38fr)!important}
+@media(min-width:700px){.forge-workspace{grid-template-rows:minmax(145px,.62fr) minmax(0,1.38fr)!important}}
+@media(min-width:1200px) and (min-height:700px){.forge-page .forge-workspace{grid-template-rows:minmax(150px,.62fr) minmax(0,1.38fr)!important}}
+@media(max-width:430px){
+  .forge-production-result{width:min(270px,calc(100% - 16px));padding:6px 8px;gap:4px}
+  .forge-production-result-art{width:38px;height:38px;flex-basis:38px}
+  .forge-production-result-art img,.forge-production-result-art .arsenal-armor-art img{width:36px;height:36px;max-width:36px;max-height:36px}
+  .forge-production-details-content{gap:2px 6px}
+}
