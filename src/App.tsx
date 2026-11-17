@@ -954,7 +954,7 @@ export default function App() {
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     setEquippedArmorIds(readEquippedArmorSelections(session.user.sub, characterPreferences[0] ?? 'guerreiro'));
-  }, [session.user.sub, characterPreferences]);
+  }, [session.user.sub]);
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     if (!fibulaSupabase || !session.user.sub || !cookingOnline) {

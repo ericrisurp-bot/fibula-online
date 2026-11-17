@@ -31,10 +31,6 @@ export const ARMOR_PIECE_ORDER: ArmorPiece[] = [
 const ARMOR_CLASS_ORDER: readonly ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const equippedArmorStorageKey = (userId: string) => 'fibula:equipped-armors:' + userId;
 
-function isClassId(value: string): value is ClassId {
-  return ARMOR_CLASS_ORDER.includes(value as ClassId);
-}
-
 function cloneSelections(selections: EquippedArmorSelections): EquippedArmorSelections {
   const cloned: EquippedArmorSelections = {};
   for (const classId of ARMOR_CLASS_ORDER) {
