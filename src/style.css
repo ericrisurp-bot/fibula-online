@@ -12571,7 +12571,7 @@ sem backdrop ou caixa de modal. */
 
 
 /* Alfaiataria — seleção de núcleo no Baú e fabricação em modal, mantendo o ateliê. */
-.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;gap:8px;overflow:hidden}
+.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;flex:1 1 auto;max-height:100%;gap:8px;overflow:hidden}
 .tailor-workspace.armor-craft-workspace>.tailor-scene{position:relative;display:block;width:100%;height:100%;min-height:0;max-height:none;overflow:hidden}
 .tailor-scene-slots{inset:0;width:100%;height:100%;box-sizing:border-box;padding:42px 10px 10px}
 .tailor-preview-result-layer{position:absolute;z-index:6;inset:0;display:flex;align-items:center;justify-content:center;padding:42px 10px 10px;pointer-events:none}
