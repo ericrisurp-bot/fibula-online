@@ -12897,6 +12897,34 @@ sem backdrop ou caixa de modal. */
   min-height:30px;
   padding:5px 12px;
 }
+.jewelry-page .jewelry-lining-options{
+  display:flex;
+  flex:0 1 auto;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.jewelry-page .jewelry-lining-choice{
+  min-height:28px;
+  padding:4px 9px;
+  border:1px solid #78694f;
+  border-radius:6px;
+  background:#252723;
+  color:#e8ddc8;
+  font:inherit;
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+.jewelry-page .jewelry-lining-choice.selected{
+  border-color:#d0a76c;
+  background:#423726;
+  color:#f4dba7;
+}
+.jewelry-page .jewelry-lining-choice:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
 .jewelry-page .jewelry-selection-zone .forge-selection-action{
   width:100%;
   min-height:32px;
