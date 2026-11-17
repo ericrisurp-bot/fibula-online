@@ -89,7 +89,7 @@ Os efeitos especiais devem respeitar a identidade e as capacidades reais de cada
 
 Acessórios são estruturas sem bônus intrínseco: **somente o núcleo concede atributos**.
 
-Existem três vagas, uma de cada tipo: **Colar, Pulseira e Cinto**. Anel e amuleto ficam fora da especificação. O jogador escolhe o tipo durante a fabricação; o tipo não altera os atributos e qualquer núcleo de acessório válido pode ser aplicado a qualquer um dos três tipos.
+Existem três vagas, uma de cada tipo: **Colar, Pulseira e Cinto**. Anel e amuleto ficam fora da especificação. O jogador escolhe o tipo durante a fabricação; o tipo não altera os atributos e qualquer núcleo de acessório válido pode ser aplicado a qualquer um dos três tipos. O metadado `equipmentType` que a geração atual possa anexar ao núcleo não determina nem restringe o tipo final.
 
 Cada núcleo comum contém dois atributos e cada núcleo SURP contém quatro. O conjunto válido é: Força, Inteligência, Destreza, Vida, Armadura, Mobilidade e Esquiva. Velocidade de ataque e resistência mágica ficam fora do conjunto.
 
