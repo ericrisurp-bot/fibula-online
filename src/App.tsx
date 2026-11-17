@@ -3920,7 +3920,7 @@ export default function App() {
                         onClearLining={() => setTailorLiningSelection(null)}
                         onCraft={() => void craftTailorArmor()}
                       />
-                      {selectedTailorCoreId && <CoreDetail itemId={selectedTailorCoreId} mode="inline" armorTypes={['couro']}/>}
+                      {selectedTailorCoreId && <CoreDetail itemId={selectedTailorCoreId} armorTypes={['couro']}/>}
                       <section className="forge-zone forge-chest-zone tailor-chest-zone" aria-label="Baú da Alfaiataria">
                         <div className="forge-panel-heading"><strong>BAÚ</strong><span>Núcleos revelados · Couro e forros</span></div>
                         <div className="forge-material-grid forge-chest-grid tailor-chest-grid" aria-label="Núcleos e materiais no Baú">
@@ -4025,7 +4025,7 @@ export default function App() {
                         <small>{jewelryCottonSelected}/{JEWELRY_POLISH_COTTON_COST}</small>
                       </button>}
                     </div>
-                    {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCoreId && <CoreDetail itemId={jewelrySlotCoreId} mode="inline" armorTypes={['couro','bronze']}/>}
+                    {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCoreId && <CoreDetail itemId={jewelrySlotCoreId} armorTypes={['couro','bronze']}/>}
                     {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory' && <div className="jewelry-accessory-recipe">
                       <div className="forge-panel-heading"><strong>RECEITA DO ACESSÓRIO</strong></div>
                       <p>Receita em definição</p>
@@ -4189,7 +4189,7 @@ export default function App() {
                         {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
                       </div>
                     </section>}
-                  {(selectedArmorCore || selectedWeaponCore) && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} mode="inline" armorTypes={['bronze']}/>}
+                  {(selectedArmorCore || selectedWeaponCore) && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} armorTypes={['bronze']}/>}
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
@@ -4610,7 +4610,7 @@ export default function App() {
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
               </>:(parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:'))?<>
-                <CoreDetail itemId={bauAction.item.itemId} mode="inline" armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
+                <CoreDetail itemId={bauAction.item.itemId} armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
               </>:<>
                 {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
                 <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
