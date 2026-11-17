@@ -136,7 +136,7 @@ Explosão, cura, sangramento e perfuração estão fora do J2b. Não são atribu
 
 ## 8. Servidor (J3)
 
-**Status: a aplicar no banco.** A tabela e as funções abaixo são o contrato planejado para J3; ainda não existem no banco. J2b não cria tabela, RPC, migration nem persistência.
+**Status J3: já aplicado no projeto Supabase `fibula-online` pela migration `20261117154440_fibula_acessorios_fabricados`.** A tabela `fibula_accessories`, a política de leitura própria e as RPCs `fibula_craft_accessory` e `fibula_delete_accessory` já existem no banco. O arquivo-fonte dessa migration estava ausente da `main` e foi restaurado nesta PR para reconciliar o histórico do repositório. **Não reaplicar essa migration no projeto que já registra a versão.**
 
 ### Tabela `fibula_accessories`
 
@@ -168,4 +168,4 @@ A fabricação J3 deverá obter o tipo do núcleo selecionado, validar a raridad
 - Progressão de estrelas por XP no Arsenal.
 - Definição e balanceamento dos efeitos extras (explosão, cura, sangramento e perfuração).
 - Metal Ferro e seu fluxo de fabricação, com teto futuro de 4★.
-- Aplicação no banco da tabela e das funções descritas em Servidor (J3).
+- Integração do cliente/Arsenal com as RPCs J3 já existentes.
