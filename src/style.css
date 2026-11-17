@@ -13109,3 +13109,63 @@ sem backdrop ou caixa de modal. */
   .jewelry-selection-zone>.core-detail-card{max-height:70px}
   .bau-action-dialog .core-detail-card{max-height:68dvh}
 }
+
+/* D1c — superfícies claras nos detalhes do núcleo e nas ações de desequipar do Arsenal. */
+.bau-action-dialog .core-detail-card{
+  border-color:#e0d9ca;
+  background:#fffdf8;
+  color:#292720;
+  scrollbar-color:#cfc6b3 transparent;
+}
+.bau-action-dialog .core-detail-card .core-detail-meta>span{
+  border-color:#cfc6b3;
+  background:#f1ece0;
+  color:#514b40;
+}
+.bau-action-dialog .core-detail-card .core-detail-meta>strong{
+  border-color:#d7b36a;
+  background:#fff1d1;
+  color:#6f4b16;
+}
+.bau-action-dialog .core-detail-card .core-detail-attributes li{
+  border-color:#e0d9ca;
+  background:#f7f4ed;
+  color:#292720;
+}
+.bau-action-dialog .core-detail-card .core-detail-attributes li>b{
+  color:#292720;
+}
+.bau-action-dialog .core-detail-card .core-detail-attributes li.is-inactive,
+.bau-action-dialog .core-detail-card .core-detail-attributes li.is-inactive>b{
+  color:#80796c;
+}
+.bau-action-dialog .core-detail-card .core-detail-attributes li>small,
+.bau-action-dialog .core-detail-card .core-detail-note,
+.bau-action-dialog .core-detail-card .core-detail-armor-column>strong{
+  color:#514b40;
+}
+
+/* O menu com a ação Desequipar segue a mesma paleta clara do Arsenal. */
+.arsenal-action-backdrop .arsenal-action-dialog{
+  border-color:#e0d9ca;
+  background:#fffdf8;
+  color:#292720;
+}
+.arsenal-action-backdrop .arsenal-action-dialog>header strong{
+  color:#292720;
+}
+.arsenal-action-backdrop .arsenal-action-dialog>header button{
+  border-color:#cfc6b3;
+  background:#f1ece0;
+  color:#292720;
+}
+.arsenal-action-backdrop .arsenal-action-dialog .arsenal-action-hint,
+.arsenal-action-backdrop .arsenal-confirm-dialog>p{
+  color:#514b40;
+}
+.arsenal-action-backdrop .arsenal-action-dialog .arsenal-action-button:not(.danger){
+  border-color:#cfc6b3;
+  background:#f1ece0;
+  color:#292720;
+}
+
