@@ -80,6 +80,6 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
         {!isWeapon && <div><span>Forro</span><strong>{liningLabels[props.armor.lining]} · {liningValueLabel}</strong></div>}
       </div>
     </details>
-    <p>Equipamento salvo no Arsenal. Feche a Bigorna para acessá-lo.</p>
+    <p>Equipamento salvo no Arsenal. Acesse-o pelo Arsenal quando quiser equipá-lo.</p>
   </section>;
 }
