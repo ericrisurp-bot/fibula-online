@@ -19,7 +19,8 @@ import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 import { armorMaterialItemIds, craftArmor, deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
 import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
-import { craftAccessory, deleteAccessory, listMyAccessories, type CraftedAccessory } from './game/accessoryCrafting';
+import { craftAccessory, deleteAccessory, listMyAccessories, type AccessoryType, type CraftedAccessory } from './game/accessoryCrafting';
+import { computeAccessoryAttributeBonuses, equipAccessoryForClass, readEquippedAccessorySelections, removeAccessoryFromSelections, resolveEquippedAccessories, sanitizeEquippedAccessorySelections, unequipAccessoryForClass, writeEquippedAccessorySelections, type EquippedAccessorySelections } from './game/accessoryEquipment';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
@@ -90,6 +91,7 @@ const initial: GameSnapshot = {
 const JEWELRY_POLISH_COTTON_COST = 5;
 const JEWELRY_RARITY_LABELS: Record<string, string> = { normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' };
 const JEWELRY_ACCESSORY_TYPE_LABELS: Record<string, string> = { colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' };
+const JEWELRY_ACCESSORY_TYPE_ICONS: Record<AccessoryType, string> = { colar: '📿', pulseira: '💠', cinto: '🪢' };
 const JEWELRY_ACCESSORY_RARITY_STEPS: Record<string, number> = { normal: 0, common: 1, uncommon: 2, rare: 3, legendary: 4 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
@@ -511,6 +513,7 @@ export default function App() {
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const equippedArmorsRef = useRef<Partial<Record<ClassId, Partial<Record<ArmorPiece, CraftedArmor>>>>>({});
+  const equippedAccessoriesRef = useRef<Partial<Record<ClassId, Partial<Record<AccessoryType, CraftedAccessory>>>>>({});
   const applyClassAndEquippedWeaponRef = useRef<(id: ClassId) => void>(() => {});
   const houseLoadReadyRef = useRef(false);
   const houseChangedDuringLoadRef = useRef(false);
@@ -972,6 +975,10 @@ export default function App() {
   const [accessoriesLoaded, setAccessoriesLoaded] = useState(false);
   const [accessoriesLoadedForUserId, setAccessoriesLoadedForUserId] = useState<string | null>(null);
   const [accessoryDetails, setAccessoryDetails] = useState<CraftedAccessory | null>(null);
+  const [equippedAccessoryIds, setEquippedAccessoryIds] = useState<EquippedAccessorySelections>(() => readEquippedAccessorySelections(session.user.sub));
+  useEffect(() => {
+    setEquippedAccessoryIds(readEquippedAccessorySelections(session.user.sub));
+  }, [session.user.sub]);
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     setEquippedArmorIds(readEquippedArmorSelections(session.user.sub, characterPreferences[0] ?? 'guerreiro'));
@@ -1010,6 +1017,22 @@ export default function App() {
   }, [session.user.sub, cookingOnline]);
   const accessoryListReady = accessoriesLoaded && accessoriesLoadedForUserId === session.user.sub;
   useEffect(() => {
+    if (!accessoryListReady) return;
+    const validSelections = sanitizeEquippedAccessorySelections(craftedAccessories, equippedAccessoryIds);
+    writeEquippedAccessorySelections(session.user.sub, validSelections);
+    if (JSON.stringify(validSelections) !== JSON.stringify(equippedAccessoryIds)) setEquippedAccessoryIds(validSelections);
+  }, [accessoryListReady, craftedAccessories, equippedAccessoryIds, session.user.sub]);
+  const effectiveEquippedAccessoryIds = accessoryListReady
+    ? sanitizeEquippedAccessorySelections(craftedAccessories, equippedAccessoryIds)
+    : equippedAccessoryIds;
+  const equippedAccessorySets: Partial<Record<ClassId, Partial<Record<AccessoryType, CraftedAccessory>>>> = {};
+  if (accessoryListReady) {
+    for (const classId of PROFILE_CLASS_IDS) equippedAccessorySets[classId] = resolveEquippedAccessories(craftedAccessories, effectiveEquippedAccessoryIds, classId);
+  }
+  const equippedAccessories: Partial<Record<AccessoryType, CraftedAccessory>> = activeArsenalClassId ? equippedAccessorySets[activeArsenalClassId] ?? {} : {};
+  equippedAccessoriesRef.current = equippedAccessorySets;
+  const accessoryAttributeBonuses = computeAccessoryAttributeBonuses(equippedAccessories);
+  useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled || !armorListReady) return;
     const validSelections = sanitizeEquippedArmorSelections(craftedArmors, equippedArmorIds);
     writeEquippedArmorSelections(session.user.sub, validSelections);
@@ -1037,10 +1060,11 @@ export default function App() {
         attributes: equippedArsenalWeapon.attributes,
       } : null,
       ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmors, activeArsenalClassId) } : {}),
+       accessoryBonuses: accessoryAttributeBonuses,
     })
     : null;
   const arsenalPowerValue = arsenalArmedPower ? Math.round(arsenalArmedPower.total) : null;
-  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled);
+  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled) && accessoryListReady;
   const statusPowers: Partial<Record<ClassId, number>> = {};
   if (statusPowerReady) {
     for (const classId of characterPreferences) {
@@ -1049,6 +1073,7 @@ export default function App() {
       statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, getAccountPointsPerLevel(accountLevel), {
         weapon: weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null,
         ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmorSets[classId] ?? {}, classId) } : {}),
+         accessoryBonuses: computeAccessoryAttributeBonuses(equippedAccessorySets[classId] ?? {}),
       }).total);
     }
   }
@@ -1106,7 +1131,7 @@ export default function App() {
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
     ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => !Object.values(equippedArmorIds).some(classSelections => Object.values(classSelections ?? {}).includes(armor.id))).map(armor => ({ kind: 'armor' as const, armor })) : []),
-    ...(accessoryListReady ? craftedAccessories.map(accessory => ({ kind: 'accessory' as const, accessory })) : []),
+    ...(accessoryListReady ? craftedAccessories.filter(accessory => !Object.values(effectiveEquippedAccessoryIds).some(slots => Object.values(slots ?? {}).includes(accessory.id))).map(accessory => ({ kind: 'accessory' as const, accessory })) : []),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
@@ -2453,6 +2478,12 @@ export default function App() {
   }, [activeGameRoute.page, armorListReady, craftedArmors, equippedArmorIds]);
 
   useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine || activeGameRoute.page !== 'lobby') return;
+    engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[engine.state.classId] ?? {} : {});
+  }, [activeGameRoute.page, accessoryListReady, craftedAccessories, equippedAccessoryIds]);
+
+  useEffect(() => {
     const engine = engineRef.current; if (!engine || activeGameRoute.page !== 'lobby') return;
     const down = (e: KeyboardEvent) => {
       if (!gameStartedRef.current) return;
@@ -3388,6 +3419,7 @@ export default function App() {
       engine.setClass(selectedClass);
       await prepareEquippedWeaponForClass(engine, selectedClass);
       if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[selectedClass] ?? {});
+       if (accessoryListReady) engine.setEquippedAccessories(equippedAccessoriesRef.current[selectedClass] ?? {});
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
@@ -3534,6 +3566,7 @@ export default function App() {
     const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, id);
     engine.setEquippedWeapon(weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null);
     if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[id] ?? {});
+    if (accessoryListReady) engine.setEquippedAccessories(equippedAccessoriesRef.current[id] ?? {});
   };
   applyClassAndEquippedWeaponRef.current = applyClassAndEquippedWeapon;
   const equipCraftedWeapon = (weapon: CraftedWeapon) => {
@@ -3619,9 +3652,9 @@ export default function App() {
     setSelectedArsenalItemId(item.id);
     setArsenalActionItem({ kind: 'equipment', item, equipped });
   };
-  const openArsenalAccessoryActions = (accessory: CraftedAccessory) => {
+  const openArsenalAccessoryActions = (accessory: CraftedAccessory, equipped = false) => {
     setSelectedArsenalItemId(accessory.id);
-    setArsenalActionItem({ kind: 'accessory', accessory, equipped: false });
+    setArsenalActionItem({ kind: 'accessory', accessory, equipped });
   };
   const showArsenalItemDetails = () => {
     const action = arsenalActionItem;
@@ -3643,7 +3676,13 @@ export default function App() {
   const equipSelectedArsenalItem = () => {
     const action = arsenalActionItem;
     if (!action || !activeArsenalClassId) return;
-    if (action.kind === 'accessory') return;
+    if (action.kind === 'accessory') {
+      const equippedElsewhere = PROFILE_CLASS_IDS.some(classId => classId !== activeArsenalClassId && Object.values(equippedAccessoryIds[classId] ?? {}).includes(action.accessory.id));
+      if (equippedElsewhere) { setWeaponFeedback('Desequipe este acessório da outra classe antes de transferi-lo.'); return; }
+      const next = equipAccessoryForClass(equippedAccessoryIds, activeArsenalClassId, action.accessory);
+      setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next);
+      setWeaponFeedback(JEWELRY_ACCESSORY_TYPE_LABELS[action.accessory.type] + ' equipado.'); setArsenalActionItem(null); return;
+    }
     if (action.kind === 'weapon') {
       if (activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[action.weapon.model]) return;
       equipCraftedWeapon(action.weapon);
@@ -3659,7 +3698,12 @@ export default function App() {
   const unequipSelectedArsenalItem = () => {
     const action = arsenalActionItem;
     if (!action || !activeArsenalClassId) return;
-    if (action.kind === 'accessory') return;
+    if (action.kind === 'accessory') {
+      const next = unequipAccessoryForClass(equippedAccessoryIds, activeArsenalClassId, action.accessory);
+      setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next);
+      setWeaponFeedback(JEWELRY_ACCESSORY_TYPE_LABELS[action.accessory.type] + ' desequipado.');
+      setSelectedArsenalItemId(null); setArsenalActionItem(null); return;
+    }
     if (action.kind === 'weapon') {
       unequipCraftedWeapon(action.weapon);
     } else {
@@ -3727,6 +3771,8 @@ export default function App() {
       }
       try {
         await deleteAccessory(supabase, pending.accessory.id);
+        const next = removeAccessoryFromSelections(equippedAccessoryIds, pending.accessory.id);
+        if (JSON.stringify(next) !== JSON.stringify(equippedAccessoryIds)) { setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next); }
         setCraftedAccessories(current => current.filter(item => item.id !== pending.accessory.id));
         setSelectedArsenalItemId(null);
         setWeaponFeedback('Acessório excluído.');
@@ -4711,18 +4757,22 @@ export default function App() {
                     const armorPiece: ArmorPiece | undefined = CONFIG.rulesV2.armorCraftingEnabled ? ARSENAL_ARMOR_SLOT_PIECES[slot] : undefined;
                     const equippedArmor = armorPiece ? equippedArmors[armorPiece] : null;
                     const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
-                    const legacyEquipped = armorPiece ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                    const equippedName = equippedArmor ? ARSENAL_ARMOR_PIECE_LABELS[equippedArmor.piece] : weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : legacyEquipped ? cleanItemName(legacyEquipped.name) : undefined;
-                    const rarity = equippedArmor?.rarity ?? weaponEquipped?.rarity ?? legacyEquipped?.rarity;
+                    const accessoryType: AccessoryType | null = slot === 'colar' || slot === 'pulseira' || slot === 'cinto' ? slot : null;
+                    const equippedAccessory = accessoryType ? equippedAccessories[accessoryType] : null;
+                    const legacyEquipped = armorPiece || weaponEquipped || equippedAccessory ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                    const equippedName = equippedArmor ? ARSENAL_ARMOR_PIECE_LABELS[equippedArmor.piece] : weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : equippedAccessory ? JEWELRY_ACCESSORY_TYPE_LABELS[equippedAccessory.type] : legacyEquipped ? cleanItemName(legacyEquipped.name) : undefined;
+                    const rarity = equippedArmor?.rarity ?? weaponEquipped?.rarity ?? equippedAccessory?.rarity ?? legacyEquipped?.rarity;
                     const info = ARSENAL_SLOT_INFO[slot];
                     return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''} ${armorPiece ? 'arsenal-armor-equipment-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
                       if (equippedArmor) openArsenalArmorActions(equippedArmor);
                       else if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
+                      else if (equippedAccessory) openArsenalAccessoryActions(equippedAccessory, true);
                       else if (legacyEquipped) openArsenalEquipmentActions(legacyEquipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
                       {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
                       {equippedArmor && <><ArmorPieceIcon armor={equippedArmor} className="arsenal-equipped-weapon-icon" /><span className="arsenal-armor-stars">{'★'.repeat(equippedArmor.stars)}</span></>}
                       {weaponEquipped && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true"><img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /></span>}
+                      {equippedAccessory && <><span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{JEWELRY_ACCESSORY_TYPE_ICONS[equippedAccessory.type]}</span><span className="arsenal-armor-stars">{'★'.repeat(equippedAccessory.stars)}</span></>}
                       {legacyEquipped && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{legacyEquipped.icon}</span>}
                     </button>;
                   })}
@@ -4771,10 +4821,8 @@ export default function App() {
             <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : arsenalActionItem.kind === 'accessory' ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalActionItem.accessory.type] : cleanItemName(arsenalActionItem.item.name)}</strong>
               <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
-            {arsenalActionItem.kind === 'accessory' && <p className="arsenal-action-hint">A equipagem de acessórios ainda não está habilitada nesta etapa.</p>}
-            {arsenalActionItem.kind === 'accessory'
-              ? <button type="button" className="arsenal-action-button" disabled title="Equipagem de acessórios ainda não habilitada">Equipar</button>
-              : arsenalActionItem.equipped
+            {arsenalActionItem.kind === 'accessory' && <p className="arsenal-action-hint">Espaço: {JEWELRY_ACCESSORY_TYPE_LABELS[arsenalActionItem.accessory.type]}.</p>}
+            {arsenalActionItem.equipped
               ? <button type="button" className="arsenal-action-button" autoFocus onClick={unequipSelectedArsenalItem}>Desequipar</button>
               : <button type="button" className="arsenal-action-button" autoFocus={Boolean(activeArsenalClassId) && (arsenalActionItem.kind !== 'weapon' || activeArsenalClassId === WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} disabled={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
             <button type="button" className="arsenal-action-button" autoFocus={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={showArsenalItemDetails}>Detalhes</button>
