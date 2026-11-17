@@ -3798,7 +3798,7 @@ export default function App() {
                           const isCraftableCore = parsedCore.kind === 'revealed'
                             && (parsedCore.core.category === 'weapon'
                               || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
-                          return isCraftableCore ? <button type="button" key={item.itemId}>
+                          return isCraftableCore ? <button type="button" key={item.itemId}
                             className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
                             disabled={weaponCraftBusy}
                             aria-pressed={selectedWeaponCoreId === item.itemId}
