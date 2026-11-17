@@ -3392,6 +3392,12 @@ export default function App() {
   const equipArsenalArmor = () => {
     if (!armorActionArmor) return;
     if (!activeArsenalClassId) return;
+    const equippedElsewhere = PROFILE_CLASS_IDS.some(classId => classId !== activeArsenalClassId
+      && Object.values(equippedArmorIds[classId] ?? {}).includes(armorActionArmor.id));
+    if (equippedElsewhere) {
+      setWeaponFeedback('Desequipe esta peça da outra classe antes de transferi-la.');
+      return;
+    }
     const next = equipArmorForClass(equippedArmorIds, activeArsenalClassId, armorActionArmor);
     setEquippedArmorIds(next);
     writeEquippedArmorSelections(session.user.sub, next);

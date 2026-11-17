@@ -114,15 +114,11 @@ export function equipArmorForClass(
   armor: Pick<CraftedArmor, 'id' | 'piece'>,
 ): EquippedArmorSelections {
   const next = cloneSelections(selections);
-  // Um item fabricado só pode ocupar uma classe por vez.
-  for (const ownerClass of ARMOR_CLASS_ORDER) {
-    const pieces = next[ownerClass];
-    if (!pieces) continue;
-    for (const piece of ARMOR_PIECE_ORDER) {
-      if (pieces[piece] === armor.id) delete pieces[piece];
-    }
-    if (!Object.keys(pieces).length) delete next[ownerClass];
-  }
+  // Exige desequipar explicitamente antes de transferir uma peça entre classes.
+  const equippedByAnotherClass = ARMOR_CLASS_ORDER.some(ownerClass =>
+    ownerClass !== classId && Object.values(next[ownerClass] ?? {}).includes(armor.id),
+  );
+  if (equippedByAnotherClass) return next;
   next[classId] = { ...(next[classId] ?? {}), [armor.piece]: armor.id };
   return next;
 }
