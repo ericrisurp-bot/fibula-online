@@ -287,3 +287,17 @@ A Joalheria usa uma única lista do Baú, sem abas ou faixa separada de núcleos
 ### 15.3 Limites da etapa J1
 
 A fabricação de acessórios **ainda não existe**. J1 não define receitas, materiais, quantidades, tipos de acessório, atributos adicionais, prévia de fabricação, RPC, tabela ou chamada de fabricação. Esses detalhes ficam para a etapa J2. A Bigorna e a Alfaiataria não são alteradas por esta etapa.
+
+
+## 16. Detalhe de núcleos revelados — D1
+
+Núcleos revelados exibem um botão de informação (ⓘ) nos Baús da Bigorna, Alfaiataria, Joalheria e no Baú do Lobby. O botão abre um modal leve com fechamento por X, toque fora ou Esc; abrir os detalhes não seleciona o núcleo nem executa a ação principal do item. Núcleos fechados não exibem esse botão.
+
+Quando um núcleo revelado entra no slot de materiais selecionados de uma estação, um cartão compacto e rolável apresenta os mesmos dados sem substituir os controles da receita.
+
+- **Armas:** modelo (Espada, Arco, Cajado ou Bastão da Natureza), raridade, SURP quando existente e todos os atributos do núcleo. Os valores mantêm o formato já usado pela Joalheria (valor × WEAPON_CORE_POINTS_PER_VALUE, com uma casa decimal e vírgula). Atributos incompatíveis com o modelo aparecem riscados e identificados como “não conta nesta arma”. O detalhe informa que dano e efeito da arma são sorteados na fabricação.
+- **Armaduras:** peça, raridade, SURP quando existente e prévia dos atributos a 1★, usando `armorAttributeValue` e o mesmo roll por atributo do painel de fabricação. A Bigorna apresenta Bronze; a Alfaiataria apresenta Couro; Joalheria e Baú do Lobby apresentam as duas opções.
+- **Acessórios:** raridade, SURP quando existente e atributos no mesmo formato atualmente exibido pela Joalheria. D1 não define nem altera uma conversão de atributo de acessório.
+- **Núcleos fechados:** não exibem botão de atributos; após revelar, os detalhes ficam disponíveis.
+
+A interface não apresenta classificações “bom”, “médio” ou “ruim”. SURP é a única indicação de qualidade exibida. D1 é somente informativo: não altera valores, fórmulas, compatibilidade, receitas, custos, raridades, revelação, fabricação, persistência ou regras de jogo.
