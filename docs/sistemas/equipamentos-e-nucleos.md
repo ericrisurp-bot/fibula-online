@@ -262,3 +262,28 @@ A implementação deverá ocorrer em etapas próprias, após aprovação das pen
 ## 14. Assinatura de quem fabricou
 
 Armas e armaduras guardam no servidor o nome de quem realizou a fabricação, no campo `crafted_by` de cada equipamento. A assinatura é definida no momento da fabricação e acompanha a peça persistida. Ela aparece somente como o nome, de forma discreta, nos respectivos modais de detalhes; quando não houver nome válido, nada é exibido. A assinatura não altera atributos, raridade, fabricação, inventário ou equipamento.
+
+
+## 15. Joalheria — etapa J1
+
+A Joalheria usa uma única lista do Baú, sem abas ou faixa separada de núcleos. O cenário fica no topo; abaixo ficam a zona escura **Materiais selecionados** e a zona **Baú**, no mesmo padrão visual e proporcional da Bigorna.
+
+### 15.1 Revelação de núcleos fechados
+
+- Núcleos fechados são agrupados por raridade na lista do Baú e podem ser selecionados individualmente por grupo.
+- Ao selecionar um núcleo fechado, o slot **Núcleo fechado 1/1** é preenchido e aparece o slot **Algodão ×5**.
+- Somente algodão da mesma raridade do núcleo pode ser selecionado. O slot mostra a quantidade selecionada no formato X/5; clicar no slot devolve a seleção ao Baú.
+- A revelação exige cinco algodões da mesma raridade, Baú carregado e conexão ativa.
+- A operação continua usando exclusivamente a RPC existente `fibula_core_reveal`, por meio do fluxo `revealCoreFromChest`. Esta etapa não altera a RPC, seu contrato, o custo do polimento nem a persistência.
+- Após a revelação, o núcleo revelado permanece no Baú e seus atributos são exibidos no cartão de atributos da Joalheria.
+
+### 15.2 Núcleos revelados no Baú
+
+- Núcleos revelados de **acessório** podem ser selecionados. O slot mostra o núcleo e o cartão exibe seus atributos.
+- A seleção de um núcleo de acessório também mostra a área **Receita do acessório**, com o texto **Receita em definição** e o botão **Fabricar · Em breve** desabilitado.
+- Núcleos revelados de **arma** e **armadura** são apenas informativos e inertes na Joalheria, com indicação de destino **Bigorna** e **Alfaiataria**, respectivamente.
+- Algodão só é selecionável quando existe um núcleo fechado selecionado e a raridade coincide. Os demais materiais permanecem inertes.
+
+### 15.3 Limites da etapa J1
+
+A fabricação de acessórios **ainda não existe**. J1 não define receitas, materiais, quantidades, tipos de acessório, atributos adicionais, prévia de fabricação, RPC, tabela ou chamada de fabricação. Esses detalhes ficam para a etapa J2. A Bigorna e a Alfaiataria não são alteradas por esta etapa.
