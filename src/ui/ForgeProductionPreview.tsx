@@ -1,4 +1,4 @@
-import type { CraftedWeapon } from '../game/weapons';
+import { WEAPON_CORE_POINTS_PER_VALUE, type CraftedWeapon } from '../game/weapons';
 import { armorEffectiveValue, armorLiningEffectiveValue, type CraftedArmor } from '../game/armorCrafting';
 import { ArmorPieceIcon } from './ArmorArsenal';
 
@@ -35,6 +35,20 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
   const stars = isWeapon ? null : props.armor.stars;
   const surp = isWeapon ? props.weapon.surp : props.armor.surp;
   const attributes = isWeapon ? props.weapon.attributes : props.armor.attributes.map(attribute => ({ ...attribute, value: armorEffectiveValue(props.armor, attribute.key) }));
+  const numberLabel = (value: number, maximumFractionDigits = 2) =>
+    value.toLocaleString('pt-BR', { maximumFractionDigits });
+  const attributeValueLabel = (key: string, value: number) => {
+    if (isWeapon) return `+${(value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}`;
+    if (key === 'esquiva') return `+${numberLabel(value * 100)}%`;
+    if (key === 'armadura') return `+${numberLabel(value)} pontos`;
+    return `+${numberLabel(value)}`;
+  };
+  const liningValue = isWeapon ? null : armorLiningEffectiveValue(props.armor);
+  const liningValueLabel = isWeapon ? '' : props.armor.lining === 'couro_refinado'
+    ? `+${numberLabel(liningValue! * 100)}% XP`
+    : props.armor.lining === 'algodao'
+      ? `+${numberLabel(liningValue!)} vida`
+      : `+${numberLabel(liningValue!)} mobilidade`;
 
   return <section className="forge-production-result" aria-label="Equipamento recém-fabricado">
     <div className="forge-production-result-main">
@@ -58,12 +72,12 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
         {stars !== null && <div><span>Estrelas</span><strong>{'★'.repeat(stars)}</strong></div>}
         {surp && <div><span>SURP</span><strong>Sim</strong></div>}
         {isWeapon && <div><span>Tier</span><strong>{props.weapon.tier}</strong></div>}
-        {isWeapon && <div><span>Dano</span><strong>{props.weapon.damage}</strong></div>}
+        {isWeapon && <div><span>Dano</span><strong>{numberLabel(props.weapon.damage)}</strong></div>}
         {attributes.map(attribute => <div key={attribute.key}>
           <span>{(isWeapon ? weaponAttributeLabels : armorAttributeLabels)[attribute.key] ?? attribute.key}</span>
-          <strong>{attribute.value}</strong>
+          <strong>{attributeValueLabel(attribute.key, attribute.value)}</strong>
         </div>)}
-        {!isWeapon && <div><span>Forro</span><strong>{liningLabels[props.armor.lining]} · {armorLiningEffectiveValue(props.armor)}</strong></div>}
+        {!isWeapon && <div><span>Forro</span><strong>{liningLabels[props.armor.lining]} · {liningValueLabel}</strong></div>}
       </div>
     </details>
     <p>Equipamento salvo no Arsenal. Feche a Bigorna para acessá-lo.</p>
