@@ -19,6 +19,7 @@ import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 import { armorMaterialItemIds, craftArmor, deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
 import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
+import { craftAccessory, listMyAccessories, type CraftedAccessory } from './game/accessoryCrafting';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
@@ -45,6 +46,7 @@ import TailorScene from './ui/TailorScene';
 import TailorCraftSlots from './ui/TailorCraftSlots';
 import CoreDetail from './ui/CoreDetail';
 import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
+import { AccessoryDetailsDialog, AccessoryInventoryCard } from './ui/AccessoryArsenal';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
@@ -66,7 +68,8 @@ let floatingWeaponSide: 1 | -1 = 1;
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
   | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[] }
-  | { kind: 'armor'; armor: CraftedArmor };
+  | { kind: 'armor'; armor: CraftedArmor }
+  | { kind: 'accessory'; accessory: CraftedAccessory };
 
 registerCombatSounds();
 registerGatherSounds();
@@ -781,6 +784,14 @@ export default function App() {
   const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
   const [jewelryActionBusy, setJewelryActionBusy] = useState(false);
   const [jewelryFeedback, setJewelryFeedback] = useState('');
+  const [jewelryProductionPreview, setJewelryProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
+  const jewelryPreviewSessionRef = useRef(0);
+  useEffect(() => {
+    if (activeGameRoute.page !== 'joalheria') {
+      jewelryPreviewSessionRef.current += 1;
+      setJewelryProductionPreview(null);
+    }
+  }, [activeGameRoute.page]);
   const jewelrySlotCoreId = selectedJewelryCoreId ?? jewelryResultCoreId;
   const jewelrySlotCore = jewelrySlotCoreId ? parseCoreItemId(jewelrySlotCoreId) : null;
   const jewelryAccessoryCore = jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory'
@@ -955,6 +966,10 @@ export default function App() {
   const [armorActionArmor, setArmorActionArmor] = useState<CraftedArmor | null>(null);
   const [armorDeleteConfirmation, setArmorDeleteConfirmation] = useState(false);
   const [armorDeleteBusy, setArmorDeleteBusy] = useState(false);
+  const [craftedAccessories, setCraftedAccessories] = useState<CraftedAccessory[]>([]);
+  const [accessoriesLoaded, setAccessoriesLoaded] = useState(false);
+  const [accessoriesLoadedForUserId, setAccessoriesLoadedForUserId] = useState<string | null>(null);
+  const [accessoryDetails, setAccessoryDetails] = useState<CraftedAccessory | null>(null);
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     setEquippedArmorIds(readEquippedArmorSelections(session.user.sub, characterPreferences[0] ?? 'guerreiro'));
@@ -978,6 +993,18 @@ export default function App() {
     return () => { active = false; };
   }, [session.user.sub, cookingOnline]);
   const armorListReady = armorsLoaded && armorsLoadedForUserId === session.user.sub;
+  useEffect(() => {
+    if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
+      setCraftedAccessories([]); setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null); return;
+    }
+    let active = true;
+    setCraftedAccessories([]); setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null);
+    void listMyAccessories(fibulaSupabase).then(items => {
+      if (active) { setCraftedAccessories(items); setAccessoriesLoaded(true); setAccessoriesLoadedForUserId(session.user.sub); }
+    }).catch(() => { if (active) { setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null); } });
+    return () => { active = false; };
+  }, [session.user.sub, cookingOnline]);
+  const accessoryListReady = accessoriesLoaded && accessoriesLoadedForUserId === session.user.sub;
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled || !armorListReady) return;
     const validSelections = sanitizeEquippedArmorSelections(craftedArmors, equippedArmorIds);
@@ -1070,10 +1097,12 @@ export default function App() {
     | { kind: 'equipment'; item: ArsenalEquipment }
     | { kind: 'weapon'; weapon: CraftedWeapon }
     | { kind: 'armor'; armor: CraftedArmor }
+    | { kind: 'accessory'; accessory: CraftedAccessory }
   > = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
     ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => !Object.values(equippedArmorIds).some(classSelections => Object.values(classSelections ?? {}).includes(armor.id))).map(armor => ({ kind: 'armor' as const, armor })) : []),
+    ...(accessoryListReady ? craftedAccessories.map(accessory => ({ kind: 'accessory' as const, accessory })) : []),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
@@ -1087,12 +1116,16 @@ export default function App() {
       tailorPreviewSessionRef.current += 1;
       setTailorProductionPreview(null);
     }
+    if (activeGameRoute.page === 'joalheria' && id !== 'joalheria') {
+      jewelryPreviewSessionRef.current += 1; setJewelryProductionPreview(null);
+    }
     if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
       void refreshLobbyChestFromCloud();
     }
     navigateToStation(id);
     setActiveGameRoute({ page: id });
     if (id === 'costura') tailorPreviewSessionRef.current += 1;
+    if (id === 'joalheria') jewelryPreviewSessionRef.current += 1;
     setSelectedWeaponCoreId(null);
     setSelectedTailorCoreId(null);
     setTailorHideSelection(null);
@@ -3117,44 +3150,29 @@ export default function App() {
       setJewelryFeedback('Entre na sua conta e conecte-se para fabricar o acessório.');
       return;
     }
-    setJewelryActionBusy(true);
-    setJewelryFeedback('Fabricando acessório…');
-    let serverCallMade = false;
+    const previewSession = jewelryPreviewSessionRef.current;
+    setJewelryActionBusy(true); setJewelryFeedback(''); setJewelryProductionPreview(null);
     try {
-      serverCallMade = true;
-      const { data, error } = await fibulaSupabase.rpc('fibula_craft_accessory', {
-        p_lining: jewelryAccessoryLining,
-        p_core_item_id: itemId,
-      });
-      if (error) throw new Error(error.message);
-      if (!data || !Array.isArray(data.inventory) || !data.accessory || typeof data.accessory !== 'object') {
-        throw new Error('O servidor retornou uma fabricação inválida.');
-      }
-      const createdAccessory = data.accessory as { type?: unknown };
-      if (createdAccessory.type !== parsed.core.equipmentType) {
-        throw new Error('O tipo do acessório retornado não corresponde ao núcleo selecionado.');
-      }
-      const nextInventory = data.inventory as HouseStorageStack[];
+      const result = await craftAccessory(fibulaSupabase, jewelryAccessoryLining, itemId);
+      if (result.accessory.type !== parsed.core.equipmentType) throw new Error('O tipo do acessório retornado não corresponde ao núcleo selecionado.');
+      const nextInventory = result.inventory as HouseStorageStack[];
       applyCookingInventory(nextInventory);
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
-      setSelectedJewelryCoreId(null);
-      setJewelryResultCoreId(null);
-      setJewelryCottonSelection(0);
-      setJewelryAccessoryBronzeSelection(0);
-      setJewelryAccessoryLiningSelection(0);
-      setJewelryAccessoryLining('linho');
-      setJewelryFeedback(`${typeLabel} fabricado e salvo.`);
+      setCraftedAccessories(current => [result.accessory, ...current.filter(item => item.id !== result.accessory.id)].slice(0, 50));
+      if (jewelryPreviewSessionRef.current === previewSession) setJewelryProductionPreview({ kind: 'accessory', accessory: result.accessory });
+      setSelectedJewelryCoreId(null); setJewelryResultCoreId(null);
+      setJewelryCottonSelection(0); setJewelryAccessoryBronzeSelection(0);
+      setJewelryAccessoryLiningSelection(0); setJewelryAccessoryLining('linho');
+      setJewelryFeedback(`${typeLabel} fabricado e salvo no Arsenal.`);
+      void listMyAccessories(fibulaSupabase).then(items => setCraftedAccessories(items)).catch(() => {
+        setJewelryFeedback('Acessório salvo no servidor, mas não foi possível atualizar a lista do Arsenal agora.');
+      });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Não foi possível fabricar o acessório.';
-      if (serverCallMade && !await refreshLobbyChestFromCloud()) {
-        setJewelryFeedback(message + ' Não foi possível recarregar o Baú da nuvem.');
-      } else {
-        setJewelryFeedback(message);
-      }
-    } finally {
-      setJewelryActionBusy(false);
-    }
+      if (!await refreshLobbyChestFromCloud()) setJewelryFeedback(message + ' Não foi possível recarregar o Baú da nuvem.');
+      else setJewelryFeedback(message);
+    } finally { setJewelryActionBusy(false); }
   };
   const addCookingIngredientUnit = (itemId: string) => {
     const stack = cookingIngredientStacks.find(item => item.itemId === itemId);
@@ -4153,6 +4171,7 @@ export default function App() {
                   <JewelryScene revealAnimating={jewelryRevealAnimating} />
                   <div className="jewelry-ui-layer">
                     <div className="jewelry-scene-header"><h2>JOALHERIA</h2></div>
+                    {jewelryProductionPreview && <ForgeProductionPreview {...jewelryProductionPreview} />}
                   </div>
                 </div>
                 <div className="forge-lower-panel jewelry-forge-lower">
@@ -4682,6 +4701,9 @@ export default function App() {
                   {arsenalInventoryEntries.map(entry => {
                     if (entry.kind === 'armor') {
                       return <ArmorInventoryCard key={entry.armor.id} armor={entry.armor} selected={entry.armor.id === selectedArsenalItemId} onClick={() => openArsenalArmorActions(entry.armor)} />;
+                    }
+                    if (entry.kind === 'accessory') {
+                      return <AccessoryInventoryCard key={entry.accessory.id} accessory={entry.accessory} selected={entry.accessory.id === selectedArsenalItemId} onClick={() => { setSelectedArsenalItemId(entry.accessory.id); setAccessoryDetails(entry.accessory); }} />;
                     }
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
