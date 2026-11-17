@@ -4233,10 +4233,14 @@ export default function App() {
                         Faltam {JEWELRY_POLISH_COTTON_COST - jewelryCottonAvailable} algodões {JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity}.
                       </p>}
                       {jewelryAccessoryCore && jewelryAccessoryBronzeSelected < jewelryAccessoryBronzeRequired && <p className="forge-feedback" role="status">
-                        Selecione {jewelryAccessoryBronzeRequired} barras de bronze {JEWELRY_RARITY_LABELS[jewelryAccessoryCore.rarity]}.
+                        {jewelryAccessoryBronzeAvailable < jewelryAccessoryBronzeRequired
+                          ? `Faltam ${jewelryAccessoryBronzeRequired - jewelryAccessoryBronzeAvailable} barras de bronze ${JEWELRY_RARITY_LABELS[jewelryAccessoryCore.rarity]}.`
+                          : `Selecione ${jewelryAccessoryBronzeRequired} barras de bronze ${JEWELRY_RARITY_LABELS[jewelryAccessoryCore.rarity]}.`}
                       </p>}
                       {jewelryAccessoryCore && jewelryAccessoryLiningSelected < jewelryAccessoryLiningRequired && <p className="forge-feedback" role="status">
-                        Selecione {jewelryAccessoryLiningRequired} unidades de {jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado'}.
+                        {jewelryAccessoryLiningAvailable < jewelryAccessoryLiningRequired
+                          ? `Faltam ${jewelryAccessoryLiningRequired - jewelryAccessoryLiningAvailable} unidades de ${jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado'}.`
+                          : `Selecione ${jewelryAccessoryLiningRequired} unidades de ${jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado'}.`}
                       </p>}
                       {!cookingOnline && <small className="forge-offline">Sem internet: revelar e fabricar exigem conexão.</small>}
                     </div>
