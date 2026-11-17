@@ -12605,3 +12605,5 @@ sem backdrop ou caixa de modal. */
   .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(95px,.55fr) minmax(0,1.45fr)}
   .tailor-page .tailor-forge-lower{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
 }
+
+.tailor-page .tailor-forge-workspace .tailor-scene-slots{pointer-events:auto}
