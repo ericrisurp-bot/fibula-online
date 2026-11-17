@@ -12734,3 +12734,252 @@ sem backdrop ou caixa de modal. */
   }
 }
 
+
+
+/* J1 — Joalheria no mesmo fluxo de seleção e Baú da Bigorna, sem abas. */
+.jewelry-page .jewelry-workspace{
+  display:grid!important;
+  grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;
+  flex:1 1 auto!important;
+  width:100%;
+  max-width:960px;
+  height:100%;
+  max-height:100%;
+  min-width:0;
+  min-height:0;
+  gap:7px;
+  margin:0 auto;
+  padding:7px 9px calc(7px + env(safe-area-inset-bottom))!important;
+  overflow:hidden!important;
+}
+.jewelry-page .jewelry-stage{
+  position:relative;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  isolation:isolate;
+  container-type:size;
+}
+.jewelry-page .jewelry-scene{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+.jewelry-page .jewelry-scene-art{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:max(100cqw,218cqh);
+  height:max(45.87cqw,100cqh);
+  transform:translate(-50%,-50%);
+  background:inherit;
+}
+.jewelry-page .jewelry-ui-layer{
+  position:absolute;
+  z-index:8;
+  inset:0;
+  pointer-events:none;
+}
+.jewelry-page .jewelry-forge-lower{
+  display:flex;
+  min-width:0;
+  min-height:0;
+  flex-direction:column;
+  gap:6px;
+  overflow:hidden;
+}
+.jewelry-page .jewelry-selection-zone{
+  flex:0 0 auto;
+  gap:5px;
+  padding:6px 7px;
+}
+.jewelry-page .jewelry-selection-zone .forge-recipe-slots{
+  display:flex;
+  width:100%;
+  min-width:0;
+  min-height:0;
+  align-items:stretch;
+  justify-content:center;
+  gap:clamp(4px,1.1vw,8px);
+  flex-wrap:wrap;
+}
+.jewelry-page .jewelry-selection-zone .forge-recipe-slot{
+  flex:1 1 110px;
+  min-width:0;
+  max-width:160px;
+  min-height:48px;
+  padding:4px;
+}
+.jewelry-page .jewelry-selection-zone .forge-recipe-slot.forge-core-recipe-slot{
+  flex:0 0 clamp(58px,16vw,72px);
+  max-width:76px;
+}
+.jewelry-page .jewelry-selection-zone .forge-recipe-slot>strong{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  text-align:center;
+  font-size:clamp(7px,1.8vw,9px);
+  line-height:1.12;
+}
+.jewelry-page .jewelry-selection-zone .forge-recipe-slot>small{
+  font-size:8px;
+}
+.jewelry-page .jewelry-attributes-card{
+  width:100%;
+  max-height:88px;
+  overflow:auto;
+  padding:5px 8px;
+  border:1px solid #9a8058;
+  border-radius:8px;
+  background:linear-gradient(145deg,#292923,#1c201e);
+  color:#f0e5d1;
+}
+.jewelry-page .jewelry-attributes-card>strong{
+  display:block;
+  margin-bottom:3px;
+  color:#d9bd8b;
+  font-size:8px;
+  letter-spacing:.1em;
+}
+.jewelry-page .jewelry-attributes-card ul{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:2px 10px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+.jewelry-page .jewelry-attributes-card li{
+  display:flex;
+  min-width:0;
+  justify-content:space-between;
+  gap:5px;
+  font-size:8px;
+  line-height:1.25;
+}
+.jewelry-page .jewelry-attributes-card li span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.jewelry-page .jewelry-attributes-card li b{
+  flex:0 0 auto;
+  color:#e5c58b;
+}
+.jewelry-page .jewelry-accessory-recipe{
+  display:flex;
+  min-width:0;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:5px 7px;
+  border:1px solid #ffffff20;
+  border-radius:7px;
+  background:#171a18a8;
+}
+.jewelry-page .jewelry-accessory-recipe .forge-panel-heading{
+  flex:1 1 100%;
+}
+.jewelry-page .jewelry-accessory-recipe p{
+  flex:1 1 auto;
+  margin:0;
+  color:#d5c6ad;
+  font-size:9px;
+}
+.jewelry-page .jewelry-accessory-recipe .forge-craft-button{
+  min-width:130px;
+  min-height:30px;
+  padding:5px 12px;
+}
+.jewelry-page .jewelry-selection-zone .forge-selection-action{
+  width:100%;
+  min-height:32px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.jewelry-page .jewelry-selection-zone .forge-feedback{
+  margin:0;
+  text-align:center;
+  font-size:9px;
+}
+.jewelry-page .jewelry-chest-zone{
+  display:flex;
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  flex-direction:column;
+  gap:5px;
+  overflow:hidden;
+  padding:6px 7px;
+}
+.jewelry-page .jewelry-chest-grid{
+  display:grid;
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  grid-template-columns:repeat(auto-fill,minmax(68px,1fr));
+  grid-auto-rows:minmax(54px,auto);
+  align-content:start;
+  gap:5px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.jewelry-page .jewelry-chest-grid .forge-material-item{
+  min-width:0;
+  min-height:54px;
+  padding:4px 3px;
+}
+.jewelry-page .jewelry-chest-grid .forge-material-item img{
+  max-width:27px;
+  max-height:27px;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+.jewelry-page .jewelry-chest-grid .forge-material-item strong{
+  font-size:8px;
+  line-height:1.1;
+  overflow-wrap:anywhere;
+}
+.jewelry-page .jewelry-chest-grid .forge-material-item small{
+  font-size:7px;
+  line-height:1.1;
+}
+.jewelry-page .jewelry-chest-grid .forge-material-item.is-inert{
+  opacity:.58;
+}
+.jewelry-page .jewelry-chest-grid button:focus-visible,
+.jewelry-page .jewelry-selection-zone button:focus-visible{
+  outline:2px solid #e5c58b;
+  outline-offset:2px;
+}
+@media(max-width:430px){
+  .jewelry-page .jewelry-workspace{
+    gap:5px;
+    padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important;
+  }
+  .jewelry-page .jewelry-forge-lower{gap:4px;padding:5px}
+  .jewelry-page .jewelry-selection-zone{padding:5px;gap:4px}
+  .jewelry-page .jewelry-chest-zone{padding:5px;gap:4px}
+  .jewelry-page .jewelry-chest-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-auto-rows:minmax(48px,auto);
+    gap:4px;
+  }
+  .jewelry-page .jewelry-chest-grid .forge-material-item{min-height:48px;padding:3px 2px}
+  .jewelry-page .jewelry-attributes-card{max-height:76px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .jewelry-page .jewelry-workspace{gap:4px;padding:4px 6px!important}
+  .jewelry-page .jewelry-forge-lower{gap:3px;padding:4px}
+  .jewelry-page .jewelry-selection-zone{padding:4px;gap:3px}
+  .jewelry-page .jewelry-selection-zone .forge-recipe-slot{min-height:38px}
+  .jewelry-page .jewelry-chest-zone{padding:4px;gap:3px}
+  .jewelry-page .jewelry-chest-grid{grid-auto-rows:minmax(42px,auto);gap:3px}
+  .jewelry-page .jewelry-chest-grid .forge-material-item{min-height:42px}
+}
