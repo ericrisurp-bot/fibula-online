@@ -28,6 +28,8 @@ type ArmorCraftPanelProps = {
   glowStyle: (itemId: string) => CSSProperties;
   label: (itemId: string) => string;
   selectedCoreId?: string | null;
+  selectedLining?: ArmorLining | null;
+  hideLiningSelection?: boolean;
   onClearCore?: () => void;
   onBusyChange?: (busy: boolean) => void;
 };
@@ -84,13 +86,16 @@ export default function ArmorCraftPanel({
   glowStyle,
   label,
   selectedCoreId: controlledCoreId,
+  selectedLining: controlledLining,
+  hideLiningSelection = false,
   onClearCore,
   onBusyChange,
 }: ArmorCraftPanelProps) {
   const [internalCoreId, setInternalCoreId] = useState<string | null>(null);
   const isControlled = controlledCoreId !== undefined;
   const selectedCoreId = isControlled ? controlledCoreId : internalCoreId;
-  const [selectedLining, setSelectedLining] = useState<ArmorLining | null>(null);
+  const [internalLining, setInternalLining] = useState<ArmorLining | null>(null);
+  const selectedLining = controlledLining !== undefined ? controlledLining : internalLining;
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
   const craftLockRef = useRef(false);
@@ -189,7 +194,7 @@ export default function ArmorCraftPanel({
       applyInventory(result.inventory);
       if (isControlled) onClearCore?.();
       else setInternalCoreId(null);
-      setSelectedLining(null);
+      setInternalLining(null);
       onCrafted(result.armor);
       setFeedback(`Peça fabricada! ${result.armor.stars} ${result.armor.stars === 1 ? 'estrela' : 'estrelas'}.`);
     } catch (cause) {
@@ -229,7 +234,7 @@ export default function ArmorCraftPanel({
         </div>
       </section>}
 
-      <section className="armor-craft-section" aria-label="Escolha do forro">
+      {!hideLiningSelection && <section className="armor-craft-section" aria-label="Escolha do forro">
         <header className="armor-craft-heading"><strong>FORRO</strong><span>Escolha obrigatória</span></header>
         <div className="armor-craft-linings">
           {LININGS.map(item => <button
@@ -237,12 +242,12 @@ export default function ArmorCraftPanel({
             type="button"
             className={`armor-craft-lining-button${selectedLining === item.id ? ' armor-craft-is-selected' : ''}`}
             aria-pressed={selectedLining === item.id}
-            onClick={() => { setSelectedLining(item.id); setFeedback(''); }}
+            onClick={() => { setInternalLining(item.id); setFeedback(''); }}
           >
             <strong>{item.label}</strong><small>{item.effect}</small>
           </button>)}
         </div>
-      </section>
+      </section>}
 
       {selectedCore && selectedPiece && selectedLining && materials && <>
         <section className="armor-craft-section" aria-label="Materiais necessários">
