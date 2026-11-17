@@ -12602,7 +12602,7 @@ sem backdrop ou caixa de modal. */
   .tailor-page .tailor-chest-grid .forge-material-item strong{font-size:7px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(95px,.55fr) minmax(0,1.45fr)}
+  .tailor-page .tailor-forge-workspace{}
   .tailor-page .tailor-forge-lower{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
 }
 
@@ -12651,7 +12651,7 @@ sem backdrop ou caixa de modal. */
   .tailor-page .tailor-chest-grid .forge-material-item strong,.tailor-page .tailor-chest-grid .forge-material-item small{font-size:7px}
 }
 @media(orientation:landscape) and (max-height:520px){
-  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(78px,.42fr) minmax(0,1.58fr)}
+  .tailor-page .tailor-forge-workspace{}
   .tailor-page .tailor-forge-workspace .tailor-scene-slots{padding-top:20px}
 }
 @media(min-width:700px){
