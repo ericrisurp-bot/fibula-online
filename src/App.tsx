@@ -19,7 +19,7 @@ import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 import { armorMaterialItemIds, craftArmor, deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
 import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
-import { ARMOR_PIECE_ORDER, computeArmorBonuses, readEquippedArmorSelections, resolveEquippedArmors, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
+import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
 import { drawFloatingTool } from './game/tools';
@@ -505,7 +505,7 @@ export default function App() {
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
-  const equippedArmorsRef = useRef<Partial<Record<ArmorPiece, CraftedArmor>>>({});
+  const equippedArmorsRef = useRef<Partial<Record<ClassId, Partial<Record<ArmorPiece, CraftedArmor>>>>>({});
   const applyClassAndEquippedWeaponRef = useRef<(id: ClassId) => void>(() => {});
   const houseLoadReadyRef = useRef(false);
   const houseChangedDuringLoadRef = useRef(false);
@@ -944,7 +944,7 @@ export default function App() {
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
-  const [equippedArmorIds, setEquippedArmorIds] = useState<EquippedArmorSelections>(() => CONFIG.rulesV2.armorCraftingEnabled ? readEquippedArmorSelections(session.user.sub) : {});
+  const [equippedArmorIds, setEquippedArmorIds] = useState<EquippedArmorSelections>(() => CONFIG.rulesV2.armorCraftingEnabled ? readEquippedArmorSelections(session.user.sub, characterPreferences[0] ?? 'guerreiro') : {});
   const [armorsLoaded, setArmorsLoaded] = useState(false);
   const [armorsSettled, setArmorsSettled] = useState(false);
   const [armorsLoadedForUserId, setArmorsLoadedForUserId] = useState<string | null>(null);
@@ -953,8 +953,8 @@ export default function App() {
   const [armorDeleteBusy, setArmorDeleteBusy] = useState(false);
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
-    setEquippedArmorIds(readEquippedArmorSelections(session.user.sub));
-  }, [session.user.sub]);
+    setEquippedArmorIds(readEquippedArmorSelections(session.user.sub, characterPreferences[0] ?? 'guerreiro'));
+  }, [session.user.sub, characterPreferences]);
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
@@ -976,19 +976,20 @@ export default function App() {
   const armorListReady = armorsLoaded && armorsLoadedForUserId === session.user.sub;
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled || !armorListReady) return;
-    const resolved = resolveEquippedArmors(craftedArmors, equippedArmorIds);
-    const validSelections: EquippedArmorSelections = {};
-    for (const piece of ARMOR_PIECE_ORDER) {
-      const armor = resolved[piece];
-      if (armor) validSelections[piece] = armor.id;
-    }
+    const validSelections = sanitizeEquippedArmorSelections(craftedArmors, equippedArmorIds);
     writeEquippedArmorSelections(session.user.sub, validSelections);
     if (JSON.stringify(validSelections) !== JSON.stringify(equippedArmorIds)) setEquippedArmorIds(validSelections);
   }, [armorListReady, craftedArmors, equippedArmorIds, session.user.sub]);
-  const equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = CONFIG.rulesV2.armorCraftingEnabled && armorListReady
-    ? resolveEquippedArmors(craftedArmors, equippedArmorIds)
+  const equippedArmorSets: Partial<Record<ClassId, Partial<Record<ArmorPiece, CraftedArmor>>>> = {};
+  if (CONFIG.rulesV2.armorCraftingEnabled && armorListReady) {
+    for (const classId of PROFILE_CLASS_IDS) {
+      equippedArmorSets[classId] = resolveEquippedArmors(craftedArmors, equippedArmorIds, classId);
+    }
+  }
+  const equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = activeArsenalClassId
+    ? equippedArmorSets[activeArsenalClassId] ?? {}
     : {};
-  equippedArmorsRef.current = equippedArmors;
+  equippedArmorsRef.current = equippedArmorSets;
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
   const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
@@ -1009,7 +1010,7 @@ export default function App() {
       const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, classId);
       statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, getAccountPointsPerLevel(accountLevel), {
         weapon: weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null,
-        ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmors, classId) } : {}),
+        ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmorSets[classId] ?? {}, classId) } : {}),
       }).total);
     }
   }
@@ -1031,7 +1032,7 @@ export default function App() {
   > = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
-    ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => equippedArmorIds[armor.piece] !== armor.id).map(armor => ({ kind: 'armor' as const, armor })) : []),
+    ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => !Object.values(equippedArmorIds).some(classSelections => Object.values(classSelections ?? {}).includes(armor.id))).map(armor => ({ kind: 'armor' as const, armor })) : []),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
@@ -2344,7 +2345,9 @@ export default function App() {
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
-    engineRef.current?.setEquippedArmors(armorListReady ? equippedArmorsRef.current : {});
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.setEquippedArmors(armorListReady ? equippedArmorsRef.current[engine.state.classId] ?? {} : {});
   }, [activeGameRoute.page, armorListReady, craftedArmors, equippedArmorIds]);
 
   useEffect(() => {
@@ -3214,7 +3217,7 @@ export default function App() {
       const selectedClass = characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro';
       engine.setClass(selectedClass);
       await prepareEquippedWeaponForClass(engine, selectedClass);
-      if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current);
+      if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[selectedClass] ?? {});
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
@@ -3360,6 +3363,7 @@ export default function App() {
     engine.setClass(id);
     const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, id);
     engine.setEquippedWeapon(weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null);
+    if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[id] ?? {});
   };
   applyClassAndEquippedWeaponRef.current = applyClassAndEquippedWeapon;
   const equipCraftedWeapon = (weapon: CraftedWeapon) => {
@@ -3384,7 +3388,8 @@ export default function App() {
   const openArsenalArmorActions = (armor: CraftedArmor) => { setSelectedArsenalItemId(armor.id); setArmorActionArmor(armor); };
   const equipArsenalArmor = () => {
     if (!armorActionArmor) return;
-    const next = { ...equippedArmorIds, [armorActionArmor.piece]: armorActionArmor.id };
+    if (!activeArsenalClassId) return;
+    const next = equipArmorForClass(equippedArmorIds, activeArsenalClassId, armorActionArmor);
     setEquippedArmorIds(next);
     writeEquippedArmorSelections(session.user.sub, next);
     setWeaponFeedback(ARSENAL_ARMOR_PIECE_LABELS[armorActionArmor.piece] + ' equipada.');
@@ -3393,8 +3398,8 @@ export default function App() {
   };
   const unequipArsenalArmor = () => {
     if (!armorActionArmor) return;
-    const next = { ...equippedArmorIds };
-    if (next[armorActionArmor.piece] === armorActionArmor.id) delete next[armorActionArmor.piece];
+    if (!activeArsenalClassId) return;
+    const next = unequipArmorForClass(equippedArmorIds, activeArsenalClassId, armorActionArmor);
     setEquippedArmorIds(next);
     writeEquippedArmorSelections(session.user.sub, next);
     setWeaponFeedback(ARSENAL_ARMOR_PIECE_LABELS[armorActionArmor.piece] + ' desequipada.');
@@ -3413,9 +3418,8 @@ export default function App() {
     try {
       const deleted = await deleteArmor(fibulaSupabase, armor.id);
       if (!deleted) throw new Error('A armadura não foi excluída.');
-      if (equippedArmorIds[armor.piece] === armor.id) {
-        const next = { ...equippedArmorIds };
-        delete next[armor.piece];
+      const next = removeArmorFromSelections(equippedArmorIds, armor.id);
+      if (JSON.stringify(next) !== JSON.stringify(equippedArmorIds)) {
         setEquippedArmorIds(next);
         writeEquippedArmorSelections(session.user.sub, next);
       }
@@ -4486,7 +4490,7 @@ export default function App() {
           </section></div>
           <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
-        {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && equippedArmorIds[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
+        {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && activeArsenalClassId && equippedArmorIds[activeArsenalClassId]?.[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)}</strong>

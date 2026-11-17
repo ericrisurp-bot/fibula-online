@@ -10,7 +10,7 @@ import {
   type CraftedArmor,
 } from './armorCrafting';
 
-export type EquippedArmorSelections = Partial<Record<ArmorPiece, string>>;
+export type EquippedArmorSelections = Partial<Record<ClassId, Partial<Record<ArmorPiece, string>>>>;
 
 export type ArmorBonuses = {
   armadura: number;
@@ -28,32 +28,83 @@ export const ARMOR_PIECE_ORDER: ArmorPiece[] = [
   'luva',
 ];
 
+const ARMOR_CLASS_ORDER: readonly ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const equippedArmorStorageKey = (userId: string) => 'fibula:equipped-armors:' + userId;
 
-export function readEquippedArmorSelections(userId: string): EquippedArmorSelections {
+function isClassId(value: string): value is ClassId {
+  return ARMOR_CLASS_ORDER.includes(value as ClassId);
+}
+
+function cloneSelections(selections: EquippedArmorSelections): EquippedArmorSelections {
+  const cloned: EquippedArmorSelections = {};
+  for (const classId of ARMOR_CLASS_ORDER) {
+    const classSelections = selections[classId];
+    if (classSelections) cloned[classId] = { ...classSelections };
+  }
+  return cloned;
+}
+
+/**
+ * Lê o formato atual (por classe) e migra o formato antigo compartilhado
+ * para a classe principal, sem duplicar a mesma peça na classe secundária.
+ */
+export function readEquippedArmorSelections(
+  userId: string,
+  legacyPrimaryClass: ClassId = 'guerreiro',
+): EquippedArmorSelections {
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(equippedArmorStorageKey(userId)) ?? '{}');
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-    const selections: EquippedArmorSelections = {};
-    for (const piece of ARMOR_PIECE_ORDER) {
-      const id = (parsed as Record<string, unknown>)[piece];
-      if (typeof id === 'string' && id.length > 0) selections[piece] = id;
+    const saved = parsed as Record<string, unknown>;
+    const hasClassEntries = ARMOR_CLASS_ORDER.some(classId =>
+      !!saved[classId] && typeof saved[classId] === 'object' && !Array.isArray(saved[classId]),
+    );
+
+    if (hasClassEntries) {
+      const selections: EquippedArmorSelections = {};
+      for (const classId of ARMOR_CLASS_ORDER) {
+        const rawClass = saved[classId];
+        if (!rawClass || typeof rawClass !== 'object' || Array.isArray(rawClass)) continue;
+        const pieces: Partial<Record<ArmorPiece, string>> = {};
+        for (const piece of ARMOR_PIECE_ORDER) {
+          const id = (rawClass as Record<string, unknown>)[piece];
+          if (typeof id === 'string' && id.length > 0) pieces[piece] = id;
+        }
+        if (Object.keys(pieces).length) selections[classId] = pieces;
+      }
+      return selections;
     }
-    return selections;
+
+    const legacyPieces: Partial<Record<ArmorPiece, string>> = {};
+    for (const piece of ARMOR_PIECE_ORDER) {
+      const id = saved[piece];
+      if (typeof id === 'string' && id.length > 0) legacyPieces[piece] = id;
+    }
+    return Object.keys(legacyPieces).length ? { [legacyPrimaryClass]: legacyPieces } : {};
   } catch {
     return {};
   }
 }
 
+/** Persiste seleções por classe e remove IDs repetidos entre classes. */
 export function writeEquippedArmorSelections(
   userId: string,
   selections: EquippedArmorSelections,
 ): void {
   try {
     const safeSelections: EquippedArmorSelections = {};
-    for (const piece of ARMOR_PIECE_ORDER) {
-      const id = selections[piece];
-      if (typeof id === 'string' && id.length > 0) safeSelections[piece] = id;
+    const usedArmorIds = new Set<string>();
+    for (const classId of ARMOR_CLASS_ORDER) {
+      const classSelections = selections[classId];
+      if (!classSelections) continue;
+      const safePieces: Partial<Record<ArmorPiece, string>> = {};
+      for (const piece of ARMOR_PIECE_ORDER) {
+        const id = classSelections[piece];
+        if (typeof id !== 'string' || id.length === 0 || usedArmorIds.has(id)) continue;
+        safePieces[piece] = id;
+        usedArmorIds.add(id);
+      }
+      if (Object.keys(safePieces).length) safeSelections[classId] = safePieces;
     }
     window.localStorage.setItem(equippedArmorStorageKey(userId), JSON.stringify(safeSelections));
   } catch {
@@ -61,13 +112,83 @@ export function writeEquippedArmorSelections(
   }
 }
 
+export function equipArmorForClass(
+  selections: EquippedArmorSelections,
+  classId: ClassId,
+  armor: Pick<CraftedArmor, 'id' | 'piece'>,
+): EquippedArmorSelections {
+  const next = cloneSelections(selections);
+  // Um item fabricado só pode ocupar uma classe por vez.
+  for (const ownerClass of ARMOR_CLASS_ORDER) {
+    const pieces = next[ownerClass];
+    if (!pieces) continue;
+    for (const piece of ARMOR_PIECE_ORDER) {
+      if (pieces[piece] === armor.id) delete pieces[piece];
+    }
+    if (!Object.keys(pieces).length) delete next[ownerClass];
+  }
+  next[classId] = { ...(next[classId] ?? {}), [armor.piece]: armor.id };
+  return next;
+}
+
+export function unequipArmorForClass(
+  selections: EquippedArmorSelections,
+  classId: ClassId,
+  armor: Pick<CraftedArmor, 'id' | 'piece'>,
+): EquippedArmorSelections {
+  const next = cloneSelections(selections);
+  const pieces = next[classId];
+  if (pieces?.[armor.piece] === armor.id) delete pieces[armor.piece];
+  if (pieces && !Object.keys(pieces).length) delete next[classId];
+  return next;
+}
+
+export function removeArmorFromSelections(
+  selections: EquippedArmorSelections,
+  armorId: string,
+): EquippedArmorSelections {
+  const next = cloneSelections(selections);
+  for (const classId of ARMOR_CLASS_ORDER) {
+    const pieces = next[classId];
+    if (!pieces) continue;
+    for (const piece of ARMOR_PIECE_ORDER) {
+      if (pieces[piece] === armorId) delete pieces[piece];
+    }
+    if (!Object.keys(pieces).length) delete next[classId];
+  }
+  return next;
+}
+
+/** Mantém apenas armaduras existentes e garante exclusividade global por ID. */
+export function sanitizeEquippedArmorSelections(
+  armors: CraftedArmor[],
+  selections: EquippedArmorSelections,
+): EquippedArmorSelections {
+  const safe: EquippedArmorSelections = {};
+  const usedArmorIds = new Set<string>();
+  for (const classId of ARMOR_CLASS_ORDER) {
+    const resolved = resolveEquippedArmors(armors, selections, classId);
+    const pieces: Partial<Record<ArmorPiece, string>> = {};
+    for (const piece of ARMOR_PIECE_ORDER) {
+      const armor = resolved[piece];
+      if (!armor || usedArmorIds.has(armor.id)) continue;
+      pieces[piece] = armor.id;
+      usedArmorIds.add(armor.id);
+    }
+    if (Object.keys(pieces).length) safe[classId] = pieces;
+  }
+  return safe;
+}
+
 export function resolveEquippedArmors(
   armors: CraftedArmor[],
   selections: EquippedArmorSelections,
+  classId: ClassId,
 ): Partial<Record<ArmorPiece, CraftedArmor>> {
   const equipped: Partial<Record<ArmorPiece, CraftedArmor>> = {};
+  const classSelections = selections[classId] ?? {};
   for (const piece of ARMOR_PIECE_ORDER) {
-    const id = selections[piece];
+    const id = classSelections[piece];
     if (typeof id !== 'string' || id.length === 0) continue;
     const armor = armors.find(item => item.id === id && item.piece === piece);
     if (armor) equipped[piece] = armor;
