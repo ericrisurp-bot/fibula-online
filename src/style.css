@@ -12568,3 +12568,28 @@ sem backdrop ou caixa de modal. */
   width:min(310px,100%);max-height:100%;min-height:0;
 }
 @media(max-width:430px){.forge-production-result{width:min(270px,100%)}}
+
+
+/* Alfaiataria — seleção de núcleo no Baú e fabricação em modal, mantendo o ateliê. */
+.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;gap:8px;overflow:hidden}
+.tailor-workspace.armor-craft-workspace>.tailor-scene{position:relative;display:block;width:100%;height:100%;min-height:0;max-height:none;overflow:hidden}
+.tailor-preview-result-layer{position:absolute;z-index:6;inset:0;display:flex;align-items:center;justify-content:center;padding:42px 10px 10px;pointer-events:none}
+.tailor-preview-result-layer .forge-production-result{width:min(310px,100%);max-height:100%;pointer-events:auto}
+.tailor-chest-zone{display:flex;min-height:0;flex-direction:column;overflow:hidden}
+.tailor-core-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:5px;max-height:44%;min-height:54px;overflow:auto;overscroll-behavior:contain}
+.tailor-core-item{display:flex;min-width:0;min-height:58px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;border:1px solid #a99b7b;border-radius:7px;background:linear-gradient(150deg,#f1e8d5,#d8ccb1);color:#373a2b;font:inherit;cursor:pointer}
+.tailor-core-item>span{display:grid;width:28px;height:28px;place-items:center}
+.tailor-core-item>span img{width:27px;height:27px;object-fit:contain;image-rendering:pixelated}
+.tailor-core-item strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
+.tailor-core-item small{font-size:8px;color:#685b43}
+.tailor-material-heading{margin-top:5px}
+.tailor-chest-zone .tailor-fabric-grid{flex:1 1 auto;min-height:0;overflow:auto;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));align-content:start}
+.tailor-chest-zone .tailor-fabric-item{min-height:47px}
+.tailor-craft-backdrop{position:fixed;z-index:1200;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;background:#090b09c9;backdrop-filter:blur(3px)}
+.tailor-craft-dialog{display:flex;width:min(560px,100%);max-height:min(88dvh,760px);min-height:0;flex-direction:column;gap:7px;padding:10px;border:1px solid #a99b7b;border-radius:13px;background:linear-gradient(155deg,#e8dfc9,#cfc4a9 58%,#b7ad92);box-shadow:0 14px 45px #0009}
+.tailor-craft-dialog>header{display:flex;min-height:34px;align-items:center;justify-content:space-between;gap:8px;padding:0 3px;color:#373a2b}
+.tailor-craft-dialog>header strong{font-size:11px;letter-spacing:.08em}
+.tailor-craft-dialog>header button{width:32px;height:32px;border:1px solid #a99b7b;border-radius:7px;background:#d8ccb1;color:#39392e;font-size:22px;line-height:1}
+.tailor-craft-dialog>.armor-craft-panel{min-height:0;max-height:calc(88dvh - 68px);flex:1 1 auto}
+@media(max-width:430px){.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}.tailor-core-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.tailor-core-item{min-height:51px;padding:3px 2px}.tailor-core-item>span{width:24px;height:24px}.tailor-core-item>span img{width:23px;height:23px}.tailor-core-item strong,.tailor-core-item small{font-size:7px}.tailor-craft-backdrop{padding:8px}.tailor-craft-dialog{max-height:92dvh;padding:7px}.tailor-craft-dialog>.armor-craft-panel{max-height:calc(92dvh - 58px)}}
+@media(orientation:landscape) and (max-height:520px){.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important}.tailor-craft-dialog{max-height:94dvh}.tailor-craft-dialog>.armor-craft-panel{max-height:calc(94dvh - 58px)}}
