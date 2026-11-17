@@ -225,3 +225,29 @@ O motor valida cada peça recebida (ID, correspondência do espaço, atributos f
 - **Vida:** `freshState` inclui o bônus no HP e no máximo inicial; ao equipar/desequipar, o máximo muda pela diferença do bônus aplicado e o HP acompanha aumentos ou é limitado ao novo máximo em reduções. Na troca de classe, o bônus da nova classe entra no novo máximo antes da transição proporcional de vida já existente.
 
 Com `rulesV2.enabled = false`, `getArmorBonuses` retorna `null`; não há bônus de armadura no motor, o cálculo legado de armadura/esquiva permanece e a coleta de XP usa o valor original. O motor não altera a regra de ganho de vida por nível.
+
+
+## A4.5 — Alfaiataria no padrão da Bigorna (couro, Tipo 1)
+
+Com `CONFIG.rulesV2.armorCraftingEnabled = true`, a Alfaiataria usa a mesma composição de estação da Bigorna: cena no topo e painel inferior dividido entre receita/seleção e Baú. A Bigorna permanece sem alterações.
+
+- O Baú lista núcleos revelados de armadura com `equipmentType` como botões selecionáveis. Clicar novamente no núcleo selecionado o devolve ao Baú. Núcleos de arma, acessórios e demais núcleos aparecem inertes.
+- A zona escura **MATERIAIS SELECIONADOS** usa os slots `forge-recipe-slots`, `forge-recipe-slot`, `forge-core-recipe-slot` e `forge-material-recipe-slot`; clicar em um slot preenchido devolve o item ao Baú. Os slots de couro de lobo e forro aparecem somente depois da seleção do núcleo e exibem a contagem X/N.
+- O Baú lista somente núcleos revelados e os materiais `wolf_hide`, `cotton`, `linen` e `refined_leather`. Núcleos de armadura revelados são selecionáveis; núcleos de arma/acessório são inertes. Materiais só podem ser selecionados se tiverem a mesma raridade do núcleo e houver slot compatível livre. O clique no material preenche o slot correspondente; materiais incompatíveis ficam visualmente inativos.
+- Peça, quantidades e raridade continuam determinadas por `equipmentType`, `ARMOR_RECIPES` e `armorMaterialItemIds`. O tipo enviado à RPC permanece `couro`; a assinatura de `fibula_craft_armor(p_piece,p_type,p_lining,p_core_item_id)` não muda.
+- A prévia de fabricação aparece na cena enquanto a sessão da Alfaiataria permanecer aberta. Iniciar outra fabricação ou sair da estação limpa a prévia; o retorno tardio de uma chamada não a reapresenta depois que a sessão foi encerrada.
+- A fabricação exige núcleo, couro de lobo completo, forro completo, conexão, Baú carregado e trava de fabricação livre. A RPC continua `craftArmor(client, piece, 'couro', lining, coreItemId)`; em sucesso o cliente aplica o inventário retornado, limpa os slots e apresenta `ForgeProductionPreview` de armadura. Em erro, mostra a mensagem e tenta recarregar o Baú.
+- A prévia usa a sessão isolada `tailorPreviewSessionRef`; sair da estação invalida retornos tardios. O cartão de resultado orienta **Feche a estação…**.
+- Ao desligar a flag, o fallback legado da Alfaiataria continua sendo exibido sem alterações.
+- O Baú ocupa toda a área inferior, com rolagem interna; o CSS da cena mantém a placa **ALFAIATARIA** acima dos rolos de tecido, sem afetar outras telas.
+
+
+## A4.5d — slots compartilhados na Bigorna e manequim da Alfaiataria
+
+- O componente de slots da Alfaiataria é compartilhado com a Bigorna e recebe `type: 'couro' | 'bronze'` e `stationName`. O cartão de resultado recebe o nome da estação para orientar seu fechamento sem fixar uma estação no componente.
+- Na Alfaiataria, o tipo continua `couro`: núcleo, couro de lobo como material-base e forro (algodão, linho ou couro refinado), com quantidades de `armorMaterialItemIds`.
+- Na Bigorna, ao selecionar núcleo revelado de armadura, os mesmos slots escuros são usados com tipo `bronze`: núcleo, barra de bronze como material-base e forro de algodão, linho ou couro refinado. Materiais e forro devem ter a raridade do núcleo e as quantidades vêm de `armorMaterialItemIds`.
+- O Baú da Bigorna, com núcleo de armadura selecionado, aceita somente bronze no slot-base e os três materiais de forro no slot de forro; madeira e pedra ficam incompatíveis. Sem núcleo de armadura, o roteamento original de materiais de armas permanece.
+- A fabricação de armadura continua chamando `craftArmor()` com tipo `bronze` na Bigorna e `couro` na Alfaiataria. A RPC e a persistência não são alteradas.
+- A cena SVG da Alfaiataria usa manequim de costura com pescoço, ombros inclinados, tronco, cintura/quadril, haste e base tripé/disco, preservando paleta e posição.
+- `ArmorCraftPanel.tsx` permanece no repositório sem remoção; a Bigorna deixa de renderizá-lo para fabricação de armaduras.
