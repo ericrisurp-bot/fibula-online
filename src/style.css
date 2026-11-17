@@ -12387,3 +12387,84 @@ sem backdrop ou caixa de modal. */
   line-height:1.35;
   overflow-wrap:anywhere;
 }
+
+
+/* Bigorna — desktop amplo: usar a largura e a altura disponíveis para o Baú. */
+@media (min-width: 1200px) and (min-height: 700px) {
+  .forge-page .forge-workspace {
+    width: 100%;
+    max-width: none !important;
+    margin: 0;
+    grid-template-rows: minmax(190px, .34fr) minmax(0, .66fr) !important;
+    gap: 10px;
+    padding: 10px clamp(16px, 2vw, 32px) 14px !important;
+  }
+
+  .forge-page .forge-workspace > .forge-scene {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .forge-page .forge-lower-panel {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 9px;
+    gap: 7px;
+  }
+
+  .forge-page .forge-selection-zone {
+    flex: 0 0 auto;
+    padding: 7px 9px 9px;
+  }
+
+  .forge-page .forge-selection-zone .forge-recipe-slot {
+    min-height: 54px;
+    max-width: 132px;
+    padding: 5px;
+  }
+
+  .forge-page .forge-selection-action {
+    min-height: 34px;
+  }
+
+  .forge-page .forge-selection-action .forge-craft-button {
+    min-height: 34px;
+  }
+
+  .forge-page .forge-chest-zone {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding: 7px 9px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-grid {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    grid-auto-rows: minmax(66px, auto);
+    align-content: start;
+    gap: 7px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item {
+    min-width: 0;
+    min-height: 66px;
+    padding: 5px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item strong,
+  .forge-page .forge-chest-zone .forge-material-item small {
+    font-size: 9px;
+  }
+}
