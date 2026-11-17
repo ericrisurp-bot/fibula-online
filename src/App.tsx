@@ -37,6 +37,7 @@ import { registerStepSounds } from './audio/stepSounds';
 import { isKnownGamePath, navigateToLobby, navigateToPage, navigateToPlayerProfile, navigateToStation, readGameRoute, type GameRoute, type StationRouteId } from './ui/stationRoute';
 import PageFrame from './ui/PageFrame';
 import ForgeScene from './ui/ForgeScene';
+import ForgeProductionPreview from './ui/ForgeProductionPreview';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import ArmorCraftPanel from './ui/ArmorCraftPanel';
@@ -60,6 +61,9 @@ type RankingEntry = {
 let floatingWeaponSide: 1 | -1 = 1;
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
+type ForgeProductionPreviewState =
+  | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[] }
+  | { kind: 'armor'; armor: CraftedArmor };
 
 registerCombatSounds();
 registerGatherSounds();
@@ -896,6 +900,7 @@ export default function App() {
   const [selectedWeaponMaterials, setSelectedWeaponMaterials] = useState<Array<{ slot: string; itemId: string; quantity: number }>>([]);
   const [forgeHammering, setForgeHammering] = useState(false);
   const [forgeCraftResult, setForgeCraftResult] = useState('');
+  const [forgeProductionPreview, setForgeProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
   const [craftedWeapons, setCraftedWeapons] = useState<CraftedWeapon[]>([]);
   const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
@@ -1014,6 +1019,7 @@ export default function App() {
     setCookingFeedback(!cookingOnline && id === 'fogao' ? 'Sem conexão: cozinhar exige internet.' : '');
   };
   const closeGamePage = () => {
+    setForgeProductionPreview(null);
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
     setArsenalOpen(false); setFriendsOpen(false); setChestOpen(false);
@@ -2619,6 +2625,7 @@ export default function App() {
       }
       setForgeHammering(false);
       setForgeCraftResult(arsenalWeaponLabels[result.weapon.model] + ' fabricada!');
+      setForgeProductionPreview({ kind: 'weapon', weapon: result.weapon, materials: selectedWeaponMaterials.map(item => itemLabel(item.itemId)) });
       setSelectedWeaponCoreId(null);
       setSelectedWeaponMaterials([]);
       try {
@@ -3722,12 +3729,7 @@ export default function App() {
               </div> : activeCraftingStation.id === 'bigorna' ? <>
                 <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
-                    {forgeCraftResult && <button type="button" className="forge-production-result"
-                      onClick={openCraftedWeaponInArsenal} aria-label="Abrir arma fabricada no Arsenal">
-                      <span aria-hidden="true">⚔️</span>
-                      <strong>{forgeCraftResult}</strong>
-                      <small>Clique para abrir no Arsenal</small>
-                    </button>}
+                    {forgeProductionPreview && <ForgeProductionPreview {...forgeProductionPreview} />}
                   </ForgeScene>
                   <div className="forge-lower-panel">
                     {selectedArmorCore ? <ArmorCraftPanel
@@ -3738,7 +3740,7 @@ export default function App() {
                       client={fibulaSupabase}
                       applyInventory={applyCookingInventory}
                       refreshChest={refreshLobbyChestFromCloud}
-                      onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
+                      onCrafted={armor => { setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50)); setForgeProductionPreview({ kind: 'armor', armor }); }}
                       renderIcon={inventoryItemIcon}
                       glowStyle={itemRarityGlow}
                       label={itemLabel}
@@ -3778,13 +3780,11 @@ export default function App() {
                         </button>
                       </div>
                       <div className="forge-action-area forge-selection-action">
-                        {forgeCraftResult ? <div className="forge-result" role="status">
-                          <strong>{forgeCraftResult}</strong>
-                          <button type="button" onClick={openCraftedWeaponInArsenal}>Ver no Arsenal</button>
-                        </div> : <button type="button" className="forge-craft-button" onClick={() => void craftAnvilWeapon()}
+                        {forgeCraftResult && <div className="forge-result" role="status"><strong>{forgeCraftResult}</strong></div>}
+                        <button type="button" className="forge-craft-button" onClick={() => void craftAnvilWeapon()}
                           disabled={lobbyChestStatus !== 'ready' || !selectedWeaponCore || !weaponMaterialsReady || !!weaponCompatibilityError || !cookingOnline || weaponCraftBusy}>
                           {weaponCraftBusy ? 'Fabricando…' : 'Fabricar'}
-                        </button>}
+                        </button>
                         {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
                         {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
                       </div>
