@@ -42,6 +42,7 @@ import ForgeProductionPreview from './ui/ForgeProductionPreview';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import TailorCraftSlots from './ui/TailorCraftSlots';
+import CoreDetail from './ui/CoreDetail';
 import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
@@ -3898,6 +3899,7 @@ export default function App() {
                         onClearLining={() => setTailorLiningSelection(null)}
                         onCraft={() => void craftTailorArmor()}
                       />
+                      {selectedTailorCoreId && <CoreDetail itemId={selectedTailorCoreId} mode="inline" armorTypes={['couro']}/>}
                       <section className="forge-zone forge-chest-zone tailor-chest-zone" aria-label="Baú da Alfaiataria">
                         <div className="forge-panel-heading"><strong>BAÚ</strong><span>Núcleos revelados · Couro e forros</span></div>
                         <div className="forge-material-grid forge-chest-grid tailor-chest-grid" aria-label="Núcleos e materiais no Baú">
@@ -3905,16 +3907,19 @@ export default function App() {
                             const parsed = parseCoreItemId(item.itemId);
                             if (parsed?.kind === 'revealed') {
                               const selectable = parsed.core.category === 'armor' && !!parsed.core.equipmentType;
-                              return selectable ? <button type="button" key={item.itemId}
-                                className={'forge-material-item forge-core-item' + (selectedTailorCoreId === item.itemId ? ' selected' : '')}
-                                disabled={tailorCraftBusy || tailorCraftLockRef.current}
-                                aria-pressed={selectedTailorCoreId === item.itemId}
-                                onClick={() => selectTailorCore(item.itemId)}>
-                                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                                <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                              </button> : <div className="forge-material-item forge-core-item is-inert" key={item.itemId}>
-                                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                                <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                              return <div className="core-detail-item-wrap" key={item.itemId}>
+                                {selectable ? <button type="button"
+                                  className={'forge-material-item forge-core-item' + (selectedTailorCoreId === item.itemId ? ' selected' : '')}
+                                  disabled={tailorCraftBusy || tailorCraftLockRef.current}
+                                  aria-pressed={selectedTailorCoreId === item.itemId}
+                                  onClick={() => selectTailorCore(item.itemId)}>
+                                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                                  <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                                </button> : <div className="forge-material-item forge-core-item is-inert">
+                                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                                  <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                                </div>}
+                                <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['couro']}/>
                               </div>;
                             }
                             const base = getBaseItemId(item.itemId);
@@ -4000,13 +4005,7 @@ export default function App() {
                         <small>{jewelryCottonSelected}/{JEWELRY_POLISH_COTTON_COST}</small>
                       </button>}
                     </div>
-                    {jewelrySlotCore?.kind === 'revealed' && <div className="jewelry-attributes-card" aria-label="Atributos do núcleo revelado">
-                      <strong>ATRIBUTOS DO NÚCLEO</strong>
-                      <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
-                        <span>{weaponAttributeLabels[attribute.key] ?? attribute.key}</span>
-                        <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
-                      </li>)}</ul>
-                    </div>}
+                    {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCoreId && <CoreDetail itemId={jewelrySlotCoreId} mode="inline" armorTypes={['couro','bronze']}/>}
                     {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory' && <div className="jewelry-accessory-recipe">
                       <div className="forge-panel-heading"><strong>RECEITA DO ACESSÓRIO</strong></div>
                       <p>Receita em definição</p>
@@ -4061,18 +4060,21 @@ export default function App() {
                             <small>{accessory ? `×${item.quantity}` : parsed.core.category === 'weapon' ? 'Bigorna' : 'Alfaiataria'}</small>
                             {!accessory && <small>×{item.quantity}</small>}
                           </>;
-                          return accessory ? <button type="button" key={item.itemId}
-                            className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
-                            disabled={jewelryRevealBusy}
-                            aria-pressed={selected}
-                            onClick={() => {
-                              if (jewelryRevealBusy) return;
-                              setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
-                              setJewelryCottonSelection(0);
-                              setJewelryResultCoreId(null);
-                              setJewelryFeedback('');
-                            }}>{content}</button>
-                            : <div className="forge-material-item forge-chest-item forge-core-item is-inert" key={item.itemId}>{content}</div>;
+                          return <div className="core-detail-item-wrap" key={item.itemId}>
+                            {accessory ? <button type="button"
+                              className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
+                              disabled={jewelryRevealBusy}
+                              aria-pressed={selected}
+                              onClick={() => {
+                                if (jewelryRevealBusy) return;
+                                setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
+                                setJewelryCottonSelection(0);
+                                setJewelryResultCoreId(null);
+                                setJewelryFeedback('');
+                              }}>{content}</button>
+                              : <div className="forge-material-item forge-chest-item forge-core-item is-inert">{content}</div>}
+                            <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['couro','bronze']}/>
+                          </div>;
                         }
                         const isCotton = getBaseItemId(item.itemId) === 'cotton';
                         const compatibleCotton = isCotton && !!selectedJewelryCoreId?.startsWith('jewelry-closed:') && item.itemId === jewelryCottonItemId;
@@ -4173,6 +4175,8 @@ export default function App() {
                         {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
                       </div>
                     </section>}
+                  {selectedArmorCore && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} mode="inline" armorTypes={['bronze']}/>}
+                  {selectedWeaponCore && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} mode="inline" armorTypes={['bronze']}/>}
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
@@ -4185,18 +4189,21 @@ export default function App() {
                           const isCraftableCore = parsedCore.kind === 'revealed'
                             && (parsedCore.core.category === 'weapon'
                               || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
-                          return isCraftableCore ? <button type="button" key={item.itemId}
-                            className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
-                            disabled={weaponCraftBusy || armorCraftBusy}
-                            aria-pressed={selectedWeaponCoreId === item.itemId}
-                            onClick={() => selectForgeCore(item.itemId)}>
-                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
-                            <small>×{item.quantity}</small>
-                          </button> : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
-                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
-                            <small>×{item.quantity}</small>
+                          return <div className="core-detail-item-wrap" key={item.itemId}>
+                            {isCraftableCore ? <button type="button"
+                              className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
+                              disabled={weaponCraftBusy || armorCraftBusy}
+                              aria-pressed={selectedWeaponCoreId === item.itemId}
+                              onClick={() => selectForgeCore(item.itemId)}>
+                              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                              <strong>{forgeChestItemLabel(item.itemId)}</strong>
+                              <small>×{item.quantity}</small>
+                            </button> : <div className="forge-material-item forge-chest-item is-inert">
+                              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                              <strong>{forgeChestItemLabel(item.itemId)}</strong>
+                              <small>×{item.quantity}</small>
+                            </div>}
+                            <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['bronze']}/>
                           </div>;
                         }
                         const base = getBaseItemId(item.itemId);
@@ -4523,11 +4530,13 @@ export default function App() {
             {chestTab === 'resources' ? <div className="lobby-chest-grid bau-side-grid" aria-label="Itens guardados no Baú">
               {lobbyChestItems.map(item => {
                 const isJabuticaba = item.itemId === 'jabuticaba';
-                return <div key={item.itemId} className="bau-resource-slot">
+                const parsedCore = parseCoreItemId(item.itemId);
+                return <div key={item.itemId} className={`bau-resource-slot${parsedCore?.kind === 'revealed' ? ' core-detail-lobby-slot' : ''}`}>
                   <button type="button" className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
                     aria-label={`${itemLabel(item.itemId)}: abrir ações`} onClick={() => openBauItemActions(item)}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                   </button>
+                  {parsedCore?.kind === 'revealed' && <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['couro','bronze']}/>}
                 </div>;
               })}
             </div> : <>
