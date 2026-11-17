@@ -3702,6 +3702,7 @@ export default function App() {
                         onClearCore={() => setSelectedTailorCoreId(null)}
                         onBusyChange={setTailorCraftBusy}
                         onCrafted={armor => {
+                          setSelectedTailorLining(null);
                           setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50));
                           if (tailorPreviewSessionRef.current === tailorCraftSession) setTailorProductionPreview(armor);
                         }}
@@ -3727,9 +3728,9 @@ export default function App() {
                             const isArmorCore = parsed?.kind === 'revealed' && parsed.core.category === 'armor';
                             return isArmorCore
                               ? <button type="button" className="forge-material-item forge-core-item" key={item.itemId}
-                                  disabled={tailorCraftBusy}
+                                  disabled={tailorCraftBusy || !selectedTailorLining}
                                   aria-pressed={selectedTailorCoreId === item.itemId}
-                                  onClick={() => { tailorPreviewSessionRef.current += 1; setTailorProductionPreview(null); setSelectedTailorCoreId(item.itemId); }}>
+                                  onClick={() => { if (!selectedTailorLining) return; tailorPreviewSessionRef.current += 1; setTailorProductionPreview(null); setSelectedTailorCoreId(item.itemId); }}>
                                   <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                                   <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
                                 </button>
