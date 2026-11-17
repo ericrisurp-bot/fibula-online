@@ -4725,6 +4725,7 @@ export default function App() {
           <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
         <AccessoryDetailsDialog accessory={accessoryDetails} onClose={() => { setAccessoryDetails(null); setSelectedArsenalItemId(null); }} />
+        <AccessoryDetailsDialog accessory={accessoryDetails} onClose={() => { setAccessoryDetails(null); setSelectedArsenalItemId(null); }} />
         {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && activeArsenalClassId && equippedArmorIds[activeArsenalClassId]?.[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
