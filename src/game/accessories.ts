@@ -1,3 +1,4 @@
+import { armorStarMultiplier } from './armor';
 import { CORE_RARITY_REFERENCE } from './cores';
 import type { CoreAttributeKey, CoreRarity } from './cores';
 
@@ -87,9 +88,11 @@ export function accessoryAttributeValue({
     throw new Error(`Roll inválido para acessório: esperado um número entre 0.5 e 1.0; recebido ${roll}.`);
   }
 
+  // O teto de estrelas já foi validado por metal; reutiliza a progressão comum de +25%.
+  const starMultiplier = armorStarMultiplier(stars, 'legendary');
   return ACCESSORY_ATTRIBUTE_REFERENCE[attribute]
     * ACCESSORY_RARITY_FRACTION[rarity]
-    * (1 + 0.25 * (stars - 1))
+    * starMultiplier
     * roll;
 }
 
