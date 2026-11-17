@@ -12570,24 +12570,73 @@ sem backdrop ou caixa de modal. */
 @media(max-width:430px){.forge-production-result{width:min(270px,100%)}}
 
 
-/* Alfaiataria — fabricação em bloco integrado, seguindo a estrutura da Bigorna. */
-.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;flex:1 1 auto;max-height:100%;gap:8px;overflow:hidden}
+/* Alfaiataria — bancada compacta, Baú unificado e conteúdo sem rolagem interna. */
+.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;flex:1 1 auto;max-height:100%;min-height:0;gap:8px;overflow:hidden}
 .tailor-workspace.armor-craft-workspace>.tailor-scene{position:relative;display:block;width:100%;height:100%;min-height:0;max-height:none;overflow:hidden}
 .tailor-scene-slots{inset:0;width:100%;height:100%;box-sizing:border-box;padding:42px 10px 10px}
 .tailor-preview-result-layer{position:absolute;z-index:6;inset:0;display:flex;align-items:center;justify-content:center;padding:42px 10px 10px;pointer-events:none}
 .tailor-preview-result-layer .forge-production-result{width:min(310px,100%);max-height:100%;pointer-events:auto}
-.tailor-lower-panel{display:flex;min-width:0;min-height:0;flex:1 1 auto;flex-direction:column;gap:6px;overflow:hidden;padding:7px;border:1px solid rgba(160,132,96,.38);border-radius:15px;background:linear-gradient(155deg,#292b27eF,#171a18f5);box-shadow:0 4px 14px #0006}
-.tailor-lower-panel>.armor-craft-panel{grid-row:auto;flex:0 0 54%;width:100%;min-width:0;min-height:0;max-height:54%}
-.tailor-lower-panel>.armor-craft-panel .armor-craft-scroll{min-height:0}
-.tailor-chest-zone{display:flex;min-height:0;flex:1 1 auto;flex-direction:column;overflow:hidden}
-.tailor-core-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:5px;max-height:44%;min-height:54px;overflow:auto;overscroll-behavior:contain}
-.tailor-core-item{display:flex;min-width:0;min-height:58px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;border:1px solid #a99b7b;border-radius:7px;background:linear-gradient(150deg,#f1e8d5,#d8ccb1);color:#373a2b;font:inherit;cursor:pointer}
-.tailor-core-item>span{display:grid;width:28px;height:28px;place-items:center}
-.tailor-core-item>span img{width:27px;height:27px;object-fit:contain;image-rendering:pixelated}
-.tailor-core-item strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
-.tailor-core-item small{font-size:8px;color:#685b43}
-.tailor-material-heading{margin-top:5px}
-.tailor-chest-zone .tailor-fabric-grid{flex:1 1 auto;min-height:0;overflow:auto;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));align-content:start}
-.tailor-chest-zone .tailor-fabric-item{min-height:47px}
-@media(max-width:430px){.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}.tailor-lower-panel{gap:4px;padding:5px}.tailor-core-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.tailor-core-item{min-height:51px;padding:3px 2px}.tailor-core-item>span{width:24px;height:24px}.tailor-core-item>span img{width:23px;height:23px}.tailor-core-item strong,.tailor-core-item small{font-size:7px}}
-@media(orientation:landscape) and (max-height:520px){.tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important}}
+.tailor-lower-panel{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);min-width:0;min-height:0;flex:1 1 auto;gap:6px;overflow:hidden;padding:7px;border:1px solid rgba(160,132,96,.38);border-radius:15px;background:linear-gradient(155deg,#292b27ef,#171a18f5);box-shadow:0 4px 14px #0006}
+.tailor-lower-panel:not(.has-selected-core)>.tailor-chest-zone{grid-column:1/-1}
+.tailor-lower-panel>.armor-craft-panel{grid-column:1;grid-row:1;display:grid;grid-template-rows:minmax(0,1fr) auto;width:100%;min-width:0;min-height:0;max-height:none;gap:4px;padding:5px;overflow:hidden}
+.tailor-lower-panel>.armor-craft-panel .armor-craft-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));align-content:stretch;gap:3px;min-width:0;min-height:0;padding:0;overflow:hidden}
+.tailor-lower-panel .armor-craft-section{min-width:0;min-height:0;gap:3px;padding:4px;overflow:hidden}
+.tailor-lower-panel .armor-craft-heading strong{font-size:9px}
+.tailor-lower-panel .armor-craft-heading span{font-size:7px}
+.tailor-lower-panel .armor-craft-selected-core{gap:4px;padding:2px 3px}
+.tailor-lower-panel .armor-craft-selected-core .armor-craft-piece-image{width:25px;height:25px;flex-basis:25px}
+.tailor-lower-panel .armor-craft-selected-core strong{font-size:8px}
+.tailor-lower-panel .armor-craft-selected-core small{font-size:7px}
+.tailor-lower-panel .armor-craft-selected-core button{min-height:22px;padding:2px 4px;font-size:7px}
+.tailor-lower-panel .armor-craft-linings{gap:3px}
+.tailor-lower-panel .armor-craft-lining-button{min-height:28px;gap:1px;padding:3px 1px}
+.tailor-lower-panel .armor-craft-lining-button strong{font-size:7px}
+.tailor-lower-panel .armor-craft-lining-button small{font-size:6px}
+.tailor-lower-panel .armor-craft-materials{gap:2px}
+.tailor-lower-panel .armor-craft-material-row{grid-template-columns:18px minmax(0,1fr) auto 10px;gap:2px;padding:1px 2px}
+.tailor-lower-panel .armor-craft-material-icon{width:17px;height:17px}
+.tailor-lower-panel .armor-craft-material-icon img{width:16px;height:16px}
+.tailor-lower-panel .armor-craft-material-row strong,.tailor-lower-panel .armor-craft-material-row small{font-size:6px}
+.tailor-lower-panel .armor-craft-preview-grid{gap:2px}
+.tailor-lower-panel .armor-craft-preview-row,.tailor-lower-panel .armor-craft-preview-row strong{gap:2px;padding:2px;font-size:6px}
+.tailor-lower-panel .armor-craft-preview-row strong{font-size:6px}
+.tailor-lower-panel .armor-craft-footer{gap:3px}
+.tailor-lower-panel .armor-craft-feedback,.tailor-lower-panel .armor-craft-hint{font-size:7px}
+.tailor-lower-panel .armor-craft-submit{min-width:75px;min-height:27px;padding:3px 8px;font-size:8px}
+.tailor-chest-zone{grid-column:2;grid-row:1;display:flex;min-width:0;min-height:0;flex-direction:column;gap:4px;overflow:hidden;padding:5px}
+.tailor-chest-zone .forge-panel-heading{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.tailor-chest-zone .forge-panel-heading strong{font-size:9px}
+.tailor-chest-zone .forge-panel-heading span{font-size:7px}
+.tailor-chest-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);align-content:stretch;align-items:stretch;gap:3px;flex:1 1 auto;min-width:0;min-height:0;overflow:hidden}
+.tailor-chest-item{display:flex;min-width:0;min-height:0;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px;border:1px solid #a99b7b;border-radius:6px;background:linear-gradient(150deg,#f1e8d5,#d8ccb1);color:#373a2b;font:inherit;overflow:hidden}
+.tailor-chest-item>span{display:grid;width:22px;height:22px;flex:0 0 22px;place-items:center}
+.tailor-chest-item>span img{width:20px;height:20px;max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
+.tailor-chest-item strong{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;line-height:1.1}
+.tailor-chest-item small{font-size:7px;color:#685b43;line-height:1}
+.tailor-chest-item[aria-pressed="true"]{border:2px solid #6b7048;background:linear-gradient(180deg,#f4e9cf,#d8c69e);box-shadow:0 0 0 1px #8b906044}
+.tailor-chest-item:disabled{opacity:.55;cursor:not-allowed}
+.tailor-chest-zone .tailor-empty{grid-column:1/-1}
+@media(max-width:430px){
+ .tailor-workspace.armor-craft-workspace{gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
+ .tailor-lower-panel{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:3px;padding:4px}
+ .tailor-lower-panel>.armor-craft-panel{gap:3px;padding:3px}
+ .tailor-lower-panel>.armor-craft-panel .armor-craft-scroll{gap:2px}
+ .tailor-lower-panel .armor-craft-section{gap:2px;padding:3px}
+ .tailor-lower-panel .armor-craft-heading strong{font-size:8px}
+ .tailor-lower-panel .armor-craft-heading span{font-size:6px}
+ .tailor-lower-panel .armor-craft-preview-row,.tailor-lower-panel .armor-craft-preview-row strong{font-size:5.5px}
+ .tailor-chest-zone{gap:3px;padding:3px}
+ .tailor-chest-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+ .tailor-chest-item{padding:1px}
+ .tailor-chest-item>span{width:19px;height:19px;flex-basis:19px}
+ .tailor-chest-item>span img{width:18px;height:18px}
+ .tailor-chest-item strong,.tailor-chest-item small{font-size:6px}
+}
+@media(orientation:landscape) and (max-height:520px){
+ .tailor-workspace.armor-craft-workspace{grid-template-rows:minmax(0,.45fr) minmax(0,.55fr)!important;gap:4px}
+ .tailor-lower-panel{gap:3px;padding:4px}
+ .tailor-lower-panel>.armor-craft-panel{padding:3px}
+ .tailor-lower-panel .armor-craft-section{gap:2px;padding:3px}
+ .tailor-chest-item>span{width:18px;height:18px;flex-basis:18px}
+ .tailor-chest-item>span img{width:17px;height:17px}
+}
