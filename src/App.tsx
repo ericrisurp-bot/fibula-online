@@ -308,6 +308,25 @@ const itemLabel = (itemId: string) => {
   return label;
 };
 
+
+const forgeChestItemLabel = (itemId: string) => {
+  const parsedCore = parseCoreItemId(itemId);
+  if (parsedCore?.kind === 'closed') return 'Fechado';
+  if (parsedCore?.kind === 'revealed') {
+    const core = parsedCore.core;
+    if (core.category === 'weapon') {
+      return core.weaponModel === 'arco' ? 'Arco' : core.weaponModel === 'cajado'
+        ? core.affinity === 'natureza' ? 'Bastão' : 'Cajado' : 'Espada';
+    }
+    const labels: Record<string, string> = {
+      capacete: 'Capacete', peitoral: 'Peitoral', leggings: 'Calça', bota: 'Bota',
+      luva: 'Luva', colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto',
+    };
+    return labels[core.equipmentType ?? ''] ?? (core.category === 'armor' ? 'Armadura' : 'Acessório');
+  }
+  return itemLabel(itemId);
+};
+
 const bauItemDetails = (itemId: string) => {
  const parsed = parseCoreItemId(itemId);
  if (parsed) return { usage: parsed.kind === 'closed' ? 'Leve à Joalheria para revelar.' : 'Usado na criação de equipamentos.', property: '' };
@@ -3784,11 +3803,11 @@ export default function App() {
                             aria-pressed={selectedWeaponCoreId === item.itemId}
                             onClick={() => selectForgeCore(item.itemId)}>
                             <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                            <strong>{itemLabel(item.itemId)}</strong>
+                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
                             <small>×{item.quantity}</small>
                           </button> : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
                             <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                            <strong>{itemLabel(item.itemId)}</strong>
+                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
                             <small>×{item.quantity}</small>
                           </div>;
                         }
@@ -3804,7 +3823,7 @@ export default function App() {
                           disabled={weaponCraftBusy || !canSelect}
                           onClick={() => recipeRow && selectForgeMaterial(slot, item.itemId, recipeRow.material.quantity, item.quantity)}>
                           <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                          <strong>{itemLabel(item.itemId)}</strong>
+                          <strong>{forgeChestItemLabel(item.itemId)}</strong>
                           <small>×{item.quantity}{selected ? ' · ' + selected.quantity + '/' + recipeRow?.material.quantity : ''}</small>
                         </button>;
                       })}
