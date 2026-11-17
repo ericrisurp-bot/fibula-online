@@ -1136,6 +1136,14 @@ export default function App() {
     const bIsCore = parseCoreItemId(b.itemId)?.kind === 'revealed';
     return Number(bIsCore) - Number(aIsCore);
   });
+  const tailorFabricStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+    const base = getBaseItemId(item.itemId);
+    if (!['cotton', 'linen', 'refined_leather'].includes(base) || item.quantity <= 0) return stacks;
+    const existing = stacks.find(stack => getBaseItemId(stack.itemId) === base);
+    if (existing) existing.quantity += item.quantity;
+    else stacks.push({ itemId: item.itemId, quantity: item.quantity });
+    return stacks;
+  }, []);
   const tailorChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     if (item.quantity <= 0) return stacks;
     const parsed = parseCoreItemId(item.itemId);
