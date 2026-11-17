@@ -106,6 +106,7 @@ Se a classe não utiliza um atributo (por exemplo, Força para o Mago), esse atr
 Explosão, cura, sangramento e perfuração estão fora desta etapa.
 
 **Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as Regras v2 de valor fixo acima.
+
 ## 5. Quantidade de atributos por núcleo
 
 - Núcleos de armadura: todos os atributos permitidos para a peça indicada pelo próprio núcleo; a quantidade varia conforme a peça. A geração comum sorteia cada atributo entre 50% e menos de 100% da referência; SURP mantém todos os atributos em 100%.
