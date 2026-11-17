@@ -980,10 +980,13 @@ export default function App() {
     writeEquippedArmorSelections(session.user.sub, validSelections);
     if (JSON.stringify(validSelections) !== JSON.stringify(equippedArmorIds)) setEquippedArmorIds(validSelections);
   }, [armorListReady, craftedArmors, equippedArmorIds, session.user.sub]);
+  const effectiveEquippedArmorIds = armorListReady
+    ? sanitizeEquippedArmorSelections(craftedArmors, equippedArmorIds)
+    : equippedArmorIds;
   const equippedArmorSets: Partial<Record<ClassId, Partial<Record<ArmorPiece, CraftedArmor>>>> = {};
   if (CONFIG.rulesV2.armorCraftingEnabled && armorListReady) {
     for (const classId of PROFILE_CLASS_IDS) {
-      equippedArmorSets[classId] = resolveEquippedArmors(craftedArmors, equippedArmorIds, classId);
+      equippedArmorSets[classId] = resolveEquippedArmors(craftedArmors, effectiveEquippedArmorIds, classId);
     }
   }
   const equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = activeArsenalClassId
