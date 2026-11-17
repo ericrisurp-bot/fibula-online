@@ -89,15 +89,29 @@ Os efeitos especiais devem respeitar a identidade e as capacidades reais de cada
 
 Acessórios são estruturas sem bônus intrínseco: **somente o núcleo concede atributos**.
 
-Existem três vagas, uma de cada tipo: **Colar, Pulseira e Cinto**. Anel e amuleto ficam fora da especificação. O jogador escolhe o tipo durante a fabricação; o tipo não altera os atributos e qualquer núcleo de acessório válido pode ser aplicado a qualquer um dos três tipos. O metadado `equipmentType` que a geração atual possa anexar ao núcleo não determina nem restringe o tipo final.
+Existem três vagas, uma de cada tipo: **Colar, Pulseira e Cinto**. Anel e amuleto ficam fora da especificação. **O tipo final vem de `core.equipmentType` do núcleo** (`colar`, `pulseira` ou `cinto`); não existe escolha de tipo durante a fabricação. Um núcleo sem esse tipo válido não pode fabricar acessório.
 
 Cada núcleo comum contém dois atributos e cada núcleo SURP contém quatro. O conjunto válido é: Força, Inteligência, Destreza, Vida, Armadura, Mobilidade e Esquiva. Velocidade de ataque e resistência mágica ficam fora do conjunto.
 
-**Regras v2 — valor fixo (substitui a regra A):** os bônus são valores fixos em unidades finais, não multiplicadores nem percentuais do atributo total do personagem. Vida é em HP; Armadura em pontos (X pontos = X%); Esquiva em fração (0,008 = 0,8%); Mobilidade é bruta; Força, Inteligência e Destreza são pontos. A referência Lendário 1★ com roll máximo é: Vida 12, Armadura 0,8, Esquiva 0,008, Mobilidade 2 e 10 pontos para cada atributo primário.
+**Chaves de atributo:** o núcleo fornece `forca`, `inteligencia`, `destreza`, `vida`, `armadura`, `velocidadeMovimento` e `esquiva`. Na persistência de acessórios, a chave `velocidadeMovimento` é convertida para `mobilidade`. As chaves finais armazenadas são `forca`, `inteligencia`, `destreza`, `vida`, `armadura`, `mobilidade` e `esquiva`; não persistir `velocidadeMovimento`.
 
-A raridade usa as frações Normal 0,2; Comum 0,4; Incomum 0,6; Raro 0,8; Lendário 1,0. O roll é o valor do atributo no núcleo dividido pela referência da raridade, limitado a 0,5–1,0; SURP equivale a 1,0. Cada estrela acima da primeira acrescenta 25% do valor. A peça nasce em 1★; Bronze limita em 2★. Ferro, futuro, terá teto de 4★.
+**Regras v2 — valor fixo:** os bônus são valores fixos em unidades finais, não multiplicadores nem percentuais do atributo total do personagem. Vida é em HP; Armadura em pontos (X pontos = X%); Esquiva em fração (0,008 = 0,8%); Mobilidade é bruta; Força, Inteligência e Destreza são pontos. A referência Lendário 1★ com roll máximo é: Vida 12, Armadura 0,8, Esquiva 0,008, Mobilidade 2 e 10 pontos para cada atributo primário.
 
-A receita é sempre **3 barras de bronze + 8 unidades de alça**, escolhendo Linho ou Couro refinado. Núcleo e materiais devem ter a mesma raridade; as quantidades não mudam por raridade. Material Normal não recebe sufixo; as demais raridades usam `item:raridade`. A alça não altera bônus: somente o núcleo determina os atributos.
+A raridade usa as frações Normal 0,2; Comum 0,4; Incomum 0,6; Raro 0,8; Lendário 1,0. O roll de cada atributo fica entre 0,5 e 1,0; SURP equivale a 1,0. **O valor armazenado é o valor de 1★ já multiplicado pela fração da raridade e pelo roll**: referência × fração × roll. Na leitura, cada estrela acima da primeira aplica +25%: 1★ = 1,00×; 2★ = 1,25×; 3★ = 1,50×; 4★ = 1,75×. Não gravar no banco o valor multiplicado pelas estrelas.
+
+**Receita progressiva:** Linho ou Couro refinado podem ser usados como alça. A quantidade aumenta um por raridade, com degrau Normal=0, Comum=1, Incomum=2, Raro=3 e Lendário=4.
+
+| Raridade | Degrau | Barras de bronze | Alça (linho ou couro refinado) |
+|---|---:|---:|---:|
+| Normal | 0 | 3 | 8 |
+| Comum | 1 | 4 | 9 |
+| Incomum | 2 | 5 | 10 |
+| Raro | 3 | 6 | 11 |
+| Lendário | 4 | 7 | 12 |
+
+Fórmulas: barras de bronze = 3 + degrau; alça = 8 + degrau. Núcleo, barras e alça devem ter a mesma raridade. Material Normal não recebe sufixo; as demais raridades usam `item:raridade`. A alça não altera bônus: somente o núcleo determina os atributos.
+
+**Estrelas e metal:** Bronze limita em 2★. Ferro permanece preparado como futuro, com teto de 4★, mas não integra a receita atual.
 
 Os bônus de vários acessórios no mesmo atributo são **aditivos**. Os tetos globais continuam valendo: redução de Armadura limitada a 60% e Esquiva limitada a 35%.
 
@@ -105,8 +119,9 @@ Se a classe não utiliza um atributo (por exemplo, Força para o Mago), esse atr
 
 Explosão, cura, sangramento e perfuração estão fora desta etapa.
 
-**Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as Regras v2 de valor fixo acima.
+**Servidor (J3) — a aplicar no banco:** a tabela `fibula_accessories` terá as colunas `id`, `user_id`, `type`, `rarity`, `metal`, `stars`, `surp`, `attributes`, `lining`, `created_at` e `crafted_by`. As funções previstas são `fibula_craft_accessory(p_lining text, p_core_item_id text)` → `{accessory, inventory}` e `fibula_delete_accessory(p_accessory_id uuid)` → `boolean`. Tabela e funções ainda não existem no banco; esta seção é somente documentação e não aplica SQL.
 
+**Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as regras de valor fixo acima.
 ## 5. Quantidade de atributos por núcleo
 
 - Núcleos de armadura: todos os atributos permitidos para a peça indicada pelo próprio núcleo; a quantidade varia conforme a peça. A geração comum sorteia cada atributo entre 50% e menos de 100% da referência; SURP mantém todos os atributos em 100%.
