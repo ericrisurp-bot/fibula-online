@@ -117,8 +117,7 @@ export function getArmedClassPower(
       + (armorBonuses?.vida ?? 0) + (accessoryBonuses.vida ?? 0),
     armadura: CONFIG.player.armor + usedBonus(classId, level, 'armadura', pointsPerLevel)
       + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) : 0)
-      + (armorBonuses?.armadura ?? 0)
-       + getAttributeBaseValueEffect('armadura', accessoryBonuses.armadura ?? 0),
+      + (armorBonuses?.armadura ?? 0),
     esquiva: 1 / (1 - Math.min(0.35, (CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[classId] : CONFIG.player.dodge)
       + usedBonus(classId, level, 'esquiva', pointsPerLevel)
       + (CONFIG.rulesV2.enabled ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) : 0)
