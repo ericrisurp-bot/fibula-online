@@ -9241,7 +9241,7 @@ sem backdrop ou caixa de modal. */
 .side-page.bau-side .bau-resource-slot>.lobby-chest-slot{flex:1 1 auto;width:100%;min-height:0;padding:3px 2px;border:0!important;background:transparent!important}
 .side-page.bau-side .bau-resource-slot>.lobby-chest-send-button{flex:0 0 auto;margin-top:0}
 .side-page.bau-side .bau-resource-slot .lobby-chest-slot:focus-visible,.side-page.bau-side .lobby-chest-meal-card:focus-visible{outline:2px solid #8a744c!important;outline-offset:2px}
-.bau-action-backdrop{position:fixed;inset:0;z-index:12010;display:flex;align-items:center;justify-content:center;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));background:#29272066}
+.bau-action-backdrop{position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex;align-items:center;justify-content:center;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));background:#29272066}
 .bau-action-backdrop .bau-action-dialog{display:flex;width:min(240px,100%);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-width:0;flex-direction:column;gap:6px;padding:10px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #e0d9ca;border-radius:11px;background:#fffdf8;color:#292720;box-shadow:0 8px 22px #2927202b}
 .bau-action-backdrop .bau-action-dialog.bau-action-core-details{width:min(340px,100%)}
 .bau-action-backdrop .bau-action-dialog>header{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:8px}
