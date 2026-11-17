@@ -899,6 +899,7 @@ export default function App() {
   const [selectedWeaponCoreId, setSelectedWeaponCoreId] = useState<string | null>(null);
   const [selectedTailorCoreId, setSelectedTailorCoreId] = useState<string | null>(null);
   const [tailorCraftBusy, setTailorCraftBusy] = useState(false);
+  const [tailorPanelResetKey, setTailorPanelResetKey] = useState(0);
   const [selectedWeaponMaterials, setSelectedWeaponMaterials] = useState<Array<{ slot: string; itemId: string; quantity: number }>>([]);
   const [forgeHammering, setForgeHammering] = useState(false);
   const [forgeCraftResult, setForgeCraftResult] = useState('');
@@ -1027,6 +1028,7 @@ export default function App() {
     setSelectedWeaponCoreId(null);
     setSelectedTailorCoreId(null);
     setTailorCraftBusy(false);
+    setTailorPanelResetKey(current => current + 1);
     setForgeProductionPreview(null);
     setWeaponFeedback('');
     setForgeCraftResult('');
@@ -3658,7 +3660,7 @@ export default function App() {
                     <div className="tailor-forge-lower">
                       <div className="tailor-forge-selection">
                         <ArmorCraftPanel
-                          key={selectedTailorCoreId ?? 'tailor-empty'}
+                          key={`${tailorPanelResetKey}:${selectedTailorCoreId ?? 'tailor-empty'}`}
                           type="couro"
                           chestItems={lobbyChestItems}
                           chestReady={lobbyChestStatus === 'ready'}
