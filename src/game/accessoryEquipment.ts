@@ -1,4 +1,5 @@
 import type { ClassId } from './config';
+import type { AttributeBaseBonuses } from './attributes';
 import { accessoryEffectiveValue, type AccessoryType, type CraftedAccessory } from './accessoryCrafting';
 
 export type EquippedAccessorySelections = Partial<Record<ClassId, Partial<Record<AccessoryType, string>>>>;
@@ -137,8 +138,8 @@ export function resolveEquippedAccessories(
 
 export function computeAccessoryAttributeBonuses(
   equipped: Partial<Record<AccessoryType, CraftedAccessory>>,
-): Record<string, number> {
-  const bonuses: Record<string, number> = {};
+): AttributeBaseBonuses {
+  const bonuses: AttributeBaseBonuses = {};
   for (const type of ACCESSORY_SLOT_ORDER) {
     const accessory = equipped[type];
     if (!accessory) continue;
