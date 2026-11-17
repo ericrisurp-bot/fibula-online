@@ -294,6 +294,7 @@ const cookingMealArtwork = (meal: CookingMeal) => {
     style={{ display: 'block', width: 32, height: 32, objectFit: 'contain', imageRendering: 'pixelated' }} />;
 };
 const itemLabel = (itemId: string) => {
+  if (itemId.startsWith('jewelry-closed:')) return 'Núcleo fechado';
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
   if (parsedCore?.kind === 'closed') return 'Núcleo fechado';
@@ -2658,25 +2659,41 @@ export default function App() {
   };
   const discardBauItem = async (deleteAll=false) => {
     if(bauAction?.kind!=='item'||bauDeleteBusy)return;
-    const currentItem=lobbyChestItems.find(entry=>entry.itemId===bauAction.item.itemId);
-    if(!currentItem){setCookingFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
-    const quantity=deleteAll?currentItem.quantity:Number(bauDeleteQuantity);
-    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setCookingFeedback('Informe uma quantidade válida para excluir.');return;}
+    const virtualClosedRarity = bauAction.item.itemId.startsWith('jewelry-closed:')
+      ? bauAction.item.itemId.slice('jewelry-closed:'.length) : null;
+    const sourceItems = virtualClosedRarity
+      ? lobbyChestItems.filter(entry => {
+        const parsed = parseCoreItemId(entry.itemId);
+        return parsed?.kind === 'closed' && parsed.rarity === virtualClosedRarity;
+      })
+      : lobbyChestItems.filter(entry => entry.itemId === bauAction.item.itemId);
+    const availableQuantity = sourceItems.reduce((total, entry) => total + entry.quantity, 0);
+    if(availableQuantity < 1){setCookingFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
+    const quantity=deleteAll?availableQuantity:Number(bauDeleteQuantity);
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>availableQuantity){setCookingFeedback('Informe uma quantidade válida para excluir.');return;}
     if(!fibulaSupabase||!session.user.sub){setCookingFeedback('O serviço de armazenamento não está disponível.');return;}
     setBauDeleteBusy(true);setCookingFeedback('');
     try {
-      const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
-        p_item_id: currentItem.itemId,
-        p_quantity: quantity,
-      });
-      if (error) throw new Error(error.message);
-      if (!data || !Array.isArray(data.inventory)) throw new Error('O servidor retornou um Baú inválido.');
-      const nextInventory = data.inventory as HouseStorageStack[];
+      let remaining = quantity;
+      let nextInventory: HouseStorageStack[] = lobbyChestItems;
+      for (const sourceItem of sourceItems) {
+        if (remaining <= 0) break;
+        const removeQuantity = Math.min(sourceItem.quantity, remaining);
+        const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
+          p_item_id: sourceItem.itemId,
+          p_quantity: removeQuantity,
+        });
+        if (error) throw new Error(error.message);
+        if (!data || !Array.isArray(data.inventory)) throw new Error('O servidor retornou um Baú inválido.');
+        nextInventory = data.inventory as HouseStorageStack[];
+        remaining -= removeQuantity;
+      }
+      if (remaining > 0) throw new Error('Não foi possível excluir toda a quantidade selecionada. O Baú será atualizado.');
       applyCookingInventory(nextInventory);
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
       setBauAction(null);
-      setCookingFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
+      setCookingFeedback('Excluído: '+quantity+' × '+(virtualClosedRarity ? 'Núcleo fechado' : itemLabel(bauAction.item.itemId))+'.');
     } catch(cause){
       const message = cause instanceof Error ? cause.message : 'Não foi possível excluir o item.';
       await refreshLobbyChestFromCloud();
@@ -4592,7 +4609,7 @@ export default function App() {
                   {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
-              </>:parseCoreItemId(bauAction.item.itemId)?<>
+              </>:(parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:'))?<>
                 <CoreDetail itemId={bauAction.item.itemId} mode="inline" armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
               </>:<>
                 {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
