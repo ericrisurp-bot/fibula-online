@@ -902,6 +902,17 @@ export default function App() {
   const [forgeCraftResult, setForgeCraftResult] = useState('');
   const [forgeProductionPreview, setForgeProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
   const forgePreviewSessionRef = useRef(0);
+  const [selectedTailorCoreId, setSelectedTailorCoreId] = useState<string | null>(null);
+  const [tailorProductionPreview, setTailorProductionPreview] = useState<CraftedArmor | null>(null);
+  const [tailorCraftBusy, setTailorCraftBusy] = useState(false);
+  const tailorPreviewSessionRef = useRef(0);
+  useEffect(() => {
+    if (activeGameRoute.page !== 'costura') {
+      tailorPreviewSessionRef.current += 1;
+      setSelectedTailorCoreId(null);
+      setTailorProductionPreview(null);
+    }
+  }, [activeGameRoute.page]);
   useEffect(() => {
     if (activeGameRoute.page !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
@@ -1008,11 +1019,22 @@ export default function App() {
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
+  const tailorArmorCoreStacks = lobbyChestItems.filter(item => {
+    const parsed = parseCoreItemId(item.itemId);
+    return item.quantity > 0 && parsed?.kind === 'revealed' && parsed.core.category === 'armor';
+  });
+  const tailorMaterialStacks = lobbyChestItems.filter(item => ['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(getBaseItemId(item.itemId)));
+  const tailorCraftSession = tailorPreviewSessionRef.current;
   const forgePreviewSession = forgePreviewSessionRef.current;
   const openStation = (id: StationRouteId) => {
     if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
       setForgeProductionPreview(null);
+    }
+    if (activeGameRoute.page === 'costura' && id !== 'costura') {
+      tailorPreviewSessionRef.current += 1;
+      setSelectedTailorCoreId(null);
+      setTailorProductionPreview(null);
     }
     if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
       void refreshLobbyChestFromCloud();
@@ -1033,6 +1055,9 @@ export default function App() {
   const closeGamePage = () => {
     forgePreviewSessionRef.current += 1;
     setForgeProductionPreview(null);
+    tailorPreviewSessionRef.current += 1;
+    setSelectedTailorCoreId(null);
+    setTailorProductionPreview(null);
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
     setArsenalOpen(false); setFriendsOpen(false); setChestOpen(false);
@@ -3642,20 +3667,51 @@ export default function App() {
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <div className="lobby-crafting-emblem" aria-hidden="true">{stationPresentation.icon}</div>}
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
               {activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace armor-craft-workspace" data-crafted-count={craftedArmors.length}>
-                    <div className="armor-craft-scene" aria-hidden="true"><TailorScene /></div>
-                    <ArmorCraftPanel
-                      type="couro"
-                      chestItems={lobbyChestItems}
-                      chestReady={lobbyChestStatus === 'ready'}
-                      online={cookingOnline}
-                      client={fibulaSupabase}
-                      applyInventory={applyCookingInventory}
-                      refreshChest={refreshLobbyChestFromCloud}
-                      onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
-                      renderIcon={inventoryItemIcon}
-                      glowStyle={itemRarityGlow}
-                      label={itemLabel}
-                    />
+                    <TailorScene>
+                      {tailorProductionPreview && <div className="tailor-preview-result-layer"><ForgeProductionPreview kind="armor" armor={tailorProductionPreview} /></div>}
+                    </TailorScene>
+                    <section className="forge-zone tailor-fabrics-zone tailor-chest-zone" aria-label="Baú da Alfaiataria">
+                      <div className="forge-panel-heading"><strong>BAÚ DA ALFAIATARIA</strong><span>Núcleos e materiais para armaduras de couro</span></div>
+                      <div className="tailor-core-grid" aria-label="Núcleos de armadura disponíveis">
+                        {tailorArmorCoreStacks.map(item => <button type="button" className="tailor-core-item" key={item.itemId}
+                          onClick={() => { tailorPreviewSessionRef.current += 1; setTailorProductionPreview(null); setSelectedTailorCoreId(item.itemId); }}>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                          <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                        </button>)}
+                        {tailorArmorCoreStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum núcleo revelado de armadura no Baú.</p>}
+                      </div>
+                      <div className="forge-panel-heading tailor-material-heading"><strong>MATERIAIS</strong><span>Quantidade disponível por raridade</span></div>
+                      <div className="forge-material-grid tailor-fabric-grid" aria-label="Materiais disponíveis no Baú">
+                        {tailorMaterialStacks.map(item => <div className="forge-material-item tailor-fabric-item" key={item.itemId}>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                        </div>)}
+                        {tailorMaterialStacks.length === 0 && <p className="forge-empty tailor-empty">Nenhum couro ou forro disponível no Baú.</p>}
+                      </div>
+                    </section>
+                    {selectedTailorCoreId && <div className="tailor-craft-backdrop" role="presentation">
+                      <section className="tailor-craft-dialog" role="dialog" aria-modal="true" aria-label="Fabricar armadura de couro">
+                        <header><strong>FABRICAÇÃO DE COURO</strong><button type="button" disabled={tailorCraftBusy} aria-label="Fechar fabricação" onClick={() => { tailorPreviewSessionRef.current += 1; setSelectedTailorCoreId(null); }}>×</button></header>
+                        <ArmorCraftPanel
+                          type="couro"
+                          chestItems={lobbyChestItems}
+                          chestReady={lobbyChestStatus === 'ready'}
+                          online={cookingOnline}
+                          client={fibulaSupabase}
+                          applyInventory={applyCookingInventory}
+                          refreshChest={refreshLobbyChestFromCloud}
+                          selectedCoreId={selectedTailorCoreId}
+                          onClearCore={() => setSelectedTailorCoreId(null)}
+                          onBusyChange={setTailorCraftBusy}
+                          onCrafted={armor => {
+                            setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50));
+                            if (tailorPreviewSessionRef.current === tailorCraftSession) setTailorProductionPreview(armor);
+                          }}
+                          renderIcon={inventoryItemIcon}
+                          glowStyle={itemRarityGlow}
+                          label={itemLabel}
+                        />
+                      </section>
+                    </div>}
                   </div>
                 : lobbyChestStatus === 'loading' ? <p role="status">Carregando o Baú…</p>
                 : lobbyChestStatus === 'error' ? <div role="alert"><p>Não foi possível carregar o Baú.</p><button type="button" onClick={() => void refreshLobbyChestFromCloud()}>Tentar de novo</button></div>
