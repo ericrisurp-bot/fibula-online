@@ -148,6 +148,7 @@ export function ArmorActionDialogs({ armor, equipped, deleteConfirmation, busy, 
     {detailsOpen && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => setDetailsOpen(false)}>
       <section className="arsenal-weapon-info-card arsenal-armor-details" role="dialog" aria-modal="true" aria-label={pieceLabel} onClick={event => event.stopPropagation()}>
         <header><strong>{pieceLabel}</strong><button type="button" className="arsenal-armor-details-close" onClick={() => setDetailsOpen(false)}>Fechar</button></header>
+        {armor.craftedBy && <p className="item-signature-line">{armor.craftedBy}</p>}
         <div className="arsenal-item-info-details">
           <div><span>Tipo</span><b>{armor.type === 'couro' ? 'Couro' : 'Bronze'}</b></div>
           <div><span>Raridade</span><b>{RARITY_LABELS[armor.rarity]}</b></div>

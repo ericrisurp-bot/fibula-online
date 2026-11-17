@@ -257,3 +257,8 @@ Esta documentação não resolve por suposição os seguintes pontos:
 Esta etapa é documental. Não implementar geração de drops, inventário de núcleos, fabricação, slots, fórmulas de combate, balanceamento numérico adicional ou alterações de persistência.
 
 A implementação deverá ocorrer em etapas próprias, após aprovação das pendências e auditoria dos pontos de integração do código.
+
+
+## 14. Assinatura de quem fabricou
+
+Armas e armaduras guardam no servidor o nome de quem realizou a fabricação, no campo `crafted_by` de cada equipamento. A assinatura é definida no momento da fabricação e acompanha a peça persistida. Ela aparece somente como o nome, de forma discreta, nos respectivos modais de detalhes; quando não houver nome válido, nada é exibido. A assinatura não altera atributos, raridade, fabricação, inventário ou equipamento.

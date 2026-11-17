@@ -4062,6 +4062,7 @@ export default function App() {
         {weaponInfoModal && <div className="arsenal-weapon-info-backdrop" role="presentation" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>
           <section className="arsenal-weapon-info-card" role="dialog" aria-modal="true" aria-label={weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] : cleanItemName(weaponInfoModal.item.name)} onClick={event => event.stopPropagation()}>
             <header><strong>{weaponInfoModal.kind === 'weapon' ? arsenalWeaponLabels[weaponInfoModal.weapon.model] : cleanItemName(weaponInfoModal.item.name)}</strong><button type="button" onClick={() => { setWeaponInfoModal(null); setWeaponInfoComparison(null); }}>Fechar</button></header>
+            {weaponInfoModal.kind === 'weapon' && weaponInfoModal.weapon.craftedBy && <p className="item-signature-line">{weaponInfoModal.weapon.craftedBy}</p>}
             {weaponInfoModal.kind === 'weapon' ? <>
               <div className="arsenal-weapon-info-damage"><span>Dano</span><b>{weaponInfoModal.weapon.damage.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</b></div>
               <h3>Núcleo de {weaponInfoModal.weapon.model === 'bastao' ? 'cajado' : weaponInfoModal.weapon.model}</h3>

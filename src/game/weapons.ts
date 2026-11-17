@@ -493,6 +493,7 @@ export type CraftedWeapon = {
   coreSurp: boolean;
   coreAffinity: 'dano' | 'natureza' | null;
   attributes: Array<{ key: CoreAttributeKey; value: number }>;
+  craftedBy: string | null;
   createdAt: string;
 };
 export type WeaponRecipeMaterial = { base: 'wood' | 'linen' | 'mineral'; quantity: number };
@@ -563,6 +564,7 @@ function readCraftedWeapon(value: unknown): CraftedWeapon {
     coreSurp: row.coreSurp,
     coreAffinity: row.coreAffinity as CraftedWeapon['coreAffinity'],
     attributes: readWeaponAttributes(row.attributes),
+    craftedBy: typeof row.craftedBy === 'string' ? row.craftedBy.trim().slice(0, 60).trim() || null : null,
     createdAt: row.createdAt,
   };
 }
@@ -605,6 +607,7 @@ function readStoredWeapon(value: unknown): CraftedWeapon {
     coreSurp: row.core_surp,
     coreAffinity: row.core_affinity,
     attributes: row.attributes,
+    craftedBy: row.crafted_by,
     createdAt: row.created_at,
   });
 }
@@ -619,7 +622,7 @@ export async function listMyWeapons(client: WeaponClient): Promise<CraftedWeapon
     };
   };
   const { data, error } = await queryClient.from('fibula_weapons')
-    .select('id,model,rarity,tier,damage,surp,core_surp,core_affinity,attributes,created_at')
+    .select('id,model,rarity,tier,damage,surp,core_surp,core_affinity,attributes,crafted_by,created_at')
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw new Error(error.message || 'Não foi possível carregar as armas fabricadas.');
