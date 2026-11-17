@@ -19,7 +19,7 @@ import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 import { armorMaterialItemIds, craftArmor, deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
 import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
-import { craftAccessory, listMyAccessories, type CraftedAccessory } from './game/accessoryCrafting';
+import { craftAccessory, deleteAccessory, listMyAccessories, type CraftedAccessory } from './game/accessoryCrafting';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
@@ -807,11 +807,13 @@ export default function App() {
   const [arsenalActionItem, setArsenalActionItem] = useState<
     | { kind: 'weapon'; weapon: CraftedWeapon; equipped: boolean }
     | { kind: 'equipment'; item: ArsenalEquipment; equipped: boolean }
+    | { kind: 'accessory'; accessory: CraftedAccessory; equipped: boolean }
     | null
   >(null);
   const [arsenalDeleteConfirmation, setArsenalDeleteConfirmation] = useState<
     | { kind: 'weapon'; weapon: CraftedWeapon }
     | { kind: 'equipment'; item: ArsenalEquipment }
+    | { kind: 'accessory'; accessory: CraftedAccessory }
     | null
   >(null);
   const [arsenalDeleteBusy, setArsenalDeleteBusy] = useState(false);
@@ -3617,10 +3619,16 @@ export default function App() {
     setSelectedArsenalItemId(item.id);
     setArsenalActionItem({ kind: 'equipment', item, equipped });
   };
+  const openArsenalAccessoryActions = (accessory: CraftedAccessory) => {
+    setSelectedArsenalItemId(accessory.id);
+    setArsenalActionItem({ kind: 'accessory', accessory, equipped: false });
+  };
   const showArsenalItemDetails = () => {
     const action = arsenalActionItem;
     if (!action) return;
-    if (action.kind === 'weapon') {
+    if (action.kind === 'accessory') {
+      setAccessoryDetails(action.accessory);
+    } else if (action.kind === 'weapon') {
       const comparison = action.equipped
         ? null
         : selectedWeaponForClass(craftedWeapons, equippedWeaponIds, WEAPON_CLASS_BY_MODEL[action.weapon.model]);
@@ -3667,7 +3675,9 @@ export default function App() {
     if (!action) return;
     setArsenalDeleteConfirmation(action.kind === 'weapon'
       ? { kind: 'weapon', weapon: action.weapon }
-      : { kind: 'equipment', item: action.item });
+      : action.kind === 'accessory'
+        ? { kind: 'accessory', accessory: action.accessory }
+        : { kind: 'equipment', item: action.item });
     setArsenalActionItem(null);
   };
   const confirmArsenalItemDeletion = async () => {
@@ -3700,6 +3710,28 @@ export default function App() {
       } catch {
         setArsenalDeleteConfirmation(null);
         setWeaponFeedback('Não foi possível excluir agora. Tente de novo.');
+      } finally {
+        setArsenalDeleteBusy(false);
+      }
+      return;
+    }
+    if (pending.kind === 'accessory') {
+      const supabase = fibulaSupabase;
+      if (!supabase || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+        setArsenalDeleteConfirmation(null);
+        setWeaponFeedback('Não foi possível excluir o acessório agora. Tente de novo.');
+        setArsenalDeleteBusy(false);
+        return;
+      }
+      try {
+        await deleteAccessory(supabase, pending.accessory.id);
+        setCraftedAccessories(current => current.filter(item => item.id !== pending.accessory.id));
+        setSelectedArsenalItemId(null);
+        setWeaponFeedback('Acessório excluído.');
+        setArsenalDeleteConfirmation(null);
+      } catch {
+        setArsenalDeleteConfirmation(null);
+        setWeaponFeedback('Não foi possível excluir o acessório agora. Tente de novo.');
       } finally {
         setArsenalDeleteBusy(false);
       }
@@ -4709,7 +4741,7 @@ export default function App() {
                       return <ArmorInventoryCard key={entry.armor.id} armor={entry.armor} selected={entry.armor.id === selectedArsenalItemId} onClick={() => openArsenalArmorActions(entry.armor)} />;
                     }
                     if (entry.kind === 'accessory') {
-                      return <AccessoryInventoryCard key={entry.accessory.id} accessory={entry.accessory} selected={entry.accessory.id === selectedArsenalItemId} onClick={() => { setSelectedArsenalItemId(entry.accessory.id); setAccessoryDetails(entry.accessory); }} />;
+                      return <AccessoryInventoryCard key={entry.accessory.id} accessory={entry.accessory} selected={entry.accessory.id === selectedArsenalItemId} onClick={() => openArsenalAccessoryActions(entry.accessory)} />;
                     }
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
@@ -4734,10 +4766,13 @@ export default function App() {
         {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && activeArsenalClassId && equippedArmorIds[activeArsenalClassId]?.[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
           <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
-            <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)}</strong>
+            <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : arsenalActionItem.kind === 'accessory' ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalActionItem.accessory.type] : cleanItemName(arsenalActionItem.item.name)}</strong>
               <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
-            {arsenalActionItem.equipped
+            {arsenalActionItem.kind === 'accessory' && <p className="arsenal-action-hint">A equipagem de acessórios ainda não está habilitada nesta etapa.</p>}
+            {arsenalActionItem.kind === 'accessory'
+              ? <button type="button" className="arsenal-action-button" disabled title="Equipagem de acessórios ainda não habilitada">Equipar</button>
+              : arsenalActionItem.equipped
               ? <button type="button" className="arsenal-action-button" autoFocus onClick={unequipSelectedArsenalItem}>Desequipar</button>
               : <button type="button" className="arsenal-action-button" autoFocus={Boolean(activeArsenalClassId) && (arsenalActionItem.kind !== 'weapon' || activeArsenalClassId === WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} disabled={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
             <button type="button" className="arsenal-action-button" autoFocus={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={showArsenalItemDetails}>Detalhes</button>
@@ -4748,7 +4783,9 @@ export default function App() {
           <section className="arsenal-action-dialog arsenal-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmar exclusão" onClick={event => event.stopPropagation()}>
             <header><strong>Excluir {arsenalDeleteConfirmation.kind === 'weapon'
               ? arsenalWeaponLabels[arsenalDeleteConfirmation.weapon.model]
-              : cleanItemName(arsenalDeleteConfirmation.item.name)}?</strong></header>
+              : arsenalDeleteConfirmation.kind === 'accessory'
+                ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalDeleteConfirmation.accessory.type]
+                : cleanItemName(arsenalDeleteConfirmation.item.name)}?</strong></header>
             <p>Esta ação não pode ser desfeita.</p>
             <div className="arsenal-confirm-actions">
               <button type="button" className="arsenal-action-button" autoFocus disabled={arsenalDeleteBusy} onClick={() => setArsenalDeleteConfirmation(null)}>Cancelar</button>
