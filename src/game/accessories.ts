@@ -51,6 +51,8 @@ export type AccessoryMaterialIds = {
   lining: { itemId: string; quantity: number };
 };
 
+// Mesmo padrão de armorMaterialItemIds: Normal sem sufixo; demais raridades com :raridade.
+// Mantido local para não importar armorCrafting.ts, que também contém chamadas de rede.
 function materialItemId(base: string, rarity: CoreRarity): string {
   return rarity === 'normal' ? base : `${base}:${rarity}`;
 }
