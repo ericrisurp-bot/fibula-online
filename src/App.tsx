@@ -762,7 +762,7 @@ export default function App() {
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [chestCloudReady, setChestCloudReady] = useState(false);
   const [bauAction, setBauAction] = useState<
-    | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm' }
+    | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm'; productionCore?: boolean; onUse?: () => void; useDisabled?: boolean; coreArmorTypes?: ('couro'|'bronze')[] }
     | { kind:'meal'; meal:CookingMeal; view:'actions'|'details'|'confirm' }
     | null
   >(null);
@@ -2642,6 +2642,10 @@ export default function App() {
   };
   houseOutboxDrainRef.current = drainHouseOutbox;
   const openBauItemActions = (item:HouseStorageStack) => {setBauDeleteQuantity('1');setBauAction({kind:'item',item,view:'actions'});};
+  const openBauCoreActions = (item: HouseStorageStack, onUse: (() => void) | undefined, armorTypes: ('couro'|'bronze')[], useDisabled = false) => {
+    setBauDeleteQuantity('1');
+    setBauAction({ kind: 'item', item, view: 'actions', productionCore: true, onUse, useDisabled, coreArmorTypes: armorTypes });
+  };
   const openBauMealActions = (meal:CookingMeal) => setBauAction({kind:'meal',meal,view:'actions'});
   const showBauActionDetails = () => setBauAction(current=>current?{...current,view:'details'}:null);
   const requestBauActionDeletion = () => setBauAction(current=>current?{...current,view:'confirm'}:null);
@@ -3907,20 +3911,13 @@ export default function App() {
                             const parsed = parseCoreItemId(item.itemId);
                             if (parsed?.kind === 'revealed') {
                               const selectable = parsed.core.category === 'armor' && !!parsed.core.equipmentType;
-                              return <div className="core-detail-item-wrap" key={item.itemId}>
-                                {selectable ? <button type="button"
-                                  className={'forge-material-item forge-core-item' + (selectedTailorCoreId === item.itemId ? ' selected' : '')}
-                                  disabled={tailorCraftBusy || tailorCraftLockRef.current}
-                                  aria-pressed={selectedTailorCoreId === item.itemId}
-                                  onClick={() => selectTailorCore(item.itemId)}>
-                                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                                  <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                                </button> : <div className="forge-material-item forge-core-item is-inert">
-                                  <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                                  <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                                </div>}
-                                <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['couro']}/>
-                              </div>;
+                              return <button type="button" key={item.itemId}
+                                className={'forge-material-item forge-core-item' + (selectedTailorCoreId === item.itemId ? ' selected' : '')}
+                                aria-pressed={selectedTailorCoreId === item.itemId}
+                                onClick={() => openBauCoreActions(item, selectable ? () => selectTailorCore(item.itemId) : undefined, ['couro'], !selectable || tailorCraftBusy || tailorCraftLockRef.current)}>
+                                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                                <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                              </button>;
                             }
                             const base = getBaseItemId(item.itemId);
                             const rarity = getItemRarity(item.itemId) ?? 'normal';
@@ -4060,21 +4057,16 @@ export default function App() {
                             <small>{accessory ? `×${item.quantity}` : parsed.core.category === 'weapon' ? 'Bigorna' : 'Alfaiataria'}</small>
                             {!accessory && <small>×{item.quantity}</small>}
                           </>;
-                          return <div className="core-detail-item-wrap" key={item.itemId}>
-                            {accessory ? <button type="button"
-                              className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
-                              disabled={jewelryRevealBusy}
-                              aria-pressed={selected}
-                              onClick={() => {
-                                if (jewelryRevealBusy) return;
-                                setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
-                                setJewelryCottonSelection(0);
-                                setJewelryResultCoreId(null);
-                                setJewelryFeedback('');
-                              }}>{content}</button>
-                              : <div className="forge-material-item forge-chest-item forge-core-item is-inert">{content}</div>}
-                            <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['couro','bronze']}/>
-                          </div>;
+                          return <button type="button" key={item.itemId}
+                            className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
+                            aria-pressed={selected}
+                            onClick={() => openBauCoreActions(item, accessory ? () => {
+                              if (jewelryRevealBusy) return;
+                              setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
+                              setJewelryCottonSelection(0);
+                              setJewelryResultCoreId(null);
+                              setJewelryFeedback('');
+                            } : undefined, ['couro','bronze'], !accessory || jewelryRevealBusy)}>{content}</button>;
                         }
                         const isCotton = getBaseItemId(item.itemId) === 'cotton';
                         const compatibleCotton = isCotton && !!selectedJewelryCoreId?.startsWith('jewelry-closed:') && item.itemId === jewelryCottonItemId;
@@ -4189,22 +4181,19 @@ export default function App() {
                           const isCraftableCore = parsedCore.kind === 'revealed'
                             && (parsedCore.core.category === 'weapon'
                               || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
-                          return <div className="core-detail-item-wrap" key={item.itemId}>
-                            {isCraftableCore ? <button type="button"
-                              className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
-                              disabled={weaponCraftBusy || armorCraftBusy}
-                              aria-pressed={selectedWeaponCoreId === item.itemId}
-                              onClick={() => selectForgeCore(item.itemId)}>
-                              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                              <strong>{forgeChestItemLabel(item.itemId)}</strong>
-                              <small>×{item.quantity}</small>
-                            </button> : <div className="forge-material-item forge-chest-item is-inert">
-                              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                              <strong>{forgeChestItemLabel(item.itemId)}</strong>
-                              <small>×{item.quantity}</small>
-                            </div>}
-                            <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['bronze']}/>
+                          if (parsedCore.kind === 'closed') return <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
+                            <small>×{item.quantity}</small>
                           </div>;
+                          return <button type="button" key={item.itemId}
+                            className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
+                            aria-pressed={selectedWeaponCoreId === item.itemId}
+                            onClick={() => openBauCoreActions(item, isCraftableCore ? () => selectForgeCore(item.itemId) : undefined, ['bronze'], !isCraftableCore || weaponCraftBusy || armorCraftBusy)}>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
+                            <small>×{item.quantity}</small>
+                          </button>;
                         }
                         const base = getBaseItemId(item.itemId);
                         const rarity = getItemRarity(item.itemId) ?? 'normal';
@@ -4530,13 +4519,11 @@ export default function App() {
             {chestTab === 'resources' ? <div className="lobby-chest-grid bau-side-grid" aria-label="Itens guardados no Baú">
               {lobbyChestItems.map(item => {
                 const isJabuticaba = item.itemId === 'jabuticaba';
-                const parsedCore = parseCoreItemId(item.itemId);
-                return <div key={item.itemId} className={`bau-resource-slot${parsedCore?.kind === 'revealed' ? ' core-detail-lobby-slot' : ''}`}>
+                return <div key={item.itemId} className="bau-resource-slot">
                   <button type="button" className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
                     aria-label={`${itemLabel(item.itemId)}: abrir ações`} onClick={() => openBauItemActions(item)}>
                     <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b>
                   </button>
-                  {parsedCore?.kind === 'revealed' && <CoreDetail itemId={item.itemId} mode="trigger" armorTypes={['couro','bronze']}/>}
                 </div>;
               })}
             </div> : <>
@@ -4580,6 +4567,10 @@ export default function App() {
                 <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
                 <button type="button" className="bau-action-button danger" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={requestBauActionDeletion}>Excluir</button>
                 {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              </>:bauAction.productionCore?<>
+                <button type="button" className="bau-action-button" autoFocus disabled={bauAction.useDisabled || !bauAction.onUse} onClick={()=>{if(bauAction.kind==='item'){bauAction.onUse?.();setBauAction(null);}}}>Usar</button>
+                <button type="button" className="bau-action-button" onClick={showBauActionDetails}>Propriedades</button>
+                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
                 <button type="button" className="bau-action-button" autoFocus={!chestCloudReady||jabuticabaBusy} onClick={showBauActionDetails}>Detalhes</button>
@@ -4596,6 +4587,8 @@ export default function App() {
                   {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
+              </>:parseCoreItemId(bauAction.item.itemId)?.kind==='revealed'?<>
+                <CoreDetail itemId={bauAction.item.itemId} mode="inline" armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
               </>:<>
                 {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
                 <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
