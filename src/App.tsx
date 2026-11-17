@@ -1025,7 +1025,6 @@ export default function App() {
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const forgePreviewSession = forgePreviewSessionRef.current;
-  const tailorPreviewSession = tailorPreviewSessionRef.current;
   const openStation = (id: StationRouteId) => {
     if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
@@ -1168,7 +1167,7 @@ export default function App() {
   const selectedTailorCore = CONFIG.rulesV2.armorCraftingEnabled && selectedTailorCoreParsed?.kind === 'revealed'
     && selectedTailorCoreParsed.core.category === 'armor' && !!selectedTailorCoreParsed.core.equipmentType
     ? selectedTailorCoreParsed.core : null;
-  const selectedTailorPiece = selectedTailorCore?.equipmentType
+  const selectedTailorPiece = selectedTailorCore?.equipmentType && selectedTailorCore.equipmentType !== 'colar'
     ? ARMOR_CORE_EQUIPMENT_TO_PIECE[selectedTailorCore.equipmentType] : null;
   const tailorBaseRecipe = selectedTailorCore && selectedTailorPiece
     ? armorMaterialItemIds('couro', selectedTailorPiece, 'algodao', selectedTailorCore.rarity) : null;
