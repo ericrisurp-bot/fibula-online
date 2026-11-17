@@ -12,7 +12,7 @@ Existem exatamente três vagas, uma de cada tipo:
 
 Não existem anel nem amuleto nesta especificação. O jogador escolhe o tipo durante a fabricação. O tipo não concede bônus próprio e não restringe o núcleo: qualquer núcleo de acessório válido pode ser usado em qualquer um dos três tipos.
 
-Cada personagem pode equipar um colar, uma pulseira e um cinto.
+Cada personagem pode equipar um colar, uma pulseira e um cinto. O tipo final é o escolhido na fabricação; o metadado `equipmentType` que o gerador atual possa anexar ao núcleo não determina nem restringe essa escolha. A geração existente não é alterada no J2.
 
 ## 2. Atributos válidos do núcleo
 
