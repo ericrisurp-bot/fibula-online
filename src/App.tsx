@@ -901,6 +901,7 @@ export default function App() {
   const [weaponsLoading, setWeaponsLoading] = useState(false);
   const [weaponsLoaded, setWeaponsLoaded] = useState(false);
   const [weaponCraftBusy, setWeaponCraftBusy] = useState(false);
+  const [armorCraftBusy, setArmorCraftBusy] = useState(false);
   const weaponCraftLockRef = useRef(false);
   const [weaponFeedback, setWeaponFeedback] = useState('');
   const [craftedArmors, setCraftedArmors] = useState<CraftedArmor[]>([]);
@@ -2564,6 +2565,7 @@ export default function App() {
     }
   };
   const selectForgeCore = (itemId: string) => {
+    if (weaponCraftBusy || armorCraftBusy) return;
     setSelectedWeaponCoreId(current => current === itemId ? null : itemId);
     setSelectedWeaponMaterials([]);
     setForgeCraftResult('');
@@ -3742,6 +3744,7 @@ export default function App() {
                       label={itemLabel}
                       selectedCoreId={selectedWeaponCoreId}
                       onClearCore={() => { setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
+                      onBusyChange={setArmorCraftBusy}
                     /> : <section className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
                       <div className="forge-panel-heading">
                         <strong>MATERIAIS SELECIONADOS</strong>
@@ -3800,7 +3803,7 @@ export default function App() {
                               || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
                           return isCraftableCore ? <button type="button" key={item.itemId}
                             className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
-                            disabled={weaponCraftBusy}
+                            disabled={weaponCraftBusy || armorCraftBusy}
                             aria-pressed={selectedWeaponCoreId === item.itemId}
                             onClick={() => selectForgeCore(item.itemId)}>
                             <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
