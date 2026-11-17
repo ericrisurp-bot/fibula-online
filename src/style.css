@@ -12983,3 +12983,73 @@ sem backdrop ou caixa de modal. */
   .jewelry-page .jewelry-chest-grid{grid-auto-rows:minmax(42px,auto);gap:3px}
   .jewelry-page .jewelry-chest-grid .forge-material-item{min-height:42px}
 }
+
+
+/* J1b — a cena é um único SVG; preserveAspectRatio evita deformação em qualquer viewport. */
+.jewelry-page .jewelry-workspace{
+  grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;
+  min-height:0!important;
+  height:100%!important;
+}
+.jewelry-page .jewelry-stage{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  aspect-ratio:auto!important;
+  overflow:hidden!important;
+}
+.jewelry-page .jewelry-scene{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.jewelry-page .jewelry-scene-svg{
+  display:block;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+}
+.jewelry-page .jewelry-scene-glow{
+  left:50%;
+  top:59%;
+  width:34%;
+  height:40%;
+}
+.jewelry-page .jewelry-scene-spark{
+  width:clamp(3px,.8vw,5px);
+  height:clamp(3px,.8vw,5px);
+}
+.jewelry-page .jewelry-spark-one{left:31%;top:53%}
+.jewelry-page .jewelry-spark-two{left:72%;top:44%}
+.jewelry-page .jewelry-spark-three{left:50%;top:34%}
+.jewelry-page .jewelry-scene-header{
+  position:absolute;
+  z-index:10;
+  top:7px;
+  left:50%;
+  transform:translateX(-50%);
+}
+.jewelry-page .jewelry-scene-header h2{
+  margin:0;
+  padding:4px 12px;
+  border:1px solid #d0a76c;
+  border-radius:5px;
+  background:#18242be8;
+  color:#f0d5a0;
+  font-size:clamp(9px,2vw,13px);
+  letter-spacing:.16em;
+  white-space:nowrap;
+  text-shadow:0 1px 2px #000;
+}
+@media(max-width:430px){
+  .jewelry-page .jewelry-stage{height:auto!important;min-height:0!important}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .jewelry-page .jewelry-stage{height:auto!important;min-height:0!important}
+}
