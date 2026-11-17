@@ -905,8 +905,16 @@ export default function App() {
   const [forgeCraftResult, setForgeCraftResult] = useState('');
   const [forgeProductionPreview, setForgeProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
   const forgePreviewSessionRef = useRef(0);
+  const [tailorProductionPreview, setTailorProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
+  const tailorPreviewSessionRef = useRef(0);
   useEffect(() => {
-    if (activeGameRoute.page !== 'bigorna' && activeGameRoute.page !== 'costura') {
+    if (activeGameRoute.page !== 'costura') {
+      tailorPreviewSessionRef.current += 1;
+      setTailorProductionPreview(null);
+    }
+  }, [activeGameRoute.page]);
+  useEffect(() => {
+    if (activeGameRoute.page !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
       setForgeProductionPreview(null);
     }
@@ -1012,11 +1020,15 @@ export default function App() {
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const forgePreviewSession = forgePreviewSessionRef.current;
-  const tailorPreviewSession = forgePreviewSessionRef.current;
+  const tailorPreviewSession = tailorPreviewSessionRef.current;
   const openStation = (id: StationRouteId) => {
-    if ((activeGameRoute.page === 'bigorna' || activeGameRoute.page === 'costura') && id !== activeGameRoute.page) {
+    if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
       setForgeProductionPreview(null);
+    }
+    if (activeGameRoute.page === 'costura' && id !== 'costura') {
+      tailorPreviewSessionRef.current += 1;
+      setTailorProductionPreview(null);
     }
     if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
       void refreshLobbyChestFromCloud();
@@ -1029,7 +1041,7 @@ export default function App() {
     setSelectedTailorCoreId(null);
     setTailorCraftBusy(false);
     setTailorPanelResetKey(current => current + 1);
-    setForgeProductionPreview(null);
+    setTailorProductionPreview(null);
     setWeaponFeedback('');
     setForgeCraftResult('');
     setSelectedJewelryCoreId(null);
@@ -1041,6 +1053,8 @@ export default function App() {
   const closeGamePage = () => {
     forgePreviewSessionRef.current += 1;
     setForgeProductionPreview(null);
+    tailorPreviewSessionRef.current += 1;
+    setTailorProductionPreview(null);
     setSelectedTailorCoreId(null);
     setTailorCraftBusy(false);
     navigateToLobby();
@@ -3655,7 +3669,7 @@ export default function App() {
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
               {activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace tailor-forge-workspace" data-crafted-count={craftedArmors.length}>
                     <TailorScene>
-                      {forgeProductionPreview?.kind === 'armor' && <ForgeProductionPreview {...forgeProductionPreview} />}
+                      {tailorProductionPreview?.kind === 'armor' && <ForgeProductionPreview {...tailorProductionPreview} />}
                     </TailorScene>
                     <div className="tailor-forge-lower">
                       <div className="tailor-forge-selection">
@@ -3670,7 +3684,7 @@ export default function App() {
                           refreshChest={refreshLobbyChestFromCloud}
                           onCrafted={armor => {
                             setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50));
-                            if (forgePreviewSessionRef.current === tailorPreviewSession) setForgeProductionPreview({ kind: 'armor', armor });
+                            if (tailorPreviewSessionRef.current === tailorPreviewSession) setTailorProductionPreview({ kind: 'armor', armor });
                           }}
                           renderIcon={inventoryItemIcon}
                           glowStyle={itemRarityGlow}
@@ -3679,7 +3693,7 @@ export default function App() {
                           onClearCore={() => setSelectedTailorCoreId(null)}
                           onBusyChange={busy => {
                             setTailorCraftBusy(busy);
-                            if (busy) setForgeProductionPreview(null);
+                            if (busy) setTailorProductionPreview(null);
                           }}
                         />
                       </div>
