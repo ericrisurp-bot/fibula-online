@@ -903,6 +903,7 @@ export default function App() {
   const [forgeProductionPreview, setForgeProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
   const forgePreviewSessionRef = useRef(0);
   const [selectedTailorCoreId, setSelectedTailorCoreId] = useState<string | null>(null);
+  const [selectedTailorLining, setSelectedTailorLining] = useState<'algodao' | 'linho' | 'couro_refinado' | null>(null);
   const [tailorProductionPreview, setTailorProductionPreview] = useState<CraftedArmor | null>(null);
   const [tailorCraftBusy, setTailorCraftBusy] = useState(false);
   const tailorPreviewSessionRef = useRef(0);
@@ -910,6 +911,7 @@ export default function App() {
     if (activeGameRoute.page !== 'costura') {
       tailorPreviewSessionRef.current += 1;
       setSelectedTailorCoreId(null);
+      setSelectedTailorLining(null);
       setTailorProductionPreview(null);
     }
   }, [activeGameRoute.page]);
@@ -1035,6 +1037,7 @@ export default function App() {
     if (activeGameRoute.page === 'costura' && id !== 'costura') {
       tailorPreviewSessionRef.current += 1;
       setSelectedTailorCoreId(null);
+      setSelectedTailorLining(null);
       setTailorProductionPreview(null);
     }
     if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
@@ -1058,6 +1061,7 @@ export default function App() {
     setForgeProductionPreview(null);
     tailorPreviewSessionRef.current += 1;
     setSelectedTailorCoreId(null);
+    setSelectedTailorLining(null);
     setTailorProductionPreview(null);
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
@@ -3671,8 +3675,20 @@ export default function App() {
                     <TailorScene>
                       {tailorProductionPreview && <div className="tailor-preview-result-layer"><ForgeProductionPreview kind="armor" armor={tailorProductionPreview} /></div>}
                     </TailorScene>
-                    <div className={`tailor-lower-panel${selectedTailorCoreId ? ' has-selected-core' : ''}`}>
-                      {selectedTailorCoreId && <ArmorCraftPanel
+                    <div className={`tailor-lower-panel${selectedTailorCoreId ? ' has-selected-core' : selectedTailorLining ? ' has-selected-lining' : ''}`}>
+                      {!selectedTailorLining ? <section className="forge-zone tailor-selection-zone" aria-label="Seleção de material da Alfaiataria">
+                        <div className="forge-panel-heading"><strong>SELECIONE O MATERIAL</strong><span>Escolha o forro para continuar</span></div>
+                        <div className="tailor-lining-choice-grid">
+                          {[
+                            { id: 'algodao' as const, label: 'Algodão', effect: '+ Vida', item: 'cotton' },
+                            { id: 'linho' as const, label: 'Linho', effect: '+ Mobilidade', item: 'linen' },
+                            { id: 'couro_refinado' as const, label: 'Couro refinado', effect: '+ XP da partida', item: 'refined_leather' },
+                          ].map(option => <button type="button" className="tailor-lining-choice" key={option.id}
+                            onClick={() => setSelectedTailorLining(option.id)}>
+                            <span>{inventoryItemIcon(option.item)}</span><strong>{option.label}</strong><small>{option.effect}</small>
+                          </button>)}
+                        </div>
+                      </section> : selectedTailorCoreId ? <ArmorCraftPanel
                         type="couro"
                         chestItems={lobbyChestItems}
                         chestReady={lobbyChestStatus === 'ready'}
@@ -3681,6 +3697,8 @@ export default function App() {
                         applyInventory={applyCookingInventory}
                         refreshChest={refreshLobbyChestFromCloud}
                         selectedCoreId={selectedTailorCoreId}
+                        selectedLining={selectedTailorLining}
+                        hideLiningSelection
                         onClearCore={() => setSelectedTailorCoreId(null)}
                         onBusyChange={setTailorCraftBusy}
                         onCrafted={armor => {
@@ -3690,22 +3708,32 @@ export default function App() {
                         renderIcon={inventoryItemIcon}
                         glowStyle={itemRarityGlow}
                         label={itemLabel}
-                      />}
+                      /> : <section className="forge-zone tailor-selection-zone" aria-label="Seleção do núcleo">
+                        <div className="forge-panel-heading"><strong>SELECIONE O NÚCLEO</strong><span>Material: {selectedTailorLining === 'algodao' ? 'Algodão' : selectedTailorLining === 'linho' ? 'Linho' : 'Couro refinado'}</span></div>
+                        <div className="tailor-core-choice-grid">
+                          {tailorArmorCoreStacks.map(item => <button type="button" className="forge-material-item forge-core-item" key={item.itemId}
+                            disabled={tailorCraftBusy} onClick={() => { tailorPreviewSessionRef.current += 1; setTailorProductionPreview(null); setSelectedTailorCoreId(item.itemId); }}>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                          </button>)}
+                          {tailorArmorCoreStacks.length === 0 && <p className="forge-empty">Nenhum núcleo de armadura revelado no Baú.</p>}
+                        </div>
+                        <button type="button" className="tailor-change-lining" onClick={() => setSelectedTailorLining(null)}>Trocar material</button>
+                      </section>}
                       <section className="forge-zone tailor-fabrics-zone tailor-chest-zone" aria-label="Baú da Alfaiataria">
                         <div className="forge-panel-heading"><strong>BAÚ DA ALFAIATARIA</strong><span>Núcleos e materiais disponíveis</span></div>
-                        <div className="tailor-chest-grid" aria-label="Núcleos e materiais disponíveis no Baú">
+                        <div className="forge-material-grid forge-chest-grid tailor-chest-grid" aria-label="Núcleos e materiais disponíveis no Baú">
                           {tailorChestStacks.map(item => {
                             const parsed = parseCoreItemId(item.itemId);
                             const isArmorCore = parsed?.kind === 'revealed' && parsed.core.category === 'armor';
                             return isArmorCore
-                              ? <button type="button" className="tailor-chest-item tailor-core-item" key={item.itemId}
+                              ? <button type="button" className="forge-material-item forge-core-item" key={item.itemId}
                                   disabled={tailorCraftBusy}
                                   aria-pressed={selectedTailorCoreId === item.itemId}
                                   onClick={() => { tailorPreviewSessionRef.current += 1; setTailorProductionPreview(null); setSelectedTailorCoreId(item.itemId); }}>
                                   <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                                   <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
                                 </button>
-                              : <div className="tailor-chest-item forge-material-item tailor-fabric-item" key={item.itemId}>
+                              : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
                                   <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                                   <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
                                 </div>;
