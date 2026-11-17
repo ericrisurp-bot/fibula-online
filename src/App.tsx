@@ -16,7 +16,8 @@ import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/ma
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
 import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
-import { deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
+import { armorMaterialItemIds, craftArmor, deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
+import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, readEquippedArmorSelections, resolveEquippedArmors, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
@@ -41,6 +42,7 @@ import ForgeProductionPreview from './ui/ForgeProductionPreview';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import ArmorCraftPanel from './ui/ArmorCraftPanel';
+import TailorCraftSlots from './ui/TailorCraftSlots';
 import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
@@ -898,8 +900,11 @@ export default function App() {
   const [cookingClock, setCookingClock] = useState(() => Date.now());
   const [selectedWeaponCoreId, setSelectedWeaponCoreId] = useState<string | null>(null);
   const [selectedTailorCoreId, setSelectedTailorCoreId] = useState<string | null>(null);
+  const [tailorHideSelection, setTailorHideSelection] = useState<{ itemId: string; quantity: number } | null>(null);
+  const [tailorLiningSelection, setTailorLiningSelection] = useState<{ itemId: string; quantity: number; lining: ArmorLining } | null>(null);
   const [tailorCraftBusy, setTailorCraftBusy] = useState(false);
-  const [tailorPanelResetKey, setTailorPanelResetKey] = useState(0);
+  const [tailorFeedback, setTailorFeedback] = useState('');
+  const tailorCraftLockRef = useRef(false);
   const [selectedWeaponMaterials, setSelectedWeaponMaterials] = useState<Array<{ slot: string; itemId: string; quantity: number }>>([]);
   const [forgeHammering, setForgeHammering] = useState(false);
   const [forgeCraftResult, setForgeCraftResult] = useState('');
@@ -1040,8 +1045,10 @@ export default function App() {
     if (id === 'costura') tailorPreviewSessionRef.current += 1;
     setSelectedWeaponCoreId(null);
     setSelectedTailorCoreId(null);
-    setTailorCraftBusy(false);
-    setTailorPanelResetKey(current => current + 1);
+    setTailorHideSelection(null);
+    setTailorLiningSelection(null);
+    setTailorCraftBusy(tailorCraftLockRef.current);
+    setTailorFeedback('');
     setTailorProductionPreview(null);
     setWeaponFeedback('');
     setForgeCraftResult('');
@@ -1057,7 +1064,10 @@ export default function App() {
     tailorPreviewSessionRef.current += 1;
     setTailorProductionPreview(null);
     setSelectedTailorCoreId(null);
-    setTailorCraftBusy(false);
+    setTailorHideSelection(null);
+    setTailorLiningSelection(null);
+    setTailorCraftBusy(tailorCraftLockRef.current);
+    setTailorFeedback('');
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
     setArsenalOpen(false); setFriendsOpen(false); setChestOpen(false);
@@ -1148,12 +1158,25 @@ export default function App() {
     if (item.quantity <= 0) return stacks;
     const parsed = parseCoreItemId(item.itemId);
     const base = getBaseItemId(item.itemId);
-    if (!parsed && !['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(base)) return stacks;
+    if ((parsed?.kind !== 'revealed') && !['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(base)) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
-  }, []).sort((a, b) => Number(!!parseCoreItemId(b.itemId)) - Number(!!parseCoreItemId(a.itemId)));
+  }, []).sort((a, b) => Number(parseCoreItemId(b.itemId)?.kind === 'revealed') - Number(parseCoreItemId(a.itemId)?.kind === 'revealed'));
+  const selectedTailorCoreParsed = selectedTailorCoreId ? parseCoreItemId(selectedTailorCoreId) : null;
+  const selectedTailorCore = CONFIG.rulesV2.armorCraftingEnabled && selectedTailorCoreParsed?.kind === 'revealed'
+    && selectedTailorCoreParsed.core.category === 'armor' && !!selectedTailorCoreParsed.core.equipmentType
+    ? selectedTailorCoreParsed.core : null;
+  const selectedTailorPiece = selectedTailorCore?.equipmentType
+    ? ARMOR_CORE_EQUIPMENT_TO_PIECE[selectedTailorCore.equipmentType] : null;
+  const tailorBaseRecipe = selectedTailorCore && selectedTailorPiece
+    ? armorMaterialItemIds('couro', selectedTailorPiece, 'algodao', selectedTailorCore.rarity) : null;
+  const tailorHideRequired = tailorBaseRecipe?.base.quantity ?? 0;
+  const tailorLiningRequired = tailorBaseRecipe?.lining.quantity ?? 5;
+  const tailorHideReady = !!tailorHideSelection && tailorHideSelection.quantity === tailorHideRequired;
+  const tailorLiningReady = !!tailorLiningSelection && tailorLiningSelection.quantity === tailorLiningRequired;
+  const tailorMaterialsReady = !!selectedTailorCore && tailorHideReady && tailorLiningReady;
   const selectedForgeCoreParsed = selectedWeaponCoreId ? parseCoreItemId(selectedWeaponCoreId) : null;
   const selectedWeaponCore = selectedForgeCoreParsed?.kind === 'revealed'
     && selectedForgeCoreParsed.core.category === 'weapon' ? selectedForgeCoreParsed.core : null;
@@ -2618,6 +2641,72 @@ export default function App() {
       setBauDeleteBusy(false);
     }
   };
+  const selectTailorCore = (itemId: string) => {
+    if (tailorCraftLockRef.current || tailorCraftBusy) return;
+    setSelectedTailorCoreId(current => current === itemId ? null : itemId);
+    setTailorHideSelection(null);
+    setTailorLiningSelection(null);
+    setTailorFeedback('');
+    setTailorProductionPreview(null);
+  };
+  const selectTailorMaterial = (item: HouseStorageStack) => {
+    if (!selectedTailorCore || !selectedTailorPiece || tailorCraftLockRef.current || tailorCraftBusy) return;
+    const rarity = getItemRarity(item.itemId) ?? 'normal';
+    if (rarity !== selectedTailorCore.rarity) return;
+    const base = getBaseItemId(item.itemId);
+    if (base === 'wolf_hide') {
+      if (tailorHideSelection?.itemId === item.itemId) setTailorHideSelection(null);
+      else if (!tailorHideSelection) {
+        const required = armorMaterialItemIds('couro', selectedTailorPiece, 'algodao', selectedTailorCore.rarity).base.quantity;
+        setTailorHideSelection({ itemId: item.itemId, quantity: Math.min(required, item.quantity) });
+      }
+    } else if (['cotton', 'linen', 'refined_leather'].includes(base)) {
+      if (tailorLiningSelection?.itemId === item.itemId) setTailorLiningSelection(null);
+      else if (!tailorLiningSelection) {
+        const lining: ArmorLining = base === 'cotton' ? 'algodao' : base === 'linen' ? 'linho' : 'couro_refinado';
+        const required = armorMaterialItemIds('couro', selectedTailorPiece, lining, selectedTailorCore.rarity).lining.quantity;
+        setTailorLiningSelection({ itemId: item.itemId, quantity: Math.min(required, item.quantity), lining });
+      }
+    }
+    setTailorFeedback('');
+  };
+  const craftTailorArmor = async () => {
+    if (!cookingOnline || !fibulaSupabase) {
+      setTailorFeedback('Sem conexão: fabricar exige internet.');
+      return;
+    }
+    if (tailorCraftLockRef.current || tailorCraftBusy) return;
+    if (lobbyChestStatus !== 'ready') {
+      setTailorFeedback('Aguarde o Baú terminar de carregar.');
+      return;
+    }
+    if (!selectedTailorCoreId || !selectedTailorCore || !selectedTailorPiece || !tailorLiningSelection || !tailorMaterialsReady) {
+      setTailorFeedback('Preencha o núcleo, o couro de lobo e o forro da receita.');
+      return;
+    }
+    const previewSession = tailorPreviewSessionRef.current;
+    tailorCraftLockRef.current = true;
+    setTailorCraftBusy(true);
+    setTailorFeedback('');
+    setTailorProductionPreview(null);
+    try {
+      const result = await craftArmor(fibulaSupabase, selectedTailorPiece, 'couro', tailorLiningSelection.lining, selectedTailorCoreId);
+      applyCookingInventory(result.inventory.map(stack => ({ itemId: stack.itemId, quantity: stack.quantity })));
+      setCraftedArmors(current => [result.armor, ...current.filter(item => item.id !== result.armor.id)].slice(0, 50));
+      if (tailorPreviewSessionRef.current === previewSession) setTailorProductionPreview({ kind: 'armor', armor: result.armor });
+      setSelectedTailorCoreId(null);
+      setTailorHideSelection(null);
+      setTailorLiningSelection(null);
+    } catch (cause) {
+      setTailorFeedback(cause instanceof Error ? cause.message : 'Não foi possível fabricar a armadura.');
+      if (!await refreshLobbyChestFromCloud()) {
+        setTailorFeedback(current => current + ' Não foi possível recarregar o Baú da nuvem.');
+      }
+    } finally {
+      tailorCraftLockRef.current = false;
+      setTailorCraftBusy(false);
+    }
+  };
   const selectForgeCore = (itemId: string) => {
     if (weaponCraftBusy || armorCraftBusy) return;
     setSelectedWeaponCoreId(current => current === itemId ? null : itemId);
@@ -3680,44 +3769,38 @@ export default function App() {
                     <TailorScene>
                       {tailorProductionPreview?.kind === 'armor' && <ForgeProductionPreview {...tailorProductionPreview} />}
                     </TailorScene>
-                    <div className="tailor-forge-lower">
-                      <div className="tailor-forge-selection">
-                        <ArmorCraftPanel
-                          key={`${tailorPanelResetKey}:${selectedTailorCoreId ?? 'tailor-empty'}`}
-                          type="couro"
-                          chestItems={lobbyChestItems}
-                          chestReady={lobbyChestStatus === 'ready'}
-                          online={cookingOnline}
-                          client={fibulaSupabase}
-                          applyInventory={applyCookingInventory}
-                          refreshChest={refreshLobbyChestFromCloud}
-                          onCrafted={armor => {
-                            setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50));
-                            if (tailorPreviewSessionRef.current === tailorPreviewSession) setTailorProductionPreview({ kind: 'armor', armor });
-                          }}
-                          renderIcon={inventoryItemIcon}
-                          glowStyle={itemRarityGlow}
-                          label={itemLabel}
-                          selectedCoreId={selectedTailorCoreId}
-                          onClearCore={() => setSelectedTailorCoreId(null)}
-                          onBusyChange={busy => {
-                            setTailorCraftBusy(busy);
-                            if (busy) setTailorProductionPreview(null);
-                          }}
-                        />
-                      </div>
+                    <div className="forge-lower-panel tailor-forge-lower">
+                      <TailorCraftSlots
+                        coreItemId={selectedTailorCoreId}
+                        hideItemId={tailorHideSelection?.itemId ?? null}
+                        hideQuantity={tailorHideSelection?.quantity ?? 0}
+                        hideRequired={tailorHideRequired}
+                        liningItemId={tailorLiningSelection?.itemId ?? null}
+                        liningQuantity={tailorLiningSelection?.quantity ?? 0}
+                        liningRequired={tailorLiningRequired}
+                        busy={tailorCraftBusy}
+                        disabled={lobbyChestStatus !== 'ready' || !cookingOnline || !fibulaSupabase || !tailorMaterialsReady}
+                        feedback={tailorFeedback}
+                        renderIcon={inventoryItemIcon}
+                        glowStyle={itemRarityGlow}
+                        label={itemLabel}
+                        onClearCore={() => { if (!tailorCraftLockRef.current) { setSelectedTailorCoreId(null); setTailorHideSelection(null); setTailorLiningSelection(null); setTailorFeedback(''); } }}
+                        onClearHide={() => setTailorHideSelection(null)}
+                        onClearLining={() => setTailorLiningSelection(null)}
+                        onCraft={() => void craftTailorArmor()}
+                      />
                       <section className="forge-zone forge-chest-zone tailor-chest-zone" aria-label="Baú da Alfaiataria">
-                        <div className="forge-panel-heading"><strong>BAÚ</strong><span>Núcleos revelados · Materiais de couro e forro</span></div>
+                        <div className="forge-panel-heading"><strong>BAÚ</strong><span>Núcleos revelados · Couro e forros</span></div>
                         <div className="forge-material-grid forge-chest-grid tailor-chest-grid" aria-label="Núcleos e materiais no Baú">
                           {tailorChestStacks.map(item => {
                             const parsed = parseCoreItemId(item.itemId);
-                            if (parsed) {
-                              const selectable = parsed.kind === 'revealed' && parsed.core.category === 'armor' && !!parsed.core.equipmentType;
+                            if (parsed?.kind === 'revealed') {
+                              const selectable = parsed.core.category === 'armor' && !!parsed.core.equipmentType;
                               return selectable ? <button type="button" key={item.itemId}
                                 className={'forge-material-item forge-core-item' + (selectedTailorCoreId === item.itemId ? ' selected' : '')}
-                                disabled={tailorCraftBusy}
+                                disabled={tailorCraftBusy || tailorCraftLockRef.current}
                                 aria-pressed={selectedTailorCoreId === item.itemId}
-                                onClick={() => setSelectedTailorCoreId(current => current === item.itemId ? null : item.itemId)}>
+                                onClick={() => selectTailorCore(item.itemId)}>
                                 <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                                 <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
                               </button> : <div className="forge-material-item forge-core-item is-inert" key={item.itemId}>
@@ -3725,10 +3808,21 @@ export default function App() {
                                 <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
                               </div>;
                             }
-                            return <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
+                            const base = getBaseItemId(item.itemId);
+                            const rarity = getItemRarity(item.itemId) ?? 'normal';
+                            const selected = tailorHideSelection?.itemId === item.itemId || tailorLiningSelection?.itemId === item.itemId;
+                            const isHide = base === 'wolf_hide';
+                            const isLining = base === 'cotton' || base === 'linen' || base === 'refined_leather';
+                            const slotFree = isHide ? (!tailorHideSelection || selected) : isLining && (!tailorLiningSelection || selected);
+                            const compatible = !!selectedTailorCore && rarity === selectedTailorCore.rarity && slotFree && (isHide || isLining);
+                            return <button type="button" key={item.itemId}
+                              className={'forge-material-item forge-chest-item' + (selected ? ' selected' : '') + (!compatible ? ' incompatible' : '')}
+                              disabled={!compatible || tailorCraftBusy || tailorCraftLockRef.current}
+                              onClick={() => selectTailorMaterial(item)}>
                               <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                              <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                            </div>;
+                              <strong>{itemLabel(item.itemId)}</strong>
+                              <small>×{item.quantity}{selected ? ' · selecionado' : ''}</small>
+                            </button>;
                           })}
                           {tailorChestStacks.length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
                         </div>
