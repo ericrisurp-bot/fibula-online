@@ -1027,7 +1027,6 @@ export default function App() {
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
-  const forgePreviewSession = forgePreviewSessionRef.current;
   const openStation = (id: StationRouteId) => {
     if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
