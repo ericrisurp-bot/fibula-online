@@ -3419,7 +3419,7 @@ export default function App() {
       engine.setClass(selectedClass);
       await prepareEquippedWeaponForClass(engine, selectedClass);
       if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[selectedClass] ?? {});
-       if (accessoryListReady) engine.setEquippedAccessories(equippedAccessoriesRef.current[selectedClass] ?? {});
+       engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[selectedClass] ?? {} : {});
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
@@ -3566,7 +3566,7 @@ export default function App() {
     const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, id);
     engine.setEquippedWeapon(weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null);
     if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[id] ?? {});
-    if (accessoryListReady) engine.setEquippedAccessories(equippedAccessoriesRef.current[id] ?? {});
+    engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[id] ?? {} : {});
   };
   applyClassAndEquippedWeaponRef.current = applyClassAndEquippedWeapon;
   const equipCraftedWeapon = (weapon: CraftedWeapon) => {
@@ -3681,7 +3681,7 @@ export default function App() {
       if (equippedElsewhere) { setWeaponFeedback('Desequipe este acessório da outra classe antes de transferi-lo.'); return; }
       const next = equipAccessoryForClass(equippedAccessoryIds, activeArsenalClassId, action.accessory);
       setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next);
-      setWeaponFeedback(JEWELRY_ACCESSORY_TYPE_LABELS[action.accessory.type] + ' equipado.'); setArsenalActionItem(null); return;
+      setWeaponFeedback(JEWELRY_ACCESSORY_TYPE_LABELS[action.accessory.type] + ' equipado.'); setSelectedArsenalItemId(null); setArsenalActionItem(null); return;
     }
     if (action.kind === 'weapon') {
       if (activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[action.weapon.model]) return;
