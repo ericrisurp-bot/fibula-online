@@ -1163,16 +1163,18 @@ export default function App() {
     if (item.quantity <= 0) return stacks;
     const parsedCore = parseCoreItemId(item.itemId);
     const base = getBaseItemId(item.itemId);
-    const isRevealedCore = parsedCore?.kind === 'revealed';
+    const isCore = parsedCore?.kind === 'revealed' || parsedCore?.kind === 'closed';
     const isEquipmentMaterial = !parsedCore && ['wood', 'stone', 'bronze', 'linen', 'cotton', 'refined_leather'].includes(base);
-    if (!isRevealedCore && !isEquipmentMaterial) return stacks;
+    if (!isCore && !isEquipmentMaterial) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
   }, []).sort((a, b) => {
-    const aIsCore = parseCoreItemId(a.itemId)?.kind === 'revealed';
-    const bIsCore = parseCoreItemId(b.itemId)?.kind === 'revealed';
+    const aKind = parseCoreItemId(a.itemId)?.kind;
+    const bKind = parseCoreItemId(b.itemId)?.kind;
+    const aIsCore = aKind === 'revealed' || aKind === 'closed';
+    const bIsCore = bKind === 'revealed' || bKind === 'closed';
     return Number(bIsCore) - Number(aIsCore);
   });
   const tailorFabricStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
@@ -1187,12 +1189,19 @@ export default function App() {
     if (item.quantity <= 0) return stacks;
     const parsed = parseCoreItemId(item.itemId);
     const base = getBaseItemId(item.itemId);
-    if ((parsed?.kind !== 'revealed') && !['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(base)) return stacks;
+    const isCore = parsed?.kind === 'revealed' || parsed?.kind === 'closed';
+    if (!isCore && !['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(base)) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
-  }, []).sort((a, b) => Number(parseCoreItemId(b.itemId)?.kind === 'revealed') - Number(parseCoreItemId(a.itemId)?.kind === 'revealed'));
+  }, []).sort((a, b) => {
+    const aKind = parseCoreItemId(a.itemId)?.kind;
+    const bKind = parseCoreItemId(b.itemId)?.kind;
+    const aIsCore = aKind === 'revealed' || aKind === 'closed';
+    const bIsCore = bKind === 'revealed' || bKind === 'closed';
+    return Number(bIsCore) - Number(aIsCore);
+  });
   const selectedTailorCoreParsed = selectedTailorCoreId ? parseCoreItemId(selectedTailorCoreId) : null;
   const selectedTailorCore = CONFIG.rulesV2.armorCraftingEnabled && selectedTailorCoreParsed?.kind === 'revealed'
     && selectedTailorCoreParsed.core.category === 'armor' && !!selectedTailorCoreParsed.core.equipmentType
