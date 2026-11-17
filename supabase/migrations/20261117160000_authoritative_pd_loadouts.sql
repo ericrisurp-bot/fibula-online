@@ -418,10 +418,11 @@ begin
 
   if v_total_pd > v_current and v_total_pd <= v_max_pd then
     update public.fibula_profiles
-       set highest_pd = v_total_pd,
+       set highest_pd = greatest(highest_pd, v_total_pd),
            updated_at = clock_timestamp()
-     where user_id = v_user_id;
-    return v_total_pd;
+     where user_id = v_user_id
+     returning highest_pd into v_current;
+    return v_current;
   end if;
 
   return v_current;
