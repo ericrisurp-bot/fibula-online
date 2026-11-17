@@ -1102,7 +1102,7 @@ export default function App() {
   const selectedForgeCoreParsed = selectedWeaponCoreId ? parseCoreItemId(selectedWeaponCoreId) : null;
   const selectedWeaponCore = selectedForgeCoreParsed?.kind === 'revealed'
     && selectedForgeCoreParsed.core.category === 'weapon' ? selectedForgeCoreParsed.core : null;
-  const selectedArmorCore = selectedForgeCoreParsed?.kind === 'revealed'
+  const selectedArmorCore = CONFIG.rulesV2.armorCraftingEnabled && selectedForgeCoreParsed?.kind === 'revealed'
     && selectedForgeCoreParsed.core.category === 'armor' && !!selectedForgeCoreParsed.core.equipmentType
     ? selectedForgeCoreParsed.core : null;
   const selectedWeaponModel: WeaponModel | null = selectedWeaponCore
@@ -3797,8 +3797,8 @@ export default function App() {
                         if (parsedCore) {
                           const isCraftableCore = parsedCore.kind === 'revealed'
                             && (parsedCore.core.category === 'weapon'
-                              || (parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
-                          return isCraftableCore ? <button type="button" key={item.itemId>
+                              || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
+                          return isCraftableCore ? <button type="button" key={item.itemId}>
                             className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
                             disabled={weaponCraftBusy}
                             aria-pressed={selectedWeaponCoreId === item.itemId}
