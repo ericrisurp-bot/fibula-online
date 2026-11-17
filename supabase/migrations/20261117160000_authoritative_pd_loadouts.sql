@@ -366,6 +366,7 @@ as $function$
 declare
   v_user_id uuid := auth.uid();
   v_current integer;
+  v_max_pd constant integer := 3000;
   v_primary_class text;
   v_secondary_class text;
   v_weapons jsonb;
@@ -415,7 +416,7 @@ begin
     v_total_pd := v_total_pd + v_class_pd;
   end loop;
 
-  if v_total_pd > v_current then
+  if v_total_pd > v_current and v_total_pd <= v_max_pd then
     update public.fibula_profiles
        set highest_pd = v_total_pd,
            updated_at = clock_timestamp()
