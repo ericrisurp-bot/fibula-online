@@ -12693,7 +12693,7 @@ sem backdrop ou caixa de modal. */
 }
 .tailor-chest-grid{
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  align-content:start;gap:6px;overflow-y:auto;
+  grid-auto-rows:auto;align-content:start;align-items:start;gap:6px;overflow-y:auto;
 }
 .tailor-chest-grid .forge-material-item{min-height:58px}
 .tailor-chest-grid .forge-material-item strong{font-size:9px}
