@@ -12607,3 +12607,58 @@ sem backdrop ou caixa de modal. */
 }
 
 .tailor-page .tailor-forge-workspace .tailor-scene-slots{pointer-events:auto}
+
+
+/* A4.5b — Alfaiataria com slots escuros e Baú integral, sem ArmorCraftPanel. */
+.tailor-page .tailor-forge-workspace{
+  display:grid!important;grid-template-rows:minmax(112px,.58fr) minmax(0,1.42fr);
+  width:100%;max-width:none;min-width:0;min-height:0;flex:1 1 auto;overflow:hidden;gap:6px;
+}
+.tailor-page .tailor-forge-workspace>.tailor-scene{height:100%;min-height:0;max-height:none}
+.tailor-page .tailor-forge-workspace .tailor-scene-slots{padding:24px 8px 8px}
+.tailor-page .tailor-forge-workspace .tailor-title-plaque{z-index:6}
+.tailor-page .tailor-forge-workspace .tailor-shelf{left:34%;top:39%;right:8%;z-index:1}
+.tailor-page .tailor-forge-workspace .tailor-fabric-roll{z-index:1}
+.tailor-page .tailor-forge-lower{display:flex;flex-direction:column;min-width:0;min-height:0;gap:5px;overflow:hidden}
+.tailor-page .tailor-forge-lower>.tailor-selection-zone{flex:0 0 auto}
+.tailor-page .tailor-forge-lower>.tailor-chest-zone{display:flex;flex:1 1 auto;min-width:0;min-height:0;flex-direction:column;overflow:hidden}
+.tailor-page .tailor-chest-zone .tailor-chest-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-content:start;
+  flex:1 1 auto;min-width:0;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;
+}
+.tailor-page .tailor-chest-grid .forge-material-item{min-height:54px;padding:3px}
+.tailor-page .tailor-chest-grid .forge-material-item.incompatible{opacity:.42;filter:saturate(.45)}
+.tailor-page .tailor-chest-grid .forge-material-item.selected{border-color:#d17a40;box-shadow:0 0 0 1px #d17a4055}
+.tailor-page .tailor-selection-zone .forge-recipe-slots{display:flex;gap:clamp(3px,1.1vw,7px)}
+.tailor-page .tailor-selection-zone .forge-recipe-slot{flex:1 1 0;min-width:0;max-width:120px;min-height:49px;padding:3px 2px}
+.tailor-page .tailor-selection-zone .forge-recipe-slot.forge-core-recipe-slot{flex:0 0 clamp(48px,15vw,62px);max-width:68px}
+.tailor-page .tailor-selection-zone .forge-recipe-slot>strong{font-size:clamp(6px,1.7vw,8px);white-space:normal;overflow-wrap:anywhere;text-align:center;line-height:1.1}
+.tailor-page .tailor-selection-zone .forge-recipe-slot>small{font-size:7px}
+.tailor-page .tailor-selection-zone .forge-selection-action{width:100%;min-height:34px}
+.tailor-page .tailor-selection-zone .forge-craft-button{width:100%;min-width:0;min-height:34px}
+.tailor-page .tailor-selection-zone .forge-feedback{margin:0;text-align:center}
+.tailor-page .tailor-scene .forge-production-result>p{font-size:0}
+.tailor-page .tailor-scene .forge-production-result>p:after{content:"Equipamento salvo no Arsenal. Feche a estação para acessá-lo.";font-size:8px}
+@media(max-width:430px){
+  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(104px,.54fr) minmax(0,1.46fr);gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
+  .tailor-page .tailor-forge-lower{gap:4px}
+  .tailor-page .tailor-forge-lower>.tailor-selection-zone{padding:4px 5px}
+  .tailor-page .tailor-selection-zone .forge-recipe-slot{min-height:43px}
+  .tailor-page .tailor-selection-zone .forge-recipe-slot.forge-core-recipe-slot{flex-basis:clamp(42px,14vw,54px)}
+  .tailor-page .tailor-chest-zone{padding:5px;gap:4px}
+  .tailor-page .tailor-chest-zone .tailor-chest-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
+  .tailor-page .tailor-chest-grid .forge-material-item{min-height:48px;padding:2px}
+  .tailor-page .tailor-chest-grid .forge-material-item strong,.tailor-page .tailor-chest-grid .forge-material-item small{font-size:7px}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(78px,.42fr) minmax(0,1.58fr)}
+  .tailor-page .tailor-forge-workspace .tailor-scene-slots{padding-top:20px}
+}
+@media(min-width:700px){
+  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(145px,.58fr) minmax(0,1.42fr);padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
+  .tailor-page .tailor-chest-zone .tailor-chest-grid{grid-template-columns:repeat(auto-fill,64px);grid-auto-rows:64px;justify-content:start;gap:6px}
+  .tailor-page .tailor-chest-grid .forge-material-item{box-sizing:border-box;width:64px;min-width:64px;max-width:64px;height:64px;min-height:64px;max-height:64px;gap:1px;padding:3px;overflow:hidden}
+  .tailor-page .tailor-chest-grid .forge-material-item>span{min-height:23px;flex:0 0 23px}
+  .tailor-page .tailor-chest-grid .forge-material-item>span img{max-width:23px;max-height:23px}
+  .tailor-page .tailor-chest-grid .forge-material-item strong,.tailor-page .tailor-chest-grid .forge-material-item small{font-size:7px;line-height:1.1}
+}
