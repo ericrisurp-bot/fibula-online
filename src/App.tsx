@@ -2610,6 +2610,7 @@ export default function App() {
     setWeaponCraftBusy(true);
     setForgeHammering(!reducedMotion);
     setForgeCraftResult('');
+    setForgeProductionPreview(null);
     setWeaponFeedback('');
     let serverCallMade = false;
     try {
@@ -3742,7 +3743,7 @@ export default function App() {
                       label={itemLabel}
                       selectedCoreId={selectedWeaponCoreId}
                       onClearCore={() => { setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
-                      onBusyChange={setArmorCraftBusy}
+                      onBusyChange={busy => { setArmorCraftBusy(busy); if (busy) setForgeProductionPreview(null); }}
                     /> : <section className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
                       <div className="forge-panel-heading">
                         <strong>MATERIAIS SELECIONADOS</strong>
