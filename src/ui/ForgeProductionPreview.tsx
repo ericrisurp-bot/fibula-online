@@ -3,8 +3,8 @@ import { armorEffectiveValue, armorLiningEffectiveValue, type CraftedArmor } fro
 import { ArmorPieceIcon } from './ArmorArsenal';
 
 type ForgeProductionPreviewProps =
-  | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[]; stationName?: string }
-  | { kind: 'armor'; armor: CraftedArmor; stationName?: string };
+  | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[] }
+  | { kind: 'armor'; armor: CraftedArmor };
 
 const rarityLabels: Record<string, string> = {
   normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária',
@@ -80,6 +80,6 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
         {!isWeapon && <div><span>Forro</span><strong>{liningLabels[props.armor.lining]} · {liningValueLabel}</strong></div>}
       </div>
     </details>
-    <p>Equipamento salvo no Arsenal. Feche a estação {props.stationName ?? 'de criação'} para acessá-lo.</p>
+    <p>Equipamento salvo no Arsenal. Feche a Bigorna para acessá-lo.</p>
   </section>;
 }

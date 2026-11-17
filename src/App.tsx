@@ -41,7 +41,6 @@ import ForgeScene from './ui/ForgeScene';
 import ForgeProductionPreview from './ui/ForgeProductionPreview';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
-import ArmorCraftPanel from './ui/ArmorCraftPanel';
 import TailorCraftSlots from './ui/TailorCraftSlots';
 import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
 import StationNav from './ui/StationNav';
@@ -3842,7 +3841,7 @@ export default function App() {
               {activeCraftingStation.id !== 'fogao' && activeCraftingStation.id !== 'bigorna' && activeCraftingStation.id !== 'joalheria' && activeCraftingStation.id !== 'costura' && <p>{stationPresentation.description}</p>}
               {activeCraftingStation.id === 'costura' && CONFIG.rulesV2.armorCraftingEnabled ? <div className="tailor-workspace tailor-forge-workspace" data-crafted-count={craftedArmors.length}>
                     <TailorScene>
-                      {tailorProductionPreview?.kind === 'armor' && <ForgeProductionPreview {...tailorProductionPreview} stationName="Alfaiataria" />}
+                      {tailorProductionPreview?.kind === 'armor' && <ForgeProductionPreview {...tailorProductionPreview} />}
                     </TailorScene>
                     <div className="forge-lower-panel tailor-forge-lower">
                       <TailorCraftSlots
