@@ -1036,6 +1036,7 @@ export default function App() {
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const openStation = (id: StationRouteId) => {
+    if (bauAction && !bauDeleteBusy) setBauAction(null);
     if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
       setForgeProductionPreview(null);
@@ -1067,6 +1068,7 @@ export default function App() {
     setCookingFeedback(!cookingOnline && id === 'fogao' ? 'Sem conexão: cozinhar exige internet.' : '');
   };
   const closeGamePage = () => {
+    if (bauAction && !bauDeleteBusy) setBauAction(null);
     forgePreviewSessionRef.current += 1;
     setForgeProductionPreview(null);
     tailorPreviewSessionRef.current += 1;
@@ -4588,60 +4590,7 @@ export default function App() {
           </section></div>
           <SideNav current="bau" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
-        {bauAction && createPortal(<div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
-          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}${bauAction.view==='details' && bauAction.kind==='item' && (parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:')) ? ' bau-action-core-details' : ''}`} role="dialog" aria-modal="true"
-            aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
-            onClick={event=>event.stopPropagation()}>
-            {bauAction.view==='actions'?<>
-              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
-              {bauAction.kind==='meal'?<>
-                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
-                <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
-                <button type="button" className="bau-action-button danger" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={requestBauActionDeletion}>Excluir</button>
-                {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
-              </>:bauAction.productionCore?<>
-                <button type="button" className="bau-action-button" autoFocus disabled={bauAction.useDisabled || !bauAction.onUse} onClick={()=>{if(bauAction.kind==='item'){bauAction.onUse?.();setBauAction(null);}}}>Usar</button>
-                <button type="button" className="bau-action-button" onClick={showBauActionDetails}>Propriedades</button>
-                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
-              </>:bauAction.item.itemId==='jabuticaba'?<>
-                <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
-                <button type="button" className="bau-action-button" autoFocus={!chestCloudReady||jabuticabaBusy} onClick={showBauActionDetails}>Detalhes</button>
-              </>:<>
-                <button type="button" className="bau-action-button" autoFocus onClick={showBauActionDetails}>Detalhes</button>
-                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
-              </>}
-            </>:bauAction.view==='details'?<>
-              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
-              {bauAction.kind==='meal'?<>
-                <p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
-                <div className="bau-action-detail-section"><strong>Ingredientes</strong><ul>{bauAction.meal.ingredients.map((ingredient,index)=><li key={ingredient.itemId+'-'+index}>{bauIngredientName(ingredient.itemId)}</li>)}</ul></div>
-                <div className="bau-action-detail-section"><strong>Efeito</strong><ul>{bauMealEffects(bauAction.meal).map((effect,index)=><li key={effect+'-'+index}>{effect}</li>)}</ul>
-                  {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
-              </>:bauAction.item.itemId==='jabuticaba'?<>
-                <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
-              </>:(parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:'))?<>
-                <CoreDetail itemId={bauAction.item.itemId} armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
-              </>:<>
-                {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
-                <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
-              </>}
-              <button type="button" className="bau-action-button" autoFocus onClick={()=>setBauAction(current=>current?{...current,view:'actions'}:null)}>Voltar</button>
-            </>:<>
-              <header><strong>Excluir {bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}?</strong><button type="button" aria-label="Fechar" disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>×</button></header>
-              <p>Esta ação não pode ser desfeita.</p>
-              {bauAction.kind==='item'&&bauAction.item.quantity>1&&<>
-                <label className="bau-action-quantity">Quantidade a excluir<input type="number" min="1" max={lobbyChestItems.find(item=>item.itemId===bauAction.item.itemId)?.quantity??bauAction.item.quantity} step="1" value={bauDeleteQuantity} onChange={event=>setBauDeleteQuantity(event.target.value)}/></label>
-                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready'} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
-              </>}
-              <div className="bau-action-confirm-actions">
-                <button type="button" className="bau-action-button" autoFocus disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>Cancelar</button>
-                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready' || (bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
-              </div>
-              {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
-              {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
-            </>}
-          </section>
-        </div>, document.body)}
+
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
             <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => openSidePage('classes')} />
@@ -4828,6 +4777,60 @@ export default function App() {
     </div>}
     {duoTradeOpen && duoPeer?.status === 'connected' && duoPeer.matchId === null && fibulaSupabase && <DuoTradeModal client={fibulaSupabase} userId={session.user.sub} roomId={duoPeer.roomId} friendName={duoPeer.friendName} onClose={() => setDuoTradeOpen(false)} onCompleted={() => { void (async () => { try { const ownedWeapons = await listMyWeapons(fibulaSupabase); setCraftedWeapons(ownedWeapons); const ownedIds = new Set(ownedWeapons.map(weapon => weapon.id)); setEquippedWeaponIds(current => { const next = { ...current }; (Object.keys(next) as ClassId[]).forEach(classId => { if (!ownedIds.has(next[classId]!)) delete next[classId]; }); return next; }); } catch { /* A próxima abertura do Arsenal fará nova leitura. */ } try { await refreshLobbyChestFromCloud(); } catch { /* A próxima abertura do Baú fará nova leitura. */ } try { await refreshCookingState(); } catch { /* A próxima abertura do Fogão fará nova leitura. */ } })(); }} />}
     <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { setDuoTradeOpen(false); duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setCookingFeedback('Não foi possível atualizar o Baú.'); }); }} />
+        {bauAction && createPortal(<div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
+          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}${bauAction.view==='details' && bauAction.kind==='item' && (parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:')) ? ' bau-action-core-details' : ''}`} role="dialog" aria-modal="true"
+            aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
+            onClick={event=>event.stopPropagation()}>
+            {bauAction.view==='actions'?<>
+              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
+              {bauAction.kind==='meal'?<>
+                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
+                <button type="button" className="bau-action-button danger" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={requestBauActionDeletion}>Excluir</button>
+                {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              </>:bauAction.productionCore?<>
+                <button type="button" className="bau-action-button" autoFocus disabled={bauAction.useDisabled || !bauAction.onUse} onClick={()=>{if(bauAction.kind==='item'){bauAction.onUse?.();setBauAction(null);}}}>Usar</button>
+                <button type="button" className="bau-action-button" onClick={showBauActionDetails}>Propriedades</button>
+                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
+              </>:bauAction.item.itemId==='jabuticaba'?<>
+                <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={!chestCloudReady||jabuticabaBusy} onClick={showBauActionDetails}>Detalhes</button>
+              </>:<>
+                <button type="button" className="bau-action-button" autoFocus onClick={showBauActionDetails}>Detalhes</button>
+                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
+              </>}
+            </>:bauAction.view==='details'?<>
+              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
+              {bauAction.kind==='meal'?<>
+                <p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
+                <div className="bau-action-detail-section"><strong>Ingredientes</strong><ul>{bauAction.meal.ingredients.map((ingredient,index)=><li key={ingredient.itemId+'-'+index}>{bauIngredientName(ingredient.itemId)}</li>)}</ul></div>
+                <div className="bau-action-detail-section"><strong>Efeito</strong><ul>{bauMealEffects(bauAction.meal).map((effect,index)=><li key={effect+'-'+index}>{effect}</li>)}</ul>
+                  {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
+              </>:bauAction.item.itemId==='jabuticaba'?<>
+                <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
+              </>:(parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:'))?<>
+                <CoreDetail itemId={bauAction.item.itemId} armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
+              </>:<>
+                {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
+                <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
+              </>}
+              <button type="button" className="bau-action-button" autoFocus onClick={()=>setBauAction(current=>current?{...current,view:'actions'}:null)}>Voltar</button>
+            </>:<>
+              <header><strong>Excluir {bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}?</strong><button type="button" aria-label="Fechar" disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>×</button></header>
+              <p>Esta ação não pode ser desfeita.</p>
+              {bauAction.kind==='item'&&bauAction.item.quantity>1&&<>
+                <label className="bau-action-quantity">Quantidade a excluir<input type="number" min="1" max={lobbyChestItems.find(item=>item.itemId===bauAction.item.itemId)?.quantity??bauAction.item.quantity} step="1" value={bauDeleteQuantity} onChange={event=>setBauDeleteQuantity(event.target.value)}/></label>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready'} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
+              </>}
+              <div className="bau-action-confirm-actions">
+                <button type="button" className="bau-action-button" autoFocus disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>Cancelar</button>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready' || (bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
+              </div>
+              {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
+            </>}
+          </section>
+        </div>, document.body)}
   </>;
 }
 
