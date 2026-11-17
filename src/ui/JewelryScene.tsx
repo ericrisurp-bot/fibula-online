@@ -4,7 +4,7 @@ type JewelrySceneProps = {
 
 export default function JewelryScene({ revealAnimating }: JewelrySceneProps) {
   return <section className={'jewelry-scene' + (revealAnimating ? ' jewelry-revealing' : '')} aria-label="Oficina de ourivesaria">
-    <svg className="jewelry-scene-svg" viewBox="0 0 360 210" preserveAspectRatio="xMidY slice" role="img" aria-label="Oficina de joalheria com armários, gemas, luminária e bancada de ferramentas">
+    <svg className="jewelry-scene-svg" viewBox="0 0 360 210" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Oficina de joalheria com armários, gemas, luminária e bancada de ferramentas">
       <defs>
         <linearGradient id="j-wall" x2="0" y2="1"><stop stopColor="#263c4a"/><stop offset="1" stopColor="#14232d"/></linearGradient>
         <linearGradient id="j-wood" x2="0" y2="1"><stop stopColor="#98613b"/><stop offset="1" stopColor="#4d3027"/></linearGradient>
