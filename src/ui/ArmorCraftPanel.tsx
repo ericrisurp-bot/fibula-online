@@ -27,6 +27,9 @@ type ArmorCraftPanelProps = {
   renderIcon: (itemId: string) => ReactNode;
   glowStyle: (itemId: string) => CSSProperties;
   label: (itemId: string) => string;
+  selectedCoreId?: string | null;
+  onClearCore?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 const PIECE_LABELS: Record<ArmorPiece, string> = {
@@ -80,8 +83,13 @@ export default function ArmorCraftPanel({
   renderIcon,
   glowStyle,
   label,
+  selectedCoreId: controlledCoreId,
+  onClearCore,
+  onBusyChange,
 }: ArmorCraftPanelProps) {
-  const [selectedCoreId, setSelectedCoreId] = useState<string | null>(null);
+  const [internalCoreId, setInternalCoreId] = useState<string | null>(null);
+  const isControlled = controlledCoreId !== undefined;
+  const selectedCoreId = isControlled ? controlledCoreId : internalCoreId;
   const [selectedLining, setSelectedLining] = useState<ArmorLining | null>(null);
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
@@ -174,11 +182,13 @@ export default function ArmorCraftPanel({
     if (!selectedCore || !selectedPiece || !selectedLining || !hasMaterials || !chestReady) return;
     craftLockRef.current = true;
     setBusy(true);
+    onBusyChange?.(true);
     setFeedback('');
     try {
       const result = await craftArmor(client, selectedPiece, type, selectedLining, selectedCore.itemId);
       applyInventory(result.inventory);
-      setSelectedCoreId(null);
+      if (isControlled) onClearCore?.();
+      else setInternalCoreId(null);
       setSelectedLining(null);
       onCrafted(result.armor);
       setFeedback(`Peça fabricada! ${result.armor.stars} ${result.armor.stars === 1 ? 'estrela' : 'estrelas'}.`);
@@ -188,35 +198,36 @@ export default function ArmorCraftPanel({
     } finally {
       craftLockRef.current = false;
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
 
   return <section className="armor-craft-panel" aria-label={type === 'couro' ? 'Fabricação de armadura de couro' : 'Fabricação de armadura de bronze'}>
     <div className="armor-craft-scroll">
-      <section className="armor-craft-section" aria-label="Núcleos revelados">
+      {isControlled ? <section className="armor-craft-section" aria-label="Núcleo selecionado">
+        <header className="armor-craft-heading"><strong>NÚCLEO</strong><span>{selectedCore && selectedPiece ? PIECE_LABELS[selectedPiece] + ' · ' + RARITY_LABELS[selectedCore.core.rarity] : 'Selecione no Baú'}</span></header>
+        <div className="armor-craft-selected-core">
+          {selectedCore && selectedPiece ? <>
+            <img className="armor-craft-piece-image" src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[selectedPiece]}.png`} alt="" aria-hidden="true" draggable={false}/>
+            <strong>{PIECE_LABELS[selectedPiece]}</strong>
+            <small>{RARITY_LABELS[selectedCore.core.rarity]}{selectedCore.core.surp ? ' · SURP' : ''}</small>
+            <button type="button" disabled={busy} onClick={() => { onClearCore?.(); setFeedback(''); setSelectedLining(null); }}>Trocar núcleo</button>
+          </> : <p className="armor-craft-empty">Selecione um núcleo de armadura no Baú da Bigorna.</p>}
+        </div>
+      </section> : <section className="armor-craft-section" aria-label="Núcleos revelados">
         <header className="armor-craft-heading"><strong>NÚCLEO</strong><span>Escolha uma peça revelada no Baú</span></header>
         <div className="armor-craft-core-grid">
-          {armorCores.map(entry => <button
-            type="button"
-            key={entry.itemId}
+          {armorCores.map(entry => <button type="button" key={entry.itemId}
             className={`armor-craft-core-card${selectedCoreId === entry.itemId ? ' armor-craft-is-selected' : ''}`}
-            onClick={() => { setSelectedCoreId(entry.itemId); setFeedback(''); }}
-            aria-pressed={selectedCoreId === entry.itemId}
-          >
-            <img
-              className="armor-craft-piece-image"
-              src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[entry.piece]}.png`}
-              alt=""
-              aria-hidden="true"
-              draggable={false}
-            />
+            onClick={() => { setInternalCoreId(entry.itemId); setFeedback(''); }} aria-pressed={selectedCoreId === entry.itemId}>
+            <img className="armor-craft-piece-image" src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[entry.piece]}.png`} alt="" aria-hidden="true" draggable={false}/>
             <strong>{PIECE_LABELS[entry.piece]}</strong>
             <small>{RARITY_LABELS[entry.core.rarity]}{entry.core.surp ? ' · SURP' : ''}</small>
             {entry.quantity > 1 && <em>×{entry.quantity}</em>}
           </button>)}
           {armorCores.length === 0 && <p className="armor-craft-empty">Nenhum núcleo revelado de armadura no Baú.</p>}
         </div>
-      </section>
+      </section>}
 
       <section className="armor-craft-section" aria-label="Escolha do forro">
         <header className="armor-craft-heading"><strong>FORRO</strong><span>Escolha obrigatória</span></header>

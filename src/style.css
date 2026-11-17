@@ -12195,16 +12195,6 @@ sem backdrop ou caixa de modal. */
 
 
 /* A4.3b — abas da Bigorna para armas e armaduras de bronze. */
-.forge-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%;min-width:0;margin:0 0 9px}
-.forge-tabs-button{display:flex;min-width:0;min-height:46px;align-items:center;justify-content:center;padding:9px 12px;border:1px solid #756047;border-radius:9px;background:linear-gradient(180deg,#35322c,#242522);color:#e8dcc8;font:inherit;font-size:13px;font-weight:850;letter-spacing:.04em;cursor:pointer;touch-action:manipulation}
-.forge-tabs-button.is-active{border-color:#c28b4c;background:linear-gradient(180deg,#76512f,#4b3525);color:#fff1d8;box-shadow:inset 0 1px 0 #fff3,0 2px 0 #211b15}
-.forge-tabs-button:focus-visible{outline:2px solid #e4bd7b;outline-offset:2px}
-.forge-tabs-armor-workspace{display:flex;width:100%;min-width:0;min-height:0;max-height:100%;flex:1 1 auto;overflow:hidden}
-.forge-tabs-armor-workspace .armor-craft-panel{width:100%;min-width:0;min-height:0;max-height:100%}
-@media(max-width:430px){.forge-tabs{gap:5px;margin-bottom:6px}.forge-tabs-button{min-height:44px;padding:8px 5px;font-size:12px}.forge-tabs-armor-workspace{min-height:0}}
-@media(orientation:landscape) and (max-height:520px){.forge-tabs{gap:4px;margin-bottom:4px}.forge-tabs-button{min-height:38px;padding:5px 8px;font-size:11px}}
-
-
 /* A5.2 — apresentação das armaduras fabricadas no Arsenal. */
 .arsenal-armor-art{display:flex;min-width:0;min-height:0;align-items:center;justify-content:center;width:100%;height:100%;pointer-events:none}
 .arsenal-armor-art img{display:block;width:100%;height:100%;max-width:38px;max-height:38px;object-fit:contain;image-rendering:pixelated}
@@ -12387,3 +12377,194 @@ sem backdrop ou caixa de modal. */
   line-height:1.35;
   overflow-wrap:anywhere;
 }
+
+
+/* Bigorna — desktop amplo: usar a largura e a altura disponíveis para o Baú. */
+@media (min-width: 1200px) and (min-height: 700px) {
+  .forge-page .forge-workspace {
+    width: 100%;
+    max-width: none !important;
+    margin: 0;
+    grid-template-rows: minmax(190px, .34fr) minmax(0, .66fr) !important;
+    gap: 10px;
+    padding: 10px clamp(16px, 2vw, 32px) 14px !important;
+  }
+
+  .forge-page .forge-workspace > .forge-scene {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .forge-page .forge-lower-panel {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 9px;
+    gap: 7px;
+  }
+
+  .forge-page .forge-selection-zone {
+    flex: 0 0 auto;
+    padding: 7px 9px 9px;
+  }
+
+  .forge-page .forge-selection-zone .forge-recipe-slot {
+    min-height: 54px;
+    max-width: 132px;
+    padding: 5px;
+  }
+
+  .forge-page .forge-selection-action {
+    min-height: 34px;
+  }
+
+  .forge-page .forge-selection-action .forge-craft-button {
+    min-height: 34px;
+  }
+
+  .forge-page .forge-chest-zone {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding: 7px 9px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-grid {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    grid-auto-rows: minmax(66px, auto);
+    align-content: start;
+    gap: 7px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item {
+    min-width: 0;
+    min-height: 66px;
+    padding: 5px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item strong,
+  .forge-page .forge-chest-zone .forge-material-item small {
+    font-size: 9px;
+  }
+}
+
+
+/* Bigorna — slots quadrados compactos no Baú desktop. */
+@media (min-width: 1200px) and (min-height: 700px) {
+  .forge-page .forge-chest-zone .forge-material-grid {
+    grid-template-columns: repeat(auto-fill, 64px);
+    grid-auto-rows: 64px;
+    justify-content: start;
+    align-content: start;
+    gap: 6px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item {
+    box-sizing: border-box;
+    width: 64px;
+    max-width: 64px;
+    min-width: 64px;
+    height: 64px;
+    min-height: 64px;
+    max-height: 64px;
+    gap: 1px;
+    padding: 3px;
+    overflow: hidden;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item > span {
+    min-height: 23px;
+    flex: 0 0 23px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item > span img {
+    max-width: 23px;
+    max-height: 23px;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item strong {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 7px;
+    line-height: 1.1;
+  }
+
+  .forge-page .forge-chest-zone .forge-material-item small {
+    font-size: 7px;
+    line-height: 1.1;
+  }
+}
+
+/* Bigorna unificada: o núcleo selecionado define a receita sem abas de categoria. */
+.forge-lower-panel>.armor-craft-panel{grid-row:auto;flex:0 0 54%;width:100%;min-width:0;min-height:0;max-height:54%}
+.forge-lower-panel>.armor-craft-panel .armor-craft-scroll{min-height:0}
+.armor-craft-selected-core{display:flex;min-width:0;align-items:center;gap:7px;padding:4px 6px;border:1px solid #b6a989;border-radius:6px;background:#e8ddc7}
+.armor-craft-selected-core .armor-craft-piece-image{width:32px;height:32px;flex:0 0 32px}
+.armor-craft-selected-core strong{min-width:0;color:#373a2b;font-size:9px}
+.armor-craft-selected-core small{color:#68583f;font-size:8px}
+.armor-craft-selected-core button{margin-left:auto;min-height:28px;padding:4px 8px;border:1px solid #a99b7b;border-radius:6px;background:#d8ccb1;color:#39392e;font:inherit;font-size:8px;font-weight:800}
+
+
+/* Bigorna — prévia temporária do equipamento fabricado, sem ação de retirada. */
+.forge-production-result{
+  position:absolute;z-index:5;left:50%;top:54%;transform:translate(-50%,-50%);
+  display:flex;width:min(310px,calc(100% - 24px));max-height:calc(100% - 58px);
+  min-width:0;flex-direction:column;align-items:stretch;gap:6px;overflow:auto;
+  padding:8px 10px;border:1px solid #d7a56f;border-radius:11px;
+  background:linear-gradient(150deg,#302b25ed,#171a18f5);color:#fff0d9;
+  box-shadow:0 4px 16px #0009,inset 0 1px 0 #ffffff20;
+}
+.forge-production-result-main{display:flex;min-width:0;align-items:center;justify-content:center;gap:10px}
+.forge-production-result-art{display:flex;width:48px;height:48px;flex:0 0 48px;align-items:center;justify-content:center}
+.forge-production-result-art img{display:block;width:44px;height:44px;object-fit:contain;image-rendering:pixelated}
+.forge-production-result-art .arsenal-armor-art{width:44px;height:44px}
+.forge-production-result-art .arsenal-armor-art img{max-width:44px;max-height:44px}
+.forge-production-result-copy{display:flex;min-width:0;flex-direction:column;gap:3px}
+.forge-production-result-copy>strong{font-size:12px;line-height:1.2;overflow-wrap:anywhere}
+.forge-production-result-copy>span{color:#e1c7a5;font-size:9px}
+.forge-production-result-copy>small{color:#f1d18d;font-size:10px;font-weight:900}
+.forge-production-details{border-top:1px solid #ffffff24;padding-top:4px}
+.forge-production-details>summary{color:#f0d2a8;font-size:9px;font-weight:850;text-align:center;cursor:pointer;list-style:none}
+.forge-production-details>summary::-webkit-details-marker{display:none}
+.forge-production-details>summary::after{content:' ＋'}
+.forge-production-details[open]>summary::after{content:' −'}
+.forge-production-details-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 9px;padding-top:6px}
+.forge-production-details-content>div{display:flex;min-width:0;justify-content:space-between;gap:5px;padding:3px 0;border-bottom:1px solid #ffffff12;font-size:8px}
+.forge-production-details-content>div span{color:#cbb79c}
+.forge-production-details-content>div strong{text-align:right;overflow-wrap:anywhere}
+.forge-production-result>p{margin:0;color:#cbb79c;font-size:8px;text-align:center}
+.forge-workspace{grid-template-rows:minmax(118px,.62fr) minmax(0,1.38fr)!important}
+@media(min-width:700px){.forge-workspace{grid-template-rows:minmax(145px,.62fr) minmax(0,1.38fr)!important}}
+@media(min-width:1200px) and (min-height:700px){.forge-page .forge-workspace{grid-template-rows:minmax(150px,.62fr) minmax(0,1.38fr)!important}}
+@media(max-width:430px){
+  .forge-production-result{width:min(270px,calc(100% - 16px));padding:6px 8px;gap:4px}
+  .forge-production-result-art{width:38px;height:38px;flex-basis:38px}
+  .forge-production-result-art img,.forge-production-result-art .arsenal-armor-art img{width:36px;height:36px;max-width:36px;max-height:36px}
+  .forge-production-details-content{gap:2px 6px}
+}
+
+
+/* A área dos slots ocupa a cena inteira para centralizar a prévia recém-fabricada. */
+.forge-scene-slots{
+  top:0;left:0;width:100%;height:100%;max-width:none;transform:none;
+  align-items:center;justify-content:center;padding:30px 8px 8px;box-sizing:border-box;
+}
+.forge-production-result{
+  position:relative;left:auto;top:auto;transform:none;
+  width:min(310px,100%);max-height:100%;min-height:0;
+}
+@media(max-width:430px){.forge-production-result{width:min(270px,100%)}}
