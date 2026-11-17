@@ -901,6 +901,7 @@ export default function App() {
   const [forgeHammering, setForgeHammering] = useState(false);
   const [forgeCraftResult, setForgeCraftResult] = useState('');
   const [forgeProductionPreview, setForgeProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
+  useEffect(() => { if (activeGameRoute.page !== 'bigorna') setForgeProductionPreview(null); }, [activeGameRoute.page]);
   const [craftedWeapons, setCraftedWeapons] = useState<CraftedWeapon[]>([]);
   const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
@@ -2588,11 +2589,6 @@ export default function App() {
   };
   const clearForgeMaterial = (slot: string) => {
     setSelectedWeaponMaterials(current => current.filter(item => item.slot !== slot));
-  };
-  const openCraftedWeaponInArsenal = () => {
-    navigateToPage('arsenal');
-    setActiveGameRoute({ page: 'arsenal' });
-    setArsenalOpen(true);
   };
   const craftAnvilWeapon = async () => {
     if (!cookingOnline || !fibulaSupabase) {
