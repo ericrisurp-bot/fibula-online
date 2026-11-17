@@ -89,12 +89,15 @@ export default function TailorScene({ children }: TailorSceneProps) {
       </g>
 
       <g filter="drop-shadow(0px 4px 3px #4a403044)">
-        <rect x="174" y="43" width="12" height="13" rx="2" fill="#c8b693" stroke="#776c55" />
-        <path d="M145 67Q145 57 157 55H203Q215 57 215 67L208 119Q205 132 180 134Q155 132 152 119Z" fill="url(#tailor-mannequin)" stroke="#7e7259" />
-        <path d="M154 68Q180 74 206 68M180 76V118" fill="none" stroke="#a99672" strokeWidth="1.5" opacity=".8" />
-        <path d="M180 78V117" stroke="#8b4f45" strokeWidth="1.5" opacity=".85" />
-        <path d="M180 134V164" stroke="#8b795b" strokeWidth="6" />
-        <path d="M160 165Q180 158 200 165L204 170Q180 176 156 170Z" fill="#a28a5e" stroke="#584a36" />
+        <path d="M175 42H185V49Q185 52 180 52Q175 52 175 49Z" fill="#c8b693" stroke="#776c55" strokeWidth="1.5" />
+        <path d="M173 52H187L190 59L205 64Q211 66 209 73L201 94Q198 101 199 110L207 124Q210 130 203 134Q180 140 157 134Q150 130 153 124L161 110Q162 101 159 94L151 73Q149 66 155 64L170 59Z"
+          fill="url(#tailor-mannequin)" stroke="#7e7259" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M155 68L169 63L180 67L191 63L205 68M161 110Q180 116 199 110M157 128Q180 135 203 128"
+          fill="none" stroke="#a99672" strokeWidth="1.3" opacity=".8" />
+        <path d="M180 66V130" stroke="#8b4f45" strokeWidth="1.6" strokeDasharray="3 2" opacity=".9" />
+        <path d="M180 138V177" stroke="#8b795b" strokeWidth="4" />
+        <path d="M180 175L161 190M180 175L199 190M180 175V193" fill="none" stroke="#776448" strokeWidth="3" strokeLinecap="round" />
+        <ellipse cx="180" cy="194" rx="24" ry="4" fill="#a28a5e" stroke="#584a36" strokeWidth="1.5" />
       </g>
 
       <g>

@@ -240,3 +240,14 @@ Com `CONFIG.rulesV2.armorCraftingEnabled = true`, a Alfaiataria usa a mesma comp
 - A prévia usa a sessão isolada `tailorPreviewSessionRef`; sair da estação invalida retornos tardios. O cartão de resultado orienta **Feche a estação…**.
 - Ao desligar a flag, o fallback legado da Alfaiataria continua sendo exibido sem alterações.
 - O Baú ocupa toda a área inferior, com rolagem interna; o CSS da cena mantém a placa **ALFAIATARIA** acima dos rolos de tecido, sem afetar outras telas.
+
+
+## A4.5d — slots compartilhados na Bigorna e manequim da Alfaiataria
+
+- O componente de slots da Alfaiataria é compartilhado com a Bigorna e recebe `type: 'couro' | 'bronze'` e `stationName`. O cartão de resultado recebe o nome da estação para orientar seu fechamento sem fixar uma estação no componente.
+- Na Alfaiataria, o tipo continua `couro`: núcleo, couro de lobo como material-base e forro (algodão, linho ou couro refinado), com quantidades de `armorMaterialItemIds`.
+- Na Bigorna, ao selecionar núcleo revelado de armadura, os mesmos slots escuros são usados com tipo `bronze`: núcleo, barra de bronze como material-base e forro de algodão, linho ou couro refinado. Materiais e forro devem ter a raridade do núcleo e as quantidades vêm de `armorMaterialItemIds`.
+- O Baú da Bigorna, com núcleo de armadura selecionado, aceita somente bronze no slot-base e os três materiais de forro no slot de forro; madeira e pedra ficam incompatíveis. Sem núcleo de armadura, o roteamento original de materiais de armas permanece.
+- A fabricação de armadura continua chamando `craftArmor()` com tipo `bronze` na Bigorna e `couro` na Alfaiataria. A RPC e a persistência não são alteradas.
+- A cena SVG da Alfaiataria usa manequim de costura com pescoço, ombros inclinados, tronco, cintura/quadril, haste e base tripé/disco, preservando paleta e posição.
+- `ArmorCraftPanel.tsx` permanece no repositório sem remoção; a Bigorna deixa de renderizá-lo para fabricação de armaduras.

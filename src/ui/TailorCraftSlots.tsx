@@ -1,10 +1,12 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-type TailorCraftSlotsProps = {
+type ArmorCraftSlotsProps = {
+  type: 'couro' | 'bronze';
+  stationName: string;
   coreItemId: string | null;
-  hideItemId: string | null;
-  hideQuantity: number;
-  hideRequired: number;
+  baseItemId: string | null;
+  baseQuantity: number;
+  baseRequired: number;
   liningItemId: string | null;
   liningQuantity: number;
   liningRequired: number;
@@ -15,17 +17,18 @@ type TailorCraftSlotsProps = {
   glowStyle: (itemId: string) => CSSProperties;
   label: (itemId: string) => string;
   onClearCore: () => void;
-  onClearHide: () => void;
+  onClearBase: () => void;
   onClearLining: () => void;
   onCraft: () => void;
 };
 
 export default function TailorCraftSlots({
-  coreItemId, hideItemId, hideQuantity, hideRequired, liningItemId, liningQuantity,
-  liningRequired, busy, disabled, feedback, renderIcon, glowStyle, label,
-  onClearCore, onClearHide, onClearLining, onCraft,
-}: TailorCraftSlotsProps) {
-  return <section className="forge-zone forge-selection-zone tailor-selection-zone" aria-label="Materiais selecionados para fabricação">
+  type, stationName, coreItemId, baseItemId, baseQuantity, baseRequired,
+  liningItemId, liningQuantity, liningRequired, busy, disabled, feedback,
+  renderIcon, glowStyle, label, onClearCore, onClearBase, onClearLining, onCraft,
+}: ArmorCraftSlotsProps) {
+  const baseLabel = type === 'couro' ? 'Couro de lobo' : 'Barra de bronze';
+  return <section className="forge-zone forge-selection-zone tailor-selection-zone" aria-label={'Materiais selecionados · ' + stationName}>
     <div className="forge-panel-heading">
       <strong>MATERIAIS SELECIONADOS</strong>
       <span>Núcleo e componentes da receita</span>
@@ -39,12 +42,12 @@ export default function TailorCraftSlots({
         <small>{coreItemId ? '1/1' : '0/1'}</small>
       </button>
       {coreItemId && <>
-        <button type="button" className={hideItemId ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
-          style={{ order: 1 }} onClick={onClearHide} disabled={busy}
-          aria-label={hideItemId ? 'Devolver couro de lobo ao Baú' : 'Slot de couro de lobo'}>
-          <span style={hideItemId ? glowStyle(hideItemId) : undefined}>{hideItemId ? renderIcon(hideItemId) : '＋'}</span>
-          <strong>Couro de lobo ×{hideRequired}</strong>
-          <small>{hideQuantity}/{hideRequired}</small>
+        <button type="button" className={baseItemId ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+          style={{ order: 1 }} onClick={onClearBase} disabled={busy}
+          aria-label={baseItemId ? 'Devolver material base ao Baú' : 'Slot de ' + baseLabel}>
+          <span style={baseItemId ? glowStyle(baseItemId) : undefined}>{baseItemId ? renderIcon(baseItemId) : '＋'}</span>
+          <strong>{baseLabel} ×{baseRequired}</strong>
+          <small>{baseQuantity}/{baseRequired}</small>
         </button>
         <button type="button" className={liningItemId ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
           style={{ order: 2 }} onClick={onClearLining} disabled={busy}
