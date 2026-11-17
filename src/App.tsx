@@ -1316,8 +1316,8 @@ export default function App() {
   const campMenuOpenRef = useRef(false);
   campMenuOpenRef.current = campMenuOpen;
   const lastTouchInventoryCloseAt = useRef(0);
-  // Se a partida começou à noite, o amanhecer seguinte conclui o primeiro dia; não avance para Dia 2 nesse primeiro amanhecer.
-  const survivalDay = state.startedAtNight ? Math.max(1, state.nightNumber) : state.nightNumber + 1;
+  // Exibe apenas dias completos: a noite em andamento ainda não conta.
+  const survivalDay = Math.max(0, state.nightNumber - (state.dayNight === 'night' ? 1 : 0));
   const feet = playerFeet(state.player);
   const cartDistance = Math.hypot(feet.x - state.cart.x, feet.y - state.cart.y);
   const cartAccessible = cartDistance <= CONFIG.cart.interactRadius;
