@@ -2,7 +2,6 @@ import { CONFIG, type ClassId } from './config';
 import { ATTRIBUTE_USAGE, getAttributeBaseValueEffect, getAttributeBonus, getDamageMultiplier, type AttributeKey, type EffectAttribute } from './attributes';
 import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CLASS_BY_MODEL, WEAPON_CORE_POINTS_PER_VALUE, type EquippedWeapon } from './weapons';
 import type { ArmorBonuses } from './armorEquipment';
-import type { AttributeBaseBonuses } from './attributes';
 
 // Referências fixas do PD: cada capacidade vale 100 pontos quando está exatamente na referência.
 // São os pontos de calibração do balanceamento; mudar uma delas muda o PD de todas as classes.
