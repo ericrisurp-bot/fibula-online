@@ -287,3 +287,17 @@ A Joalheria usa uma única lista do Baú, sem abas ou faixa separada de núcleos
 ### 15.3 Limites da etapa J1
 
 A fabricação de acessórios **ainda não existe**. J1 não define receitas, materiais, quantidades, tipos de acessório, atributos adicionais, prévia de fabricação, RPC, tabela ou chamada de fabricação. Esses detalhes ficam para a etapa J2. A Bigorna e a Alfaiataria não são alteradas por esta etapa.
+
+
+## 16. Detalhe de núcleos revelados — D1
+
+Todos os núcleos nas grades dos Baús das abas de produção (Bigorna, Alfaiataria e Joalheria), abertos ou fechados, usam a janela de ações do Baú do Lobby. Ao tocar no item, a janela oferece **Usar**, **Propriedades** e **Excluir**. Usar seleciona o núcleo na estação quando ele é compatível com aquela produção; quando não for compatível, a opção permanece desabilitada, mas Propriedades e Excluir continuam disponíveis. Propriedades abre os atributos no próprio painel de ações. Para núcleos fechados, Propriedades informa: “Núcleo fechado. Os atributos aparecem depois de revelar na Joalheria.” Não existe mais botão ⓘ separado.
+
+No Baú do Lobby, o clique continua abrindo a janela de ações já existente, sem mudar o comportamento dos outros itens; em núcleos, a opção Detalhes apresenta as mesmas propriedades ou o aviso de núcleo fechado. Quando um núcleo entra no slot de materiais selecionados de uma estação, um cartão compacto e rolável continua mostrando os dados sem substituir os controles da receita.
+
+- **Armas:** modelo (Espada, Arco, Cajado ou Bastão da Natureza), raridade, SURP quando existente e todos os atributos do núcleo. Os valores mantêm o formato já usado pela Joalheria (valor × WEAPON_CORE_POINTS_PER_VALUE, com uma casa decimal e vírgula). Atributos incompatíveis com o modelo aparecem riscados e identificados como “não conta nesta arma”. O detalhe informa que dano e efeito da arma são sorteados na fabricação.
+- **Armaduras:** peça, raridade, SURP quando existente e prévia dos atributos a 1★, usando `armorAttributeValue` e o mesmo roll por atributo do painel de fabricação. A Bigorna apresenta Bronze; a Alfaiataria apresenta Couro; Joalheria e Baú do Lobby apresentam as duas opções.
+- **Acessórios:** raridade, SURP quando existente e atributos no mesmo formato atualmente exibido pela Joalheria. D1 não define nem altera uma conversão de atributo de acessório.
+- **Núcleos fechados:** não exibem atributos; a opção Propriedades mostra o aviso de que os atributos aparecem depois de revelar na Joalheria.
+
+A interface não apresenta classificações “bom”, “médio” ou “ruim”. SURP é a única indicação de qualidade exibida. D1 é somente informativo: não altera valores, fórmulas, compatibilidade, receitas, custos, raridades, revelação, fabricação, persistência ou regras de jogo.

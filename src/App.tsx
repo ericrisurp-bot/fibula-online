@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
@@ -42,6 +43,7 @@ import ForgeProductionPreview from './ui/ForgeProductionPreview';
 import JewelryScene from './ui/JewelryScene';
 import TailorScene from './ui/TailorScene';
 import TailorCraftSlots from './ui/TailorCraftSlots';
+import CoreDetail from './ui/CoreDetail';
 import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
@@ -293,6 +295,7 @@ const cookingMealArtwork = (meal: CookingMeal) => {
     style={{ display: 'block', width: 32, height: 32, objectFit: 'contain', imageRendering: 'pixelated' }} />;
 };
 const itemLabel = (itemId: string) => {
+  if (itemId.startsWith('jewelry-closed:')) return 'Núcleo fechado';
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
   if (parsedCore?.kind === 'closed') return 'Núcleo fechado';
@@ -761,7 +764,7 @@ export default function App() {
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [chestCloudReady, setChestCloudReady] = useState(false);
   const [bauAction, setBauAction] = useState<
-    | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm' }
+    | { kind:'item'; item:HouseStorageStack; view:'actions'|'details'|'confirm'; productionCore?: boolean; onUse?: () => void; useDisabled?: boolean; coreArmorTypes?: ('couro'|'bronze')[] }
     | { kind:'meal'; meal:CookingMeal; view:'actions'|'details'|'confirm' }
     | null
   >(null);
@@ -1033,6 +1036,7 @@ export default function App() {
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
   const openStation = (id: StationRouteId) => {
+    if (bauAction && !bauDeleteBusy) setBauAction(null);
     if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
       forgePreviewSessionRef.current += 1;
       setForgeProductionPreview(null);
@@ -1064,6 +1068,7 @@ export default function App() {
     setCookingFeedback(!cookingOnline && id === 'fogao' ? 'Sem conexão: cozinhar exige internet.' : '');
   };
   const closeGamePage = () => {
+    if (bauAction && !bauDeleteBusy) setBauAction(null);
     forgePreviewSessionRef.current += 1;
     setForgeProductionPreview(null);
     tailorPreviewSessionRef.current += 1;
@@ -1160,16 +1165,18 @@ export default function App() {
     if (item.quantity <= 0) return stacks;
     const parsedCore = parseCoreItemId(item.itemId);
     const base = getBaseItemId(item.itemId);
-    const isRevealedCore = parsedCore?.kind === 'revealed';
+    const isCore = parsedCore?.kind === 'revealed' || parsedCore?.kind === 'closed';
     const isEquipmentMaterial = !parsedCore && ['wood', 'stone', 'bronze', 'linen', 'cotton', 'refined_leather'].includes(base);
-    if (!isRevealedCore && !isEquipmentMaterial) return stacks;
+    if (!isCore && !isEquipmentMaterial) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
   }, []).sort((a, b) => {
-    const aIsCore = parseCoreItemId(a.itemId)?.kind === 'revealed';
-    const bIsCore = parseCoreItemId(b.itemId)?.kind === 'revealed';
+    const aKind = parseCoreItemId(a.itemId)?.kind;
+    const bKind = parseCoreItemId(b.itemId)?.kind;
+    const aIsCore = aKind === 'revealed' || aKind === 'closed';
+    const bIsCore = bKind === 'revealed' || bKind === 'closed';
     return Number(bIsCore) - Number(aIsCore);
   });
   const tailorFabricStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
@@ -1184,12 +1191,19 @@ export default function App() {
     if (item.quantity <= 0) return stacks;
     const parsed = parseCoreItemId(item.itemId);
     const base = getBaseItemId(item.itemId);
-    if ((parsed?.kind !== 'revealed') && !['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(base)) return stacks;
+    const isCore = parsed?.kind === 'revealed' || parsed?.kind === 'closed';
+    if (!isCore && !['wolf_hide', 'cotton', 'linen', 'refined_leather'].includes(base)) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
-  }, []).sort((a, b) => Number(parseCoreItemId(b.itemId)?.kind === 'revealed') - Number(parseCoreItemId(a.itemId)?.kind === 'revealed'));
+  }, []).sort((a, b) => {
+    const aKind = parseCoreItemId(a.itemId)?.kind;
+    const bKind = parseCoreItemId(b.itemId)?.kind;
+    const aIsCore = aKind === 'revealed' || aKind === 'closed';
+    const bIsCore = bKind === 'revealed' || bKind === 'closed';
+    return Number(bIsCore) - Number(aIsCore);
+  });
   const selectedTailorCoreParsed = selectedTailorCoreId ? parseCoreItemId(selectedTailorCoreId) : null;
   const selectedTailorCore = CONFIG.rulesV2.armorCraftingEnabled && selectedTailorCoreParsed?.kind === 'revealed'
     && selectedTailorCoreParsed.core.category === 'armor' && !!selectedTailorCoreParsed.core.equipmentType
@@ -2641,6 +2655,10 @@ export default function App() {
   };
   houseOutboxDrainRef.current = drainHouseOutbox;
   const openBauItemActions = (item:HouseStorageStack) => {setBauDeleteQuantity('1');setBauAction({kind:'item',item,view:'actions'});};
+  const openBauCoreActions = (item: HouseStorageStack, onUse: (() => void) | undefined, armorTypes: ('couro'|'bronze')[], useDisabled = false) => {
+    setBauDeleteQuantity('1');
+    setBauAction({ kind: 'item', item, view: 'actions', productionCore: true, onUse, useDisabled, coreArmorTypes: armorTypes });
+  };
   const openBauMealActions = (meal:CookingMeal) => setBauAction({kind:'meal',meal,view:'actions'});
   const showBauActionDetails = () => setBauAction(current=>current?{...current,view:'details'}:null);
   const requestBauActionDeletion = () => setBauAction(current=>current?{...current,view:'confirm'}:null);
@@ -2653,25 +2671,41 @@ export default function App() {
   };
   const discardBauItem = async (deleteAll=false) => {
     if(bauAction?.kind!=='item'||bauDeleteBusy)return;
-    const currentItem=lobbyChestItems.find(entry=>entry.itemId===bauAction.item.itemId);
-    if(!currentItem){setCookingFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
-    const quantity=deleteAll?currentItem.quantity:Number(bauDeleteQuantity);
-    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>currentItem.quantity){setCookingFeedback('Informe uma quantidade válida para excluir.');return;}
+    const virtualClosedRarity = bauAction.item.itemId.startsWith('jewelry-closed:')
+      ? bauAction.item.itemId.slice('jewelry-closed:'.length) : null;
+    const sourceItems = virtualClosedRarity
+      ? lobbyChestItems.filter(entry => {
+        const parsed = parseCoreItemId(entry.itemId);
+        return parsed?.kind === 'closed' && parsed.rarity === virtualClosedRarity;
+      })
+      : lobbyChestItems.filter(entry => entry.itemId === bauAction.item.itemId);
+    const availableQuantity = sourceItems.reduce((total, entry) => total + entry.quantity, 0);
+    if(availableQuantity < 1){setCookingFeedback('Este item não está mais no Baú. Atualize a página.');setBauAction(null);return;}
+    const quantity=deleteAll?availableQuantity:Number(bauDeleteQuantity);
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>availableQuantity){setCookingFeedback('Informe uma quantidade válida para excluir.');return;}
     if(!fibulaSupabase||!session.user.sub){setCookingFeedback('O serviço de armazenamento não está disponível.');return;}
     setBauDeleteBusy(true);setCookingFeedback('');
     try {
-      const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
-        p_item_id: currentItem.itemId,
-        p_quantity: quantity,
-      });
-      if (error) throw new Error(error.message);
-      if (!data || !Array.isArray(data.inventory)) throw new Error('O servidor retornou um Baú inválido.');
-      const nextInventory = data.inventory as HouseStorageStack[];
+      let remaining = quantity;
+      let nextInventory: HouseStorageStack[] = lobbyChestItems;
+      for (const sourceItem of sourceItems) {
+        if (remaining <= 0) break;
+        const removeQuantity = Math.min(sourceItem.quantity, remaining);
+        const { data, error } = await fibulaSupabase.rpc('fibula_house_discard', {
+          p_item_id: sourceItem.itemId,
+          p_quantity: removeQuantity,
+        });
+        if (error) throw new Error(error.message);
+        if (!data || !Array.isArray(data.inventory)) throw new Error('O servidor retornou um Baú inválido.');
+        nextInventory = data.inventory as HouseStorageStack[];
+        remaining -= removeQuantity;
+      }
+      if (remaining > 0) throw new Error('Não foi possível excluir toda a quantidade selecionada. O Baú será atualizado.');
       applyCookingInventory(nextInventory);
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
       setBauAction(null);
-      setCookingFeedback('Excluído: '+quantity+' × '+itemLabel(currentItem.itemId)+'.');
+      setCookingFeedback('Excluído: '+quantity+' × '+(virtualClosedRarity ? 'Núcleo fechado' : itemLabel(bauAction.item.itemId))+'.');
     } catch(cause){
       const message = cause instanceof Error ? cause.message : 'Não foi possível excluir o item.';
       await refreshLobbyChestFromCloud();
@@ -3898,24 +3932,27 @@ export default function App() {
                         onClearLining={() => setTailorLiningSelection(null)}
                         onCraft={() => void craftTailorArmor()}
                       />
+                      {selectedTailorCoreId && <CoreDetail itemId={selectedTailorCoreId} armorTypes={['couro']}/>}
                       <section className="forge-zone forge-chest-zone tailor-chest-zone" aria-label="Baú da Alfaiataria">
                         <div className="forge-panel-heading"><strong>BAÚ</strong><span>Núcleos revelados · Couro e forros</span></div>
                         <div className="forge-material-grid forge-chest-grid tailor-chest-grid" aria-label="Núcleos e materiais no Baú">
                           {tailorChestStacks.map(item => {
                             const parsed = parseCoreItemId(item.itemId);
+                            if (parsed?.kind === 'closed') return <button type="button" key={item.itemId}
+                              className="forge-material-item forge-core-item"
+                              onClick={() => openBauCoreActions(item, undefined, ['couro'], true)}>
+                              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                              <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                            </button>;
                             if (parsed?.kind === 'revealed') {
                               const selectable = parsed.core.category === 'armor' && !!parsed.core.equipmentType;
-                              return selectable ? <button type="button" key={item.itemId}
+                              return <button type="button" key={item.itemId}
                                 className={'forge-material-item forge-core-item' + (selectedTailorCoreId === item.itemId ? ' selected' : '')}
-                                disabled={tailorCraftBusy || tailorCraftLockRef.current}
                                 aria-pressed={selectedTailorCoreId === item.itemId}
-                                onClick={() => selectTailorCore(item.itemId)}>
+                                onClick={() => openBauCoreActions(item, selectable ? () => selectTailorCore(item.itemId) : undefined, ['couro'], !selectable || tailorCraftBusy || tailorCraftLockRef.current)}>
                                 <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                                 <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                              </button> : <div className="forge-material-item forge-core-item is-inert" key={item.itemId}>
-                                <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                                <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
-                              </div>;
+                              </button>;
                             }
                             const base = getBaseItemId(item.itemId);
                             const rarity = getItemRarity(item.itemId) ?? 'normal';
@@ -4000,13 +4037,7 @@ export default function App() {
                         <small>{jewelryCottonSelected}/{JEWELRY_POLISH_COTTON_COST}</small>
                       </button>}
                     </div>
-                    {jewelrySlotCore?.kind === 'revealed' && <div className="jewelry-attributes-card" aria-label="Atributos do núcleo revelado">
-                      <strong>ATRIBUTOS DO NÚCLEO</strong>
-                      <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
-                        <span>{weaponAttributeLabels[attribute.key] ?? attribute.key}</span>
-                        <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
-                      </li>)}</ul>
-                    </div>}
+                    {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCoreId && <CoreDetail itemId={jewelrySlotCoreId} armorTypes={['couro','bronze']}/>}
                     {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory' && <div className="jewelry-accessory-recipe">
                       <div className="forge-panel-heading"><strong>RECEITA DO ACESSÓRIO</strong></div>
                       <p>Receita em definição</p>
@@ -4037,15 +4068,14 @@ export default function App() {
                           const rarity = item.itemId.slice('jewelry-closed:'.length);
                           return <button type="button" key={item.itemId}
                             className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
-                            disabled={jewelryRevealBusy}
                             aria-pressed={selected}
-                            onClick={() => {
+                            onClick={() => openBauCoreActions(item, () => {
                               if (jewelryRevealBusy) return;
                               setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
                               setJewelryCottonSelection(0);
                               setJewelryResultCoreId(null);
                               setJewelryFeedback('');
-                            }}>
+                            }, ['couro','bronze'], jewelryRevealBusy)}>
                             <span style={itemRarityGlow(`core:${rarity}:weapon:espada`)}><img src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" /></span>
                             <strong>Núcleo fechado</strong>
                             <small>×{item.quantity} · {JEWELRY_RARITY_LABELS[rarity] ?? rarity}</small>
@@ -4061,18 +4091,16 @@ export default function App() {
                             <small>{accessory ? `×${item.quantity}` : parsed.core.category === 'weapon' ? 'Bigorna' : 'Alfaiataria'}</small>
                             {!accessory && <small>×{item.quantity}</small>}
                           </>;
-                          return accessory ? <button type="button" key={item.itemId}
+                          return <button type="button" key={item.itemId}
                             className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
-                            disabled={jewelryRevealBusy}
                             aria-pressed={selected}
-                            onClick={() => {
+                            onClick={() => openBauCoreActions(item, accessory ? () => {
                               if (jewelryRevealBusy) return;
                               setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
                               setJewelryCottonSelection(0);
                               setJewelryResultCoreId(null);
                               setJewelryFeedback('');
-                            }}>{content}</button>
-                            : <div className="forge-material-item forge-chest-item forge-core-item is-inert" key={item.itemId}>{content}</div>;
+                            } : undefined, ['couro','bronze'], !accessory || jewelryRevealBusy)}>{content}</button>;
                         }
                         const isCotton = getBaseItemId(item.itemId) === 'cotton';
                         const compatibleCotton = isCotton && !!selectedJewelryCoreId?.startsWith('jewelry-closed:') && item.itemId === jewelryCottonItemId;
@@ -4173,6 +4201,7 @@ export default function App() {
                         {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
                       </div>
                     </section>}
+                  {(selectedArmorCore || selectedWeaponCore) && selectedWeaponCoreId && <CoreDetail itemId={selectedWeaponCoreId} armorTypes={['bronze']}/>}
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
@@ -4185,19 +4214,20 @@ export default function App() {
                           const isCraftableCore = parsedCore.kind === 'revealed'
                             && (parsedCore.core.category === 'weapon'
                               || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
-                          return isCraftableCore ? <button type="button" key={item.itemId}
+                          if (parsedCore.kind === 'closed') return <button type="button" className="forge-material-item forge-chest-item" key={item.itemId}
+                            onClick={() => openBauCoreActions(item, undefined, ['bronze'], true)}>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
+                            <small>×{item.quantity}</small>
+                          </button>;
+                          return <button type="button" key={item.itemId}
                             className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
-                            disabled={weaponCraftBusy || armorCraftBusy}
                             aria-pressed={selectedWeaponCoreId === item.itemId}
-                            onClick={() => selectForgeCore(item.itemId)}>
+                            onClick={() => openBauCoreActions(item, isCraftableCore ? () => selectForgeCore(item.itemId) : undefined, ['bronze'], !isCraftableCore || weaponCraftBusy || armorCraftBusy)}>
                             <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                             <strong>{forgeChestItemLabel(item.itemId)}</strong>
                             <small>×{item.quantity}</small>
-                          </button> : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
-                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
-                            <strong>{forgeChestItemLabel(item.itemId)}</strong>
-                            <small>×{item.quantity}</small>
-                          </div>;
+                          </button>;
                         }
                         const base = getBaseItemId(item.itemId);
                         const rarity = getItemRarity(item.itemId) ?? 'normal';
@@ -4560,54 +4590,7 @@ export default function App() {
           </section></div>
           <SideNav current="bau" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
-        {bauAction && <div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
-          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}`} role="dialog" aria-modal="true"
-            aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
-            onClick={event=>event.stopPropagation()}>
-            {bauAction.view==='actions'?<>
-              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
-              {bauAction.kind==='meal'?<>
-                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
-                <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
-                <button type="button" className="bau-action-button danger" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={requestBauActionDeletion}>Excluir</button>
-                {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
-              </>:bauAction.item.itemId==='jabuticaba'?<>
-                <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
-                <button type="button" className="bau-action-button" autoFocus={!chestCloudReady||jabuticabaBusy} onClick={showBauActionDetails}>Detalhes</button>
-              </>:<>
-                <button type="button" className="bau-action-button" autoFocus onClick={showBauActionDetails}>Detalhes</button>
-                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
-              </>}
-            </>:bauAction.view==='details'?<>
-              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
-              {bauAction.kind==='meal'?<>
-                <p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
-                <div className="bau-action-detail-section"><strong>Ingredientes</strong><ul>{bauAction.meal.ingredients.map((ingredient,index)=><li key={ingredient.itemId+'-'+index}>{bauIngredientName(ingredient.itemId)}</li>)}</ul></div>
-                <div className="bau-action-detail-section"><strong>Efeito</strong><ul>{bauMealEffects(bauAction.meal).map((effect,index)=><li key={effect+'-'+index}>{effect}</li>)}</ul>
-                  {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
-              </>:bauAction.item.itemId==='jabuticaba'?<>
-                <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
-              </>:<>
-                {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
-                <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
-              </>}
-              <button type="button" className="bau-action-button" autoFocus onClick={()=>setBauAction(current=>current?{...current,view:'actions'}:null)}>Voltar</button>
-            </>:<>
-              <header><strong>Excluir {bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}?</strong><button type="button" aria-label="Fechar" disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>×</button></header>
-              <p>Esta ação não pode ser desfeita.</p>
-              {bauAction.kind==='item'&&bauAction.item.quantity>1&&<>
-                <label className="bau-action-quantity">Quantidade a excluir<input type="number" min="1" max={lobbyChestItems.find(item=>item.itemId===bauAction.item.itemId)?.quantity??bauAction.item.quantity} step="1" value={bauDeleteQuantity} onChange={event=>setBauDeleteQuantity(event.target.value)}/></label>
-                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready'} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
-              </>}
-              <div className="bau-action-confirm-actions">
-                <button type="button" className="bau-action-button" autoFocus disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>Cancelar</button>
-                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready' || (bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
-              </div>
-              {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
-              {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
-            </>}
-          </section>
-        </div>}
+
         {statusOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page status-page">
           <div className="station-page-content side-page-content"><section className="side-page-panel">
             <StatusDuo preferences={characterPreferences} powers={statusPowers} powerReady={statusPowerReady} weaponsLoading={weaponsLoading} rankings={statusRanks} lastMatch={statusHistory[0] ?? null} history={statusHistory} usage={statusUsage} onGoClasses={() => openSidePage('classes')} />
@@ -4794,6 +4777,60 @@ export default function App() {
     </div>}
     {duoTradeOpen && duoPeer?.status === 'connected' && duoPeer.matchId === null && fibulaSupabase && <DuoTradeModal client={fibulaSupabase} userId={session.user.sub} roomId={duoPeer.roomId} friendName={duoPeer.friendName} onClose={() => setDuoTradeOpen(false)} onCompleted={() => { void (async () => { try { const ownedWeapons = await listMyWeapons(fibulaSupabase); setCraftedWeapons(ownedWeapons); const ownedIds = new Set(ownedWeapons.map(weapon => weapon.id)); setEquippedWeaponIds(current => { const next = { ...current }; (Object.keys(next) as ClassId[]).forEach(classId => { if (!ownedIds.has(next[classId]!)) delete next[classId]; }); return next; }); } catch { /* A próxima abertura do Arsenal fará nova leitura. */ } try { await refreshLobbyChestFromCloud(); } catch { /* A próxima abertura do Baú fará nova leitura. */ } try { await refreshCookingState(); } catch { /* A próxima abertura do Fogão fará nova leitura. */ } })(); }} />}
     <FriendsModal open={friendsOpen} pageMode={activeGameRoute.page === 'amigos'} userId={session.user.sub} myClassId={characterPreferences[0] ?? characterPreferences[1] ?? 'guerreiro'} myDisplayName={session.user.name || 'Jogador'} onClose={closeGamePage} onOpenSidePage={openSidePage} onLobby={closeGamePage} onOpenProfile={userId => { navigateToPlayerProfile(userId); setActiveGameRoute({ page: 'jogador', playerId: userId }); setViewedProfileUserId(userId); setFriendsOpen(false); setPlayerProfileOpen(true); }} onLobbyChange={(peer, leave, toggleReady, startMatch, notifyHouseInventoryChanged) => { setDuoPeer(peer); duoLeaveActionRef.current = leave ?? null; duoReadyActionRef.current = toggleReady ?? null; duoStartActionRef.current = startMatch ?? null; duoHouseNotifyActionRef.current = notifyHouseInventoryChanged ?? null; if (!peer) { setDuoTradeOpen(false); duoStartActionRef.current = null; duoHouseNotifyActionRef.current = null; duoStartedMatchIdRef.current = null; duoTransportRef.current?.disconnect(); duoTransportRef.current = null; duoSoloFromNightRef.current = Number.MAX_SAFE_INTEGER; setDuoNotice(''); } }} onLobbyConnected={closeGamePage} onLobbyNotice={setDuoNotice} onHouseInventoryChanged={() => { void refreshLobbyChestFromCloud().then(success => { if (!success) setCookingFeedback('Não foi possível atualizar o Baú.'); }); }} />
+        {bauAction && createPortal(<div className="bau-action-backdrop" role="presentation" onClick={()=>{if(!bauDeleteBusy)setBauAction(null);}}>
+          <section className={`bau-action-dialog${bauAction.view==='details'?' bau-action-details':''}${bauAction.view==='details' && bauAction.kind==='item' && (parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:')) ? ' bau-action-core-details' : ''}`} role="dialog" aria-modal="true"
+            aria-label={bauAction.view==='confirm'?'Confirmar exclusão':bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}
+            onClick={event=>event.stopPropagation()}>
+            {bauAction.view==='actions'?<>
+              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
+              {bauAction.kind==='meal'?<>
+                <button type="button" className="bau-action-button" autoFocus={cookingOnline} disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={()=>{void queueReadyCookingMeal(bauAction.meal);setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={!cookingOnline} onClick={showBauActionDetails}>Detalhes</button>
+                <button type="button" className="bau-action-button danger" disabled={!cookingOnline || lobbyChestStatus !== 'ready'} onClick={requestBauActionDeletion}>Excluir</button>
+                {!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              </>:bauAction.productionCore?<>
+                <button type="button" className="bau-action-button" autoFocus disabled={bauAction.useDisabled || !bauAction.onUse} onClick={()=>{if(bauAction.kind==='item'){bauAction.onUse?.();setBauAction(null);}}}>Usar</button>
+                <button type="button" className="bau-action-button" onClick={showBauActionDetails}>Propriedades</button>
+                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
+              </>:bauAction.item.itemId==='jabuticaba'?<>
+                <button type="button" className="bau-action-button" autoFocus={chestCloudReady&&!jabuticabaBusy} disabled={!chestCloudReady||jabuticabaBusy} onClick={()=>{void consumeJabuticaba();setBauAction(null);}}>Consumir</button>
+                <button type="button" className="bau-action-button" autoFocus={!chestCloudReady||jabuticabaBusy} onClick={showBauActionDetails}>Detalhes</button>
+              </>:<>
+                <button type="button" className="bau-action-button" autoFocus onClick={showBauActionDetails}>Detalhes</button>
+                <button type="button" className="bau-action-button danger" onClick={requestBauActionDeletion}>Excluir</button>
+              </>}
+            </>:bauAction.view==='details'?<>
+              <header><strong>{bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}</strong><button type="button" aria-label="Fechar" onClick={()=>setBauAction(null)}>×</button></header>
+              {bauAction.kind==='meal'?<>
+                <p><b>Tipo:</b> {bauAction.meal.slot==='quick'?'Simples':'Elaborada'}</p>
+                <div className="bau-action-detail-section"><strong>Ingredientes</strong><ul>{bauAction.meal.ingredients.map((ingredient,index)=><li key={ingredient.itemId+'-'+index}>{bauIngredientName(ingredient.itemId)}</li>)}</ul></div>
+                <div className="bau-action-detail-section"><strong>Efeito</strong><ul>{bauMealEffects(bauAction.meal).map((effect,index)=><li key={effect+'-'+index}>{effect}</li>)}</ul>
+                  {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
+              </>:bauAction.item.itemId==='jabuticaba'?<>
+                <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
+              </>:(parseCoreItemId(bauAction.item.itemId) || bauAction.item.itemId.startsWith('jewelry-closed:'))?<>
+                <CoreDetail itemId={bauAction.item.itemId} armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
+              </>:<>
+                {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
+                <p>{bauItemDetails(bauAction.item.itemId).usage}</p>
+              </>}
+              <button type="button" className="bau-action-button" autoFocus onClick={()=>setBauAction(current=>current?{...current,view:'actions'}:null)}>Voltar</button>
+            </>:<>
+              <header><strong>Excluir {bauAction.kind==='meal'?bauAction.meal.name:itemLabel(bauAction.item.itemId)}?</strong><button type="button" aria-label="Fechar" disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>×</button></header>
+              <p>Esta ação não pode ser desfeita.</p>
+              {bauAction.kind==='item'&&bauAction.item.quantity>1&&<>
+                <label className="bau-action-quantity">Quantidade a excluir<input type="number" min="1" max={lobbyChestItems.find(item=>item.itemId===bauAction.item.itemId)?.quantity??bauAction.item.quantity} step="1" value={bauDeleteQuantity} onChange={event=>setBauDeleteQuantity(event.target.value)}/></label>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready'} onClick={()=>{void discardBauItem(true);}}>Excluir tudo</button>
+              </>}
+              <div className="bau-action-confirm-actions">
+                <button type="button" className="bau-action-button" autoFocus disabled={bauDeleteBusy} onClick={()=>setBauAction(null)}>Cancelar</button>
+                <button type="button" className="bau-action-button danger" disabled={bauDeleteBusy || lobbyChestStatus !== 'ready' || (bauAction.kind==='meal'&&!cookingOnline)} onClick={()=>{if(bauAction.kind==='meal')void discardBauMeal(bauAction.meal);else void discardBauItem();}}>{bauDeleteBusy?'Excluindo…':'Excluir'}</button>
+              </div>
+              {bauAction.kind==='meal'&&!cookingOnline&&<p className="bau-action-hint">Sem conexão: excluir refeições exige internet.</p>}
+              {bauAction.kind==='meal'&&cookingFeedback&&<p role="status">{cookingFeedback}</p>}
+            </>}
+          </section>
+        </div>, document.body)}
   </>;
 }
 
