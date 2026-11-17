@@ -74,6 +74,13 @@ export async function craftAccessory(client: AccessoryClient, lining: AccessoryL
   const payload = readObject(data, 'a resposta não é um objeto.');
   return { accessory: readStoredAccessory(payload.accessory), inventory: readInventory(payload.inventory) };
 }
+export async function deleteAccessory(client: AccessoryClient, accessoryId: string): Promise<void> {
+  if (!accessoryId) throw new Error('Acessório inválido para exclusão.');
+  const queryClient = client as { from: (table: string) => { delete: () => { eq: (column: string, value: string) => PromiseLike<{ error: { message?: string } | null }> } } };
+  const { error } = await queryClient.from('fibula_accessories').delete().eq('id', accessoryId);
+  if (error) throw new Error(error.message || 'Não foi possível excluir o acessório.');
+}
+
 export async function listMyAccessories(client: AccessoryClient): Promise<CraftedAccessory[]> {
   const queryClient = client as { from: (table: string) => { select: (columns: string) => { order: (column: string, options: { ascending: boolean }) => { limit: (count: number) => PromiseLike<{ data: unknown; error: { message?: string } | null }> } } } };
   const { data, error } = await queryClient.from('fibula_accessories')
