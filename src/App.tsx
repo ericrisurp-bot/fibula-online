@@ -3909,6 +3909,12 @@ export default function App() {
                         <div className="forge-material-grid forge-chest-grid tailor-chest-grid" aria-label="Núcleos e materiais no Baú">
                           {tailorChestStacks.map(item => {
                             const parsed = parseCoreItemId(item.itemId);
+                            if (parsed?.kind === 'closed') return <button type="button" key={item.itemId}
+                              className="forge-material-item forge-core-item"
+                              onClick={() => openBauCoreActions(item, undefined, ['couro'], true)}>
+                              <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                              <strong>{itemLabel(item.itemId)}</strong><small>×{item.quantity}</small>
+                            </button>;
                             if (parsed?.kind === 'revealed') {
                               const selectable = parsed.core.category === 'armor' && !!parsed.core.equipmentType;
                               return <button type="button" key={item.itemId}
@@ -4033,15 +4039,14 @@ export default function App() {
                           const rarity = item.itemId.slice('jewelry-closed:'.length);
                           return <button type="button" key={item.itemId}
                             className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
-                            disabled={jewelryRevealBusy}
                             aria-pressed={selected}
-                            onClick={() => {
+                            onClick={() => openBauCoreActions(item, () => {
                               if (jewelryRevealBusy) return;
                               setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
                               setJewelryCottonSelection(0);
                               setJewelryResultCoreId(null);
                               setJewelryFeedback('');
-                            }}>
+                            }, ['couro','bronze'], jewelryRevealBusy)}>
                             <span style={itemRarityGlow(`core:${rarity}:weapon:espada`)}><img src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" /></span>
                             <strong>Núcleo fechado</strong>
                             <small>×{item.quantity} · {JEWELRY_RARITY_LABELS[rarity] ?? rarity}</small>
@@ -4180,11 +4185,12 @@ export default function App() {
                           const isCraftableCore = parsedCore.kind === 'revealed'
                             && (parsedCore.core.category === 'weapon'
                               || (CONFIG.rulesV2.armorCraftingEnabled && parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
-                          if (parsedCore.kind === 'closed') return <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>
+                          if (parsedCore.kind === 'closed') return <button type="button" className="forge-material-item forge-chest-item" key={item.itemId}
+                            onClick={() => openBauCoreActions(item, undefined, ['bronze'], true)}>
                             <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                             <strong>{forgeChestItemLabel(item.itemId)}</strong>
                             <small>×{item.quantity}</small>
-                          </div>;
+                          </button>;
                           return <button type="button" key={item.itemId}
                             className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
                             aria-pressed={selectedWeaponCoreId === item.itemId}
@@ -4586,7 +4592,7 @@ export default function App() {
                   {bauAction.meal.durationSeconds&&<p>{bauAction.meal.durationSeconds<=1800?'Dura uma partida':'Dura um tempo limitado'}</p>}</div>
               </>:bauAction.item.itemId==='jabuticaba'?<>
                 <p><b>Propriedade:</b> experiência</p><p><b>Uso:</b> consumida para subir o nível geral.</p>
-              </>:parseCoreItemId(bauAction.item.itemId)?.kind==='revealed'?<>
+              </>:parseCoreItemId(bauAction.item.itemId)?<>
                 <CoreDetail itemId={bauAction.item.itemId} mode="inline" armorTypes={bauAction.coreArmorTypes ?? ['couro','bronze']}/>
               </>:<>
                 {bauItemDetails(bauAction.item.itemId).property&&<p>{bauItemDetails(bauAction.item.itemId).property}</p>}
