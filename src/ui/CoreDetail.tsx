@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import {
   ARMOR_ATTRIBUTE_TO_CORE_ATTRIBUTE,
   ARMOR_CORE_EQUIPMENT_TO_PIECE,
@@ -13,7 +12,7 @@ import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CORE_POINTS_PER_VALUE, type WeaponMode
 
 type CoreDetailProps = {
   itemId: string;
-  mode: 'trigger' | 'inline';
+  mode: 'inline';
   armorTypes?: ArmorType[];
 };
 
@@ -133,63 +132,14 @@ function CoreDetailContent({ core, armorTypes }: { core: Core; armorTypes: Armor
   </>;
 }
 
-export default function CoreDetail({ itemId, mode, armorTypes = ['couro', 'bronze'] }: CoreDetailProps) {
+export default function CoreDetail({ itemId, armorTypes = ['couro', 'bronze'] }: CoreDetailProps) {
   const parsed = parseCoreItemId(itemId);
   if (parsed?.kind !== 'revealed') return null;
   const core = coreFromItemId(itemId);
   if (!core) return null;
 
-  if (mode === 'inline') {
-    return <section className="core-detail-card" aria-label="Detalhes do núcleo selecionado">
-      <strong className="core-detail-heading">DETALHES DO NÚCLEO</strong>
-      <CoreDetailContent core={core} armorTypes={armorTypes}/>
-    </section>;
-  }
-
-  return <CoreDetailTrigger itemId={itemId} core={core} armorTypes={armorTypes}/>;
-}
-
-function CoreDetailTrigger({ itemId, core, armorTypes }: { itemId: string; core: Core; armorTypes: ArmorType[] }) {
-  const [open, setOpen] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    dialogRef.current?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [open]);
-
-  return <div className="core-detail-trigger-wrap" data-core-detail-id={itemId}>
-    <button
-      ref={triggerRef}
-      type="button"
-      className="core-detail-trigger"
-      aria-label={`Ver atributos de ${core.category === 'weapon' ? WEAPON_LABELS[weaponModel(core)] : core.category === 'armor' ? 'armadura' : 'acessório'}`}
-      aria-haspopup="dialog"
-      aria-expanded={open}
-      onClick={event => { event.preventDefault(); event.stopPropagation(); setOpen(true); }}
-    >ⓘ</button>
-    {open && <div className="core-detail-backdrop" onClick={() => { setOpen(false); triggerRef.current?.focus(); }}>
-      <div
-        ref={dialogRef}
-        className="core-detail-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Detalhes do núcleo revelado"
-        tabIndex={-1}
-        onClick={event => event.stopPropagation()}
-      >
-        <header><strong>DETALHES DO NÚCLEO</strong><button type="button" aria-label="Fechar detalhes" onClick={() => { setOpen(false); triggerRef.current?.focus(); }}>×</button></header>
-        <CoreDetailContent core={core} armorTypes={armorTypes}/>
-      </div>
-    </div>}
-  </div>;
+  return <section className="core-detail-card" aria-label="Detalhes do núcleo selecionado">
+    <strong className="core-detail-heading">DETALHES DO NÚCLEO</strong>
+    <CoreDetailContent core={core} armorTypes={armorTypes}/>
+  </section>;
 }
