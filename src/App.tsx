@@ -911,7 +911,6 @@ export default function App() {
   const [armorActionArmor, setArmorActionArmor] = useState<CraftedArmor | null>(null);
   const [armorDeleteConfirmation, setArmorDeleteConfirmation] = useState(false);
   const [armorDeleteBusy, setArmorDeleteBusy] = useState(false);
-  const [forgeTab, setForgeTab] = useState<'armas' | 'armaduras'>('armas');
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     setEquippedArmorIds(readEquippedArmorSelections(session.user.sub));
@@ -1081,7 +1080,7 @@ export default function App() {
     const parsedCore = parseCoreItemId(item.itemId);
     const base = getBaseItemId(item.itemId);
     const isRevealedCore = parsedCore?.kind === 'revealed';
-    const isEquipmentMaterial = !parsedCore && ['wood', 'stone', 'bronze', 'linen'].includes(base);
+    const isEquipmentMaterial = !parsedCore && ['wood', 'stone', 'bronze', 'linen', 'cotton', 'refined_leather'].includes(base);
     if (!isRevealedCore && !isEquipmentMaterial) return stacks;
     const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
@@ -1100,9 +1099,12 @@ export default function App() {
     else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
   }, []);
-  const selectedWeaponCoreParsed = selectedWeaponCoreId ? parseCoreItemId(selectedWeaponCoreId) : null;
-  const selectedWeaponCore = selectedWeaponCoreParsed?.kind === 'revealed'
-    && selectedWeaponCoreParsed.core.category === 'weapon' ? selectedWeaponCoreParsed.core : null;
+  const selectedForgeCoreParsed = selectedWeaponCoreId ? parseCoreItemId(selectedWeaponCoreId) : null;
+  const selectedWeaponCore = selectedForgeCoreParsed?.kind === 'revealed'
+    && selectedForgeCoreParsed.core.category === 'weapon' ? selectedForgeCoreParsed.core : null;
+  const selectedArmorCore = selectedForgeCoreParsed?.kind === 'revealed'
+    && selectedForgeCoreParsed.core.category === 'armor' && !!selectedForgeCoreParsed.core.equipmentType
+    ? selectedForgeCoreParsed.core : null;
   const selectedWeaponModel: WeaponModel | null = selectedWeaponCore
     ? selectedWeaponCore.weaponModel === 'espada' ? 'espada'
       : selectedWeaponCore.weaponModel === 'arco' ? 'arco'
@@ -1125,8 +1127,9 @@ export default function App() {
   const selectedMineral = selectedWeaponMaterials.find(item => item.slot === 'mineral');
   const selectedWeaponTier: 1 | 2 = selectedMineral && getBaseItemId(selectedMineral.itemId) === 'bronze' ? 2 : 1;
   const weaponMaterialsReady = weaponRecipeRows.length > 0 && weaponRecipeRows.every(row => row.selection?.quantity === row.material.quantity);
-  const forgeIntensity = !selectedWeaponCore ? 0 : selectedWeaponCore.rarity === 'legendary' ? 3
-    : selectedWeaponCore.rarity === 'uncommon' || selectedWeaponCore.rarity === 'rare' ? 2 : 1;
+  const selectedForgeRarity = selectedWeaponCore?.rarity ?? selectedArmorCore?.rarity ?? null;
+  const forgeIntensity = !selectedForgeRarity ? 0 : selectedForgeRarity === 'legendary' ? 3
+    : selectedForgeRarity === 'uncommon' || selectedForgeRarity === 'rare' ? 2 : 1;
   useEffect(() => {
     window.localStorage.removeItem('fibula-prepared-meals');
     window.localStorage.removeItem('fibula-ready-meals');
@@ -3715,25 +3718,7 @@ export default function App() {
                   {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
                 </div>
               </div> : activeCraftingStation.id === 'bigorna' ? <>
-                {CONFIG.rulesV2.armorCraftingEnabled && <div className="forge-tabs" role="tablist" aria-label="Tipo de fabricação da Bigorna">
-                  <button type="button" role="tab" aria-pressed={forgeTab === 'armas'} className={forgeTab === 'armas' ? 'forge-tabs-button is-active' : 'forge-tabs-button'} onClick={() => setForgeTab('armas')}>Armas</button>
-                  <button type="button" role="tab" aria-pressed={forgeTab === 'armaduras'} className={forgeTab === 'armaduras' ? 'forge-tabs-button is-active' : 'forge-tabs-button'} onClick={() => setForgeTab('armaduras')}>Armaduras</button>
-                </div>}
-                {CONFIG.rulesV2.armorCraftingEnabled && forgeTab === 'armaduras' ? <div className="forge-tabs-armor-workspace">
-                  <ArmorCraftPanel
-                    type="bronze"
-                    chestItems={lobbyChestItems}
-                    chestReady={lobbyChestStatus === 'ready'}
-                    online={cookingOnline}
-                    client={fibulaSupabase}
-                    applyInventory={applyCookingInventory}
-                    refreshChest={refreshLobbyChestFromCloud}
-                    onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
-                    renderIcon={inventoryItemIcon}
-                    glowStyle={itemRarityGlow}
-                    label={itemLabel}
-                  />
-                </div> : <div className="forge-workspace">
+                <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
                     {forgeCraftResult && <button type="button" className="forge-production-result"
                       onClick={openCraftedWeaponInArsenal} aria-label="Abrir arma fabricada no Arsenal">
@@ -3743,7 +3728,21 @@ export default function App() {
                     </button>}
                   </ForgeScene>
                   <div className="forge-lower-panel">
-                    <section className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
+                    {selectedArmorCore ? <ArmorCraftPanel
+                      type="bronze"
+                      chestItems={lobbyChestItems}
+                      chestReady={lobbyChestStatus === 'ready'}
+                      online={cookingOnline}
+                      client={fibulaSupabase}
+                      applyInventory={applyCookingInventory}
+                      refreshChest={refreshLobbyChestFromCloud}
+                      onCrafted={armor => setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50))}
+                      renderIcon={inventoryItemIcon}
+                      glowStyle={itemRarityGlow}
+                      label={itemLabel}
+                      selectedCoreId={selectedWeaponCoreId}
+                      onClearCore={() => { setSelectedWeaponCoreId(null); setSelectedWeaponMaterials([]); setForgeCraftResult(''); setWeaponFeedback(''); }}
+                    /> : <section className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
                       <div className="forge-panel-heading">
                         <strong>MATERIAIS SELECIONADOS</strong>
                         <span>Núcleo e componentes da receita</span>
@@ -3786,7 +3785,7 @@ export default function App() {
                         {weaponFeedback && !forgeCraftResult && <p className="forge-feedback" role="alert">{weaponFeedback}</p>}
                         {!cookingOnline && <small className="forge-offline">Sem conexão: fabricar exige internet.</small>}
                       </div>
-                    </section>
+                    </section>}
                   <section className="forge-zone forge-chest-zone" aria-label="Baú da Bigorna">
                     <div className="forge-panel-heading">
                       <strong>BAÚ</strong>
@@ -3796,8 +3795,10 @@ export default function App() {
                       {anvilChestStacks.map(item => {
                         const parsedCore = parseCoreItemId(item.itemId);
                         if (parsedCore) {
-                          const isWeaponCore = parsedCore.kind === 'revealed' && parsedCore.core.category === 'weapon';
-                          return isWeaponCore ? <button type="button" key={item.itemId}
+                          const isCraftableCore = parsedCore.kind === 'revealed'
+                            && (parsedCore.core.category === 'weapon'
+                              || (parsedCore.core.category === 'armor' && !!parsedCore.core.equipmentType));
+                          return isCraftableCore ? <button type="button" key={item.itemId>
                             className={'forge-material-item forge-core-item' + (selectedWeaponCoreId === item.itemId ? ' selected' : '')}
                             disabled={weaponCraftBusy}
                             aria-pressed={selectedWeaponCoreId === item.itemId}
@@ -3831,7 +3832,7 @@ export default function App() {
                     </div>
                     </section>
                   </div>
-                </div>}
+                </div>
               </> : activeCraftingStation.id === 'fogao' ? <>
                 <div className="cooking-station-form cooking-kitchen">
                   <div className={`cooking-production-panel cooking-oven-panel ${preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length > 0 ? 'is-burning is-burning-' + Math.min(3, preparedCookingMeals.filter(meal => (meal.productionReadyAt ?? 0) > cookingClock).length) : ''}`}>
