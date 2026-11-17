@@ -12556,3 +12556,15 @@ sem backdrop ou caixa de modal. */
   .forge-production-result-art img,.forge-production-result-art .arsenal-armor-art img{width:36px;height:36px;max-width:36px;max-height:36px}
   .forge-production-details-content{gap:2px 6px}
 }
+
+
+/* A área dos slots ocupa a cena inteira para centralizar a prévia recém-fabricada. */
+.forge-scene-slots{
+  top:0;left:0;width:100%;height:100%;max-width:none;transform:none;
+  align-items:center;justify-content:center;padding:30px 8px 8px;box-sizing:border-box;
+}
+.forge-production-result{
+  position:relative;left:auto;top:auto;transform:none;
+  width:min(310px,100%);max-height:100%;min-height:0;
+}
+@media(max-width:430px){.forge-production-result{width:min(270px,100%)}}
