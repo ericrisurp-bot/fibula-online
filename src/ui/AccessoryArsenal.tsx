@@ -10,7 +10,7 @@ const numberLabel = (value: number) => value.toLocaleString('pt-BR', { maximumFr
 export function AccessoryInventoryCard({ accessory, selected, onClick }: { accessory: CraftedAccessory; selected: boolean; onClick: () => void }) {
   const color = RARITY_COLORS[accessory.rarity];
   return <button type="button" className={`arsenal-inventory-slot filled arsenal-accessory-inventory-item${selected ? ' selected' : ''}`} onClick={onClick}
-    aria-label={`${TYPE_LABELS[accessory.type]}, ${RARITY_LABELS[accessory.rarity]}, ${accessory.stars} estrelas. Ver detalhes.`}>
+    aria-label={`${TYPE_LABELS[accessory.type]}, ${RARITY_LABELS[accessory.rarity]}, ${accessory.stars} estrelas. Abrir ações.`}>
     <span className="arsenal-accessory-art" style={color ? { filter: `drop-shadow(0 0 5px ${color})` } : undefined}>{TYPE_ICONS[accessory.type]}</span>
     <small>{TYPE_LABELS[accessory.type]}</small><span className="arsenal-armor-stars">{'★'.repeat(accessory.stars)}</span>
   </button>;
