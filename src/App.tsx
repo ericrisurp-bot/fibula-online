@@ -786,12 +786,6 @@ export default function App() {
   const [jewelryFeedback, setJewelryFeedback] = useState('');
   const [jewelryProductionPreview, setJewelryProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
   const jewelryPreviewSessionRef = useRef(0);
-  useEffect(() => {
-    if (activeGameRoute.page !== 'joalheria') {
-      jewelryPreviewSessionRef.current += 1;
-      setJewelryProductionPreview(null);
-    }
-  }, [activeGameRoute.page]);
   const jewelrySlotCoreId = selectedJewelryCoreId ?? jewelryResultCoreId;
   const jewelrySlotCore = jewelrySlotCoreId ? parseCoreItemId(jewelrySlotCoreId) : null;
   const jewelryAccessoryCore = jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory'
@@ -912,6 +906,12 @@ export default function App() {
   }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
 
   const [activeGameRoute, setActiveGameRoute] = useState<GameRoute>(() => readGameRoute() ?? { page: 'lobby' });
+  useEffect(() => {
+    if (activeGameRoute.page !== 'joalheria') {
+      jewelryPreviewSessionRef.current += 1;
+      setJewelryProductionPreview(null);
+    }
+  }, [activeGameRoute.page]);
   const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>([]);
   const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>([]);
   const [pendingCookingMeals, setPendingCookingMeals] = useState<CookingMeal[]>([]);
