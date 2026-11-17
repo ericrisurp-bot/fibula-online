@@ -901,7 +901,13 @@ export default function App() {
   const [forgeHammering, setForgeHammering] = useState(false);
   const [forgeCraftResult, setForgeCraftResult] = useState('');
   const [forgeProductionPreview, setForgeProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
-  useEffect(() => { if (activeGameRoute.page !== 'bigorna') setForgeProductionPreview(null); }, [activeGameRoute.page]);
+  const forgePreviewSessionRef = useRef(0);
+  useEffect(() => {
+    if (activeGameRoute.page !== 'bigorna') {
+      forgePreviewSessionRef.current += 1;
+      setForgeProductionPreview(null);
+    }
+  }, [activeGameRoute.page]);
   const [craftedWeapons, setCraftedWeapons] = useState<CraftedWeapon[]>([]);
   const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
@@ -1002,7 +1008,12 @@ export default function App() {
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
+  const forgePreviewSession = forgePreviewSessionRef.current;
   const openStation = (id: StationRouteId) => {
+    if (activeGameRoute.page === 'bigorna' && id !== 'bigorna') {
+      forgePreviewSessionRef.current += 1;
+      setForgeProductionPreview(null);
+    }
     if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
       void refreshLobbyChestFromCloud();
     }
@@ -1020,6 +1031,7 @@ export default function App() {
     setCookingFeedback(!cookingOnline && id === 'fogao' ? 'Sem conexão: cozinhar exige internet.' : '');
   };
   const closeGamePage = () => {
+    forgePreviewSessionRef.current += 1;
     setForgeProductionPreview(null);
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
@@ -2604,6 +2616,7 @@ export default function App() {
       setWeaponFeedback(weaponCompatibilityError ?? 'Preencha todos os materiais da receita.');
       return;
     }
+    const previewSession = forgePreviewSessionRef.current;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const animationStartedAt = Date.now();
     weaponCraftLockRef.current = true;
@@ -2622,7 +2635,9 @@ export default function App() {
       }
       setForgeHammering(false);
       setForgeCraftResult(arsenalWeaponLabels[result.weapon.model] + ' fabricada!');
-      setForgeProductionPreview({ kind: 'weapon', weapon: result.weapon, materials: selectedWeaponMaterials.map(item => itemLabel(item.itemId)) });
+      if (forgePreviewSessionRef.current === previewSession) {
+        setForgeProductionPreview({ kind: 'weapon', weapon: result.weapon, materials: selectedWeaponMaterials.map(item => itemLabel(item.itemId)) });
+      }
       setSelectedWeaponCoreId(null);
       setSelectedWeaponMaterials([]);
       try {
@@ -3737,7 +3752,10 @@ export default function App() {
                       client={fibulaSupabase}
                       applyInventory={applyCookingInventory}
                       refreshChest={refreshLobbyChestFromCloud}
-                      onCrafted={armor => { setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50)); setForgeProductionPreview({ kind: 'armor', armor }); }}
+                      onCrafted={armor => {
+                        setCraftedArmors(current => [armor, ...current.filter(item => item.id !== armor.id)].slice(0, 50));
+                        if (forgePreviewSessionRef.current === forgePreviewSession) setForgeProductionPreview({ kind: 'armor', armor });
+                      }}
                       renderIcon={inventoryItemIcon}
                       glowStyle={itemRarityGlow}
                       label={itemLabel}
