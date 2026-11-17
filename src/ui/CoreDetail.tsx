@@ -12,7 +12,6 @@ import { WEAPON_ACTIVE_ATTRIBUTES, WEAPON_CORE_POINTS_PER_VALUE, type WeaponMode
 
 type CoreDetailProps = {
   itemId: string;
-  mode: 'inline';
   armorTypes?: ArmorType[];
 };
 
