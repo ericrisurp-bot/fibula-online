@@ -994,6 +994,8 @@ export default function App() {
   }, [session.user.sub, cookingOnline]);
   const armorListReady = armorsLoaded && armorsLoadedForUserId === session.user.sub;
   useEffect(() => {
+    setAccessoryDetails(null);
+    setSelectedArsenalItemId(null);
     if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
       setCraftedAccessories([]); setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null); return;
     }
@@ -3165,7 +3167,11 @@ export default function App() {
       setJewelryCottonSelection(0); setJewelryAccessoryBronzeSelection(0);
       setJewelryAccessoryLiningSelection(0); setJewelryAccessoryLining('linho');
       setJewelryFeedback(`${typeLabel} fabricado e salvo no Arsenal.`);
-      void listMyAccessories(fibulaSupabase).then(items => setCraftedAccessories(items)).catch(() => {
+      void listMyAccessories(fibulaSupabase).then(items => {
+        setCraftedAccessories(items);
+        setAccessoriesLoaded(true);
+        setAccessoriesLoadedForUserId(session.user.sub);
+      }).catch(() => {
         setJewelryFeedback('Acessório salvo no servidor, mas não foi possível atualizar a lista do Arsenal agora.');
       });
     } catch (cause) {
