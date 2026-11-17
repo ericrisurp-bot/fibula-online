@@ -13053,3 +13053,83 @@ sem backdrop ou caixa de modal. */
 @media(orientation:landscape) and (max-height:520px){
   .jewelry-page .jewelry-stage{height:auto!important;min-height:0!important}
 }
+
+/* D1 — detalhes dos núcleos revelados: acionador, cartão inline e modal leve. */
+.core-detail-item-wrap{position:relative;min-width:0;min-height:0}
+.core-detail-item-wrap>.forge-material-item{width:100%;height:100%;padding-right:34px}
+.core-detail-trigger-wrap{position:absolute;inset:0;pointer-events:none}
+.core-detail-trigger{
+  position:absolute;top:3px;right:3px;z-index:3;display:grid;place-items:center;
+  width:32px;height:32px;min-width:32px;min-height:32px;padding:0;
+  border:1px solid #d6c29f;border-radius:50%;background:#242322;color:#f4dfba;
+  font:700 17px/1 sans-serif;box-shadow:0 1px 4px #0008;cursor:pointer;pointer-events:auto;
+}
+.core-detail-trigger:hover,.core-detail-trigger:focus-visible{border-color:#fff0c7;background:#3a332a;color:#fff4d8;outline:2px solid #e8c98c;outline-offset:1px}
+.core-detail-backdrop{
+  position:fixed;inset:0;z-index:15000;display:flex;align-items:center;justify-content:center;
+  padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));
+  background:rgba(0,0,0,.46);
+}
+.core-detail-dialog{
+  display:flex;width:min(390px,100%);max-height:min(82dvh,680px);min-width:0;flex-direction:column;gap:9px;
+  padding:12px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #8e795c;border-radius:12px;
+  background:linear-gradient(155deg,#292a28,#1c1e1d);color:#f1e8d9;
+  box-shadow:0 8px 24px rgba(0,0,0,.34);
+}
+.core-detail-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.core-detail-dialog>header strong,.core-detail-heading{color:#e9cf9d;font-size:10px;letter-spacing:.1em}
+.core-detail-dialog>header button{
+  flex:0 0 32px;width:32px;height:32px;min-height:32px;padding:0;border:1px solid #71634f;
+  border-radius:8px;background:#343330;color:#f5ead7;font-size:22px;line-height:1;
+}
+.core-detail-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.core-detail-meta>span,.core-detail-meta>strong{
+  padding:3px 7px;border:1px solid #655744;border-radius:6px;background:#34332f;
+  color:#f1dfbf;font-size:10px;font-weight:800;
+}
+.core-detail-meta>strong{border-color:#d49b42;background:#49391f;color:#ffd58a;letter-spacing:.06em}
+.core-detail-attributes{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.core-detail-attributes li{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 8px;
+  padding:5px 7px;border:1px solid #4a4b45;border-radius:6px;background:#222522;
+  color:#e9e5dc;font-size:10px;line-height:1.25;
+}
+.core-detail-attributes li>b{color:#cce6c3;font-size:11px;font-variant-numeric:tabular-nums}
+.core-detail-attributes li.is-inactive{color:#a8a49c;text-decoration:line-through;opacity:.78}
+.core-detail-attributes li.is-inactive>b{color:#aaa59a}
+.core-detail-attributes li>small{grid-column:1/-1;color:#d2b995;font-size:9px;text-decoration:none}
+.core-detail-note{margin:0;color:#c8bda9;font-size:9px;line-height:1.35}
+.core-detail-armor-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.core-detail-armor-columns.is-single{grid-template-columns:minmax(0,1fr)}
+.core-detail-armor-column{display:grid;align-content:start;gap:5px;min-width:0}
+.core-detail-armor-column>strong{color:#e7cfaa;font-size:10px}
+.core-detail-card{
+  display:flex;min-width:0;max-height:min(112px,22dvh);flex:0 1 auto;flex-direction:column;gap:6px;
+  padding:7px;border:1px solid #5e574b;border-radius:8px;background:linear-gradient(150deg,#2d302c,#202321);
+  overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#74634c transparent;
+}
+.core-detail-card .core-detail-meta>span,.core-detail-card .core-detail-meta>strong{font-size:8px;padding:2px 5px}
+.core-detail-card .core-detail-attributes{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+.core-detail-card .core-detail-attributes li{padding:4px 5px;font-size:8px}
+.core-detail-card .core-detail-attributes li>b{font-size:9px}
+.core-detail-card .core-detail-attributes li>small{font-size:8px}
+.core-detail-card .core-detail-note{font-size:8px}
+.core-detail-card .core-detail-armor-columns{gap:5px}
+.core-detail-card .core-detail-armor-column>strong{font-size:8px}
+.core-detail-card .core-detail-armor-column .core-detail-attributes{grid-template-columns:minmax(0,1fr)}
+.core-detail-card .core-detail-heading{flex:0 0 auto}
+.jewelry-selection-zone>.core-detail-card{max-height:min(94px,18dvh)}
+.core-detail-lobby-slot{position:relative}
+.core-detail-lobby-slot>.lobby-chest-slot{padding-top:28px}
+.core-detail-lobby-slot>.core-detail-trigger-wrap .core-detail-trigger{top:2px;right:2px}
+@media(max-width:430px){
+  .core-detail-dialog{width:min(360px,100%);max-height:78dvh;padding:10px}
+  .core-detail-card{max-height:min(96px,20dvh);padding:6px}
+  .core-detail-card .core-detail-attributes{grid-template-columns:minmax(0,1fr)}
+}
+@media(orientation:landscape) and (max-height:520px){
+  .core-detail-backdrop{padding:6px}
+  .core-detail-dialog{width:min(460px,92vw);max-height:88dvh;padding:8px}
+  .core-detail-card{max-height:76px}
+  .jewelry-selection-zone>.core-detail-card{max-height:70px}
+}
