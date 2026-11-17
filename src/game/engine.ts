@@ -196,7 +196,7 @@ class PrimaryPlayerView implements PlayerEntity {
       for (let level = 1; level <= player.level; level++) {
         classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida', this.getPointsPerLevel());
       }
-      const equipmentHealth = CONFIG.rulesV2.enabled ? this.getEquipmentHealthBonus(classId) : 0;
+      const equipmentHealth = this.getEquipmentHealthBonus(classId);
       classMaxHp += equipmentHealth;
       this.setAppliedEquipmentHealth(equipmentHealth);
       const previousMaxHp = player.maxHp;
@@ -591,7 +591,7 @@ export class GameEngine {
       arqueiro: 'arco',
       druida: 'bastao',
     };
-    const equipmentHealth = CONFIG.rulesV2.enabled ? this.getEquipmentHealthBonus(classId) : 0;
+    const equipmentHealth = this.getEquipmentHealthBonus(classId);
     const startingHealth = CONFIG.attributes.classStartHealth[classId] + equipmentHealth;
     this.appliedEquipmentHealth = equipmentHealth;
     return {
