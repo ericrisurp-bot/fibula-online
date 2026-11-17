@@ -3643,6 +3643,7 @@ export default function App() {
   const equipSelectedArsenalItem = () => {
     const action = arsenalActionItem;
     if (!action || !activeArsenalClassId) return;
+    if (action.kind === 'accessory') return;
     if (action.kind === 'weapon') {
       if (activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[action.weapon.model]) return;
       equipCraftedWeapon(action.weapon);
@@ -3658,6 +3659,7 @@ export default function App() {
   const unequipSelectedArsenalItem = () => {
     const action = arsenalActionItem;
     if (!action || !activeArsenalClassId) return;
+    if (action.kind === 'accessory') return;
     if (action.kind === 'weapon') {
       unequipCraftedWeapon(action.weapon);
     } else {
@@ -4765,7 +4767,7 @@ export default function App() {
         <AccessoryDetailsDialog accessory={accessoryDetails} onClose={() => { setAccessoryDetails(null); setSelectedArsenalItemId(null); }} />
         {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && activeArsenalClassId && equippedArmorIds[activeArsenalClassId]?.[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
-          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
+          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : arsenalActionItem.kind === 'accessory' ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalActionItem.accessory.type] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
             <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : arsenalActionItem.kind === 'accessory' ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalActionItem.accessory.type] : cleanItemName(arsenalActionItem.item.name)}</strong>
               <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
