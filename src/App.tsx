@@ -4019,7 +4019,7 @@ export default function App() {
                       onClearBase={() => setAnvilArmorBaseSelection(null)}
                       onClearLining={() => setAnvilArmorLiningSelection(null)}
                       onCraft={() => void craftAnvilArmor()}
-                    /> : <section> className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
+                    /> : <section className="forge-zone forge-selection-zone" aria-label="Materiais selecionados para fabricação">
                       <div className="forge-panel-heading">
                         <strong>MATERIAIS SELECIONADOS</strong>
                         <span>Núcleo e componentes da receita</span>
