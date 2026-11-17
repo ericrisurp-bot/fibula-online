@@ -29,6 +29,7 @@ type ArmorCraftPanelProps = {
   label: (itemId: string) => string;
   selectedCoreId?: string | null;
   onClearCore?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 const PIECE_LABELS: Record<ArmorPiece, string> = {
@@ -84,6 +85,7 @@ export default function ArmorCraftPanel({
   label,
   selectedCoreId: controlledCoreId,
   onClearCore,
+  onBusyChange,
 }: ArmorCraftPanelProps) {
   const [internalCoreId, setInternalCoreId] = useState<string | null>(null);
   const isControlled = controlledCoreId !== undefined;
@@ -180,6 +182,7 @@ export default function ArmorCraftPanel({
     if (!selectedCore || !selectedPiece || !selectedLining || !hasMaterials || !chestReady) return;
     craftLockRef.current = true;
     setBusy(true);
+    onBusyChange?.(true);
     setFeedback('');
     try {
       const result = await craftArmor(client, selectedPiece, type, selectedLining, selectedCore.itemId);
@@ -195,6 +198,7 @@ export default function ArmorCraftPanel({
     } finally {
       craftLockRef.current = false;
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
 
@@ -207,7 +211,7 @@ export default function ArmorCraftPanel({
             <img className="armor-craft-piece-image" src={`/assets/armors/${type === 'couro' ? 'zeryn' : 'vark'}-${PIECE_SPRITES[selectedPiece]}.png`} alt="" aria-hidden="true" draggable={false}/>
             <strong>{PIECE_LABELS[selectedPiece]}</strong>
             <small>{RARITY_LABELS[selectedCore.core.rarity]}{selectedCore.core.surp ? ' · SURP' : ''}</small>
-            <button type="button" onClick={() => { onClearCore?.(); setFeedback(''); setSelectedLining(null); }}>Trocar núcleo</button>
+            <button type="button" disabled={busy} onClick={() => { onClearCore?.(); setFeedback(''); setSelectedLining(null); }}>Trocar núcleo</button>
           </> : <p className="armor-craft-empty">Selecione um núcleo de armadura no Baú da Bigorna.</p>}
         </div>
       </section> : <section className="armor-craft-section" aria-label="Núcleos revelados">
