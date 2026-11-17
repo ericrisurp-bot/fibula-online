@@ -1025,7 +1025,8 @@ export default function App() {
   useEffect(() => {
     const primaryClass = characterPreferences[0];
     const secondaryClass = characterPreferences[1];
-    if (!fibulaSupabase || !session.user.sub || !statusPowerReady
+    const supabase = fibulaSupabase;
+    if (!supabase || !session.user.sub || !statusPowerReady
       || (!primaryClass && !secondaryClass)
       || (CONFIG.rulesV2.armorCraftingEnabled && !armorListReady)) return;
 
@@ -1040,7 +1041,7 @@ export default function App() {
     lastReportedPdRef.current = { userId: session.user.sub, loadout: loadoutSignature };
     const reportUserId = session.user.sub;
     pdLoadoutSaveQueueRef.current = pdLoadoutSaveQueueRef.current.then(async () => {
-      const saved = await savePdLoadout(fibulaSupabase, {
+      const saved = await savePdLoadout(supabase, {
         primaryClass,
         secondaryClass,
         weapons: equippedWeaponIds,
@@ -1048,7 +1049,7 @@ export default function App() {
       });
       if (saved && lastReportedPdRef.current?.userId === reportUserId
         && lastReportedPdRef.current.loadout === loadoutSignature) {
-        void reportHighestPd(fibulaSupabase);
+        void reportHighestPd(supabase);
       } else if (!saved && lastReportedPdRef.current?.userId === reportUserId
         && lastReportedPdRef.current.loadout === loadoutSignature) {
         lastReportedPdRef.current = null;
@@ -1523,19 +1524,13 @@ export default function App() {
     let active = true;
     void (async () => {
       try {
-        let reportedPd: number | null = null;
-        if (statusPowerReady && statusDuoPower > 0
-          && (lastReportedPdRef.current?.userId !== session.user.sub || lastReportedPdRef.current.pd !== statusDuoPower)) {
-          lastReportedPdRef.current = { userId: session.user.sub, pd: statusDuoPower };
-          reportedPd = await reportHighestPd(supabase, statusDuoPower);
-        }
         const { data: profile, error: profileError } = await supabase
           .from('fibula_profiles').select('highest_pd,highest_survival_level')
           .eq('user_id', session.user.sub).maybeSingle();
         if (profileError) throw profileError;
         const highestPd = profile?.highest_pd;
         const highestDays = profile?.highest_survival_level;
-        const powerValue = reportedPd ?? (typeof highestPd === 'number' && Number.isSafeInteger(highestPd) ? highestPd : 0);
+        const powerValue = typeof highestPd === 'number' && Number.isSafeInteger(highestPd) ? highestPd : 0;
         const daysValue = typeof highestDays === 'number' && Number.isSafeInteger(highestDays) ? highestDays : 0;
         const fields = [
           { key: 'power' as const, field: 'highest_pd', value: powerValue },
