@@ -225,3 +225,15 @@ O motor valida cada peça recebida (ID, correspondência do espaço, atributos f
 - **Vida:** `freshState` inclui o bônus no HP e no máximo inicial; ao equipar/desequipar, o máximo muda pela diferença do bônus aplicado e o HP acompanha aumentos ou é limitado ao novo máximo em reduções. Na troca de classe, o bônus da nova classe entra no novo máximo antes da transição proporcional de vida já existente.
 
 Com `rulesV2.enabled = false`, `getArmorBonuses` retorna `null`; não há bônus de armadura no motor, o cálculo legado de armadura/esquiva permanece e a coleta de XP usa o valor original. O motor não altera a regra de ganho de vida por nível.
+
+
+## A4.5 — Alfaiataria no padrão da Bigorna (couro, Tipo 1)
+
+Com `CONFIG.rulesV2.armorCraftingEnabled = true`, a Alfaiataria usa a mesma composição de estação da Bigorna: cena no topo e painel inferior dividido entre receita/seleção e Baú. A Bigorna permanece sem alterações.
+
+- O Baú lista núcleos revelados de armadura com `equipmentType` como botões selecionáveis. Clicar novamente no núcleo selecionado o devolve ao Baú. Núcleos de arma, acessórios e demais núcleos aparecem inertes.
+- `wolf_hide`, `cotton`, `linen` e `refined_leather` são exibidos como materiais inertes. A seleção do núcleo abre a receita de couro no painel; o núcleo pode ser devolvido pelo slot e o jogador escolhe um dos três forros.
+- Peça, quantidades e raridade continuam determinadas por `equipmentType`, `ARMOR_RECIPES` e `armorMaterialItemIds`. O tipo enviado à RPC permanece `couro`; a assinatura de `fibula_craft_armor(p_piece,p_type,p_lining,p_core_item_id)` não muda.
+- A prévia de fabricação aparece na cena enquanto a sessão da Alfaiataria permanecer aberta. Iniciar outra fabricação ou sair da estação limpa a prévia; o retorno tardio de uma chamada não a reapresenta depois que a sessão foi encerrada.
+- Ao desligar a flag, o fallback legado da Alfaiataria continua sendo exibido sem alterações.
+- O layout reserva rolagem interna para a grade do Baú e adapta a composição entre retrato, paisagem e telas maiores.
