@@ -12591,11 +12591,11 @@ sem backdrop ou caixa de modal. */
 .tailor-page .tailor-scene .forge-production-result>p:after{content:"Equipamento salvo no Arsenal. Feche a estação para acessá-lo.";font-size:8px}
 .tailor-page .tailor-scene .forge-production-result{width:min(310px,100%);max-height:100%}
 @media(min-width:700px){
-  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(155px,.72fr) minmax(0,1.28fr);max-width:1100px;padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .tailor-page .tailor-forge-workspace{max-width:1100px;padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
   .tailor-page .tailor-forge-lower{grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);grid-template-rows:minmax(0,1fr)}
 }
 @media(max-width:430px){
-  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(112px,.58fr) minmax(0,1.42fr);gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
+  .tailor-page .tailor-forge-workspace{gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
   .tailor-page .tailor-forge-lower{gap:5px}
   .tailor-page .tailor-chest-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
   .tailor-page .tailor-chest-grid .forge-material-item{min-height:53px;padding:3px 2px}
@@ -12640,7 +12640,7 @@ sem backdrop ou caixa de modal. */
 .tailor-page .tailor-scene .forge-production-result>p{font-size:0}
 .tailor-page .tailor-scene .forge-production-result>p:after{content:"Equipamento salvo no Arsenal. Feche a estação para acessá-lo.";font-size:8px}
 @media(max-width:430px){
-  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(104px,.54fr) minmax(0,1.46fr);gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
+  .tailor-page .tailor-forge-workspace{gap:5px;padding:5px 6px calc(5px + env(safe-area-inset-bottom))!important}
   .tailor-page .tailor-forge-lower{gap:4px}
   .tailor-page .tailor-forge-lower>.tailor-selection-zone{padding:4px 5px}
   .tailor-page .tailor-selection-zone .forge-recipe-slot{min-height:43px}
@@ -12655,10 +12655,82 @@ sem backdrop ou caixa de modal. */
   .tailor-page .tailor-forge-workspace .tailor-scene-slots{padding-top:20px}
 }
 @media(min-width:700px){
-  .tailor-page .tailor-forge-workspace{grid-template-rows:minmax(145px,.58fr) minmax(0,1.42fr);padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
+  .tailor-page .tailor-forge-workspace{padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
   .tailor-page .tailor-chest-zone .tailor-chest-grid{grid-template-columns:repeat(auto-fill,64px);grid-auto-rows:64px;justify-content:start;gap:6px}
   .tailor-page .tailor-chest-grid .forge-material-item{box-sizing:border-box;width:64px;min-width:64px;max-width:64px;height:64px;min-height:64px;max-height:64px;gap:1px;padding:3px;overflow:hidden}
   .tailor-page .tailor-chest-grid .forge-material-item>span{min-height:23px;flex:0 0 23px}
   .tailor-page .tailor-chest-grid .forge-material-item>span img{max-width:23px;max-height:23px}
   .tailor-page .tailor-chest-grid .forge-material-item strong,.tailor-page .tailor-chest-grid .forge-material-item small{font-size:7px;line-height:1.1}
 }
+
+/* A4.5c — cena da Alfaiataria com a mesma divisão e encaixe da Bigorna. */
+.tailor-page .tailor-forge-workspace{
+  display:grid!important;
+  grid-template-rows:minmax(0,.783fr) minmax(0,1.217fr)!important;
+  gap:7px;
+  padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;
+}
+.tailor-page .tailor-forge-workspace>.tailor-scene{
+  position:relative;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  max-height:none;
+  align-self:stretch;
+  overflow:hidden;
+}
+.tailor-page .tailor-scene-backdrop{
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+}
+.tailor-page .tailor-scene-slots{
+  position:absolute;
+  z-index:5;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  padding:8px;
+  box-sizing:border-box;
+  pointer-events:auto;
+}
+.tailor-page .tailor-scene .forge-production-result{
+  position:relative;
+  left:auto;
+  top:auto;
+  transform:none;
+  width:min(310px,100%);
+  max-height:calc(100% - 16px);
+  min-height:0;
+  margin:auto;
+}
+@media(max-width:430px){
+  .tailor-page .tailor-forge-workspace{
+    gap:5px;
+    padding:5px 6px calc(6px + env(safe-area-inset-bottom))!important;
+  }
+  .tailor-page .tailor-scene .forge-production-result{
+    width:min(270px,100%);
+  }
+}
+@media(min-width:700px){
+  .tailor-page .tailor-forge-workspace{
+    gap:7px;
+    padding:12px 18px!important;
+  }
+}
+@media(min-width:1200px) and (min-height:700px){
+  .tailor-page .tailor-forge-workspace{
+    gap:10px;
+    padding:10px clamp(16px,2vw,32px) 14px!important;
+  }
+}
+
