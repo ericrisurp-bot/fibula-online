@@ -121,7 +121,7 @@ Explosão, cura, sangramento e perfuração estão fora desta etapa.
 
 **Servidor (J3) — a aplicar no banco:** a tabela `fibula_accessories` terá as colunas `id`, `user_id`, `type`, `rarity`, `metal`, `stars`, `surp`, `attributes`, `lining`, `created_at` e `crafted_by`. As funções previstas são `fibula_craft_accessory(p_lining text, p_core_item_id text)` → `{accessory, inventory}` e `fibula_delete_accessory(p_accessory_id uuid)` → `boolean`. Tabela e funções ainda não existem no banco; esta seção é somente documentação e não aplica SQL.
 
-**Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as regras de valor fixo acima.
+**Regra A — SUBSTITUÍDA:** a antiga regra de multiplicar o atributo total do personagem foi descartada e não deve ser usada. Aplicam-se exclusivamente as regras de valor fixo acima. Esta definição também substitui as menções antigas a multiplicação pelo atributo total que ainda constem nas seções 6 e 11 deste documento.
 ## 5. Quantidade de atributos por núcleo
 
 - Núcleos de armadura: todos os atributos permitidos para a peça indicada pelo próprio núcleo; a quantidade varia conforme a peça. A geração comum sorteia cada atributo entre 50% e menos de 100% da referência; SURP mantém todos os atributos em 100%.
