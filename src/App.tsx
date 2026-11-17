@@ -1052,7 +1052,7 @@ export default function App() {
     : {};
   equippedArmorsRef.current = equippedArmorSets;
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
-  const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
+  const arsenalArmedPower = activeArsenalClassId && accessoryListReady && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
       weapon: equippedArsenalWeapon ? {
         model: equippedArsenalWeapon.model,
