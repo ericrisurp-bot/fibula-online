@@ -12787,6 +12787,39 @@ sem backdrop ou caixa de modal. */
   inset:0;
   pointer-events:none;
 }
+.jewelry-page .jewelry-ui-layer .forge-production-result{
+  top:64%;
+  width:min(76%,340px);
+  max-height:44%;
+  overflow:auto;
+  pointer-events:auto;
+}
+.jewelry-page .forge-accessory-preview-art{
+  display:grid;
+  min-width:42px;
+  min-height:34px;
+  place-items:center;
+  font-size:32px;
+  line-height:1;
+}
+.side-page.arsenal-side .arsenal-accessory-art{
+  display:grid;
+  width:100%;
+  min-height:24px;
+  place-items:center;
+  font-size:24px;
+  line-height:1;
+}
+.side-page.arsenal-side .arsenal-accessory-details-art{
+  display:grid;
+  min-height:54px;
+  place-items:center;
+  font-size:44px;
+  line-height:1;
+}
+.side-page.arsenal-side .arsenal-accessory-details .arsenal-item-info-details{
+  margin-top:8px;
+}
 .jewelry-page .jewelry-forge-lower{
   display:flex;
   min-width:0;
