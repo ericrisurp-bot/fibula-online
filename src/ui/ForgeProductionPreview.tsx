@@ -84,7 +84,10 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
       <summary>Detalhes do equipamento</summary>
       <div className="forge-production-details-content">
         <div><span>Nome</span><strong>{name}</strong></div>
-        <div><span>Material</span><strong>{isWeapon ? (props.materials.length ? props.materials.join(' · ') : `Nível ${props.weapon.tier}`) : props.armor.type === 'bronze' ? 'Bronze' : 'Couro'}</strong></div>
+        <div><span>Material</span><strong>{isWeapon
+          ? (props.materials.length ? props.materials.join(' · ') : `Nível ${props.weapon.tier}`)
+          : isArmor ? props.armor.type === 'bronze' ? 'Bronze' : 'Couro'
+            : accessory!.metal === 'bronze' ? 'Bronze' : 'Ferro'}</strong></div>
         <div><span>Raridade</span><strong>{rarityLabels[rarity]}</strong></div>
         {stars !== null && <div><span>Estrelas</span><strong>{'★'.repeat(stars)}</strong></div>}
         {surp && <div><span>SURP</span><strong>Sim</strong></div>}
