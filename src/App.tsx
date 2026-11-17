@@ -768,12 +768,17 @@ export default function App() {
   const [bauDeleteQuantity,setBauDeleteQuantity] = useState('1');
   const [bauDeleteBusy,setBauDeleteBusy] = useState(false);
   const [selectedJewelryCoreId, setSelectedJewelryCoreId] = useState<string | null>(null);
+  const [jewelryCottonSelection, setJewelryCottonSelection] = useState(0);
   const [jewelryResultCoreId, setJewelryResultCoreId] = useState<string | null>(null);
   const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
   const [jewelryRevealBusy, setJewelryRevealBusy] = useState(false);
   const [jewelryFeedback, setJewelryFeedback] = useState('');
   const jewelrySlotCoreId = selectedJewelryCoreId ?? jewelryResultCoreId;
-  const jewelrySlotCore = jewelrySlotCoreId ? parseCoreItemId(jewelrySlotCoreId) : null;
+  const jewelrySlotCore = jewelrySlotCoreId
+    ? parseCoreItemId(jewelrySlotCoreId.startsWith('jewelry-closed:')
+      ? `core:${jewelrySlotCoreId.slice('jewelry-closed:'.length)}:weapon:espada`
+      : jewelrySlotCoreId)
+    : null;
   useEffect(() => {
     if (!jewelryResultCoreId) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -1040,8 +1045,6 @@ export default function App() {
       void refreshLobbyChestFromCloud();
     }
     navigateToStation(id);
-    const latestRevealedCore = [...lobbyChestItems].reverse().find(item => parseCoreItemId(item.itemId)?.kind === 'revealed');
-    setJewelryResultCoreId(id === 'joalheria' ? latestRevealedCore?.itemId ?? null : null);
     setActiveGameRoute({ page: id });
     if (id === 'costura') tailorPreviewSessionRef.current += 1;
     setSelectedWeaponCoreId(null);
@@ -1054,6 +1057,7 @@ export default function App() {
     setWeaponFeedback('');
     setForgeCraftResult('');
     setSelectedJewelryCoreId(null);
+    setJewelryCottonSelection(0);
     setJewelryResultCoreId(null);
     setJewelryRevealAnimating(false);
     setJewelryFeedback('');
@@ -1069,6 +1073,11 @@ export default function App() {
     setTailorLiningSelection(null);
     setTailorCraftBusy(tailorCraftLockRef.current);
     setTailorFeedback('');
+    setSelectedJewelryCoreId(null);
+    setJewelryCottonSelection(0);
+    setJewelryResultCoreId(null);
+    setJewelryRevealAnimating(false);
+    setJewelryFeedback('');
     navigateToLobby();
     setActiveGameRoute({ page: 'lobby' });
     setArsenalOpen(false); setFriendsOpen(false); setChestOpen(false);
@@ -1087,6 +1096,11 @@ export default function App() {
       // O botão Voltar do navegador/dispositivo sempre encerra a navegação interna
       // e retorna ao Lobby, em vez de restaurar a página anterior.
       if (route.page !== 'lobby') {
+        setSelectedJewelryCoreId(null);
+        setJewelryCottonSelection(0);
+        setJewelryResultCoreId(null);
+        setJewelryRevealAnimating(false);
+        setJewelryFeedback('');
         navigateToLobby();
         setActiveGameRoute({ page: 'lobby' });
         setArsenalOpen(false);
@@ -1117,20 +1131,31 @@ export default function App() {
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
-  const jewelryClosedCoreStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+  const jewelryChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
+    if (item.quantity <= 0) return stacks;
     const parsed = parseCoreItemId(item.itemId);
-    if (parsed?.kind !== 'closed' || item.quantity <= 0) return stacks;
-    const stackId = `jewelry-closed:${parsed.rarity}`;
+    const stackId = parsed?.kind === 'closed' ? `jewelry-closed:${parsed.rarity}` : item.itemId;
     const existing = stacks.find(stack => stack.itemId === stackId);
     if (existing) existing.quantity += item.quantity;
     else stacks.push({ itemId: stackId, quantity: item.quantity });
     return stacks;
-  }, []);
+  }, []).sort((a, b) => {
+    const rank = (itemId: string) => itemId.startsWith('jewelry-closed:')
+      ? 0
+      : parseCoreItemId(itemId)?.kind === 'revealed' ? 1 : 2;
+    return rank(a.itemId) - rank(b.itemId) || a.itemId.localeCompare(b.itemId);
+  });
+  const jewelryClosedCoreStacks = jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:'));
   const selectedJewelryCoreStack = jewelryClosedCoreStacks.find(item => item.itemId === selectedJewelryCoreId) ?? null;
-  const selectedJewelryCoreParsed = selectedJewelryCoreStack ? parseCoreItemId(`core:${selectedJewelryCoreStack.itemId.slice('jewelry-closed:'.length)}:weapon:espada`) : null;
+  const selectedJewelryCoreParsed = selectedJewelryCoreStack
+    ? parseCoreItemId(`core:${selectedJewelryCoreStack.itemId.slice('jewelry-closed:'.length)}:weapon:espada`)
+    : null;
   const selectedJewelryRarity = selectedJewelryCoreParsed?.kind === 'closed' ? selectedJewelryCoreParsed.rarity : null;
   const jewelryCottonItemId = selectedJewelryRarity ? weaponMaterialItemId('cotton', selectedJewelryRarity) : null;
-  const jewelryCottonAvailable = jewelryCottonItemId ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0) : 0;
+  const jewelryCottonAvailable = jewelryCottonItemId
+    ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0)
+    : 0;
+  const jewelryCottonSelected = Math.min(jewelryCottonSelection, JEWELRY_POLISH_COTTON_COST, jewelryCottonAvailable);
   const anvilChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     if (item.quantity <= 0) return stacks;
     const parsedCore = parseCoreItemId(item.itemId);
@@ -2895,6 +2920,14 @@ export default function App() {
 
   const revealCoreFromChest = async (itemId: string) => {
     if (jewelryRevealBusy || lobbyChestStatus !== 'ready') return;
+    if (!cookingOnline) {
+      setJewelryFeedback('Sem internet: revelar núcleos exige conexão.');
+      return;
+    }
+    if (jewelryCottonSelection < JEWELRY_POLISH_COTTON_COST) {
+      setJewelryFeedback('Selecione 5 algodões da mesma raridade para revelar.');
+      return;
+    }
     const selectedRarity = itemId.startsWith('jewelry-closed:') ? itemId.slice('jewelry-closed:'.length) : null;
     if (!selectedRarity) return;
     const source = lobbyChestItems.find(item => {
@@ -2931,6 +2964,7 @@ export default function App() {
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
       setSelectedJewelryCoreId(null);
+      setJewelryCottonSelection(0);
       setJewelryResultCoreId(revealedItemId);
       setJewelryFeedback('Núcleo revelado e salvo no Baú.');
     } catch (cause) {
@@ -3928,64 +3962,143 @@ export default function App() {
                   <JewelryScene revealAnimating={jewelryRevealAnimating} />
                   <div className="jewelry-ui-layer">
                     <div className="jewelry-scene-header"><h2>JOALHERIA</h2></div>
-                    <div className="jewelry-scene-slots">
-                      <div className="jewelry-scene-content">
-                    <button type="button" className={jewelrySlotCoreId ? 'jewelry-core-slot filled' : 'jewelry-core-slot'}
-                      onClick={() => { setSelectedJewelryCoreId(null); setJewelryResultCoreId(null); setJewelryFeedback(''); }}
-                      aria-label={selectedJewelryCoreId ? 'Devolver núcleo fechado à lista' : jewelrySlotCore?.kind === 'revealed' ? 'Devolver núcleo revelado ao Baú' : 'Slot vazio: Núcleo 0 de 1'}>
-                      {selectedJewelryCoreId ? <>
-                        <span style={itemRarityGlow(`core:${selectedJewelryCoreId.slice('jewelry-closed:'.length)}:weapon`)}>
-                          <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" draggable={false} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none" }} />
+                  </div>
+                </div>
+                <div className="forge-lower-panel jewelry-forge-lower">
+                  <section className="forge-zone forge-selection-zone jewelry-selection-zone" aria-label="Materiais selecionados">
+                    <div className="forge-panel-heading">
+                      <strong>MATERIAIS SELECIONADOS</strong>
+                      <span>Núcleo e material para revelação</span>
+                    </div>
+                    <div className="forge-recipe-slots" aria-label="Slots da Joalheria">
+                      <button type="button"
+                        className={jewelrySlotCoreId ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
+                        onClick={() => {
+                          if (jewelryRevealBusy) return;
+                          setSelectedJewelryCoreId(null);
+                          setJewelryCottonSelection(0);
+                          setJewelryResultCoreId(null);
+                          setJewelryFeedback('');
+                        }}
+                        aria-label={jewelrySlotCoreId ? 'Devolver núcleo ao Baú' : 'Slot vazio: Núcleo 0/1'}>
+                        <span style={jewelrySlotCoreId ? itemRarityGlow(jewelrySlotCoreId.startsWith('jewelry-closed:')
+                          ? `core:${jewelrySlotCoreId.slice('jewelry-closed:'.length)}:weapon:espada`
+                          : jewelrySlotCoreId) : undefined}>
+                          {jewelrySlotCoreId ? inventoryItemIcon(jewelrySlotCoreId.startsWith('jewelry-closed:')
+                            ? `core:${jewelrySlotCoreId.slice('jewelry-closed:'.length)}:weapon:espada`
+                            : jewelrySlotCoreId) : '＋'}
                         </span>
-                        <strong>Núcleo fechado</strong>
-                      </> : jewelrySlotCore?.kind === 'revealed' ? <>
-                        <span style={itemRarityGlow(jewelrySlotCoreId!)}>
-                          <img src={`/assets/cores/${CORE_SPRITE_FILES[jewelrySlotCore.core.category]}`} alt="" aria-hidden="true" draggable={false} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", imageRendering: "pixelated" }} />
-                        </span>
-                        <strong>{itemLabel(jewelrySlotCoreId!)}</strong>
-                      </> : <strong>＋ Núcleo 0/1</strong>}
-                    </button>
-                    {selectedJewelryCoreId && selectedJewelryRarity && jewelryCottonItemId && <div className="jewelry-material-slot" aria-label="Material necessário para revelar o núcleo">
-                      <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
-                      <strong>Algodão {JEWELRY_RARITY_LABELS[selectedJewelryRarity] ?? selectedJewelryRarity}</strong>
-                      <small>X{JEWELRY_POLISH_COTTON_COST}</small>
-                    </div>}
-                    {jewelrySlotCore?.kind === 'revealed' && <section className="jewelry-result-card" aria-label="Atributos do núcleo revelado">
+                        <strong>{selectedJewelryCoreId?.startsWith('jewelry-closed:') ? 'Núcleo fechado' : jewelrySlotCore?.kind === 'revealed' ? itemLabel(jewelrySlotCoreId!) : 'Núcleo'}</strong>
+                        <small>{selectedJewelryCoreId?.startsWith('jewelry-closed:') ? '1/1' : jewelrySlotCoreId ? '1/1' : '0/1'}</small>
+                      </button>
+                      {selectedJewelryCoreId?.startsWith('jewelry-closed:') && jewelryCottonItemId && <button type="button"
+                        className={jewelryCottonSelected > 0 ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+                        onClick={() => { if (!jewelryRevealBusy) { setJewelryCottonSelection(0); setJewelryFeedback(''); } }}
+                        aria-label="Devolver algodão ao Baú">
+                        <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
+                        <strong>Algodão ×{JEWELRY_POLISH_COTTON_COST}</strong>
+                        <small>{jewelryCottonSelected}/{JEWELRY_POLISH_COTTON_COST}</small>
+                      </button>}
+                    </div>
+                    {jewelrySlotCore?.kind === 'revealed' && <div className="jewelry-attributes-card" aria-label="Atributos do núcleo revelado">
+                      <strong>ATRIBUTOS DO NÚCLEO</strong>
                       <ul>{jewelrySlotCore.core.attributes.map(attribute => <li key={attribute.key}>
-                        <span>{weaponAttributeLabels[attribute.key]}</span>
+                        <span>{weaponAttributeLabels[attribute.key] ?? attribute.key}</span>
                         <b>+{(attribute.value * WEAPON_CORE_POINTS_PER_VALUE).toFixed(1).replace('.', ',')}</b>
                       </li>)}</ul>
-                    </section>}
-                  </div>
+                    </div>}
+                    {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory' && <div className="jewelry-accessory-recipe">
+                      <div className="forge-panel-heading"><strong>RECEITA DO ACESSÓRIO</strong></div>
+                      <p>Receita em definição</p>
+                      <button type="button" className="forge-craft-button" disabled>Fabricar · Em breve</button>
+                    </div>}
+                    <div className="forge-action-area forge-selection-action">
+                      <button type="button" className="forge-craft-button"
+                        disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId?.startsWith('jewelry-closed:') || !selectedJewelryCoreStack || jewelryCottonSelected < JEWELRY_POLISH_COTTON_COST || !cookingOnline}
+                        onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>
+                        {jewelryRevealBusy ? 'Salvando a revelação…' : 'Revelar'}
+                      </button>
+                      {jewelryFeedback && <p className="forge-feedback" role="status">{jewelryFeedback}</p>}
+                      {selectedJewelryCoreId?.startsWith('jewelry-closed:') && jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST && <p className="forge-feedback" role="status">
+                        Faltam {JEWELRY_POLISH_COTTON_COST - jewelryCottonAvailable} algodões {JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity}.
+                      </p>}
+                      {!cookingOnline && <small className="forge-offline">Sem internet: revelar exige conexão.</small>}
                     </div>
-                  </div>
+                  </section>
+                  <section className="forge-zone forge-chest-zone jewelry-chest-zone" aria-label="Baú da Joalheria">
+                    <div className="forge-panel-heading">
+                      <strong>BAÚ</strong>
+                      <span>Núcleos e materiais disponíveis</span>
+                    </div>
+                    <div className="forge-material-grid forge-chest-grid jewelry-chest-grid" aria-label="Itens do Baú">
+                      {jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:') || parseCoreItemId(item.itemId)?.kind === 'revealed' || getBaseItemId(item.itemId) === 'cotton').map(item => {
+                        if (item.itemId.startsWith('jewelry-closed:')) {
+                          const selected = selectedJewelryCoreId === item.itemId;
+                          const rarity = item.itemId.slice('jewelry-closed:'.length);
+                          return <button type="button" key={item.itemId}
+                            className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
+                            disabled={jewelryRevealBusy}
+                            aria-pressed={selected}
+                            onClick={() => {
+                              if (jewelryRevealBusy) return;
+                              setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
+                              setJewelryCottonSelection(0);
+                              setJewelryResultCoreId(null);
+                              setJewelryFeedback('');
+                            }}>
+                            <span style={itemRarityGlow(`core:${rarity}:weapon:espada`)}><img src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" /></span>
+                            <strong>Núcleo fechado</strong>
+                            <small>×{item.quantity} · {JEWELRY_RARITY_LABELS[rarity] ?? rarity}</small>
+                          </button>;
+                        }
+                        const parsed = parseCoreItemId(item.itemId);
+                        if (parsed?.kind === 'revealed') {
+                          const accessory = parsed.core.category === 'accessory';
+                          const selected = selectedJewelryCoreId === item.itemId;
+                          const content = <>
+                            <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                            <strong>{itemLabel(item.itemId)}</strong>
+                            <small>{accessory ? `×${item.quantity}` : parsed.core.category === 'weapon' ? 'Bigorna' : 'Alfaiataria'}</small>
+                            {!accessory && <small>×{item.quantity}</small>}
+                          </>;
+                          return accessory ? <button type="button" key={item.itemId}
+                            className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
+                            disabled={jewelryRevealBusy}
+                            aria-pressed={selected}
+                            onClick={() => {
+                              if (jewelryRevealBusy) return;
+                              setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
+                              setJewelryCottonSelection(0);
+                              setJewelryResultCoreId(null);
+                              setJewelryFeedback('');
+                            }}>{content}</button>
+                            : <div className="forge-material-item forge-chest-item forge-core-item is-inert" key={item.itemId}>{content}</div>;
+                        }
+                        const isCotton = getBaseItemId(item.itemId) === 'cotton';
+                        const compatibleCotton = isCotton && !!selectedJewelryCoreId?.startsWith('jewelry-closed:') && item.itemId === jewelryCottonItemId;
+                        const selectedCotton = compatibleCotton && jewelryCottonSelected > 0;
+                        const content = <>
+                          <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                          <strong>{itemLabel(item.itemId)}</strong>
+                          <small>×{item.quantity}{selectedCotton ? ` · ${jewelryCottonSelected}/${JEWELRY_POLISH_COTTON_COST}` : ''}</small>
+                        </>;
+                        return compatibleCotton ? <button type="button" key={item.itemId}
+                          className={'forge-material-item forge-chest-item' + (selectedCotton ? ' selected' : '')}
+                          disabled={jewelryRevealBusy}
+                          onClick={() => {
+                            if (jewelryRevealBusy) return;
+                            const quantity = Math.min(JEWELRY_POLISH_COTTON_COST, item.quantity);
+                            setJewelryCottonSelection(quantity);
+                            const missing = JEWELRY_POLISH_COTTON_COST - quantity;
+                            setJewelryFeedback(missing > 0 ? `Faltam ${missing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para polir.` : '');
+                          }}>{content}</button>
+                          : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>{content}</div>;
+                      })}
+                      {jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:') || parseCoreItemId(item.itemId)?.kind === 'revealed' || getBaseItemId(item.itemId) === 'cotton').length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
+                    </div>
+                  </section>
                 </div>
-                <section className="forge-zone forge-nuclei-zone jewelry-nuclei-zone" aria-label="Núcleos fechados">
-                  <div className="forge-panel-heading">
-                    <strong>NÚCLEOS FECHADOS</strong>
-                    <span>Selecione 1 núcleo para revelar</span>
-                  </div>
-                  <div className="forge-core-strip">
-                    {jewelryClosedCoreStacks.map(item => <button type="button" key={item.itemId}
-                      className={selectedJewelryCoreId === item.itemId ? 'forge-core-item selected' : 'forge-core-item'}
-                      aria-pressed={selectedJewelryCoreId === item.itemId}
-                      onClick={() => { setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId); setJewelryResultCoreId(null); setJewelryFeedback(''); }}>
-                      <span style={itemRarityGlow(`core:${item.itemId.slice('jewelry-closed:'.length)}:weapon`)}>
-                        <img className="jewelry-closed-core-image" src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "none", clipPath: "none", filter: "none" }} />
-                      </span>
-                      <strong>Núcleo fechado</strong>
-                      <small>×{item.quantity}</small>
-                    </button>)}
-                    {jewelryClosedCoreStacks.length === 0 && <p className="forge-empty">Você não tem núcleos para revelar.</p>}
-                  </div>
-                </section>
-                <div className="jewelry-action-area">
-                  <button type="button" className="jewelry-reveal-button"
-                    disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId || !selectedJewelryCoreStack || jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST}
-                    onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>{jewelryRevealBusy ? 'Salvando…' : 'Revelar'}</button>
-                  {jewelryFeedback && <p className="jewelry-feedback" role="status">{jewelryFeedback}</p>}
-                </div>
-              </div> : activeCraftingStation.id === 'bigorna' ? <>
+              </div>: activeCraftingStation.id === 'bigorna' ? <>
                 <div className="forge-workspace">
                   <ForgeScene intensity={forgeIntensity} hammering={forgeHammering}>
                     {forgeProductionPreview && <ForgeProductionPreview {...forgeProductionPreview} />}
