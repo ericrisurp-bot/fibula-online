@@ -12788,9 +12788,12 @@ sem backdrop ou caixa de modal. */
   pointer-events:none;
 }
 .jewelry-page .jewelry-ui-layer .forge-production-result{
-  top:64%;
+  position:absolute;
+  left:50%;
+  top:58%;
+  transform:translateX(-50%);
   width:min(76%,340px);
-  max-height:44%;
+  max-height:40%;
   overflow:auto;
   pointer-events:auto;
 }
@@ -12817,7 +12820,14 @@ sem backdrop ou caixa de modal. */
   font-size:44px;
   line-height:1;
 }
-.side-page.arsenal-side .arsenal-accessory-details .arsenal-item-info-details{
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-accessory-details-art{
+  display:grid;
+  min-height:54px;
+  place-items:center;
+  font-size:44px;
+  line-height:1;
+}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-accessory-details .arsenal-item-info-details{
   margin-top:8px;
 }
 .jewelry-page .jewelry-forge-lower{
