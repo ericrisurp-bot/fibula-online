@@ -212,7 +212,7 @@ export default function ArmorCraftPanel({
             <strong>{PIECE_LABELS[selectedPiece]}</strong>
             <small>{RARITY_LABELS[selectedCore.core.rarity]}{selectedCore.core.surp ? ' · SURP' : ''}</small>
             <button type="button" disabled={busy} onClick={() => { onClearCore?.(); setFeedback(''); setSelectedLining(null); }}>Trocar núcleo</button>
-          </> : <p className="armor-craft-empty">Selecione um núcleo de armadura no Baú da Bigorna.</p>}
+          </> : <p className="armor-craft-empty">Selecione um núcleo de armadura no Baú da estação.</p>}
         </div>
       </section> : <section className="armor-craft-section" aria-label="Núcleos revelados">
         <header className="armor-craft-heading"><strong>NÚCLEO</strong><span>Escolha uma peça revelada no Baú</span></header>
