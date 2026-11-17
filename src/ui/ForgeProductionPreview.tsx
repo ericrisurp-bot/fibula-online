@@ -45,7 +45,7 @@ export default function ForgeProductionPreview(props: ForgeProductionPreviewProp
       </div>
       <div className="forge-production-result-copy">
         <strong>{name}</strong>
-        <span>{isWeapon ? `Nível ${props.weapon.tier}` : props.armor.type === 'bronze' ? 'Bronze' : 'Couro'} · {rarityLabels[rarity]}</span>
+        <span>{isWeapon ? (props.materials.length ? props.materials.join(' · ') : `Nível ${props.weapon.tier}`) : props.armor.type === 'bronze' ? 'Bronze' : 'Couro'} · {rarityLabels[rarity]}</span>
         <small>{stars !== null ? `${'★'.repeat(stars)}` : surp ? 'SURP' : 'Sem SURP'}{surp && stars !== null ? ' · SURP' : ''}</small>
       </div>
     </div>
