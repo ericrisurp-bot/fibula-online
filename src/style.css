@@ -12195,16 +12195,6 @@ sem backdrop ou caixa de modal. */
 
 
 /* A4.3b — abas da Bigorna para armas e armaduras de bronze. */
-.forge-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%;min-width:0;margin:0 0 9px}
-.forge-tabs-button{display:flex;min-width:0;min-height:46px;align-items:center;justify-content:center;padding:9px 12px;border:1px solid #756047;border-radius:9px;background:linear-gradient(180deg,#35322c,#242522);color:#e8dcc8;font:inherit;font-size:13px;font-weight:850;letter-spacing:.04em;cursor:pointer;touch-action:manipulation}
-.forge-tabs-button.is-active{border-color:#c28b4c;background:linear-gradient(180deg,#76512f,#4b3525);color:#fff1d8;box-shadow:inset 0 1px 0 #fff3,0 2px 0 #211b15}
-.forge-tabs-button:focus-visible{outline:2px solid #e4bd7b;outline-offset:2px}
-.forge-tabs-armor-workspace{display:flex;width:100%;min-width:0;min-height:0;max-height:100%;flex:1 1 auto;overflow:hidden}
-.forge-tabs-armor-workspace .armor-craft-panel{width:100%;min-width:0;min-height:0;max-height:100%}
-@media(max-width:430px){.forge-tabs{gap:5px;margin-bottom:6px}.forge-tabs-button{min-height:44px;padding:8px 5px;font-size:12px}.forge-tabs-armor-workspace{min-height:0}}
-@media(orientation:landscape) and (max-height:520px){.forge-tabs{gap:4px;margin-bottom:4px}.forge-tabs-button{min-height:38px;padding:5px 8px;font-size:11px}}
-
-
 /* A5.2 — apresentação das armaduras fabricadas no Arsenal. */
 .arsenal-armor-art{display:flex;min-width:0;min-height:0;align-items:center;justify-content:center;width:100%;height:100%;pointer-events:none}
 .arsenal-armor-art img{display:block;width:100%;height:100%;max-width:38px;max-height:38px;object-fit:contain;image-rendering:pixelated}
@@ -12518,3 +12508,12 @@ sem backdrop ou caixa de modal. */
     line-height: 1.1;
   }
 }
+
+/* Bigorna unificada: o núcleo selecionado define a receita sem abas de categoria. */
+.forge-lower-panel>.armor-craft-panel{grid-row:auto;flex:0 0 54%;width:100%;min-width:0;min-height:0;max-height:54%}
+.forge-lower-panel>.armor-craft-panel .armor-craft-scroll{min-height:0}
+.armor-craft-selected-core{display:flex;min-width:0;align-items:center;gap:7px;padding:4px 6px;border:1px solid #b6a989;border-radius:6px;background:#e8ddc7}
+.armor-craft-selected-core .armor-craft-piece-image{width:32px;height:32px;flex:0 0 32px}
+.armor-craft-selected-core strong{min-width:0;color:#373a2b;font-size:9px}
+.armor-craft-selected-core small{color:#68583f;font-size:8px}
+.armor-craft-selected-core button{margin-left:auto;min-height:28px;padding:4px 8px;border:1px solid #a99b7b;border-radius:6px;background:#d8ccb1;color:#39392e;font:inherit;font-size:8px;font-weight:800}
