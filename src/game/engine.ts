@@ -14,6 +14,8 @@ import type { MatchClassUsage } from './classUsage';
 import type { ArmorPiece } from './armor';
 import type { CraftedArmor } from './armorCrafting';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, type ArmorBonuses } from './armorEquipment';
+import { accessoryEffectiveValue, type AccessoryType, type CraftedAccessory } from './accessoryCrafting';
+import { ACCESSORY_SLOT_ORDER } from './accessoryEquipment';
 
 type Vec = { x: number; y: number };
 const XP_ATTRACTION_RADIUS = 250;
@@ -160,8 +162,8 @@ class PrimaryPlayerView implements PlayerEntity {
     readonly runtime: PlayerRuntime,
     private readonly onChange: () => void,
     private readonly getPointsPerLevel: () => number,
-    private readonly getArmorHealthBonus: (classId: ClassId) => number,
-    private readonly setAppliedArmorHealth: (value: number) => void,
+    private readonly getEquipmentHealthBonus: (classId: ClassId) => number,
+    private readonly setAppliedEquipmentHealth: (value: number) => void,
   ) {}
 
   get classId(): ClassId { return this.getState().classId; }
@@ -194,9 +196,9 @@ class PrimaryPlayerView implements PlayerEntity {
       for (let level = 1; level <= player.level; level++) {
         classMaxHp += getAttributeEffectPerLevel(classId, level, 'vida', this.getPointsPerLevel());
       }
-      const armorHealth = CONFIG.rulesV2.enabled ? this.getArmorHealthBonus(classId) : 0;
-      classMaxHp += armorHealth;
-      this.setAppliedArmorHealth(armorHealth);
+      const equipmentHealth = this.getEquipmentHealthBonus(classId);
+      classMaxHp += equipmentHealth;
+      this.setAppliedEquipmentHealth(equipmentHealth);
       const previousMaxHp = player.maxHp;
       const pendingHealth = this.runtime.healthTransitionRemaining;
       this.runtime.healthTransitionRemaining = 0;
@@ -316,8 +318,9 @@ export class GameEngine {
   private cooperativeOptions: GameEngineOptions['cooperative'];
   private equippedWeapon: EquippedWeapon | null = null;
   private equippedArmors: Partial<Record<ArmorPiece, CraftedArmor>> = {};
+  private equippedAccessories: Partial<Record<AccessoryType, CraftedAccessory>> = {};
   private armorBonusCache: { classId: ClassId; bonuses: ArmorBonuses } | null = null;
-  private appliedArmorHealth = 0;
+  private appliedEquipmentHealth = 0;
   private waitingForCooperativeNightRelease = false;
   private lakeCollisionCircles: LakeCircle[] = [];
   private lakeAvoidanceCircles: LakeCircle[] = [];
@@ -343,8 +346,8 @@ export class GameEngine {
       this.local,
       () => this.emit(),
       () => this.pointsPerLevel(),
-      classId => this.getArmorBonuses(classId)?.vida ?? 0,
-      value => { this.appliedArmorHealth = value; },
+      classId => this.getEquipmentHealthBonus(classId),
+      value => { this.appliedEquipmentHealth = value; },
     )];
     this.state.house.inventory = options.houseInventory?.map(item => ({ ...item })) ?? readHouseStorage();
     this.initializeDayNight();
@@ -395,7 +398,7 @@ export class GameEngine {
   configureSoloMatch(): void {
     this.cooperativeOptions = undefined;
     this.waitingForCooperativeNightRelease = false;
-    this.appliedArmorHealth = this.getArmorBonuses()?.vida ?? 0;
+    this.appliedEquipmentHealth = this.getEquipmentHealthBonus();
   }
 
   /** Indica que a horda local terminou e o avanço aguarda a coordenação Duo. */
@@ -461,11 +464,29 @@ export class GameEngine {
     return CONFIG.weapons[this.state.weapon].damage + (this.getActiveEquippedWeapon()?.damage ?? 0);
   }
 
+  private getAccessoryAttributeBonuses(classId: ClassId = this.state.classId): AttributeBaseBonuses {
+    const bonuses: AttributeBaseBonuses = {};
+    for (const type of ACCESSORY_SLOT_ORDER) {
+      const accessory = this.equippedAccessories[type];
+      if (!accessory) continue;
+      for (const attribute of accessory.attributes) {
+        const key = attribute.key === 'mobilidade' ? 'velocidadeMovimento' : attribute.key;
+        if (ATTRIBUTE_USAGE[classId][key] <= 0) continue;
+        bonuses[key] = (bonuses[key] ?? 0) + accessoryEffectiveValue(accessory, attribute.value);
+      }
+    }
+    return bonuses;
+  }
+
+  private getEquipmentHealthBonus(classId: ClassId = this.state.classId): number {
+    return (this.getArmorBonuses(classId)?.vida ?? 0) + (this.getAccessoryAttributeBonuses(classId).vida ?? 0);
+  }
+
   private getWeaponAttributeBonuses(): AttributeBaseBonuses {
     const weapon = this.getActiveEquippedWeapon();
-    if (!weapon) return {};
+    const bonuses: AttributeBaseBonuses = this.getAccessoryAttributeBonuses();
+    if (!weapon) return bonuses;
     const activeAttributes = WEAPON_ACTIVE_ATTRIBUTES[weapon.model];
-    const bonuses: AttributeBaseBonuses = {};
     for (const attribute of weapon.attributes) {
       if (!activeAttributes.includes(attribute.key) || ATTRIBUTE_USAGE[this.state.classId][attribute.key] <= 0) continue;
       bonuses[attribute.key] = (bonuses[attribute.key] ?? 0) + attribute.value * WEAPON_CORE_POINTS_PER_VALUE;
@@ -523,15 +544,38 @@ export class GameEngine {
     }
     this.equippedArmors = valid;
     this.armorBonusCache = null;
-    const nextArmorHealth = this.getArmorBonuses()?.vida ?? 0;
-    const healthIncrease = nextArmorHealth - this.appliedArmorHealth;
+    const nextEquipmentHealth = this.getEquipmentHealthBonus();
+    const healthIncrease = nextEquipmentHealth - this.appliedEquipmentHealth;
     if (healthIncrease !== 0) {
       const player = this.state.player;
       player.maxHp = Math.max(1, player.maxHp + healthIncrease);
       if (healthIncrease > 0) player.hp = Math.min(player.maxHp, player.hp + healthIncrease);
       else player.hp = Math.min(player.hp, player.maxHp);
     }
-    this.appliedArmorHealth = nextArmorHealth;
+    this.appliedEquipmentHealth = nextEquipmentHealth;
+  }
+
+  setEquippedAccessories(accessories: Partial<Record<AccessoryType, CraftedAccessory>>): void {
+    const valid: Partial<Record<AccessoryType, CraftedAccessory>> = {};
+    const allowedKeys = ['forca', 'inteligencia', 'destreza', 'vida', 'armadura', 'mobilidade', 'esquiva'] as const;
+    for (const type of ACCESSORY_SLOT_ORDER) {
+      const accessory = accessories?.[type];
+      if (!accessory || typeof accessory.id !== 'string' || !accessory.id.trim() || accessory.type !== type
+        || !Array.isArray(accessory.attributes)
+        || !accessory.attributes.every(attribute => !!attribute && allowedKeys.includes(attribute.key as typeof allowedKeys[number])
+          && Number.isFinite(attribute.value) && attribute.value > 0)) continue;
+      valid[type] = { ...accessory, attributes: accessory.attributes.map(attribute => ({ ...attribute })) };
+    }
+    this.equippedAccessories = valid;
+    const nextEquipmentHealth = this.getEquipmentHealthBonus();
+    const healthIncrease = nextEquipmentHealth - this.appliedEquipmentHealth;
+    if (healthIncrease !== 0) {
+      const player = this.state.player;
+      player.maxHp = Math.max(1, player.maxHp + healthIncrease);
+      if (healthIncrease > 0) player.hp = Math.min(player.maxHp, player.hp + healthIncrease);
+      else player.hp = Math.min(player.hp, player.maxHp);
+    }
+    this.appliedEquipmentHealth = nextEquipmentHealth;
   }
 
   setHouseInventory(inventory: InventoryStack[]) {
@@ -547,9 +591,9 @@ export class GameEngine {
       arqueiro: 'arco',
       druida: 'bastao',
     };
-    const armorHealth = CONFIG.rulesV2.enabled ? this.getArmorBonuses(classId)?.vida ?? 0 : 0;
-    const startingHealth = CONFIG.attributes.classStartHealth[classId] + armorHealth;
-    this.appliedArmorHealth = armorHealth;
+    const equipmentHealth = this.getEquipmentHealthBonus(classId);
+    const startingHealth = CONFIG.attributes.classStartHealth[classId] + equipmentHealth;
+    this.appliedEquipmentHealth = equipmentHealth;
     return {
       activeMeals: [],
       player: { x: this.world / 2, y: this.world / 2, hp: startingHealth, maxHp: startingHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
@@ -2743,6 +2787,7 @@ export class GameEngine {
   private getLevelStats() {
     const { classId, player } = this.state;
     const weaponBonuses = this.getWeaponAttributeBonuses();
+    const accessoryBonuses = this.getAccessoryAttributeBonuses();
     const armorBonuses = CONFIG.rulesV2.enabled ? this.getArmorBonuses() : null;
     return {
       speed: CONFIG.rulesV2.enabled
@@ -2750,10 +2795,12 @@ export class GameEngine {
         : getAttributeBaseValueEffect('velocidadeMovimento', this.cookingBaseBonuses().velocidadeMovimento + (weaponBonuses.velocidadeMovimento ?? 0)),
       armor: CONFIG.rulesV2.enabled
         ? getAttributeBaseValueEffect('armadura', weaponBonuses.armadura ?? 0) + (armorBonuses?.armadura ?? 0)
-        : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel()),
+        : getAttributeBonus(classId, player.level, 'armadura', this.pointsPerLevel())
+          + getAttributeBaseValueEffect('armadura', accessoryBonuses.armadura ?? 0),
       dodge: CONFIG.rulesV2.enabled
         ? getAttributeBaseValueEffect('esquiva', weaponBonuses.esquiva ?? 0) + (armorBonuses?.esquiva ?? 0)
-        : getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel()),
+        : getAttributeBonus(classId, player.level, 'esquiva', this.pointsPerLevel())
+          + getAttributeBaseValueEffect('esquiva', accessoryBonuses.esquiva ?? 0),
     };
   }
 

@@ -19,6 +19,8 @@ import { drawLadino, ladinoFeetY } from './game/ladino';
 import { craftWeapon, deleteWeapon, drawArrowShot, drawFloatingWeapon, isFloatingWeaponVisible, listMyWeapons, WEAPON_CLASS_BY_MODEL, WEAPON_RECIPES, WEAPON_CORE_POINTS_PER_VALUE, weaponCoreCompatibility, weaponMaterialItemId, type CraftedWeapon, type WeaponModel } from './game/weapons';
 import { armorMaterialItemIds, craftArmor, deleteArmor, listMyArmors, type CraftedArmor } from './game/armorCrafting';
 import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
+import { craftAccessory, deleteAccessory, listMyAccessories, type AccessoryType, type CraftedAccessory } from './game/accessoryCrafting';
+import { computeAccessoryAttributeBonuses, equipAccessoryForClass, readEquippedAccessorySelections, removeAccessoryFromSelections, resolveEquippedAccessories, sanitizeEquippedAccessorySelections, unequipAccessoryForClass, writeEquippedAccessorySelections, type EquippedAccessorySelections } from './game/accessoryEquipment';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
@@ -45,6 +47,7 @@ import TailorScene from './ui/TailorScene';
 import TailorCraftSlots from './ui/TailorCraftSlots';
 import CoreDetail from './ui/CoreDetail';
 import { ArmorActionDialogs, ArmorBonusSummary, ArmorInventoryCard, ArmorPieceIcon } from './ui/ArmorArsenal';
+import { AccessoryDetailsDialog, AccessoryInventoryCard } from './ui/AccessoryArsenal';
 import StationNav from './ui/StationNav';
 import ClassStatBars, { ClassFace } from './ui/ClassStatBars';
 import StatusDuo from './ui/StatusDuo';
@@ -66,7 +69,8 @@ let floatingWeaponSide: 1 | -1 = 1;
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
   | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[] }
-  | { kind: 'armor'; armor: CraftedArmor };
+  | { kind: 'armor'; armor: CraftedArmor }
+  | { kind: 'accessory'; accessory: CraftedAccessory };
 
 registerCombatSounds();
 registerGatherSounds();
@@ -86,6 +90,9 @@ const initial: GameSnapshot = {
 };
 const JEWELRY_POLISH_COTTON_COST = 5;
 const JEWELRY_RARITY_LABELS: Record<string, string> = { normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' };
+const JEWELRY_ACCESSORY_TYPE_LABELS: Record<string, string> = { colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' };
+const JEWELRY_ACCESSORY_TYPE_ICONS: Record<AccessoryType, string> = { colar: '📿', pulseira: '💠', cinto: '🪢' };
+const JEWELRY_ACCESSORY_RARITY_STEPS: Record<string, number> = { normal: 0, common: 1, uncommon: 2, rare: 3, legendary: 4 };
 const PROFILE_CLASS_IDS: ClassId[] = ['guerreiro', 'mago', 'arqueiro', 'druida'];
 const PROFILE_CLASS_WEAPONS: Record<ClassId, WeaponId> = {
   guerreiro: 'espada',
@@ -506,6 +513,7 @@ export default function App() {
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const equippedArmorsRef = useRef<Partial<Record<ClassId, Partial<Record<ArmorPiece, CraftedArmor>>>>>({});
+  const equippedAccessoriesRef = useRef<Partial<Record<ClassId, Partial<Record<AccessoryType, CraftedAccessory>>>>>({});
   const applyClassAndEquippedWeaponRef = useRef<(id: ClassId) => void>(() => {});
   const houseLoadReadyRef = useRef(false);
   const houseChangedDuringLoadRef = useRef(false);
@@ -772,16 +780,19 @@ export default function App() {
   const [bauDeleteBusy,setBauDeleteBusy] = useState(false);
   const [selectedJewelryCoreId, setSelectedJewelryCoreId] = useState<string | null>(null);
   const [jewelryCottonSelection, setJewelryCottonSelection] = useState(0);
+  const [jewelryAccessoryLining, setJewelryAccessoryLining] = useState<'linho' | 'couro_refinado'>('linho');
+  const [jewelryAccessoryBronzeSelection, setJewelryAccessoryBronzeSelection] = useState(0);
+  const [jewelryAccessoryLiningSelection, setJewelryAccessoryLiningSelection] = useState(0);
   const [jewelryResultCoreId, setJewelryResultCoreId] = useState<string | null>(null);
   const [jewelryRevealAnimating, setJewelryRevealAnimating] = useState(false);
-  const [jewelryRevealBusy, setJewelryRevealBusy] = useState(false);
+  const [jewelryActionBusy, setJewelryActionBusy] = useState(false);
   const [jewelryFeedback, setJewelryFeedback] = useState('');
+  const [jewelryProductionPreview, setJewelryProductionPreview] = useState<ForgeProductionPreviewState | null>(null);
+  const jewelryPreviewSessionRef = useRef(0);
   const jewelrySlotCoreId = selectedJewelryCoreId ?? jewelryResultCoreId;
-  const jewelrySlotCore = jewelrySlotCoreId
-    ? parseCoreItemId(jewelrySlotCoreId.startsWith('jewelry-closed:')
-      ? `core:${jewelrySlotCoreId.slice('jewelry-closed:'.length)}:weapon:espada`
-      : jewelrySlotCoreId)
-    : null;
+  const jewelrySlotCore = jewelrySlotCoreId ? parseCoreItemId(jewelrySlotCoreId) : null;
+  const jewelryAccessoryCore = jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory'
+    ? jewelrySlotCore.core : null;
   useEffect(() => {
     if (!jewelryResultCoreId) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -799,11 +810,13 @@ export default function App() {
   const [arsenalActionItem, setArsenalActionItem] = useState<
     | { kind: 'weapon'; weapon: CraftedWeapon; equipped: boolean }
     | { kind: 'equipment'; item: ArsenalEquipment; equipped: boolean }
+    | { kind: 'accessory'; accessory: CraftedAccessory; equipped: boolean }
     | null
   >(null);
   const [arsenalDeleteConfirmation, setArsenalDeleteConfirmation] = useState<
     | { kind: 'weapon'; weapon: CraftedWeapon }
     | { kind: 'equipment'; item: ArsenalEquipment }
+    | { kind: 'accessory'; accessory: CraftedAccessory }
     | null
   >(null);
   const [arsenalDeleteBusy, setArsenalDeleteBusy] = useState(false);
@@ -898,6 +911,12 @@ export default function App() {
   }, [rankingOpen, rankingMode, rankingCategory, session.user.sub]);
 
   const [activeGameRoute, setActiveGameRoute] = useState<GameRoute>(() => readGameRoute() ?? { page: 'lobby' });
+  useEffect(() => {
+    if (activeGameRoute.page !== 'joalheria') {
+      jewelryPreviewSessionRef.current += 1;
+      setJewelryProductionPreview(null);
+    }
+  }, [activeGameRoute.page]);
   const [preparedCookingMeals, setPreparedCookingMeals] = useState<CookingMeal[]>([]);
   const [readyCookingMeals, setReadyCookingMeals] = useState<CookingMeal[]>([]);
   const [pendingCookingMeals, setPendingCookingMeals] = useState<CookingMeal[]>([]);
@@ -952,6 +971,14 @@ export default function App() {
   const [armorActionArmor, setArmorActionArmor] = useState<CraftedArmor | null>(null);
   const [armorDeleteConfirmation, setArmorDeleteConfirmation] = useState(false);
   const [armorDeleteBusy, setArmorDeleteBusy] = useState(false);
+  const [craftedAccessories, setCraftedAccessories] = useState<CraftedAccessory[]>([]);
+  const [accessoriesLoaded, setAccessoriesLoaded] = useState(false);
+  const [accessoriesLoadedForUserId, setAccessoriesLoadedForUserId] = useState<string | null>(null);
+  const [accessoryDetails, setAccessoryDetails] = useState<CraftedAccessory | null>(null);
+  const [equippedAccessoryIds, setEquippedAccessoryIds] = useState<EquippedAccessorySelections>(() => readEquippedAccessorySelections(session.user.sub));
+  useEffect(() => {
+    setEquippedAccessoryIds(readEquippedAccessorySelections(session.user.sub));
+  }, [session.user.sub]);
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
     setEquippedArmorIds(readEquippedArmorSelections(session.user.sub, characterPreferences[0] ?? 'guerreiro'));
@@ -976,6 +1003,36 @@ export default function App() {
   }, [session.user.sub, cookingOnline]);
   const armorListReady = armorsLoaded && armorsLoadedForUserId === session.user.sub;
   useEffect(() => {
+    setAccessoryDetails(null);
+    setSelectedArsenalItemId(null);
+    if (!fibulaSupabase || !session.user.sub || !cookingOnline) {
+      setCraftedAccessories([]); setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null); return;
+    }
+    let active = true;
+    setCraftedAccessories([]); setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null);
+    void listMyAccessories(fibulaSupabase).then(items => {
+      if (active) { setCraftedAccessories(items); setAccessoriesLoaded(true); setAccessoriesLoadedForUserId(session.user.sub); }
+    }).catch(() => { if (active) { setAccessoriesLoaded(false); setAccessoriesLoadedForUserId(null); } });
+    return () => { active = false; };
+  }, [session.user.sub, cookingOnline]);
+  const accessoryListReady = accessoriesLoaded && accessoriesLoadedForUserId === session.user.sub;
+  useEffect(() => {
+    if (!accessoryListReady) return;
+    const validSelections = sanitizeEquippedAccessorySelections(craftedAccessories, equippedAccessoryIds);
+    writeEquippedAccessorySelections(session.user.sub, validSelections);
+    if (JSON.stringify(validSelections) !== JSON.stringify(equippedAccessoryIds)) setEquippedAccessoryIds(validSelections);
+  }, [accessoryListReady, craftedAccessories, equippedAccessoryIds, session.user.sub]);
+  const effectiveEquippedAccessoryIds = accessoryListReady
+    ? sanitizeEquippedAccessorySelections(craftedAccessories, equippedAccessoryIds)
+    : equippedAccessoryIds;
+  const equippedAccessorySets: Partial<Record<ClassId, Partial<Record<AccessoryType, CraftedAccessory>>>> = {};
+  if (accessoryListReady) {
+    for (const classId of PROFILE_CLASS_IDS) equippedAccessorySets[classId] = resolveEquippedAccessories(craftedAccessories, effectiveEquippedAccessoryIds, classId);
+  }
+  const equippedAccessories: Partial<Record<AccessoryType, CraftedAccessory>> = activeArsenalClassId ? equippedAccessorySets[activeArsenalClassId] ?? {} : {};
+  equippedAccessoriesRef.current = equippedAccessorySets;
+  const accessoryAttributeBonuses = computeAccessoryAttributeBonuses(equippedAccessories);
+  useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled || !armorListReady) return;
     const validSelections = sanitizeEquippedArmorSelections(craftedArmors, equippedArmorIds);
     writeEquippedArmorSelections(session.user.sub, validSelections);
@@ -995,7 +1052,7 @@ export default function App() {
     : {};
   equippedArmorsRef.current = equippedArmorSets;
   const equippedArsenalWeapon = activeArsenalClassId ? selectedWeaponForClass(craftedWeapons, equippedWeaponIds, activeArsenalClassId) : null;
-  const arsenalArmedPower = activeArsenalClassId && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
+  const arsenalArmedPower = activeArsenalClassId && accessoryListReady && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled)
     ? getArmedClassPower(activeArsenalClassId, 0, getAccountPointsPerLevel(accountLevel), {
       weapon: equippedArsenalWeapon ? {
         model: equippedArsenalWeapon.model,
@@ -1003,10 +1060,11 @@ export default function App() {
         attributes: equippedArsenalWeapon.attributes,
       } : null,
       ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmors, activeArsenalClassId) } : {}),
+       accessoryBonuses: accessoryAttributeBonuses,
     })
     : null;
   const arsenalPowerValue = arsenalArmedPower ? Math.round(arsenalArmedPower.total) : null;
-  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled);
+  const statusPowerReady = weaponsLoaded && !weaponsLoading && (!CONFIG.rulesV2.armorCraftingEnabled || armorsSettled) && accessoryListReady;
   const statusPowers: Partial<Record<ClassId, number>> = {};
   if (statusPowerReady) {
     for (const classId of characterPreferences) {
@@ -1015,6 +1073,7 @@ export default function App() {
       statusPowers[classId] = Math.round(getArmedClassPower(classId, 0, getAccountPointsPerLevel(accountLevel), {
         weapon: weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null,
         ...(CONFIG.rulesV2.armorCraftingEnabled ? { armorBonuses: computeArmorBonuses(equippedArmorSets[classId] ?? {}, classId) } : {}),
+         accessoryBonuses: computeAccessoryAttributeBonuses(equippedAccessorySets[classId] ?? {}),
       }).total);
     }
   }
@@ -1067,10 +1126,12 @@ export default function App() {
     | { kind: 'equipment'; item: ArsenalEquipment }
     | { kind: 'weapon'; weapon: CraftedWeapon }
     | { kind: 'armor'; armor: CraftedArmor }
+    | { kind: 'accessory'; accessory: CraftedAccessory }
   > = [
     ...arsenalItems.map(item => ({ kind: 'equipment' as const, item })),
     ...craftedWeapons.filter(weapon => equippedWeaponIds[WEAPON_CLASS_BY_MODEL[weapon.model]] !== weapon.id).map(weapon => ({ kind: 'weapon' as const, weapon })),
     ...(CONFIG.rulesV2.armorCraftingEnabled && armorListReady ? craftedArmors.filter(armor => !Object.values(equippedArmorIds).some(classSelections => Object.values(classSelections ?? {}).includes(armor.id))).map(armor => ({ kind: 'armor' as const, armor })) : []),
+    ...(accessoryListReady ? craftedAccessories.filter(accessory => !Object.values(effectiveEquippedAccessoryIds).some(slots => Object.values(slots ?? {}).includes(accessory.id))).map(accessory => ({ kind: 'accessory' as const, accessory })) : []),
   ];
   const arsenalInventoryCapacity = Math.max(ARSENAL_CAPACITY, arsenalInventoryEntries.length);
   const activeCraftingStation = LOBBY_CRAFTING_STATIONS.find(station => station.id === activeGameRoute.page) ?? null;
@@ -1084,12 +1145,16 @@ export default function App() {
       tailorPreviewSessionRef.current += 1;
       setTailorProductionPreview(null);
     }
+    if (activeGameRoute.page === 'joalheria' && id !== 'joalheria') {
+      jewelryPreviewSessionRef.current += 1; setJewelryProductionPreview(null);
+    }
     if (id === 'fogao' || id === 'bigorna' || id === 'joalheria' || id === 'costura') {
       void refreshLobbyChestFromCloud();
     }
     navigateToStation(id);
     setActiveGameRoute({ page: id });
     if (id === 'costura') tailorPreviewSessionRef.current += 1;
+    if (id === 'joalheria') jewelryPreviewSessionRef.current += 1;
     setSelectedWeaponCoreId(null);
     setSelectedTailorCoreId(null);
     setTailorHideSelection(null);
@@ -1177,22 +1242,20 @@ export default function App() {
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   const jewelryChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     if (item.quantity <= 0) return stacks;
-    const parsed = parseCoreItemId(item.itemId);
-    const stackId = parsed?.kind === 'closed' ? `jewelry-closed:${parsed.rarity}` : item.itemId;
-    const existing = stacks.find(stack => stack.itemId === stackId);
+    const existing = stacks.find(stack => stack.itemId === item.itemId);
     if (existing) existing.quantity += item.quantity;
-    else stacks.push({ itemId: stackId, quantity: item.quantity });
+    else stacks.push({ itemId: item.itemId, quantity: item.quantity });
     return stacks;
   }, []).sort((a, b) => {
-    const rank = (itemId: string) => itemId.startsWith('jewelry-closed:')
-      ? 0
-      : parseCoreItemId(itemId)?.kind === 'revealed' ? 1 : 2;
+    const rank = (itemId: string) => {
+      const kind = parseCoreItemId(itemId)?.kind;
+      return kind === 'closed' ? 0 : kind === 'revealed' ? 1 : 2;
+    };
     return rank(a.itemId) - rank(b.itemId) || a.itemId.localeCompare(b.itemId);
   });
-  const jewelryClosedCoreStacks = jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:'));
-  const selectedJewelryCoreStack = jewelryClosedCoreStacks.find(item => item.itemId === selectedJewelryCoreId) ?? null;
-  const selectedJewelryCoreParsed = selectedJewelryCoreStack
-    ? parseCoreItemId(`core:${selectedJewelryCoreStack.itemId.slice('jewelry-closed:'.length)}:weapon:espada`)
+  const selectedJewelryCoreParsed = selectedJewelryCoreId ? parseCoreItemId(selectedJewelryCoreId) : null;
+  const selectedJewelryCoreStack = selectedJewelryCoreParsed?.kind === 'closed'
+    ? lobbyChestItems.find(item => item.itemId === selectedJewelryCoreId) ?? null
     : null;
   const selectedJewelryRarity = selectedJewelryCoreParsed?.kind === 'closed' ? selectedJewelryCoreParsed.rarity : null;
   const jewelryCottonItemId = selectedJewelryRarity ? weaponMaterialItemId('cotton', selectedJewelryRarity) : null;
@@ -1200,6 +1263,38 @@ export default function App() {
     ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryCottonItemId ? total + item.quantity : total, 0)
     : 0;
   const jewelryCottonSelected = Math.min(jewelryCottonSelection, JEWELRY_POLISH_COTTON_COST, jewelryCottonAvailable);
+  const jewelryAccessoryStep = jewelryAccessoryCore ? JEWELRY_ACCESSORY_RARITY_STEPS[jewelryAccessoryCore.rarity] : null;
+  const jewelryAccessoryBronzeRequired = jewelryAccessoryStep === null ? 0 : 3 + jewelryAccessoryStep;
+  const jewelryAccessoryLiningRequired = jewelryAccessoryStep === null ? 0 : 8 + jewelryAccessoryStep;
+  const jewelryAccessoryBronzeItemId = jewelryAccessoryCore ? weaponMaterialItemId('bronze', jewelryAccessoryCore.rarity) : null;
+  const jewelryAccessoryLiningItemId = jewelryAccessoryCore
+    ? weaponMaterialItemId(jewelryAccessoryLining === 'linho' ? 'linen' : 'refined_leather', jewelryAccessoryCore.rarity)
+    : null;
+  const jewelryAccessoryBronzeAvailable = jewelryAccessoryBronzeItemId
+    ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryAccessoryBronzeItemId ? total + item.quantity : total, 0)
+    : 0;
+  const jewelryAccessoryLiningAvailable = jewelryAccessoryLiningItemId
+    ? lobbyChestItems.reduce((total, item) => item.itemId === jewelryAccessoryLiningItemId ? total + item.quantity : total, 0)
+    : 0;
+  const jewelryAccessoryBronzeSelected = Math.min(jewelryAccessoryBronzeSelection, jewelryAccessoryBronzeRequired, jewelryAccessoryBronzeAvailable);
+  const jewelryAccessoryLiningSelected = Math.min(jewelryAccessoryLiningSelection, jewelryAccessoryLiningRequired, jewelryAccessoryLiningAvailable);
+  const jewelryAccessoryTypeLabel = jewelryAccessoryCore
+    ? JEWELRY_ACCESSORY_TYPE_LABELS[jewelryAccessoryCore.equipmentType ?? ''] ?? null
+    : null;
+  const jewelryAccessoryStack = jewelryAccessoryCore && jewelrySlotCoreId
+    ? lobbyChestItems.find(item => item.itemId === jewelrySlotCoreId) ?? null
+    : null;
+  const jewelryActionIsClosed = jewelrySlotCore?.kind === 'closed' && !!selectedJewelryCoreStack;
+  const jewelryCanReveal = jewelryActionIsClosed && jewelryCottonSelected >= JEWELRY_POLISH_COTTON_COST;
+  const jewelryCanCraft = !!jewelryAccessoryCore && !!jewelryAccessoryStack && !!jewelryAccessoryTypeLabel
+    && jewelryAccessoryBronzeSelected >= jewelryAccessoryBronzeRequired
+    && jewelryAccessoryLiningSelected >= jewelryAccessoryLiningRequired;
+  const jewelryChestVisibleStacks = jewelryChestStacks.filter(item => {
+    const kind = parseCoreItemId(item.itemId)?.kind;
+    if (kind === 'closed' || kind === 'revealed') return true;
+    if (jewelryAccessoryCore) return item.itemId === jewelryAccessoryBronzeItemId || item.itemId === jewelryAccessoryLiningItemId;
+    return getBaseItemId(item.itemId) === 'cotton';
+  });
   const anvilChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
     if (item.quantity <= 0) return stacks;
     const parsedCore = parseCoreItemId(item.itemId);
@@ -2383,6 +2478,12 @@ export default function App() {
   }, [activeGameRoute.page, armorListReady, craftedArmors, equippedArmorIds]);
 
   useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine || activeGameRoute.page !== 'lobby') return;
+    engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[engine.state.classId] ?? {} : {});
+  }, [activeGameRoute.page, accessoryListReady, craftedAccessories, equippedAccessoryIds]);
+
+  useEffect(() => {
     const engine = engineRef.current; if (!engine || activeGameRoute.page !== 'lobby') return;
     const down = (e: KeyboardEvent) => {
       if (!gameStartedRef.current) return;
@@ -2988,36 +3089,31 @@ export default function App() {
   }, [session.user.sub, cookingOnline, statusOpen, characterPreferences[0], characterPreferences[1]]);
 
   const revealCoreFromChest = async (itemId: string) => {
-    if (jewelryRevealBusy || lobbyChestStatus !== 'ready') return;
+    if (jewelryActionBusy || lobbyChestStatus !== 'ready') return;
     if (!cookingOnline) {
       setJewelryFeedback('Sem internet: revelar núcleos exige conexão.');
       return;
     }
+    const parsed = parseCoreItemId(itemId);
+    if (parsed?.kind !== 'closed') return;
     if (jewelryCottonSelection < JEWELRY_POLISH_COTTON_COST) {
       setJewelryFeedback('Selecione 5 algodões da mesma raridade para revelar.');
       return;
     }
-    const selectedRarity = itemId.startsWith('jewelry-closed:') ? itemId.slice('jewelry-closed:'.length) : null;
-    if (!selectedRarity) return;
-    const source = lobbyChestItems.find(item => {
-      const parsed = parseCoreItemId(item.itemId);
-      return parsed?.kind === 'closed' && parsed.rarity === selectedRarity;
-    });
+    const source = lobbyChestItems.find(item => item.itemId === itemId);
     if (!source) return;
-    const parsed = parseCoreItemId(source.itemId);
-    if (!parsed || parsed.kind !== 'closed') return;
     const cottonItemId = weaponMaterialItemId('cotton', parsed.rarity);
     const cottonAvailable = lobbyChestItems.reduce((total, item) => item.itemId === cottonItemId ? total + item.quantity : total, 0);
     if (cottonAvailable < JEWELRY_POLISH_COTTON_COST) {
       const rarityLabel = JEWELRY_RARITY_LABELS[parsed.rarity] ?? parsed.rarity;
-      setJewelryFeedback(`Faltam ${JEWELRY_POLISH_COTTON_COST - cottonAvailable} algodões ${rarityLabel} para polir.`);
+      setJewelryFeedback(`Faltam ${JEWELRY_POLISH_COTTON_COST - cottonAvailable} algodões ${rarityLabel} para revelar.`);
       return;
     }
     if (!fibulaSupabase || !session.user.sub) {
       setJewelryFeedback('Entre na sua conta e conecte-se para salvar a revelação.');
       return;
     }
-    setJewelryRevealBusy(true);
+    setJewelryActionBusy(true);
     setJewelryFeedback('Salvando a revelação…');
     try {
       const { data, error } = await fibulaSupabase.rpc('fibula_core_reveal', {
@@ -3032,8 +3128,11 @@ export default function App() {
       applyCookingInventory(nextInventory);
       lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
       pendingHouseInventoryRef.current = null;
-      setSelectedJewelryCoreId(null);
+      setSelectedJewelryCoreId(revealedItemId);
       setJewelryCottonSelection(0);
+      setJewelryAccessoryBronzeSelection(0);
+      setJewelryAccessoryLiningSelection(0);
+      setJewelryAccessoryLining('linho');
       setJewelryResultCoreId(revealedItemId);
       setJewelryFeedback('Núcleo revelado e salvo no Baú.');
     } catch (cause) {
@@ -3041,8 +3140,78 @@ export default function App() {
       await refreshLobbyChestFromCloud();
       setJewelryFeedback(message);
     } finally {
-      setJewelryRevealBusy(false);
+      setJewelryActionBusy(false);
     }
+  };
+  const craftAccessoryFromChest = async (itemId: string) => {
+    if (jewelryActionBusy || lobbyChestStatus !== 'ready') return;
+    if (!cookingOnline) {
+      setJewelryFeedback('Sem internet: fabricar acessórios exige conexão.');
+      return;
+    }
+    const parsed = parseCoreItemId(itemId);
+    if (parsed?.kind !== 'revealed' || parsed.core.category !== 'accessory') return;
+    const source = lobbyChestItems.find(item => item.itemId === itemId);
+    if (!source) {
+      setJewelryFeedback('Este núcleo não está mais no Baú. Atualize a lista.');
+      return;
+    }
+    const typeLabel = JEWELRY_ACCESSORY_TYPE_LABELS[parsed.core.equipmentType ?? ''];
+    if (!typeLabel) {
+      setJewelryFeedback('O núcleo não possui um tipo válido de acessório.');
+      return;
+    }
+    const step = JEWELRY_ACCESSORY_RARITY_STEPS[parsed.core.rarity];
+    const bronzeRequired = 3 + step;
+    const liningRequired = 8 + step;
+    const bronzeItemId = weaponMaterialItemId('bronze', parsed.core.rarity);
+    const liningItemId = weaponMaterialItemId(jewelryAccessoryLining === 'linho' ? 'linen' : 'refined_leather', parsed.core.rarity);
+    const bronzeAvailable = lobbyChestItems.reduce((total, item) => item.itemId === bronzeItemId ? total + item.quantity : total, 0);
+    const liningAvailable = lobbyChestItems.reduce((total, item) => item.itemId === liningItemId ? total + item.quantity : total, 0);
+    if (bronzeAvailable < bronzeRequired) {
+      setJewelryFeedback(`Faltam ${bronzeRequired - bronzeAvailable} barras de bronze ${JEWELRY_RARITY_LABELS[parsed.core.rarity]}.`);
+      return;
+    }
+    if (liningAvailable < liningRequired) {
+      const liningName = jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado';
+      setJewelryFeedback(`Faltam ${liningRequired - liningAvailable} unidades de ${liningName} ${JEWELRY_RARITY_LABELS[parsed.core.rarity]}.`);
+      return;
+    }
+    if (jewelryAccessoryBronzeSelected < bronzeRequired || jewelryAccessoryLiningSelected < liningRequired) {
+      setJewelryFeedback('Selecione no Baú as quantidades de bronze e da alça indicadas nos slots.');
+      return;
+    }
+    if (!fibulaSupabase || !session.user.sub) {
+      setJewelryFeedback('Entre na sua conta e conecte-se para fabricar o acessório.');
+      return;
+    }
+    const previewSession = jewelryPreviewSessionRef.current;
+    setJewelryActionBusy(true); setJewelryFeedback(''); setJewelryProductionPreview(null);
+    try {
+      const result = await craftAccessory(fibulaSupabase, jewelryAccessoryLining, itemId);
+      if (result.accessory.type !== parsed.core.equipmentType) throw new Error('O tipo do acessório retornado não corresponde ao núcleo selecionado.');
+      const nextInventory = result.inventory as HouseStorageStack[];
+      applyCookingInventory(nextInventory);
+      lastSyncedHouseInventoryRef.current = JSON.stringify(nextInventory);
+      pendingHouseInventoryRef.current = null;
+      setCraftedAccessories(current => [result.accessory, ...current.filter(item => item.id !== result.accessory.id)].slice(0, 50));
+      if (jewelryPreviewSessionRef.current === previewSession) setJewelryProductionPreview({ kind: 'accessory', accessory: result.accessory });
+      setSelectedJewelryCoreId(null); setJewelryResultCoreId(null);
+      setJewelryCottonSelection(0); setJewelryAccessoryBronzeSelection(0);
+      setJewelryAccessoryLiningSelection(0); setJewelryAccessoryLining('linho');
+      setJewelryFeedback(`${typeLabel} fabricado e salvo no Arsenal.`);
+      void listMyAccessories(fibulaSupabase).then(items => {
+        setCraftedAccessories(items);
+        setAccessoriesLoaded(true);
+        setAccessoriesLoadedForUserId(session.user.sub);
+      }).catch(() => {
+        setJewelryFeedback('Acessório salvo no servidor, mas não foi possível atualizar a lista do Arsenal agora.');
+      });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Não foi possível fabricar o acessório.';
+      if (!await refreshLobbyChestFromCloud()) setJewelryFeedback(message + ' Não foi possível recarregar o Baú da nuvem.');
+      else setJewelryFeedback(message);
+    } finally { setJewelryActionBusy(false); }
   };
   const addCookingIngredientUnit = (itemId: string) => {
     const stack = cookingIngredientStacks.find(item => item.itemId === itemId);
@@ -3250,6 +3419,7 @@ export default function App() {
       engine.setClass(selectedClass);
       await prepareEquippedWeaponForClass(engine, selectedClass);
       if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[selectedClass] ?? {});
+       engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[selectedClass] ?? {} : {});
       engine.start();
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
@@ -3396,6 +3566,7 @@ export default function App() {
     const weapon = selectedWeaponForClass(craftedWeapons, equippedWeaponIds, id);
     engine.setEquippedWeapon(weapon ? { model: weapon.model, damage: weapon.damage, attributes: weapon.attributes } : null);
     if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[id] ?? {});
+    engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[id] ?? {} : {});
   };
   applyClassAndEquippedWeaponRef.current = applyClassAndEquippedWeapon;
   const equipCraftedWeapon = (weapon: CraftedWeapon) => {
@@ -3481,10 +3652,16 @@ export default function App() {
     setSelectedArsenalItemId(item.id);
     setArsenalActionItem({ kind: 'equipment', item, equipped });
   };
+  const openArsenalAccessoryActions = (accessory: CraftedAccessory, equipped = false) => {
+    setSelectedArsenalItemId(accessory.id);
+    setArsenalActionItem({ kind: 'accessory', accessory, equipped });
+  };
   const showArsenalItemDetails = () => {
     const action = arsenalActionItem;
     if (!action) return;
-    if (action.kind === 'weapon') {
+    if (action.kind === 'accessory') {
+      setAccessoryDetails(action.accessory);
+    } else if (action.kind === 'weapon') {
       const comparison = action.equipped
         ? null
         : selectedWeaponForClass(craftedWeapons, equippedWeaponIds, WEAPON_CLASS_BY_MODEL[action.weapon.model]);
@@ -3499,6 +3676,13 @@ export default function App() {
   const equipSelectedArsenalItem = () => {
     const action = arsenalActionItem;
     if (!action || !activeArsenalClassId) return;
+    if (action.kind === 'accessory') {
+      const equippedElsewhere = PROFILE_CLASS_IDS.some(classId => classId !== activeArsenalClassId && Object.values(equippedAccessoryIds[classId] ?? {}).includes(action.accessory.id));
+      if (equippedElsewhere) { setWeaponFeedback('Desequipe este acessório da outra classe antes de transferi-lo.'); return; }
+      const next = equipAccessoryForClass(equippedAccessoryIds, activeArsenalClassId, action.accessory);
+      setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next);
+      setWeaponFeedback(JEWELRY_ACCESSORY_TYPE_LABELS[action.accessory.type] + ' equipado.'); setSelectedArsenalItemId(null); setArsenalActionItem(null); return;
+    }
     if (action.kind === 'weapon') {
       if (activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[action.weapon.model]) return;
       equipCraftedWeapon(action.weapon);
@@ -3514,6 +3698,12 @@ export default function App() {
   const unequipSelectedArsenalItem = () => {
     const action = arsenalActionItem;
     if (!action || !activeArsenalClassId) return;
+    if (action.kind === 'accessory') {
+      const next = unequipAccessoryForClass(equippedAccessoryIds, activeArsenalClassId, action.accessory);
+      setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next);
+      setWeaponFeedback(JEWELRY_ACCESSORY_TYPE_LABELS[action.accessory.type] + ' desequipado.');
+      setSelectedArsenalItemId(null); setArsenalActionItem(null); return;
+    }
     if (action.kind === 'weapon') {
       unequipCraftedWeapon(action.weapon);
     } else {
@@ -3531,7 +3721,9 @@ export default function App() {
     if (!action) return;
     setArsenalDeleteConfirmation(action.kind === 'weapon'
       ? { kind: 'weapon', weapon: action.weapon }
-      : { kind: 'equipment', item: action.item });
+      : action.kind === 'accessory'
+        ? { kind: 'accessory', accessory: action.accessory }
+        : { kind: 'equipment', item: action.item });
     setArsenalActionItem(null);
   };
   const confirmArsenalItemDeletion = async () => {
@@ -3564,6 +3756,30 @@ export default function App() {
       } catch {
         setArsenalDeleteConfirmation(null);
         setWeaponFeedback('Não foi possível excluir agora. Tente de novo.');
+      } finally {
+        setArsenalDeleteBusy(false);
+      }
+      return;
+    }
+    if (pending.kind === 'accessory') {
+      const supabase = fibulaSupabase;
+      if (!supabase || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+        setArsenalDeleteConfirmation(null);
+        setWeaponFeedback('Não foi possível excluir o acessório agora. Tente de novo.');
+        setArsenalDeleteBusy(false);
+        return;
+      }
+      try {
+        await deleteAccessory(supabase, pending.accessory.id);
+        const next = removeAccessoryFromSelections(equippedAccessoryIds, pending.accessory.id);
+        if (JSON.stringify(next) !== JSON.stringify(equippedAccessoryIds)) { setEquippedAccessoryIds(next); writeEquippedAccessorySelections(session.user.sub, next); }
+        setCraftedAccessories(current => current.filter(item => item.id !== pending.accessory.id));
+        setSelectedArsenalItemId(null);
+        setWeaponFeedback('Acessório excluído.');
+        setArsenalDeleteConfirmation(null);
+      } catch {
+        setArsenalDeleteConfirmation(null);
+        setWeaponFeedback('Não foi possível excluir o acessório agora. Tente de novo.');
       } finally {
         setArsenalDeleteBusy(false);
       }
@@ -4041,61 +4257,97 @@ export default function App() {
                   <JewelryScene revealAnimating={jewelryRevealAnimating} />
                   <div className="jewelry-ui-layer">
                     <div className="jewelry-scene-header"><h2>JOALHERIA</h2></div>
+                    {jewelryProductionPreview && <ForgeProductionPreview {...jewelryProductionPreview} />}
                   </div>
                 </div>
                 <div className="forge-lower-panel jewelry-forge-lower">
                   <section className="forge-zone forge-selection-zone jewelry-selection-zone" aria-label="Materiais selecionados">
                     <div className="forge-panel-heading">
                       <strong>MATERIAIS SELECIONADOS</strong>
-                      <span>Núcleo e material para revelação</span>
+                      <span>{jewelryAccessoryCore ? 'Núcleo e materiais para fabricação' : 'Núcleo e material para revelação'}</span>
                     </div>
                     <div className="forge-recipe-slots" aria-label="Slots da Joalheria">
                       <button type="button"
                         className={jewelrySlotCoreId ? 'forge-recipe-slot forge-core-recipe-slot filled' : 'forge-recipe-slot forge-core-recipe-slot'}
                         onClick={() => {
-                          if (jewelryRevealBusy) return;
+                          if (jewelryActionBusy) return;
                           setSelectedJewelryCoreId(null);
                           setJewelryCottonSelection(0);
+                          setJewelryAccessoryBronzeSelection(0);
+                          setJewelryAccessoryLiningSelection(0);
+                          setJewelryAccessoryLining('linho');
                           setJewelryResultCoreId(null);
                           setJewelryFeedback('');
                         }}
-                        aria-label={jewelrySlotCoreId ? 'Devolver núcleo ao Baú' : 'Slot vazio: Núcleo 0/1'}>
-                        <span style={jewelrySlotCoreId ? itemRarityGlow(jewelrySlotCoreId.startsWith('jewelry-closed:')
-                          ? `core:${jewelrySlotCoreId.slice('jewelry-closed:'.length)}:weapon:espada`
-                          : jewelrySlotCoreId) : undefined}>
-                          {jewelrySlotCoreId ? inventoryItemIcon(jewelrySlotCoreId.startsWith('jewelry-closed:')
-                            ? `core:${jewelrySlotCoreId.slice('jewelry-closed:'.length)}:weapon:espada`
-                            : jewelrySlotCoreId) : '＋'}
+                        aria-label={jewelrySlotCoreId ? 'Remover núcleo da bancada' : 'Slot vazio: Núcleo 0/1'}>
+                        <span style={jewelrySlotCoreId ? itemRarityGlow(jewelrySlotCoreId) : undefined}>
+                          {jewelrySlotCoreId ? inventoryItemIcon(jewelrySlotCoreId) : '＋'}
                         </span>
-                        <strong>{selectedJewelryCoreId?.startsWith('jewelry-closed:') ? 'Núcleo fechado' : jewelrySlotCore?.kind === 'revealed' ? itemLabel(jewelrySlotCoreId!) : 'Núcleo'}</strong>
-                        <small>{selectedJewelryCoreId?.startsWith('jewelry-closed:') ? '1/1' : jewelrySlotCoreId ? '1/1' : '0/1'}</small>
+                        <strong>{jewelrySlotCore?.kind === 'closed' ? 'Núcleo fechado' : jewelrySlotCore?.kind === 'revealed' ? itemLabel(jewelrySlotCoreId!) : 'Núcleo'}</strong>
+                        <small>{jewelrySlotCoreId ? '1/1' : '0/1'}</small>
                       </button>
-                      {selectedJewelryCoreId?.startsWith('jewelry-closed:') && jewelryCottonItemId && <button type="button"
+                      {jewelrySlotCore?.kind === 'closed' && jewelryCottonItemId && <button type="button"
                         className={jewelryCottonSelected > 0 ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
-                        onClick={() => { if (!jewelryRevealBusy) { setJewelryCottonSelection(0); setJewelryFeedback(''); } }}
-                        aria-label="Devolver algodão ao Baú">
+                        onClick={() => { if (!jewelryActionBusy) { setJewelryCottonSelection(0); setJewelryFeedback(''); } }}
+                        aria-label="Limpar seleção de algodão">
                         <span style={itemRarityGlow(jewelryCottonItemId)}>{inventoryItemIcon(jewelryCottonItemId)}</span>
                         <strong>Algodão ×{JEWELRY_POLISH_COTTON_COST}</strong>
                         <small>{jewelryCottonSelected}/{JEWELRY_POLISH_COTTON_COST}</small>
                       </button>}
+                      {jewelryAccessoryCore && jewelryAccessoryBronzeItemId && <button type="button"
+                        className={jewelryAccessoryBronzeSelected > 0 ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+                        onClick={() => { if (!jewelryActionBusy) { setJewelryAccessoryBronzeSelection(0); setJewelryFeedback(''); } }}
+                        aria-label="Limpar seleção de barras de bronze">
+                        <span style={itemRarityGlow(jewelryAccessoryBronzeItemId)}>{inventoryItemIcon(jewelryAccessoryBronzeItemId)}</span>
+                        <strong>Bronze ×{jewelryAccessoryBronzeRequired}</strong>
+                        <small>{jewelryAccessoryBronzeSelected}/{jewelryAccessoryBronzeRequired}</small>
+                      </button>}
+                      {jewelryAccessoryCore && jewelryAccessoryLiningItemId && <button type="button"
+                        className={jewelryAccessoryLiningSelected > 0 ? 'forge-recipe-slot forge-material-recipe-slot filled' : 'forge-recipe-slot forge-material-recipe-slot'}
+                        onClick={() => { if (!jewelryActionBusy) { setJewelryAccessoryLiningSelection(0); setJewelryFeedback(''); } }}
+                        aria-label="Limpar seleção da alça">
+                        <span style={itemRarityGlow(jewelryAccessoryLiningItemId)}>{inventoryItemIcon(jewelryAccessoryLiningItemId)}</span>
+                        <strong>{jewelryAccessoryLining === 'linho' ? 'Linho' : 'Couro'} ×{jewelryAccessoryLiningRequired}</strong>
+                        <small>{jewelryAccessoryLiningSelected}/{jewelryAccessoryLiningRequired}</small>
+                      </button>}
                     </div>
                     {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCoreId && <CoreDetail itemId={jewelrySlotCoreId} armorTypes={['couro','bronze']}/>}
-                    {jewelrySlotCore?.kind === 'revealed' && jewelrySlotCore.core.category === 'accessory' && <div className="jewelry-accessory-recipe">
+                    {jewelryAccessoryCore && <div className="jewelry-accessory-recipe">
                       <div className="forge-panel-heading"><strong>RECEITA DO ACESSÓRIO</strong></div>
-                      <p>Receita em definição</p>
-                      <button type="button" className="forge-craft-button" disabled>Fabricar · Em breve</button>
+                      <p>{jewelryAccessoryTypeLabel ?? 'Tipo inválido'} · {JEWELRY_RARITY_LABELS[jewelryAccessoryCore.rarity] ?? jewelryAccessoryCore.rarity}. O tipo da peça vem definido pelo núcleo.</p>
+                      <div className="jewelry-lining-options" aria-label="Material da alça">
+                        <button type="button" className={jewelryAccessoryLining === 'linho' ? 'jewelry-lining-choice selected' : 'jewelry-lining-choice'}
+                          aria-pressed={jewelryAccessoryLining === 'linho'} disabled={jewelryActionBusy}
+                          onClick={() => { setJewelryAccessoryLining('linho'); setJewelryAccessoryLiningSelection(0); setJewelryFeedback(''); }}>Linho</button>
+                        <button type="button" className={jewelryAccessoryLining === 'couro_refinado' ? 'jewelry-lining-choice selected' : 'jewelry-lining-choice'}
+                          aria-pressed={jewelryAccessoryLining === 'couro_refinado'} disabled={jewelryActionBusy}
+                          onClick={() => { setJewelryAccessoryLining('couro_refinado'); setJewelryAccessoryLiningSelection(0); setJewelryFeedback(''); }}>Couro refinado</button>
+                      </div>
                     </div>}
                     <div className="forge-action-area forge-selection-action">
                       <button type="button" className="forge-craft-button"
-                        disabled={lobbyChestStatus !== 'ready' || jewelryRevealBusy || !selectedJewelryCoreId?.startsWith('jewelry-closed:') || !selectedJewelryCoreStack || jewelryCottonSelected < JEWELRY_POLISH_COTTON_COST || !cookingOnline}
-                        onClick={() => selectedJewelryCoreId && void revealCoreFromChest(selectedJewelryCoreId)}>
-                        {jewelryRevealBusy ? 'Salvando a revelação…' : 'Revelar'}
+                        disabled={lobbyChestStatus !== 'ready' || jewelryActionBusy || !cookingOnline || !(jewelryAccessoryCore ? jewelryCanCraft : jewelryCanReveal)}
+                        onClick={() => {
+                          if (jewelryAccessoryCore && jewelrySlotCoreId) void craftAccessoryFromChest(jewelrySlotCoreId);
+                          else if (jewelryActionIsClosed && jewelrySlotCoreId) void revealCoreFromChest(jewelrySlotCoreId);
+                        }}>
+                        {jewelryActionBusy ? (jewelryAccessoryCore ? 'Fabricando…' : 'Salvando a revelação…') : jewelryAccessoryCore ? 'Fabricar' : jewelryActionIsClosed ? 'Revelar' : 'Selecione um núcleo'}
                       </button>
                       {jewelryFeedback && <p className="forge-feedback" role="status">{jewelryFeedback}</p>}
-                      {selectedJewelryCoreId?.startsWith('jewelry-closed:') && jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST && <p className="forge-feedback" role="status">
+                      {jewelryActionIsClosed && jewelryCottonAvailable < JEWELRY_POLISH_COTTON_COST && <p className="forge-feedback" role="status">
                         Faltam {JEWELRY_POLISH_COTTON_COST - jewelryCottonAvailable} algodões {JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity}.
                       </p>}
-                      {!cookingOnline && <small className="forge-offline">Sem internet: revelar exige conexão.</small>}
+                      {jewelryAccessoryCore && jewelryAccessoryBronzeSelected < jewelryAccessoryBronzeRequired && <p className="forge-feedback" role="status">
+                        {jewelryAccessoryBronzeAvailable < jewelryAccessoryBronzeRequired
+                          ? `Faltam ${jewelryAccessoryBronzeRequired - jewelryAccessoryBronzeAvailable} barras de bronze ${JEWELRY_RARITY_LABELS[jewelryAccessoryCore.rarity]}.`
+                          : `Selecione ${jewelryAccessoryBronzeRequired} barras de bronze ${JEWELRY_RARITY_LABELS[jewelryAccessoryCore.rarity]}.`}
+                      </p>}
+                      {jewelryAccessoryCore && jewelryAccessoryLiningSelected < jewelryAccessoryLiningRequired && <p className="forge-feedback" role="status">
+                        {jewelryAccessoryLiningAvailable < jewelryAccessoryLiningRequired
+                          ? `Faltam ${jewelryAccessoryLiningRequired - jewelryAccessoryLiningAvailable} unidades de ${jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado'}.`
+                          : `Selecione ${jewelryAccessoryLiningRequired} unidades de ${jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado'}.`}
+                      </p>}
+                      {!cookingOnline && <small className="forge-offline">Sem internet: revelar e fabricar exigem conexão.</small>}
                     </div>
                   </section>
                   <section className="forge-zone forge-chest-zone jewelry-chest-zone" aria-label="Baú da Joalheria">
@@ -4104,26 +4356,28 @@ export default function App() {
                       <span>Núcleos e materiais disponíveis</span>
                     </div>
                     <div className="forge-material-grid forge-chest-grid jewelry-chest-grid" aria-label="Itens do Baú">
-                      {jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:') || parseCoreItemId(item.itemId)?.kind === 'revealed' || getBaseItemId(item.itemId) === 'cotton').map(item => {
-                        if (item.itemId.startsWith('jewelry-closed:')) {
+                      {jewelryChestVisibleStacks.map(item => {
+                        const parsed = parseCoreItemId(item.itemId);
+                        if (parsed?.kind === 'closed') {
                           const selected = selectedJewelryCoreId === item.itemId;
-                          const rarity = item.itemId.slice('jewelry-closed:'.length);
                           return <button type="button" key={item.itemId}
                             className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
                             aria-pressed={selected}
                             onClick={() => openBauCoreActions(item, () => {
-                              if (jewelryRevealBusy) return;
+                              if (jewelryActionBusy) return;
                               setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
                               setJewelryCottonSelection(0);
+                              setJewelryAccessoryBronzeSelection(0);
+                              setJewelryAccessoryLiningSelection(0);
+                              setJewelryAccessoryLining('linho');
                               setJewelryResultCoreId(null);
                               setJewelryFeedback('');
-                            }, ['couro','bronze'], jewelryRevealBusy)}>
-                            <span style={itemRarityGlow(`core:${rarity}:weapon:espada`)}><img src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" /></span>
+                            }, ['couro','bronze'], jewelryActionBusy)}>
+                            <span style={itemRarityGlow(item.itemId)}><img src="/assets/cores/nucleo-fechado.png" alt="" aria-hidden="true" /></span>
                             <strong>Núcleo fechado</strong>
-                            <small>×{item.quantity} · {JEWELRY_RARITY_LABELS[rarity] ?? rarity}</small>
+                            <small>×{item.quantity} · {JEWELRY_RARITY_LABELS[parsed.rarity] ?? parsed.rarity}</small>
                           </button>;
                         }
-                        const parsed = parseCoreItemId(item.itemId);
                         if (parsed?.kind === 'revealed') {
                           const accessory = parsed.core.category === 'accessory';
                           const selected = selectedJewelryCoreId === item.itemId;
@@ -4137,34 +4391,59 @@ export default function App() {
                             className={'forge-material-item forge-chest-item forge-core-item' + (selected ? ' selected' : '')}
                             aria-pressed={selected}
                             onClick={() => openBauCoreActions(item, accessory ? () => {
-                              if (jewelryRevealBusy) return;
+                              if (jewelryActionBusy) return;
                               setSelectedJewelryCoreId(current => current === item.itemId ? null : item.itemId);
                               setJewelryCottonSelection(0);
+                              setJewelryAccessoryBronzeSelection(0);
+                              setJewelryAccessoryLiningSelection(0);
+                              setJewelryAccessoryLining('linho');
                               setJewelryResultCoreId(null);
                               setJewelryFeedback('');
-                            } : undefined, ['couro','bronze'], !accessory || jewelryRevealBusy)}>{content}</button>;
+                            } : undefined, ['couro','bronze'], !accessory || jewelryActionBusy)}>{content}</button>;
                         }
-                        const isCotton = getBaseItemId(item.itemId) === 'cotton';
-                        const compatibleCotton = isCotton && !!selectedJewelryCoreId?.startsWith('jewelry-closed:') && item.itemId === jewelryCottonItemId;
+                        const compatibleCotton = !jewelryAccessoryCore && selectedJewelryCoreParsed?.kind === 'closed'
+                          && item.itemId === jewelryCottonItemId;
+                        const compatibleAccessoryBronze = !!jewelryAccessoryCore && item.itemId === jewelryAccessoryBronzeItemId;
+                        const compatibleAccessoryLining = !!jewelryAccessoryCore && item.itemId === jewelryAccessoryLiningItemId;
                         const selectedCotton = compatibleCotton && jewelryCottonSelected > 0;
+                        const selectedAccessoryBronze = compatibleAccessoryBronze && jewelryAccessoryBronzeSelected > 0;
+                        const selectedAccessoryLining = compatibleAccessoryLining && jewelryAccessoryLiningSelected > 0;
+                        const selectedQuantity = selectedCotton ? jewelryCottonSelected
+                          : selectedAccessoryBronze ? jewelryAccessoryBronzeSelected
+                            : selectedAccessoryLining ? jewelryAccessoryLiningSelected : 0;
+                        const requiredQuantity = compatibleCotton ? JEWELRY_POLISH_COTTON_COST
+                          : compatibleAccessoryBronze ? jewelryAccessoryBronzeRequired
+                            : compatibleAccessoryLining ? jewelryAccessoryLiningRequired : 0;
                         const content = <>
                           <span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
                           <strong>{itemLabel(item.itemId)}</strong>
-                          <small>×{item.quantity}{selectedCotton ? ` · ${jewelryCottonSelected}/${JEWELRY_POLISH_COTTON_COST}` : ''}</small>
+                          <small>×{item.quantity}{selectedQuantity > 0 ? ` · ${selectedQuantity}/${requiredQuantity}` : ''}</small>
                         </>;
-                        return compatibleCotton ? <button type="button" key={item.itemId}
-                          className={'forge-material-item forge-chest-item' + (selectedCotton ? ' selected' : '')}
-                          disabled={jewelryRevealBusy}
-                          onClick={() => {
-                            if (jewelryRevealBusy) return;
-                            const quantity = Math.min(JEWELRY_POLISH_COTTON_COST, item.quantity);
-                            setJewelryCottonSelection(quantity);
-                            const missing = JEWELRY_POLISH_COTTON_COST - quantity;
-                            setJewelryFeedback(missing > 0 ? `Faltam ${missing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para polir.` : '');
-                          }}>{content}</button>
+                        return compatibleCotton || compatibleAccessoryBronze || compatibleAccessoryLining
+                          ? <button type="button" key={item.itemId}
+                            className={'forge-material-item forge-chest-item' + (selectedQuantity > 0 ? ' selected' : '')}
+                            disabled={jewelryActionBusy}
+                            onClick={() => {
+                              if (jewelryActionBusy) return;
+                              const quantity = Math.min(requiredQuantity, item.quantity);
+                              if (compatibleCotton) {
+                                setJewelryCottonSelection(quantity);
+                                const missing = JEWELRY_POLISH_COTTON_COST - quantity;
+                                setJewelryFeedback(missing > 0 ? `Faltam ${missing} algodões ${JEWELRY_RARITY_LABELS[selectedJewelryRarity ?? ''] ?? selectedJewelryRarity} para revelar.` : '');
+                              } else if (compatibleAccessoryBronze) {
+                                setJewelryAccessoryBronzeSelection(quantity);
+                                const missing = jewelryAccessoryBronzeRequired - quantity;
+                                setJewelryFeedback(missing > 0 ? `Faltam ${missing} barras de bronze ${JEWELRY_RARITY_LABELS[jewelryAccessoryCore?.rarity ?? 'normal']}.` : '');
+                              } else {
+                                setJewelryAccessoryLiningSelection(quantity);
+                                const missing = jewelryAccessoryLiningRequired - quantity;
+                                const liningName = jewelryAccessoryLining === 'linho' ? 'linho' : 'couro refinado';
+                                setJewelryFeedback(missing > 0 ? `Faltam ${missing} unidades de ${liningName} ${JEWELRY_RARITY_LABELS[jewelryAccessoryCore?.rarity ?? 'normal']}.` : '');
+                              }
+                            }}>{content}</button>
                           : <div className="forge-material-item forge-chest-item is-inert" key={item.itemId}>{content}</div>;
                       })}
-                      {jewelryChestStacks.filter(item => item.itemId.startsWith('jewelry-closed:') || parseCoreItemId(item.itemId)?.kind === 'revealed' || getBaseItemId(item.itemId) === 'cotton').length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
+                      {jewelryChestVisibleStacks.length === 0 && <p className="forge-empty">O Baú está vazio.</p>}
                     </div>
                   </section>
                 </div>
@@ -4478,18 +4757,22 @@ export default function App() {
                     const armorPiece: ArmorPiece | undefined = CONFIG.rulesV2.armorCraftingEnabled ? ARSENAL_ARMOR_SLOT_PIECES[slot] : undefined;
                     const equippedArmor = armorPiece ? equippedArmors[armorPiece] : null;
                     const weaponEquipped = slot === 'arma' ? equippedArsenalWeapon : null;
-                    const legacyEquipped = armorPiece ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
-                    const equippedName = equippedArmor ? ARSENAL_ARMOR_PIECE_LABELS[equippedArmor.piece] : weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : legacyEquipped ? cleanItemName(legacyEquipped.name) : undefined;
-                    const rarity = equippedArmor?.rarity ?? weaponEquipped?.rarity ?? legacyEquipped?.rarity;
+                    const accessoryType: AccessoryType | null = slot === 'colar' || slot === 'pulseira' || slot === 'cinto' ? slot : null;
+                    const equippedAccessory = accessoryType ? equippedAccessories[accessoryType] : null;
+                    const legacyEquipped = armorPiece || weaponEquipped || equippedAccessory ? null : arsenalItems.find(item => item.id === equipmentLoadout[slot]);
+                    const equippedName = equippedArmor ? ARSENAL_ARMOR_PIECE_LABELS[equippedArmor.piece] : weaponEquipped ? arsenalWeaponLabels[weaponEquipped.model] : equippedAccessory ? JEWELRY_ACCESSORY_TYPE_LABELS[equippedAccessory.type] : legacyEquipped ? cleanItemName(legacyEquipped.name) : undefined;
+                    const rarity = equippedArmor?.rarity ?? weaponEquipped?.rarity ?? equippedAccessory?.rarity ?? legacyEquipped?.rarity;
                     const info = ARSENAL_SLOT_INFO[slot];
                     return <button type="button" key={slot} className={`arsenal-equipment-slot ${equippedName ? 'equipped' : ''} ${weaponEquipped ? 'arsenal-weapon-equipped-slot' : ''} ${armorPiece ? 'arsenal-armor-equipment-slot' : ''}`} style={{ gridRow: row, gridColumn: column }} disabled={!equippedName} onClick={() => {
                       if (equippedArmor) openArsenalArmorActions(equippedArmor);
                       else if (weaponEquipped) openArsenalWeaponActions(weaponEquipped, true);
+                      else if (equippedAccessory) openArsenalAccessoryActions(equippedAccessory, true);
                       else if (legacyEquipped) openArsenalEquipmentActions(legacyEquipped, true);
                     }} aria-label={`${info.label}: ${equippedName ? equippedName + ', equipado. Abrir ações.' : 'vazio'}`}>
                       {!equippedName && <span className="arsenal-empty-slot-label">{info.label}</span>}
                       {equippedArmor && <><ArmorPieceIcon armor={equippedArmor} className="arsenal-equipped-weapon-icon" /><span className="arsenal-armor-stars">{'★'.repeat(equippedArmor.stars)}</span></>}
                       {weaponEquipped && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true"><img src={`/assets/weapons/${ARSENAL_WEAPON_SPRITES[weaponEquipped.model]}`} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', imageRendering: 'pixelated' }} /></span>}
+                      {equippedAccessory && <><span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{JEWELRY_ACCESSORY_TYPE_ICONS[equippedAccessory.type]}</span><span className="arsenal-armor-stars">{'★'.repeat(equippedAccessory.stars)}</span></>}
                       {legacyEquipped && <span className="arsenal-equipped-weapon-icon" style={rarityGlowStyle(rarity)} aria-hidden="true">{legacyEquipped.icon}</span>}
                     </button>;
                   })}
@@ -4508,6 +4791,9 @@ export default function App() {
                   {arsenalInventoryEntries.map(entry => {
                     if (entry.kind === 'armor') {
                       return <ArmorInventoryCard key={entry.armor.id} armor={entry.armor} selected={entry.armor.id === selectedArsenalItemId} onClick={() => openArsenalArmorActions(entry.armor)} />;
+                    }
+                    if (entry.kind === 'accessory') {
+                      return <AccessoryInventoryCard key={entry.accessory.id} accessory={entry.accessory} selected={entry.accessory.id === selectedArsenalItemId} onClick={() => openArsenalAccessoryActions(entry.accessory)} />;
                     }
                     if (entry.kind === 'weapon') {
                       const weapon = entry.weapon;
@@ -4528,12 +4814,14 @@ export default function App() {
           </section></div>
           <SideNav current="arsenal" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
+        <AccessoryDetailsDialog accessory={accessoryDetails} onClose={() => { setAccessoryDetails(null); setSelectedArsenalItemId(null); }} />
         {CONFIG.rulesV2.armorCraftingEnabled && <ArmorActionDialogs armor={armorActionArmor} equipped={Boolean(armorActionArmor && activeArsenalClassId && equippedArmorIds[activeArsenalClassId]?.[armorActionArmor.piece] === armorActionArmor.id)} deleteConfirmation={armorDeleteConfirmation} busy={armorDeleteBusy} onClose={() => { setSelectedArsenalItemId(null); setArmorActionArmor(null); }} onEquip={equipArsenalArmor} onUnequip={unequipArsenalArmor} onRequestDelete={() => setArmorDeleteConfirmation(true)} onCancelDelete={() => setArmorDeleteConfirmation(false)} onConfirmDelete={() => { void confirmArsenalArmorDeletion(); }} />}
         {arsenalActionItem && <div className="arsenal-action-backdrop" role="presentation" onClick={() => setArsenalActionItem(null)}>
-          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
-            <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : cleanItemName(arsenalActionItem.item.name)}</strong>
+          <section className="arsenal-action-dialog" role="dialog" aria-modal="true" aria-label={arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : arsenalActionItem.kind === 'accessory' ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalActionItem.accessory.type] : cleanItemName(arsenalActionItem.item.name)} onClick={event => event.stopPropagation()}>
+            <header><strong>{arsenalActionItem.kind === 'weapon' ? arsenalWeaponLabels[arsenalActionItem.weapon.model] : arsenalActionItem.kind === 'accessory' ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalActionItem.accessory.type] : cleanItemName(arsenalActionItem.item.name)}</strong>
               <button type="button" aria-label="Fechar" onClick={() => setArsenalActionItem(null)}>×</button></header>
             {arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model] && <p className="arsenal-action-hint">Esta arma é do {CLASSES[WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model]].label}. Troque a aba.</p>}
+            {arsenalActionItem.kind === 'accessory' && <p className="arsenal-action-hint">Espaço: {JEWELRY_ACCESSORY_TYPE_LABELS[arsenalActionItem.accessory.type]}.</p>}
             {arsenalActionItem.equipped
               ? <button type="button" className="arsenal-action-button" autoFocus onClick={unequipSelectedArsenalItem}>Desequipar</button>
               : <button type="button" className="arsenal-action-button" autoFocus={Boolean(activeArsenalClassId) && (arsenalActionItem.kind !== 'weapon' || activeArsenalClassId === WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} disabled={!activeArsenalClassId || (arsenalActionItem.kind === 'weapon' && activeArsenalClassId !== WEAPON_CLASS_BY_MODEL[arsenalActionItem.weapon.model])} onClick={equipSelectedArsenalItem}>Equipar</button>}
@@ -4545,7 +4833,9 @@ export default function App() {
           <section className="arsenal-action-dialog arsenal-confirm-dialog" role="dialog" aria-modal="true" aria-label="Confirmar exclusão" onClick={event => event.stopPropagation()}>
             <header><strong>Excluir {arsenalDeleteConfirmation.kind === 'weapon'
               ? arsenalWeaponLabels[arsenalDeleteConfirmation.weapon.model]
-              : cleanItemName(arsenalDeleteConfirmation.item.name)}?</strong></header>
+              : arsenalDeleteConfirmation.kind === 'accessory'
+                ? ({ colar: 'Colar', pulseira: 'Pulseira', cinto: 'Cinto' } as const)[arsenalDeleteConfirmation.accessory.type]
+                : cleanItemName(arsenalDeleteConfirmation.item.name)}?</strong></header>
             <p>Esta ação não pode ser desfeita.</p>
             <div className="arsenal-confirm-actions">
               <button type="button" className="arsenal-action-button" autoFocus disabled={arsenalDeleteBusy} onClick={() => setArsenalDeleteConfirmation(null)}>Cancelar</button>

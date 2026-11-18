@@ -12787,6 +12787,49 @@ sem backdrop ou caixa de modal. */
   inset:0;
   pointer-events:none;
 }
+.jewelry-page .jewelry-ui-layer .forge-production-result{
+  position:absolute;
+  left:50%;
+  top:58%;
+  transform:translateX(-50%);
+  width:min(76%,340px);
+  max-height:40%;
+  overflow:auto;
+  pointer-events:auto;
+}
+.jewelry-page .forge-accessory-preview-art{
+  display:grid;
+  min-width:42px;
+  min-height:34px;
+  place-items:center;
+  font-size:32px;
+  line-height:1;
+}
+.side-page.arsenal-side .arsenal-accessory-art{
+  display:grid;
+  width:100%;
+  min-height:24px;
+  place-items:center;
+  font-size:24px;
+  line-height:1;
+}
+.side-page.arsenal-side .arsenal-accessory-details-art{
+  display:grid;
+  min-height:54px;
+  place-items:center;
+  font-size:44px;
+  line-height:1;
+}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-accessory-details-art{
+  display:grid;
+  min-height:54px;
+  place-items:center;
+  font-size:44px;
+  line-height:1;
+}
+.side-page.arsenal-side ~ .arsenal-weapon-info-backdrop .arsenal-accessory-details .arsenal-item-info-details{
+  margin-top:8px;
+}
 .jewelry-page .jewelry-forge-lower{
   display:flex;
   min-width:0;
@@ -12896,6 +12939,34 @@ sem backdrop ou caixa de modal. */
   min-width:130px;
   min-height:30px;
   padding:5px 12px;
+}
+.jewelry-page .jewelry-lining-options{
+  display:flex;
+  flex:0 1 auto;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.jewelry-page .jewelry-lining-choice{
+  min-height:28px;
+  padding:4px 9px;
+  border:1px solid #78694f;
+  border-radius:6px;
+  background:#252723;
+  color:#e8ddc8;
+  font:inherit;
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+.jewelry-page .jewelry-lining-choice.selected{
+  border-color:#d0a76c;
+  background:#423726;
+  color:#f4dba7;
+}
+.jewelry-page .jewelry-lining-choice:disabled{
+  opacity:.55;
+  cursor:not-allowed;
 }
 .jewelry-page .jewelry-selection-zone .forge-selection-action{
   width:100%;
