@@ -97,7 +97,6 @@ export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: F
   const length = Math.max(1, Math.hypot(dx, dy));
   const angle = Math.atan2(dy, dx);
   const pull = Math.max(0, Math.min(1, opts.pull));
-  const rodScale = 3;
   const detailScale = Math.max(0.75, Math.min(1.25, r / 18));
   const flex = pull * Math.min(4.2, length * 0.075);
   const yAt = (x: number) => flex * (x / length) * (x / length);
@@ -105,7 +104,6 @@ export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: F
   ctx.save();
   ctx.translate(opts.startX, opts.startY);
   ctx.rotate(angle);
-  ctx.scale(rodScale, rodScale);
 
   // Cabo revestido em couro e cortiça, com costuras diagonais discretas.
   ctx.lineCap = 'round';
@@ -175,8 +173,8 @@ export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: F
   ctx.restore();
 
   // A linha parte da nova ponta ampliada; a boia afunda durante a puxada.
-  const rodTipX = opts.startX + Math.cos(angle) * length * rodScale - Math.sin(angle) * flex * rodScale;
-  const rodTipY = opts.startY + Math.sin(angle) * length * rodScale + Math.cos(angle) * flex * rodScale;
+  const rodTipX = opts.tipX;
+  const rodTipY = opts.tipY;
   const sink = pull * 5.5;
   const floatX = opts.hookX;
   const floatY = opts.hookY + sink;
