@@ -64,31 +64,88 @@ export function playWoodDone(context: AudioContext, buses: GatherBuses) {
   toneSource(context, buses, start + 0.07, 0.28 * v.duration, 'sine', 105 * v.pitch, 48 * v.pitch, 0.09 * v.volume, 1);
 }
 
-/** Picareta: parciais metálicos inarmónicos, clique e impacto grave. */
+/** Tink metálico da picareta; os parâmetros padrão preservam o golpe aprovado. */
+function stoneTink(
+  context: AudioContext,
+  buses: GatherBuses,
+  start: number,
+  fundamental: number,
+  volume: number,
+  duration: number,
+) {
+  const ratio = audioManager.rand(1.45, 1.6);
+  const pitch = fundamental / 1800;
+  toneSource(context, buses, start, duration, 'sine', fundamental, fundamental * 0.985, 0.075 * 0.35 * volume, 1);
+  toneSource(context, buses, start, duration, 'sine', fundamental * ratio, fundamental * ratio * 0.97, 0.055 * 0.35 * volume, 1);
+  noiseSource(context, buses, start, duration, 'highpass', 100, 3600 * pitch, 0.045 * 0.35 * volume, pitch);
+}
+
+/** Estalo seco de lasca com filtro fixo, ataque de até 2 ms e cauda curta. */
+function stoneChip(context: AudioContext, buses: GatherBuses, start: number, frequency: number, peak: number, duration: number, pitch: number) {
+  const source = context.createBufferSource();
+  source.buffer = buses.noiseBuffer;
+  source.playbackRate.setValueAtTime(pitch, start);
+  const filter = context.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(frequency, start);
+  filter.Q.setValueAtTime(3, start);
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(peak, start + Math.min(0.002, duration * 0.2));
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  if (!audioManager.createVoice(source)) return;
+  try {
+    source.disconnect();
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(buses.sfxBus);
+    source.addEventListener('ended', () => {
+      try { filter.disconnect(); } catch { /* Already disconnected. */ }
+      try { gain.disconnect(); } catch { /* Already disconnected. */ }
+    }, { once: true });
+    source.start(start);
+    source.stop(start + duration);
+  } catch {
+    try { source.stop(); } catch { /* Source may not have started. */ }
+    try { source.disconnect(); } catch { /* Already disconnected. */ }
+    try { filter.disconnect(); } catch { /* Already disconnected. */ }
+    try { gain.disconnect(); } catch { /* Already disconnected. */ }
+  }
+}
+
+/** Picareta: parciais metálicos inarmônicos, clique e impacto grave. */
 export function playStoneGather(context: AudioContext, buses: GatherBuses) {
   const v = variation('stone');
   if (!v) return;
   const start = context.currentTime + v.delay;
-  const duration = 0.09 * v.duration;
-  const fundamental = 1800 * v.pitch;
-  const ratio = audioManager.rand(1.45, 1.6);
-  toneSource(context, buses, start, duration, 'sine', fundamental, fundamental * 0.985, 0.075 * 0.35 * v.volume, 1);
-  toneSource(context, buses, start, duration, 'sine', fundamental * ratio, fundamental * ratio * 0.97, 0.055 * 0.35 * v.volume, 1);
-  noiseSource(context, buses, start, duration, 'highpass', 100, 3600 * v.pitch, 0.045 * 0.35 * v.volume, v.pitch);
+  stoneTink(context, buses, start, 1800 * v.pitch, v.volume, 0.09 * v.duration);
 }
 
-/** Pedra a quebrar: cinco pequenos grãos em sequência irregular. */
+/** Pedra a quebrar: tink aprovado, lascas secas e baque grave sem varredura de ruído. */
 export function playStoneDone(context: AudioContext, buses: GatherBuses) {
   const v = variation('stone-done');
   if (!v) return;
   const start = context.currentTime + v.delay;
-  for (let i = 0; i < 5; i++) {
-    const offset = i === 0 ? 0 : audioManager.rand(0.025, 0.075);
-    const grainStart = start + (i === 0 ? 0 : 0.025 * i + offset);
-    const duration = audioManager.rand(0.035, 0.055) * v.duration;
-    const low = audioManager.rand(500, 1100) * v.pitch;
-    noiseSource(context, buses, grainStart, duration, 'bandpass', low, low * audioManager.rand(1.5, 2.1), (0.035 + audioManager.rand(0, 0.018)) * v.volume, v.pitch);
+  const fundamental = 1800 * v.pitch;
+
+  // Primeiro impacto no mesmo tom da picareta, com ganho de 1,2x.
+  stoneTink(context, buses, start, fundamental, 1.2 * v.volume, 0.09 * v.duration);
+
+  // Segundo tink mais grave e discreto, 20 ms depois.
+  stoneTink(context, buses, start + 0.02, fundamental * 0.75, 0.15 * v.volume, 0.05 * v.duration);
+
+  // Cinco lascas curtas com bandpass estático e frequências entre 0,6x e 1,3x.
+  const chipPeaks = [0.0025, 0.002, 0.0016, 0.0012, 0.0009];
+  const chipOffsets = [0.036, 0.068, 0.101, 0.132, 0.157];
+  for (let i = 0; i < chipPeaks.length; i++) {
+    const chipStart = start + chipOffsets[i] + audioManager.rand(-0.006, 0.006);
+    const frequency = fundamental * audioManager.rand(0.6, 1.3);
+    const duration = audioManager.rand(0.01, 0.025) * v.duration;
+    stoneChip(context, buses, chipStart, frequency, chipPeaks[i] * v.volume, duration, v.pitch);
   }
+
+  // Baque grave curto e baixo para dar peso sem dominar o tink.
+  toneSource(context, buses, start, 0.12 * v.duration, 'sine', 130 * v.pitch, 60 * v.pitch, 0.002 * v.volume, 1);
 }
 
 /** Algodão: farfalhar suave, com ataque e cauda curtos. */
