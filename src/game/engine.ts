@@ -3179,7 +3179,7 @@ export class GameEngine {
   }
 
   private autoGather() {
-    if (this.state.cart.carried || this.local.combatLockTimer > 0) return;
+    if (this.state.cart.carried || this.local.combatLockTimer > 0 || this.state.knifeSwingTimer > 0) return;
     const weapon = CONFIG.weapons[this.state.weapon];
     const p = this.state.player;
     // Combate tem prioridade, mas sua velocidade não determina a cadência de coleta.
