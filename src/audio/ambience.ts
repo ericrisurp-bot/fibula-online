@@ -484,7 +484,7 @@ export const ambience = {
     const changed = phase !== nextPhase;
     phase = nextPhase;
     if (!active || !audioContext || !masterGain) return;
-    if (changed) playPhaseChord(nextPhase);
+    if (changed && nextPhase === 'day') playPhaseChord(nextPhase);
     if (nextPhase === 'day') {
       clearTimers(owlTimers);
       stopOwlSourcesSoon(5);
