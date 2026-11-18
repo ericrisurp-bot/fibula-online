@@ -64,7 +64,14 @@ export function playWoodDone(context: AudioContext, buses: GatherBuses) {
   toneSource(context, buses, start + 0.07, 0.28 * v.duration, 'sine', 105 * v.pitch, 48 * v.pitch, 0.09 * v.volume, 1);
 }
 
-/** Picareta: parciais metálicos inarmónicos, clique e impacto grave. */
+/** Tink metálico compartilhado pela picareta e pela quebra final da pedra. */
+function stoneTink(context: AudioContext, buses: GatherBuses, start: number, fundamental: number, volume: number, duration: number, pitch: number, ratio: number) {
+  toneSource(context, buses, start, duration, 'sine', fundamental, fundamental * 0.985, 0.075 * volume, 1);
+  toneSource(context, buses, start, duration, 'sine', fundamental * ratio, fundamental * ratio * 0.97, 0.055 * volume, 1);
+  noiseSource(context, buses, start, duration, 'highpass', 100, 3600 * pitch, 0.045 * volume, pitch);
+}
+
+/** Picareta: parciais metálicos inarmônicos, clique e impacto grave. */
 export function playStoneGather(context: AudioContext, buses: GatherBuses) {
   const v = variation('stone');
   if (!v) return;
@@ -72,23 +79,42 @@ export function playStoneGather(context: AudioContext, buses: GatherBuses) {
   const duration = 0.09 * v.duration;
   const fundamental = 1800 * v.pitch;
   const ratio = audioManager.rand(1.45, 1.6);
-  toneSource(context, buses, start, duration, 'sine', fundamental, fundamental * 0.985, 0.075 * 0.35 * v.volume, 1);
-  toneSource(context, buses, start, duration, 'sine', fundamental * ratio, fundamental * ratio * 0.97, 0.055 * 0.35 * v.volume, 1);
-  noiseSource(context, buses, start, duration, 'highpass', 100, 3600 * v.pitch, 0.045 * 0.35 * v.volume, v.pitch);
+  stoneTink(context, buses, start, fundamental, 0.35 * v.volume, duration, v.pitch, ratio);
 }
 
-/** Pedra a quebrar: cinco pequenos grãos em sequência irregular. */
+/** Pedra a quebrar: tink metálico, rachadura e fragmentos em queda. */
 export function playStoneDone(context: AudioContext, buses: GatherBuses) {
   const v = variation('stone-done');
   if (!v) return;
   const start = context.currentTime + v.delay;
-  for (let i = 0; i < 5; i++) {
-    const offset = i === 0 ? 0 : audioManager.rand(0.025, 0.075);
-    const grainStart = start + (i === 0 ? 0 : 0.025 * i + offset);
-    const duration = audioManager.rand(0.035, 0.055) * v.duration;
-    const low = audioManager.rand(500, 1100) * v.pitch;
-    noiseSource(context, buses, grainStart, duration, 'bandpass', low, low * audioManager.rand(1.5, 2.1), (0.035 + audioManager.rand(0, 0.018)) * v.volume, v.pitch);
+  const fundamental = 1800 * v.pitch;
+  const ratio = audioManager.rand(1.45, 1.6);
+  const tinkDuration = 0.09 * v.duration;
+
+  // Mesmo tink do golpe normal, com reforço moderado no impacto final.
+  stoneTink(context, buses, start, fundamental, 0.35 * 1.2 * v.volume, tinkDuration, v.pitch, ratio);
+
+  // Rachadura quase imediata: parcial uma quarta justa abaixo e burst de ruído.
+  const crackStart = start + 0.02;
+  stoneTink(context, buses, crackStart, fundamental * 0.75, 0.35 * 0.28 * v.volume, 0.038 * v.duration, v.pitch, ratio);
+  noiseSource(context, buses, crackStart, 0.045 * v.duration, 'bandpass',
+    fundamental * 0.8, fundamental * 1.4, 0.018 * v.volume, v.pitch);
+
+  // Quatro ou cinco estilhaços em faixas mais altas, com volumes decrescentes.
+  const grainCount = audioManager.rand(0, 1) < 0.5 ? 4 : 5;
+  for (let i = 0; i < grainCount; i++) {
+    const offset = i === 0 ? 0 : audioManager.rand(0.018, 0.068);
+    const grainStart = start + 0.045 + i * 0.024 + offset;
+    const duration = audioManager.rand(0.032, 0.052) * v.duration;
+    const center = fundamental * audioManager.rand(0.45, 0.9);
+    const peak = (0.018 - i * 0.0022 + audioManager.rand(0, 0.003)) * v.volume;
+    noiseSource(context, buses, grainStart, duration, 'bandpass',
+      center, center * audioManager.rand(1.25, 1.65), peak, v.pitch);
   }
+
+  // Baque curto e discreto sob os fragmentos.
+  toneSource(context, buses, start + 0.035, 0.12 * v.duration, 'sine',
+    130 * v.pitch, 60 * v.pitch, 0.012 * v.volume, 1);
 }
 
 /** Algodão: farfalhar suave, com ataque e cauda curtos. */
