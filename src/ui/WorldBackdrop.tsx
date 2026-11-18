@@ -57,7 +57,6 @@ export default function WorldBackdrop({ className, opacity = 1 }: WorldBackdropP
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       const pattern = ctx.createPattern(grassTile, 'repeat');
-      if (pattern) pattern.setTransform(new DOMMatrix().scale(0.2));
       ctx.fillStyle = pattern ?? '#557a43';
       ctx.fillRect(0, 0, width, height);
 
