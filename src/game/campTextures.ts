@@ -2,6 +2,7 @@ type CampTextureKind = 'wood' | 'stone' | 'linen' | 'ground';
 
 type TextureEntry = { canvas: HTMLCanvasElement };
 const textureCache: Partial<Record<CampTextureKind, TextureEntry>> = {};
+const patternCache = new WeakMap<CanvasRenderingContext2D, Partial<Record<CampTextureKind, CanvasPattern>>>();
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -139,10 +140,17 @@ if (typeof document !== 'undefined') {
 }
 
 export function campTexturePattern(ctx: CanvasRenderingContext2D, kind: CampTextureKind): CanvasPattern | null {
+  const cached = patternCache.get(ctx)?.[kind];
+  if (cached) return cached;
   const canvas = textureCache[kind]?.canvas;
   if (!canvas) return null;
   try {
-    return ctx.createPattern(canvas, 'repeat');
+    const pattern = ctx.createPattern(canvas, 'repeat');
+    if (!pattern) return null;
+    const contextPatterns = patternCache.get(ctx) ?? {};
+    contextPatterns[kind] = pattern;
+    patternCache.set(ctx, contextPatterns);
+    return pattern;
   } catch {
     return null;
   }
