@@ -317,7 +317,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
       await leaveDuoRoom(current.roomId);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível sair da sala Duo.');
-      return false;
+      throw cause;
     }
     clearLobby();
     setLobbyInvite(null);
