@@ -52,7 +52,7 @@ function persistHouseStorage(inventory: InventoryStack[]) {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Armazenamento local indisponível. */ }
 }
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number; animalKind?: 'wolf' | 'chicken'; rarity?: ResourceRarity; wanderAngle?: number; wanderTimer?: number; facingX?: 1 | -1; walkPhase?: number; moving?: boolean; fleeing?: boolean; fleeTimer?: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number; animalKind?: 'wolf' | 'chicken'; rarity?: ResourceRarity; wanderAngle?: number; wanderTimer?: number; facingX?: 1 | -1; walkPhase?: number; moving?: boolean; fleeing?: boolean; fleeTimer?: number; hits?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
@@ -92,7 +92,7 @@ export type GameSnapshot = {
   cart: CartState;
   enemies: Enemy[]; trees: Tree[]; jabuticabaTree: JabuticabaTree | null; jabuticabaDrops: JabuticabaDrop[]; rocks: Rock[]; cottonPlants: CottonPlant[]; vegetablePlants: VegetablePlant[]; woodDrops: WoodDrop[]; stoneDrops: StoneDrop[]; cottonDrops: CottonDrop[]; vegetableDrops: VegetableDrop[]; linenDrops: LinenDrop[]; refinedLeatherDrops: RefinedLeatherDrop[]; bronzeDrops: BronzeDrop[]; wildlifeDrops: WildlifeDrop[]; coreDrops: CoreDrop[]; inventory: InventoryStack[]; xpOrbs: Orb[]; healingOrbs: HealingOrb[]; shots: Shot[]; explosions: ExplosionEffect[]; floatingDamage: FloatingDamage[]; dyingEnemies: DyingEnemy[]; wave: number; elapsed: number; dayNight: 'day' | 'night' | 'dawn'; phaseElapsed: number; nightNumber: number; startedAtNight: boolean;
   activeMeals: ActiveCookingMeal[];
-  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
+  weapon: WeaponId; classId: ClassId; swordSwingAngle: number; swordSwingTimer: number; treeChopAngle: number; treeChopTimer: number; rockMineAngle: number; rockMineTimer: number; cottonHarvestAngle: number; cottonHarvestTimer: number; knifeSwingAngle: number; knifeSwingTimer: number; gatherX: number; gatherY: number; gatherDepth: number; showRange: boolean; cameraFull: boolean; dead: boolean; kills: number;
 };
 type InputState = { x: number; y: number };
 type CampMachineBuildResult = { ok: true } | { ok: false; reason: 'nofire' | 'already' | 'resources' | 'outside' | 'blocked' };
@@ -102,6 +102,7 @@ export type PlayerRuntime = {
   combatLockTimer: number;
   weaponSide: 1 | -1;
   gatheringTimer: number;
+  knifeHitTimer: number;
   stepDistance: number;
   stepFoot: 'left' | 'right';
   stepTarget: number;
@@ -124,6 +125,7 @@ function createPlayerRuntime(): PlayerRuntime {
     combatLockTimer: 0,
     weaponSide: 1,
     gatheringTimer: 0,
+    knifeHitTimer: 0,
     stepDistance: 0,
     stepFoot: 'left',
     stepTarget: 52,
@@ -603,7 +605,7 @@ export class GameEngine {
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
       lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
-      enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
+      enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [{ itemId: 'wood', quantity: 1 }], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, knifeSwingAngle: 0, knifeSwingTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
       showRange: false, cameraFull: false, dead: false, kills: 0,
     };
   }
@@ -1473,7 +1475,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
+    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
     this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.tecelariaHideProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
@@ -1591,7 +1593,7 @@ export class GameEngine {
     // A arma e o ponto de saída ficam no mesmo lado enquanto houver um alvo ao alcance.
     const rangedWeapon = CONFIG.weapons[this.state.weapon];
     const hasRangedTarget = this.state.enemies.some(enemy =>
-      Math.hypot(enemy.x - p.x, enemy.y - p.y) <= rangedWeapon.range
+      !enemy.animalKind && Math.hypot(enemy.x - p.x, enemy.y - p.y) <= rangedWeapon.range
     );
     if (!hasRangedTarget) {
       if (p.facingX < -0.35) this.local.weaponSide = 1;
@@ -1639,7 +1641,7 @@ export class GameEngine {
       // Só conta como nascimento agendado quando o inimigo realmente entra no mapa.
       if (this.hordeScheduled < targetScheduled && this.spawnHordeEnemy()) this.hordeScheduled += 1;
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.autoAttack(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
     if (this.state.classId === 'druida') {
       this.local.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.local.druidOrbHealTimer <= 0) {
@@ -3075,6 +3077,7 @@ export class GameEngine {
     if (this.local.attackTimer < 1 / weapon.attackSpeed) return;
     const p = this.state.player;
     const targets = this.state.enemies
+      .filter(e => !e.animalKind)
       .map(e => ({ e, d: Math.hypot(e.x - p.x, e.y - p.y) }))
       .filter(v => v.d <= weapon.range)
       .sort((a, b) => a.d - b.d);
@@ -3088,6 +3091,7 @@ export class GameEngine {
       this.onSound?.({ type: 'attack', classId: this.state.classId });
       const arc = Math.PI * 0.62;
       const hits = this.state.enemies.filter(e => {
+        if (e.animalKind) return false;
         const ex = e.x - p.x, ey = e.y - p.y;
         const distance = Math.hypot(ex, ey);
         const angle = Math.atan2(ey, ex);
@@ -3137,6 +3141,32 @@ export class GameEngine {
       this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: this.getWeaponBaseDamage() * this.getCookingDamageMultiplier(), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       if (rangedId === 'arco') markArrowReleased(this.state.elapsed);
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
+    }
+  }
+
+  private autoKnife() {
+    if (this.state.cart.carried || this.local.knifeHitTimer > 0) return;
+    const p = this.state.player;
+    const target = this.state.enemies
+      .filter((enemy): enemy is Enemy & { animalKind: 'wolf' | 'chicken' } => !!enemy.animalKind)
+      .map(enemy => ({
+        enemy,
+        distance: Math.hypot(enemy.x - p.x, enemy.y - p.y),
+        radius: CONFIG.wildlife[enemy.animalKind === 'wolf' ? 'wolves' : 'chickens'].radius,
+      }))
+      .filter(({ enemy, distance, radius }) =>
+        distance - radius <= CONFIG.knife.reach && !this.arrowHitsSolidObstacle(p, enemy),
+      )
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (!target) return;
+    this.local.knifeHitTimer = CONFIG.knife.hitInterval;
+    this.state.knifeSwingAngle = this.anchorGatherTool(target.enemy.x, target.enemy.y, target.enemy.y + target.radius + 2);
+    this.state.knifeSwingTimer = CONFIG.gathering.toolAnimationDuration;
+    target.enemy.hits = (target.enemy.hits ?? 0) + 1;
+    this.addFloatingLabel(target.enemy.x, target.enemy.y - target.radius * 1.35, '✦', '#d7b66e');
+    this.onSound?.({ type: 'gather', kind: 'wood' });
+    if (target.enemy.hits >= CONFIG.knife.hitsToKill[target.enemy.animalKind]) {
+      this.killEnemy(target.enemy.id, false, 'player');
     }
   }
 
@@ -3261,9 +3291,9 @@ export class GameEngine {
       const segmentY = shot.y - previousPosition.y;
       const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
       const candidates = this.state.enemies
-        .filter(enemy => shot.kind === 'arrow'
+        .filter(enemy => !enemy.animalKind && (shot.kind === 'arrow'
           ? !(shot.hitEnemyIds ?? []).includes(enemy.id)
-          : enemy.id === shot.targetId)
+          : enemy.id === shot.targetId))
         .map(enemy => {
           const projection = segmentLengthSquared === 0 ? 0 : this.clamp(
             ((enemy.x - previousPosition.x) * segmentX + (enemy.y - previousPosition.y) * segmentY) / segmentLengthSquared,
@@ -3330,7 +3360,7 @@ export class GameEngine {
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, basicDamage, '#ffffff');
           const damage = shot.damage * CONFIG.mageExplosion.damageMultiplier * vulnerability;
           const hits = this.state.enemies
-            .filter(enemy => enemy.id !== target.id)
+            .filter(enemy => !enemy.animalKind && enemy.id !== target.id)
             .map(enemy => ({ enemy, distance: Math.hypot(enemy.x - impact.x, enemy.y - impact.y) }))
             .filter(({ distance }) => distance <= CONFIG.mageExplosion.radius)
             .sort((a, b) => a.distance - b.distance)
@@ -3369,13 +3399,13 @@ export class GameEngine {
       this.local.druidContagionTimer -= dt;
       while (this.local.druidContagionTimer <= 0) {
         this.local.druidContagionTimer += CONFIG.druidContagion.checkInterval;
-        let poisonedCount = this.state.enemies.filter(enemy => (enemy.poisonRemaining ?? 0) > 0).length;
+        let poisonedCount = this.state.enemies.filter(enemy => !enemy.animalKind && (enemy.poisonRemaining ?? 0) > 0).length;
         if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) continue;
-        const sources = this.state.enemies.filter(enemy => (enemy.poisonRemaining ?? 0) > 0 && (enemy.poisonDamage ?? 0) > 0);
+        const sources = this.state.enemies.filter(enemy => !enemy.animalKind && (enemy.poisonRemaining ?? 0) > 0 && (enemy.poisonDamage ?? 0) > 0);
         for (const source of sources) {
           for (const target of this.state.enemies) {
             if (poisonedCount >= CONFIG.druidContagion.maxPoisoned) break;
-            if (target.id === source.id || (target.poisonRemaining ?? 0) > 0) continue;
+            if (target.animalKind || target.id === source.id || (target.poisonRemaining ?? 0) > 0) continue;
             if (Math.hypot(target.x - source.x, target.y - source.y) > CONFIG.druidContagion.radius) continue;
             target.poisonRemaining = source.poisonRemaining;
             target.poisonTick = source.poisonTick;
@@ -3387,6 +3417,7 @@ export class GameEngine {
       }
     }
     for (const enemy of [...this.state.enemies]) {
+      if (enemy.animalKind) continue;
       const activeTime = Math.min(dt, enemy.poisonRemaining ?? 0);
       if (activeTime <= 0) continue;
       enemy.poisonRemaining = Math.max(0, (enemy.poisonRemaining ?? 0) - dt);
