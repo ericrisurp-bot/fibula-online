@@ -671,6 +671,41 @@ export class GameEngine {
     return true;
   }
 
+  private getCampSlotPosition(slot: 'bau' | 'refinery' | 'tecelaria'): Vec | null {
+    const campfire = this.state.campfire;
+    if (!campfire) return null;
+    const offset = CONFIG.campLayout[slot];
+    return { x: campfire.x + offset.dx, y: campfire.y + offset.dy };
+  }
+
+  private isCampSlotBlocked(slot: 'bau' | 'refinery' | 'tecelaria'): boolean {
+    const position = this.getCampSlotPosition(slot);
+    if (!position) return true;
+    const radius = slot === 'tecelaria' ? 42 : 38;
+    const clearance = CONFIG.campfire.minDistance;
+    const distance = (other: Vec) => Math.hypot(position.x - other.x, position.y - other.y);
+    const blockedByTree = this.state.trees.some(tree =>
+      distance(this.treeBase(tree)) < clearance + radius + this.treeFootprintRadius(tree));
+    const blockedByRock = this.state.rocks.some(rock =>
+      distance(rock) < clearance + radius + this.rockFootprintRadius(rock));
+    const blockedByLake = distanceToLakeEdge(this.state.lake, position.x, position.y) < clearance + radius;
+    const blockedByCart = distance(this.state.cart) < clearance + radius + CONFIG.cart.collisionRadius;
+    const margin = CONFIG.map.wall + CONFIG.house.wallMargin + radius;
+    const outsideMap = position.x < margin || position.y < margin
+      || position.x > this.world - margin || position.y > this.world - margin;
+    const structures = [
+      ...(slot !== 'bau' && this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
+      ...(slot !== 'refinery' && this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 }] : []),
+      ...(slot !== 'tecelaria' && this.state.tecelaria.built ? [{ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 }] : []),
+    ];
+    const blockedByStructure = structures.some(other =>
+      distance(other) < clearance + radius + other.radius);
+    const campfire = this.state.campfire;
+    const blockedByCampfire = !!campfire && distance(campfire) < 27 + radius;
+    return blockedByTree || blockedByRock || blockedByLake || blockedByCart
+      || outsideMap || blockedByStructure || blockedByCampfire;
+  }
+
   placeCampfire(): { ok: true } | { ok: false; reason: 'already' | 'resources' | 'blocked' } {
     if (this.state.campfire) return { ok: false, reason: 'already' };
     const feet = playerFeet(this.state.player);
@@ -692,7 +727,18 @@ export class GameEngine {
     const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
     const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
     const outsideMap = feet.x < margin || feet.y < margin || feet.x > this.world - margin || feet.y > this.world - margin;
-    if (blockedByTree || blockedByRock || blockedByLake || blockedByStructure || outsideMap) return { ok: false, reason: 'blocked' };
+    if (blockedByTree || blockedByRock || blockedByLake || blockedByStructure || outsideMap
+      || (['tecelaria', 'refinery', 'bau'] as const).some(slot => {
+        const offset = CONFIG.campLayout[slot];
+        const position = { x: feet.x + offset.dx, y: feet.y + offset.dy };
+        const radius = slot === 'tecelaria' ? 42 : 38;
+        const margin = CONFIG.map.wall + CONFIG.house.wallMargin + radius;
+        if (position.x < margin || position.y < margin || position.x > this.world - margin || position.y > this.world - margin) return true;
+        if (this.state.trees.some(tree => Math.hypot(position.x - this.treeBase(tree).x, position.y - this.treeBase(tree).y) < minDistance + radius + this.treeFootprintRadius(tree))) return true;
+        if (this.state.rocks.some(rock => Math.hypot(position.x - rock.x, position.y - rock.y) < minDistance + radius + this.rockFootprintRadius(rock))) return true;
+        if (distanceToLakeEdge(this.state.lake, position.x, position.y) < minDistance + radius) return true;
+        return Math.hypot(position.x - this.state.cart.x, position.y - this.state.cart.y) < minDistance + radius + CONFIG.cart.collisionRadius;
+      })) return { ok: false, reason: 'blocked' };
     const consume = (inventory: InventoryStack[], itemId: string, requested: number) => {
       let remaining = requested;
       const next = inventory.flatMap(stack => {
@@ -733,22 +779,7 @@ export class GameEngine {
       return { ok: false, reason: 'resources' };
     }
 
-    const minDistance = CONFIG.campfire.minDistance;
-    const blockedByTree = this.state.trees.some(tree => Math.hypot(feet.x - this.treeBase(tree).x, feet.y - this.treeBase(tree).y) < minDistance + this.treeFootprintRadius(tree));
-    const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
-    const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
-    const obstacles = [
-      ...(this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 }] : []),
-      ...(this.state.tecelaria.built ? [{ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 }] : []),
-      { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
-    ];
-    const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
-    const blockedByCampfire = Math.hypot(feet.x - campfire.x, feet.y - campfire.y) < minDistance;
-    const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
-    const outsideMap = feet.x < margin || feet.y < margin || feet.x > this.world - margin || feet.y > this.world - margin;
-    if (blockedByTree || blockedByRock || blockedByLake || blockedByStructure || blockedByCampfire || outsideMap) {
-      return { ok: false, reason: 'blocked' };
-    }
+    if (this.isCampSlotBlocked('bau')) return { ok: false, reason: 'blocked' };
     return { ok: true };
   }
 
@@ -771,9 +802,9 @@ export class GameEngine {
     const remaining = CONFIG.campChest.woodCost - bagResult.consumed;
     if (remaining > 0) this.state.cart.inventory = consumeWood(this.state.cart.inventory, remaining).inventory;
 
-    const feet = playerFeet(this.state.player);
-    this.state.house.x = feet.x;
-    this.state.house.y = feet.y;
+    const slot = this.getCampSlotPosition('bau')!;
+    this.state.house.x = slot.x;
+    this.state.house.y = slot.y;
     this.state.house.built = true;
     this.emit();
     return { ok: true };
@@ -798,24 +829,7 @@ export class GameEngine {
     ] as const;
     if (!this.applyBatchCosts(costs, false)) return { ok: false, reason: 'resources' };
 
-    const minDistance = CONFIG.campfire.minDistance;
-    const blockedByTree = this.state.trees.some(tree => Math.hypot(feet.x - this.treeBase(tree).x, feet.y - this.treeBase(tree).y) < minDistance + this.treeFootprintRadius(tree));
-    const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
-    const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
-    const otherMachine = machine === 'refinery' ? this.state.tecelaria : this.state.refinery;
-    const otherMachineRadius = machine === 'refinery' ? 42 : 38;
-    const obstacles = [
-      ...(this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
-      ...(otherMachine.built ? [{ x: otherMachine.x, y: otherMachine.y + 1, radius: otherMachineRadius }] : []),
-      { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
-    ];
-    const blockedByStructure = obstacles.some(o => Math.hypot(feet.x - o.x, feet.y - o.y) < minDistance + o.radius);
-    const blockedByCampfire = Math.hypot(feet.x - campfire.x, feet.y - campfire.y) < minDistance;
-    const margin = CONFIG.map.wall + CONFIG.house.wallMargin;
-    const outsideMap = feet.x < margin || feet.y < margin || feet.x > this.world - margin || feet.y > this.world - margin;
-    if (blockedByTree || blockedByRock || blockedByLake || blockedByStructure || blockedByCampfire || outsideMap) {
-      return { ok: false, reason: 'blocked' };
-    }
+    if (this.isCampSlotBlocked(machine)) return { ok: false, reason: 'blocked' };
     return { ok: true };
   }
 
@@ -832,9 +846,9 @@ export class GameEngine {
       ['cotton', CONFIG.campMachines.refinery.cottonCost],
     ] as const;
     if (!this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
-    const feet = playerFeet(this.state.player);
-    this.state.refinery.x = feet.x;
-    this.state.refinery.y = feet.y;
+    const slot = this.getCampSlotPosition('refinery')!;
+    this.state.refinery.x = slot.x;
+    this.state.refinery.y = slot.y;
     this.state.refinery.built = true;
     this.emit();
     return { ok: true };
@@ -853,9 +867,9 @@ export class GameEngine {
       ['cotton', CONFIG.campMachines.tecelaria.cottonCost],
     ] as const;
     if (!this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
-    const feet = playerFeet(this.state.player);
-    this.state.tecelaria.x = feet.x;
-    this.state.tecelaria.y = feet.y;
+    const slot = this.getCampSlotPosition('tecelaria')!;
+    this.state.tecelaria.x = slot.x;
+    this.state.tecelaria.y = slot.y;
     this.state.tecelaria.built = true;
     this.emit();
     return { ok: true };
