@@ -1,4 +1,4 @@
-export type ToolId = 'machadinho' | 'picareta' | 'foice';
+export type ToolId = 'machadinho' | 'picareta' | 'foice' | 'faca';
 type Pt = readonly [number, number];
 
 function P(ctx: CanvasRenderingContext2D, r: number, pts: readonly Pt[], fill: string, stroke = '#2a2320', lw = 1.1) {
@@ -65,13 +65,28 @@ function drawSickle(ctx: CanvasRenderingContext2D, r: number) {
   P(ctx, r, [[1.26,-0.07],[1.34,-0.07],[1.34,0.10],[1.26,0.10]], S3, SO, 0.8);
 }
 
-const DRAW: Record<ToolId, (ctx: CanvasRenderingContext2D, r: number) => void> = { machadinho: drawAxe, picareta: drawPick, foice: drawSickle };
+function drawKnife(ctx: CanvasRenderingContext2D, r: number) {
+  P(ctx, r, [[0,-0.12],[1.12,-0.10],[1.18,0],[1.12,0.10],[0,0.12],[-0.12,0]], W2);
+  P(ctx, r, [[0,-0.105],[1.08,-0.085],[1.12,-0.015],[0,-0.015]], W3, '');
+  P(ctx, r, [[0,-0.015],[1.12,-0.015],[1.12,0.09],[0,0.105]], W1, '');
+  for (let i=0;i<5;i++) { const x=0.18+i*0.16; P(ctx,r,[[x,-0.12],[x+0.07,-0.12],[x+0.17,0.12],[x+0.10,0.12]],i%2?L2:L1,'#2a1a10',0.7); }
+  P(ctx,r,[[-0.08,-0.18],[0.08,-0.18],[0.12,0],[0.08,0.18],[-0.08,0.18],[-0.12,0]],'#c9a45a','#4a3a1c',1);
+  P(ctx,r,[[1.10,-0.13],[1.34,-0.16],[1.56,-0.04],[1.88,0.18],[2.12,0.48],[2.18,0.66],[2.00,0.62],[1.76,0.43],[1.50,0.25],[1.28,0.13]],S3,SO,1.1);
+  P(ctx,r,[[1.16,-0.10],[1.38,-0.12],[1.60,0.02],[1.88,0.25],[2.12,0.48],[2.18,0.66],[1.92,0.47],[1.64,0.27],[1.40,0.12]],S2,'');
+  P(ctx,r,[[1.40,0.12],[1.64,0.27],[1.92,0.47],[2.18,0.66],[2.00,0.62],[1.76,0.43],[1.50,0.25]],S1,'');
+  ctx.save(); ctx.strokeStyle='#f7fbfc'; ctx.lineWidth=Math.max(0.65,r*0.035); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(1.34*r,0.055*r); ctx.quadraticCurveTo(1.78*r,0.25*r,2.10*r,0.62*r); ctx.stroke();
+  ctx.strokeStyle='#ffffff'; ctx.globalAlpha=0.72; ctx.lineWidth=Math.max(0.5,r*0.022);
+  ctx.beginPath(); ctx.moveTo(1.45*r,-0.045*r); ctx.quadraticCurveTo(1.72*r,0.02*r,1.98*r,0.31*r); ctx.stroke(); ctx.restore();
+}
+
+const DRAW: Record<ToolId, (ctx: CanvasRenderingContext2D, r: number) => void> = { machadinho: drawAxe, picareta: drawPick, foice: drawSickle, faca: drawKnife };
 
 /** Arte: origem na ponta do cabo, ferramenta aponta para +x, gume/ponta lidera no lado +y. */
 export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number): void { DRAW[tool](ctx, r); }
 
 // Animação de relógio: 12h -> alvo. Ponto de impacto local de cada ferramenta (unidades de r).
-const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0] };
+const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0], faca: [2.10, 0.66] };
 /** Escala da ferramenta flutuante em relação à arte original. */
 export const TOOL_SCALE = 1.0;
 const ease = { out: (t: number) => 1 - Math.pow(1 - t, 3), in: (t: number) => t * t * t };
