@@ -1,41 +1,224 @@
 export type EnvironmentSize = 'small' | 'medium' | 'large';
 
-export const createGrassTile = () => {
+const GRASS_TILE_SIZE = 512;
+const GRASS_BASE = '#557a43';
+
+function seededRandom(initialSeed: number) {
+  let seed = (initialSeed >>> 0) || 1;
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+function createGrassVariant(seed: number) {
   const tile = document.createElement('canvas');
-  tile.width = 256;
-  tile.height = 256;
+  tile.width = GRASS_TILE_SIZE;
+  tile.height = GRASS_TILE_SIZE;
   const ctx = tile.getContext('2d');
   if (!ctx) return tile;
-  let seed = 173;
-  const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-  ctx.fillStyle = '#557a43';
-  ctx.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 46; i++) {
-    const x = random() * 256, y = random() * 256;
-    const radius = 8 + random() * 25;
-    ctx.fillStyle = ['rgba(105,139,69,0.24)', 'rgba(38,91,48,0.18)', 'rgba(133,145,76,0.12)'][Math.floor(random() * 3)];
+  const random = seededRandom(seed);
+  ctx.fillStyle = GRASS_BASE;
+  ctx.fillRect(0, 0, GRASS_TILE_SIZE, GRASS_TILE_SIZE);
+
+  // Manchas discretas e irregulares dão variação sem criar faixas ou blocos.
+  for (let i = 0; i < 34; i++) {
+    const x = random() * GRASS_TILE_SIZE;
+    const y = random() * GRASS_TILE_SIZE;
+    const radius = 12 + random() * 34;
+    ctx.fillStyle = [
+      'rgba(119,151,76,0.12)',
+      'rgba(37,78,42,0.13)',
+      'rgba(151,151,82,0.08)',
+    ][Math.floor(random() * 3)];
     ctx.beginPath();
-    ctx.ellipse(x, y, radius, radius * (0.45 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2);
+    ctx.ellipse(x, y, radius, radius * (0.38 + random() * 0.7), random() * Math.PI, 0, Math.PI * 2);
     ctx.fill();
   }
-  for (let i = 0; i < 420; i++) {
-    const x = random() * 256, y = random() * 256;
-    ctx.strokeStyle = random() > 0.5 ? 'rgba(158,180,104,0.32)' : 'rgba(31,75,39,0.28)';
-    ctx.lineWidth = 0.7 + random() * 0.8;
+
+  // Fios maiores, curvos e em três tons para continuarem legíveis em escala real.
+  const grassTones = ['rgba(166,190,111,0.48)', 'rgba(116,151,77,0.58)', 'rgba(40,91,47,0.52)'];
+  for (let i = 0; i < 620; i++) {
+    const x = random() * GRASS_TILE_SIZE;
+    const y = random() * GRASS_TILE_SIZE;
+    const height = 3 + random() * 6;
+    const lean = (random() - 0.5) * 8;
+    ctx.strokeStyle = grassTones[Math.floor(random() * grassTones.length)];
+    ctx.lineWidth = 0.9 + random() * 1.1;
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x + (random() - 0.5) * 4, y - 1 - random() * 4);
+    ctx.quadraticCurveTo(x + lean * 0.45, y - height * 0.65, x + lean, y - height);
     ctx.stroke();
   }
-  for (let i = 0; i < 12; i++) {
-    const x = random() * 256, y = random() * 256;
-    ctx.fillStyle = 'rgba(105,78,48,0.18)';
+
+  for (let i = 0; i < 48; i++) {
+    const x = random() * GRASS_TILE_SIZE;
+    const y = random() * GRASS_TILE_SIZE;
+    const height = 5 + random() * 5;
+    ctx.strokeStyle = random() > 0.5 ? 'rgba(171,194,113,0.58)' : 'rgba(42,91,46,0.62)';
+    ctx.lineWidth = 1.2;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.ellipse(x, y, 3 + random() * 7, 2 + random() * 4, random() * Math.PI, 0, Math.PI * 2);
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x - 5, y - height * 0.6, x - 3, y - height);
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + 4, y - height * 0.65, x + 5, y - height * 0.9);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < 9; i++) {
+    const x = random() * GRASS_TILE_SIZE;
+    const y = random() * GRASS_TILE_SIZE;
+    ctx.fillStyle = 'rgba(105,78,48,0.13)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 2 + random() * 5, 1.5 + random() * 3, random() * Math.PI, 0, Math.PI * 2);
     ctx.fill();
   }
   return tile;
+}
+
+/** Mosaico 2x2 de quatro variantes independentes, cada uma com 512 px. */
+export const createGrassTile = () => {
+  const mosaic = document.createElement('canvas');
+  mosaic.width = GRASS_TILE_SIZE * 2;
+  mosaic.height = GRASS_TILE_SIZE * 2;
+  const ctx = mosaic.getContext('2d');
+  if (!ctx) return mosaic;
+  ctx.fillStyle = GRASS_BASE;
+  ctx.fillRect(0, 0, mosaic.width, mosaic.height);
+  try {
+    const variants = [173, 947, 2719, 7919].map(createGrassVariant);
+    variants.forEach((variant, index) => {
+      const x = (index % 2) * GRASS_TILE_SIZE;
+      const y = Math.floor(index / 2) * GRASS_TILE_SIZE;
+      ctx.drawImage(variant, x, y);
+    });
+  } catch {
+    ctx.fillStyle = GRASS_BASE;
+    ctx.fillRect(0, 0, mosaic.width, mosaic.height);
+  }
+  return mosaic;
 };
+
+/** Variação estática do chão; chamada uma única vez ao preparar o terrainCanvas. */
+export function drawGrassTerrainDetails(
+  ctx: CanvasRenderingContext2D,
+  worldSize: number,
+  lake?: { x: number; y: number; rx: number; ry: number },
+) {
+  const random = seededRandom(0x61f1ba);
+  const center = worldSize / 2;
+  const safeRadius = Math.max(210, worldSize * 0.055);
+  const isNearSpawn = (x: number, y: number) => Math.hypot(x - center, y - center) < safeRadius;
+  const isNearLake = (x: number, y: number) => {
+    if (!lake || lake.rx <= 0 || lake.ry <= 0) return false;
+    const nx = (x - lake.x) / (lake.rx + 90);
+    const ny = (y - lake.y) / (lake.ry + 90);
+    return nx * nx + ny * ny < 1;
+  };
+
+  // Grandes manchas com contorno orgânico e transparência baixa.
+  const patchColors = [
+    'rgba(91,111,57,0.10)',
+    'rgba(42,76,43,0.09)',
+    'rgba(119,143,67,0.08)',
+  ];
+  for (let i = 0; i < 105; i++) {
+    const x = random() * worldSize;
+    const y = random() * worldSize;
+    if (isNearSpawn(x, y)) continue;
+    const radius = 100 + random() * 200;
+    ctx.save();
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = patchColors[Math.floor(random() * patchColors.length)];
+    ctx.beginPath();
+    const points = 11;
+    for (let p = 0; p < points; p++) {
+      const angle = (p / points) * Math.PI * 2;
+      const wobble = radius * (0.72 + random() * 0.42);
+      const px = x + Math.cos(angle) * wobble;
+      const py = y + Math.sin(angle) * wobble * (0.65 + random() * 0.45);
+      if (p === 0) ctx.moveTo(px, py);
+      else ctx.quadraticCurveTo(
+        x + Math.cos(angle - Math.PI / points) * radius,
+        y + Math.sin(angle - Math.PI / points) * radius,
+        px, py,
+      );
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Faixa úmida junto à muralha, sem interferir no traço/colisão da própria muralha.
+  const edgeWidth = 105;
+  const edgeGradient = ctx.createLinearGradient(0, 0, edgeWidth, 0);
+  edgeGradient.addColorStop(0, 'rgba(35,65,39,0.20)');
+  edgeGradient.addColorStop(1, 'rgba(35,65,39,0)');
+  ctx.fillStyle = edgeGradient;
+  ctx.fillRect(0, 0, edgeWidth, worldSize);
+  const rightGradient = ctx.createLinearGradient(worldSize, 0, worldSize - edgeWidth, 0);
+  rightGradient.addColorStop(0, 'rgba(35,65,39,0.20)');
+  rightGradient.addColorStop(1, 'rgba(35,65,39,0)');
+  ctx.fillStyle = rightGradient;
+  ctx.fillRect(worldSize - edgeWidth, 0, edgeWidth, worldSize);
+  const topGradient = ctx.createLinearGradient(0, 0, 0, edgeWidth);
+  topGradient.addColorStop(0, 'rgba(35,65,39,0.20)');
+  topGradient.addColorStop(1, 'rgba(35,65,39,0)');
+  ctx.fillStyle = topGradient;
+  ctx.fillRect(0, 0, worldSize, edgeWidth);
+  const bottomGradient = ctx.createLinearGradient(0, worldSize, 0, worldSize - edgeWidth);
+  bottomGradient.addColorStop(0, 'rgba(35,65,39,0.20)');
+  bottomGradient.addColorStop(1, 'rgba(35,65,39,0)');
+  ctx.fillStyle = bottomGradient;
+  ctx.fillRect(0, worldSize - edgeWidth, worldSize, edgeWidth);
+
+  if (lake && lake.rx > 0 && lake.ry > 0) {
+    const shore = ctx.createRadialGradient(lake.x, lake.y, Math.min(lake.rx, lake.ry) * 0.82, lake.x, lake.y, Math.max(lake.rx, lake.ry) + 115);
+    shore.addColorStop(0, 'rgba(40,74,43,0)');
+    shore.addColorStop(0.72, 'rgba(40,74,43,0.11)');
+    shore.addColorStop(1, 'rgba(40,74,43,0)');
+    ctx.fillStyle = shore;
+    ctx.beginPath();
+    ctx.ellipse(lake.x, lake.y, lake.rx + 115, lake.ry + 115, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Pequenos detalhes orgânicos, espaçados e fora do ponto inicial do jogador.
+  for (let i = 0; i < 460; i++) {
+    const x = random() * worldSize;
+    const y = random() * worldSize;
+    if (isNearSpawn(x, y) || isNearLake(x, y)) continue;
+    const kind = random();
+    if (kind < 0.48) {
+      ctx.strokeStyle = random() > 0.5 ? 'rgba(174,195,111,0.62)' : 'rgba(46,91,48,0.58)';
+      ctx.lineWidth = 1.3 + random() * 0.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + (random() - 0.5) * 8, y - 5, x + (random() - 0.5) * 10, y - 8 - random() * 4);
+      ctx.stroke();
+    } else if (kind < 0.59) {
+      ctx.fillStyle = random() > 0.5 ? '#e9e4c9' : '#d9bd58';
+      ctx.globalAlpha = 0.72;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.1 + random() * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (kind < 0.78) {
+      ctx.fillStyle = 'rgba(129,103,66,0.48)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 2 + random() * 2.5, 1 + random() * 1.5, random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = 'rgba(157,164,143,0.52)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 1.5 + random() * 2, 1 + random(), random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
 
 export function drawTree(ctx: CanvasRenderingContext2D, x: number, y: number, size: EnvironmentSize) {
           const scale = size === 'small' ? 1.75 : size === 'medium' ? 2.45 : 3.25;
