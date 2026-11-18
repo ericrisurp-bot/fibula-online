@@ -4001,9 +4001,12 @@ export default function App() {
       // Reabre a sincronização para que o jogador possa tentar novamente.
       houseMatchClosedRef.current = false;
       void houseOutboxDrainRef.current();
-      setExitConfirmationError(cause instanceof Error
+      const errorMessage = cause instanceof Error
         ? cause.message
-        : 'Não foi possível finalizar a partida. Você continua nela.');
+        : cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string'
+          ? cause.message
+          : 'Não foi possível finalizar a partida. Você continua nela.';
+      setExitConfirmationError(errorMessage);
     } finally {
       exitConfirmationBusyRef.current = false;
       setExitConfirmationBusy(false);

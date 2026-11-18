@@ -310,7 +310,7 @@ export async function abandonSoloMatchSession(
   const { data, error } = await client.rpc('fibula_abandon_solo_match', {
     p_session_id: sessionId,
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Não foi possível confirmar o abandono da partida.');
   if (data !== 'accepted' && data !== 'duplicate' && data !== 'rejected') {
     throw new Error('O servidor retornou uma resposta inválida para o abandono da partida.');
   }
