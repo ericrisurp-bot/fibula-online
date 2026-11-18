@@ -14,6 +14,7 @@ const transitionTimers = new Set<number>();
 const owlTimers = new Set<number>();
 const activeSources = new Set<AudioScheduledSourceNode>();
 const owlSources = new Set<AudioScheduledSourceNode>();
+const sourceGainNodes = new Map<AudioScheduledSourceNode, GainNode>();
 let windSource: AudioBufferSourceNode | null = null;
 let windBandpass: BiquadFilterNode | null = null;
 let windLowpass: BiquadFilterNode | null = null;
@@ -72,16 +73,32 @@ function routeVoice(source: AudioScheduledSourceNode, nodes: AudioNode[], output
   }
   previous.connect(output);
   activeSources.add(source);
+  const envelopeGain = nodes.find(node => node instanceof GainNode) as GainNode | undefined;
+  if (envelopeGain) sourceGainNodes.set(source, envelopeGain);
   if (owl) owlSources.add(source);
   source.addEventListener('ended', () => {
     try { source.disconnect(); } catch { /* A fonte já está desconectada. */ }
     activeSources.delete(source);
     owlSources.delete(source);
+    sourceGainNodes.delete(source);
     for (const node of nodes) {
       try { node.disconnect(); } catch { /* Nó já desconectado. */ }
     }
   }, { once: true });
   return true;
+}
+
+function fadeAndStop(source: AudioScheduledSourceNode, seconds: number) {
+  const context = audioContext;
+  if (!context) return;
+  const now = context.currentTime;
+  const gain = sourceGainNodes.get(source);
+  if (gain) {
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+    gain.gain.linearRampToValueAtTime(0.0001, now + seconds);
+  }
+  try { source.stop(now + seconds + 0.05); } catch { /* A fonte já terminou ou está parando. */ }
 }
 
 function stopWind(seconds = 0) {
@@ -90,18 +107,13 @@ function stopWind(seconds = 0) {
   windBandpass = null;
   windLowpass = null;
   windGain = null;
-  if (!source) return;
-  try {
-    if (audioContext && seconds > 0) source.stop(audioContext.currentTime + seconds);
-    else source.stop();
-  } catch { /* A fonte já terminou ou está parando. */ }
+  if (source) fadeAndStop(source, seconds);
 }
 
 function stopSourcesSoon(seconds: number) {
-  const context = audioContext;
-  if (!context) return;
   for (const source of activeSources) {
-    try { source.stop(context.currentTime + seconds); } catch { /* A fonte já terminou ou está parando. */ }
+    if (source === windSource) continue;
+    fadeAndStop(source, seconds);
   }
   stopWind(seconds);
 }
@@ -400,11 +412,40 @@ function fadeNight(target: number, seconds: number) {
 }
 
 function stopOwlSourcesSoon(seconds: number) {
+  for (const source of owlSources) fadeAndStop(source, seconds);
+}
+
+function playPhaseChord(nextPhase: DayNightPhase) {
   const context = audioContext;
-  if (!context) return;
-  for (const source of owlSources) {
-    try { source.stop(context.currentTime + seconds); } catch { /* A fonte já terminou ou está parando. */ }
-  }
+  const buses = soundBuses;
+  if (!context || !buses) return;
+
+  // Quatro vozes no máximo; cada nota é baixa para manter o pico somado abaixo de 0,05.
+  const notes = nextPhase === 'day'
+    ? [261.6, 329.6, 392, 523.2]
+    : [329.6, 261.6, 220];
+  notes.forEach((frequency, index) => {
+    const at = context.currentTime + index * 0.075;
+    const duration = 1.5;
+    const oscillator = context.createOscillator();
+    oscillator.type = index % 2 === 0 ? 'sine' : 'triangle';
+    oscillator.frequency.setValueAtTime(frequency, at);
+    oscillator.detune.setValueAtTime(audioManager.rand(-3, 3), at);
+    const filter = context.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2000, at);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(0.009, at + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+
+    if (!routeVoice(oscillator, [gain, filter], buses.ambienceBus)) {
+      try { gain.disconnect(); filter.disconnect(); } catch { /* Nó já desconectado. */ }
+      return;
+    }
+    oscillator.start(at);
+    oscillator.stop(at + duration + 0.05);
+  });
 }
 
 export const ambience = {
@@ -440,8 +481,10 @@ export const ambience = {
   },
 
   setPhase(nextPhase: DayNightPhase) {
+    const changed = phase !== nextPhase;
     phase = nextPhase;
     if (!active || !audioContext || !masterGain) return;
+    if (changed) playPhaseChord(nextPhase);
     if (nextPhase === 'day') {
       clearTimers(owlTimers);
       stopOwlSourcesSoon(5);
