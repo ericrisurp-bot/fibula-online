@@ -80,6 +80,90 @@ function drawKnife(ctx: CanvasRenderingContext2D, r: number) {
   ctx.beginPath(); ctx.moveTo(1.45*r,-0.045*r); ctx.quadraticCurveTo(1.72*r,0.02*r,1.98*r,0.31*r); ctx.stroke(); ctx.restore();
 }
 
+export type FishingRodOptions = {
+  startX: number;
+  startY: number;
+  tipX: number;
+  tipY: number;
+  hookX: number;
+  hookY: number;
+  pull: number;
+};
+
+/** Vara simples de madeira, linha única e boia. */
+export function drawFishingRod(ctx: CanvasRenderingContext2D, _r: number, opts: FishingRodOptions): void {
+  const dx = opts.tipX - opts.startX;
+  const dy = opts.tipY - opts.startY;
+  const length = Math.max(1, Math.hypot(dx, dy));
+  const angle = Math.atan2(dy, dx);
+  const pull = Math.max(0, Math.min(1, opts.pull));
+  const rodLengthScale = 2.4;
+  const rodWidthScale = 0.8;
+  const flex = pull * Math.min(4.2, length * 0.075);
+  const yAt = (x: number) => flex * (x / length) * (x / length);
+
+  // Haste lisa e afunilada: sem molinete, passadores ou junções decorativas.
+  ctx.save();
+  ctx.translate(opts.startX, opts.startY);
+  ctx.rotate(angle);
+  ctx.scale(rodLengthScale, rodWidthScale);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#543820';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(length * 0.52, yAt(length * 0.52), length, yAt(length));
+  ctx.stroke();
+  ctx.strokeStyle = '#b98a58';
+  ctx.lineWidth = 2.0;
+  ctx.beginPath();
+  ctx.moveTo(1, -0.35);
+  ctx.quadraticCurveTo(length * 0.52, yAt(length * 0.52) - 0.35, length - 0.5, yAt(length) - 0.2);
+  ctx.stroke();
+  ctx.restore();
+
+  // A ponta acompanha a vara 3x mais longa; a boia também é afastada 3x.
+  const rodTipX = opts.startX + Math.cos(angle) * length * rodLengthScale - Math.sin(angle) * flex * rodWidthScale;
+  const rodTipY = opts.startY + Math.sin(angle) * length * rodLengthScale + Math.cos(angle) * flex * rodWidthScale;
+  const sink = pull * 5.5;
+  const floatX = opts.hookX * rodLengthScale;
+  const floatY = opts.hookY * rodLengthScale + sink;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(35,43,43,0.72)';
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(rodTipX, rodTipY);
+  ctx.lineTo(floatX, floatY);
+  ctx.stroke();
+
+  // Boia mantida; afunda durante a puxada.
+  const bobberAlpha = Math.max(0, 1 - pull * 1.08);
+  if (bobberAlpha > 0.02) {
+    ctx.globalAlpha = bobberAlpha;
+    ctx.fillStyle = '#eee9d9';
+    ctx.strokeStyle = '#563a2b';
+    ctx.lineWidth = 0.85;
+    ctx.beginPath();
+    ctx.ellipse(floatX, floatY, 2.35, 3.5, -0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#c94b3d';
+    ctx.beginPath();
+    ctx.ellipse(floatX, floatY - 1.55, 2.15, 1.85, -0.18, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff5df';
+    ctx.lineWidth = 0.65;
+    ctx.beginPath();
+    ctx.moveTo(floatX - 1.1, floatY + 1.5);
+    ctx.lineTo(floatX + 1.1, floatY + 1.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 const DRAW: Record<ToolId, (ctx: CanvasRenderingContext2D, r: number) => void> = { machadinho: drawAxe, picareta: drawPick, foice: drawSickle, faca: drawKnife };
 
 /** Arte: origem na ponta do cabo, ferramenta aponta para +x, gume/ponta lidera no lado +y. */
