@@ -91,7 +91,7 @@ export type FishingRodOptions = {
 };
 
 /** Vara simples de madeira, linha única e boia. */
-export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: FishingRodOptions): void {
+export function drawFishingRod(ctx: CanvasRenderingContext2D, _r: number, opts: FishingRodOptions): void {
   const dx = opts.tipX - opts.startX;
   const dy = opts.tipY - opts.startY;
   const length = Math.max(1, Math.hypot(dx, dy));
