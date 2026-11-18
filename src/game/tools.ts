@@ -66,18 +66,62 @@ function drawSickle(ctx: CanvasRenderingContext2D, r: number) {
 }
 
 function drawKnife(ctx: CanvasRenderingContext2D, r: number) {
+  // Cabo de madeira e empunhadura mantêm a proporção original.
   P(ctx, r, [[0,-0.12],[1.12,-0.10],[1.18,0],[1.12,0.10],[0,0.12],[-0.12,0]], W2);
   P(ctx, r, [[0,-0.105],[1.08,-0.085],[1.12,-0.015],[0,-0.015]], W3, '');
   P(ctx, r, [[0,-0.015],[1.12,-0.015],[1.12,0.09],[0,0.105]], W1, '');
   for (let i=0;i<5;i++) { const x=0.18+i*0.16; P(ctx,r,[[x,-0.12],[x+0.07,-0.12],[x+0.17,0.12],[x+0.10,0.12]],i%2?L2:L1,'#2a1a10',0.7); }
+
+  // Guarda dourada curta, perpendicular ao eixo da ferramenta.
   P(ctx,r,[[-0.08,-0.18],[0.08,-0.18],[0.12,0],[0.08,0.18],[-0.08,0.18],[-0.12,0]],'#c9a45a','#4a3a1c',1);
-  P(ctx,r,[[1.10,-0.13],[1.34,-0.16],[1.56,-0.04],[1.88,0.18],[2.12,0.48],[2.18,0.66],[2.00,0.62],[1.76,0.43],[1.50,0.25],[1.28,0.13]],S3,SO,1.1);
-  P(ctx,r,[[1.16,-0.10],[1.38,-0.12],[1.60,0.02],[1.88,0.25],[2.12,0.48],[2.18,0.66],[1.92,0.47],[1.64,0.27],[1.40,0.12]],S2,'');
-  P(ctx,r,[[1.40,0.12],[1.64,0.27],[1.92,0.47],[2.18,0.66],[2.00,0.62],[1.76,0.43],[1.50,0.25]],S1,'');
-  ctx.save(); ctx.strokeStyle='#f7fbfc'; ctx.lineWidth=Math.max(0.65,r*0.035); ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(1.34*r,0.055*r); ctx.quadraticCurveTo(1.78*r,0.25*r,2.10*r,0.62*r); ctx.stroke();
-  ctx.strokeStyle='#ffffff'; ctx.globalAlpha=0.72; ctx.lineWidth=Math.max(0.5,r*0.022);
-  ctx.beginPath(); ctx.moveTo(1.45*r,-0.045*r); ctx.quadraticCurveTo(1.72*r,0.02*r,1.98*r,0.31*r); ctx.stroke(); ctx.restore();
+
+  // Espiga embutida, ricasso curto e lâmina larga, reta no eixo y=0.
+  P(ctx,r,[
+    [1.08,-0.105],[1.30,-0.12],[1.42,-0.17],
+    [2.42,-0.17],[2.68,0],
+    [2.48,0.055],[2.12,0.145],[1.62,0.17],
+    [1.42,0.15],[1.30,0.105],[1.08,0.095]
+  ],S3,SO,1.1);
+
+  // Dorso escuro e plano; a ponta permanece no eixo do cabo.
+  P(ctx,r,[
+    [1.30,-0.12],[1.42,-0.17],[2.42,-0.17],
+    [2.68,0],[2.36,-0.075],[1.72,-0.075],[1.42,-0.07]
+  ],S4,'');
+
+  // Plano central de aço, com friso fino longitudinal.
+  P(ctx,r,[
+    [1.34,-0.075],[1.46,-0.125],[2.40,-0.125],
+    [2.61,-0.005],[2.38,0.025],[1.72,0.035],[1.46,0.035]
+  ],S2,'');
+
+  ctx.save();
+  ctx.strokeStyle=S3;
+  ctx.lineWidth=Math.max(0.65,r*0.025);
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(1.48*r,-0.018*r);
+  ctx.lineTo(2.48*r,-0.012*r);
+  ctx.stroke();
+
+  // Gume claro, levemente arredondado apenas na face inferior.
+  ctx.strokeStyle='#f7fbfc';
+  ctx.lineWidth=Math.max(0.8,r*0.04);
+  ctx.beginPath();
+  ctx.moveTo(1.43*r,0.105*r);
+  ctx.quadraticCurveTo(2.12*r,0.145*r,2.48*r,0.055*r);
+  ctx.quadraticCurveTo(2.59*r,0.035*r,2.68*r,0);
+  ctx.stroke();
+
+  // Reflexo estreito junto ao dorso, sem alterar o eixo da ponta.
+  ctx.strokeStyle='#ffffff';
+  ctx.globalAlpha=0.72;
+  ctx.lineWidth=Math.max(0.5,r*0.022);
+  ctx.beginPath();
+  ctx.moveTo(1.52*r,-0.105*r);
+  ctx.lineTo(2.40*r,-0.105*r);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export type FishingRodOptions = {
@@ -170,7 +214,7 @@ const DRAW: Record<ToolId, (ctx: CanvasRenderingContext2D, r: number) => void> =
 export function drawTool(ctx: CanvasRenderingContext2D, tool: ToolId, r: number): void { DRAW[tool](ctx, r); }
 
 // Animação de relógio: 12h -> alvo. Ponto de impacto local de cada ferramenta (unidades de r).
-const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0], faca: [2.10, 0.66] };
+const IMP: Record<ToolId, Pt> = { machadinho: [1.9, 1.10], picareta: [1.85, 1.25], foice: [1.65, 1.0], faca: [2.45, 0.10] };
 /** Escala da ferramenta flutuante em relação à arte original. */
 export const TOOL_SCALE = 1.0;
 const ease = { out: (t: number) => 1 - Math.pow(1 - t, 3), in: (t: number) => t * t * t };
