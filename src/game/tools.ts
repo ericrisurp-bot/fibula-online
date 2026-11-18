@@ -90,129 +90,77 @@ export type FishingRodOptions = {
   pull: number;
 };
 
-/** Vara de bambu com empunhadura, passadores, linha, anzol e boia. */
+/** Vara simples de madeira, linha única e boia. */
 export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: FishingRodOptions): void {
   const dx = opts.tipX - opts.startX;
   const dy = opts.tipY - opts.startY;
   const length = Math.max(1, Math.hypot(dx, dy));
   const angle = Math.atan2(dy, dx);
   const pull = Math.max(0, Math.min(1, opts.pull));
-  const detailScale = Math.max(0.75, Math.min(1.25, r / 18));
   const rodLengthScale = 3;
   const rodWidthScale = 0.8;
   const flex = pull * Math.min(4.2, length * 0.075);
   const yAt = (x: number) => flex * (x / length) * (x / length);
 
+  // Haste lisa e afunilada: sem molinete, passadores ou junções decorativas.
   ctx.save();
   ctx.translate(opts.startX, opts.startY);
   ctx.rotate(angle);
   ctx.scale(rodLengthScale, rodWidthScale);
-
-  // Cabo revestido em couro e cortiça, com costuras diagonais discretas.
   ctx.lineCap = 'round';
-  ctx.strokeStyle = '#49301f'; ctx.lineWidth = 5.2;
-  ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(Math.min(14, length * 0.28), 0); ctx.stroke();
-  ctx.strokeStyle = '#a8794e'; ctx.lineWidth = 3.8;
-  ctx.beginPath(); ctx.moveTo(2, -0.2); ctx.lineTo(Math.min(13, length * 0.26), -0.2); ctx.stroke();
-  ctx.strokeStyle = '#d0a477'; ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.moveTo(3, -1.5); ctx.lineTo(Math.min(12, length * 0.24), -1.5); ctx.stroke();
-  ctx.strokeStyle = '#5a3827'; ctx.lineWidth = 1;
-  for (let x = 4; x < Math.min(13, length * 0.25); x += 3) {
-    ctx.beginPath(); ctx.moveTo(x, -2); ctx.lineTo(x + 1.5, 2); ctx.stroke();
-  }
-
-  // Três seções de bambu afuniladas, com veios claros e junções metálicas.
-  const sections = [
-    { from: Math.min(13, length * 0.27), to: length * 0.43, width: 3.1, color: '#8b6038', light: '#c99a60' },
-    { from: length * 0.43, to: length * 0.73, width: 2.35, color: '#a87945', light: '#dfb77b' },
-    { from: length * 0.73, to: Math.max(length * 0.74, length - 3), width: 1.55, color: '#c49a60', light: '#f0d49a' },
-  ];
-  for (const section of sections) {
-    const from = Math.max(0, section.from);
-    const to = Math.max(from + 1, section.to);
-    const drawCurve = (offset: number) => {
-      ctx.beginPath();
-      ctx.moveTo(from, yAt(from) + offset);
-      ctx.quadraticCurveTo((from + to) * 0.5, yAt((from + to) * 0.5) + offset, to, yAt(to) + offset);
-    };
-    ctx.strokeStyle = '#543820'; ctx.lineWidth = section.width + 1.1; drawCurve(0); ctx.stroke();
-    ctx.strokeStyle = section.color; ctx.lineWidth = section.width; drawCurve(0); ctx.stroke();
-    ctx.strokeStyle = section.light; ctx.lineWidth = Math.max(0.55, section.width * 0.23); drawCurve(-section.width * 0.23); ctx.stroke();
-  }
-
-  // Anéis de união entre as três partes.
-  for (const x of [length * 0.43, length * 0.73]) {
-    ctx.fillStyle = '#56616a';
-    ctx.fillRect(x - 1.5, yAt(x) - 2.2, 3, 4.4);
-    ctx.fillStyle = '#c6d0d2';
-    ctx.fillRect(x - 0.7, yAt(x) - 2.1, 0.8, 4.2);
-    ctx.strokeStyle = '#35434b'; ctx.lineWidth = 0.65; ctx.strokeRect(x - 1.5, yAt(x) - 2.2, 3, 4.4);
-  }
-
-  // Pequeno molinete lateral, preso ao cabo.
-  ctx.fillStyle = '#39454b'; ctx.strokeStyle = '#202a30'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.ellipse(10, 4.2, 4.1, 3.1, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#aeb9bb'; ctx.beginPath(); ctx.ellipse(10, 4.2, 2.1, 1.45, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#d6ddda'; ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.moveTo(10, 1.2); ctx.lineTo(13.2, -0.4); ctx.stroke();
-
-  // Três passadores de linha, progressivamente menores em direção à ponta.
-  const guides = [
-    { x: length * 0.43, size: 2.6 },
-    { x: length * 0.68, size: 1.9 },
-    { x: length * 0.87, size: 1.25 },
-  ];
-  for (const guide of guides) {
-    const y = yAt(guide.x);
-    ctx.strokeStyle = '#46545a'; ctx.lineWidth = 1.1;
-    ctx.beginPath(); ctx.ellipse(guide.x, y, guide.size * 0.7, guide.size, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = '#d5dedc'; ctx.lineWidth = 0.55;
-    ctx.beginPath(); ctx.ellipse(guide.x - 0.25, y - 0.25, guide.size * 0.38, guide.size * 0.65, 0, 0, Math.PI * 2); ctx.stroke();
-  }
-
-  // Ponteira clara para destacar a extremidade flexível.
-  ctx.strokeStyle = '#dce7df'; ctx.lineWidth = 1.25 * detailScale;
-  ctx.beginPath(); ctx.moveTo(length - 4, yAt(length - 4)); ctx.lineTo(length, yAt(length)); ctx.stroke();
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#543820';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(length * 0.52, yAt(length * 0.52), length, yAt(length));
+  ctx.stroke();
+  ctx.strokeStyle = '#b98a58';
+  ctx.lineWidth = 2.0;
+  ctx.beginPath();
+  ctx.moveTo(1, -0.35);
+  ctx.quadraticCurveTo(length * 0.52, yAt(length * 0.52) - 0.35, length - 0.5, yAt(length) - 0.2);
+  ctx.stroke();
   ctx.restore();
 
-  // A linha parte da nova ponta ampliada; a boia afunda durante a puxada.
+  // A ponta acompanha a vara 3x mais longa; a boia também é afastada 3x.
   const rodTipX = opts.startX + Math.cos(angle) * length * rodLengthScale - Math.sin(angle) * flex * rodWidthScale;
   const rodTipY = opts.startY + Math.sin(angle) * length * rodLengthScale + Math.cos(angle) * flex * rodWidthScale;
   const sink = pull * 5.5;
-  const floatX = opts.hookX;
-  const floatY = opts.hookY + sink;
+  const floatX = opts.hookX * rodLengthScale;
+  const floatY = opts.hookY * rodLengthScale + sink;
+
   ctx.save();
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(35,43,43,0.52)'; ctx.lineWidth = 1.35;
+  ctx.strokeStyle = 'rgba(35,43,43,0.72)';
+  ctx.lineWidth = 1.1;
   ctx.beginPath();
   ctx.moveTo(rodTipX, rodTipY);
-  ctx.quadraticCurveTo((rodTipX + floatX) * 0.5 + 2, (rodTipY + floatY) * 0.5 + 3, floatX, floatY);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(244,240,220,0.9)'; ctx.lineWidth = 0.65;
-  ctx.beginPath();
-  ctx.moveTo(rodTipX, rodTipY + 0.35);
-  ctx.quadraticCurveTo((rodTipX + floatX) * 0.5 + 2, (rodTipY + floatY) * 0.5 + 2, floatX, floatY);
+  ctx.lineTo(floatX, floatY);
   ctx.stroke();
 
+  // Boia mantida; afunda durante a puxada.
   const bobberAlpha = Math.max(0, 1 - pull * 1.08);
   if (bobberAlpha > 0.02) {
     ctx.globalAlpha = bobberAlpha;
-    ctx.fillStyle = '#eee9d9'; ctx.strokeStyle = '#563a2b'; ctx.lineWidth = 0.85;
-    ctx.beginPath(); ctx.ellipse(floatX, floatY, 2.35, 3.5, -0.18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#eee9d9';
+    ctx.strokeStyle = '#563a2b';
+    ctx.lineWidth = 0.85;
+    ctx.beginPath();
+    ctx.ellipse(floatX, floatY, 2.35, 3.5, -0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = '#c94b3d';
-    ctx.beginPath(); ctx.ellipse(floatX, floatY - 1.55, 2.15, 1.85, -0.18, Math.PI, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#fff5df'; ctx.lineWidth = 0.65;
-    ctx.beginPath(); ctx.moveTo(floatX - 1.1, floatY + 1.5); ctx.lineTo(floatX + 1.1, floatY + 1.5); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(floatX, floatY - 1.55, 2.15, 1.85, -0.18, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff5df';
+    ctx.lineWidth = 0.65;
+    ctx.beginPath();
+    ctx.moveTo(floatX - 1.1, floatY + 1.5);
+    ctx.lineTo(floatX + 1.1, floatY + 1.5);
+    ctx.stroke();
   }
-
-  // Anzol pequeno logo abaixo da boia.
-  ctx.globalAlpha = bobberAlpha;
-  ctx.strokeStyle = '#d9e0dc'; ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(floatX, floatY + 2.5);
-  ctx.lineTo(floatX + 0.7, floatY + 5.1);
-  ctx.quadraticCurveTo(floatX + 3.4, floatY + 6.2, floatX + 2.6, floatY + 3.9);
-  ctx.stroke();
   ctx.restore();
 }
 
