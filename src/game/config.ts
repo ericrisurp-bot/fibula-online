@@ -1,6 +1,6 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 const AURA_RADIUS = 40;
-const SWORD_REACH_BEYOND_AURA = 32;
+const SWORD_REACH_BEYOND_AURA = 95;
 
 export type ResourceRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
