@@ -27,7 +27,7 @@ import type { ArmorPiece } from './game/armor';
 import { drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import { drawLake } from './game/lakeRender';
-import { fillCampTexture, fillCampTexturedRect, campTexturePattern, drawCampClearing } from './game/campTextures';
+import { fillCampTexture, fillCampTexturedRect, campTexturePattern } from './game/campTextures';
 import Controls from './ui/Controls';
 import PlayerProfileModal from './ui/PlayerProfileModal';
 import FriendsModal from './ui/FriendsModal';
@@ -2030,7 +2030,6 @@ export default function App() {
           const slot = CONFIG.campLayout.bau;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Baú', 38) });
         }
-        worldDrawables.push({ depth: s.campfire.y - 220, draw: () => drawCampClearing(ctx, s.campfire!, CONFIG.campLayout) });
         if (campMenuOpenRef.current) worldDrawables.push({ depth: s.campfire.y + 10, draw: () => drawCampfireRange(ctx, s.campfire!) });
         worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
       }
@@ -5183,11 +5182,15 @@ export default function App() {
 function drawCampSlotGhost(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, radius: number) {
   ctx.save();
   ctx.globalAlpha = 0.58;
-  ctx.strokeStyle = 'rgba(255,248,229,.98)';
   ctx.fillStyle = 'rgba(238,232,216,.12)';
-  ctx.lineWidth = 2;
   ctx.setLineDash([6, 5]);
-  ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(32,27,22,.82)';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,248,229,.98)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillStyle = '#f0eadc'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(label, x, y);
