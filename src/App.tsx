@@ -24,7 +24,7 @@ import { computeAccessoryAttributeBonuses, equipAccessoryForClass, readEquippedA
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
 import type { ArmorPiece } from './game/armor';
 
-import { drawFloatingTool } from './game/tools';
+import { drawFishingRod, drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import { drawLake } from './game/lakeRender';
 import { fillCampTexture, fillCampTexturedRect, campTexturePattern } from './game/campTextures';
@@ -5394,7 +5394,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
   drawLadino(ctx, classId, r, { walking: moving, phase: walkPhase, breath, carry: carried && moving, direction });
   ctx.restore();
   if (fishing) {
-    // A puxada usa a mesma duração visual das ferramentas de coleta.
+    // Preserva as posições e o ciclo de puxada já usados pela pesca.
     const pullCycle = Math.max(0, Math.min(1, fishingProgress));
     const pullWindow = Math.min(1, CONFIG.gathering.toolAnimationDuration / CONFIG.lake.fishingVisibleDuration);
     const pullProgress = pullCycle >= 1 - pullWindow ? (pullCycle - (1 - pullWindow)) / pullWindow : 0;
@@ -5403,20 +5403,15 @@ function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, weapon:
     const tipY = -r * 0.25 + facingY * 28 - 18 - pull * 7;
     const hookX = facingX * (48 - pull * 10);
     const hookY = facingY * 38 + 5 - pull * 10;
-    ctx.save();
-    ctx.strokeStyle = '#6b4930'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(facingX * 7, -r * 0.25);
-    ctx.lineTo(tipX, tipY);
-    ctx.stroke();
-    ctx.strokeStyle = '#d8c7a1'; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(hookX, hookY);
-    ctx.stroke();
-    ctx.fillStyle = '#e7e2d5';
-    ctx.beginPath(); ctx.arc(hookX, hookY, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    drawFishingRod(ctx, r, {
+      startX: facingX * 7,
+      startY: -r * 0.25,
+      tipX,
+      tipY,
+      hookX,
+      hookY,
+      pull,
+    });
   }
   if (showWeapon && (isNight || (swordSwingTimer > 0 && (weapon === 'cajado' || weapon === 'bastao')))) {
     if (weapon === 'espada') {
