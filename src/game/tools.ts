@@ -97,6 +97,7 @@ export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: F
   const length = Math.max(1, Math.hypot(dx, dy));
   const angle = Math.atan2(dy, dx);
   const pull = Math.max(0, Math.min(1, opts.pull));
+  const detailScale = Math.max(0.75, Math.min(1.25, r / 18));
   const flex = pull * Math.min(4.2, length * 0.075);
   const yAt = (x: number) => flex * (x / length) * (x / length);
 
@@ -167,7 +168,7 @@ export function drawFishingRod(ctx: CanvasRenderingContext2D, r: number, opts: F
   }
 
   // Ponteira clara para destacar a extremidade flexível.
-  ctx.strokeStyle = '#dce7df'; ctx.lineWidth = 1.25;
+  ctx.strokeStyle = '#dce7df'; ctx.lineWidth = 1.25 * detailScale;
   ctx.beginPath(); ctx.moveTo(length - 4, yAt(length - 4)); ctx.lineTo(length, yAt(length)); ctx.stroke();
   ctx.restore();
 
