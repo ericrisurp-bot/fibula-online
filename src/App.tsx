@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { playerFeet } from './game/ground';
-import { createGrassTile, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
+import { createGrassTile, drawGrassTerrainDetails, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
 import { parseCoreItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
@@ -1734,7 +1734,6 @@ export default function App() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
       const pattern = ctx.createPattern(grassTile, 'repeat');
-      if (pattern) pattern.setTransform(new DOMMatrix().scale(0.2));
       ctx.fillStyle = pattern ?? '#557a43';
       ctx.fillRect(0, 0, width, height);
     };
@@ -1893,12 +1892,16 @@ export default function App() {
     const grassTile = createGrassTile();
     if (terrainCtx) {
       terrainCtx.scale(terrainScale, terrainScale);
-      const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
-      if (grassPattern) grassPattern.setTransform(new DOMMatrix().scale(0.2));
-      terrainCtx.fillStyle = grassPattern ?? '#557a43';
-      terrainCtx.fillRect(0, 0, engine.world, engine.world);
-
-
+      try {
+        const grassPattern = terrainCtx.createPattern(grassTile, 'repeat');
+        terrainCtx.fillStyle = grassPattern ?? '#557a43';
+        terrainCtx.fillRect(0, 0, engine.world, engine.world);
+        drawGrassTerrainDetails(terrainCtx, engine.world, engine.state.lake);
+      } catch {
+        terrainCtx.setTransform(terrainScale, 0, 0, terrainScale, 0, 0);
+        terrainCtx.fillStyle = '#557a43';
+        terrainCtx.fillRect(0, 0, engine.world, engine.world);
+      }
     }
     const overlay = document.createElement('canvas');
     const octx = overlay.getContext('2d');
