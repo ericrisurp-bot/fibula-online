@@ -97,7 +97,7 @@ export function drawFishingRod(ctx: CanvasRenderingContext2D, _r: number, opts: 
   const length = Math.max(1, Math.hypot(dx, dy));
   const angle = Math.atan2(dy, dx);
   const pull = Math.max(0, Math.min(1, opts.pull));
-  const rodLengthScale = 3;
+  const rodLengthScale = 2.4;
   const rodWidthScale = 0.8;
   const flex = pull * Math.min(4.2, length * 0.075);
   const yAt = (x: number) => flex * (x / length) * (x / length);
