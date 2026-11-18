@@ -19,8 +19,8 @@ export function playStep(
   const cutoffScale = 1 - 0.35 * n;
   const durationScale = 1 - 0.15 * n;
   const footPitch = foot === 'left' ? 0.94 : 1.06;
-  const pitch = v.pitch * audioManager.rand(0.94, 1.06) * footPitch;
-  const volume = v.volume * audioManager.rand(0.88, 1.12) * nightVolume;
+  const pitch = audioManager.rand(0.94, 1.06) * footPitch;
+  const volume = audioManager.rand(0.88, 1.12) * nightVolume;
   const impactRatio = audioManager.rand(0.85, 1.15);
   const rustleRatio = audioManager.rand(0.85, 1.15);
   const start = context.currentTime + v.delay;
