@@ -1465,14 +1465,14 @@ export default function App() {
     : chestBuildStatus.reason === 'already' ? 'Já construído'
     : chestBuildStatus.reason === 'resources' ? 'Sem madeira'
     : chestBuildStatus.reason === 'outside' ? 'Fora do raio'
-    : chestBuildStatus.reason === 'blocked' ? 'Local ocupado' : 'Sem fogueira';
+    : chestBuildStatus.reason === 'blocked' ? 'Acampamento precisa de espaço livre ao redor' : 'Sem fogueira';
   const refineryBuildStatus = engineRef.current?.getRefineryCampStatus() ?? { ok: false as const, reason: 'nofire' as const };
   const tecelariaBuildStatus = engineRef.current?.getTecelariaCampStatus() ?? { ok: false as const, reason: 'nofire' as const };
   const campMachineStatusLabel = (status: typeof refineryBuildStatus) => status.ok ? 'Construir'
     : status.reason === 'already' ? 'Já construída'
     : status.reason === 'resources' ? 'Sem material'
     : status.reason === 'outside' ? 'Fora do raio'
-    : status.reason === 'blocked' ? 'Local ocupado' : 'Sem fogueira';
+    : status.reason === 'blocked' ? 'Acampamento precisa de espaço livre ao redor' : 'Sem fogueira';
   const refineryBuildStatusLabel = campMachineStatusLabel(refineryBuildStatus);
   const tecelariaBuildStatusLabel = campMachineStatusLabel(tecelariaBuildStatus);
   const cartBuildAccessible = state.cart.stage === 'broken' && cartDistance <= CONFIG.cart.interactRadius;
@@ -2017,6 +2017,18 @@ export default function App() {
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color, s.elapsed) });
       }
       if (s.campfire) {
+        if (!s.tecelaria.built) {
+          const slot = CONFIG.campLayout.tecelaria;
+          worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Tecelaria', 42) });
+        }
+        if (!s.refinery.built) {
+          const slot = CONFIG.campLayout.refinery;
+          worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Refinaria', 38) });
+        }
+        if (!s.house.built) {
+          const slot = CONFIG.campLayout.bau;
+          worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Baú', 38) });
+        }
         if (campMenuOpenRef.current) worldDrawables.push({ depth: s.campfire.y + 10, draw: () => drawCampfireRange(ctx, s.campfire!) });
         worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
       }
@@ -5164,6 +5176,20 @@ export default function App() {
           </section>
         </div>, document.body)}
   </>;
+}
+
+function drawCampSlotGhost(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, radius: number) {
+  ctx.save();
+  ctx.globalAlpha = 0.58;
+  ctx.strokeStyle = 'rgba(238,232,216,.9)';
+  ctx.fillStyle = 'rgba(238,232,216,.08)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#f0eadc'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, x, y);
+  ctx.restore();
 }
 
 function drawCampfireRange(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }) {
