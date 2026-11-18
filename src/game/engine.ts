@@ -324,6 +324,7 @@ export class GameEngine {
   private armorBonusCache: { classId: ClassId; bonuses: ArmorBonuses } | null = null;
   private appliedEquipmentHealth = 0;
   private waitingForCooperativeNightRelease = false;
+  private pendingRockRemovalId: number | null = null;
   private lakeCollisionCircles: LakeCircle[] = [];
   private lakeAvoidanceCircles: LakeCircle[] = [];
   private fishingTimer = 0;
@@ -1475,7 +1476,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
+    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.pendingRockRemovalId = null; this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
     this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.tecelariaHideProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
@@ -1641,7 +1642,7 @@ export class GameEngine {
       // Só conta como nascimento agendado quando o inimigo realmente entra no mapa.
       if (this.hordeScheduled < targetScheduled && this.spawnHordeEnemy()) this.hordeScheduled += 1;
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); if (this.state.rockMineTimer <= 0 && this.pendingRockRemovalId !== null) { const pendingId = this.pendingRockRemovalId; this.pendingRockRemovalId = null; this.state.rocks = this.state.rocks.filter(rock => rock.id !== pendingId); } this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
     if (this.state.classId === 'druida') {
       this.local.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.local.druidOrbHealTimer <= 0) {
@@ -2214,7 +2215,6 @@ export class GameEngine {
       const distance = this.rockFootprintRadius(rock) + 5;
       this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, age: 0, rarity: rock.rarity });
     }
-    if (rock.hits <= 0) this.state.rocks = this.state.rocks.filter(value => value.id !== id);
   }
 
   private hitCottonPlant(id: number) {
@@ -3194,7 +3194,7 @@ export class GameEngine {
       .map(tree => ({ tree, d: this.gatherDist(this.treeBase(tree).x, this.treeBase(tree).y), centerD: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
-      .filter(rock => this.isPlayerAtRock(rock))
+      .filter(rock => rock.hits > 0 && this.isPlayerAtRock(rock))
       .map(rock => ({ rock, d: this.rockGatherDist(rock.x, rock.y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const vegetableTarget = this.state.vegetablePlants.filter(plant => this.isPlayerAtVegetable(plant)).map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y) })).sort((a, b) => a.d - b.d)[0];
@@ -3226,6 +3226,7 @@ export class GameEngine {
       this.state.rockMineAngle = this.anchorGatherTool(rockTarget.rock.x, rockTarget.rock.y - 6 * this.rockDrawScale(rockTarget.rock), rockTarget.rock.y + 12 * this.rockDrawScale(rockTarget.rock) + 1);
       this.state.rockMineTimer = CONFIG.gathering.toolAnimationDuration;
       this.hitRock(rockTarget.rock.id);
+      if (rockTarget.rock.hits <= 0) this.pendingRockRemovalId = rockTarget.rock.id;
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget && (!vegetableTarget || cottonTarget.d <= vegetableTarget.d)) {
       this.state.cottonHarvestAngle = this.anchorGatherTool(cottonTarget.plant.x, cottonTarget.plant.y - 6, cottonTarget.plant.y + 13 * 1.2 + 1);
