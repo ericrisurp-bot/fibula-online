@@ -1888,9 +1888,11 @@ export default function App() {
       if (!active || syncing || !navigator.onLine || Date.now() < retryAt) return;
       syncing = true;
       retryAfterRepair = false;
+      let attemptedBatchId: string | null = null;
       try {
         const batch = await prepareProficiencyBatch(userId, { excludeKeys: blockedKeys });
         if (!batch || !active) return;
+        attemptedBatchId = batch.batchId;
 
         // A sessão e o token são capturados juntos. O cliente desta requisição
         // fica preso ao token dessa conta, mesmo se a sessão mudar durante o envio.
@@ -1948,7 +1950,7 @@ export default function App() {
             const { repairPendingProficiencyBatch } = await import('./game/proficiencyStorage');
             await repairPendingProficiencyBatch(
               userId,
-              (await prepareProficiencyBatch(userId))?.batchId ?? '',
+              attemptedBatchId ?? '',
               classification.keys as import('./game/engine').ProficiencyKey[],
             );
             retryAfterRepair = true;
