@@ -71,8 +71,20 @@ type RankingEntry = {
 let floatingWeaponSide: 1 | -1 = 1;
 let proficiencyStorageWarningShown = false;
 
-type AdventurerGuideObjectives = { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean };
-const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = { cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false };
+type AdventurerGuideObjectives = {
+  cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean;
+  mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number;
+  campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean;
+  mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean;
+  itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number;
+};
+const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
+  cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
+  mission2WoodCollected: false, mission2WoodRemaining: 5, mission2StoneCollected: false, mission2StoneRemaining: 5, mission2CottonCollected: false, mission2CottonRemaining: 5,
+  campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
+  mission4WoodCollected: false, mission4WoodRemaining: 20, campfireReached: false, chestBuilt: false,
+  itemStored: false, refineryWoodRemaining: 20, refineryStoneRemaining: 15,
+};
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
@@ -2122,21 +2134,43 @@ export default function App() {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
       const cartFound = Math.hypot(playerFeetPosition.x - next.cart.x, playerFeetPosition.y - next.cart.y) <= CONFIG.cart.interactRadius;
-      const carriedWood = next.inventory.reduce((total, item) => total + (getBaseItemId(item.itemId) === 'wood' ? item.quantity : 0), 0);
+      const countItem = (itemId: string) => [...next.inventory, ...next.cart.inventory].reduce((total, item) => total + (getBaseItemId(item.itemId) === itemId ? item.quantity : 0), 0);
+      const carriedWood = countItem('wood');
+      const carriedStone = countItem('stone');
+      const carriedCotton = countItem('cotton');
       const cartRepaired = next.cart.stage === 'built';
+      const campfireBuilt = !!next.campfire;
+      const campfireReached = !!next.campfire && Math.hypot(playerFeetPosition.x - next.campfire.x, playerFeetPosition.y - next.campfire.y) <= CONFIG.campfire.buildRadius;
+      const lakeNormalizedDistance = Math.hypot((playerFeetPosition.x - next.lake.x) / Math.max(1, next.lake.rx), (playerFeetPosition.y - next.lake.y) / Math.max(1, next.lake.ry));
+      const lakeEdgeDistance = Math.abs(lakeNormalizedDistance - 1) * Math.min(next.lake.rx, next.lake.ry);
+      const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
+      const lakeFound = next.lake.rx > 0 && next.lake.ry > 0 && lakeNormalizedDistance <= 1.2;
+      const chestBuilt = next.house.built;
+      const itemStored = next.house.inventory.length > 0;
       setAdventurerGuideObjectives(current => {
         const woodCollected = current.woodCollected || carriedWood >= 15 || cartRepaired;
+        const mission2WoodCollected = current.mission2WoodCollected || carriedWood >= 5;
+        const mission2StoneCollected = current.mission2StoneCollected || carriedStone >= 5;
+        const mission2CottonCollected = current.mission2CottonCollected || carriedCotton >= 5;
+        const mission4WoodCollected = current.mission4WoodCollected || carriedWood >= 20;
         const nextObjectives = {
           cartFound: current.cartFound || cartFound || cartRepaired,
-          woodCollected,
-          woodRemaining: woodCollected ? 0 : Math.max(0, 15 - carriedWood),
+          woodCollected, woodRemaining: woodCollected ? 0 : Math.max(0, 15 - carriedWood),
           cartRepaired: current.cartRepaired || cartRepaired,
+          mission2WoodCollected, mission2WoodRemaining: mission2WoodCollected ? 0 : Math.max(0, 5 - carriedWood),
+          mission2StoneCollected, mission2StoneRemaining: mission2StoneCollected ? 0 : Math.max(0, 5 - carriedStone),
+          mission2CottonCollected, mission2CottonRemaining: mission2CottonCollected ? 0 : Math.max(0, 5 - carriedCotton),
+          campfireBuilt: current.campfireBuilt || campfireBuilt,
+          lakeFound: current.lakeFound || lakeFound,
+          fishingRodAvailable: current.fishingRodAvailable || fishingRodAvailable,
+          mission4WoodCollected, mission4WoodRemaining: mission4WoodCollected ? 0 : Math.max(0, 20 - carriedWood),
+          campfireReached: current.campfireReached || campfireReached,
+          chestBuilt: current.chestBuilt || chestBuilt,
+          itemStored: current.itemStored || itemStored,
+          refineryWoodRemaining: Math.max(0, 20 - carriedWood),
+          refineryStoneRemaining: Math.max(0, 15 - carriedStone),
         };
-        return nextObjectives.cartFound === current.cartFound
-          && nextObjectives.woodCollected === current.woodCollected
-          && nextObjectives.woodRemaining === current.woodRemaining
-          && nextObjectives.cartRepaired === current.cartRepaired
-          ? current : nextObjectives;
+        return Object.keys(nextObjectives).every(key => nextObjectives[key as keyof typeof nextObjectives] === current[key as keyof typeof current]) ? current : nextObjectives;
       });
     }, { accountLevel });
     engine.onSound = (event) => audioManager.play(event);
