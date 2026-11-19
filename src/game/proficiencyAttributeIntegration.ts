@@ -119,7 +119,7 @@ export function resolveProficiencyAttributeContributions(
   const progressionCache = new Map<ProficiencyKey, ReturnType<typeof evaluateProficiencyProgression> | null>();
   const contributions: ProficiencyAttributeContribution[] = [];
 
-  for (const candidate of input.rewards ?? []) {
+  for (const candidate of rewards) {
     if (!isValidReward(candidate)) continue;
     if (idCounts.get(candidate.id) !== 1) continue;
     if (!candidate.enabled) continue;
