@@ -118,6 +118,22 @@ try {
   const diff = { onlySql: [...sqlSet].filter(k => !tsSet.has(k)).sort(), onlyTs: [...tsSet].filter(k => !sqlSet.has(k)).sort(),
     duplicateSql: sqlKeys.filter((k, i) => sqlKeys.indexOf(k) !== i), duplicateTs: tsKeys.filter((k, i) => tsKeys.indexOf(k) !== i) };
   assert.deepEqual(diff, { onlySql: [], onlyTs: [], duplicateSql: [], duplicateTs: [] }, 'Paridade SQL × TypeScript divergente: ' + JSON.stringify(diff));
+  const rateLimitMigration = await readFile(
+    'supabase/migrations/20261119183000_add_fibula_proficiency_rate_limits.sql',
+    'utf8',
+  );
+  assert.match(rateLimitMigration, /clock_timestamp\(\)/,
+    'a janela de frequência deve usar o relógio do servidor');
+  assert.match(rateLimitMigration, /pg_advisory_xact_lock/,
+    'envios simultâneos da mesma conta devem ser serializados');
+  assert.match(rateLimitMigration, /applied_deltas/,
+    'o recibo idempotente deve guardar a parcela realmente aplicada');
+  assert.match(rateLimitMigration, /interval '60 seconds'/,
+    'o rate limit deve usar janela móvel de 60 segundos');
+  assert.match(rateLimitMigration, /enable row level security/i,
+    'a tabela de rate limit deve manter RLS habilitado');
+  assert.match(rateLimitMigration, /revoke all on table public\.fibula_proficiency_rate_limits from public, anon, authenticated/i,
+    'o cliente não pode acessar diretamente a tabela de rate limit');
   passed.push('paridade SQL × TypeScript: catálogo e ProficiencyKey');
 
   const storageUser = user('storage');
