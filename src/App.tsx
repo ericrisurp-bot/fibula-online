@@ -71,8 +71,8 @@ type RankingEntry = {
 let floatingWeaponSide: 1 | -1 = 1;
 let proficiencyStorageWarningShown = false;
 
-type AdventurerGuideObjectives = { cartFound: boolean; woodCollected: boolean; cartRepaired: boolean };
-const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = { cartFound: false, woodCollected: false, cartRepaired: false };
+type AdventurerGuideObjectives = { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean };
+const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = { cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false };
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
@@ -2125,13 +2125,16 @@ export default function App() {
       const carriedWood = next.inventory.reduce((total, item) => total + (getBaseItemId(item.itemId) === 'wood' ? item.quantity : 0), 0);
       const cartRepaired = next.cart.stage === 'built';
       setAdventurerGuideObjectives(current => {
+        const woodCollected = current.woodCollected || carriedWood >= 15 || cartRepaired;
         const nextObjectives = {
           cartFound: current.cartFound || cartFound || cartRepaired,
-          woodCollected: current.woodCollected || carriedWood >= 15 || cartRepaired,
+          woodCollected,
+          woodRemaining: woodCollected ? 0 : Math.max(0, 15 - carriedWood),
           cartRepaired: current.cartRepaired || cartRepaired,
         };
         return nextObjectives.cartFound === current.cartFound
           && nextObjectives.woodCollected === current.woodCollected
+          && nextObjectives.woodRemaining === current.woodRemaining
           && nextObjectives.cartRepaired === current.cartRepaired
           ? current : nextObjectives;
       });
