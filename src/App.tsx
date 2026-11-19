@@ -81,6 +81,8 @@ type AdventurerGuideObjectives = {
   mission7WoodCollected: boolean; mission7WoodRemaining: number;
   mission7CottonCollected: boolean; mission7CottonRemaining: number;
   mission7StoneCollected: boolean; mission7StoneRemaining: number;
+  tecelariaBuilt: boolean; cottonRefined: boolean; wolvesKilled: number;
+  chickensKilled: number; leatherRefined: boolean; survivedNights: number;
 };
 const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
@@ -92,6 +94,8 @@ const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   mission7WoodCollected: false, mission7WoodRemaining: 15,
   mission7CottonCollected: false, mission7CottonRemaining: 8,
   mission7StoneCollected: false, mission7StoneRemaining: 8,
+  tecelariaBuilt: false, cottonRefined: false, wolvesKilled: 0,
+  chickensKilled: 0, leatherRefined: false, survivedNights: 0,
 };
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
@@ -114,7 +118,7 @@ const initial: GameSnapshot = {
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, knifeSwingAngle: 0, knifeSwingTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, knifeSwingAngle: 0, knifeSwingTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0, wolvesKilled: 0, chickensKilled: 0,
 };
 const JEWELRY_POLISH_COTTON_COST = 5;
 const JEWELRY_RARITY_LABELS: Record<string, string> = { normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' };
@@ -2186,6 +2190,12 @@ export default function App() {
           mission7CottonRemaining: current.mission7CottonCollected || carriedCotton >= 8 ? 0 : Math.max(0, 8 - carriedCotton),
           mission7StoneCollected: current.mission7StoneCollected || carriedStone >= 8,
           mission7StoneRemaining: current.mission7StoneCollected || carriedStone >= 8 ? 0 : Math.max(0, 8 - carriedStone),
+          tecelariaBuilt: current.tecelariaBuilt || next.tecelaria.built,
+          cottonRefined: current.cottonRefined || next.tecelaria.cottonProcessed > 0,
+          wolvesKilled: Math.max(current.wolvesKilled, next.wolvesKilled ?? 0),
+          chickensKilled: Math.max(current.chickensKilled, next.chickensKilled ?? 0),
+          leatherRefined: current.leatherRefined || next.tecelaria.hideProcessed > 0,
+          survivedNights: Math.max(current.survivedNights, next.dayNight === 'dawn' && !next.dead ? next.nightNumber : current.survivedNights),
         };
         return Object.keys(nextObjectives).every(key => nextObjectives[key as keyof typeof nextObjectives] === current[key as keyof typeof current]) ? current : nextObjectives;
       });

@@ -26,7 +26,7 @@ type Props = {
   onRange: () => void;
   adventurerGuideEnabled: boolean;
   onGuideToggle: () => void;
-  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean; mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number; campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean; mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean; itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number; refineryBuilt: boolean; stoneRefined: boolean; nightSurvived: boolean; mission7WoodCollected: boolean; mission7WoodRemaining: number; mission7CottonCollected: boolean; mission7CottonRemaining: number; mission7StoneCollected: boolean; mission7StoneRemaining: number };
+  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean; mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number; campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean; mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean; itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number; refineryBuilt: boolean; stoneRefined: boolean; nightSurvived: boolean; mission7WoodCollected: boolean; mission7WoodRemaining: number; mission7CottonCollected: boolean; mission7CottonRemaining: number; mission7StoneCollected: boolean; mission7StoneRemaining: number; tecelariaBuilt: boolean; cottonRefined: boolean; wolvesKilled: number; chickensKilled: number; leatherRefined: boolean; survivedNights: number };
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
@@ -190,7 +190,9 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         : !([adventurerGuideObjectives.campfireBuilt, adventurerGuideObjectives.lakeFound, adventurerGuideObjectives.fishingRodAvailable].every(Boolean)) ? 3
         : !([adventurerGuideObjectives.mission4WoodCollected, adventurerGuideObjectives.campfireReached, adventurerGuideObjectives.chestBuilt].every(Boolean)) ? 4
         : !([adventurerGuideObjectives.itemStored, adventurerGuideObjectives.refineryStoneRemaining === 0, adventurerGuideObjectives.refineryWoodRemaining === 0].every(Boolean)) ? 5
-        : !([adventurerGuideObjectives.refineryBuilt, adventurerGuideObjectives.stoneRefined, adventurerGuideObjectives.nightSurvived].every(Boolean)) ? 6 : 7;
+        : !([adventurerGuideObjectives.refineryBuilt, adventurerGuideObjectives.stoneRefined, adventurerGuideObjectives.nightSurvived].every(Boolean)) ? 6
+        : !([adventurerGuideObjectives.mission7WoodCollected, adventurerGuideObjectives.mission7CottonCollected, adventurerGuideObjectives.mission7StoneCollected].every(Boolean)) ? 7
+        : !([adventurerGuideObjectives.tecelariaBuilt, adventurerGuideObjectives.cottonRefined, adventurerGuideObjectives.wolvesKilled >= 2].every(Boolean)) ? 8 : 9;
       const objectives = mission === 1 ? [
         { label: 'Encontrar a carroça', done: adventurerGuideObjectives.cartFound },
         { icon: 'wood', remaining: adventurerGuideObjectives.woodRemaining, done: adventurerGuideObjectives.woodCollected },
@@ -215,14 +217,22 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         { label: 'Construir a refinaria', done: adventurerGuideObjectives.refineryBuilt },
         { label: 'Refinar uma pedra', done: adventurerGuideObjectives.stoneRefined },
         { label: 'Sobreviver a uma noite inteira', done: adventurerGuideObjectives.nightSurvived },
-      ] : [
+      ] : mission === 7 ? [
         { icon: 'wood', remaining: adventurerGuideObjectives.mission7WoodRemaining, done: adventurerGuideObjectives.mission7WoodCollected },
         { icon: 'cotton', remaining: adventurerGuideObjectives.mission7CottonRemaining, done: adventurerGuideObjectives.mission7CottonCollected },
         { icon: 'stone', remaining: adventurerGuideObjectives.mission7StoneRemaining, done: adventurerGuideObjectives.mission7StoneCollected },
+      ] : mission === 8 ? [
+        { label: 'Construir a tecelaria', done: adventurerGuideObjectives.tecelariaBuilt },
+        { label: 'Refinar algodão', done: adventurerGuideObjectives.cottonRefined },
+        { label: `Matar 2 lobos (${Math.min(2, adventurerGuideObjectives.wolvesKilled)}/2)`, done: adventurerGuideObjectives.wolvesKilled >= 2 },
+      ] : [
+        { label: `Matar 3 galinhas (${Math.min(3, adventurerGuideObjectives.chickensKilled)}/3)`, done: adventurerGuideObjectives.chickensKilled >= 3 },
+        { label: 'Refinar couro', done: adventurerGuideObjectives.leatherRefined },
+        { label: `Sobreviver a 5 noites (${Math.min(5, adventurerGuideObjectives.survivedNights)}/5)`, done: adventurerGuideObjectives.survivedNights >= 5 },
       ];
       const doneCount = objectives.filter(objective => objective.done).length;
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
-        <header className="adventurer-guide-heading"><strong>Guia do Aventureiro · Missão ${mission}</strong><span>{doneCount}/3</span></header>
+        <header className="adventurer-guide-heading"><strong>{mission === 9 && doneCount === 3 ? 'Guia do Aventureiro · Fim' : `Guia do Aventureiro · Missão ${mission}`}</strong><span>{doneCount}/3</span></header>
         {objectives.map((objective, index) => <div key={index} className={objective.done ? 'adventurer-guide-objective is-text-only is-complete' : objective.icon ? 'adventurer-guide-objective is-wood-only' : 'adventurer-guide-objective is-text-only'}>
           {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Faltam ${objective.remaining} unidades`}>×{objective.remaining}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
           <i aria-hidden="true" />
