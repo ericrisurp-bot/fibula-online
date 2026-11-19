@@ -13320,3 +13320,46 @@ sem backdrop ou caixa de modal. */
   .player-proficiency-group:last-child{grid-column:auto}
   .player-proficiency-group{padding:10px}
 }
+
+/* Guia do Aventureiro — painel enxuto e alinhado para telas de celular. */
+.game-shell .adventurer-guide-panel{
+  position:absolute!important;z-index:2147483009!important;
+  top:calc(88px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
+  width:min(176px,calc(100vw - 24px));display:flex;flex-direction:column;gap:4px;padding:6px 8px;
+  border:1px solid rgba(235,235,235,.12);border-radius:8px;background:rgba(34,35,34,.43);color:#f1f1f1;
+  box-shadow:0 4px 14px rgba(0,0,0,.14);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  pointer-events:auto;zoom:1!important;transform:none!important;font-size:9px!important;
+}
+.game-shell .adventurer-guide-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-bottom:1px;color:#f3f3f3;font-size:8px;letter-spacing:.02em;white-space:nowrap}
+.game-shell .adventurer-guide-heading>span{color:rgba(240,240,240,.58);font-size:8px;font-variant-numeric:tabular-nums}
+.game-shell .adventurer-guide-objective{
+  display:grid;grid-template-columns:20px minmax(0,1fr) auto 9px;align-items:center;gap:4px;
+  min-height:18px;color:rgba(245,245,245,.9);font-size:8px;line-height:1.15;
+}
+.game-shell .adventurer-guide-objective.is-text-only{grid-template-columns:minmax(0,1fr) 9px}
+.game-shell .adventurer-guide-objective.is-wood-only{grid-template-columns:18px auto 9px}
+.game-shell .adventurer-guide-label{min-width:0;white-space:nowrap}
+.game-shell .adventurer-guide-art{display:flex;width:18px;height:18px;align-items:center;justify-content:center;line-height:1}
+.game-shell .adventurer-guide-art img{width:16px;height:16px;object-fit:contain;image-rendering:pixelated}
+.game-shell .adventurer-guide-objective>b{justify-self:start;color:rgba(245,245,245,.75);font-size:8px}
+.game-shell .adventurer-guide-objective>i{width:9px;height:9px;justify-self:end;border:1px solid rgba(230,230,230,.38);border-radius:50%;background:transparent}
+.game-shell .adventurer-guide-objective.is-complete{color:rgba(235,235,235,.48)}
+.game-shell .adventurer-guide-objective.is-complete .adventurer-guide-label{text-decoration:line-through;text-decoration-color:rgba(235,235,235,.42)}
+.game-shell .adventurer-guide-objective.is-complete.is-wood-only .adventurer-guide-art,
+.game-shell .adventurer-guide-objective.is-complete.is-wood-only>b{opacity:.48}
+.game-shell .adventurer-guide-objective.is-complete>i{border-color:#69c982;background:#69c982;box-shadow:0 0 5px rgba(105,201,130,.35)}
+@media(max-width:360px){
+  .game-shell .adventurer-guide-panel{width:min(164px,calc(100vw - 20px));right:10px;padding:5px 7px}
+  .game-shell .adventurer-guide-heading{font-size:7.5px}
+  .game-shell .adventurer-guide-objective{font-size:7.5px;gap:3px}
+}
+
+
+/* Em celulares na horizontal, o Guia fica no topo, à esquerda do botão de menu. */
+@media(orientation:landscape) and (max-height:520px){
+  .game-shell .adventurer-guide-panel{
+    top:calc(8px + env(safe-area-inset-top));
+    right:calc(57px + env(safe-area-inset-right));
+    width:min(176px,calc(100vw - 60px));
+  }
+}
