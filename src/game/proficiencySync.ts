@@ -1,5 +1,3 @@
-import type { ProficiencyKey } from './engine';
-
 export type ProficiencySyncErrorKind =
   | 'transient'
   | 'unknown_key'
