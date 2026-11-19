@@ -61,10 +61,9 @@ export function createDonkeyCartState(
   };
 }
 
-/** Custo da transição para o estado construído. */
-export function getDonkeyCartConstructionCost(state: DonkeyCartState): DonkeyCartConstructionCost {
-  // A primeira montagem mantém o custo original; reconstruções após quebrar exigem reparo completo.
-  return state.everBuilt ? { wood: 10, cotton: 5 } : { wood: 1, cotton: 0 };
+/** Custo para construir ou consertar o conjunto burrinho-carroça. */
+export function getDonkeyCartConstructionCost(_state: DonkeyCartState): DonkeyCartConstructionCost {
+  return { wood: 15, cotton: 0 };
 }
 
 function countBaseItem(inventory: InventoryStack[], itemId: string): number {
@@ -87,7 +86,7 @@ function consumeBaseItem(inventory: InventoryStack[], itemId: string, requested:
 
 /**
  * Constrói ou reconstrói o conjunto de forma atômica.
- * A primeira montagem custa 1 madeira; reconstruções custam 10 madeiras e 5 algodões.
+ * A construção e todo conserto custam 15 madeiras.
  */
 export function constructDonkeyCart(
   state: DonkeyCartState,
