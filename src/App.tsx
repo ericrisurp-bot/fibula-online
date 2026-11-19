@@ -9,6 +9,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
+import { recordProficiencyEvent } from './game/proficiencyStorage';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
@@ -66,6 +67,7 @@ type RankingEntry = {
 };
 
 let floatingWeaponSide: 1 | -1 = 1;
+let proficiencyStorageWarningShown = false;
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
@@ -1862,7 +1864,16 @@ export default function App() {
     if (activeGameRoute.page !== 'lobby') return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const engine = new GameEngine((next) => setState(next), { accountLevel }); engine.onSound = (event) => audioManager.play(event); engineRef.current = engine;
+    const engine = new GameEngine((next) => setState(next), { accountLevel });
+    engine.onSound = (event) => audioManager.play(event);
+    engine.onProficiencyEvent = (event) => {
+      void recordProficiencyEvent(session.user.sub, event).catch((error: unknown) => {
+        if (proficiencyStorageWarningShown) return;
+        proficiencyStorageWarningShown = true;
+        console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
+      });
+    };
+    engineRef.current = engine;
     const pendingCloudInventory = pendingCloudHouseInventoryRef.current;
     if (pendingCloudInventory !== null) {
       engine.setHouseInventory(pendingCloudInventory);
@@ -2485,7 +2496,7 @@ export default function App() {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeGameRoute.page]);
+  }, [activeGameRoute.page, session.user.sub]);
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
