@@ -18,6 +18,17 @@ import { accessoryEffectiveValue, type AccessoryType, type CraftedAccessory } fr
 import { ACCESSORY_SLOT_ORDER } from './accessoryEquipment';
 
 type Vec = { x: number; y: number };
+
+export type ProficiencyKey =
+  | 'espada' | 'arco' | 'cajado' | 'bastao_natureza'
+  | 'golpes_recebidos'
+  | 'machado_madeira' | 'picareta' | 'faca_esfolar' | 'vara_pesca' | 'foice_mao'
+  | 'carroca_distancia';
+
+export type ProficiencyEvent = {
+  key: ProficiencyKey;
+  amount: number;
+};
 const XP_ATTRACTION_RADIUS = 250;
 const MATERIAL_ATTRACTION_RADIUS = 80;
 const MATERIAL_ATTRACTION_DELAY = 0.5;
@@ -291,6 +302,8 @@ export class GameEngine {
   state: GameSnapshot;
   readonly players: PlayerEntity[];
   onSound?: (event: SoundEvent) => void;
+  /** Emite somente eventos de proficiência já validados pelo motor. */
+  onProficiencyEvent?: (event: ProficiencyEvent) => void;
   private local: PlayerRuntime = createPlayerRuntime();
   private classUsage: MatchClassUsage = createEmptyClassUsage();
   private accountLevel = 0;
@@ -335,6 +348,7 @@ export class GameEngine {
   private donkeyStalled = false;
   private donkeyStallDistance = 0;
   private donkeyClock = 0;
+  private cartProficiencyDistanceRemainder = 0;
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -382,6 +396,34 @@ export class GameEngine {
       arqueiro: { ...this.classUsage.arqueiro },
       druida: { ...this.classUsage.druida },
     };
+  }
+
+  private recordProficiency(key: ProficiencyKey, amount = 1): void {
+    if (!Number.isSafeInteger(amount) || amount <= 0) return;
+    try {
+      this.onProficiencyEvent?.({ key, amount });
+    } catch {
+      // Uma falha na integração de proficiências não pode interromper a partida.
+    }
+  }
+
+  private recordWeaponProficiencyHit(): void {
+    const keyByWeapon: Record<WeaponId, ProficiencyKey> = {
+      espada: 'espada',
+      arco: 'arco',
+      cajado: 'cajado',
+      bastao: 'bastao_natureza',
+    };
+    this.recordProficiency(keyByWeapon[this.state.weapon]);
+  }
+
+  private recordCartProficiencyDistance(distance: number): void {
+    if (!Number.isFinite(distance) || distance <= 0) return;
+    this.cartProficiencyDistanceRemainder += distance;
+    const wholeUnits = Math.floor(this.cartProficiencyDistanceRemainder + 1e-6);
+    if (wholeUnits <= 0) return;
+    this.cartProficiencyDistanceRemainder -= wholeUnits;
+    this.recordProficiency('carroca_distancia', wholeUnits);
   }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
@@ -1422,6 +1464,7 @@ export class GameEngine {
         if (enforceSoftClearance && (!softClear(nextDonkeyX, nextDonkeyY, CONFIG.donkey.collisionRadius)
           || !softClear(nextCartX, nextCartY, CONFIG.cart.collisionRadius))) continue;
 
+        this.recordCartProficiencyDistance(Math.hypot(nextCartX - cart.x, nextCartY - cart.y));
         cart.x = nextCartX;
         cart.y = nextCartY;
         cart.angle = nextAngle;
@@ -1477,7 +1520,7 @@ export class GameEngine {
   restart() {
     const classId = this.state.classId;
     this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.pendingRockRemovalId = null; this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
-    this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0;
+    this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0; this.cartProficiencyDistanceRemainder = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.tecelariaHideProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
@@ -1700,6 +1743,8 @@ export class GameEngine {
     this.fishingTimer += dt;
     const pullAt = CONFIG.lake.fishingVisibleDuration;
     if (previousTimer < pullAt && this.fishingTimer >= pullAt) {
+      // Uma puxada concluída conta mesmo quando a rolagem não encontra peixe.
+      this.recordProficiency('vara_pesca');
       // Uma única rolagem ao recolher a vara; no máximo um peixe por ciclo.
       const fishRoll = this.random() * 100;
       let cumulativeChance = 0;
@@ -2429,6 +2474,7 @@ export class GameEngine {
         animal.hitWait = CONFIG.wildlife.wolves.contactCooldown;
         const levelStats = this.getLevelStats();
         if (this.random() > this.getDodgeChance()) {
+          this.recordProficiency('golpes_recebidos');
           const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor);
           this.state.player.hp -= damage;
           this.addFloatingDamage(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
@@ -2887,6 +2933,7 @@ export class GameEngine {
         // Slimes que não escolheram a carroça mantêm a regra normal de dano ao jogador.
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (this.random() > this.getDodgeChance()) {
+          this.recordProficiency('golpes_recebidos');
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const rawDamage = waveDamage * (this.getDayNightState().isNight ? 1 : 1.5);
           const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor);
@@ -3099,6 +3146,7 @@ export class GameEngine {
         return distance <= weapon.range && difference <= arc / 2;
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
       for (const enemy of hits) {
+        this.recordWeaponProficiencyHit();
         const vulnerability = this.getDayNightState().vulnerability;
         const damage = this.getWeaponBaseDamage() * this.getCookingDamageMultiplier() * (1 + vulnerability);
         this.recordClassDamage(enemy, damage);
@@ -3160,6 +3208,7 @@ export class GameEngine {
       .sort((a, b) => a.distance - b.distance)[0];
     if (!target) return;
     this.local.knifeHitTimer = CONFIG.knife.hitInterval;
+    this.recordProficiency('faca_esfolar');
     this.state.knifeSwingAngle = this.anchorGatherTool(target.enemy.x, target.enemy.y, target.enemy.y + target.radius + 2);
     this.state.knifeSwingTimer = CONFIG.gathering.toolAnimationDuration;
     target.enemy.hits = (target.enemy.hits ?? 0) + 1;
@@ -3208,6 +3257,7 @@ export class GameEngine {
     if (jabuticabaTarget && (!treeTarget || jabuticabaTarget.d <= treeTarget.d) && (!rockTarget || jabuticabaTarget.d <= rockTarget.d) && (!cottonTarget || jabuticabaTarget.d <= cottonTarget.d) && (!vegetableTarget || jabuticabaTarget.d <= vegetableTarget.d)) {
       this.state.treeChopAngle = this.anchorGatherTool(jabuticabaTarget.tree.x, jabuticabaTarget.tree.y + 35, jabuticabaTarget.tree.y + 99);
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
+      this.recordProficiency('machado_madeira');
       this.hitJabuticabaTree();
       this.onSound?.({ type: 'gather', kind: 'wood', done: !this.state.jabuticabaTree });
     } else if (treeTarget && (!rockTarget || treeTarget.d <= rockTarget.d) && (!cottonTarget || treeTarget.d <= cottonTarget.d) && (!vegetableTarget || treeTarget.d <= vegetableTarget.d)) {
@@ -3219,23 +3269,27 @@ export class GameEngine {
         treeTarget.tree.y + 30 * (treeTarget.tree.size === 'small' ? 1.75 : treeTarget.tree.size === 'medium' ? 2.45 : 3.25) + 1,
       );
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
+      this.recordProficiency('machado_madeira');
       treeTarget.tree.hits -= 1;
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d) && (!vegetableTarget || rockTarget.d <= vegetableTarget.d)) {
       this.state.rockMineAngle = this.anchorGatherTool(rockTarget.rock.x, rockTarget.rock.y - 6 * this.rockDrawScale(rockTarget.rock), rockTarget.rock.y + 12 * this.rockDrawScale(rockTarget.rock) + 1);
       this.state.rockMineTimer = CONFIG.gathering.toolAnimationDuration;
+      this.recordProficiency('picareta');
       this.hitRock(rockTarget.rock.id);
       if (rockTarget.rock.hits <= 0) this.pendingRockRemovalId = rockTarget.rock.id;
       this.onSound?.({ type: 'gather', kind: 'stone', done: rockTarget.rock.hits <= 0 });
     } else if (cottonTarget && (!vegetableTarget || cottonTarget.d <= vegetableTarget.d)) {
       this.state.cottonHarvestAngle = this.anchorGatherTool(cottonTarget.plant.x, cottonTarget.plant.y - 6, cottonTarget.plant.y + 13 * 1.2 + 1);
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
+      this.recordProficiency('foice_mao');
       this.hitCottonPlant(cottonTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: cottonTarget.plant.hits <= 0 });
     } else if (vegetableTarget) {
       this.state.cottonHarvestAngle = this.anchorGatherTool(vegetableTarget.plant.x, vegetableTarget.plant.y - 6, vegetableTarget.plant.y + 13 * 1.2 + 1);
       this.state.cottonHarvestTimer = CONFIG.gathering.toolAnimationDuration;
+      this.recordProficiency('foice_mao');
       this.hitVegetable(vegetableTarget.plant.id);
       this.onSound?.({ type: 'gather', kind: 'cotton', done: vegetableTarget.plant.hits <= 1 });
     }
@@ -3323,6 +3377,7 @@ export class GameEngine {
         }
         const firstHit = hitIds.length === 0;
         hitIds.push(target.id);
+        this.recordWeaponProficiencyHit();
         if (firstHit && this.state.classId === 'arqueiro') {
           this.local.archerHealArrowCount += 1;
           if (this.local.archerHealArrowCount >= CONFIG.archerHeal.arrowsPerHeal) {
@@ -3356,6 +3411,7 @@ export class GameEngine {
           this.onSound?.({ type: 'explosion', kind: 'mage' });
           const vulnerability = 1 + this.getDayNightState().vulnerability;
           const basicDamage = shot.damage * vulnerability;
+          this.recordWeaponProficiencyHit();
           this.recordClassDamage(target, basicDamage);
           target.hp -= basicDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, basicDamage, '#ffffff');
@@ -3368,6 +3424,7 @@ export class GameEngine {
             .slice(0, Math.max(0, CONFIG.mageExplosion.maxTargets - 1))
             .map(({ enemy }) => enemy);
           for (const enemy of hits) {
+            this.recordWeaponProficiencyHit();
             this.recordClassDamage(enemy, damage);
             enemy.hp -= damage;
             this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#9c8be8', 2 / 3);
@@ -3375,6 +3432,7 @@ export class GameEngine {
           for (const enemy of [target, ...hits].filter(enemy => enemy.hp <= 0)) this.killEnemy(enemy.id);
         } else {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
+          this.recordWeaponProficiencyHit();
           this.recordClassDamage(target, effectiveDamage);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
