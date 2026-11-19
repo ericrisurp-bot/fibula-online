@@ -83,7 +83,7 @@ type JabuticabaDrop = Vec & { id: number; age: number };
 type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | VegetableDrop | LinenDrop | RefinedLeatherDrop | BronzeDrop | WildlifeDrop | JabuticabaDrop | CoreDrop;
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
-type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; explosive?: boolean; hitEnemyIds?: number[] };
+type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; weapon: WeaponId; explosive?: boolean; hitEnemyIds?: number[] };
 type ExplosionEffect = Vec & { id: number; age: number; duration: number };
 type FloatingDamage = Vec & { id: number; amount: number; label?: string; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
@@ -403,14 +403,14 @@ export class GameEngine {
     }
   }
 
-  private recordWeaponProficiencyHit(): void {
+  private recordWeaponProficiencyHit(weapon: WeaponId = this.state.weapon): void {
     const keyByWeapon: Record<WeaponId, ProficiencyKey> = {
       espada: 'espada',
       arco: 'arco',
       cajado: 'cajado',
       bastao: 'bastao_natureza',
     };
-    this.recordProficiency(keyByWeapon[this.state.weapon]);
+    this.recordProficiency(keyByWeapon[weapon]);
   }
 
   private recordCartProficiencyDistance(distance: number): void {
@@ -3202,7 +3202,7 @@ export class GameEngine {
       if (this.state.classId === 'mago') this.local.mageAttackCount = (this.local.mageAttackCount + 1) % CONFIG.mageExplosion.everyAttack;
       const remainingRange = Math.max(0, weapon.range - Math.hypot(muzzle.x, muzzle.y));
 
-      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: this.getWeaponBaseDamage() * this.getCookingDamageMultiplier(), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
+      this.state.shots.push({ id: this.nextId++, x: shotX, y: shotY, vx: dx / dist * weapon.projectileSpeed, vy: dy / dist * weapon.projectileSpeed, damage: this.getWeaponBaseDamage() * this.getCookingDamageMultiplier(), kind: weapon.kind, life: remainingRange / weapon.projectileSpeed + 0.2, targetId: target.e.id, weapon: this.state.weapon, explosive, ...(weapon.kind === 'arrow' ? { hitEnemyIds: [] } : {}) });
       if (rangedId === 'arco') markArrowReleased(this.state.elapsed);
       this.onSound?.({ type: 'attack', classId: this.state.classId, explosive });
     }
@@ -3393,7 +3393,7 @@ export class GameEngine {
         }
         const firstHit = hitIds.length === 0;
         hitIds.push(target.id);
-        this.recordWeaponProficiencyHit();
+        this.recordWeaponProficiencyHit(shot.weapon);
         if (firstHit && this.state.classId === 'arqueiro') {
           this.local.archerHealArrowCount += 1;
           if (this.local.archerHealArrowCount >= CONFIG.archerHeal.arrowsPerHeal) {
@@ -3427,7 +3427,7 @@ export class GameEngine {
           this.onSound?.({ type: 'explosion', kind: 'mage' });
           const vulnerability = 1 + this.getDayNightState().vulnerability;
           const basicDamage = shot.damage * vulnerability;
-          this.recordWeaponProficiencyHit();
+          this.recordWeaponProficiencyHit(shot.weapon);
           this.recordClassDamage(target, basicDamage);
           target.hp -= basicDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, basicDamage, '#ffffff');
@@ -3447,7 +3447,7 @@ export class GameEngine {
           for (const enemy of [target, ...hits].filter(enemy => enemy.hp <= 0)) this.killEnemy(enemy.id);
         } else {
           const effectiveDamage = shot.damage * (1 + this.getDayNightState().vulnerability);
-          this.recordWeaponProficiencyHit();
+          this.recordWeaponProficiencyHit(shot.weapon);
           this.recordClassDamage(target, effectiveDamage);
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
