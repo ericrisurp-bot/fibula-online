@@ -130,6 +130,10 @@ begin
       else 0
     end;
 
+    if v_limit <= 0 then
+      raise exception 'Limite de frequência não configurado para a proficiência %.', v_delta.key;
+    end if;
+
     select r.window_started_at, r.used_units
       into v_window_started_at, v_used
       from public.fibula_proficiency_rate_limits r
