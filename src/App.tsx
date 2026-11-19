@@ -1931,14 +1931,14 @@ export default function App() {
           throw new Error('A confirmação do lote de proficiências retornou um resultado inesperado.');
         }
 
-        if (!active || session.user.sub !== userId) return;
+        if (!active || session.user.sub !== userId) return false;
         await acknowledgeProficiencyBatch(userId, batch.batchId);
         succeeded = true;
         consecutiveFailures = 0;
         retryAt = 0;
         onlineResetUsed = false;
       } catch (error) {
-        if (!active) return;
+        if (!active) return false;
         const { classifyProficiencySyncError, nextProficiencyBackoffMs } =
           await import('./game/proficiencySync');
         const classification = classifyProficiencySyncError(error);
