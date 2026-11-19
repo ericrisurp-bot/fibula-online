@@ -26,7 +26,7 @@ type Props = {
   onRange: () => void;
   adventurerGuideEnabled: boolean;
   onGuideToggle: () => void;
-  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; cartRepaired: boolean };
+  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean };
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
@@ -184,13 +184,13 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
-    {adventurerGuideEnabled && !menuOpen && <aside className="adventurer-guide-panel" aria-label="Guia do Aventureiro, missão GA número 1">
-      <header className="adventurer-guide-heading"><strong>GA #1</strong><span>{[adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].filter(Boolean).length}/3</span></header>
+    {adventurerGuideEnabled && !menuOpen && <aside className="adventurer-guide-panel" aria-label="Guia do Aventureiro, missão número 1">
+      <header className="adventurer-guide-heading"><strong>Guia do Aventureiro</strong><span>{[adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].filter(Boolean).length}/3</span></header>
       <div className={adventurerGuideObjectives.cartFound ? 'adventurer-guide-objective is-text-only is-complete' : 'adventurer-guide-objective is-text-only'}>
         <span className="adventurer-guide-label">Encontrar a carroça</span><i aria-hidden="true" />
       </div>
       <div className={adventurerGuideObjectives.woodCollected ? 'adventurer-guide-objective is-wood-only is-complete' : 'adventurer-guide-objective is-wood-only'}>
-        <span className="adventurer-guide-art" aria-hidden="true"><img src="/assets/items/wood.png" alt="" draggable={false} /></span><b>×15</b><i aria-hidden="true" />
+        <span className="adventurer-guide-art" aria-hidden="true"><img src="/assets/items/wood.png" alt="" draggable={false} /></span><b aria-label={`Faltam ${adventurerGuideObjectives.woodRemaining} madeiras`}>×{adventurerGuideObjectives.woodRemaining}</b><i aria-hidden="true" />
       </div>
       <div className={adventurerGuideObjectives.cartRepaired ? 'adventurer-guide-objective is-text-only is-complete' : 'adventurer-guide-objective is-text-only'}>
         <span className="adventurer-guide-label">Consertar carroça</span><i aria-hidden="true" />
