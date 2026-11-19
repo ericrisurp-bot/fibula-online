@@ -56,7 +56,9 @@ try {
   assert.deepEqual(resolve('guerreiro', [reward('off', { enabled: false })]), []);
   assert.equal(resolve('guerreiro', [reward('class-ok', { scope: { type: 'class', classId: 'guerreiro' } })]).length, 1);
   assert.deepEqual(resolve('mago', [reward('class-no', { scope: { type: 'class', classId: 'guerreiro' } })]), []);
-  assert.equal(resolve('mago', [reward('character', { effect: { type: 'attribute_base', attribute: 'inteligencia', amount: 3 } })]).length, 1);
+  const characterReward = reward('character', { effect: { type: 'attribute_base', attribute: 'vida', amount: 3 } });
+  assert.equal(resolve('guerreiro', [characterReward]).length, 1);
+  assert.equal(resolve('mago', [characterReward]).length, 1);
   assert.deepEqual(resolve('guerreiro', [reward('unused', { effect: { type: 'attribute_base', attribute: 'inteligencia', amount: 3 } })]), []);
   rejects(() => resolve('guerreiro', [reward('dup'), reward('dup')]), /ID de recompensa duplicado/);
   rejects(() => resolve('guerreiro', [], [fixture, fixture]), /Progressão de proficiência duplicada/);
@@ -155,14 +157,16 @@ try {
   const previousWindow = globalThis.window, previousDocument = globalThis.document;
   globalThis.window = { setTimeout, clearTimeout, addEventListener() {}, removeEventListener() {} };
   globalThis.document = { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} };
-  const bufferedUser = user('buffer');
+  const bufferedUser = user('buffer'), bufferedUserB = user('buffer-b');
   const buffer = bufferModule.createProficiencyBuffer(() => {});
   buffer.add(bufferedUser, { key: 'espada', amount: 2 });
   buffer.add(bufferedUser, { key: 'espada', amount: 3 });
   buffer.add(bufferedUser, { key: 'arco', amount: 4 });
+  buffer.add(bufferedUserB, { key: 'cajado', amount: 6 });
   await buffer.flush();
   counters = await storage.readProficiencyCounters(bufferedUser);
   assert.deepEqual(Object.fromEntries(counters.map(c => [c.key, c.total])), { arco: 4, espada: 5 });
+  assert.deepEqual((await storage.readProficiencyCounters(bufferedUserB)).map(c => [c.key, c.total]), [['cajado', 6]]);
 
   const failedUser = user('buffer-failure');
   let injectNewEvent = true;
