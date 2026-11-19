@@ -160,9 +160,15 @@ export default function PlayerProfileModal({
   }, [avatarCharacter, canEdit]);
 
   useEffect(() => {
-    if (!canEdit || !fibulaSupabase) {
+    if (!canEdit) {
       setProficiencyCounts({});
       setProficiencyError('');
+      setProficiencyLoading(false);
+      return;
+    }
+    if (!fibulaSupabase) {
+      setProficiencyCounts({});
+      setProficiencyError('O banco de dados não está disponível neste ambiente.');
       setProficiencyLoading(false);
       return;
     }
