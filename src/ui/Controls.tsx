@@ -26,7 +26,7 @@ type Props = {
   onRange: () => void;
   adventurerGuideEnabled: boolean;
   onGuideToggle: () => void;
-  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean };
+  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean; mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number; campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean; mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean; itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number };
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
@@ -184,18 +184,41 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
-    {adventurerGuideEnabled && !menuOpen && <aside className="adventurer-guide-panel" aria-label="Guia do Aventureiro, missão número 1">
-      <header className="adventurer-guide-heading"><strong>Guia do Aventureiro</strong><span>{[adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].filter(Boolean).length}/3</span></header>
-      <div className={adventurerGuideObjectives.cartFound ? 'adventurer-guide-objective is-text-only is-complete' : 'adventurer-guide-objective is-text-only'}>
-        <span className="adventurer-guide-label">Encontrar a carroça</span><i aria-hidden="true" />
-      </div>
-      <div className={adventurerGuideObjectives.woodCollected ? 'adventurer-guide-objective is-wood-only is-complete' : 'adventurer-guide-objective is-wood-only'}>
-        <span className="adventurer-guide-art" aria-hidden="true"><img src="/assets/items/wood.png" alt="" draggable={false} /></span><b aria-label={`Faltam ${adventurerGuideObjectives.woodRemaining} madeiras`}>×{adventurerGuideObjectives.woodRemaining}</b><i aria-hidden="true" />
-      </div>
-      <div className={adventurerGuideObjectives.cartRepaired ? 'adventurer-guide-objective is-text-only is-complete' : 'adventurer-guide-objective is-text-only'}>
-        <span className="adventurer-guide-label">Consertar carroça</span><i aria-hidden="true" />
-      </div>
-    </aside>}
+    {adventurerGuideEnabled && !menuOpen && (() => {
+      const mission = !([adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].every(Boolean)) ? 1
+        : !([adventurerGuideObjectives.mission2WoodCollected, adventurerGuideObjectives.mission2StoneCollected, adventurerGuideObjectives.mission2CottonCollected].every(Boolean)) ? 2
+        : !([adventurerGuideObjectives.campfireBuilt, adventurerGuideObjectives.lakeFound, adventurerGuideObjectives.fishingRodAvailable].every(Boolean)) ? 3
+        : !([adventurerGuideObjectives.mission4WoodCollected, adventurerGuideObjectives.campfireReached, adventurerGuideObjectives.chestBuilt].every(Boolean)) ? 4 : 5;
+      const objectives = mission === 1 ? [
+        { label: 'Encontrar a carroça', done: adventurerGuideObjectives.cartFound },
+        { icon: 'wood', remaining: adventurerGuideObjectives.woodRemaining, done: adventurerGuideObjectives.woodCollected },
+        { label: 'Consertar carroça', done: adventurerGuideObjectives.cartRepaired },
+      ] : mission === 2 ? [
+        { icon: 'wood', remaining: adventurerGuideObjectives.mission2WoodRemaining, done: adventurerGuideObjectives.mission2WoodCollected },
+        { icon: 'stone', remaining: adventurerGuideObjectives.mission2StoneRemaining, done: adventurerGuideObjectives.mission2StoneCollected },
+        { icon: 'cotton', remaining: adventurerGuideObjectives.mission2CottonRemaining, done: adventurerGuideObjectives.mission2CottonCollected },
+      ] : mission === 3 ? [
+        { label: 'Construir a fogueira', done: adventurerGuideObjectives.campfireBuilt },
+        { label: 'Encontrar a água', done: adventurerGuideObjectives.lakeFound },
+        { label: 'Tentar pescar', done: adventurerGuideObjectives.fishingRodAvailable },
+      ] : mission === 4 ? [
+        { icon: 'wood', remaining: adventurerGuideObjectives.mission4WoodRemaining, done: adventurerGuideObjectives.mission4WoodCollected },
+        { label: 'Voltar à fogueira', done: adventurerGuideObjectives.campfireReached },
+        { label: 'Construir o baú', done: adventurerGuideObjectives.chestBuilt },
+      ] : [
+        { label: 'Guardar um item no baú', done: adventurerGuideObjectives.itemStored },
+        { icon: 'stone', remaining: adventurerGuideObjectives.refineryStoneRemaining, done: adventurerGuideObjectives.refineryStoneRemaining === 0 },
+        { icon: 'wood', remaining: adventurerGuideObjectives.refineryWoodRemaining, done: adventurerGuideObjectives.refineryWoodRemaining === 0 },
+      ];
+      const doneCount = objectives.filter(objective => objective.done).length;
+      return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
+        <header className="adventurer-guide-heading"><strong>Guia do Aventureiro · Missão ${mission}</strong><span>{doneCount}/3</span></header>
+        {objectives.map((objective, index) => <div key={index} className={objective.done ? 'adventurer-guide-objective is-text-only is-complete' : objective.icon ? 'adventurer-guide-objective is-wood-only' : 'adventurer-guide-objective is-text-only'}>
+          {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Faltam ${objective.remaining} unidades`}>×{objective.remaining}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
+          <i aria-hidden="true" />
+        </div>)}
+      </aside>;
+    })()}
     <div className="mobile-quick-buttons" aria-label="Controles de ação">
       <div className="mobile-action-diamond" aria-label="Ações Y, X, B e A">
         <button type="button" className={cartActionVisible ? 'game-action-button action-y is-active' : 'game-action-button action-y'} disabled={!cartActionVisible} aria-disabled={!cartActionVisible} aria-label={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} title={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (cartActionVisible) onCartToggle(); }}>
