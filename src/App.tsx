@@ -77,6 +77,12 @@ type AdventurerGuideObjectives = {
   campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean;
   mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean;
   itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number;
+  refineryBuilt: boolean; stoneRefined: boolean; nightStarted: boolean; nightSurvived: boolean;
+  mission7WoodCollected: boolean; mission7WoodRemaining: number;
+  mission7CottonCollected: boolean; mission7CottonRemaining: number;
+  mission7StoneCollected: boolean; mission7StoneRemaining: number;
+  tecelariaBuilt: boolean; cottonRefined: boolean; wolvesKilled: number;
+  chickensKilled: number; leatherRefined: boolean; survivedNights: number;
 };
 const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
@@ -84,6 +90,12 @@ const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
   mission4WoodCollected: false, mission4WoodRemaining: 20, campfireReached: false, chestBuilt: false,
   itemStored: false, refineryWoodRemaining: 20, refineryStoneRemaining: 15,
+  refineryBuilt: false, stoneRefined: false, nightStarted: false, nightSurvived: false,
+  mission7WoodCollected: false, mission7WoodRemaining: 15,
+  mission7CottonCollected: false, mission7CottonRemaining: 8,
+  mission7StoneCollected: false, mission7StoneRemaining: 8,
+  tecelariaBuilt: false, cottonRefined: false, wolvesKilled: 0,
+  chickensKilled: 0, leatherRefined: false, survivedNights: 0,
 };
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
@@ -106,7 +118,7 @@ const initial: GameSnapshot = {
   tecelaria: { x: 1000, y: 3240, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
   lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
   cart: { x: 1800, y: 600, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: 0, everBuilt: false, carried: false, inventory: [] },
-  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, knifeSwingAngle: 0, knifeSwingTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0,
+  enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: 'espada', classId: 'guerreiro', swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, knifeSwingAngle: 0, knifeSwingTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0, showRange: false, cameraFull: false, dead: false, kills: 0, wolvesKilled: 0, chickensKilled: 0,
 };
 const JEWELRY_POLISH_COTTON_COST = 5;
 const JEWELRY_RARITY_LABELS: Record<string, string> = { normal: 'Normal', common: 'Comum', uncommon: 'Incomum', rare: 'Rara', legendary: 'Lendária' };
@@ -1443,6 +1455,20 @@ export default function App() {
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [adventurerGuideEnabled, setAdventurerGuideEnabled] = useState(readAdventurerGuideEnabled);
+  const [adventurerGuideFinishedHidden, setAdventurerGuideFinishedHidden] = useState(false);
+
+  const adventurerGuideComplete = [
+    adventurerGuideObjectives.chickensKilled >= 3,
+    adventurerGuideObjectives.leatherRefined,
+    adventurerGuideObjectives.survivedNights >= 5,
+  ].every(Boolean);
+  useEffect(() => {
+    if (!adventurerGuideEnabled || !adventurerGuideComplete || adventurerGuideFinishedHidden) return;
+    const timeout = window.setTimeout(() => {
+      setAdventurerGuideFinishedHidden(true);
+    }, 10_000);
+    return () => window.clearTimeout(timeout);
+  }, [adventurerGuideEnabled, adventurerGuideComplete, adventurerGuideFinishedHidden]);
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
@@ -2130,6 +2156,7 @@ export default function App() {
     });
     proficiencyBufferRef.current = proficiencyBuffer;
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
     const engine = new GameEngine((next) => {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
@@ -2168,6 +2195,22 @@ export default function App() {
           itemStored: current.itemStored,
           refineryWoodRemaining: Math.max(0, 20 - carriedWood),
           refineryStoneRemaining: Math.max(0, 15 - carriedStone),
+          refineryBuilt: current.refineryBuilt || next.refinery.built,
+          stoneRefined: current.stoneRefined || next.refinery.stonesProcessed > 0,
+          nightStarted: current.nightStarted || next.dayNight === 'night',
+          nightSurvived: current.nightSurvived || (current.nightStarted && next.dayNight === 'dawn' && !next.dead),
+          mission7WoodCollected: current.mission7WoodCollected || carriedWood >= 15,
+          mission7WoodRemaining: current.mission7WoodCollected || carriedWood >= 15 ? 0 : Math.max(0, 15 - carriedWood),
+          mission7CottonCollected: current.mission7CottonCollected || carriedCotton >= 8,
+          mission7CottonRemaining: current.mission7CottonCollected || carriedCotton >= 8 ? 0 : Math.max(0, 8 - carriedCotton),
+          mission7StoneCollected: current.mission7StoneCollected || carriedStone >= 8,
+          mission7StoneRemaining: current.mission7StoneCollected || carriedStone >= 8 ? 0 : Math.max(0, 8 - carriedStone),
+          tecelariaBuilt: current.tecelariaBuilt || next.tecelaria.built,
+          cottonRefined: current.cottonRefined || next.tecelaria.cottonProcessed > 0,
+          wolvesKilled: Math.max(current.wolvesKilled, next.wolvesKilled ?? 0),
+          chickensKilled: Math.max(current.chickensKilled, next.chickensKilled ?? 0),
+          leatherRefined: current.leatherRefined || next.tecelaria.hideProcessed > 0,
+          survivedNights: Math.max(current.survivedNights, next.dayNight === 'dawn' && !next.dead ? next.nightNumber : current.survivedNights),
         };
         return Object.keys(nextObjectives).every(key => nextObjectives[key as keyof typeof nextObjectives] === current[key as keyof typeof current]) ? current : nextObjectives;
       });
@@ -3878,6 +3921,7 @@ export default function App() {
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
         setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
         engine.restart();
         await activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
@@ -4265,6 +4309,7 @@ export default function App() {
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
     engine.restart();
     engine.stop();
     flagsRef.current = [];
@@ -4365,6 +4410,7 @@ export default function App() {
       closeFlagMenu();
       closeInventoryPanel();
       setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
       engine.restart();
       await activatePendingCookingMeals(engine);
     } catch (error) {
@@ -5438,7 +5484,7 @@ export default function App() {
     </span>)}
   </div>;
 })()}
-{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} adventurerGuideEnabled={adventurerGuideEnabled} adventurerGuideObjectives={adventurerGuideObjectives} onGuideToggle={() => setAdventurerGuideEnabled(current => { const next = !current; writeAdventurerGuideEnabled(next); return next; })} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); writeGameZoom(zoomRef.current); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} adventurerGuideEnabled={adventurerGuideEnabled && !adventurerGuideFinishedHidden} adventurerGuideObjectives={adventurerGuideObjectives} onGuideToggle={() => setAdventurerGuideEnabled(current => { const next = !current; if (next) setAdventurerGuideFinishedHidden(false); writeAdventurerGuideEnabled(next); return next; })} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); writeGameZoom(zoomRef.current); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}
