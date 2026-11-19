@@ -330,7 +330,7 @@ export async function readProficiencyProgress(
       try { transaction.abort(); } catch { /* a transação já pode estar finalizada */ }
     };
     const finishRead = () => {
-      if (!baselineRequest.readyState || !countersRequest.readyState
+      if (baselineRequest.readyState !== 'done' || countersRequest.readyState !== 'done'
         || baseline === null || counters === null) return;
       if (!baselineRequest.result) {
         const localTotals = new Map(counters.map(counter => [counter.key, counter.total]));
