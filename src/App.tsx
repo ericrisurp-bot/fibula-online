@@ -9,7 +9,8 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { acknowledgeProficiencyBatch, prepareProficiencyBatch, recordProficiencyEvent } from './game/proficiencyStorage';
+import { acknowledgeProficiencyBatch, prepareProficiencyBatch } from './game/proficiencyStorage';
+import { createProficiencyBuffer } from './game/proficiencyBuffer';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
@@ -1994,14 +1995,22 @@ export default function App() {
     if (activeGameRoute.page !== 'lobby') return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
+    const userId = session.user.sub;
+    const proficiencyBuffer = createProficiencyBuffer((error: unknown) => {
+      if (proficiencyStorageWarningShown) return;
+      proficiencyStorageWarningShown = true;
+      console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
+    });
     const engine = new GameEngine((next) => setState(next), { accountLevel });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
-      void recordProficiencyEvent(session.user.sub, event).catch((error: unknown) => {
+      try {
+        proficiencyBuffer.add(userId, event);
+      } catch (error) {
         if (proficiencyStorageWarningShown) return;
         proficiencyStorageWarningShown = true;
         console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
-      });
+      }
     };
     engineRef.current = engine;
     const pendingCloudInventory = pendingCloudHouseInventoryRef.current;
@@ -2625,7 +2634,7 @@ export default function App() {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); window.removeEventListener('resize', resize); engineRef.current = null; };
   }, [activeGameRoute.page, session.user.sub]);
 
   useEffect(() => {
