@@ -421,10 +421,10 @@ export class GameEngine {
     }
     if (!Number.isFinite(distance) || distance <= 0) return;
     this.cartProficiencyDistanceRemainder += distance;
-    const wholeUnits = Math.floor(this.cartProficiencyDistanceRemainder + 1e-6);
-    if (wholeUnits <= 0) return;
-    this.cartProficiencyDistanceRemainder -= wholeUnits;
-    this.recordProficiency('carroca_distancia', wholeUnits);
+    const wholePoints = Math.floor((this.cartProficiencyDistanceRemainder + 1e-6) / 280);
+    if (wholePoints <= 0) return;
+    this.cartProficiencyDistanceRemainder = Math.max(0, this.cartProficiencyDistanceRemainder - wholePoints * 280);
+    this.recordProficiency('carroca_distancia', wholePoints);
   }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
