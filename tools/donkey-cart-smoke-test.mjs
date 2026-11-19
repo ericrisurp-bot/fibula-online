@@ -23,7 +23,7 @@ try {
   const engine = new GameEngine(() => {}, { headless: true, seed: 20261103 });
   const cart = engine.state.cart;
   assert.deepEqual(engine.state.inventory, [], 'jogador deve iniciar sem madeira');
-  assert.ok(Math.hypot(engine.state.player.x - cart.x, engine.state.player.y + CONFIG.player.footOffset - cart.y) >= CONFIG.house.playerClearRadius, 'carroça deve nascer afastada do jogador');
+  assert.ok(Math.hypot(engine.state.player.x - cart.x, engine.state.player.y - cart.y) >= CONFIG.house.playerClearRadius, 'carroça deve nascer afastada do jogador');
   const brokenStart = { x: cart.x, y: cart.y, wheelPhase: cart.wheelPhase };
   for (let i = 0; i < 10; i++) engine.step(0.04);
   assert.deepEqual({ x: cart.x, y: cart.y, wheelPhase: cart.wheelPhase }, brokenStart, 'conjunto quebrado deve permanecer parado');
