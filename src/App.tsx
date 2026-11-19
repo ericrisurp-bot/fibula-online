@@ -68,7 +68,6 @@ type RankingEntry = {
 
 let floatingWeaponSide: 1 | -1 = 1;
 let proficiencyStorageWarningShown = false;
-let proficiencySyncWarningShown = false;
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
@@ -1877,7 +1876,6 @@ export default function App() {
     const logErrorKindOnce = (kind: string, error: unknown) => {
       if (loggedErrorKinds.has(kind)) return;
       loggedErrorKinds.add(kind);
-      proficiencySyncWarningShown = true;
       console.warn(
         `[Proficiências] Falha de sincronização (${kind}); os dados continuam salvos localmente.`,
         error,
