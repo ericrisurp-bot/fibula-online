@@ -14,7 +14,8 @@
     "cap:open:android": "cap open android",
     "cap:android:prepare": "node tools/prepare-android.mjs",
     "cap:android:release-configure": "node tools/configure-android-release.mjs",
-    "test:match-result-outbox": "node tools/match-result-outbox-smoke-test.mjs"
+    "test:match-result-outbox": "node tools/match-result-outbox-smoke-test.mjs",
+    "test:proficiency": "node tools/proficiency-smoke-test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^7.1.0",
@@ -37,7 +38,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
-    "wrangler": "^4.151.3"
+    "wrangler": "^4.151.3",
+    "fake-indexeddb": "^6.2.4"
   },
   "overrides": {
     "rollup": "4.65.1",
