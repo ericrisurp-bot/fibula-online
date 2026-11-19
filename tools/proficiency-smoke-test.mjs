@@ -178,6 +178,41 @@ try {
   assert.deepEqual((await storage.prepareProficiencyBatch(excluded, { excludeKeys: new Set(['espada']) })).deltas, { arco: 3 });
   assert.equal(await storage.prepareProficiencyBatch(user('empty')), null);
   passed.push('IndexedDB: soma, validação, atomicidade, snapshot, ack, reparo, exclusão e isolamento');
+  const reconcileUser = user('server-reconcile');
+  await storage.recordProficiencyEvents(reconcileUser, { espada: 10 });
+  const initialSync = await storage.prepareProficiencyBatch(reconcileUser);
+  await storage.acknowledgeProficiencyBatch(reconcileUser, initialSync.batchId);
+  await storage.recordProficiencyEvent(reconcileUser, { key: 'espada', amount: 3 });
+  await storage.reconcileProficiencyCounters(reconcileUser, { espada: 15, arco: 4 });
+  counters = await storage.readProficiencyCounters(reconcileUser);
+  assert.deepEqual(Object.fromEntries(counters.map(c => [c.key, [c.total, c.syncedTotal]])), {
+    arco: [4, 4], espada: [18, 15],
+  }, 'reconciliação deve adotar o servidor e preservar o delta local ainda não enviado');
+  assert.deepEqual((await storage.prepareProficiencyBatch(reconcileUser)).deltas, { espada: 3 });
+  assert.equal(storage.isProficiencyKey('espada'), true);
+  assert.equal(storage.isProficiencyKey('chave_inexistente'), false);
+  await rejectsAsync(
+    () => storage.reconcileProficiencyCounters(reconcileUser, { espada: Number.MAX_SAFE_INTEGER + 1 }),
+    /contador de proficiência inválido/,
+  );
+
+  const pendingReconcileUser = user('server-reconcile-pending');
+  await storage.recordProficiencyEvent(pendingReconcileUser, { key: 'arco', amount: 2 });
+  const pendingReconcileBatch = await storage.prepareProficiencyBatch(pendingReconcileUser);
+  await rejectsAsync(
+    () => storage.reconcileProficiencyCounters(pendingReconcileUser, { arco: 2 }),
+    /lote de proficiências pendente/,
+  );
+  counters = await storage.readProficiencyCounters(pendingReconcileUser);
+  assert.deepEqual(counters.map(c => [c.total, c.syncedTotal]), [[2, 0]],
+    'falha de reconciliação não pode descartar lote pendente');
+  await storage.acknowledgeProficiencyBatch(pendingReconcileUser, pendingReconcileBatch.batchId);
+  await storage.reconcileProficiencyCounters(pendingReconcileUser, { arco: 2 });
+  counters = await storage.readProficiencyCounters(pendingReconcileUser);
+  assert.deepEqual(counters.map(c => [c.total, c.syncedTotal]), [[2, 2]],
+    'reconciliação após confirmação não pode duplicar o lote');
+  passed.push('IndexedDB: reconciliação servidor/local, delta offline, validação e proteção contra lote pendente');
+
 
   const previousWindow = globalThis.window, previousDocument = globalThis.document;
   globalThis.window = { setTimeout, clearTimeout, addEventListener() {}, removeEventListener() {} };

@@ -169,6 +169,103 @@ export async function recordProficiencyEvent(userId: string, event: ProficiencyE
   });
 }
 
+const PROFICIENCY_KEYS = new Set<ProficiencyKey>([
+  'espada', 'arco', 'cajado', 'bastao_natureza', 'golpes_recebidos',
+  'machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao',
+  'carroca_distancia',
+]);
+
+export function isProficiencyKey(value: unknown): value is ProficiencyKey {
+  return typeof value === 'string' && PROFICIENCY_KEYS.has(value as ProficiencyKey);
+}
+
+/**
+ * Usa os totais confirmados pelo servidor como base e preserva apenas o delta
+ * local ainda não confirmado. Um lote pendente bloqueia a reconciliação: ele
+ * precisa ser reenviado/confirmado primeiro para evitar somar duas vezes.
+ */
+export async function reconcileProficiencyCounters(
+  userId: string,
+  serverTotals: Partial<Record<ProficiencyKey, number>>,
+): Promise<void> {
+  if (!userId.trim()) throw new Error('Não é possível reconciliar proficiências sem uma conta identificada.');
+  if (!serverTotals || typeof serverTotals !== 'object' || Array.isArray(serverTotals)) {
+    throw new Error('Totais de proficiência do servidor inválidos.');
+  }
+
+  const entries = Object.entries(serverTotals) as [string, number][];
+  if (entries.some(([key, amount]) => !isProficiencyKey(key)
+    || !Number.isSafeInteger(amount) || amount < 0)) {
+    throw new Error('O servidor retornou um contador de proficiência inválido.');
+  }
+
+  const normalized = new Map(entries as [ProficiencyKey, number][]);
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction([STORE_NAME, PENDING_BATCH_STORE], 'readwrite');
+    const countersStore = transaction.objectStore(STORE_NAME);
+    const pendingRequest = transaction.objectStore(PENDING_BATCH_STORE).get(userId);
+    let failure: Error | null = null;
+
+    const abortWith = (error: Error) => {
+      failure = error;
+      try { transaction.abort(); } catch { /* a transação já pode estar finalizada */ }
+    };
+
+    pendingRequest.onsuccess = () => {
+      if (pendingRequest.result) {
+        abortWith(new Error('Há um lote de proficiências pendente; sincronize-o antes da reconciliação.'));
+        return;
+      }
+
+      const countersRequest = countersStore.index(USER_INDEX).getAll(userId);
+      countersRequest.onsuccess = () => {
+        const localCounters = countersRequest.result as ProficiencyCounter[];
+        const localKeys = new Set<ProficiencyKey>();
+        const nextCounters: ProficiencyCounter[] = [];
+
+        for (const current of localCounters) {
+          if (!isProficiencyKey(current.key)) continue;
+          localKeys.add(current.key);
+          const serverTotal = normalized.get(current.key) ?? 0;
+          const unsynced = Math.max(0, current.total - current.syncedTotal);
+          const total = serverTotal + unsynced;
+          if (!Number.isSafeInteger(total)) {
+            abortWith(new Error('O contador reconciliado de proficiência excedeu o limite seguro.'));
+            return;
+          }
+          nextCounters.push({
+            userId,
+            key: current.key,
+            total,
+            syncedTotal: serverTotal,
+            updatedAt: Date.now(),
+          });
+        }
+
+        for (const [key, serverTotal] of normalized) {
+          if (localKeys.has(key) || serverTotal === 0) continue;
+          nextCounters.push({
+            userId,
+            key,
+            total: serverTotal,
+            syncedTotal: serverTotal,
+            updatedAt: Date.now(),
+          });
+        }
+
+        for (const counter of nextCounters) countersStore.put(counter);
+      };
+      countersRequest.onerror = () => abortWith(countersRequest.error ?? new Error('Falha ao ler contadores locais para reconciliação.'));
+    };
+
+    pendingRequest.onerror = () => abortWith(pendingRequest.error ?? new Error('Falha ao verificar lotes pendentes de proficiência.'));
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('Falha ao reconciliar proficiências locais.'));
+    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error('Reconciliação de proficiências cancelada.'));
+  });
+}
+
 /** Lê os totais locais de uma única conta, sem acessar dados de outras contas do dispositivo. */
 export async function readProficiencyCounters(userId: string): Promise<ProficiencyCounter[]> {
   if (!userId.trim()) return [];
