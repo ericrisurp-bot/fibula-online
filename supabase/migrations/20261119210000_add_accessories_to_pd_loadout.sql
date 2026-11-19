@@ -1,35 +1,8 @@
--- Armazena no servidor as classes e os equipamentos usados no cálculo do PD.
--- O cliente informa apenas IDs; propriedade, compatibilidade e exclusividade são validadas aqui.
-create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
+-- P10 — inclui acessórios no loadout usado pelo cálculo autoritativo do PD.
 
 alter table private.fibula_pd_loadouts
   add column if not exists accessories jsonb not null default '{}'::jsonb
   check (jsonb_typeof(accessories) = 'object');
-
-create table if not exists private.fibula_pd_loadouts (
-  user_id uuid primary key references public.fibula_profiles(user_id) on delete cascade,
-  primary_class text,
-  secondary_class text,
-  weapons jsonb not null default '{}'::jsonb,
-  armors jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now(),
-  constraint fibula_pd_loadouts_primary_class_check
-    check (primary_class is null or primary_class in ('guerreiro', 'mago', 'arqueiro', 'druida')),
-  constraint fibula_pd_loadouts_secondary_class_check
-    check (secondary_class is null or secondary_class in ('guerreiro', 'mago', 'arqueiro', 'druida')),
-  constraint fibula_pd_loadouts_distinct_classes_check
-    check (primary_class is distinct from secondary_class),
-  constraint fibula_pd_loadouts_at_least_one_class_check
-    check (primary_class is not null or secondary_class is not null),
-  constraint fibula_pd_loadouts_weapons_object_check
-    check (jsonb_typeof(weapons) = 'object'),
-  constraint fibula_pd_loadouts_armors_object_check
-    check (jsonb_typeof(armors) = 'object')
-);
-
-alter table private.fibula_pd_loadouts enable row level security;
-revoke all privileges on table private.fibula_pd_loadouts from public, anon, authenticated;
 
 drop function if exists public.fibula_save_pd_loadout(text, text, jsonb, jsonb);
 
@@ -484,9 +457,6 @@ end;
 $function$;
 
 revoke all on function private.fibula_pd_for_class(uuid, text, uuid, jsonb) from public, anon, authenticated;
-
--- Remove a RPC antiga que aceitava o PD calculado pelo cliente.
-drop function if exists public.fibula_report_pd(integer);
 
 create or replace function public.fibula_report_pd()
 returns integer
