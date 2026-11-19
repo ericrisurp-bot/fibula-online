@@ -28,6 +28,7 @@ export type ProficiencyAttributeReward = {
 };
 
 export type ProficiencyAttributeContribution = {
+  source: 'proficiency';
   rewardId: string;
   rewardVersion: string;
   proficiencyKey: ProficiencyKey;
@@ -43,33 +44,33 @@ export type ProficiencyAttributeResolutionInput = {
   rewards: readonly ProficiencyAttributeReward[];
 };
 
-function assertNonEmptyString(value: unknown, label: string): asserts value is string {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`Recompensa de proficiência: ${label} inválido.`);
-  }
-}
+const PROFICIENCY_KEYS = new Set<ProficiencyKey>([
+  'espada', 'arco', 'cajado', 'bastao_natureza', 'golpes_recebidos',
+  'machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao',
+  'carroca_distancia',
+]);
+const ATTRIBUTE_KEYS = new Set<string>(Object.keys(ATTRIBUTE_USAGE.guerreiro));
+const CLASS_IDS = new Set<string>(Object.keys(ATTRIBUTE_USAGE));
 
-function validateReward(reward: ProficiencyAttributeReward): void {
-  if (!reward || typeof reward !== 'object') {
-    throw new Error('Recompensa de proficiência: definição inválida.');
+function isValidReward(reward: unknown): reward is ProficiencyAttributeReward {
+  if (!reward || typeof reward !== 'object') return false;
+  const candidate = reward as Partial<ProficiencyAttributeReward>;
+  if (typeof candidate.id !== 'string' || !candidate.id.trim()) return false;
+  if (typeof candidate.version !== 'string' || !candidate.version.trim()) return false;
+  if (typeof candidate.proficiencyKey !== 'string' || !PROFICIENCY_KEYS.has(candidate.proficiencyKey as ProficiencyKey)) return false;
+  if (!Number.isSafeInteger(candidate.unlockLevel) || (candidate.unlockLevel ?? -1) < 0) return false;
+  if (typeof candidate.enabled !== 'boolean') return false;
+  if (!candidate.scope || typeof candidate.scope !== 'object') return false;
+  if (candidate.scope.type === 'class') {
+    if (!CLASS_IDS.has(String(candidate.scope.classId))) return false;
+  } else if (candidate.scope.type !== 'character') {
+    return false;
   }
-  assertNonEmptyString(reward.id, 'ID');
-  assertNonEmptyString(reward.version, 'versão');
-  if (!Number.isSafeInteger(reward.unlockLevel) || reward.unlockLevel < 0) {
-    throw new Error('Recompensa de proficiência: nível de desbloqueio inválido.');
-  }
-  if (typeof reward.enabled !== 'boolean') {
-    throw new Error('Recompensa de proficiência: estado enabled inválido.');
-  }
-  if (!reward.scope || (reward.scope.type !== 'character' && reward.scope.type !== 'class')) {
-    throw new Error('Recompensa de proficiência: escopo inválido.');
-  }
-  if (!reward.effect || reward.effect.type !== 'attribute_base') {
-    throw new Error('Recompensa de proficiência: tipo de efeito não suportado.');
-  }
-  if (!Number.isFinite(reward.effect.amount)) {
-    throw new Error('Recompensa de proficiência: contribuição de atributo inválida.');
-  }
+  if (!candidate.effect || typeof candidate.effect !== 'object' || candidate.effect.type !== 'attribute_base') return false;
+  if (typeof candidate.effect.attribute !== 'string' || !ATTRIBUTE_KEYS.has(candidate.effect.attribute)) return false;
+  const amount = candidate.effect.amount;
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0 || amount > Number.MAX_SAFE_INTEGER) return false;
+  return true;
 }
 
 /**
@@ -83,44 +84,71 @@ function validateReward(reward: ProficiencyAttributeReward): void {
 export function resolveProficiencyAttributeContributions(
   input: ProficiencyAttributeResolutionInput,
 ): ProficiencyAttributeContribution[] {
+  if (!input || !CLASS_IDS.has(String(input.classId))) return [];
+
   const tables = new Map<ProficiencyKey, ProficiencyProgressionTable>();
-  for (const table of input.progressionTables) {
-    validateProficiencyProgressionTable(table);
-    if (tables.has(table.key)) {
-      throw new Error(`Progressão de proficiência duplicada: ${table.key}.`);
+  const seenTableKeys = new Set<ProficiencyKey>();
+  const invalidTableKeys = new Set<ProficiencyKey>();
+  for (const candidate of input.progressionTables ?? []) {
+    const table = candidate as ProficiencyProgressionTable | null;
+    if (!table || typeof table.key !== 'string' || !PROFICIENCY_KEYS.has(table.key)) continue;
+    const key = table.key;
+    if (seenTableKeys.has(key)) {
+      tables.delete(key);
+      invalidTableKeys.add(key);
+      continue;
     }
-    tables.set(table.key, table);
+    seenTableKeys.add(key);
+    try {
+      validateProficiencyProgressionTable(table);
+      tables.set(key, table);
+    } catch {
+      invalidTableKeys.add(key);
+    }
   }
 
-  const rewardIds = new Set<string>();
+  const idCounts = new Map<string, number>();
+  for (const candidate of input.rewards ?? []) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const id = (candidate as { id?: unknown }).id;
+    if (typeof id === 'string' && id.trim()) idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
+  }
+
+  const progressionCache = new Map<ProficiencyKey, ReturnType<typeof evaluateProficiencyProgression> | null>();
   const contributions: ProficiencyAttributeContribution[] = [];
 
-  for (const reward of input.rewards) {
-    validateReward(reward);
-    if (rewardIds.has(reward.id)) {
-      throw new Error(`ID de recompensa duplicado: ${reward.id}.`);
+  for (const candidate of input.rewards ?? []) {
+    if (!isValidReward(candidate)) continue;
+    if (idCounts.get(candidate.id) !== 1) continue;
+    if (!candidate.enabled) continue;
+    if (candidate.scope.type === 'class' && candidate.scope.classId !== input.classId) continue;
+    if (ATTRIBUTE_USAGE[input.classId][candidate.effect.attribute] <= 0) continue;
+
+    const key = candidate.proficiencyKey;
+    if (invalidTableKeys.has(key)) continue;
+    const table = tables.get(key);
+    if (!table || candidate.unlockLevel < table.initialLevel || candidate.unlockLevel > table.maxLevel) continue;
+
+    let progression = progressionCache.get(key);
+    if (!progressionCache.has(key)) {
+      const total = input.totals?.[key] ?? 0;
+      try {
+        progression = evaluateProficiencyProgression(total, table);
+      } catch {
+        progression = null;
+      }
+      progressionCache.set(key, progression);
     }
-    rewardIds.add(reward.id);
-
-    if (!reward.enabled) continue;
-    if (reward.scope.type === 'class' && reward.scope.classId !== input.classId) continue;
-    if (ATTRIBUTE_USAGE[input.classId][reward.effect.attribute] <= 0) continue;
-
-    const table = tables.get(reward.proficiencyKey);
-    if (!table) continue;
-    if (table.key !== reward.proficiencyKey) continue;
-
-    const total = input.totals[reward.proficiencyKey] ?? 0;
-    const progression = evaluateProficiencyProgression(total, table);
-    if (progression.level < reward.unlockLevel) continue;
+    if (!progression || progression.level < candidate.unlockLevel) continue;
 
     contributions.push({
-      rewardId: reward.id,
-      rewardVersion: reward.version,
-      proficiencyKey: reward.proficiencyKey,
+      source: 'proficiency',
+      rewardId: candidate.id,
+      rewardVersion: candidate.version,
+      proficiencyKey: key,
       proficiencyTableVersion: progression.tableVersion,
-      attribute: reward.effect.attribute,
-      amount: reward.effect.amount,
+      attribute: candidate.effect.attribute,
+      amount: candidate.effect.amount,
     });
   }
 
