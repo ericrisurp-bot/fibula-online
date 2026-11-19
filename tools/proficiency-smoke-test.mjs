@@ -75,8 +75,13 @@ try {
     reward('valid-after-invalid'),
   ]);
   assert.deepEqual(mixedRewards.map(item => item.rewardId), ['valid-after-invalid']);
-  const invalidTableAndValidReward = resolve('guerreiro', [reward('valid-reward')], [{ ...fixture, milestones: [] }, { ...fixture, key: 'arco' }]);
-  assert.deepEqual(invalidTableAndValidReward, []);
+  const isolatedTableResolution = integration.resolveProficiencyAttributeContributions({
+    classId: 'guerreiro',
+    totals: { espada: 10, arco: 10 },
+    progressionTables: [{ ...fixture, milestones: [] }, { ...fixture, key: 'arco' }],
+    rewards: [reward('valid-arco', { proficiencyKey: 'arco' })],
+  });
+  assert.deepEqual(isolatedTableResolution.map(item => item.rewardId), ['valid-arco']);
   const contribution = resolve('guerreiro', [reward('versioned')])[0];
   assert.equal(contribution.source, 'proficiency');
   assert.equal(contribution.rewardVersion, 'reward-fixture-v2');
