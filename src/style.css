@@ -13241,38 +13241,59 @@ sem backdrop ou caixa de modal. */
 }
 
 
-/* Proficiency panel — counters start at the first profile view on this device. */
+/* Proficiency panel — high-contrast RPG cards, readable on every profile surface. */
 .player-profile-proficiencies{
-  display:grid;gap:10px;margin-top:16px;padding-top:14px;
-  border-top:1px solid #cedbc322;
+  display:grid;gap:12px;margin-top:18px;padding:16px;
+  border:1px solid #a9c99b35;border-radius:14px;
+  background:linear-gradient(145deg,#171e19 0%,#111713 58%,#171d18 100%);
+  box-shadow:inset 0 1px 0 #ffffff08,0 10px 28px #0003;
+  color:#f0f4eb;
 }
-.player-profile-proficiencies>h4{margin:0;color:#edf0e8;font-size:14px}
+.player-proficiency-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:11px;border-bottom:1px solid #c9d9c21c}
+.player-proficiency-heading>div{display:grid;gap:3px}
+.player-proficiency-heading>div>span{color:#a8c99a;font-size:9px;font-weight:900;letter-spacing:.16em}
+.player-proficiency-heading h4{margin:0;color:#f2f5ed;font-size:17px;font-weight:900;letter-spacing:.01em}
+.player-proficiency-heading>small{flex:0 0 auto;padding:5px 7px;border:1px solid #7dbb7845;border-radius:6px;background:#24452b66;color:#b9e5ad;font-size:8px;font-weight:900;letter-spacing:.08em}
 .player-proficiency-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .player-proficiency-group{
-  display:grid;align-content:start;gap:7px;min-width:0;padding:9px;
-  border:1px solid #cedbc31f;border-radius:9px;background:#080c0a44;
+  display:grid;align-content:start;gap:9px;min-width:0;padding:11px;
+  border:1px solid #c4d4bd24;border-radius:10px;
+  background:linear-gradient(160deg,#252e27 0%,#1c241e 100%);
+  box-shadow:inset 0 1px 0 #ffffff08;
 }
 .player-proficiency-group:last-child{grid-column:1/-1}
 .player-proficiency-group>h5{
-  margin:0 0 1px;color:#cbd8c4;font-size:10px;font-weight:900;
-  letter-spacing:.12em;text-transform:uppercase;
+  display:flex;align-items:center;gap:7px;margin:0 0 1px;
+  color:#c6dcb9;font-size:10px;font-weight:900;
+  letter-spacing:.13em;text-transform:uppercase;
 }
-.player-proficiency-row{display:grid;gap:4px;min-width:0}
+.player-proficiency-group>h5>span{
+  display:grid;place-items:center;width:22px;height:22px;flex:0 0 auto;
+  border:1px solid #9cbd8c3d;border-radius:6px;background:#334638;
+  color:#d8edcc;font-size:13px;line-height:1;
+}
+.player-proficiency-row{display:grid;gap:5px;min-width:0;padding-top:1px}
 .player-proficiency-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
-.player-proficiency-meta>span{overflow-wrap:anywhere;color:#e7e9e2;font-size:11px}
-.player-proficiency-meta>strong{flex:0 0 auto;color:#f3f5ee;font-size:11px;font-variant-numeric:tabular-nums}
-.player-proficiency-xp-line{display:flex;align-items:center;gap:6px}
-.player-proficiency-xp-line>small{width:17px;color:#8da58a;font-size:8px;font-weight:900}
+.player-proficiency-meta>span{overflow-wrap:anywhere;color:#e5ebe1;font-size:11px;font-weight:650}
+.player-proficiency-meta>strong{flex:0 0 auto;color:#ffffff;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
+.player-proficiency-xp-line{display:flex;align-items:center;gap:7px}
+.player-proficiency-xp-line>small{width:17px;color:#a8c99a;font-size:8px;font-weight:900;letter-spacing:.06em}
 .player-proficiency-xp-track{
-  height:5px;flex:1 1 auto;overflow:hidden;border:1px solid #376345;
-  border-radius:99px;background:#102719;
+  height:6px;flex:1 1 auto;overflow:hidden;border:1px solid #55745a;
+  border-radius:99px;background:#0b120d;
+  box-shadow:inset 0 1px 2px #0008;
 }
 .player-proficiency-xp-fill{
   display:block;width:0;height:100%;border-radius:inherit;
   background:linear-gradient(90deg,#29984b,#70d889);
 }
-.player-proficiency-message{margin:0;color:#b4b7b4;font-size:11px}
+.player-proficiency-message{margin:0;padding:10px 11px;border:1px solid #c4d4bd24;border-radius:8px;background:#202922;color:#e0e8dc;font-size:11px;line-height:1.5}
 @media(max-width:420px){
+  .player-profile-proficiencies{padding:12px;gap:10px}
+  .player-proficiency-groups{grid-template-columns:minmax(0,1fr);gap:8px}
+  .player-proficiency-group:last-child{grid-column:auto}
+  .player-proficiency-group{padding:10px}
+}
   .player-proficiency-groups{grid-template-columns:minmax(0,1fr);gap:7px}
   .player-proficiency-group:last-child{grid-column:auto}
   .player-proficiency-group{padding:8px}
