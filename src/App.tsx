@@ -1455,6 +1455,7 @@ export default function App() {
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [adventurerGuideEnabled, setAdventurerGuideEnabled] = useState(readAdventurerGuideEnabled);
+  const [adventurerGuideFinishedHidden, setAdventurerGuideFinishedHidden] = useState(false);
 
   const adventurerGuideComplete = [
     adventurerGuideObjectives.chickensKilled >= 3,
@@ -1462,13 +1463,12 @@ export default function App() {
     adventurerGuideObjectives.survivedNights >= 5,
   ].every(Boolean);
   useEffect(() => {
-    if (!adventurerGuideEnabled || !adventurerGuideComplete) return;
+    if (!adventurerGuideEnabled || !adventurerGuideComplete || adventurerGuideFinishedHidden) return;
     const timeout = window.setTimeout(() => {
-      setAdventurerGuideEnabled(false);
-      writeAdventurerGuideEnabled(false);
+      setAdventurerGuideFinishedHidden(true);
     }, 10_000);
     return () => window.clearTimeout(timeout);
-  }, [adventurerGuideEnabled, adventurerGuideComplete]);
+  }, [adventurerGuideEnabled, adventurerGuideComplete, adventurerGuideFinishedHidden]);
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
@@ -2156,6 +2156,7 @@ export default function App() {
     });
     proficiencyBufferRef.current = proficiencyBuffer;
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
     const engine = new GameEngine((next) => {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
@@ -3920,6 +3921,7 @@ export default function App() {
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
         setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
         engine.restart();
         await activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
@@ -4307,6 +4309,7 @@ export default function App() {
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
     engine.restart();
     engine.stop();
     flagsRef.current = [];
@@ -4407,6 +4410,7 @@ export default function App() {
       closeFlagMenu();
       closeInventoryPanel();
       setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    setAdventurerGuideFinishedHidden(false);
       engine.restart();
       await activatePendingCookingMeals(engine);
     } catch (error) {
@@ -5480,7 +5484,7 @@ export default function App() {
     </span>)}
   </div>;
 })()}
-{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} adventurerGuideEnabled={adventurerGuideEnabled} adventurerGuideObjectives={adventurerGuideObjectives} onGuideToggle={() => setAdventurerGuideEnabled(current => { const next = !current; writeAdventurerGuideEnabled(next); return next; })} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); writeGameZoom(zoomRef.current); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} adventurerGuideEnabled={adventurerGuideEnabled && !adventurerGuideFinishedHidden} adventurerGuideObjectives={adventurerGuideObjectives} onGuideToggle={() => setAdventurerGuideEnabled(current => { const next = !current; if (next) setAdventurerGuideFinishedHidden(false); writeAdventurerGuideEnabled(next); return next; })} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); writeGameZoom(zoomRef.current); }} onClass={pickClass} classId={state.classId} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}
