@@ -62,13 +62,31 @@ try {
   assert.equal(resolve('guerreiro', [characterReward]).length, 1);
   assert.equal(resolve('mago', [characterReward]).length, 1);
   assert.deepEqual(resolve('guerreiro', [reward('unused', { effect: { type: 'attribute_base', attribute: 'inteligencia', amount: 3 } })]), []);
-  rejects(() => resolve('guerreiro', [reward('dup'), reward('dup')]), /ID de recompensa duplicado/);
-  rejects(() => resolve('guerreiro', [], [fixture, fixture]), /Progressão de proficiência duplicada/);
+  assert.deepEqual(resolve('guerreiro', [reward('dup'), reward('dup')]), []);
+  assert.deepEqual(resolve('guerreiro', [], [fixture, fixture]), []);
   assert.deepEqual(resolve('guerreiro', [reward('no-table')], []), []);
+  const mixedRewards = resolve('guerreiro', [
+    reward('invalid-key', { proficiencyKey: 'unknown_key' }),
+    reward('invalid-attribute', { effect: { type: 'attribute_base', attribute: 'unknown_attribute', amount: 2 } }),
+    reward('negative-amount', { effect: { type: 'attribute_base', attribute: 'forca', amount: -1 } }),
+    reward('infinite-amount', { effect: { type: 'attribute_base', attribute: 'forca', amount: Infinity } }),
+    reward('unsafe-amount', { effect: { type: 'attribute_base', attribute: 'forca', amount: Number.MAX_SAFE_INTEGER + 1 } }),
+    reward('invalid-unlock', { unlockLevel: 4 }),
+    reward('valid-after-invalid'),
+  ]);
+  assert.deepEqual(mixedRewards.map(item => item.rewardId), ['valid-after-invalid']);
+  const isolatedTableResolution = integration.resolveProficiencyAttributeContributions({
+    classId: 'guerreiro',
+    totals: { espada: 10, arco: 10 },
+    progressionTables: [{ ...fixture, milestones: [] }, { ...fixture, key: 'arco' }],
+    rewards: [reward('valid-arco', { proficiencyKey: 'arco' })],
+  });
+  assert.deepEqual(isolatedTableResolution.map(item => item.rewardId), ['valid-arco']);
   const contribution = resolve('guerreiro', [reward('versioned')])[0];
+  assert.equal(contribution.source, 'proficiency');
   assert.equal(contribution.rewardVersion, 'reward-fixture-v2');
   assert.equal(contribution.proficiencyTableVersion, 'fixture-v1');
-  passed.push('ponte de atributos: enabled, escopos, ATTRIBUTE_USAGE, duplicatas e versões');
+  passed.push('ponte de atributos: validação isolada, listas fechadas, limites, cache e source');
 
   const classify = sync.classifyProficiencySyncError;
   assert.deepEqual(classify({ message: 'Proficiência desconhecida ou inativa: espada.' }), { kind: 'unknown_key', keys: ['espada'] });

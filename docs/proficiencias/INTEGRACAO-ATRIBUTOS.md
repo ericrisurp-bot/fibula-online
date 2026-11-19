@@ -7,12 +7,14 @@
 O módulo `src/game/proficiencyAttributeIntegration.ts` conecta, de forma pura, os contratos das Etapas 6 e 7:
 
 - recebe totais brutos de proficiência, tabelas de progressão versionadas e definições de recompensa;
-- valida a definição mínima da recompensa e rejeita IDs duplicados;
+- valida cada recompensa isoladamente, ignora registros inválidos e IDs duplicados/ambíguos;
+- valida chaves de proficiência e atributos por listas fechadas, limites numéricos e nível de desbloqueio dentro da tabela;
 - calcula o nível com o motor da Etapa 6;
 - considera apenas recompensas habilitadas e já desbloqueadas;
 - respeita escopo geral/classe;
 - consulta `ATTRIBUTE_USAGE` e não produz contribuição para atributo que a classe não utiliza;
-- devolve contribuições tipadas, identificadas por recompensa e pelas versões usadas.
+- devolve contribuições tipadas com `source: 'proficiency'`, identificadas por recompensa e pelas versões usadas;
+- reutiliza o resultado de progressão por chave durante cada resolução, evitando recalcular a mesma proficiência para várias recompensas.
 
 ## Limite deliberado desta etapa
 
