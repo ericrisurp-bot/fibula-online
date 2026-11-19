@@ -1,83 +1,84 @@
 import { audioManager } from './audioManager';
-import { variation } from './combatSounds';
 
 type SoundBuses = { sfxBus: GainNode; ambienceBus: GainNode; noiseBuffer: AudioBuffer };
 
-/** Pisadas orgânicas em duas camadas; à noite ficam mais abafadas. */
+let lastStepContext: AudioContext | null = null;
+let lastStepAt = -Infinity;
+
+/** Pisada em uma única camada, sincronizada ao intervalo real entre contatos. */
 export function playStep(
   context: AudioContext,
   buses: SoundBuses,
   foot: 'left' | 'right',
   carrying: boolean,
   night: number,
+  interval: number,
 ) {
-  const v = variation(carrying ? 'step-carry' : 'step');
-  if (!v) return;
-
   const n = Math.max(0, Math.min(1, night));
+  const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 52 / 150;
+  const realSpeed = 52 / safeInterval;
+  const duration = Math.max(0.05, Math.min(0.12, 0.5 * safeInterval));
+  const attack = Math.min(0.01, duration * 0.3);
   const nightVolume = Math.max(0.45, 1 - 0.5 * n);
   const cutoffScale = 1 - 0.35 * n;
-  const durationScale = 1 - 0.15 * n;
-  const footPitch = foot === 'left' ? 0.94 : 1.06;
-  const pitch = audioManager.rand(0.94, 1.06) * footPitch;
-  const volume = audioManager.rand(0.88, 1.12) * nightVolume;
-  const impactRatio = audioManager.rand(0.85, 1.15);
-  const rustleRatio = audioManager.rand(0.85, 1.15);
-  const start = context.currentTime + v.delay;
+  const footPitch = foot === 'left' ? 0.985 : 1.015;
+  const pitch = footPitch * audioManager.rand(0.98, 1.02);
+  const baseGain = carrying ? 0.026 : 0.031;
+  const speedGain = Math.max(0.7, Math.min(1.15, realSpeed / 150));
+  const volume = baseGain * speedGain * audioManager.rand(0.95, 1.05) * nightVolume;
+  const start = context.currentTime;
+  if (lastStepContext !== context) {
+    lastStepContext = context;
+    lastStepAt = -Infinity;
+  }
+  if (start - lastStepAt < 0.04) return;
+  lastStepAt = start;
 
-  const playLayer = (
-    at: number,
-    duration: number,
-    filterType: BiquadFilterType,
-    frequency: number,
-    peak: number,
-    attack: number,
-    q = 0.7,
-  ) => {
-    const source = context.createBufferSource();
-    source.buffer = buses.noiseBuffer;
-    source.playbackRate.setValueAtTime(pitch, at);
-    const filter = context.createBiquadFilter();
-    filter.type = filterType;
-    filter.frequency.setValueAtTime(frequency * cutoffScale, at);
-    filter.Q.setValueAtTime(q, at);
-    const gain = context.createGain();
-    gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.linearRampToValueAtTime(Math.max(0.0001, peak * volume), at + Math.min(attack, duration * 0.45));
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+  const source = context.createBufferSource();
+  source.buffer = buses.noiseBuffer;
+  source.playbackRate.setValueAtTime(pitch, start);
 
-    if (!audioManager.createVoice(source)) {
-      try { filter.disconnect(); gain.disconnect(); } catch { /* Nó já foi desconectado. */ }
-      return;
-    }
-    try {
-      source.disconnect();
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(buses.sfxBus);
-      source.addEventListener('ended', () => {
-        try { filter.disconnect(); gain.disconnect(); } catch { /* Nó já foi desconectado. */ }
-      }, { once: true });
-      const availableOffset = Math.max(0, buses.noiseBuffer.duration - duration * pitch - 0.01);
-      source.start(at, audioManager.rand(0, availableOffset));
-      source.stop(at + duration);
-    } catch {
-      try { source.stop(); source.disconnect(); } catch { /* Fonte já parada. */ }
-      try { filter.disconnect(); gain.disconnect(); } catch { /* Nó já desconectado. */ }
-    }
-  };
+  const lowpass = context.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.setValueAtTime((carrying ? 330 : 420) * cutoffScale, start);
+  lowpass.Q.setValueAtTime(0.7, start);
 
-  // Um único baque grave e um roçar suave, simultâneos e sem rajadas.
-  const impactDuration = (carrying ? 0.105 : 0.09) * v.duration * durationScale;
-  const rustleDuration = (carrying ? 0.13 : 0.12) * v.duration * durationScale;
-  const impactFrequency = (carrying ? 285 : 365) * pitch;
-  const rustleFrequency = (carrying ? 1450 : 2050) * pitch;
-  playLayer(start, impactDuration, 'lowpass', impactFrequency, (carrying ? 0.026 : 0.031) * impactRatio, 0.01, 0.65);
-  playLayer(start, rustleDuration, 'bandpass', rustleFrequency, (carrying ? 0.0045 : 0.007) * rustleRatio * (1 - 0.55 * n), 0.02, 0.65);
+  const grassPeak = context.createBiquadFilter();
+  grassPeak.type = 'peaking';
+  grassPeak.frequency.setValueAtTime(1200, start);
+  grassPeak.Q.setValueAtTime(0.7, start);
+  grassPeak.gain.setValueAtTime(3 * (1 - 0.5 * n), start);
+
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.linearRampToValueAtTime(Math.max(0.0001, volume), start + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  if (!audioManager.createVoice(source)) {
+    try { lowpass.disconnect(); grassPeak.disconnect(); gain.disconnect(); } catch { /* Nós já desconectados. */ }
+    return;
+  }
+
+  try {
+    source.disconnect();
+    source.connect(lowpass);
+    lowpass.connect(grassPeak);
+    grassPeak.connect(gain);
+    gain.connect(buses.sfxBus);
+    source.addEventListener('ended', () => {
+      try { lowpass.disconnect(); grassPeak.disconnect(); gain.disconnect(); } catch { /* Nós já desconectados. */ }
+    }, { once: true });
+    const availableOffset = Math.max(0, buses.noiseBuffer.duration - duration * pitch - 0.01);
+    source.start(start, audioManager.rand(0, availableOffset));
+    source.stop(start + duration);
+  } catch {
+    try { source.stop(); source.disconnect(); } catch { /* Fonte já parada. */ }
+    try { lowpass.disconnect(); grassPeak.disconnect(); gain.disconnect(); } catch { /* Nós já desconectados. */ }
+  }
 }
 
 export function registerStepSounds() {
   audioManager.register('step', (event, context, buses) => {
-    playStep(context, buses, event.foot, event.carrying, event.night);
+    playStep(context, buses, event.foot, event.carrying, event.night, event.interval);
   });
 }
