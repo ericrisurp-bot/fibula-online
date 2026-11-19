@@ -13359,7 +13359,7 @@ sem backdrop ou caixa de modal. */
 @media(orientation:landscape) and (max-height:520px){
   .game-shell .adventurer-guide-panel{
     top:calc(8px + env(safe-area-inset-top));
-    right:calc(47px + env(safe-area-inset-right));
+    right:calc(57px + env(safe-area-inset-right));
     width:min(176px,calc(100vw - 60px));
   }
 }
