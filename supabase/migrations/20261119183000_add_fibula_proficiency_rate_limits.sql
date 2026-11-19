@@ -43,6 +43,7 @@ declare
   v_applied jsonb := '{}'::jsonb;
   v_retry_after integer;
   v_updated integer := 0;
+  v_count integer;
 begin
   if v_uid is null
     or (auth.jwt() ->> 'iss') is distinct from
@@ -54,10 +55,12 @@ begin
     raise exception 'Identificador do lote obrigatório.';
   end if;
 
-  if p_deltas is null
-    or jsonb_typeof(p_deltas) is distinct from 'object'
-    or jsonb_object_length(p_deltas) < 1
-    or jsonb_object_length(p_deltas) > 20 then
+  if p_deltas is null or jsonb_typeof(p_deltas) is distinct from 'object' then
+    raise exception 'Lote de proficiências inválido.';
+  end if;
+
+  select count(*)::integer into v_count from jsonb_object_keys(p_deltas);
+  if v_count < 1 or v_count > 20 then
     raise exception 'Lote de proficiências inválido.';
   end if;
 
@@ -173,7 +176,7 @@ begin
     end if;
   end loop;
 
-  if jsonb_object_length(v_applied) = 0 then
+  if v_applied = '{}'::jsonb then
     return jsonb_build_object(
       'applied', false,
       'duplicate', false,
