@@ -201,8 +201,6 @@ try {
   assert.ok(failureCount > 0);
   await failureBuffer.dispose();
   await buffer.dispose();
-  globalThis.window = previousWindow;
-  globalThis.document = previousDocument;
   passed.push('buffer: gravação em bloco, falha, restauração e evento novo concorrente');
 
   const timerUser = user('buffer-timer');
@@ -227,6 +225,8 @@ try {
   await timerBuffer.dispose();
   window.setTimeout = originalWindowSetTimeout;
   window.clearTimeout = originalWindowClearTimeout;
+  globalThis.window = previousWindow;
+  globalThis.document = previousDocument;
   passed.push('buffer: timer de 1500 ms sem flush antecipado');
 
   // GameEngine headless: os métodos privados TypeScript permanecem acessíveis
