@@ -61,22 +61,22 @@ function getProfileErrorMessage(cause: unknown, action: 'carregar' | 'salvar'): 
 }
 
 
-const PROFICIENCY_SECTIONS: { title: string; items: { label: string; key: ProficiencyKey }[] }[] = [
-  { title: 'Combat', items: [
+const PROFICIENCY_SECTIONS: { title: string; icon: string; items: { label: string; key: ProficiencyKey }[] }[] = [
+  { title: 'Combat', icon: '⚔', items: [
     { label: 'Sword', key: 'espada' },
     { label: 'Bow', key: 'arco' },
     { label: 'Staff', key: 'cajado' },
     { label: 'Nature Staff', key: 'bastao_natureza' },
     { label: 'Hits Taken', key: 'golpes_recebidos' },
   ] },
-  { title: 'Survival', items: [
+  { title: 'Survival', icon: '✦', items: [
     { label: 'Woodcutting Axe', key: 'machado_madeira' },
     { label: 'Pickaxe', key: 'picareta' },
     { label: 'Skinning Knife', key: 'faca_esfolar' },
     { label: 'Fishing Rod', key: 'vara_pesca' },
     { label: 'Hand Scythe', key: 'foice_mao' },
   ] },
-  { title: 'Companion', items: [
+  { title: 'Companion', icon: '♞', items: [
     { label: 'Cart Distance', key: 'carroca_distancia' },
   ] },
 ];
@@ -89,12 +89,12 @@ function ProficiencyPanel({
   error: string;
 }) {
   return <section className="player-profile-proficiencies">
-    <h4>Proficiencies</h4>
+    <div className="player-proficiency-heading"><div><span>YOUR JOURNEY</span><h4>Proficiencies</h4></div><small>TRACKING ACTIVE</small></div>
     {loading ? <p className="player-proficiency-message">Loading proficiencies...</p>
       : error ? <p className="player-proficiency-message">{error}</p>
       : <div className="player-proficiency-groups">
         {PROFICIENCY_SECTIONS.map(section => <div className="player-proficiency-group" key={section.title}>
-          <h5>{section.title}</h5>
+          <h5><span aria-hidden="true">{section.icon}</span>{section.title}</h5>
           {section.items.map(item => <div className="player-proficiency-row" key={item.key}>
             <div className="player-proficiency-meta">
               <span>{item.label}</span>
