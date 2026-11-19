@@ -1,12 +1,12 @@
 # Sistema de Proficiências — visão do produto e arquitetura proposta
 
-> **Status:** documentação de intenção e planejamento. Ainda não é uma implementação nem uma decisão final de schema, fórmula, balanceamento ou frequência de sincronização.
+> **Status:** fundação do Supabase e captura de eventos validados no motor implementadas; persistência local, sincronização offline-first e regras de progressão ainda não implementadas.
 >
 > **Objetivo desta nota:** permitir que desenvolvimento, auditorias e futuras etapas do projeto entendam o que estamos construindo sem depender de explicações repetidas fora do repositório.
 
 ## 1. Objetivo do sistema
 
-A Fíbula Online deverá registrar o uso real que cada jogador faz de armas, armaduras, ferramentas de sobrevivência e carroça. Esses registros alimentarão futuramente proficiências exibidas no perfil do jogador.
+A Fíbula Online deverá registrar o uso real que cada jogador faz de armas, golpes recebidos, ferramentas de sobrevivência e carroça. Esses registros alimentarão futuramente proficiências exibidas no perfil do jogador.
 
 A proficiência deverá representar prática acumulada. Nesta fase de planejamento, estamos definindo **o que contar e como preservar os registros**, não quanto cada nível concede.
 
@@ -33,13 +33,13 @@ Os nomes abaixo são rótulos conceituais. IDs internos e estrutura definitiva a
 
 Contar acertos efetivos, e não apenas cliques, animações, tentativas de ataque ou disparos que não atingiram nada. Regras para dano em área, múltiplos alvos, ataques contínuos e alvos inválidos serão detalhadas na etapa técnica.
 
-### 2.2 Defesa — armadura
+### 2.2 Defesa — golpes recebidos
 
-| Ação / equipamento | Proficiência alimentada | Regra de contagem pretendida |
+| Evento | Proficiência alimentada | Regra de contagem pretendida |
 |---|---|---|
-| Armadura equipada | Defesa / armadura | Registrar eventos válidos de dano recebido enquanto a armadura estiver equipada e participando da defesa. |
+| Personagem recebe um golpe válido | Golpes recebidos (`golpes_recebidos`) | Somar uma unidade por impacto válido recebido pelo personagem. |
 
-Ainda será necessário definir se o contador considera cada impacto recebido, dano efetivamente absorvido ou outro evento do sistema de combate. Não contar apenas o tempo com a armadura equipada, nem permitir que um mesmo impacto seja contabilizado repetidamente.
+**A armadura equipada não é uma proficiência e não alimenta esse contador.** O que gera progresso é o personagem efetivamente receber um golpe, independentemente do equipamento usado. O contador registra impactos, não pontos de dano. Futuramente, o total poderá ser convertido em nível e em resistência/armadura concedida ao personagem, mas a fórmula, os limites e os benefícios ainda serão definidos. Um mesmo impacto não pode ser contabilizado mais de uma vez.
 
 ### 2.3 Sobrevivência — ferramentas
 
@@ -113,22 +113,20 @@ A arquitetura a avaliar é:
 - **Atualização atômica:** o servidor deve aplicar cada lote de forma atômica, evitando atualização parcial ou duplicada.
 - **Segurança:** o servidor deve associar os dados ao usuário autenticado; o cliente não pode escolher livremente o ID de outro jogador nem alterar dados alheios.
 
-### 4.1 Modelo de dados a investigar (não aprovado)
+### 4.1 Fundação de dados já criada no Supabase
 
-Uma alternativa a estudar é manter, no dispositivo, contadores acumulados e uma fila compacta de deltas ainda não confirmados. Cada lote poderia conter:
+A primeira etapa criou no projeto `fibula-online`:
 
-- identificador único do lote;
-- identificação da sessão/partida;
-- sequência do lote;
-- categoria/tipo de proficiência;
-- quantidade incremental acumulada desde o último lote confirmado;
-- versão do formato dos dados.
+- `fibula_proficiency_catalog`: catálogo de chaves, nomes exibidos, categorias e unidade de contagem;
+- `fibula_proficiencies`: contador acumulado por jogador e chave de proficiência;
+- `fibula_proficiency_batches`: recibos de lotes processados, com identificador único e hash do conteúdo;
+- RPC `fibula_apply_proficiency_batch(p_batch_id, p_deltas)`: valida a sessão Arena, aceita deltas positivos de chaves ativas e soma tudo atomicamente; reenvio do mesmo lote e mesmo conteúdo não duplica o contador; reutilizar o mesmo ID com conteúdo diferente é rejeitado.
 
-No servidor, avaliar uma operação em lote que registre a chave de idempotência e some os deltas à proficiência do jogador em uma única transação.
+O jogador autenticado só pode ler seus próprios contadores e o catálogo. A escrita é feita exclusivamente pela RPC; o cliente não recebe permissão direta de INSERT/UPDATE nas tabelas. A RPC associa o lote a `auth.uid()` e valida o emissor Arena. Os recibos não ficam expostos ao cliente.
 
-Não criar uma linha remota por ação individual sem antes demonstrar que isso é necessário. O objetivo é que milhares de ações possam ser consolidadas em poucos envios, mantendo a precisão do contador.
+O catálogo inicial contém espada, arco, cajado, bastão da natureza, golpes recebidos, ferramentas de sobrevivência e distância da carroça. As chaves representam fontes de eventos; elas ainda não definem fórmulas, níveis ou bônus.
 
-A forma definitiva — tabela, RPC, política RLS, índices, retenção e estratégia de reconciliação — depende de auditoria do schema atual e de medição. Esta nota não autoriza criar tabelas, funções ou migrations.
+Não há uma linha remota por golpe. O motor deverá acumular ações localmente e enviar deltas compactados em lotes. O limite de 10.000 unidades por chave/lote é uma proteção contra payload acidentalmente corrompido, não um mecanismo antifraude.
 
 ## 5. Orçamento e limites do Supabase
 
@@ -157,7 +155,7 @@ As proficiências deverão aparecer na página de perfil aberta ao tocar no pers
 A área visual deverá organizar os dados por grupos:
 
 - **Combate:** força, destreza e inteligência mágica;
-- **Defesa:** armadura;
+- **Defesa:** golpes recebidos;
 - **Sobrevivência:** lenhador, mineração, esfolamento, pesca e colheita;
 - **Transporte:** carroça.
 
@@ -180,7 +178,7 @@ Não preencher por suposição. Definir em etapas futuras:
 1. Quantidade-base de progresso gerada por cada acerto/ação.
 2. Modificadores por classe e especialização.
 3. Fórmula exata da divisão de progresso do arco entre força e destreza.
-4. Como a armadura ganha proficiência: impacto recebido, dano absorvido ou outro evento.
+4. Como os golpes recebidos serão convertidos em nível e resistência/armadura concedida ao personagem; o contador atual registra um impacto válido por golpe, sem depender da armadura equipada.
 5. Regras para ataques em área, múltiplos alvos, dano contínuo e ações interrompidas.
 6. Quantidade de progresso exigida por nível e limites máximos.
 7. Efeitos de cada nível nas chances/quantidades de recursos raros.
@@ -188,14 +186,14 @@ Não preencher por suposição. Definir em etapas futuras:
 9. Intervalo, gatilhos e tamanho máximo dos lotes de sincronização.
 10. Política de reconciliação entre dispositivos e sessões simultâneas.
 
-## 8. Fora do escopo desta etapa
+## 8. Fora do escopo da fundação do Supabase
 
-Esta etapa é apenas documentação e alinhamento de arquitetura. Não implementar:
+A estrutura remota está criada, mas ainda não implementar nesta etapa:
 
-- contadores reais ou captura de eventos;
-- armazenamento local ou sincronização;
-- tabelas, RPCs, triggers, policies ou migrations do Supabase;
-- mudanças no schema ou nos dados dos jogadores;
+- motor de captura de eventos no jogo;
+- armazenamento local ou sincronização offline-first;
+- integração do cliente com a RPC;
+- mudanças no perfil ou na interface;
 - bônus de atributos, dano ou defesa;
 - velocidade de coleta;
 - chances ou quantidades de drops;
