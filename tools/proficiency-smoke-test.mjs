@@ -78,9 +78,9 @@ try {
   for (const error of [{ message: 'network request failed' }, { message: 'timeout' }, { status: 500 }, { status: 503 }, { status: 429 }]) {
     assert.equal(classify(error).kind, 'transient');
   }
-  const delays = Array.from({ length: 10 }, (_, i) => sync.nextProficiencyBackoffMs(i + 1));
-  for (let i = 1; i < delays.length; i++) assert.ok(delays[i] > delays[i - 1]);
-  for (const n of [0, -1, NaN, Infinity, 1, 2, 10, 1000]) {
+  const delays = Array.from({ length: 5 }, (_, i) => sync.nextProficiencyBackoffMs(i + 1));
+  for (let i = 1; i < delays.length; i++) assert.ok(delays[i] > delays[i - 1], 'backoff deve crescer antes do teto');
+  for (const n of [0, -1, NaN, Infinity, ...Array.from({ length: 1000 }, (_, i) => i + 1)]) {
     const delay = sync.nextProficiencyBackoffMs(n);
     assert.ok(delay >= 27000 && delay <= 660000, 'backoff fora da faixa de 27 s a 11 min');
   }
