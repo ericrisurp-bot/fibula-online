@@ -9,10 +9,11 @@ export type ProficiencyCounter = {
 };
 
 const DATABASE_NAME = 'fibula-proficiency-local-v1';
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const STORE_NAME = 'counters';
 const USER_INDEX = 'by_user_id';
 const PENDING_BATCH_STORE = 'pending_batches';
+const DISPLAY_BASELINE_STORE = 'display_baselines';
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
@@ -33,6 +34,9 @@ function openDatabase(): Promise<IDBDatabase> {
       }
       if (!database.objectStoreNames.contains(PENDING_BATCH_STORE)) {
         database.createObjectStore(PENDING_BATCH_STORE, { keyPath: 'userId' });
+      }
+      if (!database.objectStoreNames.contains(DISPLAY_BASELINE_STORE)) {
+        database.createObjectStore(DISPLAY_BASELINE_STORE, { keyPath: 'userId' });
       }
     };
 
@@ -293,6 +297,76 @@ export type PendingProficiencyBatch = {
   deltas: Partial<Record<ProficiencyKey, number>>;
   createdAt: number;
 };
+
+/**
+ * Exibe somente a evolução posterior à primeira abertura do painel nesta instalação.
+ * O baseline é por conta/dispositivo e nunca altera nem apaga os totais sincronizados.
+ */
+export async function readProficiencyProgress(
+  userId: string,
+  serverTotals: Partial<Record<ProficiencyKey, number>> = {},
+): Promise<Partial<Record<ProficiencyKey, number>>> {
+  if (!userId.trim()) throw new Error('Não é possível ler proficiências sem uma conta identificada.');
+  if (!serverTotals || typeof serverTotals !== 'object' || Array.isArray(serverTotals)
+    || Object.entries(serverTotals).some(([key, amount]) => !isProficiencyKey(key)
+      || !Number.isSafeInteger(amount) || (amount as number) < 0)) {
+    throw new Error('Totais de proficiência do servidor inválidos.');
+  }
+
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([STORE_NAME, DISPLAY_BASELINE_STORE], 'readwrite');
+    const countersStore = transaction.objectStore(STORE_NAME);
+    const baselineStore = transaction.objectStore(DISPLAY_BASELINE_STORE);
+    const countersRequest = countersStore.index(USER_INDEX).getAll(userId);
+    const baselineRequest = baselineStore.get(userId);
+    let progress: Partial<Record<ProficiencyKey, number>> = {};
+    let baseline: Partial<Record<ProficiencyKey, number>> | null = null;
+    let counters: ProficiencyCounter[] | null = null;
+    let failure: Error | null = null;
+
+    const abortWith = (error: Error) => {
+      failure = error;
+      try { transaction.abort(); } catch { /* a transação já pode estar finalizada */ }
+    };
+    const finishRead = () => {
+      if (baselineRequest.readyState !== 'done' || countersRequest.readyState !== 'done'
+        || baseline === null || counters === null) return;
+      if (!baseline) {
+        const localTotals = new Map<ProficiencyKey, number>();
+        for (const counter of counters) localTotals.set(counter.key, counter.total);
+        const initial: Partial<Record<ProficiencyKey, number>> = {};
+        for (const key of PROFICIENCY_KEYS) {
+          initial[key] = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
+        }
+        baseline = initial;
+        baselineStore.add({ userId, totals: initial, createdAt: Date.now() });
+      }
+      const localTotals = new Map<ProficiencyKey, number>();
+      for (const counter of counters) localTotals.set(counter.key, counter.total);
+      for (const key of PROFICIENCY_KEYS) {
+        const current = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
+        progress[key] = Math.max(0, current - (baseline[key] ?? 0));
+      }
+    };
+
+    countersRequest.onsuccess = () => {
+      counters = (countersRequest.result as ProficiencyCounter[])
+        .filter(counter => counter.userId === userId && isProficiencyKey(counter.key));
+      finishRead();
+    };
+    baselineRequest.onsuccess = () => {
+      const saved = baselineRequest.result as { totals?: Partial<Record<ProficiencyKey, number>> } | undefined;
+      baseline = saved?.totals ?? null;
+      finishRead();
+    };
+    countersRequest.onerror = () => abortWith(countersRequest.error ?? new Error('Falha ao ler contadores de proficiência.'));
+    baselineRequest.onerror = () => abortWith(baselineRequest.error ?? new Error('Falha ao ler o início do painel de proficiências.'));
+    transaction.oncomplete = () => resolve(progress);
+    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('Falha ao preparar o painel de proficiências.'));
+    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error('Leitura do painel de proficiências cancelada.'));
+  });
+}
 
 /**
  * Cria ou recupera o único lote pendente da conta. O snapshot e o recibo local

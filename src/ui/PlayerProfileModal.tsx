@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
 import { useArenaAuth } from '../auth/AuthGate';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
+import { isProficiencyKey, readProficiencyProgress } from '../game/proficiencyStorage';
+import type { ProficiencyKey } from '../game/engine';
 import { drawLadino } from '../game/ladino';
 import { drawFloatingWeapon } from '../game/weapons';
 import PageFrame from './PageFrame';
@@ -59,6 +61,57 @@ function getProfileErrorMessage(cause: unknown, action: 'carregar' | 'salvar'): 
 }
 
 
+const PROFICIENCY_SECTIONS: { title: string; icon: string; items: { label: string; key: ProficiencyKey }[] }[] = [
+  { title: 'Combat', icon: '⚔', items: [
+    { label: 'Sword', key: 'espada' },
+    { label: 'Bow', key: 'arco' },
+    { label: 'Staff', key: 'cajado' },
+    { label: 'Nature Staff', key: 'bastao_natureza' },
+    { label: 'Hits Taken', key: 'golpes_recebidos' },
+  ] },
+  { title: 'Survival', icon: '✦', items: [
+    { label: 'Woodcutting Axe', key: 'machado_madeira' },
+    { label: 'Pickaxe', key: 'picareta' },
+    { label: 'Skinning Knife', key: 'faca_esfolar' },
+    { label: 'Fishing Rod', key: 'vara_pesca' },
+    { label: 'Hand Scythe', key: 'foice_mao' },
+  ] },
+  { title: 'Companion', icon: '♞', items: [
+    { label: 'Cart Distance', key: 'carroca_distancia' },
+  ] },
+];
+
+function ProficiencyPanel({
+  counts, loading, error,
+}: {
+  counts: Partial<Record<ProficiencyKey, number>>;
+  loading: boolean;
+  error: string;
+}) {
+  return <section className="player-profile-proficiencies">
+    <div className="player-proficiency-heading"><div><span>YOUR JOURNEY</span><h4>Proficiencies</h4></div><small>TRACKING ACTIVE</small></div>
+    {loading ? <p className="player-proficiency-message">Loading proficiencies...</p>
+      : error ? <p className="player-proficiency-message">{error}</p>
+      : <div className="player-proficiency-groups">
+        {PROFICIENCY_SECTIONS.map(section => <div className="player-proficiency-group" key={section.title}>
+          <h5><span aria-hidden="true">{section.icon}</span>{section.title}</h5>
+          {section.items.map(item => <div className="player-proficiency-row" key={item.key}>
+            <div className="player-proficiency-meta">
+              <span>{item.label}</span>
+              <strong>{(counts[item.key] ?? 0).toLocaleString('en-US')}</strong>
+            </div>
+            <div className="player-proficiency-xp-line">
+              <small>XP</small>
+              <div className="player-proficiency-xp-track" aria-label={`${item.label} XP progress`}>
+                <span className="player-proficiency-xp-fill" />
+              </div>
+            </div>
+          </div>)}
+        </div>)}
+      </div>}
+  </section>;
+}
+
 function AvatarPortrait({ classId }: { classId: ClassId }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -98,10 +151,62 @@ export default function PlayerProfileModal({
   const [age, setAge] = useState('');
   const [sex, setSex] = useState('');
   const [error, setError] = useState('');
+  const [proficiencyCounts, setProficiencyCounts] = useState<Partial<Record<ProficiencyKey, number>>>({});
+  const [proficiencyLoading, setProficiencyLoading] = useState(false);
+  const [proficiencyError, setProficiencyError] = useState('');
 
   useEffect(() => {
     if (canEdit) setSelectedAvatar(avatarCharacter);
   }, [avatarCharacter, canEdit]);
+
+  useEffect(() => {
+    if (!canEdit) {
+      setProficiencyCounts({});
+      setProficiencyError('');
+      setProficiencyLoading(false);
+      return;
+    }
+    const supabaseClient = fibulaSupabase;
+    if (!supabaseClient) {
+      setProficiencyCounts({});
+      setProficiencyError('O banco de dados não está disponível neste ambiente.');
+      setProficiencyLoading(false);
+      return;
+    }
+    let active = true;
+    const loadProficiencies = async () => {
+      setProficiencyLoading(true);
+      setProficiencyError('');
+      try {
+        const { data, error: queryError } = await supabaseClient
+          .from('fibula_proficiencies')
+          .select('proficiency_key,counter')
+          .eq('user_id', userId);
+        if (queryError) throw queryError;
+
+        const serverTotals: Partial<Record<ProficiencyKey, number>> = {};
+        for (const row of data ?? []) {
+          const candidate = row as { proficiency_key?: unknown; counter?: unknown };
+          const total = typeof candidate.counter === 'number'
+            ? candidate.counter
+            : typeof candidate.counter === 'string' ? Number(candidate.counter) : NaN;
+          if (isProficiencyKey(candidate.proficiency_key) && Number.isSafeInteger(total) && total >= 0) {
+            serverTotals[candidate.proficiency_key] = total;
+          }
+        }
+        const progress = await readProficiencyProgress(userId, serverTotals);
+        if (active) setProficiencyCounts(progress);
+      } catch {
+        if (active) setProficiencyError('Não foi possível carregar as proficiências. Verifique sua conexão.');
+      } finally {
+        if (active) setProficiencyLoading(false);
+      }
+    };
+    void loadProficiencies();
+    return () => { active = false; };
+  }, [userId, canEdit]);
+
+
 
   useEffect(() => {
     let active = true;
@@ -301,6 +406,7 @@ export default function PlayerProfileModal({
               {Object.entries(profile.attributes ?? {}).map(([key, value]) => <div key={key}><span>{key}</span><strong>{Number(value).toFixed(1)}</strong></div>)}
               {!Object.keys(profile.attributes ?? {}).length && <small>{CONFIG.rulesV2.enabled ? 'A vida aumenta com o nível; dano, armadura e esquiva vêm de equipamentos e refeições, enquanto o movimento é fixo.' : 'Os atributos aparecerão conforme o personagem evoluir.'}</small>}
             </div></section>
+            {canEdit && <ProficiencyPanel counts={proficiencyCounts} loading={proficiencyLoading} error={proficiencyError} />}
             {canCompleteIdentity && <button type="button" className="player-profile-edit" onClick={() => { setEditing(true); setError(''); }}>{profile.display_name ? 'Completar dados do perfil' : 'Criar meu perfil'}</button>}
           </>}
           {error && <p className="player-profile-error" role="alert">{error}</p>}
@@ -335,6 +441,7 @@ export default function PlayerProfileModal({
           <article><span>RECORDE DE DIAS</span><strong>{profile.highest_survival_level.toLocaleString('pt-BR')}</strong></article>
           <article><span>ABATES</span><strong>{profile.kills.toLocaleString('pt-BR')}</strong></article>
         </div>
+        {canEdit && <ProficiencyPanel counts={proficiencyCounts} loading={proficiencyLoading} error={proficiencyError} />}
         {avatarPickerOpen && canEdit && <div className="player-profile-avatar-backdrop player-profile-side-avatar-backdrop" onClick={() => !savingAvatar && setAvatarPickerOpen(false)}>
           <section className="player-profile-avatar-dialog player-profile-side-avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="player-profile-avatar-title" onClick={event => event.stopPropagation()}>
             <header><div><span>PERSONALIZAÇÃO</span><h3 id="player-profile-avatar-title">Escolher foto</h3></div>
