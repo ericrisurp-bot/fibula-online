@@ -13336,6 +13336,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .adventurer-guide-art img{width:18px;height:18px;object-fit:contain;image-rendering:pixelated}
  .game-shell .adventurer-guide-objective>b{justify-self:end;color:rgba(245,245,245,.75);font-size:9px}
  .game-shell .adventurer-guide-objective>i{width:10px;height:10px;border:1px solid rgba(230,230,230,.38);border-radius:50%;background:transparent}
-.game-shell .adventurer-guide-objective.is-complete{color:rgba(235,235,235,.48);text-decoration:line-through;text-decoration-color:rgba(235,235,235,.42)}
+.game-shell .adventurer-guide-objective.is-complete{color:rgba(235,235,235,.48)}
+.game-shell .adventurer-guide-objective.is-complete>span:nth-child(2){text-decoration:line-through;text-decoration-color:rgba(235,235,235,.42)}
 .game-shell .adventurer-guide-objective.is-complete>i{border-color:#69c982;background:#69c982;box-shadow:0 0 6px rgba(105,201,130,.42)}
 @media (max-width:360px){.game-shell .adventurer-guide-panel{width:min(196px,calc(100vw - 20px));right:10px;padding:8px 9px}.game-shell .adventurer-guide-objective{font-size:9px;gap:5px}}
