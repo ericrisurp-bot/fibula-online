@@ -60,6 +60,73 @@ function openDatabase(): Promise<IDBDatabase> {
 }
 
 /**
+ * Soma vários eventos da mesma conta em uma única transação IndexedDB.
+ * Toda a leitura é concluída antes das gravações; qualquer overflow aborta o lote inteiro.
+ */
+export async function recordProficiencyEvents(
+  userId: string,
+  totals: Partial<Record<ProficiencyKey, number>>,
+): Promise<void> {
+  if (!userId.trim()) throw new Error('Não é possível salvar proficiência sem uma conta identificada.');
+  if (!totals || typeof totals !== 'object' || Array.isArray(totals)) {
+    throw new Error('Totais de proficiência inválidos.');
+  }
+
+  const entries = Object.entries(totals) as [ProficiencyKey, number][];
+  if (entries.some(([key, amount]) => typeof key !== 'string'
+    || !Number.isSafeInteger(amount) || amount <= 0)) {
+    throw new Error('Evento de proficiência inválido.');
+  }
+  if (entries.length === 0) return;
+
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const currentCounters = new Map<ProficiencyKey, ProficiencyCounter | undefined>();
+    let readsRemaining = entries.length;
+    let failure: Error | null = null;
+
+    const abortWith = (error: Error) => {
+      failure = error;
+      try { transaction.abort(); } catch { /* a transação já pode estar finalizada */ }
+    };
+
+    for (const [key] of entries) {
+      const request = store.get([userId, key]);
+      request.onsuccess = () => {
+        currentCounters.set(key, request.result as ProficiencyCounter | undefined);
+        readsRemaining -= 1;
+        if (readsRemaining !== 0) return;
+
+        const nextCounters: ProficiencyCounter[] = [];
+        for (const [entryKey, amount] of entries) {
+          const current = currentCounters.get(entryKey);
+          const nextTotal = (current?.total ?? 0) + amount;
+          if (!Number.isSafeInteger(nextTotal)) {
+            abortWith(new Error('O contador local de proficiência excedeu o limite seguro.'));
+            return;
+          }
+          nextCounters.push({
+            userId,
+            key: entryKey,
+            total: nextTotal,
+            syncedTotal: Math.min(current?.syncedTotal ?? 0, nextTotal),
+            updatedAt: Date.now(),
+          });
+        }
+        for (const counter of nextCounters) store.put(counter);
+      };
+      request.onerror = () => abortWith(request.error ?? new Error('Falha ao ler proficiência local.'));
+    }
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('Falha ao gravar proficiências locais.'));
+    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error('Gravação local de proficiências cancelada.'));
+  });
+}
+
+/**
  * Soma um evento validado pelo motor em uma transação IndexedDB atômica.
  * Os contadores são separados pelo ID da conta Arena e nunca são enviados à rede.
  */
