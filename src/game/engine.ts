@@ -414,6 +414,11 @@ export class GameEngine {
   }
 
   private recordCartProficiencyDistance(distance: number): void {
+    const cartLoad = this.state.cart.inventory.reduce((total, stack) => total + stack.quantity, 0);
+    if (cartLoad <= 0) {
+      this.cartProficiencyDistanceRemainder = 0;
+      return;
+    }
     if (!Number.isFinite(distance) || distance <= 0) return;
     this.cartProficiencyDistanceRemainder += distance;
     const wholeUnits = Math.floor(this.cartProficiencyDistanceRemainder + 1e-6);
@@ -2481,8 +2486,10 @@ export class GameEngine {
         animal.hitWait = CONFIG.wildlife.wolves.contactCooldown;
         const levelStats = this.getLevelStats();
         if (this.random() > this.getDodgeChance()) {
-          this.recordProficiency('golpes_recebidos');
           const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor);
+          if (damage > 0 && !this.state.dead && this.state.player.hp > 0) {
+            this.recordProficiency('golpes_recebidos');
+          }
           this.state.player.hp -= damage;
           this.addFloatingDamage(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
@@ -2940,10 +2947,12 @@ export class GameEngine {
         // Slimes que não escolheram a carroça mantêm a regra normal de dano ao jogador.
         e.hitWait = CONFIG.enemy.contactCooldown;
         if (this.random() > this.getDodgeChance()) {
-          this.recordProficiency('golpes_recebidos');
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const rawDamage = waveDamage * (this.getDayNightState().isNight ? 1 : 1.5);
           const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor);
+          if (damage > 0 && !this.state.dead && p.hp > 0) {
+            this.recordProficiency('golpes_recebidos');
+          }
           p.hp -= damage;
           this.addFloatingDamage(p.x, p.y - CONFIG.player.radius * 1.8, damage, '#ff4545');
         }
@@ -3431,7 +3440,6 @@ export class GameEngine {
             .slice(0, Math.max(0, CONFIG.mageExplosion.maxTargets - 1))
             .map(({ enemy }) => enemy);
           for (const enemy of hits) {
-            this.recordWeaponProficiencyHit();
             this.recordClassDamage(enemy, damage);
             enemy.hp -= damage;
             this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#9c8be8', 2 / 3);
