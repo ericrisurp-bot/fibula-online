@@ -1,4 +1,4 @@
-import type { ProficiencyEvent, ProficiencyKey } from './engine';
+import type { ProficiencyEvent } from './engine';
 
 export type ProficiencyCounter = {
   userId: string;
@@ -34,7 +34,10 @@ function openDatabase(): Promise<IDBDatabase> {
 
     request.onsuccess = () => {
       const database = request.result;
-      database.onversionchange = () => database.close();
+      database.onversionchange = () => {
+        databasePromise = null;
+        database.close();
+      };
       resolve(database);
     };
 
@@ -103,13 +106,14 @@ export async function readProficiencyCounters(userId: string): Promise<Proficien
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, 'readonly');
     const request = transaction.objectStore(STORE_NAME).index(USER_INDEX).getAll(userId);
+    let counters: ProficiencyCounter[] = [];
     request.onsuccess = () => {
-      const counters = (request.result as ProficiencyCounter[])
+      counters = (request.result as ProficiencyCounter[])
         .filter(counter => counter.userId === userId)
         .sort((a, b) => a.key.localeCompare(b.key));
-      resolve(counters);
     };
     request.onerror = () => reject(request.error ?? new Error('Não foi possível ler as proficiências locais.'));
+    transaction.oncomplete = () => resolve(counters);
     transaction.onabort = () => reject(transaction.error ?? new Error('Leitura das proficiências locais cancelada.'));
   });
 }
