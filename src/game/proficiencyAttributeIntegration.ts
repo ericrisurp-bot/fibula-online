@@ -86,10 +86,12 @@ export function resolveProficiencyAttributeContributions(
 ): ProficiencyAttributeContribution[] {
   if (!input || !CLASS_IDS.has(String(input.classId))) return [];
 
+  const progressionTables = Array.isArray(input.progressionTables) ? input.progressionTables : [];
+  const rewards = Array.isArray(input.rewards) ? input.rewards : [];
   const tables = new Map<ProficiencyKey, ProficiencyProgressionTable>();
   const seenTableKeys = new Set<ProficiencyKey>();
   const invalidTableKeys = new Set<ProficiencyKey>();
-  for (const candidate of input.progressionTables ?? []) {
+  for (const candidate of progressionTables) {
     const table = candidate as ProficiencyProgressionTable | null;
     if (!table || typeof table.key !== 'string' || !PROFICIENCY_KEYS.has(table.key)) continue;
     const key = table.key;
@@ -108,7 +110,7 @@ export function resolveProficiencyAttributeContributions(
   }
 
   const idCounts = new Map<string, number>();
-  for (const candidate of input.rewards ?? []) {
+  for (const candidate of rewards) {
     if (!candidate || typeof candidate !== 'object') continue;
     const id = (candidate as { id?: unknown }).id;
     if (typeof id === 'string' && id.trim()) idCounts.set(id, (idCounts.get(id) ?? 0) + 1);
