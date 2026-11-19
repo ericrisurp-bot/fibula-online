@@ -3842,8 +3842,7 @@ export default function App() {
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
         setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
-        setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
-      engine.restart();
+        engine.restart();
         await activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
         installGameBackGuard();
@@ -4323,6 +4322,7 @@ export default function App() {
       setWheel(null);
       closeFlagMenu();
       closeInventoryPanel();
+      setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
       engine.restart();
       await activatePendingCookingMeals(engine);
     } catch (error) {
