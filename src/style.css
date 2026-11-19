@@ -13240,3 +13240,40 @@ sem backdrop ou caixa de modal. */
   color:#292720;
 }
 
+
+/* Proficiency panel — counters start at the first profile view on this device. */
+.player-profile-proficiencies{
+  display:grid;gap:10px;margin-top:16px;padding-top:14px;
+  border-top:1px solid #cedbc322;
+}
+.player-profile-proficiencies>h4{margin:0;color:#edf0e8;font-size:14px}
+.player-proficiency-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.player-proficiency-group{
+  display:grid;align-content:start;gap:7px;min-width:0;padding:9px;
+  border:1px solid #cedbc31f;border-radius:9px;background:#080c0a44;
+}
+.player-proficiency-group:last-child{grid-column:1/-1}
+.player-proficiency-group>h5{
+  margin:0 0 1px;color:#cbd8c4;font-size:10px;font-weight:900;
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.player-proficiency-row{display:grid;gap:4px;min-width:0}
+.player-proficiency-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.player-proficiency-meta>span{overflow-wrap:anywhere;color:#e7e9e2;font-size:11px}
+.player-proficiency-meta>strong{flex:0 0 auto;color:#f3f5ee;font-size:11px;font-variant-numeric:tabular-nums}
+.player-proficiency-xp-line{display:flex;align-items:center;gap:6px}
+.player-proficiency-xp-line>small{width:17px;color:#8da58a;font-size:8px;font-weight:900}
+.player-proficiency-xp-track{
+  height:5px;flex:1 1 auto;overflow:hidden;border:1px solid #376345;
+  border-radius:99px;background:#102719;
+}
+.player-proficiency-xp-fill{
+  display:block;width:0;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,#29984b,#70d889);
+}
+.player-proficiency-message{margin:0;color:#b4b7b4;font-size:11px}
+@media(max-width:420px){
+  .player-proficiency-groups{grid-template-columns:minmax(0,1fr);gap:7px}
+  .player-proficiency-group:last-child{grid-column:auto}
+  .player-proficiency-group{padding:8px}
+}
