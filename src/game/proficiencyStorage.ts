@@ -333,7 +333,8 @@ export async function readProficiencyProgress(
       if (baselineRequest.readyState !== 'done' || countersRequest.readyState !== 'done'
         || baseline === null || counters === null) return;
       if (!baselineRequest.result) {
-        const localTotals = new Map(counters.map(counter => [counter.key, counter.total]));
+        const localTotals = new Map<ProficiencyKey, number>();
+        for (const counter of counters) localTotals.set(counter.key, counter.total);
         const initial: Partial<Record<ProficiencyKey, number>> = {};
         for (const key of PROFICIENCY_KEYS) {
           initial[key] = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
@@ -341,7 +342,8 @@ export async function readProficiencyProgress(
         baseline = initial;
         baselineStore.add({ userId, totals: initial, createdAt: Date.now() });
       }
-      const localTotals = new Map(counters.map(counter => [counter.key, counter.total]));
+      const localTotals = new Map<ProficiencyKey, number>();
+      for (const counter of counters) localTotals.set(counter.key, counter.total);
       for (const key of PROFICIENCY_KEYS) {
         const current = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
         progress[key] = Math.max(0, current - (baseline[key] ?? 0));
