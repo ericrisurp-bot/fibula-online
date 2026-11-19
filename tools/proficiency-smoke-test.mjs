@@ -360,6 +360,46 @@ try {
   damageEngine.stop();
   passed.push('motor headless: golpes recebidos com dano positivo e bloqueio após morte');
 
+  const wolfEngine = makeEngine();
+  const wolfEvents = [];
+  wolfEngine.onProficiencyEvent = event => wolfEvents.push(event);
+  wolfEngine.random = () => 0.99;
+  wolfEngine.getDodgeChance = () => 0;
+  wolfEngine.obstacleCircles = () => [];
+  wolfEngine.state.dead = false;
+  wolfEngine.state.player.hp = 100;
+  const wolfFeetX = wolfEngine.state.player.x;
+  const wolfFeetY = wolfEngine.state.player.y + CONFIG.player.footOffset;
+  wolfEngine.state.enemies = [{
+    id: 90003,
+    x: wolfFeetX,
+    y: wolfFeetY,
+    hp: 100,
+    hitWait: 0,
+    animalKind: 'wolf',
+    wanderAngle: 0,
+  }];
+  wolfEngine.moveEnemies(0);
+  assert.deepEqual(wolfEvents, [{ key: 'golpes_recebidos', amount: 1 }],
+    'contato do lobo com jogador vivo deve contar exatamente um golpe recebido');
+
+  wolfEvents.length = 0;
+  wolfEngine.state.dead = true;
+  wolfEngine.state.player.hp = 0;
+  wolfEngine.state.enemies = [{
+    id: 90004,
+    x: wolfFeetX,
+    y: wolfFeetY,
+    hp: 100,
+    hitWait: 0,
+    animalKind: 'wolf',
+    wanderAngle: 0,
+  }];
+  wolfEngine.moveEnemies(0);
+  assert.deepEqual(wolfEvents, [], 'lobo não deve contar golpe recebido após a morte do jogador');
+  wolfEngine.stop();
+  passed.push('motor headless: contato do lobo conta somente com jogador vivo');
+
   const cartEngine = makeEngine();
   const cartEvents = [];
   cartEngine.onProficiencyEvent = event => cartEvents.push(event);
