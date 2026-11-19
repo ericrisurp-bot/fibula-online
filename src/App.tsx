@@ -9,7 +9,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { recordProficiencyEvent } from './game/proficiencyStorage';
+import { acknowledgeProficiencyBatch, prepareProficiencyBatch, recordProficiencyEvent } from './game/proficiencyStorage';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
@@ -68,6 +68,7 @@ type RankingEntry = {
 
 let floatingWeaponSide: 1 | -1 = 1;
 let proficiencyStorageWarningShown = false;
+let proficiencySyncWarningShown = false;
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
@@ -1859,6 +1860,55 @@ export default function App() {
       if (debugEnabled && debugWindow.__fibulaAudio === audioManager) delete debugWindow.__fibulaAudio;
     };
   }, []);
+
+  useEffect(() => {
+    const userId = session.user.sub;
+    const supabase = fibulaSupabase;
+    if (!supabase || !userId) return;
+
+    let active = true;
+    let syncing = false;
+    const flushProficiencies = async () => {
+      if (!active || syncing || !navigator.onLine) return;
+      syncing = true;
+      try {
+        const batch = await prepareProficiencyBatch(userId);
+        if (!batch || !active) return;
+
+        const { data, error } = await supabase.rpc('fibula_apply_proficiency_batch', {
+          p_batch_id: batch.batchId,
+          p_deltas: batch.deltas,
+        });
+        if (error) throw error;
+
+        const result = data as { batch_id?: unknown; applied?: unknown; duplicate?: unknown } | null;
+        if (!result || result.batch_id !== batch.batchId
+          || (result.applied !== true && result.duplicate !== true)) {
+          throw new Error('A confirmação do lote de proficiências retornou um resultado inesperado.');
+        }
+
+        if (active) await acknowledgeProficiencyBatch(userId, batch.batchId);
+      } catch (error) {
+        if (!proficiencySyncWarningShown) {
+          proficiencySyncWarningShown = true;
+          console.warn('[Proficiências] Sincronização adiada; os dados continuam salvos localmente.', error);
+        }
+      } finally {
+        syncing = false;
+      }
+    };
+
+    void flushProficiencies();
+    const interval = window.setInterval(() => { void flushProficiencies(); }, 30000);
+    window.addEventListener('online', flushProficiencies);
+    window.addEventListener('focus', flushProficiencies);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('online', flushProficiencies);
+      window.removeEventListener('focus', flushProficiencies);
+    };
+  }, [session.user.sub]);
 
   useEffect(() => {
     if (activeGameRoute.page !== 'lobby') return;
