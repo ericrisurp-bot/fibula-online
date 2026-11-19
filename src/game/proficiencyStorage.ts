@@ -1,4 +1,4 @@
-import type { ProficiencyEvent } from './engine';
+import type { ProficiencyEvent, ProficiencyKey } from './engine';
 
 export type ProficiencyCounter = {
   userId: string;
