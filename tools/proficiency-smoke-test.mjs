@@ -351,8 +351,10 @@ try {
     kind: 'orb',
     life: 1,
     targetId: 91001,
+    weapon: 'cajado',
     explosive: true,
   }];
+  mageEngine.state.weapon = 'espada'; // troca após o disparo não pode alterar a proficiência do projétil.
   mageEngine.moveShots(0.05);
   assert.deepEqual(mageEvents, [{ key: 'cajado', amount: 1 }],
     'explosão atingindo vários inimigos deve contar somente o alvo principal');
@@ -360,6 +362,33 @@ try {
     'o alvo principal e os alvos na área precisam receber dano da explosão');
   mageEngine.stop();
   passed.push('motor headless: explosão do mago atinge múltiplos alvos e conta um cajado');
+
+  const arrowEngine = makeEngine();
+  const arrowEvents = [];
+  arrowEngine.onProficiencyEvent = event => arrowEvents.push(event);
+  arrowEngine.obstacleCircles = () => [];
+  arrowEngine.state.enemies = [
+    { id: 93001, x: arrowEngine.state.player.x + 24, y: arrowEngine.state.player.y, hp: 100, hitWait: 0, wobble: 0 },
+  ];
+  arrowEngine.state.shots = [{
+    id: 94001,
+    x: arrowEngine.state.player.x,
+    y: arrowEngine.state.player.y,
+    vx: 500,
+    vy: 0,
+    damage: 10,
+    kind: 'arrow',
+    life: 1,
+    targetId: 93001,
+    weapon: 'arco',
+    hitEnemyIds: [],
+  }];
+  arrowEngine.state.weapon = 'espada';
+  arrowEngine.moveShots(0.05);
+  assert.deepEqual(arrowEvents, [{ key: 'arco', amount: 1 }],
+    'flecha deve contar o arco usado no disparo, mesmo após trocar a arma equipada');
+  arrowEngine.stop();
+  passed.push('motor headless: projétil mantém a arma original após troca de equipamento');
 
 
   console.log('Grupos aprovados:');
