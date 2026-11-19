@@ -1977,8 +1977,8 @@ export default function App() {
 
     let reconciled = false;
     let refreshing = false;
-    const refreshServerProficiencies = async () => {
-      if (!active || refreshing || reconciled || !navigator.onLine) return;
+    const refreshServerProficiencies = async (force = false) => {
+      if (!active || refreshing || (!force && reconciled) || !navigator.onLine) return;
       refreshing = true;
       try {
         // Primeiro resolve qualquer recibo pendente. Só depois lê o acumulado
@@ -2036,12 +2036,14 @@ export default function App() {
       }
     };
 
+    const handleFocus = () => { void refreshServerProficiencies(true); };
+
     const handleOnline = () => {
       if (retryAt > Date.now() && !onlineResetUsed) {
         retryAt = 0;
         onlineResetUsed = true;
       }
-      void refreshServerProficiencies();
+      void refreshServerProficiencies(true);
     };
 
     void refreshServerProficiencies();
@@ -2050,12 +2052,12 @@ export default function App() {
       else void flushProficiencies();
     }, 30000);
     window.addEventListener('online', handleOnline);
-    window.addEventListener('focus', refreshServerProficiencies);
+    window.addEventListener('focus', handleFocus);
     return () => {
       active = false;
       window.clearInterval(interval);
       window.removeEventListener('online', handleOnline);
-      window.removeEventListener('focus', refreshServerProficiencies);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [session.user.sub]);
 
