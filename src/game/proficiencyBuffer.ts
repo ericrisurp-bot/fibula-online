@@ -1,0 +1,139 @@
+import type { ProficiencyEvent, ProficiencyKey } from './engine';
+import { recordProficiencyEvents } from './proficiencyStorage';
+
+type AccountTotals = Partial<Record<ProficiencyKey, number>>;
+
+// Compartilhado entre instâncias do efeito do engine: uma falha durante a troca
+// de conta continua pendente e pode ser tentada pela instância seguinte.
+const pendingByUser = new Map<string, AccountTotals>();
+let flushInFlight: Promise<void> | null = null;
+
+function hasPendingTotals(): boolean {
+  return Array.from(pendingByUser.values()).some(totals => Object.keys(totals).length > 0);
+}
+
+function mergeTotals(userId: string, totals: AccountTotals): void {
+  const current = pendingByUser.get(userId) ?? {};
+  for (const [rawKey, amount] of Object.entries(totals)) {
+    const key = rawKey as ProficiencyKey;
+    const merged = (current[key] ?? 0) + (amount ?? 0);
+    if (!Number.isSafeInteger(merged)) {
+      throw new Error('O acumulado em memória de proficiência excedeu o limite seguro.');
+    }
+    current[key] = merged;
+  }
+  pendingByUser.set(userId, current);
+}
+
+/**
+ * Buffer em memória por conta. As gravações são serializadas e cada snapshot
+ * é restaurado por soma se o IndexedDB falhar, preservando eventos novos.
+ */
+export class ProficiencyBuffer {
+  private timer: number | null = null;
+  private disposed = false;
+  private listenersAttached = false;
+
+  constructor(private readonly onStorageError: (error: unknown) => void) {
+    this.attachListeners();
+    if (hasPendingTotals()) this.scheduleFlush();
+  }
+
+  add(userId: string, event: ProficiencyEvent): void {
+    if (this.disposed) throw new Error('O buffer de proficiências já foi descartado.');
+    if (typeof userId !== 'string' || !userId.trim()) {
+      throw new Error('Não é possível acumular proficiência sem uma conta identificada.');
+    }
+    if (!event || typeof event.key !== 'string'
+      || !Number.isSafeInteger(event.amount) || event.amount <= 0) {
+      throw new Error('Evento de proficiência inválido.');
+    }
+
+    mergeTotals(userId, { [event.key]: event.amount });
+    this.scheduleFlush();
+  }
+
+  flush(): Promise<void> {
+    if (flushInFlight) return flushInFlight;
+    this.clearTimer();
+
+    const snapshots = Array.from(pendingByUser.entries()).map(([userId, totals]) => ({
+      userId,
+      totals: { ...totals },
+    }));
+    for (const snapshot of snapshots) pendingByUser.delete(snapshot.userId);
+    if (snapshots.length === 0) return Promise.resolve();
+
+    const work = (async () => {
+      for (const snapshot of snapshots) {
+        try {
+          await recordProficiencyEvents(snapshot.userId, snapshot.totals);
+        } catch (error) {
+          try {
+            // Soma sobre qualquer evento que chegou enquanto a transação estava aberta.
+            mergeTotals(snapshot.userId, snapshot.totals);
+          } catch (mergeError) {
+            this.onStorageError(mergeError);
+          }
+          this.onStorageError(error);
+        }
+      }
+    })();
+
+    flushInFlight = work.finally(() => {
+      flushInFlight = null;
+      if (!this.disposed && hasPendingTotals()) this.scheduleFlush();
+    });
+    return flushInFlight;
+  }
+
+  async dispose(): Promise<void> {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.clearTimer();
+    await this.flush();
+    this.detachListeners();
+  }
+
+  private readonly flushWhenHidden = () => {
+    if (document.visibilityState === 'hidden') void this.flush();
+  };
+
+  private readonly flushOnPageHide = () => {
+    void this.flush();
+  };
+
+  private attachListeners(): void {
+    if (this.listenersAttached || typeof window === 'undefined' || typeof document === 'undefined') return;
+    document.addEventListener('visibilitychange', this.flushWhenHidden);
+    window.addEventListener('pagehide', this.flushOnPageHide);
+    this.listenersAttached = true;
+  }
+
+  private detachListeners(): void {
+    if (!this.listenersAttached || typeof window === 'undefined' || typeof document === 'undefined') return;
+    document.removeEventListener('visibilitychange', this.flushWhenHidden);
+    window.removeEventListener('pagehide', this.flushOnPageHide);
+    this.listenersAttached = false;
+  }
+
+  private scheduleFlush(): void {
+    if (this.disposed || this.timer !== null || !hasPendingTotals()) return;
+    this.timer = window.setTimeout(() => {
+      this.timer = null;
+      void this.flush();
+    }, 1500);
+  }
+
+  private clearTimer(): void {
+    if (this.timer === null) return;
+    window.clearTimeout(this.timer);
+    this.timer = null;
+  }
+}
+
+export function createProficiencyBuffer(
+  onStorageError: (error: unknown) => void,
+): ProficiencyBuffer {
+  return new ProficiencyBuffer(onStorageError);
+}
