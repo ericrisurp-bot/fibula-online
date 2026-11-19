@@ -24,6 +24,8 @@ type Props = {
   onMovementStart: () => void;
   onMove: (x: number, y: number) => void;
   onRange: () => void;
+  adventurerGuideEnabled: boolean;
+  onGuideToggle: () => void;
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
@@ -40,7 +42,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, onGuideToggle, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -206,6 +208,10 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         <label htmlFor="game-master-volume">Volume geral <strong>{Math.round(audioVolume * 100)}%</strong></label>
         <input id="game-master-volume" type="range" min="0" max="1" step="0.01" value={audioVolume} onChange={event => onAudioVolumeChange(Number(event.currentTarget.value))} aria-label="Volume geral do jogo" />
         <div className="menu-audio-volume-labels"><span>Silencioso</span><span>Máximo</span></div>
+      </div>
+      <div className="menu-section-label">AVENTURA</div>
+      <div className="menu-action-list">
+        <button type="button" className={adventurerGuideEnabled ? 'selected' : ''} aria-pressed={adventurerGuideEnabled} onPointerDown={event => runTouchAction(event, onGuideToggle)} onClick={event => runClickAction(event, onGuideToggle)}><span>Guia do Aventureiro</span><b>{adventurerGuideEnabled ? 'ATIVO' : 'OFF'}</b></button>
       </div>
       <div className="menu-section-label">VISUALIZAÇÃO</div>
       <div className="menu-action-list">
