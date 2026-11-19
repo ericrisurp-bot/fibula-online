@@ -13353,3 +13353,13 @@ sem backdrop ou caixa de modal. */
   .game-shell .adventurer-guide-heading{font-size:7.5px}
   .game-shell .adventurer-guide-objective{font-size:7.5px;gap:3px}
 }
+
+
+/* Em celulares na horizontal, o Guia fica no topo, à esquerda do botão de menu. */
+@media(orientation:landscape) and (max-height:520px){
+  .game-shell .adventurer-guide-panel{
+    top:calc(8px + env(safe-area-inset-top));
+    right:calc(47px + env(safe-area-inset-right));
+    width:min(176px,calc(100vw - 60px));
+  }
+}
