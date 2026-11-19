@@ -2124,11 +2124,17 @@ export default function App() {
       const cartFound = Math.hypot(playerFeetPosition.x - next.cart.x, playerFeetPosition.y - next.cart.y) <= CONFIG.cart.interactRadius;
       const carriedWood = next.inventory.reduce((total, item) => total + (getBaseItemId(item.itemId) === 'wood' ? item.quantity : 0), 0);
       const cartRepaired = next.cart.stage === 'built';
-      setAdventurerGuideObjectives(current => ({
-        cartFound: current.cartFound || cartFound || cartRepaired,
-        woodCollected: current.woodCollected || carriedWood >= 15 || cartRepaired,
-        cartRepaired: current.cartRepaired || cartRepaired,
-      }));
+      setAdventurerGuideObjectives(current => {
+        const nextObjectives = {
+          cartFound: current.cartFound || cartFound || cartRepaired,
+          woodCollected: current.woodCollected || carriedWood >= 15 || cartRepaired,
+          cartRepaired: current.cartRepaired || cartRepaired,
+        };
+        return nextObjectives.cartFound === current.cartFound
+          && nextObjectives.woodCollected === current.woodCollected
+          && nextObjectives.cartRepaired === current.cartRepaired
+          ? current : nextObjectives;
+      });
     }, { accountLevel });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
