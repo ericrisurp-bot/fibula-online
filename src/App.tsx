@@ -1442,7 +1442,8 @@ export default function App() {
     window.history.pushState({ fibulaGameBackGuard: true }, '', window.location.href);
     gameBackGuardRef.current = true;
   };
-  const zoomRef = useRef(readGameZoom());
+  const [initialZoom] = useState(readGameZoom);
+  const zoomRef = useRef(initialZoom);
   const cameraTransformRef = useRef({ scale: 1, left: 0, top: 0 });
   const flagsRef = useRef<Array<{ colorId: string; color: string; x: number; y: number; attachedToCart?: boolean }>>([]);
   const flagHoldRef = useRef<{ pointerId: number; clientX: number; clientY: number; timer: number | null } | null>(null);
