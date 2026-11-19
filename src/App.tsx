@@ -9,7 +9,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { acknowledgeProficiencyBatch, prepareProficiencyBatch } from './game/proficiencyStorage';
+import { acknowledgeProficiencyBatch, isProficiencyKey, prepareProficiencyBatch, reconcileProficiencyCounters } from './game/proficiencyStorage';
 import { createProficiencyBuffer } from './game/proficiencyBuffer';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
@@ -1883,21 +1883,23 @@ export default function App() {
       );
     };
 
-    const flushProficiencies = async () => {
-      if (!active || syncing || !navigator.onLine || Date.now() < retryAt) return;
+    const flushProficiencies = async (): Promise<boolean> => {
+      if (!active || syncing || !navigator.onLine || Date.now() < retryAt) return false;
       syncing = true;
       retryAfterRepair = false;
       let attemptedBatchId: string | null = null;
+      let succeeded = false;
       try {
         const batch = await prepareProficiencyBatch(userId, { excludeKeys: blockedKeys });
-        if (!batch || !active) return;
+        if (!active) return false;
+        if (!batch) { succeeded = true; return true; }
         attemptedBatchId = batch.batchId;
 
         // A sessão e o token são capturados juntos. O cliente desta requisição
         // fica preso ao token dessa conta, mesmo se a sessão mudar durante o envio.
         const { getValidArenaSession } = await import('./auth/arenaOAuth');
         const arenaSession = await getValidArenaSession();
-        if (!active || !arenaSession || arenaSession.user.sub !== userId) return;
+        if (!active || !arenaSession || arenaSession.user.sub !== userId) return false;
 
         const supabaseUrl = import.meta.env.VITE_FIBULA_SUPABASE_URL?.trim() ?? '';
         const publishableKey = import.meta.env.VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
@@ -1920,7 +1922,7 @@ export default function App() {
         });
 
         const currentSession = await getValidArenaSession();
-        if (!active || !currentSession || currentSession.user.sub !== userId) return;
+        if (!active || !currentSession || currentSession.user.sub !== userId) return false;
         if (error) throw error;
 
         const result = data as { batch_id?: unknown; applied?: unknown; duplicate?: unknown } | null;
@@ -1931,6 +1933,7 @@ export default function App() {
 
         if (!active || session.user.sub !== userId) return;
         await acknowledgeProficiencyBatch(userId, batch.batchId);
+        succeeded = true;
         consecutiveFailures = 0;
         retryAt = 0;
         onlineResetUsed = false;
@@ -1969,6 +1972,68 @@ export default function App() {
         syncing = false;
         if (active && retryAfterRepair) void flushProficiencies();
       }
+      return succeeded;
+    };
+
+    let reconciled = false;
+    let refreshing = false;
+    const refreshServerProficiencies = async () => {
+      if (!active || refreshing || reconciled || !navigator.onLine) return;
+      refreshing = true;
+      try {
+        // Primeiro resolve qualquer recibo pendente. Só depois lê o acumulado
+        // remoto, evitando somar novamente um lote já aplicado pelo servidor.
+        if (!await flushProficiencies()) return;
+
+        const { getValidArenaSession } = await import('./auth/arenaOAuth');
+        const arenaSession = await getValidArenaSession();
+        if (!active || !arenaSession || arenaSession.user.sub !== userId) return;
+
+        const supabaseUrl = import.meta.env.VITE_FIBULA_SUPABASE_URL?.trim() ?? '';
+        const publishableKey = import.meta.env.VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
+        if (!supabaseUrl || !publishableKey) {
+          throw new Error('A configuração pública do Supabase do Fíbula não está disponível.');
+        }
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const requestSupabase = createClient(supabaseUrl, publishableKey, {
+          accessToken: async () => arenaSession.access_token,
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false,
+          },
+        });
+        const { data, error } = await requestSupabase
+          .from('fibula_proficiencies')
+          .select('proficiency_key,counter')
+          .eq('user_id', userId);
+
+        const currentSession = await getValidArenaSession();
+        if (!active || !currentSession || currentSession.user.sub !== userId) return;
+        if (error) throw error;
+
+        const serverTotals: Partial<Record<import('./game/engine').ProficiencyKey, number>> = {};
+        for (const row of data ?? []) {
+          const candidate = row as { proficiency_key?: unknown; counter?: unknown };
+          if (!isProficiencyKey(candidate.proficiency_key)) continue;
+          const total = typeof candidate.counter === 'number'
+            ? candidate.counter
+            : typeof candidate.counter === 'string' ? Number(candidate.counter) : NaN;
+          if (!Number.isSafeInteger(total) || total < 0
+            || Object.prototype.hasOwnProperty.call(serverTotals, candidate.proficiency_key)) {
+            throw new Error('O servidor retornou contadores de proficiência inválidos.');
+          }
+          serverTotals[candidate.proficiency_key] = total;
+        }
+
+        await reconcileProficiencyCounters(userId, serverTotals);
+        reconciled = true;
+      } catch (error) {
+        if (active) logErrorKindOnce('server_read', error);
+      } finally {
+        refreshing = false;
+      }
     };
 
     const handleOnline = () => {
@@ -1976,18 +2041,21 @@ export default function App() {
         retryAt = 0;
         onlineResetUsed = true;
       }
-      void flushProficiencies();
+      void refreshServerProficiencies();
     };
 
-    void flushProficiencies();
-    const interval = window.setInterval(() => { void flushProficiencies(); }, 30000);
+    void refreshServerProficiencies();
+    const interval = window.setInterval(() => {
+      if (!reconciled) void refreshServerProficiencies();
+      else void flushProficiencies();
+    }, 30000);
     window.addEventListener('online', handleOnline);
-    window.addEventListener('focus', flushProficiencies);
+    window.addEventListener('focus', refreshServerProficiencies);
     return () => {
       active = false;
       window.clearInterval(interval);
       window.removeEventListener('online', handleOnline);
-      window.removeEventListener('focus', flushProficiencies);
+      window.removeEventListener('focus', refreshServerProficiencies);
     };
   }, [session.user.sub]);
 
