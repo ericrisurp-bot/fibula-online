@@ -177,6 +177,32 @@ try {
   await storage.recordProficiencyEvents(excluded, { espada: 2, arco: 3 });
   assert.deepEqual((await storage.prepareProficiencyBatch(excluded, { excludeKeys: new Set(['espada']) })).deltas, { arco: 3 });
   assert.equal(await storage.prepareProficiencyBatch(user('empty')), null);
+  const partialUser = user('partial-rate-limit');
+  await storage.recordProficiencyEvent(partialUser, { key: 'espada', amount: 10 });
+  const partialBatch = await storage.prepareProficiencyBatch(partialUser);
+  const partialComplete = await storage.acknowledgeProficiencyBatch(
+    partialUser,
+    partialBatch.batchId,
+    { espada: 4 },
+  );
+  assert.equal(partialComplete, false, 'ack parcial deve manter o restante pendente');
+  counters = await storage.readProficiencyCounters(partialUser);
+  assert.deepEqual(counters.map(c => [c.total, c.syncedTotal]), [[10, 4]],
+    'ack parcial deve confirmar somente a quantidade aceita pelo servidor');
+  const remainingBatch = await storage.prepareProficiencyBatch(partialUser);
+  assert.notEqual(remainingBatch.batchId, partialBatch.batchId,
+    'o restante precisa de novo ID para preservar a idempotência do recibo parcial');
+  assert.deepEqual(remainingBatch.deltas, { espada: 6 },
+    'o restante não pode ser descartado após limite de frequência');
+  assert.equal(await storage.acknowledgeProficiencyBatch(
+    partialUser,
+    remainingBatch.batchId,
+    remainingBatch.deltas,
+  ), true);
+  counters = await storage.readProficiencyCounters(partialUser);
+  assert.deepEqual(counters.map(c => [c.total, c.syncedTotal]), [[10, 10]],
+    'o progresso acumulado precisa ser integralmente confirmável em lotes posteriores');
+
   passed.push('IndexedDB: soma, validação, atomicidade, snapshot, ack, reparo, exclusão e isolamento');
   const reconcileUser = user('server-reconcile');
   await storage.recordProficiencyEvents(reconcileUser, { espada: 10 });
