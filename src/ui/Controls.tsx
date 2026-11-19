@@ -26,6 +26,7 @@ type Props = {
   onRange: () => void;
   adventurerGuideEnabled: boolean;
   onGuideToggle: () => void;
+  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; cartRepaired: boolean };
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
@@ -42,7 +43,7 @@ type Props = {
 
 const STICK_RADIUS = 42;
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, onGuideToggle, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -183,6 +184,18 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu de controles" aria-expanded={menuOpen} onPointerDown={event => runTouchAction(event, () => setMenuOpen(value => !value))} onClick={event => runClickAction(event, () => setMenuOpen(value => !value))}>
       <span>{menuOpen ? '×' : '☰'}</span>
     </button>
+    {adventurerGuideEnabled && !menuOpen && <aside className="adventurer-guide-panel" aria-label="Guia do Aventureiro, missão GA número 1">
+      <header className="adventurer-guide-heading"><strong>GA #1</strong><span>{[adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].filter(Boolean).length}/3</span></header>
+      <div className={adventurerGuideObjectives.cartFound ? 'adventurer-guide-objective is-complete' : 'adventurer-guide-objective'}>
+        <span className="adventurer-guide-art" aria-hidden="true">🫏</span><span>Encontrar o burrinho e a carroça</span><i aria-hidden="true" />
+      </div>
+      <div className={adventurerGuideObjectives.woodCollected ? 'adventurer-guide-objective is-complete' : 'adventurer-guide-objective'}>
+        <span className="adventurer-guide-art" aria-hidden="true"><img src="/assets/items/wood.png" alt="" draggable={false} /></span><span>Coletar 15 madeiras</span><b>×15</b><i aria-hidden="true" />
+      </div>
+      <div className={adventurerGuideObjectives.cartRepaired ? 'adventurer-guide-objective is-complete' : 'adventurer-guide-objective'}>
+        <span className="adventurer-guide-art" aria-hidden="true">🛠️</span><span>Consertar a carroça</span><i aria-hidden="true" />
+      </div>
+    </aside>}
     <div className="mobile-quick-buttons" aria-label="Controles de ação">
       <div className="mobile-action-diamond" aria-label="Ações Y, X, B e A">
         <button type="button" className={cartActionVisible ? 'game-action-button action-y is-active' : 'game-action-button action-y'} disabled={!cartActionVisible} aria-disabled={!cartActionVisible} aria-label={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} title={cartFollowing ? 'Parar burrinho' : 'Chamar burrinho'} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (cartActionVisible) onCartToggle(); }}>
