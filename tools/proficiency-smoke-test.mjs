@@ -15,6 +15,8 @@ try {
   const sync = await server.ssrLoadModule('/src/game/proficiencySync.ts');
   const storage = await server.ssrLoadModule('/src/game/proficiencyStorage.ts');
   const bufferModule = await server.ssrLoadModule('/src/game/proficiencyBuffer.ts');
+  const { GameEngine } = await server.ssrLoadModule('/src/game/engine.ts');
+  const { CONFIG } = await server.ssrLoadModule('/src/game/config.ts');
 
   // Fixture de teste, NÃO é balanceamento.
   const fixture = { version: 'fixture-v1', key: 'espada', initialLevel: 1, maxLevel: 3,
@@ -137,7 +139,7 @@ try {
   await storage.repairPendingProficiencyBatch(batchUser, 'id-incorreto', ['espada']);
   assert.equal((await storage.prepareProficiencyBatch(batchUser)).batchId, next.batchId);
   await storage.repairPendingProficiencyBatch(batchUser, next.batchId, ['espada']);
-  assert.equal(await storage.prepareProficiencyBatch(batchUser), null);
+  assert.equal(await storage.prepareProficiencyBatch(batchUser, { excludeKeys: new Set(['espada']) }), null);
 
   const repairUser = user('repair');
   await storage.recordProficiencyEvents(repairUser, { espada: 2, arco: 3 });
@@ -203,9 +205,148 @@ try {
   globalThis.document = previousDocument;
   passed.push('buffer: gravação em bloco, falha, restauração e evento novo concorrente');
 
+  const timerUser = user('buffer-timer');
+  const timerBuffer = bufferModule.createProficiencyBuffer(() => {});
+  const originalWindowSetTimeout = window.setTimeout;
+  const originalWindowClearTimeout = window.clearTimeout;
+  let scheduledCallback;
+  let scheduledDelay;
+  window.setTimeout = (callback, delay) => {
+    scheduledCallback = callback;
+    scheduledDelay = delay;
+    return 9876;
+  };
+  window.clearTimeout = () => {};
+  timerBuffer.add(timerUser, { key: 'espada', amount: 1 });
+  assert.equal(scheduledDelay, 1500, 'buffer deve agendar flush em 1500 ms');
+  assert.deepEqual(await storage.readProficiencyCounters(timerUser), [], 'buffer não deve gravar antes do timer');
+  assert.equal(typeof scheduledCallback, 'function');
+  scheduledCallback();
+  await timerBuffer.flush();
+  assert.deepEqual((await storage.readProficiencyCounters(timerUser)).map(c => [c.key, c.total]), [['espada', 1]]);
+  await timerBuffer.dispose();
+  window.setTimeout = originalWindowSetTimeout;
+  window.clearTimeout = originalWindowClearTimeout;
+  passed.push('buffer: timer de 1500 ms sem flush antecipado');
+
+  // GameEngine headless: os métodos privados TypeScript permanecem acessíveis
+  // como propriedades JavaScript no runtime, permitindo dirigir os caminhos reais.
+  const makeEngine = () => new GameEngine(() => {}, {
+    seed: 0x12345678,
+    headless: true,
+    houseInventory: [],
+  });
+  const damageEngine = makeEngine();
+  const damageEvents = [];
+  damageEngine.onProficiencyEvent = event => damageEvents.push(event);
+  damageEngine.random = () => 0.99;
+  damageEngine.getDodgeChance = () => 0;
+  damageEngine.obstacleCircles = () => [];
+  damageEngine.state.dead = false;
+  damageEngine.state.player.hp = 100;
+  const damageFeetY = damageEngine.state.player.y + CONFIG.player.footOffset;
+  damageEngine.state.enemies = [{
+    id: 90001, x: damageEngine.state.player.x, y: damageFeetY,
+    hp: 100, hitWait: 0, wobble: 0,
+  }];
+  damageEngine.moveEnemies(0);
+  assert.deepEqual(damageEvents, [{ key: 'golpes_recebidos', amount: 1 }],
+    'contato com dano positivo e jogador vivo deve contar exatamente um golpe recebido');
+
+  damageEvents.length = 0;
+  damageEngine.state.dead = true;
+  damageEngine.state.player.hp = 0;
+  damageEngine.state.enemies = [{
+    id: 90002, x: damageEngine.state.player.x, y: damageFeetY,
+    hp: 100, hitWait: 0, wobble: 0,
+  }];
+  damageEngine.moveEnemies(0);
+  assert.deepEqual(damageEvents, [], 'jogador morto não deve contar golpe recebido');
+  damageEngine.stop();
+  passed.push('motor headless: golpes recebidos com dano positivo e bloqueio após morte');
+
+  const cartEngine = makeEngine();
+  const cartEvents = [];
+  cartEngine.onProficiencyEvent = event => cartEvents.push(event);
+  cartEngine.obstacleCircles = () => [];
+  cartEngine.lakeCollisionCircles = [];
+  cartEngine.lakeAvoidanceCircles = [];
+  cartEngine.state.lake = { ...cartEngine.state.lake, x: 0, y: 0, rx: 1, ry: 1 };
+  cartEngine.state.player.x = CONFIG.map.size / 2;
+  cartEngine.state.player.y = CONFIG.map.size / 2;
+  cartEngine.state.player.moving = true;
+  const cartFeetY = cartEngine.state.player.y + CONFIG.player.footOffset;
+  const resetCartPosition = () => {
+    cartEngine.state.cart = {
+      ...cartEngine.state.cart,
+      x: cartEngine.state.player.x - 200 - CONFIG.donkey.cartDistance,
+      y: cartFeetY,
+      angle: 0,
+      stage: 'built',
+      following: true,
+      carried: false,
+      inventory: [{ itemId: 'wood', quantity: 1 }],
+    };
+    cartEngine.donkeySpeed = 0;
+    cartEngine.donkeyAvoidTimer = 0;
+    cartEngine.donkeyStalled = false;
+  };
+  resetCartPosition();
+  const loadedCartStart = { x: cartEngine.state.cart.x, y: cartEngine.state.cart.y };
+  for (let i = 0; i < 30; i++) cartEngine.updateDonkeyCart(0.25);
+  assert.ok(Math.hypot(cartEngine.state.cart.x - loadedCartStart.x, cartEngine.state.cart.y - loadedCartStart.y) > 0,
+    'carroça carregada precisa realmente se deslocar');
+  assert.ok(cartEvents.some(event => event.key === 'carroca_distancia' && event.amount > 0),
+    'deslocamento com carga deve acumular proficiência');
+
+  cartEvents.length = 0;
+  resetCartPosition();
+  cartEngine.state.cart.inventory = [];
+  cartEngine.cartProficiencyDistanceRemainder = 0.75;
+  const emptyCartStart = { x: cartEngine.state.cart.x, y: cartEngine.state.cart.y };
+  for (let i = 0; i < 30; i++) cartEngine.updateDonkeyCart(0.25);
+  assert.ok(Math.hypot(cartEngine.state.cart.x - emptyCartStart.x, cartEngine.state.cart.y - emptyCartStart.y) > 0,
+    'carroça vazia também deve percorrer o caminho de movimento');
+  assert.deepEqual(cartEvents, [], 'carroça vazia não deve contar distância');
+  assert.equal(cartEngine.cartProficiencyDistanceRemainder, 0, 'carroça vazia deve zerar a fração acumulada');
+  cartEngine.stop();
+  passed.push('motor headless: carroça em movimento com carga e sem carga');
+
+  const mageEngine = makeEngine();
+  mageEngine.setClass('mago');
+  const mageEvents = [];
+  mageEngine.onProficiencyEvent = event => mageEvents.push(event);
+  const impactX = mageEngine.state.player.x + 120;
+  const impactY = mageEngine.state.player.y;
+  mageEngine.state.enemies = [
+    { id: 91001, x: impactX, y: impactY, hp: 1000, hitWait: 0, wobble: 0 },
+    { id: 91002, x: impactX + 12, y: impactY + 4, hp: 1000, hitWait: 0, wobble: 0 },
+    { id: 91003, x: impactX + 20, y: impactY - 5, hp: 1000, hitWait: 0, wobble: 0 },
+  ];
+  mageEngine.state.shots = [{
+    id: 92001,
+    x: impactX - 10,
+    y: impactY,
+    vx: 1,
+    vy: 0,
+    damage: 10,
+    kind: 'orb',
+    life: 1,
+    targetId: 91001,
+    explosive: true,
+  }];
+  mageEngine.moveShots(0.05);
+  assert.deepEqual(mageEvents, [{ key: 'cajado', amount: 1 }],
+    'explosão atingindo vários inimigos deve contar somente o alvo principal');
+  assert.ok(mageEngine.state.enemies.every(enemy => enemy.hp < 1000),
+    'o alvo principal e os alvos na área precisam receber dano da explosão');
+  mageEngine.stop();
+  passed.push('motor headless: explosão do mago atinge múltiplos alvos e conta um cajado');
+
+
   console.log('Grupos aprovados:');
   for (const name of passed) console.log(' - ' + name);
-  console.log('NÃO testado: motor headless — golpes_recebidos com dano zero/jogador morto, carroça vazia/carregada e explosão do mago. Os três cenários dependem de trajetórias de colisão/projétil e estado interno de simulação; não foi possível garantir acionamento determinístico pela API pública sem alterar src/.');
+  console.log('NÃO testado: dano exatamente zero em golpes_recebidos. O cálculo atual applyArmorToDamage aplica Math.max(1, ...) nos dois ramos de configuração, portanto o motor garante dano mínimo 1; não há estado válido que produza dano 0 para esse caminho sem adulterar a função de dano.');
   console.log('OK: ' + passed.length + ' grupos de testes de proficiências.');
 } finally {
   await server.close();
