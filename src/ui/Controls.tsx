@@ -26,7 +26,7 @@ type Props = {
   onRange: () => void;
   adventurerGuideEnabled: boolean;
   onGuideToggle: () => void;
-  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean; mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number; campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean; mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean; itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number };
+  adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean; mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number; campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean; mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean; itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number; refineryBuilt: boolean; stoneRefined: boolean; nightSurvived: boolean; mission7WoodCollected: boolean; mission7WoodRemaining: number; mission7CottonCollected: boolean; mission7CottonRemaining: number; mission7StoneCollected: boolean; mission7StoneRemaining: number };
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
@@ -188,7 +188,9 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       const mission = !([adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].every(Boolean)) ? 1
         : !([adventurerGuideObjectives.mission2WoodCollected, adventurerGuideObjectives.mission2StoneCollected, adventurerGuideObjectives.mission2CottonCollected].every(Boolean)) ? 2
         : !([adventurerGuideObjectives.campfireBuilt, adventurerGuideObjectives.lakeFound, adventurerGuideObjectives.fishingRodAvailable].every(Boolean)) ? 3
-        : !([adventurerGuideObjectives.mission4WoodCollected, adventurerGuideObjectives.campfireReached, adventurerGuideObjectives.chestBuilt].every(Boolean)) ? 4 : 5;
+        : !([adventurerGuideObjectives.mission4WoodCollected, adventurerGuideObjectives.campfireReached, adventurerGuideObjectives.chestBuilt].every(Boolean)) ? 4
+        : !([adventurerGuideObjectives.itemStored, adventurerGuideObjectives.refineryStoneRemaining === 0, adventurerGuideObjectives.refineryWoodRemaining === 0].every(Boolean)) ? 5
+        : !([adventurerGuideObjectives.refineryBuilt, adventurerGuideObjectives.stoneRefined, adventurerGuideObjectives.nightSurvived].every(Boolean)) ? 6 : 7;
       const objectives = mission === 1 ? [
         { label: 'Encontrar a carroça', done: adventurerGuideObjectives.cartFound },
         { icon: 'wood', remaining: adventurerGuideObjectives.woodRemaining, done: adventurerGuideObjectives.woodCollected },
@@ -205,10 +207,18 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         { icon: 'wood', remaining: adventurerGuideObjectives.mission4WoodRemaining, done: adventurerGuideObjectives.mission4WoodCollected },
         { label: 'Voltar à fogueira', done: adventurerGuideObjectives.campfireReached },
         { label: 'Construir o baú', done: adventurerGuideObjectives.chestBuilt },
-      ] : [
+      ] : mission === 5 ? [
         { label: 'Guardar um item no baú', done: adventurerGuideObjectives.itemStored },
         { icon: 'stone', remaining: adventurerGuideObjectives.refineryStoneRemaining, done: adventurerGuideObjectives.refineryStoneRemaining === 0 },
         { icon: 'wood', remaining: adventurerGuideObjectives.refineryWoodRemaining, done: adventurerGuideObjectives.refineryWoodRemaining === 0 },
+      ] : mission === 6 ? [
+        { label: 'Construir a refinaria', done: adventurerGuideObjectives.refineryBuilt },
+        { label: 'Refinar uma pedra', done: adventurerGuideObjectives.stoneRefined },
+        { label: 'Sobreviver a uma noite inteira', done: adventurerGuideObjectives.nightSurvived },
+      ] : [
+        { icon: 'wood', remaining: adventurerGuideObjectives.mission7WoodRemaining, done: adventurerGuideObjectives.mission7WoodCollected },
+        { icon: 'cotton', remaining: adventurerGuideObjectives.mission7CottonRemaining, done: adventurerGuideObjectives.mission7CottonCollected },
+        { icon: 'stone', remaining: adventurerGuideObjectives.mission7StoneRemaining, done: adventurerGuideObjectives.mission7StoneCollected },
       ];
       const doneCount = objectives.filter(objective => objective.done).length;
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>

@@ -77,6 +77,10 @@ type AdventurerGuideObjectives = {
   campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean;
   mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean;
   itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number;
+  refineryBuilt: boolean; stoneRefined: boolean; nightStarted: boolean; nightSurvived: boolean;
+  mission7WoodCollected: boolean; mission7WoodRemaining: number;
+  mission7CottonCollected: boolean; mission7CottonRemaining: number;
+  mission7StoneCollected: boolean; mission7StoneRemaining: number;
 };
 const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
@@ -84,6 +88,10 @@ const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
   mission4WoodCollected: false, mission4WoodRemaining: 20, campfireReached: false, chestBuilt: false,
   itemStored: false, refineryWoodRemaining: 20, refineryStoneRemaining: 15,
+  refineryBuilt: false, stoneRefined: false, nightStarted: false, nightSurvived: false,
+  mission7WoodCollected: false, mission7WoodRemaining: 15,
+  mission7CottonCollected: false, mission7CottonRemaining: 8,
+  mission7StoneCollected: false, mission7StoneRemaining: 8,
 };
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
@@ -2168,6 +2176,16 @@ export default function App() {
           itemStored: current.itemStored,
           refineryWoodRemaining: Math.max(0, 20 - carriedWood),
           refineryStoneRemaining: Math.max(0, 15 - carriedStone),
+          refineryBuilt: current.refineryBuilt || next.refinery.built,
+          stoneRefined: current.stoneRefined || next.refinery.stonesProcessed > 0,
+          nightStarted: current.nightStarted || next.dayNight === 'night',
+          nightSurvived: current.nightSurvived || (current.nightStarted && next.dayNight === 'dawn' && !next.dead),
+          mission7WoodCollected: current.mission7WoodCollected || carriedWood >= 15,
+          mission7WoodRemaining: current.mission7WoodCollected || carriedWood >= 15 ? 0 : Math.max(0, 15 - carriedWood),
+          mission7CottonCollected: current.mission7CottonCollected || carriedCotton >= 8,
+          mission7CottonRemaining: current.mission7CottonCollected || carriedCotton >= 8 ? 0 : Math.max(0, 8 - carriedCotton),
+          mission7StoneCollected: current.mission7StoneCollected || carriedStone >= 8,
+          mission7StoneRemaining: current.mission7StoneCollected || carriedStone >= 8 ? 0 : Math.max(0, 8 - carriedStone),
         };
         return Object.keys(nextObjectives).every(key => nextObjectives[key as keyof typeof nextObjectives] === current[key as keyof typeof current]) ? current : nextObjectives;
       });
