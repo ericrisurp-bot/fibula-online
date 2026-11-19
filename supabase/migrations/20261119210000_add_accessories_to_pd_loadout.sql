@@ -456,7 +456,7 @@ begin
 end;
 $function$;
 
-revoke all on function private.fibula_pd_for_class(uuid, text, uuid, jsonb) from public, anon, authenticated;
+revoke all on function private.fibula_pd_for_class(uuid, text, uuid, jsonb, jsonb) from public, anon, authenticated;
 
 create or replace function public.fibula_report_pd()
 returns integer
