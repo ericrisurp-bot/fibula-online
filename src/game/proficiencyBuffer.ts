@@ -6,7 +6,8 @@ type AccountTotals = Partial<Record<ProficiencyKey, number>>;
 // Compartilhado entre instâncias do efeito do engine: uma falha durante a troca
 // de conta continua pendente e pode ser tentada pela instância seguinte.
 const pendingByUser = new Map<string, AccountTotals>();
-let flushInFlight: Promise<void> | null = null;
+let flushInFlight: Promise<boolean> | null = null;
+let activeBuffer: ProficiencyBuffer | null = null;
 
 function hasPendingTotals(): boolean {
   return Array.from(pendingByUser.values()).some(totals => Object.keys(totals).length > 0);
@@ -35,6 +36,7 @@ export class ProficiencyBuffer {
   private listenersAttached = false;
 
   constructor(private readonly onStorageError: (error: unknown) => void) {
+    activeBuffer = this;
     this.attachListeners();
     if (hasPendingTotals()) this.scheduleFlush();
   }
@@ -54,7 +56,13 @@ export class ProficiencyBuffer {
   }
 
   flush(): Promise<void> {
-    if (flushInFlight) return flushInFlight;
+    if (flushInFlight) {
+      return flushInFlight.then(async succeeded => {
+        // Se a gravação em curso concluiu, drena também eventos acumulados durante ela.
+        // Em caso de falha, mantém o snapshot restaurado para o próximo ciclo, sem loop imediato.
+        if (succeeded && hasPendingTotals()) await this.flush();
+      });
+    }
     this.clearTimer();
 
     const snapshots = Array.from(pendingByUser.entries()).map(([userId, totals]) => ({
@@ -65,10 +73,12 @@ export class ProficiencyBuffer {
     if (snapshots.length === 0) return Promise.resolve();
 
     const work = (async () => {
+      let succeeded = true;
       for (const snapshot of snapshots) {
         try {
           await recordProficiencyEvents(snapshot.userId, snapshot.totals);
         } catch (error) {
+          succeeded = false;
           try {
             // Soma sobre qualquer evento que chegou enquanto a transação estava aberta.
             mergeTotals(snapshot.userId, snapshot.totals);
@@ -78,13 +88,16 @@ export class ProficiencyBuffer {
           this.onStorageError(error);
         }
       }
+      return succeeded;
     })();
 
     flushInFlight = work.finally(() => {
       flushInFlight = null;
-      if (!this.disposed && hasPendingTotals()) this.scheduleFlush();
+      // Se o efeito antigo foi descartado durante a gravação, a instância nova
+      // assume o agendamento dos valores que precisaram ser restaurados.
+      if (hasPendingTotals()) activeBuffer?.scheduleFlush();
     });
-    return flushInFlight;
+    return flushInFlight.then(() => undefined);
   }
 
   async dispose(): Promise<void> {
@@ -93,6 +106,7 @@ export class ProficiencyBuffer {
     this.clearTimer();
     await this.flush();
     this.detachListeners();
+    if (activeBuffer === this) activeBuffer = null;
   }
 
   private readonly flushWhenHidden = () => {
