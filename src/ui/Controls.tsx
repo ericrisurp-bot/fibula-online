@@ -186,14 +186,14 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     </button>
     {adventurerGuideEnabled && !menuOpen && <aside className="adventurer-guide-panel" aria-label="Guia do Aventureiro, missão GA número 1">
       <header className="adventurer-guide-heading"><strong>GA #1</strong><span>{[adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].filter(Boolean).length}/3</span></header>
-      <div className={adventurerGuideObjectives.cartFound ? 'adventurer-guide-objective is-complete' : 'adventurer-guide-objective'}>
-        <span className="adventurer-guide-art" aria-hidden="true">🫏</span><span>Encontrar o burrinho e a carroça</span><i aria-hidden="true" />
+      <div className={adventurerGuideObjectives.cartFound ? 'adventurer-guide-objective is-text-only is-complete' : 'adventurer-guide-objective is-text-only'}>
+        <span className="adventurer-guide-label">Encontrar a carroça</span><i aria-hidden="true" />
       </div>
-      <div className={adventurerGuideObjectives.woodCollected ? 'adventurer-guide-objective is-complete' : 'adventurer-guide-objective'}>
-        <span className="adventurer-guide-art" aria-hidden="true"><img src="/assets/items/wood.png" alt="" draggable={false} /></span><span>Coletar 15 madeiras</span><b>×15</b><i aria-hidden="true" />
+      <div className={adventurerGuideObjectives.woodCollected ? 'adventurer-guide-objective is-wood-only is-complete' : 'adventurer-guide-objective is-wood-only'}>
+        <span className="adventurer-guide-art" aria-hidden="true"><img src="/assets/items/wood.png" alt="" draggable={false} /></span><b>×15</b><i aria-hidden="true" />
       </div>
-      <div className={adventurerGuideObjectives.cartRepaired ? 'adventurer-guide-objective is-complete' : 'adventurer-guide-objective'}>
-        <span className="adventurer-guide-art" aria-hidden="true">🛠️</span><span>Consertar a carroça</span><i aria-hidden="true" />
+      <div className={adventurerGuideObjectives.cartRepaired ? 'adventurer-guide-objective is-text-only is-complete' : 'adventurer-guide-objective is-text-only'}>
+        <span className="adventurer-guide-label">Consertar carroça</span><i aria-hidden="true" />
       </div>
     </aside>}
     <div className="mobile-quick-buttons" aria-label="Controles de ação">
