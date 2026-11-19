@@ -327,7 +327,7 @@ try {
     id: 92001,
     x: impactX - 10,
     y: impactY,
-    vx: 1,
+    vx: CONFIG.weapons.cajado.projectileSpeed,
     vy: 0,
     damage: 10,
     kind: 'orb',
