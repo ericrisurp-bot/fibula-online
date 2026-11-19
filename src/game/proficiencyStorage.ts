@@ -9,9 +9,10 @@ export type ProficiencyCounter = {
 };
 
 const DATABASE_NAME = 'fibula-proficiency-local-v1';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = 'counters';
 const USER_INDEX = 'by_user_id';
+const PENDING_BATCH_STORE = 'pending_batches';
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
@@ -29,6 +30,9 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         const store = database.createObjectStore(STORE_NAME, { keyPath: ['userId', 'key'] });
         store.createIndex(USER_INDEX, 'userId', { unique: false });
+      }
+      if (!database.objectStoreNames.contains(PENDING_BATCH_STORE)) {
+        database.createObjectStore(PENDING_BATCH_STORE, { keyPath: 'userId' });
       }
     };
 
@@ -115,5 +119,104 @@ export async function readProficiencyCounters(userId: string): Promise<Proficien
     request.onerror = () => reject(request.error ?? new Error('Não foi possível ler as proficiências locais.'));
     transaction.oncomplete = () => resolve(counters);
     transaction.onabort = () => reject(transaction.error ?? new Error('Leitura das proficiências locais cancelada.'));
+  });
+}
+
+
+export type PendingProficiencyBatch = {
+  userId: string;
+  batchId: string;
+  deltas: Partial<Record<ProficiencyKey, number>>;
+  createdAt: number;
+};
+
+/**
+ * Cria ou recupera o único lote pendente da conta. O snapshot e o recibo local
+ * são gravados na mesma transação, antes de qualquer envio à rede.
+ */
+export async function prepareProficiencyBatch(userId: string): Promise<PendingProficiencyBatch | null> {
+  if (!userId.trim()) return null;
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([STORE_NAME, PENDING_BATCH_STORE], 'readwrite');
+    const countersStore = transaction.objectStore(STORE_NAME);
+    const batchesStore = transaction.objectStore(PENDING_BATCH_STORE);
+    let batch: PendingProficiencyBatch | null = null;
+    const pendingRequest = batchesStore.get(userId);
+
+    pendingRequest.onsuccess = () => {
+      const pending = pendingRequest.result as PendingProficiencyBatch | undefined;
+      if (pending) {
+        batch = pending;
+        return;
+      }
+
+      const countersRequest = countersStore.index(USER_INDEX).getAll(userId);
+      countersRequest.onsuccess = () => {
+        const deltas: Partial<Record<ProficiencyKey, number>> = {};
+        for (const counter of countersRequest.result as ProficiencyCounter[]) {
+          const unsynced = Math.max(0, counter.total - counter.syncedTotal);
+          if (unsynced > 0) deltas[counter.key] = Math.min(10000, unsynced);
+        }
+        if (Object.keys(deltas).length === 0) return;
+        if (typeof crypto === 'undefined' || typeof crypto.randomUUID !== 'function') {
+          transaction.abort();
+          return;
+        }
+        batch = {
+          userId,
+          batchId: crypto.randomUUID(),
+          deltas,
+          createdAt: Date.now(),
+        };
+        batchesStore.add(batch);
+      };
+      countersRequest.onerror = () => transaction.abort();
+    };
+
+    transaction.oncomplete = () => resolve(batch);
+    transaction.onerror = () => reject(transaction.error ?? new Error('Não foi possível preparar o lote de proficiências.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Preparação do lote de proficiências cancelada.'));
+    pendingRequest.onerror = () => transaction.abort();
+  });
+}
+
+/**
+ * Confirma localmente apenas o snapshot exato que o servidor confirmou.
+ * Eventos recebidos durante o envio continuam pendentes para o próximo lote.
+ */
+export async function acknowledgeProficiencyBatch(userId: string, batchId: string): Promise<void> {
+  if (!userId.trim() || !batchId.trim()) return;
+  const database = await openDatabase();
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction([STORE_NAME, PENDING_BATCH_STORE], 'readwrite');
+    const countersStore = transaction.objectStore(STORE_NAME);
+    const batchesStore = transaction.objectStore(PENDING_BATCH_STORE);
+    const pendingRequest = batchesStore.get(userId);
+
+    pendingRequest.onsuccess = () => {
+      const pending = pendingRequest.result as PendingProficiencyBatch | undefined;
+      if (!pending || pending.batchId !== batchId) return;
+
+      for (const [key, amount] of Object.entries(pending.deltas) as [ProficiencyKey, number][]) {
+        const counterRequest = countersStore.get([userId, key]);
+        counterRequest.onsuccess = () => {
+          const current = counterRequest.result as ProficiencyCounter | undefined;
+          if (!current) return;
+          countersStore.put({
+            ...current,
+            syncedTotal: Math.min(current.total, current.syncedTotal + amount),
+          } satisfies ProficiencyCounter);
+        };
+      }
+      batchesStore.delete(userId);
+    };
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error('Não foi possível confirmar o lote de proficiências.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Confirmação local do lote cancelada.'));
+    pendingRequest.onerror = () => transaction.abort();
   });
 }
