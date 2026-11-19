@@ -2146,7 +2146,6 @@ export default function App() {
       const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
       const lakeFound = next.lake.rx > 0 && next.lake.ry > 0 && lakeNormalizedDistance <= 1.2;
       const chestBuilt = next.house.built;
-      const itemStored = next.house.inventory.length > 0;
       setAdventurerGuideObjectives(current => {
         const woodCollected = current.woodCollected || carriedWood >= 15 || cartRepaired;
         const mission2WoodCollected = current.mission2WoodCollected || carriedWood >= 5;
@@ -2166,7 +2165,7 @@ export default function App() {
           mission4WoodCollected, mission4WoodRemaining: mission4WoodCollected ? 0 : Math.max(0, 20 - carriedWood),
           campfireReached: current.campfireReached || campfireReached,
           chestBuilt: current.chestBuilt || chestBuilt,
-          itemStored: current.itemStored || itemStored,
+          itemStored: current.itemStored,
           refineryWoodRemaining: Math.max(0, 20 - carriedWood),
           refineryStoneRemaining: Math.max(0, 15 - carriedStone),
         };
@@ -4150,7 +4149,13 @@ export default function App() {
       console.warn('[Baú] Depósito na casa bloqueado: inventário da nuvem ainda não foi confirmado.');
       return;
     }
-    engineRef.current?.storeAllBagToHouse();
+    const engine = engineRef.current;
+    if (!engine) return;
+    const before = JSON.stringify(engine.state.house.inventory);
+    engine.storeAllBagToHouse();
+    if (JSON.stringify(engine.state.house.inventory) !== before) {
+      setAdventurerGuideObjectives(current => current.itemStored ? current : { ...current, itemStored: true });
+    }
   };
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
   const buildCart = () => engineRef.current?.buildCart();
