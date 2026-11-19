@@ -299,8 +299,8 @@ export type PendingProficiencyBatch = {
 };
 
 /**
- * Exibe somente a evolução posterior à primeira abertura do painel nesta instalação.
- * O baseline é por conta/dispositivo e nunca altera nem apaga os totais sincronizados.
+ * Exibe os totais reais de proficiência, combinando servidor e armazenamento local.
+ * A leitura não cria nem altera linhas de base ou contadores.
  */
 export async function readProficiencyProgress(
   userId: string,
@@ -315,56 +315,25 @@ export async function readProficiencyProgress(
 
   const database = await openDatabase();
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction([STORE_NAME, DISPLAY_BASELINE_STORE], 'readwrite');
-    const countersStore = transaction.objectStore(STORE_NAME);
-    const baselineStore = transaction.objectStore(DISPLAY_BASELINE_STORE);
-    const countersRequest = countersStore.index(USER_INDEX).getAll(userId);
-    const baselineRequest = baselineStore.get(userId);
+    const transaction = database.transaction(STORE_NAME, 'readonly');
+    const countersRequest = transaction.objectStore(STORE_NAME).index(USER_INDEX).getAll(userId);
     let progress: Partial<Record<ProficiencyKey, number>> = {};
-    let baseline: Partial<Record<ProficiencyKey, number>> | null = null;
-    let counters: ProficiencyCounter[] | null = null;
-    let failure: Error | null = null;
-
-    const abortWith = (error: Error) => {
-      failure = error;
-      try { transaction.abort(); } catch { /* a transação já pode estar finalizada */ }
-    };
-    const finishRead = () => {
-      if (baselineRequest.readyState !== 'done' || countersRequest.readyState !== 'done'
-        || baseline === null || counters === null) return;
-      if (!baseline) {
-        const localTotals = new Map<ProficiencyKey, number>();
-        for (const counter of counters) localTotals.set(counter.key, counter.total);
-        const initial: Partial<Record<ProficiencyKey, number>> = {};
-        for (const key of PROFICIENCY_KEYS) {
-          initial[key] = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
-        }
-        baseline = initial;
-        baselineStore.add({ userId, totals: initial, createdAt: Date.now() });
-      }
-      const localTotals = new Map<ProficiencyKey, number>();
-      for (const counter of counters) localTotals.set(counter.key, counter.total);
-      for (const key of PROFICIENCY_KEYS) {
-        const current = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
-        progress[key] = Math.max(0, current - (baseline[key] ?? 0));
-      }
-    };
 
     countersRequest.onsuccess = () => {
-      counters = (countersRequest.result as ProficiencyCounter[])
-        .filter(counter => counter.userId === userId && isProficiencyKey(counter.key));
-      finishRead();
+      const localTotals = new Map<ProficiencyKey, number>();
+      for (const counter of countersRequest.result as ProficiencyCounter[]) {
+        if (counter.userId === userId && isProficiencyKey(counter.key)) {
+          localTotals.set(counter.key, counter.total);
+        }
+      }
+      for (const key of PROFICIENCY_KEYS) {
+        progress[key] = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
+      }
     };
-    baselineRequest.onsuccess = () => {
-      const saved = baselineRequest.result as { totals?: Partial<Record<ProficiencyKey, number>> } | undefined;
-      baseline = saved?.totals ?? null;
-      finishRead();
-    };
-    countersRequest.onerror = () => abortWith(countersRequest.error ?? new Error('Falha ao ler contadores de proficiência.'));
-    baselineRequest.onerror = () => abortWith(baselineRequest.error ?? new Error('Falha ao ler o início do painel de proficiências.'));
+    countersRequest.onerror = () => reject(countersRequest.error ?? new Error('Falha ao ler contadores de proficiência.'));
     transaction.oncomplete = () => resolve(progress);
-    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('Falha ao preparar o painel de proficiências.'));
-    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error('Leitura do painel de proficiências cancelada.'));
+    transaction.onerror = () => reject(transaction.error ?? new Error('Falha ao preparar o painel de proficiências.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Leitura do painel de proficiências cancelada.'));
   });
 }
 
