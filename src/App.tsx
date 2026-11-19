@@ -1455,6 +1455,20 @@ export default function App() {
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [adventurerGuideEnabled, setAdventurerGuideEnabled] = useState(readAdventurerGuideEnabled);
+
+  const adventurerGuideComplete = [
+    adventurerGuideObjectives.chickensKilled >= 3,
+    adventurerGuideObjectives.leatherRefined,
+    adventurerGuideObjectives.survivedNights >= 5,
+  ].every(Boolean);
+  useEffect(() => {
+    if (!adventurerGuideEnabled || !adventurerGuideComplete) return;
+    const timeout = window.setTimeout(() => {
+      setAdventurerGuideEnabled(false);
+      writeAdventurerGuideEnabled(false);
+    }, 10_000);
+    return () => window.clearTimeout(timeout);
+  }, [adventurerGuideEnabled, adventurerGuideComplete]);
   const [audioMuted, setAudioMuted] = useState(() => audioManager.isMuted());
   const [audioVolume, setAudioVolume] = useState(() => audioManager.getVolume());
   const [showStart, setShowStart] = useState(true);
