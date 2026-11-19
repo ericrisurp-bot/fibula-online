@@ -68,7 +68,6 @@ type RankingEntry = {
 
 let floatingWeaponSide: 1 | -1 = 1;
 let proficiencyStorageWarningShown = false;
-let proficiencySyncWarningShown = false;
 
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
@@ -1863,22 +1862,64 @@ export default function App() {
 
   useEffect(() => {
     const userId = session.user.sub;
-    const supabase = fibulaSupabase;
-    if (!supabase || !userId) return;
+    if (!fibulaSupabase || !userId) return;
 
     let active = true;
     let syncing = false;
-    const flushProficiencies = async () => {
-      if (!active || syncing || !navigator.onLine) return;
-      syncing = true;
-      try {
-        const batch = await prepareProficiencyBatch(userId);
-        if (!batch || !active) return;
+    let consecutiveFailures = 0;
+    let retryAt = 0;
+    let onlineResetUsed = false;
+    let retryAfterRepair = false;
+    const blockedKeys = new Set<import('./game/engine').ProficiencyKey>();
+    const loggedErrorKinds = new Set<string>();
 
-        const { data, error } = await supabase.rpc('fibula_apply_proficiency_batch', {
+    const logErrorKindOnce = (kind: string, error: unknown) => {
+      if (loggedErrorKinds.has(kind)) return;
+      loggedErrorKinds.add(kind);
+      console.warn(
+        `[Proficiências] Falha de sincronização (${kind}); os dados continuam salvos localmente.`,
+        error,
+      );
+    };
+
+    const flushProficiencies = async () => {
+      if (!active || syncing || !navigator.onLine || Date.now() < retryAt) return;
+      syncing = true;
+      retryAfterRepair = false;
+      let attemptedBatchId: string | null = null;
+      try {
+        const batch = await prepareProficiencyBatch(userId, { excludeKeys: blockedKeys });
+        if (!batch || !active) return;
+        attemptedBatchId = batch.batchId;
+
+        // A sessão e o token são capturados juntos. O cliente desta requisição
+        // fica preso ao token dessa conta, mesmo se a sessão mudar durante o envio.
+        const { getValidArenaSession } = await import('./auth/arenaOAuth');
+        const arenaSession = await getValidArenaSession();
+        if (!active || !arenaSession || arenaSession.user.sub !== userId) return;
+
+        const supabaseUrl = import.meta.env.VITE_FIBULA_SUPABASE_URL?.trim() ?? '';
+        const publishableKey = import.meta.env.VITE_FIBULA_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
+        if (!supabaseUrl || !publishableKey) {
+          throw new Error('A configuração pública do Supabase do Fíbula não está disponível.');
+        }
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const requestSupabase = createClient(supabaseUrl, publishableKey, {
+          accessToken: async () => arenaSession.access_token,
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false,
+          },
+        });
+        const { data, error } = await requestSupabase.rpc('fibula_apply_proficiency_batch', {
           p_batch_id: batch.batchId,
           p_deltas: batch.deltas,
         });
+
+        const currentSession = await getValidArenaSession();
+        if (!active || !currentSession || currentSession.user.sub !== userId) return;
         if (error) throw error;
 
         const result = data as { batch_id?: unknown; applied?: unknown; duplicate?: unknown } | null;
@@ -1887,25 +1928,64 @@ export default function App() {
           throw new Error('A confirmação do lote de proficiências retornou um resultado inesperado.');
         }
 
-        if (active) await acknowledgeProficiencyBatch(userId, batch.batchId);
+        if (!active || session.user.sub !== userId) return;
+        await acknowledgeProficiencyBatch(userId, batch.batchId);
+        consecutiveFailures = 0;
+        retryAt = 0;
+        onlineResetUsed = false;
       } catch (error) {
-        if (!proficiencySyncWarningShown) {
-          proficiencySyncWarningShown = true;
-          console.warn('[Proficiências] Sincronização adiada; os dados continuam salvos localmente.', error);
+        if (!active) return;
+        const { classifyProficiencySyncError, nextProficiencyBackoffMs } =
+          await import('./game/proficiencySync');
+        const classification = classifyProficiencySyncError(error);
+        logErrorKindOnce(classification.kind, error);
+
+        if (classification.kind === 'unknown_key' && classification.keys?.length) {
+          for (const key of classification.keys) {
+            blockedKeys.add(key as import('./game/engine').ProficiencyKey);
+          }
+          try {
+            const { repairPendingProficiencyBatch } = await import('./game/proficiencyStorage');
+            await repairPendingProficiencyBatch(
+              userId,
+              attemptedBatchId ?? '',
+              classification.keys as import('./game/engine').ProficiencyKey[],
+            );
+            retryAfterRepair = true;
+          } catch (repairError) {
+            consecutiveFailures += 1;
+            retryAt = Date.now() + nextProficiencyBackoffMs(consecutiveFailures);
+            logErrorKindOnce('transient', repairError);
+          }
+        } else {
+          consecutiveFailures += 1;
+          const backoff = nextProficiencyBackoffMs(consecutiveFailures);
+          retryAt = Date.now() + (classification.kind === 'fk_profile'
+            ? Math.max(5 * 60 * 1000, backoff)
+            : backoff);
         }
       } finally {
         syncing = false;
+        if (active && retryAfterRepair) void flushProficiencies();
       }
+    };
+
+    const handleOnline = () => {
+      if (retryAt > Date.now() && !onlineResetUsed) {
+        retryAt = 0;
+        onlineResetUsed = true;
+      }
+      void flushProficiencies();
     };
 
     void flushProficiencies();
     const interval = window.setInterval(() => { void flushProficiencies(); }, 30000);
-    window.addEventListener('online', flushProficiencies);
+    window.addEventListener('online', handleOnline);
     window.addEventListener('focus', flushProficiencies);
     return () => {
       active = false;
       window.clearInterval(interval);
-      window.removeEventListener('online', flushProficiencies);
+      window.removeEventListener('online', handleOnline);
       window.removeEventListener('focus', flushProficiencies);
     };
   }, [session.user.sub]);
