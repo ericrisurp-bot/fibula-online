@@ -446,6 +446,7 @@ export type PdLoadout = {
   secondaryClass: string | null;
   weapons: object;
   armors: object;
+  accessories: object;
 };
 
 export async function savePdLoadout(client: SupabaseClient, loadout: PdLoadout): Promise<boolean> {
@@ -455,6 +456,7 @@ export async function savePdLoadout(client: SupabaseClient, loadout: PdLoadout):
       p_secondary_class: loadout.secondaryClass,
       p_weapons: loadout.weapons,
       p_armors: loadout.armors,
+      p_accessories: loadout.accessories,
     });
     return !error && data === true;
   } catch {

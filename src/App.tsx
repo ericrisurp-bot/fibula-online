@@ -1127,6 +1127,7 @@ export default function App() {
       classes: characterPreferences,
       weapons: equippedWeaponIds,
       armors: effectiveEquippedArmorIds,
+      accessories: effectiveEquippedAccessoryIds,
     });
     if (lastReportedPdRef.current?.userId === session.user.sub
       && lastReportedPdRef.current.loadout === loadoutSignature) return;
@@ -1139,6 +1140,7 @@ export default function App() {
         secondaryClass,
         weapons: equippedWeaponIds,
         armors: effectiveEquippedArmorIds,
+        accessories: effectiveEquippedAccessoryIds,
       });
       if (saved && lastReportedPdRef.current?.userId === reportUserId
         && lastReportedPdRef.current.loadout === loadoutSignature) {
@@ -1154,6 +1156,7 @@ export default function App() {
     characterPreferences,
     equippedWeaponIds,
     effectiveEquippedArmorIds,
+    effectiveEquippedAccessoryIds,
     session.user.sub,
   ]);
   const arsenalInventoryEntries: Array<
