@@ -207,7 +207,7 @@ begin
     'batch_id', p_batch_id,
     'updated', v_updated,
     'applied_deltas', v_applied,
-    'rate_limited', jsonb_object_length(v_applied) < jsonb_object_length(p_deltas),
+    'rate_limited', v_retry_after is not null,
     'retry_after_seconds', v_retry_after
   );
 end;
