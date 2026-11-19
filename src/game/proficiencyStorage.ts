@@ -408,37 +408,80 @@ export async function repairPendingProficiencyBatch(
  * Confirma localmente apenas o snapshot exato que o servidor confirmou.
  * Eventos recebidos durante o envio continuam pendentes para o próximo lote.
  */
-export async function acknowledgeProficiencyBatch(userId: string, batchId: string): Promise<void> {
-  if (!userId.trim() || !batchId.trim()) return;
+export async function acknowledgeProficiencyBatch(
+  userId: string,
+  batchId: string,
+  appliedDeltas?: Partial<Record<ProficiencyKey, number>>,
+): Promise<boolean> {
+  if (!userId.trim() || !batchId.trim()) return false;
   const database = await openDatabase();
 
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<boolean>((resolve, reject) => {
     const transaction = database.transaction([STORE_NAME, PENDING_BATCH_STORE], 'readwrite');
     const countersStore = transaction.objectStore(STORE_NAME);
     const batchesStore = transaction.objectStore(PENDING_BATCH_STORE);
     const pendingRequest = batchesStore.get(userId);
+    let batchFullyAcknowledged = false;
+    let failure: Error | null = null;
 
     pendingRequest.onsuccess = () => {
       const pending = pendingRequest.result as PendingProficiencyBatch | undefined;
       if (!pending || pending.batchId !== batchId) return;
 
+      const accepted = appliedDeltas ?? pending.deltas;
+      const acceptedEntries = Object.entries(accepted) as [string, number][];
+      if (acceptedEntries.some(([key, amount]) => !isProficiencyKey(key)
+        || !Object.prototype.hasOwnProperty.call(pending.deltas, key)
+        || !Number.isSafeInteger(amount) || amount < 0
+        || amount > (pending.deltas[key] ?? 0))) {
+        failure = new Error('O servidor confirmou quantidades inválidas para o lote de proficiências.');
+        transaction.abort();
+        return;
+      }
+
+      const remaining: Partial<Record<ProficiencyKey, number>> = {};
       for (const [key, amount] of Object.entries(pending.deltas) as [ProficiencyKey, number][]) {
+        const confirmed = accepted[key] ?? 0;
+        const outstanding = amount - confirmed;
+        if (outstanding > 0) remaining[key] = outstanding;
+        if (confirmed <= 0) continue;
+
         const counterRequest = countersStore.get([userId, key]);
         counterRequest.onsuccess = () => {
           const current = counterRequest.result as ProficiencyCounter | undefined;
           if (!current) return;
           countersStore.put({
             ...current,
-            syncedTotal: Math.min(current.total, current.syncedTotal + amount),
+            syncedTotal: Math.min(current.total, current.syncedTotal + confirmed),
           } satisfies ProficiencyCounter);
         };
+        counterRequest.onerror = () => {
+          failure = counterRequest.error ?? new Error('Falha ao atualizar o contador local confirmado.');
+          try { transaction.abort(); } catch { /* a transação pode já estar finalizada */ }
+        };
       }
-      batchesStore.delete(userId);
+
+      batchFullyAcknowledged = Object.keys(remaining).length === 0;
+      if (batchFullyAcknowledged) {
+        batchesStore.delete(userId);
+      } else {
+        if (typeof crypto === 'undefined' || typeof crypto.randomUUID !== 'function') {
+          failure = new Error('Não foi possível renovar o identificador do lote parcial.');
+          transaction.abort();
+          return;
+        }
+        batchesStore.put({
+          userId,
+          batchId: crypto.randomUUID(),
+          deltas: remaining,
+          createdAt: pending.createdAt,
+        } satisfies PendingProficiencyBatch);
+      }
     };
 
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error('Não foi possível confirmar o lote de proficiências.'));
-    transaction.onabort = () => reject(transaction.error ?? new Error('Confirmação local do lote cancelada.'));
+    transaction.oncomplete = () => resolve(batchFullyAcknowledged);
+    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('Não foi possível confirmar o lote de proficiências.'));
+    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error('Confirmação local do lote cancelada.'));
     pendingRequest.onerror = () => transaction.abort();
   });
 }

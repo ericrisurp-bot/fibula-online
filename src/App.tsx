@@ -1925,17 +1925,54 @@ export default function App() {
         if (!active || !currentSession || currentSession.user.sub !== userId) return false;
         if (error) throw error;
 
-        const result = data as { batch_id?: unknown; applied?: unknown; duplicate?: unknown } | null;
-        if (!result || result.batch_id !== batch.batchId
-          || (result.applied !== true && result.duplicate !== true)) {
+        const result = data as {
+          batch_id?: unknown;
+          applied?: unknown;
+          duplicate?: unknown;
+          rate_limited?: unknown;
+          retry_after_seconds?: unknown;
+          applied_deltas?: unknown;
+        } | null;
+        if (!result || result.batch_id !== batch.batchId) {
+          throw new Error('A confirmação do lote de proficiências retornou um resultado inesperado.');
+        }
+
+        const appliedDeltas = result.applied_deltas;
+        if (!appliedDeltas || typeof appliedDeltas !== 'object' || Array.isArray(appliedDeltas)) {
+          throw new Error('O servidor não informou as quantidades de proficiência efetivamente aceitas.');
+        }
+        const acceptedEntries = Object.entries(appliedDeltas as Record<string, unknown>);
+        if (acceptedEntries.length === 0 && result.rate_limited === true) {
+          const retrySeconds = typeof result.retry_after_seconds === 'number'
+            && Number.isFinite(result.retry_after_seconds)
+            ? Math.max(1, Math.ceil(result.retry_after_seconds))
+            : 60;
+          retryAt = Date.now() + retrySeconds * 1000;
+          consecutiveFailures = 0;
+          onlineResetUsed = false;
+          return false;
+        }
+        if (result.applied !== true && result.duplicate !== true) {
           throw new Error('A confirmação do lote de proficiências retornou um resultado inesperado.');
         }
 
         if (!active || session.user.sub !== userId) return false;
-        await acknowledgeProficiencyBatch(userId, batch.batchId);
-        succeeded = true;
+        const fullyAcknowledged = await acknowledgeProficiencyBatch(
+          userId,
+          batch.batchId,
+          appliedDeltas as Partial<Record<import('./game/engine').ProficiencyKey, number>>,
+        );
+        succeeded = fullyAcknowledged;
         consecutiveFailures = 0;
-        retryAt = 0;
+        if (fullyAcknowledged) {
+          retryAt = 0;
+        } else {
+          const retrySeconds = typeof result.retry_after_seconds === 'number'
+            && Number.isFinite(result.retry_after_seconds)
+            ? Math.max(30, Math.ceil(result.retry_after_seconds))
+            : 60;
+          retryAt = Date.now() + retrySeconds * 1000;
+        }
         onlineResetUsed = false;
       } catch (error) {
         if (!active) return false;
