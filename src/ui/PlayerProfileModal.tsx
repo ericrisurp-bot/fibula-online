@@ -166,7 +166,8 @@ export default function PlayerProfileModal({
       setProficiencyLoading(false);
       return;
     }
-    if (!fibulaSupabase) {
+    const supabaseClient = fibulaSupabase;
+    if (!supabaseClient) {
       setProficiencyCounts({});
       setProficiencyError('O banco de dados não está disponível neste ambiente.');
       setProficiencyLoading(false);
@@ -177,7 +178,7 @@ export default function PlayerProfileModal({
       setProficiencyLoading(true);
       setProficiencyError('');
       try {
-        const { data, error: queryError } = await fibulaSupabase
+        const { data, error: queryError } = await supabaseClient
           .from('fibula_proficiencies')
           .select('proficiency_key,counter')
           .eq('user_id', userId);
