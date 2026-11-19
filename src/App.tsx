@@ -516,6 +516,7 @@ export default function App() {
   const arsenalCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyGrassCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const proficiencyBufferRef = useRef<ReturnType<typeof createProficiencyBuffer> | null>(null);
   const equippedArmorsRef = useRef<Partial<Record<ClassId, Partial<Record<ArmorPiece, CraftedArmor>>>>>({});
   const equippedAccessoriesRef = useRef<Partial<Record<ClassId, Partial<Record<AccessoryType, CraftedAccessory>>>>>({});
   const applyClassAndEquippedWeaponRef = useRef<(id: ClassId) => void>(() => {});
@@ -2108,6 +2109,7 @@ export default function App() {
       proficiencyStorageWarningShown = true;
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
+    proficiencyBufferRef.current = proficiencyBuffer;
     const engine = new GameEngine((next) => setState(next), { accountLevel });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
@@ -2741,7 +2743,7 @@ export default function App() {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
   }, [activeGameRoute.page, session.user.sub]);
 
   useEffect(() => {
@@ -4190,6 +4192,8 @@ export default function App() {
       if (!queued) return;
     }
     gameStartedRef.current = false;
+    // Persiste os eventos pendentes antes que o perfil do lobby leia os contadores.
+    await proficiencyBufferRef.current?.flush();
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
     engine.restart();
