@@ -107,6 +107,11 @@ try {
   assert.deepEqual(Object.fromEntries(counters.map(c => [c.key, c.total])), { arco: 4, espada: 5 });
   await rejectsAsync(() => storage.recordProficiencyEvent(storageUser, { key: 'espada', amount: 0 }), /Evento de proficiência inválido/);
   await rejectsAsync(() => storage.recordProficiencyEvents(storageUser, { espada: 1, arco: -1 }), /Evento de proficiência inválido/);
+  assert.deepEqual(Object.fromEntries((await storage.readProficiencyCounters(storageUser)).map(c => [c.key, c.total])), { arco: 4, espada: 5 });
+  const singleOverflowUser = user('single-overflow');
+  await storage.recordProficiencyEvent(singleOverflowUser, { key: 'espada', amount: Number.MAX_SAFE_INTEGER });
+  await rejectsAsync(() => storage.recordProficiencyEvent(singleOverflowUser, { key: 'espada', amount: 1 }), /limite seguro/);
+  assert.deepEqual((await storage.readProficiencyCounters(singleOverflowUser)).map(c => [c.key, c.total]), [['espada', Number.MAX_SAFE_INTEGER]]);
   const overflowUser = user('overflow');
   await storage.recordProficiencyEvents(overflowUser, { espada: Number.MAX_SAFE_INTEGER });
   await rejectsAsync(() => storage.recordProficiencyEvents(overflowUser, { espada: 1, arco: 2 }), /limite seguro/);
