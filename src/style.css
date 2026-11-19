@@ -13269,20 +13269,20 @@ sem backdrop ou caixa de modal. */
 .player-proficiency-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .player-proficiency-group{
   display:grid;align-content:start;gap:9px;min-width:0;padding:11px;
-  border:1px solid #ffffff20;border-radius:10px;
-  background:rgba(34,35,34,.88);
-  box-shadow:inset 0 1px 0 #ffffff08;
+  border:1px solid #dedede;border-radius:10px;
+  background:rgba(247,247,247,.96);
+  box-shadow:inset 0 1px 0 #ffffff;
 }
 .player-proficiency-group:last-child{grid-column:1/-1}
 .player-proficiency-group>h5{
   display:flex;align-items:center;gap:7px;margin:0 0 1px;
-  color:#ffffff;font-size:10px;font-weight:900;
+  color:#222322;font-size:10px;font-weight:900;
   letter-spacing:.13em;text-transform:uppercase;
 }
 .player-proficiency-group>h5>span{
   display:grid;place-items:center;width:22px;height:22px;flex:0 0 auto;
   border:1px solid currentColor;border-radius:6px;
-  background:#222322;color:inherit;font-size:13px;line-height:1;
+  background:#eeeeee;color:inherit;font-size:13px;line-height:1;
 }
 .player-proficiency-group:nth-child(1)>h5{color:#ff5b5b}
 .player-proficiency-group:nth-child(1)>h5>span{background:#ef44441a;border-color:#ff5b5b80}
@@ -13292,9 +13292,9 @@ sem backdrop ou caixa de modal. */
 .player-proficiency-group:nth-child(3)>h5>span{background:#a855f71a;border-color:#bd83ff80}
 .player-proficiency-row{display:grid;gap:5px;min-width:0;padding-top:1px}
 .player-proficiency-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
-.player-proficiency-meta>span{overflow-wrap:anywhere;color:#ffffff;font-size:11px;font-weight:650}
+.player-proficiency-meta>span{overflow-wrap:anywhere;color:#222322;font-size:11px;font-weight:650}
 .player-proficiency-meta>strong{
-  flex:0 0 auto;color:#ffffff;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;
+  flex:0 0 auto;color:#222322;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;
 }
 .player-proficiency-xp-line{display:flex;align-items:center;gap:7px}
 .player-proficiency-xp-line>small{
