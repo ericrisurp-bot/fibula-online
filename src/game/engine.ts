@@ -114,9 +114,7 @@ export type PlayerRuntime = {
   weaponSide: 1 | -1;
   gatheringTimer: number;
   knifeHitTimer: number;
-  stepDistance: number;
-  stepFoot: 'left' | 'right';
-  stepTarget: number;
+  stepSpeed: number;
   mageAttackCount: number;
   archerHealArrowCount: number;
   healthTransitionRemaining: number;
@@ -137,9 +135,7 @@ function createPlayerRuntime(): PlayerRuntime {
     weaponSide: 1,
     gatheringTimer: 0,
     knifeHitTimer: 0,
-    stepDistance: 0,
-    stepFoot: 'left',
-    stepTarget: 52,
+    stepSpeed: 0,
     mageAttackCount: 0,
     archerHealArrowCount: 0,
     healthTransitionRemaining: 0,
@@ -1519,7 +1515,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.pendingRockRemovalId = null; this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepDistance = 0; this.local.stepFoot = 'left'; this.local.stepTarget = 52;
+    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.pendingRockRemovalId = null; this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepSpeed = 0;
     this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0; this.cartProficiencyDistanceRemainder = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.tecelariaHideProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
@@ -1649,24 +1645,35 @@ export class GameEngine {
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
     this.resolvePlayerObstacles(p, false);
     const playerSpeed = dt > 0 ? Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y) / dt : 0;
-    if (this.state.player.moving && !this.state.dead && p.hp > 0) {
-      const traveledDistance = Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y);
-      if (traveledDistance > 0) this.state.walkPhase += traveledDistance / 52 * Math.PI;
-      this.local.stepDistance += traveledDistance;
-      if (this.local.stepDistance >= this.local.stepTarget) {
-        this.local.stepDistance -= this.local.stepTarget;
-        const foot = this.local.stepFoot;
-        this.local.stepFoot = foot === 'left' ? 'right' : 'left';
+    const traveledDistance = Math.hypot(p.x - previousPlayerPosition.x, p.y - previousPlayerPosition.y);
+    const expectedDistance = Math.hypot(dx, dy) * speed * dt;
+    const hasStepMovement = this.state.player.moving && !this.state.dead && p.hp > 0
+      && expectedDistance > 0 && traveledDistance >= expectedDistance * 0.15;
+
+    if (hasStepMovement) {
+      const actualSpeed = dt > 0 ? traveledDistance / dt : 0;
+      const smoothing = dt > 0 ? 1 - Math.exp(-dt / 0.12) : 1;
+      this.local.stepSpeed = this.local.stepSpeed > 0
+        ? this.local.stepSpeed + (actualSpeed - this.local.stepSpeed) * smoothing
+        : actualSpeed;
+
+      const previousStepIndex = Math.floor(this.state.walkPhase / Math.PI);
+      this.state.walkPhase += traveledDistance / 52 * Math.PI;
+      const currentStepIndex = Math.floor(this.state.walkPhase / Math.PI);
+      if (currentStepIndex > previousStepIndex) {
+        const interval = 52 / Math.max(40, this.local.stepSpeed);
         const stepPhase = this.getDayNightState();
         const transition = CONFIG.dayNight.transitionDuration;
         const night = Math.max(0, Math.min(1, stepPhase.isNight
           ? (CONFIG.dayNight.dayDuration - stepPhase.phaseElapsed) / transition
           : (stepPhase.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
-        this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried, night });
-        this.local.stepTarget = 47 + this.random() * 10;
+        for (let stepIndex = previousStepIndex + 1; stepIndex <= currentStepIndex; stepIndex++) {
+          const foot = stepIndex % 2 === 1 ? 'left' : 'right';
+          this.onSound?.({ type: 'step', foot, carrying: this.state.cart.carried, night, interval });
+        }
       }
     } else {
-      this.local.stepDistance = this.local.stepTarget * 0.4;
+      this.local.stepSpeed *= dt > 0 ? Math.exp(-dt / 0.12) : 0;
     }
     this.updateDonkeyCart(dt);
 
