@@ -13324,7 +13324,7 @@ sem backdrop ou caixa de modal. */
 /* Guia do Aventureiro — painel enxuto e alinhado para telas de celular. */
 .game-shell .adventurer-guide-panel{
   position:absolute!important;z-index:2147483009!important;
-  top:calc(64px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
+  top:calc(88px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
   width:min(176px,calc(100vw - 24px));display:flex;flex-direction:column;gap:4px;padding:6px 8px;
   border:1px solid rgba(235,235,235,.12);border-radius:8px;background:rgba(34,35,34,.43);color:#f1f1f1;
   box-shadow:0 4px 14px rgba(0,0,0,.14);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
