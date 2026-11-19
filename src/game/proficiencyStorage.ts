@@ -332,7 +332,7 @@ export async function readProficiencyProgress(
     const finishRead = () => {
       if (baselineRequest.readyState !== 'done' || countersRequest.readyState !== 'done'
         || baseline === null || counters === null) return;
-      if (!baselineRequest.result) {
+      if (!baseline) {
         const localTotals = new Map<ProficiencyKey, number>();
         for (const counter of counters) localTotals.set(counter.key, counter.total);
         const initial: Partial<Record<ProficiencyKey, number>> = {};
