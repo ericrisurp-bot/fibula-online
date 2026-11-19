@@ -209,11 +209,12 @@ export async function repairPendingProficiencyBatch(
       if (!pending || pending.batchId !== batchId) return;
 
       const removed = new Set(removeKeys);
-      const deltas = Object.fromEntries(
-        Object.entries(pending.deltas).filter(([key, amount]) =>
-          !removed.has(key as ProficiencyKey) && Number.isSafeInteger(amount) && (amount as number) > 0,
-        ),
-      ) as Partial<Record<ProficiencyKey, number>>;
+      const deltas: Partial<Record<ProficiencyKey, number>> = {};
+      for (const [key, amount] of Object.entries(pending.deltas)) {
+        if (!removed.has(key as ProficiencyKey)) {
+          deltas[key as ProficiencyKey] = amount as number;
+        }
+      }
 
       if (Object.keys(deltas).length === 0) {
         batchesStore.delete(userId);
