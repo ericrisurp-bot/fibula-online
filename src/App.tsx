@@ -1863,7 +1863,8 @@ export default function App() {
 
   useEffect(() => {
     const userId = session.user.sub;
-    if (!fibulaSupabase || !userId) return;
+    const supabase = fibulaSupabase;
+    if (!supabase || !userId) return;
 
     let active = true;
     let syncing = false;
@@ -1874,7 +1875,7 @@ export default function App() {
         const batch = await prepareProficiencyBatch(userId);
         if (!batch || !active) return;
 
-        const { data, error } = await fibulaSupabase.rpc('fibula_apply_proficiency_batch', {
+        const { data, error } = await supabase.rpc('fibula_apply_proficiency_batch', {
           p_batch_id: batch.batchId,
           p_deltas: batch.deltas,
         });
