@@ -2508,7 +2508,29 @@ export class GameEngine {
     return undefined;
   }
 
-  private spawnInitialVegetables() { for (let i = 0; i < CONFIG.vegetables.startCount; i++) this.spawnVegetable(); }
+  private spawnInitialVegetables() {
+    // Prévia visual temporária: abra com ?tomato-preview=1 para comparar os três portes.
+    const tomatoPreview = typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).get('tomato-preview') === '1';
+    if (tomatoPreview) {
+      const { x, y } = this.state.player;
+      const samples: Array<{ x: number; y: number; size: VegetablePlant['size'] }> = [
+        { x: x - 116, y: y - 92, size: 'small' },
+        { x, y: y - 132, size: 'medium' },
+        { x: x + 116, y: y - 92, size: 'large' },
+      ];
+      this.state.vegetablePlants = samples.map(sample => ({
+        id: this.nextId++,
+        x: sample.x,
+        y: sample.y,
+        kind: 'tomato',
+        size: sample.size,
+        hits: CONFIG.vegetables.hitsToBreak[sample.size],
+      }));
+      return;
+    }
+    for (let i = 0; i < CONFIG.vegetables.startCount; i++) this.spawnVegetable();
+  }
   private updateVegetableSpawner(dt: number) {
     this.vegetableSpawnCountdown -= dt;
     if (this.vegetableSpawnCountdown > 0) return;

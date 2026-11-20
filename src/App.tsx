@@ -2545,7 +2545,9 @@ export default function App() {
       }
       for (const plant of s.vegetablePlants) {
         // O crescimento aumenta um pouco o porte, mas principalmente a quantidade de partes da planta.
-        const sizeScale = plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1;
+        const sizeScale = plant.kind === 'tomato'
+          ? (plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22)
+          : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
         const scaleX = 1.2 * 0.9 * sizeScale;
         const scaleY = 1.2 * 1.15 * sizeScale;
         const isSmall = plant.size === 'small';
@@ -2556,16 +2558,75 @@ export default function App() {
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17 * sizeScale, 6 * sizeScale, 0, 0, Math.PI * 2); ctx.fill();
           const leaf = (x: number, y: number, angle: number, color: string) => { ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = color; ctx.strokeStyle = '#315c2d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-13, -9, -4, -19); ctx.quadraticCurveTo(8, -14, 0, 0); ctx.fill(); ctx.stroke(); ctx.restore(); };
           if (plant.kind === 'tomato') {
-            ctx.strokeStyle = '#52783a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 12); ctx.lineTo(0, -12); ctx.lineTo(-10, -19); ctx.moveTo(0, -7); ctx.lineTo(11, -17); ctx.moveTo(0, 1); ctx.lineTo(-14, -5); ctx.moveTo(0, -1); ctx.lineTo(14, -8); ctx.stroke();
-            const tomatoLeaves = [[-8,-13,-0.8,'#4e963d'],[7,-12,0.8,'#65a844'],[-11,-4,-1.2,'#3f8538'],[10,-4,1.1,'#55963d'],[-15,-7,-1.3,'#4b8f3b'],[14,-10,1.2,'#5a9d42'],[-2,-19,-0.2,'#70aa49']] as const;
-            const leafCount = isSmall ? 4 : isLarge ? 7 : 6;
-            for (let i = 0; i < leafCount; i++) { const [x,y,a,c] = tomatoLeaves[i]; leaf(x,y,a,c); }
-            const fruits = [[-9,-8],[9,-13],[1,-20],[-15,-3],[14,-6],[0,-5]] as const;
-            const fruitCount = isSmall ? 2 : isLarge ? 6 : 4;
+            // Pé de tomate low-poly: galhos, folhas facetadas e frutos com faces de luz/sombra.
+            const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
+              ctx.beginPath();
+              points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+              ctx.closePath();
+              ctx.fillStyle = fill;
+              ctx.fill();
+              if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.9; ctx.stroke(); }
+            };
+            const drawLeaf = (x: number, y: number, angle: number, fill: string, light: string) => {
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(angle);
+              polygon([[0,0],[-4,-4],[-5,-9],[-2,-14],[3,-16],[6,-11],[5,-6]], fill, '#315d32');
+              polygon([[0,-1],[1,-8],[3,-14],[4,-8]], light);
+              ctx.restore();
+            };
+
+            // Caule principal e ramificações angulares, mantendo a base visível.
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#315d32';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 13); ctx.lineTo(0, -10);
+            ctx.moveTo(0, -3); ctx.lineTo(-12, -10);
+            ctx.moveTo(0, -7); ctx.lineTo(12, -14);
+            ctx.moveTo(0, -10); ctx.lineTo(-2, -22);
+            ctx.stroke();
+            ctx.strokeStyle = '#6f9a45';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(-1, 10); ctx.lineTo(-1, -8);
+            ctx.moveTo(0, -4); ctx.lineTo(-10, -10);
+            ctx.moveTo(0, -8); ctx.lineTo(10, -14);
+            ctx.stroke();
+
+            const leaves = [
+              [-8,-13,-1.05,'#397b3d','#79ad50'],
+              [7,-16,0.95,'#438744','#8bb956'],
+              [-15,-7,-1.35,'#2f6e38','#6fa34a'],
+              [14,-10,1.25,'#36783d','#80ae4d'],
+              [-3,-24,-0.2,'#4a8d43','#9ac05c'],
+              [2,-5,0.25,'#36783d','#75a94a'],
+              [-11,-19,-0.9,'#3b8040','#86b454'],
+              [11,-21,0.9,'#397b3d','#8ab653'],
+              [-18,-1,-1.5,'#326f38','#73a64a'],
+            ] as const;
+            const leafCount = isSmall ? 5 : isLarge ? 9 : 7;
+            for (let i = 0; i < leafCount; i++) {
+              const [x,y,angle,fill,light] = leaves[i];
+              drawLeaf(x,y,angle,fill,light);
+            }
+
+            const fruits = isSmall
+              ? [[-7,-7],[8,-12]] as const
+              : isLarge
+                ? [[-12,-5],[9,-11],[-1,-21],[14,-1],[-8,-17]] as const
+                : [[-9,-6],[8,-12],[0,-20],[13,-1]] as const;
+            const fruitCount = fruits.length;
             for (let i = 0; i < fruitCount; i++) {
               const [x,y] = fruits[i];
-              ctx.fillStyle = '#d9362b'; ctx.strokeStyle = '#8f241f'; ctx.beginPath(); ctx.arc(x,y,4.2,0,Math.PI*2); ctx.fill(); ctx.stroke();
-              ctx.fillStyle = '#4d8a37'; ctx.beginPath(); ctx.moveTo(x,y-4); ctx.lineTo(x-3,y-7); ctx.lineTo(x,y-6); ctx.lineTo(x+3,y-8); ctx.fill();
+              const r = 4.5;
+              polygon(
+                [[x-r*0.8,y-r*0.7],[x-r*0.25,y-r],[x+r*0.55,y-r*0.82],[x+r,y-r*0.1],[x+r*0.72,y+r*0.72],[x,y+r],[x-r*0.82,y+r*0.55],[x-r,y-r*0.1]],
+                '#c9362d',
+                '#81251f',
+              );
+              polygon([[x-r*0.7,y-r*0.55],[x-r*0.2,y-r*0.85],[x+r*0.15,y-r*0.35],[x-r*0.15,y+r*0.25]], '#e45a43');
+              polygon([[x,y-r*0.72],[x-2,y-r-2],[x-1,y-r*0.2],[x+2,y-r-2],[x+1,y-r*0.15],[x+4,y-r],[x+2,y+0.2],[x,y-r*0.2],[x-3,y+0.2],[x-2,y-r*0.2]], '#4c8538', '#315d32');
             }
           } else if (plant.kind === 'cabbage') {
             // O repolho cresce rente ao solo; plantas maiores ganham camadas de folhas largas.
