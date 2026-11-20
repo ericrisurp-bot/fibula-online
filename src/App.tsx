@@ -2547,9 +2547,15 @@ export default function App() {
         // O crescimento aumenta um pouco o porte, mas principalmente a quantidade de partes da planta.
         const sizeScale = plant.kind === 'tomato'
           ? (plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22)
-          : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
-        const scaleX = 1.2 * 0.9 * sizeScale;
-        const scaleY = 1.2 * 1.15 * sizeScale;
+          : plant.kind === 'herbs'
+            ? 1
+            : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
+        const scaleX = plant.kind === 'herbs'
+          ? 1.2 * 0.9 * (plant.size === 'small' ? 0.92 : plant.size === 'medium' ? 1.18 : 1.48)
+          : 1.2 * 0.9 * sizeScale;
+        const scaleY = plant.kind === 'herbs'
+          ? 1.2 * 1.15 * (plant.size === 'small' ? 0.82 : plant.size === 'medium' ? 0.9 : 0.98)
+          : 1.2 * 1.15 * sizeScale;
         const isSmall = plant.size === 'small';
         const isLarge = plant.size === 'large';
         worldDrawables.push({ depth: plant.y + 13 * 1.2 * sizeScale, draw: () => {
@@ -2641,18 +2647,86 @@ export default function App() {
             ctx.moveTo(0, 8); ctx.quadraticCurveTo(7, -3, 7, -8);
             ctx.stroke();
           } else {
-            // Ervas: touceira de hastes finas; o porte maior acrescenta hastes e pares de folhas.
-            const stemCount = isSmall ? 3 : isLarge ? 7 : 5;
-            ctx.strokeStyle = '#467c36'; ctx.lineWidth = 2.1;
-            for (let i = 0; i < stemCount; i++) {
-              const n = i - Math.floor(stemCount / 2);
-              const topX = n * 5 - 3;
-              const topY = -18 - (isLarge ? Math.abs(n) * 2 : isSmall ? 0 : Math.abs(n));
-              ctx.beginPath(); ctx.moveTo(0,12); ctx.quadraticCurveTo(n*3,-5,topX,topY); ctx.stroke();
-              leaf(n*4,-10,n*.25,n%2?'#79ad4d':'#4c963e');
-              if (!isSmall) leaf(n*3+3,-4,n*.3+0.7,'#65a94d');
-              if (isLarge) leaf(n*3-3,-14,n*.3-0.7,'#5a9b42');
+            // Ervas rasteiras orgânicas: folhas curvas, assimétricas e sobrepostas.
+            const herbLeaf = (
+              x: number, y: number, angle: number,
+              length: number, width: number, fill: string, light: string,
+              bend: number,
+            ) => {
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(angle);
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.bezierCurveTo(-width * 0.9, -length * 0.28, -width * 0.72 + bend, -length * 0.78, bend * 0.35, -length);
+              ctx.bezierCurveTo(width * 0.82 + bend, -length * 0.78, width * 0.95, -length * 0.3, 0, 0);
+              ctx.closePath();
+              ctx.fillStyle = fill;
+              ctx.fill();
+              ctx.strokeStyle = '#3f7335';
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(0, -1);
+              ctx.quadraticCurveTo(bend * 0.3, -length * 0.48, bend * 0.35, -length + 1);
+              ctx.strokeStyle = light;
+              ctx.lineWidth = 0.65;
+              ctx.stroke();
+              ctx.restore();
+            };
+            const leafCount = isSmall ? 8 : isLarge ? 17 : 12;
+            const spreadX = isSmall ? 10 : isLarge ? 25 : 17;
+            const spreadY = isSmall ? 5.5 : isLarge ? 12 : 8.5;
+            const leafLength = isSmall ? 7 : isLarge ? 9 : 8;
+            const leafWidth = isSmall ? 3.1 : isLarge ? 4 : 3.5;
+            const greens = [
+              ['#4f8a3d','#a0c96b'],
+              ['#5b9844','#b0d477'],
+              ['#477d39','#8fbd62'],
+              ['#609d49','#acd071'],
+              ['#548b40','#9fc46a'],
+            ] as const;
+            // A distribuição irregular evita o aspecto de estrela ou penteado simétrico.
+            for (let i = 0; i < leafCount; i++) {
+              const angle = (Math.PI * 2 * i) / leafCount
+                + Math.sin(i * 2.17) * 0.34
+                + (i % 3 - 1) * 0.12;
+              const reach = 0.62 + ((i * 7) % 6) * 0.075;
+              const dx = Math.cos(angle) * spreadX * reach;
+              const dy = Math.sin(angle) * spreadY * reach;
+              const [leafFill, leafLight] = greens[(i * 3 + 1) % greens.length];
+              const originX = Math.sin(i * 1.73) * 2.4;
+              const originY = 7 + Math.cos(i * 2.31) * 1.4;
+              const leafAngle = angle + Math.PI / 2 + Math.sin(i * 1.41) * 0.22;
+              herbLeaf(
+                originX + dx * 0.62,
+                originY + dy * 0.62,
+                leafAngle,
+                leafLength * (0.78 + (i % 4) * 0.09),
+                leafWidth * (0.82 + (i % 3) * 0.1),
+                leafFill,
+                leafLight,
+                Math.sin(i * 2.6) * 1.8,
+              );
+              if (!isSmall && i % 3 === 1) {
+                herbLeaf(
+                  originX + dx * 0.36 - 2,
+                  originY + dy * 0.36 + 1,
+                  leafAngle - 0.48,
+                  leafLength * 0.66,
+                  leafWidth * 0.78,
+                  greens[(i + 2) % greens.length][0],
+                  greens[(i + 2) % greens.length][1],
+                  Math.cos(i * 1.9) * 1.2,
+                );
+              }
             }
+            // Sombras pequenas e soltas no encontro das folhas, sem base geométrica.
+            ctx.fillStyle = 'rgba(48, 91, 39, 0.28)';
+            ctx.beginPath();
+            ctx.ellipse(-1, 8, 4.8, 1.9, -0.12, 0, Math.PI * 2);
+            ctx.fill();
+
           }
           ctx.restore();
         }});
