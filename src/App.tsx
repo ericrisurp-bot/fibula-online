@@ -2556,7 +2556,8 @@ export default function App() {
           drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
           ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scaleX, scaleY);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17 * sizeScale, 6 * sizeScale, 0, 0, Math.PI * 2); ctx.fill();
-          const leaf = (x: number, y: number, angle: number, color: string) => { ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = color; ctx.strokeStyle = '#315c2d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); c          if (plant.kind === 'tomato') {
+          const leaf = (x: number, y: number, angle: number, color: string) => { ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = color; ctx.strokeStyle = '#315c2d'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-13, -9, -4, -19); ctx.quadraticCurveTo(8, -14, 0, 0); ctx.fill(); ctx.stroke(); ctx.restore(); };
+          if (plant.kind === 'tomato') {
             // Pé de tomate low-poly: galhos, folhas facetadas e frutos com faces de luz/sombra.
             const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
               ctx.beginPath();
