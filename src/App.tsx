@@ -2547,7 +2547,9 @@ export default function App() {
         // O crescimento aumenta um pouco o porte, mas principalmente a quantidade de partes da planta.
         const sizeScale = plant.kind === 'tomato'
           ? (plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22)
-          : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
+          : plant.kind === 'herbs'
+            ? (plant.size === 'small' ? 0.82 : plant.size === 'medium' ? 1 : 1.18)
+            : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
         const scaleX = 1.2 * 0.9 * sizeScale;
         const scaleY = 1.2 * 1.15 * sizeScale;
         const isSmall = plant.size === 'small';
@@ -2641,18 +2643,56 @@ export default function App() {
             ctx.moveTo(0, 8); ctx.quadraticCurveTo(7, -3, 7, -8);
             ctx.stroke();
           } else {
-            // Ervas: touceira de hastes finas; o porte maior acrescenta hastes e pares de folhas.
+            // Ervas low-poly: touceira delicada, com hastes finas e folhas estreitas.
+            const herbPolygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
+              ctx.beginPath();
+              points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+              ctx.closePath();
+              ctx.fillStyle = fill;
+              ctx.fill();
+              if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.55; ctx.stroke(); }
+            };
+            const herbLeaf = (x: number, y: number, angle: number, length: number, fill: string, light: string) => {
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(angle);
+              herbPolygon([[0,0],[-1.8,-length*0.28],[-1.25,-length*0.72],[0,-length],[1.5,-length*0.68],[1.8,-length*0.25]], fill, '#386d35');
+              herbPolygon([[0,-1],[0.25,-length*0.42],[0.2,-length*0.84]], light);
+              ctx.restore();
+            };
             const stemCount = isSmall ? 3 : isLarge ? 7 : 5;
-            ctx.strokeStyle = '#467c36'; ctx.lineWidth = 2.1;
+            const stemHeight = isSmall ? 15 : isLarge ? 23 : 19;
+            const stemSpread = isSmall ? 5 : isLarge ? 10 : 7;
+            const leafLength = isSmall ? 6 : isLarge ? 9 : 7.5;
+            const greens = [
+              ['#4f8a3d','#8fbd62'],
+              ['#5b9844','#a0c96b'],
+              ['#477d39','#82ad55'],
+              ['#609d49','#acd071'],
+            ] as const;
+            ctx.lineCap = 'round';
             for (let i = 0; i < stemCount; i++) {
               const n = i - Math.floor(stemCount / 2);
-              const topX = n * 5 - 3;
-              const topY = -18 - (isLarge ? Math.abs(n) * 2 : isSmall ? 0 : Math.abs(n));
-              ctx.beginPath(); ctx.moveTo(0,12); ctx.quadraticCurveTo(n*3,-5,topX,topY); ctx.stroke();
-              leaf(n*4,-10,n*.25,n%2?'#79ad4d':'#4c963e');
-              if (!isSmall) leaf(n*3+3,-4,n*.3+0.7,'#65a94d');
-              if (isLarge) leaf(n*3-3,-14,n*.3-0.7,'#5a9b42');
+              const lean = n * stemSpread * 0.48;
+              const topX = n * stemSpread;
+              const topY = -stemHeight - (isLarge ? (1 - Math.abs(n) / 4) * 3 : 0);
+              ctx.strokeStyle = i % 2 ? '#568b3d' : '#477a35';
+              ctx.lineWidth = isSmall ? 1.15 : 1.35;
+              ctx.beginPath();
+              ctx.moveTo(n * 1.5, 10);
+              ctx.quadraticCurveTo(lean, -stemHeight * 0.45, topX, topY);
+              ctx.stroke();
+              const pairY = topY * 0.48;
+              const [leafFill, leafLight] = greens[i % greens.length];
+              herbLeaf(lean - 1, pairY, -0.9 - n * 0.05, leafLength, leafFill, leafLight);
+              herbLeaf(lean + 1, pairY - 2, 0.9 - n * 0.05, leafLength * 0.92, greens[(i + 1) % greens.length][0], greens[(i + 1) % greens.length][1]);
+              if (!isSmall) {
+                herbLeaf(lean * 0.55 - 1, -7 - Math.abs(n), -0.95, leafLength * 0.78, greens[(i + 2) % greens.length][0], greens[(i + 2) % greens.length][1]);
+                herbLeaf(lean * 0.55 + 1, -9 - Math.abs(n), 0.95, leafLength * 0.72, leafFill, leafLight);
+              }
             }
+            // Broto central mais claro, sem transformar a erva em um arbusto volumoso.
+            herbPolygon([[0,8],[-1.2,1],[0,-stemHeight-3],[1.2,1]], '#6caa4d');
           }
           ctx.restore();
         }});
