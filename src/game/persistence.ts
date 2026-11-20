@@ -449,6 +449,43 @@ export type PdLoadout = {
   accessories: object;
 };
 
+function isLoadoutObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isLoadoutStringMap(value: unknown): value is Record<string, string> {
+  return isLoadoutObject(value) && Object.values(value).every(
+    entry => typeof entry === 'string' && entry.trim().length > 0,
+  );
+}
+
+function isLoadoutNestedStringMap(value: unknown): value is Record<string, Record<string, string>> {
+  return isLoadoutObject(value) && Object.values(value).every(isLoadoutStringMap);
+}
+
+export async function fetchPdLoadout(client: SupabaseClient): Promise<PdLoadout | null | undefined> {
+  try {
+    const { data, error } = await client.rpc('fibula_get_pd_loadout');
+    if (error) return undefined;
+    if (data === null) return null;
+    if (!isLoadoutObject(data)
+      || !(data.primary_class === null || (typeof data.primary_class === 'string' && data.primary_class.trim().length > 0))
+      || !(data.secondary_class === null || (typeof data.secondary_class === 'string' && data.secondary_class.trim().length > 0))
+      || !isLoadoutStringMap(data.weapons)
+      || !isLoadoutNestedStringMap(data.armors)
+      || !isLoadoutNestedStringMap(data.accessories)) return undefined;
+    return {
+      primaryClass: data.primary_class,
+      secondaryClass: data.secondary_class,
+      weapons: data.weapons,
+      armors: data.armors,
+      accessories: data.accessories,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 export async function savePdLoadout(client: SupabaseClient, loadout: PdLoadout): Promise<boolean> {
   try {
     const { data, error } = await client.rpc('fibula_save_pd_loadout', {
