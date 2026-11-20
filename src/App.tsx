@@ -14,7 +14,7 @@ import { createProficiencyBuffer } from './game/proficiencyBuffer';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, savePdLoadout, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, fetchPdLoadout, savePdLoadout, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readAdventurerGuideEnabled, readGameZoom, writeAdventurerGuideEnabled, writeGameZoom } from './game/devicePreferences';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
@@ -990,6 +990,10 @@ export default function App() {
     }
   }, [activeGameRoute.page]);
   const [craftedWeapons, setCraftedWeapons] = useState<CraftedWeapon[]>([]);
+  const [equipmentHydratedUserId, setEquipmentHydratedUserId] = useState<string | null>(null);
+  const [equipmentHydrationRetry, setEquipmentHydrationRetry] = useState(0);
+  const equipmentHydrationDoneRef = useRef<string | null>(null);
+  const equipmentHydrationAttemptRef = useRef<{ userId: string; at: number } | null>(null);
   const [equippedWeaponIds, setEquippedWeaponIds] = useState<EquippedWeaponSelections>({});
   const [weaponsLoading, setWeaponsLoading] = useState(false);
   const [weaponsLoaded, setWeaponsLoaded] = useState(false);
@@ -1050,6 +1054,78 @@ export default function App() {
     return () => { active = false; };
   }, [session.user.sub, cookingOnline]);
   const accessoryListReady = accessoriesLoaded && accessoriesLoadedForUserId === session.user.sub;
+
+  useEffect(() => {
+    equipmentHydrationDoneRef.current = null;
+    equipmentHydrationAttemptRef.current = null;
+    setEquipmentHydratedUserId(null);
+    setEquipmentHydrationRetry(0);
+  }, [session.user.sub]);
+
+  useEffect(() => {
+    const userId = session.user.sub;
+    const supabase = fibulaSupabase;
+    const listsReady = !!userId && !!supabase && weaponsLoaded && !weaponsLoading
+      && (!CONFIG.rulesV2.armorCraftingEnabled || armorListReady)
+      && accessoryListReady;
+    if (!listsReady || !supabase || equipmentHydrationDoneRef.current === userId) return;
+
+    const previousAttempt = equipmentHydrationAttemptRef.current;
+    const delay = previousAttempt?.userId === userId
+      ? Math.max(0, 30_000 - (Date.now() - previousAttempt.at))
+      : 0;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      if (!active || equipmentHydrationDoneRef.current === userId) return;
+      equipmentHydrationAttemptRef.current = { userId, at: Date.now() };
+      void fetchPdLoadout(supabase).then(loadout => {
+        if (!active || session.user.sub !== userId) return;
+        if (loadout === undefined) {
+          setEquipmentHydrationRetry(value => value + 1);
+          return;
+        }
+        if (loadout !== null) {
+          const serverWeapons = loadout.weapons as EquippedWeaponSelections;
+          const validWeapons: EquippedWeaponSelections = {};
+          for (const classId of ['guerreiro', 'mago', 'arqueiro', 'druida'] as const) {
+            const selected = selectedWeaponForClass(craftedWeapons, serverWeapons, classId);
+            if (selected) validWeapons[classId] = selected.id;
+          }
+          const validArmors = CONFIG.rulesV2.armorCraftingEnabled
+            ? sanitizeEquippedArmorSelections(craftedArmors, loadout.armors as EquippedArmorSelections)
+            : {};
+          const validAccessories = sanitizeEquippedAccessorySelections(
+            craftedAccessories,
+            loadout.accessories as EquippedAccessorySelections,
+          );
+          setEquippedWeaponIds(validWeapons);
+          setEquippedArmorIds(validArmors);
+          setEquippedAccessoryIds(validAccessories);
+          writeEquippedWeaponSelections(userId, validWeapons);
+          if (CONFIG.rulesV2.armorCraftingEnabled) writeEquippedArmorSelections(userId, validArmors);
+          writeEquippedAccessorySelections(userId, validAccessories);
+        }
+        equipmentHydrationDoneRef.current = userId;
+        setEquipmentHydratedUserId(userId);
+      }).catch(() => {
+        if (active && session.user.sub === userId) setEquipmentHydrationRetry(value => value + 1);
+      });
+    }, delay);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [
+    session.user.sub,
+    weaponsLoaded,
+    weaponsLoading,
+    armorListReady,
+    accessoryListReady,
+    craftedWeapons,
+    craftedArmors,
+    craftedAccessories,
+    equipmentHydrationRetry,
+  ]);
   useEffect(() => {
     if (!accessoryListReady) return;
     const validSelections = sanitizeEquippedAccessorySelections(craftedAccessories, equippedAccessoryIds);
@@ -1119,7 +1195,8 @@ export default function App() {
     const primaryClass = characterPreferences[0];
     const secondaryClass = characterPreferences[1];
     const supabase = fibulaSupabase;
-    if (!supabase || !session.user.sub || !statusPowerReady
+    if (!supabase || !session.user.sub || equipmentHydratedUserId !== session.user.sub
+      || !weaponsLoaded || weaponsLoading || !accessoryListReady || !statusPowerReady
       || (!primaryClass && !secondaryClass)
       || (CONFIG.rulesV2.armorCraftingEnabled && !armorListReady)) return;
 
@@ -1152,6 +1229,10 @@ export default function App() {
     }).catch(() => undefined);
   }, [
     statusPowerReady,
+    equipmentHydratedUserId,
+    weaponsLoaded,
+    weaponsLoading,
+    accessoryListReady,
     armorListReady,
     characterPreferences,
     equippedWeaponIds,
