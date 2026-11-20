@@ -2513,7 +2513,8 @@ export class GameEngine {
     const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const previewKind: VegetableKind | null = params?.get('herbs-preview') === '1'
       ? 'herbs'
-      : params?.get('tomato-preview') === '1' ? 'tomato' : null;
+      : params?.get('tomato-preview') === '1' ? 'tomato'
+        : params?.get('cabbage-preview') === '1' ? 'cabbage' : null;
     if (previewKind) {
       const { x, y } = this.state.player;
       const samples: Array<{ x: number; y: number; size: VegetablePlant['size'] }> = [
