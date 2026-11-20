@@ -31,6 +31,7 @@ interface RigPiece {
   oriented?: boolean;
   spoke?: boolean;
   tire?: boolean;
+  softOutline?: boolean;
 }
 interface BoxOptions {
   sy0?: number; sz0?: number; sy1?: number; sz1?: number;
@@ -430,6 +431,9 @@ function buildDonkeyCartRig(
     }
   }
 
+  // O burrinho mantém as linhas low-poly, mas com contorno mais leve que a carroça.
+  for (let i = p0; i < pieces.length; i++) pieces[i].softOutline = true;
+
   const yaw = sp * 0.05 * m, cyw = Math.cos(yaw), syw = Math.sin(yaw), pivot = dist - 8;
   for (let i = p0; i < pieces.length; i++) {
     for (const vertex of pieces[i].v) {
@@ -458,7 +462,7 @@ function drawDonkeyCartRig(
   const pieces = buildDonkeyCartRig(dist, walkPhase, wheelPhase, time, load, m, broken);
   const faces: {
     pts: Vec3[]; normal: Vec3; depth: number; color: string;
-    spoke?: boolean; tire?: boolean;
+    spoke?: boolean; tire?: boolean; softOutline?: boolean;
   }[] = [];
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
@@ -494,6 +498,7 @@ function drawDonkeyCartRig(
         pts: points, normal,
         depth: faceCenter[1] * RIG_CE + faceCenter[2] * RIG_SE,
         color: piece.col, spoke: piece.spoke, tire: piece.tire,
+        softOutline: piece.softOutline,
       });
     }
   }
@@ -522,8 +527,12 @@ function drawDonkeyCartRig(
     ctx.closePath();
     ctx.fillStyle = rigShade(face.color, brightness);
     ctx.fill();
-    ctx.strokeStyle = face.spoke ? 'rgba(30,18,8,.5)' : 'rgba(30,18,10,.78)';
-    ctx.lineWidth = face.tire ? 0.9 : 0.85;
+    ctx.strokeStyle = face.spoke
+      ? 'rgba(30,18,8,.5)'
+      : face.softOutline
+        ? 'rgba(47,32,20,.42)'
+        : 'rgba(30,18,10,.78)';
+    ctx.lineWidth = face.tire ? 0.9 : (face.softOutline ? 0.65 : 0.85);
     ctx.lineJoin = 'round';
     ctx.stroke();
   }
