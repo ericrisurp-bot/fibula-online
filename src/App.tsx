@@ -2635,17 +2635,70 @@ export default function App() {
               polygon([[x,y-r*0.72],[x-2,y-r-2],[x-1,y-r*0.2],[x+2,y-r-2],[x+1,y-r*0.15],[x+4,y-r],[x+2,y+0.2],[x,y-r*0.2],[x-3,y+0.2],[x-2,y-r*0.2]], '#4c8538', '#315d32');
             }
           } else if (plant.kind === 'cabbage') {
-            // O repolho cresce rente ao solo; plantas maiores ganham camadas de folhas largas.
-            const outerLeaves = [[-12,10,-1.25,'#4f963e'],[12,10,1.25,'#438735'],[-10,5,-0.9,'#65a94d'],[10,5,0.9,'#5b9c43'],[-5,2,-0.45,'#4b913d'],[5,2,0.45,'#70ad4e'],[-15,9,-1.45,'#438735'],[15,9,1.45,'#4f963e']] as const;
-            const leafCount = isSmall ? 4 : isLarge ? 8 : 6;
-            for (let i = 0; i < leafCount; i++) { const [x,y,a,c] = outerLeaves[i]; leaf(x,y,a,c); }
-            ctx.fillStyle = '#83bd55'; ctx.strokeStyle = '#3d7132'; ctx.lineWidth = 1.2;
-            ctx.beginPath(); ctx.ellipse(0, -3, isSmall ? 8 : isLarge ? 12 : 10, isSmall ? 9 : isLarge ? 13 : 11, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            ctx.strokeStyle = '#c2df8a'; ctx.lineWidth = 1;
+            // Repolho low-poly: folhas largas, sobrepostas e curvas, formando uma cabeça cheia.
+            const headScale = isSmall ? 0.82 : isLarge ? 1.2 : 1;
+            const drawCabbageLeaf = (
+              x: number, y: number, angle: number, sx: number, sy: number,
+              fill: string, shade: string, light: string,
+            ) => {
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(angle);
+              ctx.scale(sx, sy);
+              ctx.beginPath();
+              ctx.moveTo(0, 8);
+              ctx.bezierCurveTo(-15, 5, -20, -7, -13, -17);
+              ctx.bezierCurveTo(-8, -24, 3, -22, 8, -16);
+              ctx.bezierCurveTo(18, -10, 17, 3, 0, 8);
+              ctx.closePath();
+              ctx.fillStyle = fill;
+              ctx.fill();
+              ctx.strokeStyle = '#356d36';
+              ctx.lineWidth = 0.9;
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(0, 7);
+              ctx.bezierCurveTo(-2, -1, -5, -10, -9, -17);
+              ctx.strokeStyle = shade;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(0, 5);
+              ctx.quadraticCurveTo(5, -5, 8, -15);
+              ctx.strokeStyle = light;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              ctx.restore();
+            };
+            // Folhas externas abertas e baixas, em posições assimétricas.
+            const outer = [
+              [-12, 8, -1.02, 1.12, 0.82, '#397f39', '#28642f', '#76ad50'],
+              [12, 8, 1.08, 1.1, 0.86, '#438b3d', '#2e6b34', '#85b95a'],
+              [-17, 4, -1.42, 0.94, 0.78, '#4a9142', '#316e35', '#91bf60'],
+              [17, 5, 1.42, 0.98, 0.8, '#367a37', '#285f30', '#75a94d'],
+              [-7, 4, -0.58, 0.94, 0.78, '#5a9b46', '#39763a', '#a0c96a'],
+              [8, 3, 0.62, 1, 0.82, '#4d9140', '#326c34', '#91bf5e'],
+            ] as const;
+            const outerCount = isSmall ? 4 : isLarge ? 6 : 5;
+            for (let i = 0; i < outerCount; i++) {
+              const [x, y, angle, sx, sy, fill, shade, light] = outer[i];
+              drawCabbageLeaf(x * headScale, y * headScale, angle, sx * headScale, sy * headScale, fill, shade, light);
+            }
+            // Miolo arredondado em camadas, sem elipse ou círculo perfeito.
+            drawCabbageLeaf(-5 * headScale, -4 * headScale, -0.5, 0.78 * headScale, 0.82 * headScale, '#76b84f', '#4b8c3e', '#b0d879');
+            drawCabbageLeaf(5 * headScale, -5 * headScale, 0.48, 0.82 * headScale, 0.86 * headScale, '#83c257', '#559743', '#c0e28a');
+            drawCabbageLeaf(0, -10 * headScale, 0.02, 0.78 * headScale, 0.82 * headScale, '#91c960', '#5a9b46', '#c8e695');
+            // Pequenas facetas de luz acompanham as curvas naturais das folhas.
+            ctx.fillStyle = 'rgba(205, 235, 151, 0.42)';
             ctx.beginPath();
-            ctx.moveTo(0, 8); ctx.quadraticCurveTo(-3, -3, 0, -12);
-            ctx.moveTo(0, 8); ctx.quadraticCurveTo(7, -3, 7, -8);
-            ctx.stroke();
+            ctx.moveTo(-7 * headScale, -16 * headScale);
+            ctx.quadraticCurveTo(-1 * headScale, -22 * headScale, 5 * headScale, -17 * headScale);
+            ctx.quadraticCurveTo(0, -14 * headScale, -7 * headScale, -16 * headScale);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(39, 91, 43, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(0, 8, 10 * headScale, 2.4 * headScale, 0, 0, Math.PI * 2);
+            ctx.fill();
           } else {
             // Ervas rasteiras orgânicas: folhas curvas, assimétricas e sobrepostas.
             const herbLeaf = (
