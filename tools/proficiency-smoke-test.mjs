@@ -427,12 +427,27 @@ try {
     cartEngine.donkeyStalled = false;
   };
   resetCartPosition();
-  const loadedCartStart = { x: cartEngine.state.cart.x, y: cartEngine.state.cart.y };
-  for (let i = 0; i < 30; i++) cartEngine.updateDonkeyCart(0.25);
-  assert.ok(Math.hypot(cartEngine.state.cart.x - loadedCartStart.x, cartEngine.state.cart.y - loadedCartStart.y) > 0,
-    'carroça carregada precisa realmente se deslocar');
-  assert.ok(cartEvents.some(event => event.key === 'carroca_distancia' && event.amount > 0),
+  let loadedCartPrevious = { x: cartEngine.state.cart.x, y: cartEngine.state.cart.y };
+  let loadedCartDistance = 0;
+  let loadedCartSteps = 0;
+  const maxLoadedCartSteps = 2000;
+  while (loadedCartDistance < 600 && loadedCartSteps < maxLoadedCartSteps) {
+    cartEngine.updateDonkeyCart(0.25);
+    const current = cartEngine.state.cart;
+    loadedCartDistance += Math.hypot(current.x - loadedCartPrevious.x, current.y - loadedCartPrevious.y);
+    loadedCartPrevious = { x: current.x, y: current.y };
+    loadedCartSteps++;
+  }
+  assert.ok(loadedCartDistance >= 600,
+    `carroça carregada não atingiu 600 unidades em ${maxLoadedCartSteps} passos (distância: ${loadedCartDistance})`);
+  const loadedCartProficiency = cartEvents
+    .filter(event => event.key === 'carroca_distancia')
+    .reduce((total, event) => total + event.amount, 0);
+  assert.ok(loadedCartProficiency > 0,
     'deslocamento com carga deve acumular proficiência');
+  const expectedLoadedCartProficiency = Math.floor(loadedCartDistance / 280);
+  assert.ok(Math.abs(loadedCartProficiency - expectedLoadedCartProficiency) <= 1,
+    `proficiência da carroça carregada divergente: esperado aproximadamente ${expectedLoadedCartProficiency}, recebido ${loadedCartProficiency} (distância: ${loadedCartDistance})`);
 
   cartEvents.length = 0;
   resetCartPosition();
