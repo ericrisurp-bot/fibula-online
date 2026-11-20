@@ -20,7 +20,7 @@ function normalizeHouseInventory(value: unknown): PersistedHouseStack[] {
       || !Number.isSafeInteger(item.quantity) || item.quantity <= 0) continue;
     merged.set(item.itemId, (merged.get(item.itemId) ?? 0) + item.quantity);
   }
-  return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity })).slice(0, 50);
+  return Array.from(merged, ([itemId, quantity]) => ({ itemId, quantity })).slice(0, 120);
 }
 
 export type HouseDeltaEntry = { itemId: string; quantity: number };
