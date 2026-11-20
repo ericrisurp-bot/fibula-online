@@ -34,7 +34,7 @@ const MATERIAL_ATTRACTION_RADIUS = 80;
 const MATERIAL_ATTRACTION_DELAY = 0.5;
 const MATERIAL_DROP_LIFETIME = 15;
 const HOUSE_STORAGE_KEY = 'fibula-house-storage';
-const HOUSE_STORAGE_SLOTS = 50;
+const HOUSE_STORAGE_SLOTS = 120;
 
 function createEmptyClassUsage(): MatchClassUsage {
   return {
