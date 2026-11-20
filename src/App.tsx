@@ -2548,10 +2548,14 @@ export default function App() {
         const sizeScale = plant.kind === 'tomato'
           ? (plant.size === 'small' ? 0.78 : plant.size === 'medium' ? 1 : 1.22)
           : plant.kind === 'herbs'
-            ? (plant.size === 'small' ? 0.92 : plant.size === 'medium' ? 1.18 : 1.48)
+            ? 1
             : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
-        const scaleX = 1.2 * 0.9 * sizeScale;
-        const scaleY = 1.2 * 1.15 * sizeScale;
+        const scaleX = plant.kind === 'herbs'
+          ? 1.2 * 0.9 * (plant.size === 'small' ? 0.92 : plant.size === 'medium' ? 1.18 : 1.48)
+          : 1.2 * 0.9 * sizeScale;
+        const scaleY = plant.kind === 'herbs'
+          ? 1.2 * 1.15 * (plant.size === 'small' ? 0.82 : plant.size === 'medium' ? 0.9 : 0.98)
+          : 1.2 * 1.15 * sizeScale;
         const isSmall = plant.size === 'small';
         const isLarge = plant.size === 'large';
         worldDrawables.push({ depth: plant.y + 13 * 1.2 * sizeScale, draw: () => {
@@ -2685,9 +2689,9 @@ export default function App() {
               ctx.moveTo(0, 8);
               ctx.quadraticCurveTo(dx * 0.35, 7 + dy * 0.3, dx, 8 + dy);
               ctx.stroke();
-              herbLeaf(dx, 8 + dy, angle - Math.PI / 2, leafLength, leafWidth, leafFill, leafLight);
+              herbLeaf(dx, 8 + dy, angle + Math.PI / 2, leafLength, leafWidth, leafFill, leafLight);
               if (!isSmall && i % 2 === 0) {
-                herbLeaf(dx * 0.55, 8 + dy * 0.55, angle - Math.PI / 2 + 0.2, leafLength * 0.72, leafWidth * 0.82, greens[(i + 1) % greens.length][0], greens[(i + 1) % greens.length][1]);
+                herbLeaf(dx * 0.55, 8 + dy * 0.55, angle + Math.PI / 2 + 0.2, leafLength * 0.72, leafWidth * 0.82, greens[(i + 1) % greens.length][0], greens[(i + 1) % greens.length][1]);
               }
             }
             // Miolo baixo e discreto, sem haste ou broto alto.
