@@ -2509,10 +2509,12 @@ export class GameEngine {
   }
 
   private spawnInitialVegetables() {
-    // Prévia visual temporária: abra com ?tomato-preview=1 para comparar os três portes.
-    const tomatoPreview = typeof window !== 'undefined'
-      && new URLSearchParams(window.location.search).get('tomato-preview') === '1';
-    if (tomatoPreview) {
+    // Prévia visual temporária: use ?herbs-preview=1 ou ?tomato-preview=1 para comparar os três portes.
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const previewKind: VegetableKind | null = params?.get('herbs-preview') === '1'
+      ? 'herbs'
+      : params?.get('tomato-preview') === '1' ? 'tomato' : null;
+    if (previewKind) {
       const { x, y } = this.state.player;
       const samples: Array<{ x: number; y: number; size: VegetablePlant['size'] }> = [
         { x: x - 116, y: y - 92, size: 'small' },
@@ -2523,7 +2525,7 @@ export class GameEngine {
         id: this.nextId++,
         x: sample.x,
         y: sample.y,
-        kind: 'tomato',
+        kind: previewKind,
         size: sample.size,
         hits: CONFIG.vegetables.hitsToBreak[sample.size],
       }));
