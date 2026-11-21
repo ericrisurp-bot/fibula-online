@@ -363,7 +363,6 @@ try {
   const wolfEngine = makeEngine();
   const wolfEvents = [];
   wolfEngine.onProficiencyEvent = event => wolfEvents.push(event);
-  wolfEngine.random = () => 0.99;
   wolfEngine.getDodgeChance = () => 0;
   wolfEngine.obstacleCircles = () => [];
   wolfEngine.state.dead = false;
@@ -404,7 +403,7 @@ try {
   wolfEvents.length = 0;
   wolfEngine.state.enemies = [{
     id: 90005,
-    x: wolfFeetX,
+    x: wolfFeetX - 160,
     y: wolfFeetY,
     hp: 100,
     hitWait: 0,
@@ -424,7 +423,11 @@ try {
     if (wolf.facingX !== previousWolfFacing) wolfFacingChanges++;
     previousWolfFacing = wolf.facingX;
     const distanceToFeet = Math.hypot(wolf.x - wolfFeetX, wolf.y - wolfFeetY);
-    if (!wolf.moving && distanceToFeet <= wolfStopDistance + 1 && wolf.hitWait > 0) {
+    const wolfBitesSoFar = wolfEvents.filter(event => event.key === 'golpes_recebidos').length;
+    if (wolfBitesSoFar > 0
+      && !wolf.moving
+      && wolf.hitWait > 0
+      && Math.abs(distanceToFeet - wolfStopDistance) <= 1) {
       stoppedWolfPositions.push({ x: wolf.x, y: wolf.y });
     }
     if ((wolf.wolfRecoilRemaining ?? 0) > 0 && wolf.moving) wolfSawRecoil = true;
@@ -477,8 +480,11 @@ try {
   let loadedCartPrevious = { x: cartEngine.state.cart.x, y: cartEngine.state.cart.y };
   let loadedCartDistance = 0;
   let loadedCartSteps = 0;
-  const maxLoadedCartSteps = 2000;
+  const maxLoadedCartSteps = 5000;
   while (loadedCartDistance < 600 && loadedCartSteps < maxLoadedCartSteps) {
+    // Simula o jogador caminhando em linha reta; parado, ele alcançaria a
+    // distância de parada e a carroça deixaria de acumular deslocamento.
+    cartEngine.state.player.x += 1;
     cartEngine.updateDonkeyCart(0.25);
     const current = cartEngine.state.cart;
     loadedCartDistance += Math.hypot(current.x - loadedCartPrevious.x, current.y - loadedCartPrevious.y);
