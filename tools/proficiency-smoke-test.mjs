@@ -601,14 +601,14 @@ try {
     const playerSpeed = engine.getPlayerMoveSpeed();
     assert.equal(playerSpeed, CONFIG.player.classSpeed.guerreiro + engine.getLevelStats().speed,
       'getPlayerMoveSpeed deve preservar exatamente a expressão anterior de velocidade do jogador');
-    const before = engine.state.cart.x;
     const dt = 0.02;
+    let sampleStartX = 0;
     for (let frame = 0; frame < 65; frame++) {
       engine.state.player.x += playerSpeed * dt;
       engine.updateDonkeyCart(dt);
+      if (frame === 54) sampleStartX = engine.state.cart.x;
     }
-    const after = engine.state.cart.x;
-    const measured = (after - before) / (65 * dt);
+    const measured = (engine.state.cart.x - sampleStartX) / (10 * dt);
     engine.stop();
     return { measured, playerSpeed };
   };
@@ -625,20 +625,22 @@ try {
     `burrinho no nível 100 deveria manter 159.5 px/s, recebeu ${level100Speed.measured}`);
 
   const invalidTotalEngine = makeEngine();
-  invalidTotalEngine.setCartProficiencyTotal(5517);
+  invalidTotalEngine.state.cart.inventory = [{ itemId: 'wood', quantity: 1 }];
+  invalidTotalEngine.setCartProficiencyTotal(5516);
   for (const invalidTotal of [-1, NaN, 1.5]) {
     invalidTotalEngine.setCartProficiencyTotal(invalidTotal);
-    assert.equal(invalidTotalEngine.cartProficiencyTotal, 5517,
+    assert.equal(invalidTotalEngine.cartProficiencyTotal, 5516,
       `setCartProficiencyTotal não deve aceitar ${String(invalidTotal)}`);
   }
+  invalidTotalEngine.recordCartProficiencyDistance(280);
+  assert.equal(invalidTotalEngine.cartProficiencyTotal, 5517,
+    'pontos inteiros emitidos pela distância devem incrementar o acumulado do motor');
+  assert.equal(invalidTotalEngine.cartProficiencyLevel, 50,
+    'o nível em cache deve subir ao cruzar o marco de nível 50 durante a partida');
   invalidTotalEngine.setCartProficiencyTotal(168019);
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 100);
   invalidTotalEngine.setCartProficiencyTotal(0);
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 0);
-  invalidTotalEngine.state.cart.inventory = [{ itemId: 'wood', quantity: 1 }];
-  invalidTotalEngine.recordCartProficiencyDistance(280);
-  assert.equal(invalidTotalEngine.cartProficiencyTotal, 1,
-    'pontos inteiros emitidos pela distância devem incrementar o acumulado do motor');
   invalidTotalEngine.stop();
 
   const trackingEngine = createFollowingCart(cartLevel100Total, 500, 200);
