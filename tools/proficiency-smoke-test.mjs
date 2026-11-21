@@ -690,8 +690,9 @@ try {
   for (let frame = 0; frame < 500; frame++) {
     obstacleEngine.state.player.x += obstaclePlayerSpeed * trackingDt;
     obstacleEngine.updateDonkeyCart(trackingDt);
-    const donkeyX = obstacleEngine.state.cart.x + CONFIG.donkey.cartDistance;
-    const donkeyY = obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
+    const donkeyAngle = obstacleEngine.state.cart.angle;
+    const donkeyX = obstacleEngine.state.cart.x + Math.cos(donkeyAngle) * CONFIG.donkey.cartDistance;
+    const donkeyY = obstacleEngine.state.cart.y + Math.sin(donkeyAngle) * CONFIG.donkey.cartDistance;
     const clearance = Math.hypot(donkeyX - obstacle.x, donkeyY - obstacle.y)
       - CONFIG.donkey.collisionRadius - obstacle.radius;
     if (clearance < obstacleClearanceMinimum) {
