@@ -562,6 +562,140 @@ try {
   assert.equal(cartEngine.cartProficiencyDistanceRemainder, 0, 'carroça vazia deve zerar a fração acumulada');
   cartEngine.stop();
   passed.push('motor headless: carroça em movimento com carga e sem carga');
+  // C1 — velocidade e alcance do burrinho derivados da proficiência da carroça.
+  const cartLevel50Total = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES
+    .find(table => table.key === 'carroca_distancia').milestones
+    .find(milestone => milestone.level === 50).totalRequired;
+  const cartLevel100Total = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES
+    .find(table => table.key === 'carroca_distancia').milestones
+    .find(milestone => milestone.level === 100).totalRequired;
+  const createFollowingCart = (total, playerX = 2160, gap = 200) => {
+    const engine = makeEngine();
+    engine.setClass('guerreiro');
+    engine.setCartProficiencyTotal(total);
+    engine.obstacleCircles = () => [];
+    engine.lakeCollisionCircles = [];
+    engine.lakeAvoidanceCircles = [];
+    engine.state.lake = { ...engine.state.lake, x: 0, y: 0, rx: 1, ry: 1 };
+    engine.state.player.x = playerX;
+    engine.state.player.y = 1000;
+    engine.state.player.moving = true;
+    const feetY = engine.state.player.y + CONFIG.player.footOffset;
+    engine.state.cart = {
+      ...engine.state.cart,
+      x: playerX - gap - CONFIG.donkey.cartDistance,
+      y: feetY,
+      angle: 0,
+      stage: 'built',
+      following: true,
+      carried: false,
+      inventory: [{ itemId: 'wood', quantity: 1 }],
+    };
+    engine.donkeySpeed = 0;
+    engine.donkeyAvoidTimer = 0;
+    engine.donkeyStalled = false;
+    return engine;
+  };
+  const sampleDonkeySpeed = (total) => {
+    const engine = createFollowingCart(total);
+    const playerSpeed = engine.getPlayerMoveSpeed();
+    assert.equal(playerSpeed, CONFIG.player.classSpeed.guerreiro + engine.getLevelStats().speed,
+      'getPlayerMoveSpeed deve preservar exatamente a expressão anterior de velocidade do jogador');
+    const before = engine.state.cart.x;
+    const dt = 0.02;
+    for (let frame = 0; frame < 65; frame++) {
+      engine.state.player.x += playerSpeed * dt;
+      engine.updateDonkeyCart(dt);
+    }
+    const after = engine.state.cart.x;
+    const measured = (after - before) / (65 * dt);
+    engine.stop();
+    return { measured, playerSpeed };
+  };
+  const level0Speed = sampleDonkeySpeed(0);
+  assert.ok(Math.abs(level0Speed.playerSpeed - 145) < 0.01,
+    `velocidade base do guerreiro deveria ser 145, recebida ${level0Speed.playerSpeed}`);
+  assert.ok(Math.abs(level0Speed.measured - 87) <= 1,
+    `burrinho no nível 0 deveria manter 87 px/s, recebeu ${level0Speed.measured}`);
+  const level50Speed = sampleDonkeySpeed(cartLevel50Total);
+  assert.ok(Math.abs(level50Speed.measured - 145 * 0.85) <= 1,
+    `burrinho no nível 50 deveria manter 123.25 px/s, recebeu ${level50Speed.measured}`);
+  const level100Speed = sampleDonkeySpeed(cartLevel100Total);
+  assert.ok(Math.abs(level100Speed.measured - 145 * 1.10) <= 1,
+    `burrinho no nível 100 deveria manter 159.5 px/s, recebeu ${level100Speed.measured}`);
+
+  const invalidTotalEngine = makeEngine();
+  invalidTotalEngine.setCartProficiencyTotal(5517);
+  for (const invalidTotal of [-1, NaN, 1.5]) {
+    invalidTotalEngine.setCartProficiencyTotal(invalidTotal);
+    assert.equal(invalidTotalEngine.cartProficiencyTotal, 5517,
+      `setCartProficiencyTotal não deve aceitar ${String(invalidTotal)}`);
+  }
+  invalidTotalEngine.setCartProficiencyTotal(168019);
+  assert.equal(invalidTotalEngine.cartProficiencyLevel, 100);
+  invalidTotalEngine.setCartProficiencyTotal(0);
+  assert.equal(invalidTotalEngine.cartProficiencyLevel, 0);
+  invalidTotalEngine.state.cart.inventory = [{ itemId: 'wood', quantity: 1 }];
+  invalidTotalEngine.recordCartProficiencyDistance(280);
+  assert.equal(invalidTotalEngine.cartProficiencyTotal, 1,
+    'pontos inteiros emitidos pela distância devem incrementar o acumulado do motor');
+  invalidTotalEngine.stop();
+
+  const trackingEngine = createFollowingCart(cartLevel100Total, 500, 200);
+  const trackingPlayerSpeed = trackingEngine.getPlayerMoveSpeed();
+  const trackingDt = 0.02;
+  let maximumLevel100Distance = 0;
+  for (let frame = 0; frame < 1000; frame++) {
+    trackingEngine.state.player.x += trackingPlayerSpeed * trackingDt;
+    trackingEngine.updateDonkeyCart(trackingDt);
+    const donkeyX = trackingEngine.state.cart.x + CONFIG.donkey.cartDistance;
+    const distance = Math.abs(trackingEngine.state.player.x - donkeyX);
+    maximumLevel100Distance = Math.max(maximumLevel100Distance, distance);
+  }
+  const finalLevel100Distance = Math.abs(
+    trackingEngine.state.player.x - (trackingEngine.state.cart.x + CONFIG.donkey.cartDistance),
+  );
+  assert.ok(maximumLevel100Distance <= 500,
+    `nível 100 excedeu visão 500 px durante 20 s: ${maximumLevel100Distance}`);
+  assert.ok(finalLevel100Distance <= CONFIG.donkey.playerStopDistance + 5,
+    `nível 100 deveria alcançar a distância de parada; final ${finalLevel100Distance}`);
+  trackingEngine.stop();
+
+  const legacyTrackingEngine = createFollowingCart(0, 500, 200);
+  const legacyPlayerSpeed = legacyTrackingEngine.getPlayerMoveSpeed();
+  for (let frame = 0; frame < 1000; frame++) {
+    legacyTrackingEngine.state.player.x += legacyPlayerSpeed * trackingDt;
+    legacyTrackingEngine.updateDonkeyCart(trackingDt);
+  }
+  const legacyFinalDistance = Math.abs(
+    legacyTrackingEngine.state.player.x
+      - (legacyTrackingEngine.state.cart.x + CONFIG.donkey.cartDistance),
+  );
+  assert.ok(legacyFinalDistance > 300,
+    `nível 0 deve registrar o comportamento antigo de perda de alcance; distância final ${legacyFinalDistance}`);
+  console.log(`Diagnóstico C1 nível 0: distância final jogador–burrinho em 20 s = ${legacyFinalDistance.toFixed(1)} px.`);
+  legacyTrackingEngine.stop();
+
+  const obstacleEngine = createFollowingCart(cartLevel100Total, 1000, 400);
+  const obstacle = { x: 700, y: 1000 + CONFIG.player.footOffset, radius: 35 };
+  obstacleEngine.obstacleCircles = () => [obstacle];
+  const obstaclePlayerSpeed = obstacleEngine.getPlayerMoveSpeed();
+  let obstacleClearanceMinimum = Infinity;
+  for (let frame = 0; frame < 500; frame++) {
+    obstacleEngine.state.player.x += obstaclePlayerSpeed * trackingDt;
+    obstacleEngine.updateDonkeyCart(trackingDt);
+    const donkeyX = obstacleEngine.state.cart.x + CONFIG.donkey.cartDistance;
+    const donkeyY = obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
+    const clearance = Math.hypot(donkeyX - obstacle.x, donkeyY - obstacle.y)
+      - CONFIG.donkey.collisionRadius - obstacle.radius;
+    obstacleClearanceMinimum = Math.min(obstacleClearanceMinimum, clearance);
+  }
+  assert.ok(obstacleClearanceMinimum >= -0.001,
+    `burrinho atravessou o obstáculo: folga mínima ${obstacleClearanceMinimum.toFixed(3)} px`);
+  obstacleEngine.stop();
+
+  passed.push('C1: velocidade por nível, alcance, validação do total, incremento em partida e obstáculo');
+
 
   const swordEngine = makeEngine();
   swordEngine.setClass('guerreiro');

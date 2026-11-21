@@ -102,6 +102,7 @@ export const CONFIG = {
   // O burrinho mantém velocidade fixa de 60% da velocidade-base do jogador: 87 unidades/s.
   donkey: { visionRange: 300, playerStopDistance: 30, idleSpeedFactor: 0.5, acceleration: 260, deceleration: 400, approachSpeedFactor: 4, approachSpeedFloor: 8, obstacleClearance: 100, cartDistance: 60, collisionRadius: 25, wheelRadius: 17, turnSpeed: 2.6, avoidSideDuration: 0.6, candidateAngleStep: 12, maxCandidateAngle: 96, wallSoftDistance: 60, stallWindow: 1, stallProgressRatio: 0.2, stallResumeDistance: 40 },
   cart: { maxHealth: 75, interactRadius: 90, collisionRadius: 38, capacitySlots: 10, maxPerSlot: 8, unloadedPullSpeed: 87, followDistance: 62, tetherDistance: 76, followSpeed: 260, wallMargin: 40, minimumHouseDistance: 700, loadSlowdownMin: 0.05, loadSlowdownMax: 0.45 },
+  cartProficiency: { baseFactor: 0.60, maxFactor: 1.10, maxLevel: 100, visionRangeBonus: 200 },
   flags: {
     colors: [
       { id: 'yellow', label: 'Amarela', color: '#f4d03f' },

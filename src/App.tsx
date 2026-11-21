@@ -9,7 +9,7 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { acknowledgeProficiencyBatch, isProficiencyKey, prepareProficiencyBatch, reconcileProficiencyCounters } from './game/proficiencyStorage';
+import { acknowledgeProficiencyBatch, isProficiencyKey, prepareProficiencyBatch, readProficiencyProgress, reconcileProficiencyCounters } from './game/proficiencyStorage';
 import { createProficiencyBuffer } from './game/proficiencyBuffer';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
@@ -2339,6 +2339,7 @@ export default function App() {
       mission5Wood: 0, mission5Stone: 0,
       mission7Wood: 0, mission7Cotton: 0, mission7Stone: 0,
     };
+    let engineActive = true;
     const engine = new GameEngine((next) => {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
@@ -2441,6 +2442,37 @@ export default function App() {
       }
     };
     engineRef.current = engine;
+    // Carrega o total da carroça sem atrasar a partida; falhas remotas usam o total local.
+    void (async () => {
+      const serverTotals: Partial<Record<import('./game/engine').ProficiencyKey, number>> = {};
+      try {
+        if (fibulaSupabase) {
+          const { data, error } = await fibulaSupabase
+            .from('fibula_proficiencies')
+            .select('proficiency_key,counter')
+            .eq('user_id', userId);
+          if (error) throw error;
+          for (const row of data ?? []) {
+            const candidate = row as { proficiency_key?: unknown; counter?: unknown };
+            const total = typeof candidate.counter === 'number'
+              ? candidate.counter
+              : typeof candidate.counter === 'string' ? Number(candidate.counter) : NaN;
+            if (isProficiencyKey(candidate.proficiency_key) && Number.isSafeInteger(total) && total >= 0) {
+              serverTotals[candidate.proficiency_key] = total;
+            }
+          }
+        }
+      } catch {
+        // Leitura remota é best-effort; os contadores locais ainda podem inicializar o nível.
+      }
+      try {
+        const progress = await readProficiencyProgress(userId, serverTotals);
+        if (!engineActive || engineRef.current !== engine || engine.state.dead) return;
+        engine.setCartProficiencyTotal(progress.carroca_distancia ?? 0);
+      } catch {
+        // Falha local também é best-effort: o motor permanece no nível 0.
+      }
+    })();
     const pendingCloudInventory = pendingCloudHouseInventoryRef.current;
     if (pendingCloudInventory !== null) {
       engine.setHouseInventory(pendingCloudInventory);
@@ -3195,7 +3227,7 @@ export default function App() {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
   }, [activeGameRoute.page, session.user.sub]);
 
   useEffect(() => {
