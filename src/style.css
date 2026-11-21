@@ -85,8 +85,8 @@
 .menu-weapon span{font-size:8px;letter-spacing:.12em;color:#8ca99a;font-weight:900}
 .menu-weapon strong{font-size:11px;color:#e4f4e9}
 .joystick-touch-area{position:absolute;z-index:3;left:0;right:0;bottom:0;height:49%;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
-.joystick-float{position:absolute;z-index:4;width:104px;height:104px;margin:-52px 0 0 -52px;border:1.5px solid rgba(170,231,197,.52);border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(100,153,120,.24),rgba(17,39,28,.14) 72%);box-shadow:inset 0 0 0 7px rgba(173,226,193,.055),0 4px 18px rgba(0,0,0,.12);opacity:0;transform:scale(.78);transition:opacity 180ms ease,transform 180ms ease;pointer-events:none;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
-.joystick-float.is-active{opacity:1;transform:scale(1)}
+.joystick-float{position:absolute;z-index:4;width:104px;height:104px;margin:-52px 0 0 -52px;border:1.5px solid rgba(170,231,197,.52);border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(100,153,120,.24),rgba(17,39,28,.14) 72%);box-shadow:inset 0 0 0 7px rgba(173,226,193,.055),0 4px 18px rgba(0,0,0,.12);opacity:0;transition:opacity 180ms ease;pointer-events:none;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.joystick-float.is-active{opacity:1}
 .joystick-cross{position:absolute;display:block;background:rgba(176,226,194,.22);border-radius:4px;pointer-events:none}
 .joystick-cross.horizontal{height:1px;left:13px;right:13px;top:50%}
 .joystick-cross.vertical{width:1px;top:13px;bottom:13px;left:50%}
@@ -631,7 +631,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
 .game-over {
   zoom: 1;
 }
-.joystick-float,
 .mobile-quick-buttons {
   zoom: 1;
 }
@@ -671,10 +670,6 @@ html,body,#root{width:100%;height:100%;min-height:0;background:#222322}
   zoom:1;
   transform:scale(var(--interface-scale,1.3));
   transform-origin:bottom right;
-}
-.joystick-float{
-  zoom:1;
-  transform-origin:bottom left;
 }
 .hud-top{zoom:1}
 .hud-left-stack{zoom:var(--interface-scale,1.3);transform-origin:top left}
@@ -9712,7 +9707,7 @@ sem backdrop ou caixa de modal. */
 .game-shell .game-action-status.is-following{background:#7bd65a}
 .game-shell .game-action-status.is-stopped{background:#ff6b5e}
 .game-shell .joystick-guide-ring{display:none!important}
-.game-shell .joystick-float{zoom:var(--controller-scale,1)!important}
+/* O analógico mantém 104px (94px em telas estreitas) e ignora a escala dos controles. */
 .game-shell .game-construction-recipe{
   position:absolute;z-index:25;left:50%;top:calc(50% + 48px);transform:translateX(-50%);
   display:flex;max-width:min(240px,calc(100% - 272px));flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
