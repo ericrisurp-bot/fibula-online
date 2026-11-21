@@ -2412,8 +2412,15 @@ export class GameEngine {
           if (recoilRemaining > 0) {
             wolfRecoil = true;
             animal.wolfRecoilRemaining = Math.max(0, recoilRemaining - dt);
-            targetX = -dx;
-            targetY = -dy;
+            if (distance > 0.001) {
+              targetX = -dx;
+              targetY = -dy;
+            } else {
+              // Se o lobo morde exatamente sobre os pés, usa uma direção estável de recuo.
+              const fallbackAngle = (animal.wanderAngle ?? 0) + Math.PI;
+              targetX = Math.cos(fallbackAngle);
+              targetY = Math.sin(fallbackAngle);
+            }
             movementSpeed = rules.speed * CONFIG.wildlife.wolves.recoilSpeedFactor;
           } else {
             animal.wolfRecoilRemaining = 0;
