@@ -592,12 +592,13 @@ try {
     hitEnemyIds: [],
   }];
   const arrowDamageFactors = [...CONFIG.archerPierce.damageFactors];
+  const arrowShot = arrowEngine.state.shots[0];
   for (let frame = 0; frame < 12 && arrowEngine.state.shots.length > 0; frame++) {
     arrowEngine.moveShots(0.05);
   }
   assert.deepEqual(arrowEvents, [{ key: 'arco', amount: 1 }],
     'uma flecha que atravessa três inimigos deve contar exatamente um ponto de arco');
-  assert.equal(arrowEngine.state.shots[0]?.hitEnemyIds?.length ?? 3, 3,
+  assert.equal(arrowShot.hitEnemyIds.length, 3,
     'a flecha deve atravessar os três alvos antes de encerrar');
   for (let i = 0; i < 3; i++) {
     const expectedDamage = 10 * arrowDamageFactors[i] * (1 + arrowEngine.getDayNightState().vulnerability);
