@@ -2309,6 +2309,17 @@ export default function App() {
       const mission7WoodCollected = guideCurrent.mission7WoodCollected || collected.mission7Wood >= 15;
       const mission7CottonCollected = guideCurrent.mission7CottonCollected || collected.mission7Cotton >= 8;
       const mission7StoneCollected = guideCurrent.mission7StoneCollected || collected.mission7Stone >= 8;
+      const wasAlreadyAtLake = !!previousGuide && Math.hypot(
+        (playerFeet(previousGuide.player).x - previousGuide.lake.x) / Math.max(1, previousGuide.lake.rx),
+        (playerFeet(previousGuide.player).y - previousGuide.lake.y) / Math.max(1, previousGuide.lake.ry),
+      ) <= 1.2;
+      const wasAlreadyFishing = !!previousGuide
+        && previousGuide.lake.rx > 0
+        && previousGuide.lake.ry > 0
+        && Math.abs(Math.hypot(
+          (playerFeet(previousGuide.player).x - previousGuide.lake.x) / previousGuide.lake.rx,
+          (playerFeet(previousGuide.player).y - previousGuide.lake.y) / previousGuide.lake.ry,
+        ) - 1) * Math.min(previousGuide.lake.rx, previousGuide.lake.ry) <= CONFIG.lake.fishingRange;
       const nextObjectives = {
         cartFound: guideCurrent.cartFound || (mission === 1 && (cartFound || cartRepaired)),
 
@@ -2318,8 +2329,8 @@ export default function App() {
         mission2StoneCollected, mission2StoneRemaining: Math.max(0, 5 - Math.min(5, collected.mission2Stone)),
         mission2CottonCollected, mission2CottonRemaining: Math.max(0, 5 - Math.min(5, collected.mission2Cotton)),
         campfireBuilt: guideCurrent.campfireBuilt || (mission === 3 && campfireBuilt && !previousGuide?.campfire),
-        lakeFound: guideCurrent.lakeFound || (mission === 3 && lakeFound && !(previousGuide && Math.hypot((playerFeet(previousGuide.player).x - previousGuide.lake.x) / Math.max(1, previousGuide.lake.rx), (playerFeet(previousGuide.player).y - previousGuide.lake.y) / Math.max(1, previousGuide.lake.ry)) <= 1.2),
-        fishingRodAvailable: guideCurrent.fishingRodAvailable || (mission === 3 && fishingRodAvailable && !(previousGuide && previousGuide.lake.rx > 0 && previousGuide.lake.ry > 0 && Math.abs(Math.hypot((playerFeet(previousGuide.player).x - previousGuide.lake.x) / previousGuide.lake.rx, (playerFeet(previousGuide.player).y - previousGuide.lake.y) / previousGuide.lake.ry) - 1) * Math.min(previousGuide.lake.rx, previousGuide.lake.ry) <= CONFIG.lake.fishingRange),
+        lakeFound: guideCurrent.lakeFound || (mission === 3 && lakeFound && !wasAlreadyAtLake),
+        fishingRodAvailable: guideCurrent.fishingRodAvailable || (mission === 3 && fishingRodAvailable && !wasAlreadyFishing),
         mission4WoodCollected, mission4WoodRemaining: Math.max(0, 20 - Math.min(20, collected.mission4Wood)),
         campfireReached: guideCurrent.campfireReached || (mission === 4 && campfireWithinGuideRadius && !(previousGuide?.campfire && Math.hypot(playerFeet(previousGuide.player).x - previousGuide.campfire.x, playerFeet(previousGuide.player).y - previousGuide.campfire.y) <= 50)), 
         chestBuilt: guideCurrent.chestBuilt || (mission === 4 && chestBuilt && !previousGuide?.house.built),
