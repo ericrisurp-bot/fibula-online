@@ -2694,223 +2694,168 @@ export default function App() {
           drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
           ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scaleX, scaleY);
           ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17 * sizeScale * cabbageScale, 6 * sizeScale * cabbageScale, 0, 0, Math.PI * 2); ctx.fill();
+          // Pequeno montinho de terra integrado à base, sobre a sombra de contato existente.
+          ctx.fillStyle = 'rgba(92, 69, 39, 0.22)';
+          ctx.beginPath(); ctx.ellipse(0, 11.5, plant.kind === 'cabbage' ? 14 : 10, 2.2, 0, 0, Math.PI * 2); ctx.fill();
           if (plant.kind === 'tomato') {
-            // Pé de tomate low-poly: galhos, folhas facetadas e frutos com faces de luz/sombra.
-            const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
+            // Tomateiro em camadas: folhagem posterior fria, hastes e folhas frontais iluminadas.
+            const leaf = (x: number, y: number, angle: number, scale: number, front: boolean) => {
+              ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.scale(scale, scale);
+              const dark = front ? '#397d3d' : '#285d35';
+              const mid = front ? '#579b48' : '#356f3b';
+              const lit = front ? '#a8ce68' : '#729d4c';
               ctx.beginPath();
-              points.forEach(([x, y], index) => index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
-              ctx.closePath();
-              ctx.fillStyle = fill;
-              ctx.fill();
-              if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.9; ctx.stroke(); }
-            };
-            const drawLeaf = (x: number, y: number, angle: number, fill: string, light: string) => {
-              ctx.save();
-              ctx.translate(x, y);
-              ctx.rotate(angle);
-              polygon([[0,0],[-4,-4],[-5,-9],[-2,-14],[3,-16],[6,-11],[5,-6]], fill, '#315d32');
-              polygon([[0,-1],[1,-8],[3,-14],[4,-8]], light);
+              ctx.moveTo(0, 0); ctx.lineTo(-3.2, -3.2); ctx.lineTo(-5.2, -7.2);
+              ctx.lineTo(-3.3, -10.1); ctx.lineTo(-1.1, -8.7); ctx.lineTo(0.8, -13.2);
+              ctx.lineTo(2.3, -9.1); ctx.lineTo(5.1, -8.1); ctx.lineTo(4.1, -4.1);
+              ctx.lineTo(1.2, -1.2); ctx.closePath();
+              ctx.fillStyle = dark; ctx.fill();
+              ctx.strokeStyle = '#285b32'; ctx.lineWidth = 0.55; ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(0, -1); ctx.quadraticCurveTo(-0.8, -6, 0.8, -12);
+              ctx.strokeStyle = mid; ctx.lineWidth = 0.85; ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(-0.3, -3); ctx.lineTo(-3.4, -6.8); ctx.moveTo(0.2, -5); ctx.lineTo(3.5, -7.2);
+              ctx.strokeStyle = lit; ctx.lineWidth = 0.48; ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(-1.5, -8.8); ctx.lineTo(-0.5, -11.2); ctx.strokeStyle = 'rgba(208,235,145,.48)'; ctx.lineWidth = 0.7; ctx.stroke();
               ctx.restore();
             };
-
-            // Caule principal e ramificações angulares, mantendo a base visível.
+            // Estaca discreta atrás da planta e caule curvo com nós.
             ctx.lineCap = 'round';
-            ctx.strokeStyle = '#315d32';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, 13); ctx.lineTo(0, -10);
-            ctx.moveTo(0, -3); ctx.lineTo(-12, -10);
-            ctx.moveTo(0, -7); ctx.lineTo(12, -14);
-            ctx.moveTo(0, -10); ctx.lineTo(-2, -22);
-            ctx.stroke();
-            ctx.strokeStyle = '#6f9a45';
-            ctx.lineWidth = 1.2;
-            ctx.beginPath();
-            ctx.moveTo(-1, 10); ctx.lineTo(-1, -8);
-            ctx.moveTo(0, -4); ctx.lineTo(-10, -10);
-            ctx.moveTo(0, -8); ctx.lineTo(10, -14);
-            ctx.stroke();
-
-            const leaves = [
-              [-8,-13,-1.05,'#397b3d','#79ad50'],
-              [7,-16,0.95,'#438744','#8bb956'],
-              [-15,-7,-1.35,'#2f6e38','#6fa34a'],
-              [14,-10,1.25,'#36783d','#80ae4d'],
-              [-3,-24,-0.2,'#4a8d43','#9ac05c'],
-              [2,-5,0.25,'#36783d','#75a94a'],
-              [-11,-19,-0.9,'#3b8040','#86b454'],
-              [11,-21,0.9,'#397b3d','#8ab653'],
-              [-18,-1,-1.5,'#326f38','#73a64a'],
+            ctx.strokeStyle = '#765333'; ctx.lineWidth = 1.45;
+            ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(4, -24); ctx.stroke();
+            ctx.strokeStyle = '#b58a55'; ctx.lineWidth = 0.45;
+            ctx.beginPath(); ctx.moveTo(3.7, 8); ctx.lineTo(2.9, -20); ctx.stroke();
+            ctx.strokeStyle = '#285f35'; ctx.lineWidth = 4.2;
+            ctx.beginPath(); ctx.moveTo(-1, 12); ctx.quadraticCurveTo(1.4, 1, -0.7, -10); ctx.quadraticCurveTo(-1.2, -18, 1, -26); ctx.stroke();
+            ctx.strokeStyle = '#78a94b'; ctx.lineWidth = 1.25;
+            ctx.beginPath(); ctx.moveTo(-1.8, 9); ctx.quadraticCurveTo(0.4, 0, -0.2, -10); ctx.quadraticCurveTo(-0.4, -18, 1.2, -24); ctx.stroke();
+            for (const [x,y] of [[-0.2,-4],[0.2,-13],[0.7,-21]] as const) {
+              ctx.fillStyle = '#9bc45b'; ctx.beginPath(); ctx.ellipse(x,y,1.15,0.75,-0.25,0,Math.PI*2); ctx.fill();
+            }
+            const leafSpecs = [
+              [-7,-8,-1.18,0.92,false],[7,-12,1.12,0.94,false],[-12,-3,-1.48,0.92,false],[12,-7,1.42,0.9,false],
+              [-5,-18,-0.82,1.02,false],[6,-21,0.78,0.98,false],[-15,2,-1.55,0.78,true],[14,-1,1.5,0.8,true],
+              [-4,-25,-0.25,0.82,true],[4,-4,0.28,0.82,true],[-9,-15,-1.1,0.86,true],[10,-17,1.05,0.86,true],
             ] as const;
             const leafCount = isSmall ? 5 : isLarge ? 9 : 7;
             for (let i = 0; i < leafCount; i++) {
-              const [x,y,angle,fill,light] = leaves[i];
-              drawLeaf(x,y,angle,fill,light);
+              const [x,y,angle,scale,front] = leafSpecs[i];
+              if (!front) leaf(x,y,angle,scale,false);
             }
-
+            for (let i = 0; i < leafCount; i++) {
+              const [x,y,angle,scale,front] = leafSpecs[i];
+              if (front) leaf(x,y,angle,scale,true);
+            }
+            // Frutos mantêm a contagem por porte; volume por gradiente, cálice e brilho.
             const fruits = isSmall
               ? [[-7,-7],[8,-12]] as const
               : isLarge
                 ? [[-12,-5],[9,-11],[-1,-21],[14,-1],[-8,-17]] as const
                 : [[-9,-6],[8,-12],[0,-20],[13,-1]] as const;
-            const fruitCount = fruits.length;
-            for (let i = 0; i < fruitCount; i++) {
-              const [x,y] = fruits[i];
-              const r = 4.5;
-              polygon(
-                [[x-r*0.8,y-r*0.7],[x-r*0.25,y-r],[x+r*0.55,y-r*0.82],[x+r,y-r*0.1],[x+r*0.72,y+r*0.72],[x,y+r],[x-r*0.82,y+r*0.55],[x-r,y-r*0.1]],
-                '#c9362d',
-                '#81251f',
-              );
-              polygon([[x-r*0.7,y-r*0.55],[x-r*0.2,y-r*0.85],[x+r*0.15,y-r*0.35],[x-r*0.15,y+r*0.25]], '#e45a43');
-              polygon([[x,y-r*0.72],[x-2,y-r-2],[x-1,y-r*0.2],[x+2,y-r-2],[x+1,y-r*0.15],[x+4,y-r],[x+2,y+0.2],[x,y-r*0.2],[x-3,y+0.2],[x-2,y-r*0.2]], '#4c8538', '#315d32');
+            for (let i = 0; i < fruits.length; i++) {
+              const [x,y] = fruits[i]; const r = isSmall ? 4.7 : 5;
+              const green = isSmall && i === 1;
+              const orange = !isLarge && i === fruits.length - 1;
+              const grad = ctx.createRadialGradient(x-r*0.38,y-r*0.48,0.5,x,y,r*1.25);
+              grad.addColorStop((0), green ? '#b8c95b' : orange ? '#f28b3b' : '#ff7650');
+              grad.addColorStop(0.42, green ? '#729b3b' : orange ? '#dc552c' : '#df382e');
+              grad.addColorStop(1, green ? '#3e682e' : '#84231f');
+              ctx.fillStyle = grad; ctx.strokeStyle = '#762b25'; ctx.lineWidth = 0.65;
+              ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+              ctx.fillStyle = 'rgba(255,245,210,.9)'; ctx.beginPath(); ctx.arc(x-r*0.34,y-r*0.38,0.95,0,Math.PI*2); ctx.fill();
+              ctx.fillStyle = '#477f36'; ctx.strokeStyle = '#2d5c30'; ctx.lineWidth = 0.5;
+              ctx.beginPath(); ctx.moveTo(x,y-r+1); ctx.lineTo(x-2.4,y-r-1.5); ctx.lineTo(x-1.1,y-r+0.2);
+              ctx.lineTo(x+1.2,y-r-2); ctx.lineTo(x+1.1,y-r+0.2); ctx.lineTo(x+3,y-r-1);
+              ctx.lineTo(x+1.8,y-r+1); ctx.closePath(); ctx.fill(); ctx.stroke();
             }
           } else if (plant.kind === 'cabbage') {
-            // Repolho low-poly: folhas largas, sobrepostas e curvas, formando uma cabeça cheia.
+            // Folhas externas abertas formam a saia; as camadas internas fecham a cabeça.
             const headScale = isSmall ? 0.82 : isLarge ? 1.2 : 1;
-            const drawCabbageLeaf = (
-              x: number, y: number, angle: number, sx: number, sy: number,
-              fill: string, shade: string, light: string,
-            ) => {
-              ctx.save();
-              ctx.translate(x, y);
-              ctx.rotate(angle);
-              ctx.scale(sx, sy);
-              ctx.beginPath();
-              ctx.moveTo(0, 8);
-              ctx.bezierCurveTo(-15, 5, -20, -7, -13, -17);
-              ctx.bezierCurveTo(-8, -24, 3, -22, 8, -16);
-              ctx.bezierCurveTo(18, -10, 17, 3, 0, 8);
-              ctx.closePath();
-              ctx.fillStyle = fill;
-              ctx.fill();
-              ctx.strokeStyle = '#356d36';
-              ctx.lineWidth = 0.9;
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.moveTo(0, 7);
-              ctx.bezierCurveTo(-2, -1, -5, -10, -9, -17);
-              ctx.strokeStyle = shade;
-              ctx.lineWidth = 2;
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.moveTo(0, 5);
-              ctx.quadraticCurveTo(5, -5, 8, -15);
-              ctx.strokeStyle = light;
-              ctx.lineWidth = 1;
-              ctx.stroke();
+            const drawLeaf = (x:number,y:number,angle:number,sx:number,sy:number,fill:string,edge:string,vein:string,front:boolean) => {
+              ctx.save(); ctx.translate(x*headScale,y*headScale); ctx.rotate(angle);
+              ctx.scale(sx*headScale,sy*headScale);
+              ctx.beginPath(); ctx.moveTo(0,8);
+              ctx.bezierCurveTo(-13,7,-21,-3,-16,-13);
+              ctx.bezierCurveTo(-13,-20,-6,-23,-1,-18);
+              ctx.bezierCurveTo(7,-25,18,-16,17,-7);
+              ctx.bezierCurveTo(17,1,9,7,0,8); ctx.closePath();
+              const g=ctx.createLinearGradient(-12,-17,12,7);
+              g.addColorStop(0,fill); g.addColorStop(0.58,front ? '#559346' : '#356d38'); g.addColorStop(1,edge);
+              ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle='#2d6335'; ctx.lineWidth=0.75; ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(0,7); ctx.bezierCurveTo(-1,-1,-4,-10,-8,-18);
+              ctx.strokeStyle=vein; ctx.lineWidth=1.35; ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(-2,-4); ctx.lineTo(-10,-8); ctx.moveTo(-3,-9); ctx.lineTo(-9,-14);
+              ctx.moveTo(1,-5); ctx.lineTo(9,-10); ctx.moveTo(0,-10); ctx.lineTo(7,-16);
+              ctx.strokeStyle=front ? 'rgba(174,211,119,.7)' : 'rgba(119,164,87,.5)'; ctx.lineWidth=0.55; ctx.stroke();
               ctx.restore();
             };
-            // Folhas externas abertas e baixas, em posições assimétricas.
             const outer = [
-              [-12, 8, -1.02, 1.12, 0.82, '#397f39', '#28642f', '#76ad50'],
-              [12, 8, 1.08, 1.1, 0.86, '#438b3d', '#2e6b34', '#85b95a'],
-              [-17, 4, -1.42, 0.94, 0.78, '#4a9142', '#316e35', '#91bf60'],
-              [17, 5, 1.42, 0.98, 0.8, '#367a37', '#285f30', '#75a94d'],
-              [-7, 4, -0.58, 0.94, 0.78, '#5a9b46', '#39763a', '#a0c96a'],
-              [8, 3, 0.62, 1, 0.82, '#4d9140', '#326c34', '#91bf5e'],
+              [-13,7,-1.08,1.08,.82,'#427f3b','#244f30','#6c9d4c',false],
+              [13,7,1.08,1.08,.84,'#3d7938','#224d2e','#67984a',false],
+              [-18,3,-1.48,.9,.76,'#508b40','#285d32','#7bab51',false],
+              [18,4,1.45,.92,.78,'#397438','#204a2c','#659548',false],
+              [-8,4,-.62,.96,.8,'#579447','#2c6335','#8db95b',true],
+              [9,4,.66,.98,.8,'#4d8b40','#285d31','#8ab65a',true],
             ] as const;
-            const outerCount = isSmall ? 4 : isLarge ? 6 : 5;
-            for (let i = 0; i < outerCount; i++) {
-              const [x, y, angle, sx, sy, fill, shade, light] = outer[i];
-              drawCabbageLeaf(x * headScale, y * headScale, angle, sx * headScale, sy * headScale, fill, shade, light);
-            }
-            // Miolo arredondado em camadas, sem elipse ou círculo perfeito.
-            drawCabbageLeaf(-5 * headScale, -4 * headScale, -0.5, 0.78 * headScale, 0.82 * headScale, '#76b84f', '#4b8c3e', '#b0d879');
-            drawCabbageLeaf(5 * headScale, -5 * headScale, 0.48, 0.82 * headScale, 0.86 * headScale, '#83c257', '#559743', '#c0e28a');
-            drawCabbageLeaf(0, -10 * headScale, 0.02, 0.78 * headScale, 0.82 * headScale, '#91c960', '#5a9b46', '#c8e695');
-            // Pequenas facetas de luz acompanham as curvas naturais das folhas.
-            ctx.fillStyle = 'rgba(205, 235, 151, 0.42)';
-            ctx.beginPath();
-            ctx.moveTo(-7 * headScale, -16 * headScale);
-            ctx.quadraticCurveTo(-1 * headScale, -22 * headScale, 5 * headScale, -17 * headScale);
-            ctx.quadraticCurveTo(0, -14 * headScale, -7 * headScale, -16 * headScale);
-            ctx.fill();
-            ctx.fillStyle = 'rgba(39, 91, 43, 0.22)';
-            ctx.beginPath();
-            ctx.ellipse(0, 8, 10 * headScale, 2.4 * headScale, 0, 0, Math.PI * 2);
-            ctx.fill();
+            const count = isSmall ? 4 : isLarge ? 6 : 5;
+            for(let i=0;i<count;i++){const q=outer[i];drawLeaf(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8]);}
+            // Casca concêntrica: folhas parcialmente sobrepostas, progressivamente mais claras.
+            drawLeaf(-6,-5,-.58,.82,.83,'#639e48','#356d37','#8fbd61',false);
+            drawLeaf(6,-5,.58,.84,.84,'#6ba64c','#39743a','#9bc96b',false);
+            drawLeaf(-3,-10,-.25,.72,.76,'#80b956','#4b853e','#b2d77a',true);
+            drawLeaf(4,-11,.3,.72,.78,'#8ac15d','#528d42','#c2df8b',true);
+            drawLeaf(0,-15,0,.67,.72,'#a0ce70','#609a49','#d1e89a',true);
+            // Reflexo alto-esquerdo delicado no miolo.
+            const shine=ctx.createRadialGradient(-5*headScale,-18*headScale,0,0,-12*headScale,12*headScale);
+            shine.addColorStop(0,'rgba(232,249,184,.48)'); shine.addColorStop(1,'rgba(232,249,184,0)');
+            ctx.fillStyle=shine;ctx.beginPath();ctx.ellipse(-2*headScale,-13*headScale,8*headScale,5*headScale,-.35,0,Math.PI*2);ctx.fill();
           } else {
-            // Ervas rasteiras orgânicas: folhas curvas, assimétricas e sobrepostas.
-            const herbLeaf = (
-              x: number, y: number, angle: number,
-              length: number, width: number, fill: string, light: string,
-              bend: number,
-            ) => {
-              ctx.save();
-              ctx.translate(x, y);
-              ctx.rotate(angle);
-              ctx.beginPath();
-              ctx.moveTo(0, 0);
-              ctx.bezierCurveTo(-width * 0.9, -length * 0.28, -width * 0.72 + bend, -length * 0.78, bend * 0.35, -length);
-              ctx.bezierCurveTo(width * 0.82 + bend, -length * 0.78, width * 0.95, -length * 0.3, 0, 0);
-              ctx.closePath();
-              ctx.fillStyle = fill;
-              ctx.fill();
-              ctx.strokeStyle = '#3f7335';
-              ctx.lineWidth = 0.5;
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.moveTo(0, -1);
-              ctx.quadraticCurveTo(bend * 0.3, -length * 0.48, bend * 0.35, -length + 1);
-              ctx.strokeStyle = light;
-              ctx.lineWidth = 0.65;
-              ctx.stroke();
-              ctx.restore();
-            };
-            const leafCount = isSmall ? 8 : isLarge ? 17 : 12;
-            const spreadX = isSmall ? 10 : isLarge ? 25 : 17;
-            const spreadY = isSmall ? 5.5 : isLarge ? 12 : 8.5;
-            const leafLength = isSmall ? 7 : isLarge ? 9 : 8;
-            const leafWidth = isSmall ? 3.1 : isLarge ? 4 : 3.5;
+            // Touceira compacta: hastes partem do mesmo colo, em leque e em duas profundidades.
+            const stemCount = isSmall ? 6 : isLarge ? 9 : 7;
             const greens = [
-              ['#4f8a3d','#a0c96b'],
-              ['#5b9844','#b0d477'],
-              ['#477d39','#8fbd62'],
-              ['#609d49','#acd071'],
-              ['#548b40','#9fc46a'],
+              ['#356b37','#77a84d','#a9cf6c'],['#407c3c','#8ab955','#c0dc7d'],
+              ['#2d6033','#6f9f47','#9ec464'],['#477f3d','#94bd5b','#c8df87'],
             ] as const;
-            // A distribuição irregular evita o aspecto de estrela ou penteado simétrico.
-            for (let i = 0; i < leafCount; i++) {
-              const angle = (Math.PI * 2 * i) / leafCount
-                + Math.sin(i * 2.17) * 0.34
-                + (i % 3 - 1) * 0.12;
-              const reach = 0.62 + ((i * 7) % 6) * 0.075;
-              const dx = Math.cos(angle) * spreadX * reach;
-              const dy = Math.sin(angle) * spreadY * reach;
-              const [leafFill, leafLight] = greens[(i * 3 + 1) % greens.length];
-              const originX = Math.sin(i * 1.73) * 2.4;
-              const originY = 7 + Math.cos(i * 2.31) * 1.4;
-              const leafAngle = angle + Math.PI / 2 + Math.sin(i * 1.41) * 0.22;
-              herbLeaf(
-                originX + dx * 0.62,
-                originY + dy * 0.62,
-                leafAngle,
-                leafLength * (0.78 + (i % 4) * 0.09),
-                leafWidth * (0.82 + (i % 3) * 0.1),
-                leafFill,
-                leafLight,
-                Math.sin(i * 2.6) * 1.8,
-              );
-              if (!isSmall && i % 3 === 1) {
-                herbLeaf(
-                  originX + dx * 0.36 - 2,
-                  originY + dy * 0.36 + 1,
-                  leafAngle - 0.48,
-                  leafLength * 0.66,
-                  leafWidth * 0.78,
-                  greens[(i + 2) % greens.length][0],
-                  greens[(i + 2) % greens.length][1],
-                  Math.cos(i * 1.9) * 1.2,
-                );
+            const stem = (i:number,front:boolean) => {
+              const angle = -1.28 + (i/(stemCount-1))*2.56 + Math.sin(i*2.4)*0.09;
+              const reach = (isSmall?8.5:isLarge?14:11) * (0.84 + (i%3)*0.08);
+              const dx=Math.sin(angle)*reach;
+              const tipY=-(isSmall?13:isLarge?21:17) * (0.82 + (i%4)*0.07);
+              const ox=(i%3-1)*0.65;
+              const palette=greens[(i*3+1)%greens.length];
+              const dark=front?palette[0]:'#244f2e';
+              const mid=front?palette[1]:'#477b3b';
+              const light=front?palette[2]:'#82aa50';
+              ctx.strokeStyle=dark;ctx.lineWidth=front?1.35:1.15;ctx.lineCap='round';
+              ctx.beginPath();ctx.moveTo(ox,11);ctx.quadraticCurveTo(ox+dx*.5,tipY*.52,ox+dx,tipY);ctx.stroke();
+              ctx.strokeStyle=light;ctx.lineWidth=.45;ctx.beginPath();ctx.moveTo(ox-.35,9);ctx.quadraticCurveTo(ox+dx*.48-.4,tipY*.5,ox+dx-.35,tipY+1);ctx.stroke();
+              // Folíolos pareados ao longo da haste.
+              for(let j=0;j<3;j++){
+                const t=.32+j*.23;const px=ox+dx*t;const py=11+(tipY-11)*t;
+                for(const side of [-1,1]){
+                  const len=(isSmall?4.1:isLarge?5.3:4.7)*(1-j*.12);
+                  const lx=px+side*(2.1+j*.35);const ly=py-1.1;
+                  ctx.save();ctx.translate(lx,ly);ctx.rotate(side*(.45+j*.12)+angle*.16);
+                  ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(side*2.2,-len*.5,side*1.2,-len);
+                  ctx.quadraticCurveTo(-side*2.1,-len*.76,0,0);ctx.closePath();
+                  ctx.fillStyle=mid;ctx.fill();ctx.strokeStyle='#2d6033';ctx.lineWidth=.42;ctx.stroke();
+                  ctx.beginPath();ctx.moveTo(0,-.4);ctx.lineTo(side*.9,-len*.82);ctx.strokeStyle=light;ctx.lineWidth=.48;ctx.stroke();
+                  ctx.restore();
+                }
+              }
+            };
+            // Fundo primeiro, depois as hastes frontais mais claras.
+            for(let i=0;i<stemCount;i++) if(i%2===0) stem(i,false);
+            for(let i=0;i<stemCount;i++) if(i%2===1) stem(i,true);
+            if(!isSmall){
+              const flowers=isLarge?[[ -5,-17],[7,-19],[1,-23]] as const:[[4,-17]] as const;
+              for(const [x,y] of flowers){
+                ctx.fillStyle='#e9df9b';ctx.strokeStyle='#a99b61';ctx.lineWidth=.35;
+                for(let p=0;p<5;p++){const a=p*Math.PI*2/5;ctx.beginPath();ctx.ellipse(x+Math.cos(a)*1.35,y+Math.sin(a)*1.35,1.1,.7,a,0,Math.PI*2);ctx.fill();ctx.stroke();}
+                ctx.fillStyle='#d5a94e';ctx.beginPath();ctx.arc(x,y,.7,0,Math.PI*2);ctx.fill();
               }
             }
-            // Sombras pequenas e soltas no encontro das folhas, sem base geométrica.
-            ctx.fillStyle = 'rgba(48, 91, 39, 0.28)';
-            ctx.beginPath();
-            ctx.ellipse(-1, 8, 4.8, 1.9, -0.12, 0, Math.PI * 2);
-            ctx.fill();
-
+            // Colo verde-escuro une visualmente a touceira à terra.
+            ctx.fillStyle='rgba(39,83,37,.72)';ctx.beginPath();ctx.ellipse(0,9.5,4.4,1.65,0,0,Math.PI*2);ctx.fill();
           }
           ctx.restore();
         }});
