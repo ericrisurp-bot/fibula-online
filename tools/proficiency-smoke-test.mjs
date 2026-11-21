@@ -480,8 +480,8 @@ try {
   let loadedCartPrevious = { x: cartEngine.state.cart.x, y: cartEngine.state.cart.y };
   let loadedCartDistance = 0;
   let loadedCartSteps = 0;
-  const maxLoadedCartSteps = 5000;
-  while (loadedCartDistance < 600 && loadedCartSteps < maxLoadedCartSteps) {
+  const maxLoadedCartSteps = 50000;
+  while (loadedCartDistance < 2800 && loadedCartSteps < maxLoadedCartSteps) {
     // Simula o jogador caminhando em linha reta; parado, ele alcançaria a
     // distância de parada e a carroça deixaria de acumular deslocamento.
     cartEngine.state.player.x += 1;
@@ -491,8 +491,8 @@ try {
     loadedCartPrevious = { x: current.x, y: current.y };
     loadedCartSteps++;
   }
-  assert.ok(loadedCartDistance >= 600,
-    `carroça carregada não atingiu 600 unidades em ${maxLoadedCartSteps} passos (distância: ${loadedCartDistance})`);
+  assert.ok(loadedCartDistance >= 2800,
+    `carroça carregada não atingiu a distância alvo de 2800 unidades em ${maxLoadedCartSteps} passos (distância: ${loadedCartDistance})`);
   const loadedCartProficiency = cartEvents
     .filter(event => event.key === 'carroca_distancia')
     .reduce((total, event) => total + event.amount, 0);
