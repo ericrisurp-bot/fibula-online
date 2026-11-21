@@ -2399,6 +2399,7 @@ export class GameEngine {
         const chickenStopDistance = CONFIG.wildlife.wolves.radius + CONFIG.wildlife.chickens.radius + 3;
         targetX = chickenDx;
         targetY = chickenDy;
+        facingPlayerDx = chickenDx;
         if (chickenDistance <= chickenStopDistance) movementSpeed = 0;
       } else {
         const feet = playerFeet(this.state.player);
@@ -2509,7 +2510,7 @@ export class GameEngine {
       if (Math.abs(facingPlayerDx) > 6) animal.facingX = facingPlayerDx > 0 ? 1 : -1;
     } else if (actualDistance > 0.0001 && Math.abs(actualX / actualDistance) > 0.15) {
       // A galinha não troca a orientação por pequenos deslocamentos laterais no contato.
-      if (kind !== 'chicken' || Math.abs(targetX) > 6) animal.facingX = actualX > 0 ? 1 : -1;
+      animal.facingX = actualX > 0 ? 1 : -1;
     }
     animal.moving = actualDistance > 0.05 * movementSpeed * dt;
     animal.walkPhase = (animal.walkPhase ?? 0) + actualDistance / 9;
