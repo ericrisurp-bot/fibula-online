@@ -234,7 +234,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
         <header className="adventurer-guide-heading"><strong>{mission === 9 && doneCount === 3 ? 'Guia do Aventureiro · Fim' : `Guia do Aventureiro · Missão ${mission}`}</strong><span>{doneCount}/3</span></header>
         {objectives.map((objective, index) => <div key={index} className={objective.icon ? `adventurer-guide-objective is-wood-only${objective.done ? ' is-complete' : ''}` : `adventurer-guide-objective is-text-only${objective.done ? ' is-complete' : ''}`}>
-          {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Coletadas ${objective.total - objective.remaining} unidades`}>×{objective.total - objective.remaining}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
+          {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Coletadas ${objective.total - objective.remaining} de ${objective.total} unidades`}>{objective.total - objective.remaining}/{objective.total}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
           <i aria-hidden="true" />
         </div>)}
       </aside>;
