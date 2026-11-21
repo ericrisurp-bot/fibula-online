@@ -84,6 +84,17 @@ type AdventurerGuideObjectives = {
   tecelariaBuilt: boolean; cottonRefined: boolean; wolvesKilled: number;
   chickensKilled: number; leatherRefined: boolean; survivedNights: number;
 };
+function getAdventurerGuideMission(objectives: AdventurerGuideObjectives): number {
+  return !([objectives.cartFound, objectives.woodCollected, objectives.cartRepaired].every(Boolean)) ? 1
+    : !([objectives.mission2WoodCollected, objectives.mission2StoneCollected, objectives.mission2CottonCollected].every(Boolean)) ? 2
+    : !([objectives.campfireBuilt, objectives.lakeFound, objectives.fishingRodAvailable].every(Boolean)) ? 3
+    : !([objectives.mission4WoodCollected, objectives.campfireReached, objectives.chestBuilt].every(Boolean)) ? 4
+    : !([objectives.itemStored, objectives.refineryWoodRemaining === 0, objectives.refineryStoneRemaining === 0].every(Boolean)) ? 5
+    : !([objectives.refineryBuilt, objectives.stoneRefined, objectives.nightSurvived].every(Boolean)) ? 6
+    : !([objectives.mission7WoodCollected, objectives.mission7CottonCollected, objectives.mission7StoneCollected].every(Boolean)) ? 7
+    : !([objectives.tecelariaBuilt, objectives.cottonRefined, objectives.wolvesKilled >= 2].every(Boolean)) ? 8 : 9;
+}
+
 const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
   mission2WoodCollected: false, mission2WoodRemaining: 5, mission2StoneCollected: false, mission2StoneRemaining: 5, mission2CottonCollected: false, mission2CottonRemaining: 5,
@@ -2246,6 +2257,7 @@ export default function App() {
     let guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
     adventurerGuideObjectivesRef.current = guideCurrent;
     let previousCarried = { wood: 0, stone: 0, cotton: 0 };
+    let previousGuideSnapshot: GameSnapshot | null = null;
     const collected = {
       mission1Wood: 0,
       mission2Wood: 0, mission2Stone: 0, mission2Cotton: 0,
@@ -2256,6 +2268,8 @@ export default function App() {
     const engine = new GameEngine((next) => {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
+      if (previousGuideSnapshot && next.elapsed < previousGuideSnapshot.elapsed) previousGuideSnapshot = null;
+      const previousGuide = previousGuideSnapshot;
       const cartFound = Math.hypot(playerFeetPosition.x - next.cart.x, playerFeetPosition.y - next.cart.y) <= CONFIG.cart.interactRadius;
       const countItem = (itemId: string) => [...next.inventory, ...next.cart.inventory].reduce((total, item) => total + (getBaseItemId(item.itemId) === itemId ? item.quantity : 0), 0);
       const carriedWood = countItem('wood');
@@ -2281,14 +2295,7 @@ export default function App() {
         previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
       }
       guideCurrent = adventurerGuideObjectivesRef.current;
-      const mission = !([guideCurrent.cartFound, guideCurrent.woodCollected, guideCurrent.cartRepaired].every(Boolean)) ? 1
-        : !([guideCurrent.mission2WoodCollected, guideCurrent.mission2StoneCollected, guideCurrent.mission2CottonCollected].every(Boolean)) ? 2
-        : !([guideCurrent.campfireBuilt, guideCurrent.lakeFound, guideCurrent.fishingRodAvailable].every(Boolean)) ? 3
-        : !([guideCurrent.mission4WoodCollected, guideCurrent.campfireReached, guideCurrent.chestBuilt].every(Boolean)) ? 4
-        : !([guideCurrent.itemStored, guideCurrent.refineryWoodRemaining === 0, guideCurrent.refineryStoneRemaining === 0].every(Boolean)) ? 5
-        : !([guideCurrent.refineryBuilt, guideCurrent.stoneRefined, guideCurrent.nightSurvived].every(Boolean)) ? 6
-        : !([guideCurrent.mission7WoodCollected, guideCurrent.mission7CottonCollected, guideCurrent.mission7StoneCollected].every(Boolean)) ? 7
-        : !([guideCurrent.tecelariaBuilt, guideCurrent.cottonRefined, guideCurrent.wolvesKilled >= 2].every(Boolean)) ? 8 : 9;
+      const mission = getAdventurerGuideMission(guideCurrent);
       if (mission === 1) collected.mission1Wood += gained.wood;
       if (mission === 2) { collected.mission2Wood += gained.wood; collected.mission2Stone += gained.stone; collected.mission2Cotton += gained.cotton; }
       if (mission === 4) collected.mission4Wood += gained.wood;
@@ -2302,39 +2309,52 @@ export default function App() {
       const mission7WoodCollected = guideCurrent.mission7WoodCollected || collected.mission7Wood >= 15;
       const mission7CottonCollected = guideCurrent.mission7CottonCollected || collected.mission7Cotton >= 8;
       const mission7StoneCollected = guideCurrent.mission7StoneCollected || collected.mission7Stone >= 8;
+      const wasAlreadyAtLake = !!previousGuide && Math.hypot(
+        (playerFeet(previousGuide.player).x - previousGuide.lake.x) / Math.max(1, previousGuide.lake.rx),
+        (playerFeet(previousGuide.player).y - previousGuide.lake.y) / Math.max(1, previousGuide.lake.ry),
+      ) <= 1.2;
+      const wasAlreadyFishing = !!previousGuide
+        && previousGuide.lake.rx > 0
+        && previousGuide.lake.ry > 0
+        && Math.abs(Math.hypot(
+          (playerFeet(previousGuide.player).x - previousGuide.lake.x) / previousGuide.lake.rx,
+          (playerFeet(previousGuide.player).y - previousGuide.lake.y) / previousGuide.lake.ry,
+        ) - 1) * Math.min(previousGuide.lake.rx, previousGuide.lake.ry) <= CONFIG.lake.fishingRange;
       const nextObjectives = {
-        cartFound: guideCurrent.cartFound || cartFound || cartRepaired,
+        cartFound: guideCurrent.cartFound || (mission === 1 && (cartFound || cartRepaired)),
+
         woodCollected, woodRemaining: Math.max(0, 15 - Math.min(15, collected.mission1Wood)),
-        cartRepaired: guideCurrent.cartRepaired || cartRepaired,
+        cartRepaired: guideCurrent.cartRepaired || (mission === 1 && cartRepaired),
         mission2WoodCollected, mission2WoodRemaining: Math.max(0, 5 - Math.min(5, collected.mission2Wood)),
         mission2StoneCollected, mission2StoneRemaining: Math.max(0, 5 - Math.min(5, collected.mission2Stone)),
         mission2CottonCollected, mission2CottonRemaining: Math.max(0, 5 - Math.min(5, collected.mission2Cotton)),
-        campfireBuilt: guideCurrent.campfireBuilt || campfireBuilt,
-        lakeFound: guideCurrent.lakeFound || lakeFound,
-        fishingRodAvailable: guideCurrent.fishingRodAvailable || fishingRodAvailable,
+        campfireBuilt: guideCurrent.campfireBuilt || (mission === 3 && campfireBuilt && !previousGuide?.campfire),
+        lakeFound: guideCurrent.lakeFound || (mission === 3 && lakeFound && !wasAlreadyAtLake),
+        fishingRodAvailable: guideCurrent.fishingRodAvailable || (mission === 3 && fishingRodAvailable && !wasAlreadyFishing),
         mission4WoodCollected, mission4WoodRemaining: Math.max(0, 20 - Math.min(20, collected.mission4Wood)),
-        campfireReached: guideCurrent.campfireReached || (mission === 4 && campfireWithinGuideRadius),
-        chestBuilt: guideCurrent.chestBuilt || chestBuilt,
+        campfireReached: guideCurrent.campfireReached || (mission === 4 && campfireWithinGuideRadius && !(previousGuide?.campfire && Math.hypot(playerFeet(previousGuide.player).x - previousGuide.campfire.x, playerFeet(previousGuide.player).y - previousGuide.campfire.y) <= 50)), 
+        chestBuilt: guideCurrent.chestBuilt || (mission === 4 && chestBuilt && !previousGuide?.house.built),
         itemStored: guideCurrent.itemStored,
         refineryWoodRemaining: Math.max(0, 20 - Math.min(20, collected.mission5Wood)),
         refineryStoneRemaining: Math.max(0, 15 - Math.min(15, collected.mission5Stone)),
-        refineryBuilt: guideCurrent.refineryBuilt || next.refinery.built,
-        stoneRefined: guideCurrent.stoneRefined || next.refinery.stonesProcessed > 0,
-        nightStarted: guideCurrent.nightStarted || next.dayNight === 'night',
-        nightSurvived: guideCurrent.nightSurvived || (guideCurrent.nightStarted && next.dayNight === 'dawn' && !next.dead),
+        refineryBuilt: guideCurrent.refineryBuilt || (mission === 6 && next.refinery.built && !previousGuide?.refinery.built),
+        stoneRefined: guideCurrent.stoneRefined || (mission === 6 && next.refinery.stonesProcessed > (previousGuide?.refinery.stonesProcessed ?? 0)), 
+        nightStarted: guideCurrent.nightStarted || (mission === 6 && next.dayNight === 'night' && previousGuide?.dayNight !== 'night'),
+        nightSurvived: guideCurrent.nightSurvived || (mission === 6 && guideCurrent.nightStarted && next.dayNight === 'dawn' && !next.dead),
         mission7WoodCollected, mission7WoodRemaining: Math.max(0, 15 - Math.min(15, collected.mission7Wood)),
         mission7CottonCollected, mission7CottonRemaining: Math.max(0, 8 - Math.min(8, collected.mission7Cotton)),
         mission7StoneCollected, mission7StoneRemaining: Math.max(0, 8 - Math.min(8, collected.mission7Stone)),
-        tecelariaBuilt: guideCurrent.tecelariaBuilt || next.tecelaria.built,
-        cottonRefined: guideCurrent.cottonRefined || next.tecelaria.cottonProcessed > 0,
-        wolvesKilled: Math.max(guideCurrent.wolvesKilled, next.wolvesKilled ?? 0),
-        chickensKilled: Math.max(guideCurrent.chickensKilled, next.chickensKilled ?? 0),
-        leatherRefined: guideCurrent.leatherRefined || next.tecelaria.hideProcessed > 0,
-        survivedNights: Math.max(guideCurrent.survivedNights, next.dayNight === 'dawn' && !next.dead ? next.nightNumber : guideCurrent.survivedNights),
+        tecelariaBuilt: guideCurrent.tecelariaBuilt || (mission === 8 && next.tecelaria.built && !previousGuide?.tecelaria.built),
+        cottonRefined: guideCurrent.cottonRefined || (mission === 8 && next.tecelaria.cottonProcessed > (previousGuide?.tecelaria.cottonProcessed ?? 0)), 
+        wolvesKilled: mission === 8 ? Math.min(2, guideCurrent.wolvesKilled + Math.max(0, (next.wolvesKilled ?? 0) - (previousGuide?.wolvesKilled ?? 0))) : guideCurrent.wolvesKilled,
+        chickensKilled: mission === 9 ? Math.min(3, guideCurrent.chickensKilled + Math.max(0, (next.chickensKilled ?? 0) - (previousGuide?.chickensKilled ?? 0))) : guideCurrent.chickensKilled,
+        leatherRefined: guideCurrent.leatherRefined || (mission === 9 && next.tecelaria.hideProcessed > (previousGuide?.tecelaria.hideProcessed ?? 0)), 
+        survivedNights: mission === 9 && previousGuide?.dayNight === 'night' && next.dayNight === 'dawn' && !next.dead ? Math.min(5, guideCurrent.survivedNights + 1) : guideCurrent.survivedNights,
       };
       guideCurrent = nextObjectives;
       adventurerGuideObjectivesRef.current = nextObjectives;
       setAdventurerGuideObjectives(nextObjectives);
+      previousGuideSnapshot = next;
     }, { accountLevel });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
@@ -4506,8 +4526,13 @@ export default function App() {
     if (!engine) return;
     const before = JSON.stringify(engine.state.house.inventory);
     engine.storeAllBagToHouse();
-    if (JSON.stringify(engine.state.house.inventory) !== before) {
-      setAdventurerGuideObjectives(current => { const next = current.itemStored ? current : { ...current, itemStored: true }; adventurerGuideObjectivesRef.current = next; return next; });
+    if (JSON.stringify(engine.state.house.inventory) !== before && getAdventurerGuideMission(adventurerGuideObjectivesRef.current) === 5) {
+      setAdventurerGuideObjectives(current => {
+        if (getAdventurerGuideMission(current) !== 5 || current.itemStored) return current;
+        const next = { ...current, itemStored: true };
+        adventurerGuideObjectivesRef.current = next;
+        return next;
+      });
     }
   };
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
