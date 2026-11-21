@@ -71,7 +71,7 @@ type VegetableKind = 'tomato' | 'cabbage' | 'herbs';
 type VegetablePlant = Vec & { id: number; kind: VegetableKind; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type VegetableDrop = Vec & { id: number; kind: VegetableKind; age: number; rarity?: ResourceRarity };
 type WoodDrop = Vec & { id: number; amount: number; age: number; rarity?: ResourceRarity };
-type StoneDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
+type StoneDrop = Vec & { id: number; amount: number; age: number; rarity?: ResourceRarity };
 type CottonDrop = Vec & { id: number; age: number; rarity?: ResourceRarity };
 type LinenDrop = Vec & { id: number; age: number };
 type RefinedLeatherDrop = Vec & { id: number; age: number };
@@ -2269,13 +2269,14 @@ export class GameEngine {
 
   private hitRock(id: number) {
     const rock = this.state.rocks.find(value => value.id === id);
-    if (!rock) return;
+    if (!rock || rock.hits <= 0) return;
     rock.hits -= 1;
-    if (this.random() < CONFIG.rocks.dropChance) {
-      const angle = this.random() * Math.PI * 2;
-      const distance = this.rockFootprintRadius(rock) + 5;
-      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, age: 0, rarity: rock.rarity });
-    }
+    if (rock.hits > 0) return;
+    const [minAmount, maxAmount] = CONFIG.rocks.dropAmounts[rock.size];
+    const amount = minAmount + Math.floor(this.random() * (maxAmount - minAmount + 1));
+    const angle = this.random() * Math.PI * 2;
+    const distance = this.rockFootprintRadius(rock) + 5;
+    this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + Math.cos(angle) * distance, y: rock.y + Math.sin(angle) * distance, amount, age: 0, rarity: rock.rarity });
   }
 
   private hitCottonPlant(id: number) {
@@ -2295,10 +2296,11 @@ export class GameEngine {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
       const feet = playerFeet(this.state.player);
       if (Math.hypot(drop.x - feet.x, drop.y - feet.y) > CONFIG.interaction.dropPickupRadius) continue;
-      const result = addToInventory(this.state.inventory, getRarityItemId('stone', drop.rarity), 1, CONFIG.inventory);
+      const result = addToInventory(this.state.inventory, getRarityItemId('stone', drop.rarity), drop.amount, CONFIG.inventory);
       if (result.added === 0) continue;
       this.state.inventory = result.inventory;
-      this.state.stoneDrops = this.state.stoneDrops.filter(value => value.id !== drop.id);
+      if (result.added >= drop.amount) this.state.stoneDrops = this.state.stoneDrops.filter(value => value.id !== drop.id);
+      else drop.amount -= result.added;
     }
   }
 
@@ -2762,7 +2764,7 @@ export class GameEngine {
     const feet = playerFeet(player);
     const drops: { drop: MaterialDrop; itemId: string; amount: number }[] = [
       ...this.state.woodDrops.map(drop => ({ drop, itemId: getRarityItemId('wood', drop.rarity), amount: drop.amount })),
-      ...this.state.stoneDrops.map(drop => ({ drop, itemId: getRarityItemId('stone', drop.rarity), amount: 1 })),
+      ...this.state.stoneDrops.map(drop => ({ drop, itemId: getRarityItemId('stone', drop.rarity), amount: drop.amount })),
       ...this.state.cottonDrops.map(drop => ({ drop, itemId: getRarityItemId('cotton', drop.rarity), amount: 1 })),
       ...this.state.vegetableDrops.map(drop => ({ drop, itemId: getRarityItemId(drop.kind, drop.rarity), amount: 1 })),
       ...this.state.linenDrops.map(drop => ({ drop, itemId: 'linen', amount: 1 })),
