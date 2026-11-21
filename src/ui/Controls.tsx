@@ -195,32 +195,32 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         : !([adventurerGuideObjectives.tecelariaBuilt, adventurerGuideObjectives.cottonRefined, adventurerGuideObjectives.wolvesKilled >= 2].every(Boolean)) ? 8 : 9;
       const objectives = mission === 1 ? [
         { label: 'Encontrar a carroça', done: adventurerGuideObjectives.cartFound },
-        { icon: 'wood', remaining: adventurerGuideObjectives.woodRemaining, done: adventurerGuideObjectives.woodCollected },
+        { icon: 'wood', total: 15, remaining: adventurerGuideObjectives.woodRemaining, done: adventurerGuideObjectives.woodCollected },
         { label: 'Consertar carroça', done: adventurerGuideObjectives.cartRepaired },
       ] : mission === 2 ? [
-        { icon: 'wood', remaining: adventurerGuideObjectives.mission2WoodRemaining, done: adventurerGuideObjectives.mission2WoodCollected },
-        { icon: 'stone', remaining: adventurerGuideObjectives.mission2StoneRemaining, done: adventurerGuideObjectives.mission2StoneCollected },
-        { icon: 'cotton', remaining: adventurerGuideObjectives.mission2CottonRemaining, done: adventurerGuideObjectives.mission2CottonCollected },
+        { icon: 'wood', total: 5, remaining: adventurerGuideObjectives.mission2WoodRemaining, done: adventurerGuideObjectives.mission2WoodCollected },
+        { icon: 'stone', total: 5, remaining: adventurerGuideObjectives.mission2StoneRemaining, done: adventurerGuideObjectives.mission2StoneCollected },
+        { icon: 'cotton', total: 5, remaining: adventurerGuideObjectives.mission2CottonRemaining, done: adventurerGuideObjectives.mission2CottonCollected },
       ] : mission === 3 ? [
         { label: 'Construir a fogueira', done: adventurerGuideObjectives.campfireBuilt },
         { label: 'Encontrar a água', done: adventurerGuideObjectives.lakeFound },
         { label: 'Tentar pescar', done: adventurerGuideObjectives.fishingRodAvailable },
       ] : mission === 4 ? [
-        { icon: 'wood', remaining: adventurerGuideObjectives.mission4WoodRemaining, done: adventurerGuideObjectives.mission4WoodCollected },
+        { icon: 'wood', total: 20, remaining: adventurerGuideObjectives.mission4WoodRemaining, done: adventurerGuideObjectives.mission4WoodCollected },
         { label: 'Voltar à fogueira', done: adventurerGuideObjectives.campfireReached },
         { label: 'Construir o baú', done: adventurerGuideObjectives.chestBuilt },
       ] : mission === 5 ? [
         { label: 'Guardar um item no baú', done: adventurerGuideObjectives.itemStored },
-        { icon: 'stone', remaining: adventurerGuideObjectives.refineryStoneRemaining, done: adventurerGuideObjectives.refineryStoneRemaining === 0 },
-        { icon: 'wood', remaining: adventurerGuideObjectives.refineryWoodRemaining, done: adventurerGuideObjectives.refineryWoodRemaining === 0 },
+        { icon: 'stone', total: 15, remaining: adventurerGuideObjectives.refineryStoneRemaining, done: adventurerGuideObjectives.refineryStoneRemaining === 0 },
+        { icon: 'wood', total: 20, remaining: adventurerGuideObjectives.refineryWoodRemaining, done: adventurerGuideObjectives.refineryWoodRemaining === 0 },
       ] : mission === 6 ? [
         { label: 'Construir a refinaria', done: adventurerGuideObjectives.refineryBuilt },
         { label: 'Refinar uma pedra', done: adventurerGuideObjectives.stoneRefined },
         { label: 'Sobreviver a uma noite inteira', done: adventurerGuideObjectives.nightSurvived },
       ] : mission === 7 ? [
-        { icon: 'wood', remaining: adventurerGuideObjectives.mission7WoodRemaining, done: adventurerGuideObjectives.mission7WoodCollected },
-        { icon: 'cotton', remaining: adventurerGuideObjectives.mission7CottonRemaining, done: adventurerGuideObjectives.mission7CottonCollected },
-        { icon: 'stone', remaining: adventurerGuideObjectives.mission7StoneRemaining, done: adventurerGuideObjectives.mission7StoneCollected },
+        { icon: 'wood', total: 15, remaining: adventurerGuideObjectives.mission7WoodRemaining, done: adventurerGuideObjectives.mission7WoodCollected },
+        { icon: 'cotton', total: 8, remaining: adventurerGuideObjectives.mission7CottonRemaining, done: adventurerGuideObjectives.mission7CottonCollected },
+        { icon: 'stone', total: 8, remaining: adventurerGuideObjectives.mission7StoneRemaining, done: adventurerGuideObjectives.mission7StoneCollected },
       ] : mission === 8 ? [
         { label: 'Construir a tecelaria', done: adventurerGuideObjectives.tecelariaBuilt },
         { label: 'Refinar algodão', done: adventurerGuideObjectives.cottonRefined },
@@ -233,8 +233,8 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       const doneCount = objectives.filter(objective => objective.done).length;
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
         <header className="adventurer-guide-heading"><strong>{mission === 9 && doneCount === 3 ? 'Guia do Aventureiro · Fim' : `Guia do Aventureiro · Missão ${mission}`}</strong><span>{doneCount}/3</span></header>
-        {objectives.map((objective, index) => <div key={index} className={objective.done ? 'adventurer-guide-objective is-text-only is-complete' : objective.icon ? 'adventurer-guide-objective is-wood-only' : 'adventurer-guide-objective is-text-only'}>
-          {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Faltam ${objective.remaining} unidades`}>×{objective.remaining}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
+        {objectives.map((objective, index) => <div key={index} className={objective.icon ? `adventurer-guide-objective is-wood-only${objective.done ? ' is-complete' : ''}` : `adventurer-guide-objective is-text-only${objective.done ? ' is-complete' : ''}`}>
+          {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Coletadas ${objective.total - objective.remaining} unidades`}>×{objective.total - objective.remaining}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
           <i aria-hidden="true" />
         </div>)}
       </aside>;
