@@ -686,6 +686,7 @@ try {
   obstacleEngine.obstacleCircles = () => [obstacle];
   const obstaclePlayerSpeed = obstacleEngine.getPlayerMoveSpeed();
   let obstacleClearanceMinimum = Infinity;
+  let obstacleWorstPosition = null;
   for (let frame = 0; frame < 500; frame++) {
     obstacleEngine.state.player.x += obstaclePlayerSpeed * trackingDt;
     obstacleEngine.updateDonkeyCart(trackingDt);
@@ -693,10 +694,13 @@ try {
     const donkeyY = obstacleEngine.state.cart.y + Math.sin(obstacleEngine.state.cart.angle) * CONFIG.donkey.cartDistance;
     const clearance = Math.hypot(donkeyX - obstacle.x, donkeyY - obstacle.y)
       - CONFIG.donkey.collisionRadius - obstacle.radius;
-    obstacleClearanceMinimum = Math.min(obstacleClearanceMinimum, clearance);
+    if (clearance < obstacleClearanceMinimum) {
+      obstacleClearanceMinimum = clearance;
+      obstacleWorstPosition = { frame, donkeyX, donkeyY, cartX: obstacleEngine.state.cart.x, cartY: obstacleEngine.state.cart.y, angle: obstacleEngine.state.cart.angle, playerX: obstacleEngine.state.player.x };
+    }
   }
   assert.ok(obstacleClearanceMinimum >= -0.001,
-    `burrinho atravessou o obstáculo: folga mínima ${obstacleClearanceMinimum.toFixed(3)} px`);
+    `burrinho atravessou o obstáculo: folga mínima ${obstacleClearanceMinimum.toFixed(3)} px; posição ${JSON.stringify(obstacleWorstPosition)}`);
   obstacleEngine.stop();
 
   passed.push('C1: velocidade por nível, alcance, validação do total, incremento em partida e obstáculo');
