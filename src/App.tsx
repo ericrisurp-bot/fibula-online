@@ -2328,7 +2328,7 @@ export default function App() {
         refineryStoneRemaining: Math.max(0, 15 - Math.min(15, collected.mission5Stone)),
         refineryBuilt: guideCurrent.refineryBuilt || (mission === 6 && next.refinery.built && !previousGuide?.refinery.built),
         stoneRefined: guideCurrent.stoneRefined || (mission === 6 && next.refinery.stonesProcessed > (previousGuide?.refinery.stonesProcessed ?? 0)), 
-        nightStarted: guideCurrent.nightStarted || (mission === 6 && next.dayNight === 'night'),
+        nightStarted: guideCurrent.nightStarted || (mission === 6 && next.dayNight === 'night' && previousGuide?.dayNight !== 'night'),
         nightSurvived: guideCurrent.nightSurvived || (mission === 6 && guideCurrent.nightStarted && next.dayNight === 'dawn' && !next.dead),
         mission7WoodCollected, mission7WoodRemaining: Math.max(0, 15 - Math.min(15, collected.mission7Wood)),
         mission7CottonCollected, mission7CottonRemaining: Math.max(0, 8 - Math.min(8, collected.mission7Cotton)),
