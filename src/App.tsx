@@ -568,6 +568,7 @@ export default function App() {
   const gameStartPendingRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+  const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const cloudChestLoadedRef = useRef(false);
   const lobbyChestRefreshRequestRef = useRef(0);
@@ -2242,6 +2243,7 @@ export default function App() {
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
     setAdventurerGuideFinishedHidden(false);
     let guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
+    adventurerGuideObjectivesRef.current = guideCurrent;
     let previousCarried = { wood: 0, stone: 0, cotton: 0 };
     const collected = {
       mission1Wood: 0,
@@ -2272,6 +2274,7 @@ export default function App() {
       const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
       const lakeFound = next.lake.rx > 0 && next.lake.ry > 0 && lakeNormalizedDistance <= 1.2;
       const chestBuilt = next.house.built;
+      guideCurrent = adventurerGuideObjectivesRef.current;
       const mission = !([guideCurrent.cartFound, guideCurrent.woodCollected, guideCurrent.cartRepaired].every(Boolean)) ? 1
         : !([guideCurrent.mission2WoodCollected, guideCurrent.mission2StoneCollected, guideCurrent.mission2CottonCollected].every(Boolean)) ? 2
         : !([guideCurrent.campfireBuilt, guideCurrent.lakeFound, guideCurrent.fishingRodAvailable].every(Boolean)) ? 3
@@ -2324,6 +2327,7 @@ export default function App() {
         survivedNights: Math.max(guideCurrent.survivedNights, next.dayNight === 'dawn' && !next.dead ? next.nightNumber : guideCurrent.survivedNights),
       };
       guideCurrent = nextObjectives;
+      adventurerGuideObjectivesRef.current = nextObjectives;
       setAdventurerGuideObjectives(nextObjectives);
     }, { accountLevel });
     engine.onSound = (event) => audioManager.play(event);
@@ -4496,7 +4500,7 @@ export default function App() {
     const before = JSON.stringify(engine.state.house.inventory);
     engine.storeAllBagToHouse();
     if (JSON.stringify(engine.state.house.inventory) !== before) {
-      setAdventurerGuideObjectives(current => current.itemStored ? current : { ...current, itemStored: true });
+      setAdventurerGuideObjectives(current => { const next = current.itemStored ? current : { ...current, itemStored: true }; adventurerGuideObjectivesRef.current = next; return next; });
     }
   };
   const storeAllBagToCart = () => engineRef.current?.storeAllBagToCart();
