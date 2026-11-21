@@ -836,6 +836,11 @@ try {
   }
 
   const jabuticabaBonusEngine = b1EngineForTool('machado_madeira');
+  jabuticabaBonusEngine.state.trees = [];
+  jabuticabaBonusEngine.state.rocks = [];
+  jabuticabaBonusEngine.state.cottonPlants = [];
+  jabuticabaBonusEngine.state.vegetablePlants = [];
+  jabuticabaBonusEngine.state.enemies = [];
   jabuticabaBonusEngine.state.jabuticabaTree = { id: 95107, x: 1000, y: 1000, hits: 5 };
   jabuticabaBonusEngine.gatherDist = () => 0;
   jabuticabaBonusEngine.local.gatheringTimer = 10;
