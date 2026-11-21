@@ -63,7 +63,7 @@ function persistHouseStorage(inventory: InventoryStack[]) {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(inventory)); } catch { /* Armazenamento local indisponível. */ }
 }
-type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number; animalKind?: 'wolf' | 'chicken'; rarity?: ResourceRarity; wanderAngle?: number; wanderTimer?: number; facingX?: 1 | -1; walkPhase?: number; moving?: boolean; fleeing?: boolean; fleeTimer?: number; hits?: number };
+type Enemy = Vec & { id: number; hp: number; hitWait: number; wobble: number; cartTarget?: boolean; slowRemaining?: number; poisonRemaining?: number; poisonTick?: number; poisonDamage?: number; animalKind?: 'wolf' | 'chicken'; rarity?: ResourceRarity; wanderAngle?: number; wanderTimer?: number; facingX?: 1 | -1; walkPhase?: number; moving?: boolean; fleeing?: boolean; fleeTimer?: number; wolfRecoilRemaining?: number; hits?: number };
 type Tree = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
 type Rock = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; clusterId: number; rarity?: ResourceRarity };
 type CottonPlant = Vec & { id: number; hits: number; size: 'small' | 'medium' | 'large'; rarity?: ResourceRarity };
@@ -2381,8 +2381,10 @@ export class GameEngine {
     animal.wanderTimer = wanderTimer;
     let targetX = Math.cos(animal.wanderAngle ?? 0);
     let targetY = Math.sin(animal.wanderAngle ?? 0);
-    let movementSpeed = rules.speed;
+    let movementSpeed: number = rules.speed;
     let huntingChicken: Enemy | undefined;
+    let facingPlayerDx: number | null = null;
+    let wolfRecoil = false;
 
     if (kind === 'wolf') {
       huntingChicken = this.state.enemies
@@ -2390,15 +2392,52 @@ export class GameEngine {
         .map(candidate => ({ candidate, distance: Math.hypot(candidate.x - animal.x, candidate.y - animal.y) }))
         .filter(value => value.distance <= CONFIG.wildlife.wolves.visionRange)
         .sort((left, right) => left.distance - right.distance)[0]?.candidate;
-      if (huntingChicken) {
-        targetX = huntingChicken.x - animal.x;
-        targetY = huntingChicken.y - animal.y;
+      if (huntingChicken && (animal.wolfRecoilRemaining ?? 0) <= 0) {
+        const chickenDx = huntingChicken.x - animal.x;
+        const chickenDy = huntingChicken.y - animal.y;
+        const chickenDistance = Math.hypot(chickenDx, chickenDy);
+        const chickenStopDistance = CONFIG.wildlife.wolves.radius + CONFIG.wildlife.chickens.radius + 3;
+        targetX = chickenDx;
+        targetY = chickenDy;
+        facingPlayerDx = chickenDx;
+        if (chickenDistance <= chickenStopDistance) movementSpeed = 0;
       } else {
         const feet = playerFeet(this.state.player);
-        if (Math.hypot(feet.x - animal.x, feet.y - animal.y) <= CONFIG.wildlife.wolves.playerVisionRange) {
-          targetX = feet.x - animal.x;
-          targetY = feet.y - animal.y;
+        const dx = feet.x - animal.x;
+        const dy = feet.y - animal.y;
+        const distance = Math.hypot(dx, dy);
+        facingPlayerDx = dx;
+        if (distance <= CONFIG.wildlife.wolves.playerVisionRange) {
+          const recoilRemaining = animal.wolfRecoilRemaining ?? 0;
+          if (recoilRemaining > 0) {
+            wolfRecoil = true;
+            animal.wolfRecoilRemaining = Math.max(0, recoilRemaining - dt);
+            if (distance > 0.001) {
+              targetX = -dx;
+              targetY = -dy;
+            } else {
+              // Se o lobo morde exatamente sobre os pés, usa uma direção estável de recuo.
+              const fallbackAngle = (animal.wanderAngle ?? 0) + Math.PI;
+              targetX = Math.cos(fallbackAngle);
+              targetY = Math.sin(fallbackAngle);
+            }
+            movementSpeed = rules.speed * CONFIG.wildlife.wolves.recoilSpeedFactor;
+          } else {
+            animal.wolfRecoilRemaining = 0;
+            const biteStopDistance = CONFIG.wildlife.wolves.radius + CONFIG.player.footRadius;
+            if (distance <= biteStopDistance) {
+              targetX = 0;
+              targetY = 0;
+              movementSpeed = 0;
+            } else {
+              targetX = dx;
+              targetY = dy;
+              // Evita ultrapassar o ponto de parada mesmo em passos grandes.
+              movementSpeed = Math.min(rules.speed, (distance - biteStopDistance) / Math.max(dt, 0.000001));
+            }
+          }
         } else if (wanderTimer <= 0) {
+          animal.wolfRecoilRemaining = 0;
           animal.wanderAngle = this.random() * Math.PI * 2;
           wanderTimer = rules.wanderInterval * (0.6 + this.random() * 0.8);
           animal.wanderTimer = wanderTimer;
@@ -2474,10 +2513,22 @@ export class GameEngine {
     const actualY = animal.y - startY;
     const actualDistance = Math.hypot(actualX, actualY);
     animal.facingX = animal.facingX ?? 1;
-    if (actualDistance > 0.0001 && Math.abs(actualX / actualDistance) > 0.15) animal.facingX = actualX > 0 ? 1 : -1;
+    if (kind === 'wolf' && facingPlayerDx !== null) {
+      if (Math.abs(facingPlayerDx) > 6) animal.facingX = facingPlayerDx > 0 ? 1 : -1;
+    } else if (actualDistance > 0.0001 && Math.abs(actualX / actualDistance) > 0.15) {
+      // A galinha não troca a orientação por pequenos deslocamentos laterais no contato.
+      animal.facingX = actualX > 0 ? 1 : -1;
+    }
     animal.moving = actualDistance > 0.05 * movementSpeed * dt;
     animal.walkPhase = (animal.walkPhase ?? 0) + actualDistance / 9;
     animal.hitWait -= dt;
+
+    // Se um obstáculo bloquear quase todo o recuo, encerra-o para evitar um ciclo preso.
+    if (kind === 'wolf' && wolfRecoil
+      && actualDistance <= Math.max(0.01, movementSpeed * dt * 0.05)) {
+      animal.wolfRecoilRemaining = 0;
+      animal.moving = false;
+    }
 
     if (kind === 'wolf' && huntingChicken && this.state.enemies.includes(huntingChicken)
       && Math.hypot(huntingChicken.x - animal.x, huntingChicken.y - animal.y) <= CONFIG.wildlife.wolves.radius + CONFIG.wildlife.chickens.radius + 3) {
@@ -2488,6 +2539,7 @@ export class GameEngine {
       const feet = playerFeet(this.state.player);
       if (Math.hypot(feet.x - animal.x, feet.y - animal.y) <= rules.radius + CONFIG.player.footRadius + 3) {
         animal.hitWait = CONFIG.wildlife.wolves.contactCooldown;
+        animal.wolfRecoilRemaining = CONFIG.wildlife.wolves.recoilDuration;
         const levelStats = this.getLevelStats();
         if (this.random() > this.getDodgeChance()) {
           const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor);

@@ -397,6 +397,53 @@ try {
   }];
   wolfEngine.moveEnemies(0);
   assert.deepEqual(wolfEvents, [], 'lobo não deve contar golpe recebido após a morte do jogador');
+
+  // Simula seis segundos em passos de 1/60 s para cobrir aproximação, mordida e recuo.
+  wolfEngine.state.dead = false;
+  wolfEngine.state.player.hp = 100;
+  wolfEvents.length = 0;
+  wolfEngine.state.enemies = [{
+    id: 90005,
+    x: wolfFeetX,
+    y: wolfFeetY,
+    hp: 100,
+    hitWait: 0,
+    wobble: 0,
+    animalKind: 'wolf',
+    facingX: 1,
+    wanderAngle: 0,
+  }];
+  const wolfStopDistance = CONFIG.wildlife.wolves.radius + CONFIG.player.footRadius;
+  let wolfFacingChanges = 0;
+  let previousWolfFacing = wolfEngine.state.enemies[0].facingX;
+  let wolfSawRecoil = false;
+  const stoppedWolfPositions = [];
+  for (let frame = 0; frame < 360; frame++) {
+    wolfEngine.moveEnemies(1 / 60);
+    const wolf = wolfEngine.state.enemies[0];
+    if (wolf.facingX !== previousWolfFacing) wolfFacingChanges++;
+    previousWolfFacing = wolf.facingX;
+    const distanceToFeet = Math.hypot(wolf.x - wolfFeetX, wolf.y - wolfFeetY);
+    if (!wolf.moving && distanceToFeet <= wolfStopDistance + 1 && wolf.hitWait > 0) {
+      stoppedWolfPositions.push({ x: wolf.x, y: wolf.y });
+    }
+    if ((wolf.wolfRecoilRemaining ?? 0) > 0 && wolf.moving) wolfSawRecoil = true;
+  }
+  const wolfBites = wolfEvents.filter(event => event.key === 'golpes_recebidos').length;
+  const wolfDamage = 100 - wolfEngine.state.player.hp;
+  const stoppedWolfSpread = stoppedWolfPositions.length
+    ? Math.max(...stoppedWolfPositions.map(position => Math.hypot(
+      position.x - stoppedWolfPositions[0].x,
+      position.y - stoppedWolfPositions[0].y,
+    )))
+    : Infinity;
+  assert.ok(stoppedWolfPositions.length > 0, 'lobo deve parar na distância de mordida durante o cooldown');
+  assert.ok(stoppedWolfSpread <= 1, `lobo parado oscilou ${stoppedWolfSpread.toFixed(3)} px`);
+  assert.ok(wolfFacingChanges <= 1, `facingX do lobo trocou ${wolfFacingChanges} vezes durante o contato`);
+  assert.ok(wolfBites >= 4 && wolfBites <= 6, `esperadas aproximadamente 5 mordidas em 6 s; recebidas ${wolfBites}`);
+  assert.equal(wolfDamage, wolfBites * CONFIG.wildlife.wolves.contactDamage,
+    'cada mordida sem esquiva/armadura deve aplicar exatamente contactDamage');
+  assert.equal(wolfSawRecoil, true, 'deve existir recuo com moving=true entre mordidas');
   wolfEngine.stop();
   passed.push('motor headless: contato do lobo conta somente com jogador vivo');
 
