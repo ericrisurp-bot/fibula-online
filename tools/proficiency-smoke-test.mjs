@@ -22,7 +22,13 @@ try {
   // Balanceamento versionado: tabelas e marcos exatos de levels-v1.
   const levelTables = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES;
   assert.equal(levelTables.length, 11, 'devem existir exatamente 11 tabelas de proficiência');
-  for (const table of levelTables) progression.validateProficiencyProgressionTable(table);
+  for (const table of levelTables) {
+    progression.validateProficiencyProgressionTable(table);
+    assert.equal(table.version, 'levels-v1');
+    assert.equal(table.initialLevel, 0);
+    assert.equal(table.milestones[0].totalRequired, 0);
+    assert.equal(table.maxLevel, ['espada', 'arco', 'cajado', 'bastao_natureza', 'golpes_recebidos'].includes(table.key) ? 150 : 100);
+  }
   const expectedLevelTotals = {
     espada: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
     arco: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },

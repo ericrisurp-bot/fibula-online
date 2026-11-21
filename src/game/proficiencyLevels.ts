@@ -9,7 +9,7 @@ import {
  * Curva geométrica cumulativa: round(A * (b^L - 1) / (b - 1)).
  * Alvos estimados: nível 80 em ~150 h para combate, nível 100 em ~250 h
  * para sobrevivência e nível 100 em ~300 h para carroça. Taxas por hora são estimativas.
- * As tabelas de combate usam 150 como limite estrutural/praticamente inalcançável;
+ * O nível 150 das proficiências de combate é inalcançável na prática;
  * o contador bruto continua acumulando qualquer excedente.
  */
 const PROFICIENCY_LEVEL_CONFIG: Readonly<Record<ProficiencyKey, readonly [number, number, number]>> = {
