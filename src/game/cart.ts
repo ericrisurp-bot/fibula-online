@@ -32,6 +32,7 @@ interface RigPiece {
   spoke?: boolean;
   tire?: boolean;
   softOutline?: boolean;
+  bodyBlend?: boolean;
 }
 interface BoxOptions {
   sy0?: number; sz0?: number; sy1?: number; sz1?: number;
@@ -59,16 +60,24 @@ function rigCross(a: Vec3, b: Vec3): Vec3 {
 function rigDot(a: Vec3, b: Vec3): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
-function rigShade(hex: string, k: number): string {
+function rigShade(hex: string, k: number, bodyBlend = false): string {
   const value = Number.parseInt(hex.slice(1), 16);
   let r = value >> 16;
   let g = (value >> 8) & 255;
   let b = value & 255;
-  const factor = 0.50 + 0.62 * k;
+  const factor = bodyBlend ? 0.62 + 0.45 * k : 0.50 + 0.62 * k;
   r = Math.max(0, Math.min(255, r * factor)) | 0;
   g = Math.max(0, Math.min(255, g * factor)) | 0;
   b = Math.max(0, Math.min(255, b * factor)) | 0;
   return `rgb(${r},${g},${b})`;
+}
+function rigBlendOutline(hex: string, k: number): string {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const factor = (0.62 + 0.45 * k) * 0.9;
+  const r = Math.max(0, Math.min(255, (value >> 16) * factor)) | 0;
+  const g = Math.max(0, Math.min(255, ((value >> 8) & 255) * factor)) | 0;
+  const b = Math.max(0, Math.min(255, (value & 255) * factor)) | 0;
+  return `rgba(${r},${g},${b},0.35)`;
 }
 
 // Coordenadas locais: +x frente (burrinho), +y direita, +z cima.
@@ -113,6 +122,7 @@ function rigLoft(
   rings: readonly (readonly Vec3[])[],
   colorAt: (section: number, side: number) => string,
   capColor: string,
+  bodyBlend = false,
 ): void {
   const vertexCount = rings[0]?.length ?? 0;
   if (rings.length < 2 || vertexCount < 3) return;
@@ -129,6 +139,7 @@ function rigLoft(
           rings[i + 1][k].slice() as Vec3,
         ],
         col: colorAt(i, k),
+        bodyBlend,
       });
     }
   }
@@ -136,12 +147,14 @@ function rigLoft(
     poly: true, oriented: true,
     v: rings[0].map(point => point.slice() as Vec3).reverse(),
     col: capColor,
+    bodyBlend,
   });
   const last = rings[rings.length - 1];
   pieces.push({
     poly: true, oriented: true,
     v: last.map(point => point.slice() as Vec3),
     col: capColor,
+    bodyBlend,
   });
 }
 
@@ -297,7 +310,7 @@ function buildDonkeyCartRig(
     ]);
     rigLoft(pieces, legRings,
       (section) => section >= 3 ? DK : (section === 0 ? color : lowerColor),
-      DK);
+      DK, true);
   }
 
   const SEC: readonly (readonly [number, number, number, number])[] = [
@@ -355,6 +368,7 @@ function buildDonkeyCartRig(
       ? FL
       : (side === 3 && section <= 3 ? F : segmentColors[section]),
     FD,
+    true,
   );
 
   // Crina restrita ao pescoço e à nuca (seções 4 a 7); não percorre o lombo.
@@ -462,7 +476,7 @@ function drawDonkeyCartRig(
   const pieces = buildDonkeyCartRig(dist, walkPhase, wheelPhase, time, load, m, broken);
   const faces: {
     pts: Vec3[]; normal: Vec3; depth: number; color: string;
-    spoke?: boolean; tire?: boolean; softOutline?: boolean;
+    spoke?: boolean; tire?: boolean; softOutline?: boolean; bodyBlend?: boolean;
   }[] = [];
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
@@ -499,6 +513,7 @@ function drawDonkeyCartRig(
         depth: faceCenter[1] * RIG_CE + faceCenter[2] * RIG_SE,
         color: piece.col, spoke: piece.spoke, tire: piece.tire,
         softOutline: piece.softOutline,
+        bodyBlend: piece.bodyBlend,
       });
     }
   }
@@ -525,14 +540,16 @@ function drawDonkeyCartRig(
       else ctx.moveTo(x, y);
     });
     ctx.closePath();
-    ctx.fillStyle = rigShade(face.color, brightness);
+    ctx.fillStyle = rigShade(face.color, brightness, face.bodyBlend);
     ctx.fill();
     ctx.strokeStyle = face.spoke
       ? 'rgba(30,18,8,.5)'
-      : face.softOutline
-        ? 'rgba(47,32,20,.42)'
-        : 'rgba(30,18,10,.78)';
-    ctx.lineWidth = face.tire ? 0.9 : (face.softOutline ? 0.65 : 0.85);
+      : face.bodyBlend
+        ? rigBlendOutline(face.color, brightness)
+        : face.softOutline
+          ? 'rgba(47,32,20,.42)'
+          : 'rgba(30,18,10,.78)';
+    ctx.lineWidth = face.tire ? 0.9 : (face.bodyBlend ? 0.6 : (face.softOutline ? 0.65 : 0.85));
     ctx.lineJoin = 'round';
     ctx.stroke();
   }
