@@ -2392,7 +2392,7 @@ export class GameEngine {
         .map(candidate => ({ candidate, distance: Math.hypot(candidate.x - animal.x, candidate.y - animal.y) }))
         .filter(value => value.distance <= CONFIG.wildlife.wolves.visionRange)
         .sort((left, right) => left.distance - right.distance)[0]?.candidate;
-      if (huntingChicken) {
+      if (huntingChicken && (animal.wolfRecoilRemaining ?? 0) <= 0) {
         const chickenDx = huntingChicken.x - animal.x;
         const chickenDy = huntingChicken.y - animal.y;
         const chickenDistance = Math.hypot(chickenDx, chickenDy);
