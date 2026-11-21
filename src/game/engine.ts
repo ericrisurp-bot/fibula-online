@@ -16,6 +16,7 @@ import type { CraftedArmor } from './armorCrafting';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, type ArmorBonuses } from './armorEquipment';
 import { accessoryEffectiveValue, type AccessoryType, type CraftedAccessory } from './accessoryCrafting';
 import { ACCESSORY_SLOT_ORDER } from './accessoryEquipment';
+import { getProficiencyProgression } from './proficiencyLevels';
 
 type Vec = { x: number; y: number };
 
@@ -345,6 +346,8 @@ export class GameEngine {
   private donkeyStallDistance = 0;
   private donkeyClock = 0;
   private cartProficiencyDistanceRemainder = 0;
+  private cartProficiencyTotal = 0;
+  private cartProficiencyLevel = 0;
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -424,7 +427,19 @@ export class GameEngine {
     const wholePoints = Math.floor((this.cartProficiencyDistanceRemainder + 1e-6) / 280);
     if (wholePoints <= 0) return;
     this.cartProficiencyDistanceRemainder = Math.max(0, this.cartProficiencyDistanceRemainder - wholePoints * 280);
+    const nextTotal = this.cartProficiencyTotal + wholePoints;
+    if (Number.isSafeInteger(nextTotal) && nextTotal !== this.cartProficiencyTotal) {
+      this.cartProficiencyTotal = nextTotal;
+      this.cartProficiencyLevel = getProficiencyProgression('carroca_distancia', nextTotal).level;
+    }
     this.recordProficiency('carroca_distancia', wholePoints);
+  }
+
+  /** Define o acumulado inicial da carroça; dados inválidos são ignorados. */
+  setCartProficiencyTotal(total: number): void {
+    if (!Number.isSafeInteger(total) || total < 0 || total === this.cartProficiencyTotal) return;
+    this.cartProficiencyTotal = total;
+    this.cartProficiencyLevel = getProficiencyProgression('carroca_distancia', total).level;
   }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
@@ -1330,16 +1345,22 @@ export class GameEngine {
     this.donkeyClock += dt;
     this.donkeyAvoidTimer = Math.max(0, this.donkeyAvoidTimer - dt);
 
-    if (distance > CONFIG.donkey.visionRange || distance <= CONFIG.donkey.playerStopDistance) {
+    const visionRange = CONFIG.donkey.visionRange
+      + CONFIG.cartProficiency.visionRangeBonus * (this.cartProficiencyLevel / CONFIG.cartProficiency.maxLevel);
+    if (distance > visionRange || distance <= CONFIG.donkey.playerStopDistance) {
       this.donkeySpeed = Math.max(0, this.donkeySpeed - CONFIG.donkey.deceleration * dt);
       this.donkeyProgressSamples = [];
       return;
     }
 
     const directionX = dx / distance, directionY = dy / distance;
+    const proficiencyFactor = CONFIG.cartProficiency.baseFactor
+      + (CONFIG.cartProficiency.maxFactor - CONFIG.cartProficiency.baseFactor)
+        * (this.cartProficiencyLevel / CONFIG.cartProficiency.maxLevel);
+    const playerMoveSpeed = this.getPlayerMoveSpeed();
     const movingSpeed = this.state.player.moving
-      ? CONFIG.cart.unloadedPullSpeed
-      : CONFIG.cart.unloadedPullSpeed * CONFIG.donkey.idleSpeedFactor;
+      ? playerMoveSpeed * proficiencyFactor
+      : playerMoveSpeed * proficiencyFactor * CONFIG.donkey.idleSpeedFactor;
     const targetSpeed = Math.min(
       movingSpeed,
       (distance - CONFIG.donkey.playerStopDistance) * CONFIG.donkey.approachSpeedFactor + CONFIG.donkey.approachSpeedFloor,
@@ -1648,7 +1669,7 @@ export class GameEngine {
       if (p.facingX < -0.35) this.local.weaponSide = 1;
       else if (p.facingX > 0.35) this.local.weaponSide = -1;
     }
-    const speed = CONFIG.player.classSpeed[this.state.classId] + this.getLevelStats().speed;
+    const speed = this.getPlayerMoveSpeed();
     p.x = this.clamp(p.x + dx * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.radius);
     this.resolvePlayerObstacles(p, false);
     p.y = this.clamp(p.y + dy * speed * dt, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - CONFIG.player.footOffset);
@@ -2941,6 +2962,10 @@ export class GameEngine {
 
     const magnitude = Math.hypot(steerX, steerY) || 1;
     return { x: steerX / magnitude, y: steerY / magnitude };
+  }
+
+  getPlayerMoveSpeed(): number {
+    return CONFIG.player.classSpeed[this.state.classId] + this.getLevelStats().speed;
   }
 
   private getLevelStats() {
