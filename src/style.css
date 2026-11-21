@@ -13305,6 +13305,14 @@ sem backdrop ou caixa de modal. */
   background:linear-gradient(90deg,#18c957,#39ff75,#a5ffbd);
   box-shadow:0 0 7px #39ff75,0 0 13px #39ff7580;
 }
+.player-proficiency-level{
+  flex:0 0 auto;padding:2px 5px;border:1px solid #22232225;border-radius:4px;
+  color:#555555;font-size:9px;font-weight:850;font-variant-numeric:tabular-nums;
+}
+.player-proficiency-progress-text{
+  flex:0 0 auto;min-width:66px;color:#555555;font-size:8px;font-weight:750;
+  text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
 .player-proficiency-message{
   margin:0;padding:10px 11px;border:1px solid #22232220;border-radius:8px;
   background:#f4f4f4;color:#222322;font-size:11px;line-height:1.5;

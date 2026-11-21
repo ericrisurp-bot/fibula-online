@@ -11,12 +11,54 @@ const user = (tag) => 'p4-' + tag + '-' + crypto.randomUUID();
 
 try {
   const progression = await server.ssrLoadModule('/src/game/proficiencyProgression.ts');
+  const proficiencyLevels = await server.ssrLoadModule('/src/game/proficiencyLevels.ts');
   const integration = await server.ssrLoadModule('/src/game/proficiencyAttributeIntegration.ts');
   const sync = await server.ssrLoadModule('/src/game/proficiencySync.ts');
   const storage = await server.ssrLoadModule('/src/game/proficiencyStorage.ts');
   const bufferModule = await server.ssrLoadModule('/src/game/proficiencyBuffer.ts');
   const { GameEngine } = await server.ssrLoadModule('/src/game/engine.ts');
   const { CONFIG } = await server.ssrLoadModule('/src/game/config.ts');
+
+  // Balanceamento versionado: tabelas e marcos exatos de levels-v1.
+  const levelTables = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES;
+  assert.equal(levelTables.length, 11, 'devem existir exatamente 11 tabelas de proficiência');
+  for (const table of levelTables) progression.validateProficiencyProgressionTable(table);
+  const expectedLevelTotals = {
+    espada: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
+    arco: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
+    cajado: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
+    bastao_natureza: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
+    golpes_recebidos: { 1: 4, 2: 8, 10: 58, 30: 602, 50: 4260, 80: 74935, 90: 194420, 100: 504334 },
+    machado_madeira: { 1: 11, 2: 23, 10: 159, 30: 1242, 50: 6289, 80: 64521, 90: 139454, 100: 301230 },
+    picareta: { 1: 11, 2: 23, 10: 159, 30: 1242, 50: 6289, 80: 64521, 90: 139454, 100: 301230 },
+    foice_mao: { 1: 11, 2: 23, 10: 159, 30: 1242, 50: 6289, 80: 64521, 90: 139454, 100: 301230 },
+    vara_pesca: { 1: 5, 2: 11, 10: 79, 30: 621, 50: 3144, 80: 32260, 90: 69727, 100: 150615 },
+    faca_esfolar: { 1: 1, 2: 3, 10: 20, 30: 155, 50: 786, 80: 8065, 90: 17432, 100: 37654 },
+    carroca_distancia: { 1: 14, 2: 28, 10: 187, 30: 1282, 50: 5517, 80: 43276, 90: 85317, 100: 168019 },
+  };
+  assert.deepEqual(
+    levelTables.map(table => table.key).sort(),
+    Object.keys(expectedLevelTotals).sort(),
+    'as tabelas devem cobrir todas as chaves, sem duplicatas ou ausências',
+  );
+  for (const table of levelTables) {
+    for (const [level, expectedTotal] of Object.entries(expectedLevelTotals[table.key])) {
+      const milestone = table.milestones.find(item => item.level === Number(level));
+      assert.equal(milestone?.totalRequired, expectedTotal,
+        `${table.key} nível ${level}: totalRequired divergente`);
+    }
+  }
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 0).level, 0);
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 15).level, 1);
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 14).level, 0);
+  const axeMax = proficiencyLevels.getProficiencyProgression('machado_madeira', 301230);
+  assert.equal(axeMax.level, 100);
+  assert.equal(axeMax.isMaxLevel, true);
+  const axeSurplus = proficiencyLevels.getProficiencyProgression('machado_madeira', 400000);
+  assert.equal(axeSurplus.level, 100);
+  assert.equal(axeSurplus.isMaxLevel, true);
+  assert.ok(axeSurplus.surplusAtMaxLevel > 0);
+  passed.push('levels-v1: 11 tabelas validadas, marcos exatos, nível inicial e excedente no MAX');
 
   // Fixture de teste, NÃO é balanceamento.
   const fixture = { version: 'fixture-v1', key: 'espada', initialLevel: 1, maxLevel: 3,

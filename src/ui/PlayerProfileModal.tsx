@@ -3,6 +3,7 @@ import { fibulaSupabase } from '../auth/supabase';
 import { useArenaAuth } from '../auth/AuthGate';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 import { isProficiencyKey, readProficiencyProgress } from '../game/proficiencyStorage';
+import { getProficiencyProgression } from '../game/proficiencyLevels';
 import type { ProficiencyKey } from '../game/engine';
 import { drawLadino } from '../game/ladino';
 import { drawFloatingWeapon } from '../game/weapons';
@@ -95,18 +96,41 @@ function ProficiencyPanel({
       : <div className="player-proficiency-groups">
         {PROFICIENCY_SECTIONS.map(section => <div className="player-proficiency-group" key={section.title}>
           <h5><span aria-hidden="true">{section.icon}</span>{section.title}</h5>
-          {section.items.map(item => <div className="player-proficiency-row" key={item.key}>
-            <div className="player-proficiency-meta">
-              <span>{item.label}</span>
-              <strong>{(counts[item.key] ?? 0).toLocaleString('en-US')}</strong>
-            </div>
-            <div className="player-proficiency-xp-line">
-              <small>XP</small>
-              <div className="player-proficiency-xp-track" aria-label={`${item.label} XP progress`}>
-                <span className="player-proficiency-xp-fill" />
+          {section.items.map(item => {
+            const total = counts[item.key] ?? 0;
+            const progression = getProficiencyProgression(item.key, total);
+            const progressWidth = progression.isMaxLevel
+              ? 100
+              : Math.max(0, progression.progressRatio * 100);
+            const progressText = progression.isMaxLevel
+              ? 'MAX'
+              : `${progression.progressInLevel.toLocaleString('en-US')} / ${progression.requiredForNextLevel?.toLocaleString('en-US') ?? '—'}`;
+
+            return <div className="player-proficiency-row" key={item.key}>
+              <div className="player-proficiency-meta">
+                <span>{item.label}</span>
+                <small className="player-proficiency-level">Lv {progression.level}</small>
+                <strong>{total.toLocaleString('en-US')}</strong>
               </div>
-            </div>
-          </div>)}
+              <div className="player-proficiency-xp-line">
+                <small>XP</small>
+                <div
+                  className="player-proficiency-xp-track"
+                  role="progressbar"
+                  aria-label={`${item.label} XP progress, level ${progression.level}`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progressWidth}
+                >
+                  <span
+                    className="player-proficiency-xp-fill"
+                    style={{ width: `${progressWidth}%` }}
+                  />
+                </div>
+                <small className="player-proficiency-progress-text">{progressText}</small>
+              </div>
+            </div>;
+          })}
         </div>)}
       </div>}
   </section>;
