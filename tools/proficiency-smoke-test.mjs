@@ -746,6 +746,128 @@ try {
   b1Engine.stop();
   passed.push('B1: nível 0 sem RNG, chance máxima, faixas fixas, raridade estritamente superior e noites mínimas');
 
+  // B1 — integração dos golpes elegíveis e frequência aproximada das faixas.
+  const b1EngineForTool = key => {
+    const engine = makeEngine();
+    engine.nightNumber = 30;
+    engine.state.nightNumber = 30;
+    const total = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES
+      .find(table => table.key === key).milestones
+      .find(milestone => milestone.level === 100).totalRequired;
+    engine.setProficiencyTotal(key, total);
+    return engine;
+  };
+
+  const treeBonusEngine = b1EngineForTool('machado_madeira');
+  treeBonusEngine.state.trees = [{ id: 95101, x: 1000, y: 1000, hits: 3, size: 'small' }];
+  treeBonusEngine.isPlayerAtTreeShadow = () => true;
+  treeBonusEngine.treeBase = tree => ({ x: tree.x, y: tree.y });
+  treeBonusEngine.gatherDist = () => 0;
+  treeBonusEngine.local.gatheringTimer = 10;
+  treeBonusEngine.random = () => 0;
+  const treeBonusEvents = [];
+  treeBonusEngine.onProficiencyEvent = event => treeBonusEvents.push(event);
+  treeBonusEngine.autoGather();
+  treeBonusEngine.local.gatheringTimer = 10;
+  treeBonusEngine.autoGather();
+  assert.equal(treeBonusEngine.state.trees[0].hits, 1, 'cada golpe deve atingir a árvore comum, sem exigir morte');
+  assert.equal(treeBonusEngine.state.woodDrops.length, 2, 'dois golpes em árvore viva devem gerar dois bônus');
+  assert.ok(treeBonusEngine.state.woodDrops.every(drop => drop.amount === 1 && drop.rarity === 'common'));
+  assert.deepEqual(treeBonusEvents, [{ key: 'machado_madeira', amount: 1 }, { key: 'machado_madeira', amount: 1 }],
+    'o bônus não pode duplicar a contagem de proficiência por golpe');
+  treeBonusEngine.stop();
+
+  const rockBonusEngine = b1EngineForTool('picareta');
+  rockBonusEngine.state.rocks = [{ id: 95102, x: 1000, y: 1000, hits: 2, size: 'small', clusterId: 1 }];
+  rockBonusEngine.rockFootprintRadius = () => 10;
+  rockBonusEngine.random = () => 0;
+  rockBonusEngine.recordProficiency('picareta');
+  rockBonusEngine.hitRock(95102);
+  assert.deepEqual(rockBonusEngine.state.stoneDrops.map(drop => ({ amount: drop.amount, rarity: drop.rarity })),
+    [{ amount: 1, rarity: 'common' }], 'picareta deve gerar uma unidade extra por golpe, antes de quebrar a rocha');
+  rockBonusEngine.stop();
+
+  const cottonBonusEngine = b1EngineForTool('foice_mao');
+  cottonBonusEngine.state.cottonPlants = [{ id: 95103, x: 1000, y: 1000, hits: 2, size: 'small' }];
+  cottonBonusEngine.cottonFootprintRadius = () => 10;
+  let cottonRollIndex = 0;
+  cottonBonusEngine.random = () => [0, 0, 0.999][cottonRollIndex++] ?? 0.999;
+  cottonBonusEngine.recordProficiency('foice_mao');
+  cottonBonusEngine.hitCottonPlant(95103);
+  assert.equal(cottonBonusEngine.state.cottonDrops.length, 1, 'algodão deve receber somente o drop extra quando a rolagem normal falha');
+  assert.equal(cottonBonusEngine.state.cottonDrops[0].rarity, 'common');
+  cottonBonusEngine.stop();
+
+  const vegetableBonusEngine = b1EngineForTool('foice_mao');
+  vegetableBonusEngine.state.vegetablePlants = [{ id: 95104, x: 1000, y: 1000, hits: 2, size: 'small', kind: 'tomato' }];
+  vegetableBonusEngine.vegetableFootprintRadius = () => 10;
+  let vegetableRollIndex = 0;
+  vegetableBonusEngine.random = () => [0, 0, 0.999][vegetableRollIndex++] ?? 0.999;
+  vegetableBonusEngine.recordProficiency('foice_mao');
+  vegetableBonusEngine.hitVegetable(95104);
+  assert.deepEqual(vegetableBonusEngine.state.vegetableDrops.map(drop => ({ kind: drop.kind, rarity: drop.rarity })),
+    [{ kind: 'tomato', rarity: 'common' }], 'vegetal deve preservar espécie e raridade do bônus');
+  vegetableBonusEngine.stop();
+
+  for (const [animalKind, expectedDrop, choiceRoll] of [
+    ['wolf', 'wolf_hide', 0.1],
+    ['chicken', 'chicken_meat', 0.9],
+  ]) {
+    const knifeBonusEngine = b1EngineForTool('faca_esfolar');
+    knifeBonusEngine.state.enemies = [{
+      id: animalKind === 'wolf' ? 95105 : 95106,
+      x: knifeBonusEngine.state.player.x + 10,
+      y: knifeBonusEngine.state.player.y,
+      hp: 10, hitWait: 0, wobble: 0, animalKind, hits: 0,
+    }];
+    knifeBonusEngine.arrowHitsSolidObstacle = () => false;
+    let knifeRollIndex = 0;
+    knifeBonusEngine.random = () => [0, 0, choiceRoll][knifeRollIndex++] ?? 0.999;
+    const knifeEvents = [];
+    knifeBonusEngine.onProficiencyEvent = event => knifeEvents.push(event);
+    knifeBonusEngine.autoKnife();
+    assert.equal(knifeBonusEngine.state.wildlifeDrops.length, 1, `faca deve gerar bônus para ${animalKind}`);
+    assert.equal(knifeBonusEngine.state.wildlifeDrops[0].kind, expectedDrop);
+    assert.equal(knifeBonusEngine.state.wildlifeDrops[0].amount, 1);
+    assert.equal(knifeBonusEngine.state.wildlifeDrops[0].rarity, 'common');
+    assert.deepEqual(knifeEvents, [{ key: 'faca_esfolar', amount: 1 }],
+      'golpe de faca continua contando exatamente um ponto');
+    knifeBonusEngine.stop();
+  }
+
+  const jabuticabaBonusEngine = b1EngineForTool('machado_madeira');
+  jabuticabaBonusEngine.state.jabuticabaTree = { id: 95107, x: 1000, y: 1000, hits: 5 };
+  jabuticabaBonusEngine.gatherDist = () => 0;
+  jabuticabaBonusEngine.local.gatheringTimer = 10;
+  jabuticabaBonusEngine.random = () => 0.999;
+  jabuticabaBonusEngine.autoGather();
+  assert.deepEqual(jabuticabaBonusEngine.state.woodDrops, [],
+    'tronco de jabuticaba não pode receber bônus de proficiência');
+  jabuticabaBonusEngine.stop();
+
+  const frequencyEngine = b1EngineForTool('machado_madeira');
+  let frequencySeed = 0x12345678;
+  frequencyEngine.random = () => {
+    frequencySeed = (Math.imul(frequencySeed, 1664525) + 1013904223) >>> 0;
+    return frequencySeed / 0x1_0000_0000;
+  };
+  const frequencyCounts = { common: 0, uncommon: 0, rare: 0, legendary: 0 };
+  const frequencyTrials = 200000;
+  for (let i = 0; i < frequencyTrials; i++) {
+    const rarity = frequencyEngine.rollProficiencyRarityBonus('machado_madeira');
+    if (rarity) frequencyCounts[rarity]++;
+  }
+  assert.ok(frequencyCounts.common >= 7800 && frequencyCounts.common <= 9000,
+    `common fora da faixa esperada: ${frequencyCounts.common}/${frequencyTrials}`);
+  assert.ok(frequencyCounts.uncommon >= 3200 && frequencyCounts.uncommon <= 4600,
+    `uncommon fora da faixa esperada: ${frequencyCounts.uncommon}/${frequencyTrials}`);
+  assert.ok(frequencyCounts.rare >= 1100 && frequencyCounts.rare <= 2100,
+    `rare fora da faixa esperada: ${frequencyCounts.rare}/${frequencyTrials}`);
+  assert.ok(frequencyCounts.legendary >= 25 && frequencyCounts.legendary <= 120,
+    `legendary fora da faixa esperada: ${frequencyCounts.legendary}/${frequencyTrials}`);
+  frequencyEngine.stop();
+  passed.push('B1: integração de árvore/rocha/algodão/vegetal/lobo/galinha, exclusão de jabuticaba e frequência simulada');
+
   // R2 — raridade da fauna usa as mesmas regras cumulativas dos recursos.
   const wildlifeRarityEngine = makeEngine();
   const wildlifeRarityRoll = (night, roll) => {
