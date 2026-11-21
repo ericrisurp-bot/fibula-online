@@ -707,6 +707,102 @@ try {
   passed.push('C1: velocidade por nível, alcance, validação do total, incremento em partida e obstáculo');
 
 
+
+  // R2 — raridade da fauna usa as mesmas regras cumulativas dos recursos.
+  const wildlifeRarityEngine = makeEngine();
+  const wildlifeRarityRoll = (night, roll) => {
+    wildlifeRarityEngine.nightNumber = night;
+    wildlifeRarityEngine.state.nightNumber = night;
+    wildlifeRarityEngine.random = () => roll;
+    return wildlifeRarityEngine.rollWildlifeRarity();
+  };
+  for (const [roll, expected] of [
+    [0.0005, 'common'],
+    [0.0015, 'uncommon'],
+    [0.0018, 'rare'],
+    [0.0022, 'legendary'],
+    [0.0025, undefined],
+  ]) {
+    assert.equal(wildlifeRarityRoll(30, roll), expected,
+      `noite 30, roll ${roll}: raridade de fauna divergente`);
+  }
+  assert.equal(wildlifeRarityRoll(1, 0.0005), 'common',
+    'noite 1 deve permitir common');
+  assert.equal(wildlifeRarityRoll(1, 0.0015), undefined,
+    'noite 1 não deve permitir uncommon antes da noite 8');
+  assert.equal(wildlifeRarityRoll(8, 0.0015), 'uncommon',
+    'noite 8 deve permitir uncommon');
+  assert.equal(wildlifeRarityRoll(15, 0.0018), 'rare',
+    'noite 15 deve permitir rare');
+  assert.equal(wildlifeRarityRoll(30, 0.0022), 'legendary',
+    'noite 30 deve permitir legendary');
+
+  // Regressão: reproduz literalmente os algoritmos anteriores de recursos e vegetais.
+  const oldResourceRarity = (size, mediumMineral, night, roll) => {
+    if (size === 'small' || (size === 'medium' && !mediumMineral)) return undefined;
+    const rules = [
+      ['common', { chancePercent: 0.09, minNight: 1 }],
+      ['uncommon', { chancePercent: 0.07, minNight: 8 }],
+      ['rare', { chancePercent: 0.05, minNight: 15 }],
+      ['legendary', { chancePercent: 0.02, minNight: 30 }],
+    ];
+    let remaining = roll;
+    for (const [rarity, rule] of rules) {
+      if (size === 'medium' && rarity !== 'common' && rarity !== 'uncommon') continue;
+      if (night < rule.minNight) continue;
+      remaining -= rule.chancePercent / 100;
+      if (remaining < 0) return rarity;
+    }
+    return undefined;
+  };
+  const oldVegetableRarity = (night, roll) => {
+    const rules = [
+      ['common', { chancePercent: 0.18, minNight: 1 }],
+      ['uncommon', { chancePercent: 0.16, minNight: 8 }],
+      ['rare', { chancePercent: 0.15, minNight: 15 }],
+      ['legendary', { chancePercent: 0.12, minNight: 30 }],
+    ];
+    const eligible = rules.filter(([, rule]) => night >= rule.minNight);
+    for (const [rarity, rule] of eligible) if (roll < rule.chancePercent / 100) return rarity;
+    return undefined;
+  };
+  for (const [night, roll] of [[1, 0.0005], [8, 0.0015], [15, 0.0018], [30, 0.0022], [30, 0.5]]) {
+    wildlifeRarityEngine.nightNumber = night;
+    wildlifeRarityEngine.state.nightNumber = night;
+    wildlifeRarityEngine.random = () => roll;
+    assert.equal(wildlifeRarityEngine.rollResourceRarity('large'), oldResourceRarity('large', false, night, roll),
+      `rollResourceRarity large mudou na noite ${night}, roll ${roll}`);
+    assert.equal(wildlifeRarityEngine.vegetableRarity(), oldVegetableRarity(night, roll),
+      `vegetableRarity mudou na noite ${night}, roll ${roll}`);
+  }
+  wildlifeRarityEngine.stop();
+
+  // Integração: lobo e galinha recebem rare no nascimento e preservam a raridade no drop.
+  for (const kind of ['wolf', 'chicken']) {
+    const animalEngine = makeEngine();
+    animalEngine.nightNumber = 30;
+    animalEngine.state.nightNumber = 30;
+    animalEngine.validWildlifePosition = () => true;
+    let randomCalls = 0;
+    animalEngine.random = () => {
+      randomCalls += 1;
+      return randomCalls === 6 ? 0.0018 : 0.5;
+    };
+    assert.equal(animalEngine.spawnWildlifeGroup(kind, 1), 1,
+      `deve nascer um ${kind} no teste de integração`);
+    const animal = animalEngine.state.enemies.find(enemy => enemy.animalKind === kind);
+    assert.ok(animal, `${kind} deve estar presente no estado`);
+    assert.equal(animal.rarity, 'rare', `${kind} deve nascer com raridade rare`);
+    animalEngine.random = () => 0.5;
+    animalEngine.killEnemy(animal.id);
+    const expectedDrop = kind === 'wolf' ? 'wolf_hide' : 'feather';
+    const drop = animalEngine.state.wildlifeDrops.find(item => item.kind === expectedDrop);
+    assert.ok(drop, `o abate de ${kind} deve produzir ${expectedDrop}`);
+    assert.equal(drop.rarity, 'rare', `o drop ${expectedDrop} deve herdar rare do animal`);
+    animalEngine.stop();
+  }
+  passed.push('R2: raridade cumulativa da fauna, noites mínimas, regressão de recursos/vegetais e drops herdados');
+
   const swordEngine = makeEngine();
   swordEngine.setClass('guerreiro');
   const swordEvents = [];
