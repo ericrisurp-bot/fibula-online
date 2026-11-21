@@ -2240,6 +2240,7 @@ export default function App() {
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
     proficiencyBufferRef.current = proficiencyBuffer;
+    adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
     setAdventurerGuideFinishedHidden(false);
     let guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
@@ -2274,6 +2275,11 @@ export default function App() {
       const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
       const lakeFound = next.lake.rx > 0 && next.lake.ry > 0 && lakeNormalizedDistance <= 1.2;
       const chestBuilt = next.house.built;
+      if (adventurerGuideObjectivesRef.current === EMPTY_ADVENTURER_GUIDE_OBJECTIVES && guideCurrent !== EMPTY_ADVENTURER_GUIDE_OBJECTIVES) {
+        guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
+        for (const key of Object.keys(collected) as (keyof typeof collected)[]) collected[key] = 0;
+        previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
+      }
       guideCurrent = adventurerGuideObjectivesRef.current;
       const mission = !([guideCurrent.cartFound, guideCurrent.woodCollected, guideCurrent.cartRepaired].every(Boolean)) ? 1
         : !([guideCurrent.mission2WoodCollected, guideCurrent.mission2StoneCollected, guideCurrent.mission2CottonCollected].every(Boolean)) ? 2
@@ -4222,7 +4228,8 @@ export default function App() {
         matchSessionIdRef.current = null;
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
-        setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+        adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
+    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
     setAdventurerGuideFinishedHidden(false);
         engine.restart();
         await activatePendingCookingMeals(engine);
@@ -4610,6 +4617,7 @@ export default function App() {
     await proficiencyBufferRef.current?.flush();
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
+    adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
     setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
     setAdventurerGuideFinishedHidden(false);
     engine.restart();
@@ -4711,7 +4719,8 @@ export default function App() {
       setWheel(null);
       closeFlagMenu();
       closeInventoryPanel();
-      setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+      adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
+    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
     setAdventurerGuideFinishedHidden(false);
       engine.restart();
       await activatePendingCookingMeals(engine);
