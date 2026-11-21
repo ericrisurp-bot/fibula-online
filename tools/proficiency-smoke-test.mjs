@@ -782,6 +782,7 @@ try {
     const animalEngine = makeEngine();
     animalEngine.nightNumber = 30;
     animalEngine.state.nightNumber = 30;
+    animalEngine.state.enemies = [];
     animalEngine.validWildlifePosition = () => true;
     let randomCalls = 0;
     animalEngine.random = () => {
