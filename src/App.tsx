@@ -2269,7 +2269,7 @@ export default function App() {
       previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
       const cartRepaired = next.cart.stage === 'built';
       const campfireBuilt = !!next.campfire;
-      const campfireReached = !!next.campfire && Math.hypot(playerFeetPosition.x - next.campfire.x, playerFeetPosition.y - next.campfire.y) <= CONFIG.campfire.buildRadius;
+      const campfireWithinGuideRadius = !!next.campfire && Math.hypot(playerFeetPosition.x - next.campfire.x, playerFeetPosition.y - next.campfire.y) <= 50;
       const lakeNormalizedDistance = Math.hypot((playerFeetPosition.x - next.lake.x) / Math.max(1, next.lake.rx), (playerFeetPosition.y - next.lake.y) / Math.max(1, next.lake.ry));
       const lakeEdgeDistance = Math.abs(lakeNormalizedDistance - 1) * Math.min(next.lake.rx, next.lake.ry);
       const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
@@ -2313,7 +2313,7 @@ export default function App() {
         lakeFound: guideCurrent.lakeFound || lakeFound,
         fishingRodAvailable: guideCurrent.fishingRodAvailable || fishingRodAvailable,
         mission4WoodCollected, mission4WoodRemaining: Math.max(0, 20 - Math.min(20, collected.mission4Wood)),
-        campfireReached: guideCurrent.campfireReached || campfireReached,
+        campfireReached: guideCurrent.campfireReached || (mission === 4 && campfireWithinGuideRadius),
         chestBuilt: guideCurrent.chestBuilt || chestBuilt,
         itemStored: guideCurrent.itemStored,
         refineryWoodRemaining: Math.max(0, 20 - Math.min(20, collected.mission5Wood)),
