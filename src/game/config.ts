@@ -18,8 +18,15 @@ export const RESOURCE_RARITY_RULES = {
   legendary: { chancePercent: 0.02, minNight: 30 },
 } as const;
 
+export const CONFIG_PROFICIENCY_RARITY_BONUS = {
+  maxChance: 0.07,
+  maxLevel: 100,
+  weights: { common: 60, uncommon: 28, rare: 11.5, legendary: 0.5 },
+} as const;
+
 export const CONFIG = {
   rulesV2: { enabled: true, armorCraftingEnabled: true, armorPercentPerPoint: 1, armorMaxReduction: 0.6 },
+  proficiencyRarityBonus: CONFIG_PROFICIENCY_RARITY_BONUS,
   map: { size: 4320, wall: 34, grid: 80 },
   campfire: { woodCost: 5, stoneCost: 5, cottonCost: 5, buildRadius: 300, minDistance: 48 },
   campLayout: {
