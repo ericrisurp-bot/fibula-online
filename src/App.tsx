@@ -2468,7 +2468,9 @@ export default function App() {
       try {
         const progress = await readProficiencyProgress(userId, serverTotals);
         if (!engineActive || engineRef.current !== engine || engine.state.dead) return;
-        engine.setCartProficiencyTotal(progress.carroca_distancia ?? 0);
+        for (const key of ['machado_madeira', 'picareta', 'foice_mao', 'faca_esfolar', 'carroca_distancia'] as const) {
+          engine.setProficiencyTotal(key, progress[key] ?? 0);
+        }
       } catch {
         // Falha local também é best-effort: o motor permanece no nível 0.
       }
