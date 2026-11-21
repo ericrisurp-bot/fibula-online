@@ -1993,16 +1993,17 @@ export class GameEngine {
     if (level <= 0) return undefined;
     if (this.random() >= CONFIG.proficiencyRarityBonus.maxChance * level / CONFIG.proficiencyRarityBonus.maxLevel) return undefined;
     const targetRank = targetRarity ? (['common', 'uncommon', 'rare', 'legendary'] as const).indexOf(targetRarity) : -1;
+    const weights = CONFIG.proficiencyRarityBonus.weights;
     const bands = [
-      { rarity: 'common' as const, end: 60 },
-      { rarity: 'uncommon' as const, end: 88 },
-      { rarity: 'rare' as const, end: 99.5 },
-      { rarity: 'legendary' as const, end: 100 },
+      { rarity: 'common' as const, weight: weights.common },
+      { rarity: 'uncommon' as const, weight: weights.uncommon },
+      { rarity: 'rare' as const, weight: weights.rare },
+      { rarity: 'legendary' as const, weight: weights.legendary },
     ];
     const roll = this.random() * 100;
     let start = 0;
     for (const band of bands) {
-      const end = band.end;
+      const end = start + band.weight;
       const rank = (['common', 'uncommon', 'rare', 'legendary'] as const).indexOf(band.rarity);
       const eligible = rank > targetRank && this.nightNumber >= RESOURCE_RARITY_RULES[band.rarity].minNight;
       if (eligible && roll >= start && roll < end) return band.rarity;
