@@ -2607,18 +2607,19 @@ export default function App() {
           : plant.kind === 'herbs'
             ? 1
             : (plant.size === 'small' ? 0.9 : plant.size === 'medium' ? 1 : 1.1);
-        const scaleX = plant.kind === 'herbs'
+        const cabbageScale = plant.kind === 'cabbage' ? 0.7 : 1;
+        const scaleX = (plant.kind === 'herbs'
           ? 1.2 * 0.9 * (plant.size === 'small' ? 0.92 : plant.size === 'medium' ? 1.18 : 1.48)
-          : 1.2 * 0.9 * sizeScale;
-        const scaleY = plant.kind === 'herbs'
+          : 1.2 * 0.9 * sizeScale) * cabbageScale;
+        const scaleY = (plant.kind === 'herbs'
           ? 1.2 * 1.15 * (plant.size === 'small' ? 0.82 : plant.size === 'medium' ? 0.9 : 0.98)
-          : 1.2 * 1.15 * sizeScale;
+          : 1.2 * 1.15 * sizeScale) * cabbageScale;
         const isSmall = plant.size === 'small';
         const isLarge = plant.size === 'large';
         worldDrawables.push({ depth: plant.y + 13 * 1.2 * sizeScale, draw: () => {
           drawResourceRarityAura(ctx, plant.x, plant.y + 12, plant.size === 'large' ? 42 : plant.size === 'medium' ? 34 : 26, plant.rarity);
           ctx.save(); ctx.translate(plant.x, plant.y); ctx.scale(scaleX, scaleY);
-          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17 * sizeScale, 6 * sizeScale, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 12, 17 * sizeScale * cabbageScale, 6 * sizeScale * cabbageScale, 0, 0, Math.PI * 2); ctx.fill();
           if (plant.kind === 'tomato') {
             // Pé de tomate low-poly: galhos, folhas facetadas e frutos com faces de luz/sombra.
             const polygon = (points: Array<[number, number]>, fill: string, stroke?: string) => {
