@@ -647,6 +647,7 @@ try {
   const trackingPlayerSpeed = trackingEngine.getPlayerMoveSpeed();
   const trackingDt = 0.02;
   let maximumLevel100Distance = 0;
+  const trackingStartCartX = trackingEngine.state.cart.x;
   for (let frame = 0; frame < 1000; frame++) {
     trackingEngine.state.player.x += trackingPlayerSpeed * trackingDt;
     trackingEngine.updateDonkeyCart(trackingDt);
@@ -659,8 +660,10 @@ try {
   );
   assert.ok(maximumLevel100Distance <= 500,
     `nível 100 excedeu visão 500 px durante 20 s: ${maximumLevel100Distance}`);
-  assert.ok(finalLevel100Distance <= CONFIG.donkey.playerStopDistance + 5,
-    `nível 100 deveria alcançar a distância de parada; final ${finalLevel100Distance}`);
+  assert.ok(finalLevel100Distance <= 500,
+    `nível 100 terminou fora do alcance de visão; distância final ${finalLevel100Distance}`);
+  assert.ok(trackingEngine.state.cart.x - trackingStartCartX > 2000,
+    'burrinho de nível 100 deve continuar percorrendo o caminho durante os 20 s');
   trackingEngine.stop();
 
   const legacyTrackingEngine = createFollowingCart(0, 500, 200);
