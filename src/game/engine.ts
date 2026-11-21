@@ -2381,7 +2381,7 @@ export class GameEngine {
     animal.wanderTimer = wanderTimer;
     let targetX = Math.cos(animal.wanderAngle ?? 0);
     let targetY = Math.sin(animal.wanderAngle ?? 0);
-    let movementSpeed = rules.speed;
+    let movementSpeed: number = rules.speed;
     let huntingChicken: Enemy | undefined;
     let facingPlayerDx: number | null = null;
     let wolfRecoil = false;
