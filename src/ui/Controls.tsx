@@ -41,11 +41,22 @@ type Props = {
   onToggleLandscape: () => void;
 };
 
+// O aro visual tem raio aproximado de 52px (47px na regra responsiva de 94px).
+// STICK_RADIUS limita o centro da bolinha a 42px; a diferença é uma folga visual intencional.
 const STICK_RADIUS = 42;
+
+const getControlsMetrics = (element: HTMLDivElement) => {
+  const rect = element.getBoundingClientRect();
+  // Converte deltas em pixels do cliente para pixels CSS locais, compensando scale()
+  // aplicado ao wrapper ou a ancestrais. Atualmente não há zoom/transform nesses elementos.
+  const scaleX = rect.width / (element.offsetWidth || rect.width || 1);
+  const scaleY = rect.height / (element.offsetHeight || rect.height || 1);
+  return { rect, scaleX: scaleX || 1, scaleY: scaleY || 1 };
+};
 
 export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
-  const activePointer = useRef<{ id: number; originX: number; originY: number; clientX: number; clientY: number } | null>(null);
+  const activePointer = useRef<{ id: number; originClientX: number; originClientY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
   const longPressRef = useRef<{ id: number; clientX: number; clientY: number; timer: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -90,9 +101,10 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     e.preventDefault();
     onMovementStart();
     if (onFlagTap(e.clientX, e.clientY)) return;
-    const rect = controlsRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    activePointer.current = { id: e.pointerId, originX: e.clientX - rect.left, originY: e.clientY - rect.top, clientX: e.clientX, clientY: e.clientY };
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const { rect, scaleX, scaleY } = getControlsMetrics(controls);
+    activePointer.current = { id: e.pointerId, originClientX: e.clientX, originClientY: e.clientY, clientX: e.clientX, clientY: e.clientY };
     longPressRef.current = { id: e.pointerId, clientX: e.clientX, clientY: e.clientY, timer: window.setTimeout(() => {
       const pending = longPressRef.current;
       if (!pending || pending.id !== e.pointerId || activePointer.current?.id !== e.pointerId) return;
@@ -103,7 +115,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       onLongPress(pending.clientX, pending.clientY, pending.id);
     }, 400) };
     e.currentTarget.setPointerCapture(e.pointerId);
-    setStick({ x: e.clientX - rect.left, y: e.clientY - rect.top, dx: 0, dy: 0, active: true });
+    setStick({ x: (e.clientX - rect.left) / scaleX, y: (e.clientY - rect.top) / scaleY, dx: 0, dy: 0, active: true });
     onMove(0, 0);
   };
 
@@ -117,12 +129,15 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       window.clearTimeout(pending.timer);
       longPressRef.current = null;
     }
-    const dx = e.clientX - (active.originX + (controlsRef.current?.getBoundingClientRect().left ?? 0));
-    const dy = e.clientY - (active.originY + (controlsRef.current?.getBoundingClientRect().top ?? 0));
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const { scaleX, scaleY } = getControlsMetrics(controls);
+    const dx = (e.clientX - active.originClientX) / scaleX;
+    const dy = (e.clientY - active.originClientY) / scaleY;
     const distance = Math.hypot(dx, dy) || 1;
-    const scale = Math.min(distance, STICK_RADIUS) / distance;
-    const knobX = dx * scale;
-    const knobY = dy * scale;
+    const clampScale = Math.min(distance, STICK_RADIUS) / distance;
+    const knobX = dx * clampScale;
+    const knobY = dy * clampScale;
     setStick(current => ({ ...current, dx: knobX, dy: knobY, active: true }));
     onMove(Math.max(-1, Math.min(1, dx / STICK_RADIUS)), Math.max(-1, Math.min(1, dy / STICK_RADIUS)));
   };
