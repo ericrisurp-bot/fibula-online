@@ -478,74 +478,148 @@ function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot[
   ctx.save();
   ctx.translate(animal.x, animal.y);
   ctx.fillStyle = 'rgba(0,0,0,.24)';
-  ctx.beginPath(); ctx.ellipse(0, 11, wolf ? 19 : 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 11, wolf ? 26 : 15, 5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.scale(animal.facingX ?? 1, 1);
 
   if (wolf) {
     const stride = moving ? Math.sin(phase) * 0.5 : 0;
     const tailSwing = Math.sin(elapsed * (moving ? 9 : 2.2) + wobble) * (moving ? 0.34 : 0.12);
-    ctx.save(); ctx.translate(0, walkBob); ctx.scale(1, breath);
-    ctx.save(); ctx.translate(-13, -1); ctx.rotate(tailSwing);
-    ctx.strokeStyle = '#59483b'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-11, -10, -12, -4); ctx.stroke(); ctx.restore();
-    ctx.strokeStyle = '#59483b'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.save();
+    ctx.translate(0, walkBob);
+    ctx.scale(1.35, breath);
+    ctx.save(); ctx.translate(-13, 0); ctx.rotate(tailSwing * 0.7);
+    ctx.strokeStyle = '#2a2623'; ctx.lineWidth = 5.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-8, 2, -14, 5); ctx.stroke();
+    ctx.strokeStyle = '#5b534d'; ctx.lineWidth = 3.6;
+    ctx.beginPath(); ctx.moveTo(-1, 0); ctx.quadraticCurveTo(-8, 2, -14, 5); ctx.stroke();
+    ctx.fillStyle = '#3a342f';
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-5 - i * 2.1, 1 + i * 1.1); ctx.lineTo(-9 - i * 2.1, 4 + i * 1.1); ctx.lineTo(-5 - i * 2.1, 3 + i * 1.1); ctx.fill(); }
+    ctx.restore();
+
+    // Patas robustas; o mesmo stride anima os pares em oposição.
     for (const leg of [{ x: -10, angle: stride }, { x: -3, angle: -stride }, { x: 8, angle: -stride }, { x: 14, angle: stride }]) {
-      ctx.save(); ctx.translate(leg.x, 4); ctx.rotate(leg.angle);
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 6); ctx.lineTo(1, 7); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.translate(leg.x, 3); ctx.rotate(leg.angle);
+      ctx.lineCap = 'round'; ctx.strokeStyle = '#2a2623'; ctx.lineWidth = 5.4;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 6.5); ctx.stroke();
+      ctx.strokeStyle = '#5b534d'; ctx.lineWidth = 3.8;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-1, 6.2); ctx.stroke();
+      ctx.strokeStyle = '#211d1a'; ctx.lineWidth = 1.15;
+      ctx.beginPath(); ctx.moveTo(-2.1, 6.2); ctx.lineTo(-3.1, 7.2); ctx.moveTo(-0.5, 6.4); ctx.lineTo(-1, 7.6); ctx.moveTo(1, 6.1); ctx.lineTo(1.5, 7.1); ctx.stroke();
+      ctx.restore();
     }
-    ctx.fillStyle = '#8c7865'; ctx.strokeStyle = '#4d4036'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(0, 0, 17, 9, -0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.save(); ctx.translate(13, -5 + Math.sin(phase * 2 + wobble) * (moving ? 0.7 : 0.15));
-    ctx.rotate(moving ? Math.sin(phase) * 0.035 : Math.sin(elapsed * 1.8 + wobble) * 0.015);
-    ctx.fillStyle = '#9b8773'; ctx.strokeStyle = '#4d4036'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(0, 0, 9, 7, 0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#675546';
-    ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(-4, -15); ctx.lineTo(3, -7); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(9, -12); ctx.lineTo(10, -2); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#f0d8a8'; ctx.beginPath(); ctx.ellipse(6, 3, 5, 3, 0.1, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.arc(5, -2, 1.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+
+    // Tronco inclinado: garupa baixa, ombros e peito mais altos.
+    ctx.fillStyle = '#2a2623'; ctx.strokeStyle = '#2a2623'; ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(-17, -4); ctx.quadraticCurveTo(-14, -12, -4, -11);
+    ctx.quadraticCurveTo(5, -14, 12, -8); ctx.quadraticCurveTo(18, -5, 17, 2);
+    ctx.quadraticCurveTo(9, 8, -3, 7); ctx.quadraticCurveTo(-14, 7, -18, 1); ctx.closePath();
+    ctx.fillStyle = '#5b534d'; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#3a342f';
+    ctx.beginPath(); ctx.ellipse(-4, -2, 12, 7, -0.12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#b9ab98';
+    ctx.beginPath(); ctx.moveTo(4, -8); ctx.quadraticCurveTo(12, -8, 16, -1); ctx.quadraticCurveTo(14, 7, 7, 6); ctx.quadraticCurveTo(2, 2, 4, -8); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-1, 5, 9, 2.1, 0.08, 0, Math.PI); ctx.fill();
+
+    // Crina eriçada em pequenos tufos ao longo do pescoço e dorso.
+    ctx.fillStyle = '#3a342f'; ctx.strokeStyle = '#2a2623'; ctx.lineWidth = 0.9;
+    for (let i = 0; i < 7; i++) {
+      const x = -7 + i * 3.1;
+      ctx.beginPath(); ctx.moveTo(x - 2, -8 + (i > 4 ? 1 : 0)); ctx.lineTo(x - 0.4, -13 - (i % 2) * 1.5); ctx.lineTo(x + 2.3, -8 + (i > 4 ? 1 : 0)); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+
+    // Cabeça baixa e projetada para a frente, com focinho comprido.
+    ctx.save();
+    ctx.translate(12, -7 + Math.sin(phase * 2 + wobble) * (moving ? 0.45 : 0.12));
+    ctx.rotate(moving ? Math.sin(phase) * 0.025 : Math.sin(elapsed * 1.8 + wobble) * 0.012);
+    ctx.fillStyle = '#2a2623'; ctx.strokeStyle = '#2a2623'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(-5, 0); ctx.quadraticCurveTo(-8, -8, -1, -11); ctx.lineTo(8, -10); ctx.quadraticCurveTo(13, -8, 14, -4); ctx.lineTo(20, -1); ctx.lineTo(18, 3); ctx.quadraticCurveTo(8, 5, 0, 4); ctx.closePath();
+    ctx.fillStyle = '#5b534d'; ctx.fill(); ctx.stroke();
+    // Orelhas grandes e recuadas.
+    ctx.fillStyle = '#3a342f';
+    ctx.beginPath(); ctx.moveTo(-2, -8); ctx.lineTo(-8, -20); ctx.lineTo(3, -13); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, -9); ctx.lineTo(9, -19); ctx.lineTo(12, -8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#8c7164';
+    ctx.beginPath(); ctx.moveTo(-2, -11); ctx.lineTo(-5.5, -17); ctx.lineTo(1, -13); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(7, -11); ctx.lineTo(9, -16); ctx.lineTo(10, -10); ctx.closePath(); ctx.fill();
+
+    // Bochecha e focinho em pelo claro, maxilar aberto e boca escura.
+    ctx.fillStyle = '#b9ab98';
+    ctx.beginPath(); ctx.moveTo(5, -3); ctx.quadraticCurveTo(12, -7, 20, -1); ctx.quadraticCurveTo(18, 3, 10, 3); ctx.quadraticCurveTo(5, 2, 5, -3); ctx.fill();
+    ctx.fillStyle = '#211d1a';
+    ctx.beginPath(); ctx.moveTo(8, 1); ctx.quadraticCurveTo(14, 2, 19, 0); ctx.quadraticCurveTo(17, 6, 10, 5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6e3431';
+    ctx.beginPath(); ctx.ellipse(14, 3.1, 4.2, 1.5, 0, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = '#f2e9d8';
+    ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(11.8, 5); ctx.lineTo(13, 1); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(16, 1); ctx.lineTo(17, 4.5); ctx.lineTo(18.5, 0.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.ellipse(20, -1.1, 2.1, 1.55, 0.1, 0, Math.PI * 2); ctx.fill();
+    // Olho âmbar, pupila escura e sobrancelha agressiva.
+    ctx.fillStyle = '#e3b23c'; ctx.beginPath(); ctx.ellipse(7, -5.2, 2.35, 1.65, -0.18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.ellipse(7.7, -5.2, 0.75, 1.35, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#211d1a'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(4.3, -8); ctx.lineTo(9.7, -7.1); ctx.stroke();
+    ctx.restore();
     ctx.restore();
   } else {
     const chickenStride = moving ? Math.sin(phase * (fleeing ? 2 : 1)) * 0.5 : 0;
     const peck = moving ? Math.sin(phase * 2) * 2 : Math.pow(Math.max(0, Math.sin(elapsed * 1.9 + wobble)), 12) * 2.2;
     const wingBeat = Math.sin(elapsed * Math.PI * 2 * 9 + wobble);
-    ctx.strokeStyle = '#b68b43'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+
+    // Pernas curtas e pés abertos com pequenos dedos.
+    ctx.strokeStyle = '#e8a94a'; ctx.lineWidth = 1.9; ctx.lineCap = 'round';
     for (const leg of [{ x: -5, angle: chickenStride }, { x: 5, angle: -chickenStride }]) {
       ctx.save(); ctx.translate(leg.x, 6); ctx.rotate(leg.angle);
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 7); ctx.lineTo(leg.angle * 2, 7); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 5.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 5.5); ctx.lineTo(-2.5, 7); ctx.moveTo(0, 5.5); ctx.lineTo(0, 7.2); ctx.moveTo(0, 5.5); ctx.lineTo(2.5, 7); ctx.stroke();
+      ctx.restore();
     }
+
     ctx.save();
     if (fleeing) ctx.rotate(-0.15);
     ctx.translate(0, walkBob); ctx.scale(1, breath);
-    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.ellipse(-1, 1, 13, 10, -0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#e9e1d2'; ctx.beginPath(); ctx.ellipse(-4, 1, 7, 5, -0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Cauda curta e arredondada.
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#b9ad99'; ctx.lineWidth = 0.9;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.ellipse(-11 - i * 1.5, -2 + i * 2.2, 3.1, 2.2, -0.35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    // Corpo mais redondo, mantendo o porte original.
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#b9ad99'; ctx.lineWidth = 1.15;
+    ctx.beginPath(); ctx.ellipse(-1, 1, 13, 11.2, -0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#eadfca'; ctx.beginPath(); ctx.ellipse(-4, 4, 7.8, 5.3, -0.28, 0, Math.PI * 2); ctx.fill();
+    // Asa pequena repousada no corpo; na fuga mantém a batida atual.
     if (fleeing) {
       const wingAngle = -0.5 + wingBeat * 0.6;
       ctx.save(); ctx.translate(-3, -1); ctx.rotate(wingAngle);
-      ctx.fillStyle = '#e4d8c3'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.1; ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.quadraticCurveTo(-5, -3.5, -13, -1);
-      ctx.quadraticCurveTo(-11, 3.5, -5, 4); ctx.quadraticCurveTo(-1, 3, 0, 0);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-10, -0.8); ctx.lineTo(-13, -1.4);
-      ctx.moveTo(-9, 0.4); ctx.lineTo(-12.5, 0.2);
-      ctx.moveTo(-8, 1.6); ctx.lineTo(-11.5, 2.2);
-      ctx.stroke();
+      ctx.fillStyle = '#eadfca'; ctx.strokeStyle = '#b9ad99'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-5, -3.5, -13, -1); ctx.quadraticCurveTo(-11, 3.5, -5, 4); ctx.quadraticCurveTo(-1, 3, 0, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-10, -0.8); ctx.lineTo(-13, -1.4); ctx.moveTo(-9, 0.4); ctx.lineTo(-12.5, 0.2); ctx.moveTo(-8, 1.6); ctx.lineTo(-11.5, 2.2); ctx.stroke();
       ctx.restore();
+    } else {
+      ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#c9bda9'; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.ellipse(-4, 0, 5.5, 3.8, -0.35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(190,174,151,.75)'; ctx.beginPath(); ctx.moveTo(-7, -0.5); ctx.quadraticCurveTo(-4, 1.5, -1, 1); ctx.stroke();
     }
+
+    // Cabeça proporcionalmente maior com bochecha rosada.
     ctx.save(); ctx.translate(8 + peck + (fleeing ? 3 : 0), fleeing ? -10 : -8);
-    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#a9a397'; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.ellipse(0, 0, 6, fleeing ? 8 : 7, 0.1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#d84b43'; ctx.beginPath(); ctx.arc(-2, -7, 2.5, 0, Math.PI * 2); ctx.arc(2, -8, 2.5, 0, Math.PI * 2); ctx.arc(5, -5, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#e5a63a'; ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(12, 2); ctx.lineTo(5, 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#27231f'; ctx.beginPath(); ctx.arc(2, -2, 1.1, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#b9ad99'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(0, 0, 6.6, fleeing ? 7.8 : 7.3, 0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(243,179,166,.72)'; ctx.beginPath(); ctx.arc(-4.2, 2, 2, 0, Math.PI * 2); ctx.fill();
+    // Crista em três lóbulos arredondados.
+    ctx.fillStyle = '#e0524a';
+    ctx.beginPath(); ctx.arc(-3.5, -6.2, 2.25, 0, Math.PI * 2); ctx.arc(0, -7.5, 2.5, 0, Math.PI * 2); ctx.arc(3.5, -6.1, 2.15, 0, Math.PI * 2); ctx.fill();
+    // Bico pequeno e arredondado, mais barbela.
+    ctx.fillStyle = '#f0a640'; ctx.strokeStyle = '#d28b2e'; ctx.lineWidth = 0.65;
+    ctx.beginPath(); ctx.moveTo(5, -0.2); ctx.quadraticCurveTo(10, 0, 10, 2); ctx.quadraticCurveTo(8, 3.8, 5, 2.5); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e0524a'; ctx.beginPath(); ctx.ellipse(4.6, 4.1, 1.25, 1.8, 0.15, 0, Math.PI * 2); ctx.fill();
+    // Olho grande e escuro, com um único ponto branco de luz.
+    ctx.fillStyle = '#211d1a'; ctx.beginPath(); ctx.arc(1.8, -2.1, 2.05, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(2.5, -2.9, 0.65, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
     ctx.restore();
   }
   ctx.restore();
 }
-
 export default function App() {
   const { session } = useArenaAuth();
   const { updateAvailable } = useAndroidRelease();
