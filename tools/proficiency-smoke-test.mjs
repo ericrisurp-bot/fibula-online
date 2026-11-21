@@ -515,6 +515,26 @@ try {
   cartEngine.stop();
   passed.push('motor headless: carroça em movimento com carga e sem carga');
 
+  const swordEngine = makeEngine();
+  swordEngine.setClass('guerreiro');
+  const swordEvents = [];
+  swordEngine.onProficiencyEvent = event => swordEvents.push(event);
+  swordEngine.state.enemies = [
+    { id: 92501, x: swordEngine.state.player.x + 30, y: swordEngine.state.player.y, hp: 10000, hitWait: 0, wobble: 0 },
+    { id: 92502, x: swordEngine.state.player.x + 42, y: swordEngine.state.player.y + 5, hp: 10000, hitWait: 0, wobble: 0 },
+    { id: 92503, x: swordEngine.state.player.x + 46, y: swordEngine.state.player.y - 6, hp: 10000, hitWait: 0, wobble: 0 },
+  ];
+  swordEngine.local.attackTimer = 10;
+  swordEngine.autoAttack();
+  assert.deepEqual(swordEvents, [{ key: 'espada', amount: 1 }],
+    'um golpe de espada que atinge vários inimigos deve contar exatamente um ponto');
+  assert.ok(swordEngine.state.enemies.every(enemy => enemy.hp < 10000),
+    'todos os inimigos atingidos pelo leque devem continuar recebendo dano');
+  assert.equal(swordEngine.state.enemies.length, 3,
+    'os três alvos de teste devem permanecer disponíveis para verificar o dano');
+  swordEngine.stop();
+  passed.push('motor headless: golpe de espada atinge três alvos e conta um ponto');
+
   const mageEngine = makeEngine();
   mageEngine.setClass('mago');
   const mageEvents = [];
@@ -549,17 +569,20 @@ try {
   passed.push('motor headless: explosão do mago atinge múltiplos alvos e conta um cajado');
 
   const arrowEngine = makeEngine();
+  arrowEngine.setClass('arqueiro');
   const arrowEvents = [];
   arrowEngine.onProficiencyEvent = event => arrowEvents.push(event);
   arrowEngine.obstacleCircles = () => [];
   arrowEngine.state.enemies = [
     { id: 93001, x: arrowEngine.state.player.x + 24, y: arrowEngine.state.player.y, hp: 100, hitWait: 0, wobble: 0 },
+    { id: 93002, x: arrowEngine.state.player.x + 54, y: arrowEngine.state.player.y, hp: 100, hitWait: 0, wobble: 0 },
+    { id: 93003, x: arrowEngine.state.player.x + 84, y: arrowEngine.state.player.y, hp: 100, hitWait: 0, wobble: 0 },
   ];
   arrowEngine.state.shots = [{
     id: 94001,
     x: arrowEngine.state.player.x,
     y: arrowEngine.state.player.y,
-    vx: 500,
+    vx: CONFIG.weapons.arco.projectileSpeed,
     vy: 0,
     damage: 10,
     kind: 'arrow',
@@ -568,12 +591,22 @@ try {
     weapon: 'arco',
     hitEnemyIds: [],
   }];
-  arrowEngine.state.weapon = 'espada';
-  arrowEngine.moveShots(0.05);
+  const arrowDamageFactors = [...CONFIG.archerPierce.damageFactors];
+  const arrowShot = arrowEngine.state.shots[0];
+  for (let frame = 0; frame < 12 && arrowEngine.state.shots.length > 0; frame++) {
+    arrowEngine.moveShots(0.05);
+  }
   assert.deepEqual(arrowEvents, [{ key: 'arco', amount: 1 }],
-    'flecha deve contar o arco usado no disparo, mesmo após trocar a arma equipada');
+    'uma flecha que atravessa três inimigos deve contar exatamente um ponto de arco');
+  assert.equal(arrowShot.hitEnemyIds.length, 3,
+    'a flecha deve atravessar os três alvos antes de encerrar');
+  for (let i = 0; i < 3; i++) {
+    const expectedDamage = 10 * arrowDamageFactors[i] * (1 + arrowEngine.getDayNightState().vulnerability);
+    assert.ok(Math.abs(100 - arrowEngine.state.enemies[i].hp - expectedDamage) < 0.001,
+      `alvo ${i + 1} deve receber o dano perfurante atual (${expectedDamage})`);
+  }
   arrowEngine.stop();
-  passed.push('motor headless: projétil mantém a arma original após troca de equipamento');
+  passed.push('motor headless: flecha atravessa três alvos, aplica fatores atuais e conta um arco');
 
 
   console.log('Grupos aprovados:');

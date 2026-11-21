@@ -3244,8 +3244,8 @@ export class GameEngine {
         const difference = Math.abs(Math.atan2(Math.sin(angle - this.state.swordSwingAngle), Math.cos(angle - this.state.swordSwingAngle)));
         return distance <= weapon.range && difference <= arc / 2;
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, CONFIG.weapons.espada.maxTargets);
+      if (hits.length > 0) this.recordWeaponProficiencyHit();
       for (const enemy of hits) {
-        this.recordWeaponProficiencyHit();
         const vulnerability = this.getDayNightState().vulnerability;
         const damage = this.getWeaponBaseDamage() * this.getCookingDamageMultiplier() * (1 + vulnerability);
         this.recordClassDamage(enemy, damage);
@@ -3476,7 +3476,7 @@ export class GameEngine {
         }
         const firstHit = hitIds.length === 0;
         hitIds.push(target.id);
-        this.recordWeaponProficiencyHit(shot.weapon);
+        if (firstHit) this.recordWeaponProficiencyHit(shot.weapon);
         if (firstHit && this.state.classId === 'arqueiro') {
           this.local.archerHealArrowCount += 1;
           if (this.local.archerHealArrowCount >= CONFIG.archerHeal.arrowsPerHeal) {
