@@ -348,6 +348,7 @@ export class GameEngine {
   private cartProficiencyDistanceRemainder = 0;
   private cartProficiencyTotal = 0;
   private cartProficiencyLevel = 0;
+  private proficiencyTotals: Partial<Record<ProficiencyKey, number>> = {};
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -399,6 +400,17 @@ export class GameEngine {
 
   private recordProficiency(key: ProficiencyKey, amount = 1): void {
     if (!Number.isSafeInteger(amount) || amount <= 0) return;
+    if (['machado_madeira', 'picareta', 'foice_mao', 'faca_esfolar', 'carroca_distancia'].includes(key)) {
+      const current = key === 'carroca_distancia' ? this.cartProficiencyTotal : (this.proficiencyTotals[key] ?? 0);
+      const next = current + amount;
+      if (Number.isSafeInteger(next)) {
+        this.proficiencyTotals[key] = next;
+        if (key === 'carroca_distancia') {
+          this.cartProficiencyTotal = next;
+          this.cartProficiencyLevel = getProficiencyProgression(key, next).level;
+        }
+      }
+    }
     try {
       this.onProficiencyEvent?.({ key, amount });
     } catch {
@@ -427,19 +439,23 @@ export class GameEngine {
     const wholePoints = Math.floor((this.cartProficiencyDistanceRemainder + 1e-6) / 280);
     if (wholePoints <= 0) return;
     this.cartProficiencyDistanceRemainder = Math.max(0, this.cartProficiencyDistanceRemainder - wholePoints * 280);
-    const nextTotal = this.cartProficiencyTotal + wholePoints;
-    if (Number.isSafeInteger(nextTotal) && nextTotal !== this.cartProficiencyTotal) {
-      this.cartProficiencyTotal = nextTotal;
-      this.cartProficiencyLevel = getProficiencyProgression('carroca_distancia', nextTotal).level;
-    }
     this.recordProficiency('carroca_distancia', wholePoints);
   }
 
-  /** Define o acumulado inicial da carroça; dados inválidos são ignorados. */
+  /** Define um acumulado inicial validado; dados inválidos são ignorados. */
+  setProficiencyTotal(key: ProficiencyKey, total: number): void {
+    if (!['machado_madeira', 'picareta', 'foice_mao', 'faca_esfolar', 'carroca_distancia'].includes(key)
+      || !Number.isSafeInteger(total) || total < 0) return;
+    this.proficiencyTotals[key] = total;
+    if (key === 'carroca_distancia') {
+      this.cartProficiencyTotal = total;
+      this.cartProficiencyLevel = getProficiencyProgression(key, total).level;
+    }
+  }
+
+  /** Compatibilidade com os chamadores existentes da proficiência da carroça. */
   setCartProficiencyTotal(total: number): void {
-    if (!Number.isSafeInteger(total) || total < 0 || total === this.cartProficiencyTotal) return;
-    this.cartProficiencyTotal = total;
-    this.cartProficiencyLevel = getProficiencyProgression('carroca_distancia', total).level;
+    this.setProficiencyTotal('carroca_distancia', total);
   }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
@@ -1971,6 +1987,30 @@ export class GameEngine {
     return undefined;
   }
 
+  private rollProficiencyRarityBonus(key: ProficiencyKey, targetRarity?: ResourceRarity): ResourceRarity | undefined {
+    const total = key === 'carroca_distancia' ? this.cartProficiencyTotal : (this.proficiencyTotals[key] ?? 0);
+    const level = getProficiencyProgression(key, total).level;
+    if (level <= 0) return undefined;
+    if (this.random() >= CONFIG.proficiencyRarityBonus.maxChance * level / CONFIG.proficiencyRarityBonus.maxLevel) return undefined;
+    const targetRank = targetRarity ? (['common', 'uncommon', 'rare', 'legendary'] as const).indexOf(targetRarity) : -1;
+    const bands = [
+      { rarity: 'common' as const, end: 60 },
+      { rarity: 'uncommon' as const, end: 88 },
+      { rarity: 'rare' as const, end: 99.5 },
+      { rarity: 'legendary' as const, end: 100 },
+    ];
+    const roll = this.random() * 100;
+    let start = 0;
+    for (const band of bands) {
+      const end = band.end;
+      const rank = (['common', 'uncommon', 'rare', 'legendary'] as const).indexOf(band.rarity);
+      const eligible = rank > targetRank && this.nightNumber >= RESOURCE_RARITY_RULES[band.rarity].minNight;
+      if (eligible && roll >= start && roll < end) return band.rarity;
+      start = end;
+    }
+    return undefined;
+  }
+
   private spawnInitialCottonPlants() {
     for (let i = 0; i < CONFIG.cotton.startCount; i++) this.spawnCottonPlant();
   }
@@ -2308,6 +2348,11 @@ export class GameEngine {
     const rock = this.state.rocks.find(value => value.id === id);
     if (!rock || rock.hits <= 0) return;
     rock.hits -= 1;
+    const bonusRarity = this.rollProficiencyRarityBonus('picareta', rock.rarity);
+    if (bonusRarity) {
+      const bonusDistance = this.rockFootprintRadius(rock) + 5;
+      this.state.stoneDrops.push({ id: this.nextId++, x: rock.x + bonusDistance, y: rock.y, amount: 1, age: 0, rarity: bonusRarity });
+    }
     if (rock.hits > 0) return;
     const [minAmount, maxAmount] = CONFIG.rocks.dropAmounts[rock.size];
     const amount = minAmount + Math.floor(this.random() * (maxAmount - minAmount + 1));
@@ -2320,6 +2365,11 @@ export class GameEngine {
     const plant = this.state.cottonPlants.find(value => value.id === id);
     if (!plant) return;
     plant.hits -= 1;
+    const bonusRarity = this.rollProficiencyRarityBonus('foice_mao', plant.rarity);
+    if (bonusRarity) {
+      const bonusDistance = this.cottonFootprintRadius(plant) + 5;
+      this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + bonusDistance, y: plant.y, age: 0, rarity: bonusRarity });
+    }
     if (this.random() < CONFIG.cotton.dropChance) {
       const angle = this.random() * Math.PI * 2;
       const distance = this.cottonFootprintRadius(plant) + 5;
@@ -2693,6 +2743,11 @@ export class GameEngine {
     const plant = this.state.vegetablePlants.find(value => value.id === id);
     if (!plant) return;
     plant.hits -= 1;
+    const bonusRarity = this.rollProficiencyRarityBonus('foice_mao', plant.rarity);
+    if (bonusRarity) {
+      const bonusDistance = this.vegetableFootprintRadius(plant) + 5;
+      this.state.vegetableDrops.push({ id: this.nextId++, kind: plant.kind, x: plant.x + bonusDistance, y: plant.y, age: 0, rarity: bonusRarity });
+    }
     if (this.random() < CONFIG.vegetables.dropChance) {
       const angle = this.random() * Math.PI * 2;
       const radius = this.vegetableFootprintRadius(plant);
@@ -3349,6 +3404,13 @@ export class GameEngine {
     if (!target) return;
     this.local.knifeHitTimer = CONFIG.knife.hitInterval;
     this.recordProficiency('faca_esfolar');
+    const bonusRarity = this.rollProficiencyRarityBonus('faca_esfolar', target.enemy.rarity);
+    if (bonusRarity) {
+      const bonusKind: WildlifeDropKind = target.enemy.animalKind === 'wolf'
+        ? (this.random() < 0.5 ? 'wolf_hide' : 'wolf_meat')
+        : (this.random() < 0.5 ? 'feather' : 'chicken_meat');
+      this.state.wildlifeDrops.push({ id: this.nextId++, kind: bonusKind, amount: 1, x: target.enemy.x, y: target.enemy.y, age: 0, rarity: bonusRarity });
+    }
     this.state.knifeSwingAngle = this.anchorGatherTool(target.enemy.x, target.enemy.y, target.enemy.y + target.radius + 2);
     this.state.knifeSwingTimer = CONFIG.gathering.toolAnimationDuration;
     target.enemy.hits = (target.enemy.hits ?? 0) + 1;
@@ -3411,6 +3473,11 @@ export class GameEngine {
       this.state.treeChopTimer = CONFIG.gathering.toolAnimationDuration;
       this.recordProficiency('machado_madeira');
       treeTarget.tree.hits -= 1;
+      const bonusRarity = this.rollProficiencyRarityBonus('machado_madeira', treeTarget.tree.rarity);
+      if (bonusRarity) {
+        const base = this.treeBase(treeTarget.tree);
+        this.state.woodDrops.push({ id: this.nextId++, x: base.x, y: base.y, amount: 1, age: 0, rarity: bonusRarity });
+      }
       this.onSound?.({ type: 'gather', kind: 'wood', done: treeTarget.tree.hits <= 0 });
       if (treeTarget.tree.hits <= 0) this.cutTree(treeTarget.tree.id);
     } else if (rockTarget && (!cottonTarget || rockTarget.d <= cottonTarget.d) && (!vegetableTarget || rockTarget.d <= vegetableTarget.d)) {
