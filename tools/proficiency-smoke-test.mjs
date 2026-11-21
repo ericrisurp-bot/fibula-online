@@ -708,6 +708,44 @@ try {
 
 
 
+  // B1 — bônus de raridade por proficiência, sem consumir RNG no nível 0.
+  const b1Engine = makeEngine();
+  b1Engine.nightNumber = 30;
+  b1Engine.state.nightNumber = 30;
+  const b1Total100 = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES
+    .find(table => table.key === 'machado_madeira').milestones
+    .find(milestone => milestone.level === 100).totalRequired;
+  let b1RandomCalls = 0;
+  b1Engine.random = () => { b1RandomCalls++; return 0; };
+  assert.equal(b1Engine.rollProficiencyRarityBonus('machado_madeira'), undefined);
+  assert.equal(b1RandomCalls, 0, 'nível 0 não pode consumir nenhuma chamada de RNG');
+  b1Engine.setProficiencyTotal('machado_madeira', b1Total100);
+  const b1Roll = (chance, band, target, night = 30) => {
+    b1Engine.nightNumber = night;
+    const values = [chance, band];
+    let index = 0;
+    b1Engine.random = () => values[index++] ?? 0.999999;
+    return b1Engine.rollProficiencyRarityBonus('machado_madeira', target);
+  };
+  assert.equal(b1Roll(0, 0.599999), 'common');
+  assert.equal(b1Roll(0, 0.6), 'uncommon');
+  assert.equal(b1Roll(0, 0.88), 'rare');
+  assert.equal(b1Roll(0, 0.995), 'legendary');
+  assert.equal(b1Roll(0.07, 0), undefined, 'chance exatamente 7% deve falhar');
+  assert.equal(b1Roll(0, 0, 'rare'), undefined, 'common não pode superar rare');
+  assert.equal(b1Roll(0, 0.6, 'rare'), undefined, 'uncommon não pode superar rare');
+  assert.equal(b1Roll(0, 0.88, 'rare'), undefined, 'rare não pode superar a própria raridade');
+  assert.equal(b1Roll(0, 0.995, 'rare'), 'legendary', 'somente legendary supera rare');
+  assert.equal(b1Roll(0, 0, 'legendary'), undefined, 'raridade lendária nunca pode receber bônus');
+  assert.equal(b1Roll(0, 0.6, undefined, 1), undefined, 'noite 1 não pode renormalizar uncommon');
+  assert.equal(b1Roll(0, 0.88, undefined, 1), undefined, 'noite 1 não pode renormalizar rare');
+  assert.equal(b1Roll(0, 0.995, undefined, 1), undefined, 'noite 1 não pode renormalizar legendary');
+  assert.equal(b1Roll(0, 0.6, undefined, 8), 'uncommon', 'uncommon fica elegível na noite 8');
+  assert.equal(b1Roll(0, 0.88, undefined, 15), 'rare', 'rare fica elegível na noite 15');
+  assert.equal(b1Roll(0, 0.995, undefined, 30), 'legendary', 'legendary fica elegível na noite 30');
+  b1Engine.stop();
+  passed.push('B1: nível 0 sem RNG, chance máxima, faixas fixas, raridade estritamente superior e noites mínimas');
+
   // R2 — raridade da fauna usa as mesmas regras cumulativas dos recursos.
   const wildlifeRarityEngine = makeEngine();
   const wildlifeRarityRoll = (night, roll) => {
