@@ -1954,6 +1954,7 @@ export class GameEngine {
     }
     return undefined;
   }
+
   private rollWildlifeRarity(): ResourceRarity | undefined {
     const rules = [
       ['common', RESOURCE_RARITY_RULES.common],
