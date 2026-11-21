@@ -1954,6 +1954,21 @@ export class GameEngine {
     }
     return undefined;
   }
+  private rollWildlifeRarity(): ResourceRarity | undefined {
+    const rules = [
+      ['common', RESOURCE_RARITY_RULES.common],
+      ['uncommon', RESOURCE_RARITY_RULES.uncommon],
+      ['rare', RESOURCE_RARITY_RULES.rare],
+      ['legendary', RESOURCE_RARITY_RULES.legendary],
+    ] as const;
+    let roll = this.random();
+    for (const [rarity, rule] of rules) {
+      if (this.nightNumber < rule.minNight) continue;
+      roll -= rule.chancePercent / 100;
+      if (roll < 0) return rarity;
+    }
+    return undefined;
+  }
 
   private spawnInitialCottonPlants() {
     for (let i = 0; i < CONFIG.cotton.startCount; i++) this.spawnCottonPlant();
@@ -2369,7 +2384,7 @@ export class GameEngine {
       if (!position) continue;
       spawned.push({
         id: this.nextId++, ...position, hp: kind === 'wolf' ? 34 : 12, hitWait: 0,
-        wobble: this.random() * 8, animalKind: kind, rarity: this.vegetableRarity(),
+        wobble: this.random() * 8, animalKind: kind, rarity: this.rollWildlifeRarity(),
         wanderAngle: this.random() * Math.PI * 2, wanderTimer: this.random() * rules.wanderInterval,
       });
     }
