@@ -13450,3 +13450,5 @@ sem backdrop ou caixa de modal. */
   .class-choice-story{min-height:0;margin-top:7px;padding:7px;font-size:10px}
   .class-choice-dialog{padding:16px}
 }
+
+.class-first-entry .classes-page .side-page-content{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
