@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { clearProficiencyStorage } from './proficiencyStorage';
 import { discardPendingProficiencyBuffer } from './proficiencyBuffer';
+import { discardPendingPersistenceOutboxes } from './persistence';
 
 export const RESET_EPOCH_STORAGE_PREFIX = 'fibula-reset-epoch:';
 
@@ -64,6 +65,7 @@ function isPreservedResetEpochKey(key: string): boolean {
 
 /** Remove progresso local, preservando sessão Arena, preferências do aparelho e épocas. */
 export async function clearLocalGameProgress(): Promise<void> {
+  discardPendingPersistenceOutboxes();
   let storageFailure: unknown;
   try {
     const storage = window.localStorage;
