@@ -301,6 +301,19 @@ try {
   counters = await storage.readProficiencyCounters(pendingReconcileUser);
   assert.deepEqual(counters.map(c => [c.total, c.syncedTotal]), [[2, 2]],
     'reconciliação após confirmação não pode duplicar o lote');
+  const multiDeviceUser = user('profile-multi-device');
+  await storage.recordProficiencyEvent(multiDeviceUser, { key: 'espada', amount: 80 });
+  const confirmedOnThisDevice = await storage.prepareProficiencyBatch(multiDeviceUser);
+  await storage.acknowledgeProficiencyBatch(multiDeviceUser, confirmedOnThisDevice.batchId);
+  await storage.recordProficiencyEvent(multiDeviceUser, { key: 'espada', amount: 20 });
+  const mergedProfile = await storage.readProficiencyProgress(multiDeviceUser, { espada: 90 });
+  assert.equal(mergedProfile.espada, 110,
+    'o perfil deve somar o progresso local não sincronizado ao total mais recente do servidor');
+  assert.equal((await storage.readProficiencyCounters(multiDeviceUser))
+    .find(counter => counter.key === 'espada')?.syncedTotal, 80,
+  'a leitura do perfil não pode alterar o total local já confirmado');
+  passed.push('perfil: combina incremento remoto de outro dispositivo com delta local pendente sem perder progresso');
+
   passed.push('IndexedDB: reconciliação servidor/local, delta offline, validação e proteção contra lote pendente');
 
 
