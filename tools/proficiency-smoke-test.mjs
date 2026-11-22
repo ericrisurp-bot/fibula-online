@@ -1132,7 +1132,7 @@ try {
   'lago pequeno só permite tambaqui; lago médio permite tambaqui e pintado');
   assert.equal(b2Roll(0, 0.999, 'tilapia', 'small'), 'tambaqui');
   assert.equal(b2Roll(0, 0.999, 'tilapia', 'medium'), 'pintado_surubim');
-  assert.equal(b2Roll(0, 0.03, 'tilapia'), undefined,
+  assert.equal(b2Roll(0.03, 0, 'tilapia'), undefined,
     'chance exatamente 3% deve falhar no nível 100');
   assert.equal(b2Roll(0.029999, 0, 'tilapia'), 'tambaqui',
     'chance imediatamente abaixo de 3% deve permitir o bônus');
