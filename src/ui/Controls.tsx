@@ -30,6 +30,7 @@ type Props = {
   onZoom: (delta: number) => void;
   onClass: (id: ClassId) => void;
   classId: ClassId;
+  availableClassIds: ClassId[];
   showRange: boolean;
   weaponLabel: string;
   inventoryPanelOpen: boolean;
@@ -54,7 +55,7 @@ const getControlsMetrics = (element: HTMLDivElement) => {
   return { rect, scaleX: scaleX || 1, scaleY: scaleY || 1 };
 };
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, availableClassIds, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originClientX: number; originClientY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -78,7 +79,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   };
   useEffect(() => { if (flagWheelOpen || inventoryPanelOpen) setMenuOpen(false); }, [flagWheelOpen, inventoryPanelOpen]);
   const [stick, setStick] = useState({ x: 0, y: 0, dx: 0, dy: 0, active: false });
-  const classOrder = Object.keys(CLASSES) as ClassId[];
+  const classOrder = availableClassIds.includes(classId) ? availableClassIds : [classId];
   const nextClass = classOrder[(classOrder.indexOf(classId) + 1) % classOrder.length];
   const actionBVisible = campMenuVisible || buildCartVisible || storeToHouseVisible || storeToCartVisible;
   const actionBDisabled = campMenuVisible || buildCartVisible ? false
@@ -167,6 +168,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     const dx = e.clientX - swipe.startX;
     const dy = e.clientY - swipe.startY;
     if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    if (classOrder.length < 2) return;
     const currentIndex = classOrder.indexOf(classId);
     const nextIndex = (currentIndex + (dx < 0 ? -1 : 1) + classOrder.length) % classOrder.length;
     swipe.changed = true;
@@ -263,7 +265,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         <button type="button" className={actionBVisible && !actionBDisabled ? 'game-action-button action-b is-active' : 'game-action-button action-b'} disabled={!actionBVisible || actionBDisabled} aria-disabled={!actionBVisible || actionBDisabled} aria-label={actionBLabel} title={actionBLabel} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (actionBVisible && !actionBDisabled) runActionB(); }}>
           B
         </button>
-        <button type="button" className="game-action-button action-a is-active" aria-label={`A: trocar classe para ${CLASSES[nextClass].label}`} title={`A: trocar classe para ${CLASSES[nextClass].label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onClass(nextClass); }}>A</button>
+        <button type="button" className="game-action-button action-a is-active" disabled={classOrder.length < 2} aria-label={`A: trocar classe para ${CLASSES[nextClass].label}`} title={`A: trocar classe para ${CLASSES[nextClass].label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); if (classOrder.length > 1) onClass(nextClass); }}>A</button>
       </div>
     </div>
     {menuOpen && <div
