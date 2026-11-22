@@ -9,7 +9,8 @@ import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
 import { getAccountPointsPerLevel } from './game/attributes';
 import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
-import { acknowledgeProficiencyBatch, isProficiencyKey, prepareProficiencyBatch, readProficiencyProgress, reconcileProficiencyCounters } from './game/proficiencyStorage';
+import type { ProficiencyProgressionBaseline } from './game/proficiencyLevels';
+import { acknowledgeProficiencyBatch, isProficiencyKey, prepareProficiencyBatch, readLocalProficiencyProgressionBaselines, readProficiencyProgress, reconcileProficiencyCounters } from './game/proficiencyStorage';
 import { createProficiencyBuffer } from './game/proficiencyBuffer';
 import { clearLocalGameProgress, fetchResetEpoch, readLocalResetEpoch, writeLocalResetEpoch } from './game/resetEpoch';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
@@ -2575,20 +2576,37 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     // Carrega o total da carroça sem atrasar a partida; falhas remotas usam o total local.
     void (async () => {
       const serverTotals: Partial<Record<import('./game/engine').ProficiencyKey, number>> = {};
+      const serverBaselines: Partial<Record<import('./game/engine').ProficiencyKey, ProficiencyProgressionBaseline>> = {};
       try {
         if (fibulaSupabase) {
           const { data, error } = await fibulaSupabase
             .from('fibula_proficiencies')
-            .select('proficiency_key,counter')
+            .select('proficiency_key,counter,progression_preserved_level,progression_baseline_counter')
             .eq('user_id', userId);
           if (error) throw error;
           for (const row of data ?? []) {
-            const candidate = row as { proficiency_key?: unknown; counter?: unknown };
+            const candidate = row as {
+              proficiency_key?: unknown;
+              counter?: unknown;
+              progression_preserved_level?: unknown;
+              progression_baseline_counter?: unknown;
+            };
             const total = typeof candidate.counter === 'number'
               ? candidate.counter
               : typeof candidate.counter === 'string' ? Number(candidate.counter) : NaN;
-            if (isProficiencyKey(candidate.proficiency_key) && Number.isSafeInteger(total) && total >= 0) {
-              serverTotals[candidate.proficiency_key] = total;
+            const preservedLevel = typeof candidate.progression_preserved_level === 'number'
+              ? candidate.progression_preserved_level
+              : typeof candidate.progression_preserved_level === 'string'
+                ? Number(candidate.progression_preserved_level) : NaN;
+            const baselineCounter = typeof candidate.progression_baseline_counter === 'number'
+              ? candidate.progression_baseline_counter
+              : typeof candidate.progression_baseline_counter === 'string'
+                ? Number(candidate.progression_baseline_counter) : NaN;
+            if (!isProficiencyKey(candidate.proficiency_key) || !Number.isSafeInteger(total) || total < 0) continue;
+            serverTotals[candidate.proficiency_key] = total;
+            if (Number.isSafeInteger(preservedLevel) && preservedLevel >= 0
+              && Number.isSafeInteger(baselineCounter) && baselineCounter >= 0) {
+              serverBaselines[candidate.proficiency_key] = { preservedLevel, baselineCounter };
             }
           }
         }
@@ -2597,9 +2615,19 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
       try {
         const progress = await readProficiencyProgress(userId, serverTotals);
+        const localBaselines = await readLocalProficiencyProgressionBaselines(userId);
+        for (const [key, localBaseline] of Object.entries(localBaselines) as [
+          import('./game/engine').ProficiencyKey,
+          ProficiencyProgressionBaseline,
+        ][]) {
+          const serverBaseline = serverBaselines[key];
+          if (!serverBaseline || localBaseline.preservedLevel > serverBaseline.preservedLevel) {
+            serverBaselines[key] = localBaseline;
+          }
+        }
         if (!engineActive || engineRef.current !== engine || engine.state.dead) return;
         for (const key of ['machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao', 'carroca_distancia'] as const) {
-          engine.setProficiencyTotal(key, progress[key] ?? 0);
+          engine.setProficiencyTotal(key, progress[key] ?? 0, serverBaselines[key]);
         }
       } catch {
         // Falha local também é best-effort: o motor permanece no nível 0.
