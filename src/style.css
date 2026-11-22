@@ -5,7 +5,7 @@
 .class-first-dialog{width:min(100%,520px);max-height:calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;padding:clamp(20px,4vw,30px);border:1px solid rgba(226,205,157,.38);border-radius:18px;background:#222322;color:#f5f0e5;box-shadow:0 24px 80px rgba(0,0,0,.55)}
 .class-first-dialog h1,.class-first-dialog h2{margin:0 0 14px;color:#f4e5c2;font-size:clamp(21px,4vw,28px);line-height:1.2}
 .class-first-dialog p{margin:0 0 20px;color:#e4e0d7;font-size:15px;line-height:1.65;overflow-wrap:anywhere}
-.class-first-dialog button,.class-first-footer button{min-height:46px;padding:11px 20px;border:1px solid #c9a96b;border-radius:10px;background:#a98243;color:#171713;font:700 15px inherit;cursor:pointer}
+.class-first-dialog button,.class-first-footer button{min-height:46px;padding:11px 20px;border:1px solid #c9a96b;border-radius:10px;background:#a98243;color:#171713;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
 .class-first-welcome button{width:100%}
 .class-first-footer{position:fixed;z-index:10020;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(12,13,12,.94) 28%)}
 .class-first-footer button{width:min(100%,420px);font-size:16px}
