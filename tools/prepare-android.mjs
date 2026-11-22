@@ -298,13 +298,13 @@ if (!installerManifest.includes('application/vnd.android.package-archive')) {
     '            <action android:name="android.intent.action.VIEW" />',
     '            <data android:mimeType="application/vnd.android.package-archive" />',
     '        </intent>',
-  ].join('\\n');
+  ].join('\n');
   if (installerManifest.includes('</queries>')) {
-    installerManifest = installerManifest.replace('</queries>', installerQuery + '\\n    </queries>');
+    installerManifest = installerManifest.replace('</queries>', installerQuery + '\n    </queries>');
   } else {
     installerManifest = installerManifest.replace(
-      /(<application\\b)/,
-      '    <queries>\\n' + installerQuery + '\\n    </queries>\\n\\n    $1'
+      /(<application\b)/,
+      '    <queries>\n' + installerQuery + '\n    </queries>\n\n    $1'
     );
   }
 }
