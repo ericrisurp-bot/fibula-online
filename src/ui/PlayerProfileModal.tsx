@@ -3,7 +3,7 @@ import { fibulaSupabase } from '../auth/supabase';
 import { useArenaAuth } from '../auth/AuthGate';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 import { isProficiencyKey, readProficiencyProgress } from '../game/proficiencyStorage';
-import { getProficiencyProgression } from '../game/proficiencyLevels';
+import { getProficiencyProgression, type ProficiencyProgressionBaseline } from '../game/proficiencyLevels';
 import type { ProficiencyKey } from '../game/engine';
 import { drawLadino } from '../game/ladino';
 import { drawFloatingWeapon } from '../game/weapons';
@@ -83,9 +83,10 @@ const PROFICIENCY_SECTIONS: { title: string; icon: string; items: { label: strin
 ];
 
 function ProficiencyPanel({
-  counts, loading, error,
+  counts, baselines, loading, error,
 }: {
   counts: Partial<Record<ProficiencyKey, number>>;
+  baselines: Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>>;
   loading: boolean;
   error: string;
 }) {
@@ -98,7 +99,7 @@ function ProficiencyPanel({
           <h5><span aria-hidden="true">{section.icon}</span>{section.title}</h5>
           {section.items.map(item => {
             const total = counts[item.key] ?? 0;
-            const progression = getProficiencyProgression(item.key, total);
+            const progression = getProficiencyProgression(item.key, total, baselines[item.key]);
             const progressWidth = progression.isMaxLevel
               ? 100
               : Math.max(0, progression.progressRatio * 100);
@@ -170,6 +171,7 @@ export default function PlayerProfileModal({
   const [sex, setSex] = useState('');
   const [error, setError] = useState('');
   const [proficiencyCounts, setProficiencyCounts] = useState<Partial<Record<ProficiencyKey, number>>>({});
+  const [proficiencyBaselines, setProficiencyBaselines] = useState<Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>>>({});
   const [proficiencyLoading, setProficiencyLoading] = useState(false);
   const [proficiencyError, setProficiencyError] = useState('');
 
@@ -180,6 +182,7 @@ export default function PlayerProfileModal({
   useEffect(() => {
     if (!canEdit) {
       setProficiencyCounts({});
+      setProficiencyBaselines({});
       setProficiencyError('');
       setProficiencyLoading(false);
       return;
@@ -187,6 +190,7 @@ export default function PlayerProfileModal({
     const supabaseClient = fibulaSupabase;
     if (!supabaseClient) {
       setProficiencyCounts({});
+      setProficiencyBaselines({});
       setProficiencyError('O banco de dados não está disponível neste ambiente.');
       setProficiencyLoading(false);
       return;
@@ -198,22 +202,42 @@ export default function PlayerProfileModal({
       try {
         const { data, error: queryError } = await supabaseClient
           .from('fibula_proficiencies')
-          .select('proficiency_key,counter')
+          .select('proficiency_key,counter,progression_preserved_level,progression_baseline_counter')
           .eq('user_id', userId);
         if (queryError) throw queryError;
 
         const serverTotals: Partial<Record<ProficiencyKey, number>> = {};
+        const serverBaselines: Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>> = {};
         for (const row of data ?? []) {
-          const candidate = row as { proficiency_key?: unknown; counter?: unknown };
+          const candidate = row as {
+            proficiency_key?: unknown;
+            counter?: unknown;
+            progression_preserved_level?: unknown;
+            progression_baseline_counter?: unknown;
+          };
           const total = typeof candidate.counter === 'number'
             ? candidate.counter
             : typeof candidate.counter === 'string' ? Number(candidate.counter) : NaN;
-          if (isProficiencyKey(candidate.proficiency_key) && Number.isSafeInteger(total) && total >= 0) {
-            serverTotals[candidate.proficiency_key] = total;
+          const preservedLevel = typeof candidate.progression_preserved_level === 'number'
+            ? candidate.progression_preserved_level
+            : typeof candidate.progression_preserved_level === 'string'
+              ? Number(candidate.progression_preserved_level) : NaN;
+          const baselineCounter = typeof candidate.progression_baseline_counter === 'number'
+            ? candidate.progression_baseline_counter
+            : typeof candidate.progression_baseline_counter === 'string'
+              ? Number(candidate.progression_baseline_counter) : NaN;
+          if (!isProficiencyKey(candidate.proficiency_key) || !Number.isSafeInteger(total) || total < 0) continue;
+          serverTotals[candidate.proficiency_key] = total;
+          if (Number.isSafeInteger(preservedLevel) && preservedLevel >= 0
+            && Number.isSafeInteger(baselineCounter) && baselineCounter >= 0) {
+            serverBaselines[candidate.proficiency_key] = { preservedLevel, baselineCounter };
           }
         }
         const progress = await readProficiencyProgress(userId, serverTotals);
-        if (active) setProficiencyCounts(progress);
+        if (active) {
+          setProficiencyCounts(progress);
+          setProficiencyBaselines(serverBaselines);
+        }
       } catch {
         if (active) setProficiencyError('Não foi possível carregar as proficiências. Verifique sua conexão.');
       } finally {
@@ -424,7 +448,7 @@ export default function PlayerProfileModal({
               {Object.entries(profile.attributes ?? {}).map(([key, value]) => <div key={key}><span>{key}</span><strong>{Number(value).toFixed(1)}</strong></div>)}
               {!Object.keys(profile.attributes ?? {}).length && <small>{CONFIG.rulesV2.enabled ? 'A vida aumenta com o nível; dano, armadura e esquiva vêm de equipamentos e refeições, enquanto o movimento é fixo.' : 'Os atributos aparecerão conforme o personagem evoluir.'}</small>}
             </div></section>
-            {canEdit && <ProficiencyPanel counts={proficiencyCounts} loading={proficiencyLoading} error={proficiencyError} />}
+            {canEdit && <ProficiencyPanel counts={proficiencyCounts} baselines={proficiencyBaselines} loading={proficiencyLoading} error={proficiencyError} />}
             {canCompleteIdentity && <button type="button" className="player-profile-edit" onClick={() => { setEditing(true); setError(''); }}>{profile.display_name ? 'Completar dados do perfil' : 'Criar meu perfil'}</button>}
           </>}
           {error && <p className="player-profile-error" role="alert">{error}</p>}
