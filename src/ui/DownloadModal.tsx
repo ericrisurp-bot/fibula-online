@@ -36,7 +36,7 @@ function formatPublishedDate(value: string | null): string {
 export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
   const {
     release, previousRelease, currentVersionName, isAndroid, updateAvailable,
-    checking, downloading, downloadProgress, pendingApkPath, downloadLatest,
+    checking, checkFailed, downloading, downloadProgress, pendingApkPath, downloadLatest, retryCheck,
   } = useAndroidRelease();
 
   useEffect(() => {
@@ -84,7 +84,9 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
         ? 'Verificando versões…'
         : release
           ? `Download da versão ${release.versionName}`
-          : 'Nenhuma versão publicada ainda';
+          : checkFailed
+            ? 'Não foi possível verificar agora'
+            : 'Nenhuma versão publicada ainda';
 
   return (
     <div
@@ -119,10 +121,13 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
             <span key={className} className={`download-modal-sparkle ${className}`} aria-hidden="true">✦</span>
           ))}
           <button
-            className={`download-modal-download-button${!release ? ' is-unavailable' : ''}`}
+            className={`download-modal-download-button${!release && !checkFailed ? ' is-unavailable' : ''}`}
             type="button"
-            disabled={checking || downloading || !release}
-            onClick={() => { void downloadLatest(); }}
+            disabled={checking || downloading || (!release && !checkFailed)}
+            onClick={() => {
+              if (!release && checkFailed) void retryCheck();
+              else void downloadLatest();
+            }}
             aria-busy={checking || downloading}
           >
             <span>{downloadLabel}</span>
@@ -137,10 +142,12 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
 
         <p className="download-modal-version-info">
           {isAndroid
-            ? `Instalada: ${currentVersionName ?? 'não identificada'} · Publicada: ${release?.versionName ?? 'não identificada'}`
+            ? `Instalada: ${currentVersionName ?? 'não identificada'} · Publicada: ${release?.versionName ?? (checkFailed ? 'não verificada' : 'não identificada')}`
             : release
               ? `Publicada: ${formatPublishedDate(release.publishedAt)}`
-              : 'Nenhuma versão publicada ainda'}
+              : checkFailed
+                ? 'Publicada: não verificada'
+                : 'Nenhuma versão publicada ainda'}
         </p>
 
         {previousRelease && (
