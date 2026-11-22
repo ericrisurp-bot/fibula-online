@@ -2210,7 +2210,7 @@ export class GameEngine {
       if (this.validTreePosition(x, y, minSpacing, size)) position = { x, y };
     }
     if (!position) return false;
-    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut, size, rarity: this.rollResourceRarity(size) });
+    this.state.trees.push({ id: this.nextId++, x: position.x, y: position.y, hits: CONFIG.trees.hitsToCut[size], size, rarity: this.rollResourceRarity(size) });
     return true;
   }
 
@@ -2371,7 +2371,14 @@ export class GameEngine {
       const distance = 34 + this.random() * 12;
       this.state.jabuticabaDrops.push({ id: this.nextId++, x: tree.x + Math.cos(angle) * distance, y: tree.y + 94.25 + Math.sin(angle) * distance, age: 0 });
     }
-    if (tree.hits <= 0) this.state.jabuticabaTree = null;
+    if (tree.hits <= 0) {
+      const angle = this.random() * Math.PI * 2;
+      const distance = 34 + this.random() * 12;
+      for (let i = 0; i < CONFIG.jabuticaba.guaranteedDropAmount; i++) {
+        this.state.jabuticabaDrops.push({ id: this.nextId++, x: tree.x + Math.cos(angle) * distance, y: tree.y + 94.25 + Math.sin(angle) * distance, age: 0 });
+      }
+      this.state.jabuticabaTree = null;
+    }
   }
 
   private hitRock(id: number) {
@@ -2405,7 +2412,14 @@ export class GameEngine {
       const distance = this.cottonFootprintRadius(plant) + 5;
       this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance, age: 0, rarity: plant.rarity });
     }
-    if (plant.hits <= 0) this.state.cottonPlants = this.state.cottonPlants.filter(value => value.id !== id);
+    if (plant.hits <= 0) {
+      for (let i = 0; i < CONFIG.cotton.guaranteedDropAmounts[plant.size]; i++) {
+        const angle = this.random() * Math.PI * 2;
+        const distance = this.cottonFootprintRadius(plant) + 5;
+        this.state.cottonDrops.push({ id: this.nextId++, x: plant.x + Math.cos(angle) * distance, y: plant.y + Math.sin(angle) * distance, age: 0, rarity: plant.rarity });
+      }
+      this.state.cottonPlants = this.state.cottonPlants.filter(value => value.id !== id);
+    }
   }
 
   private collectStone() {
@@ -2783,7 +2797,14 @@ export class GameEngine {
       const radius = this.vegetableFootprintRadius(plant);
       this.state.vegetableDrops.push({ id: this.nextId++, kind: plant.kind, x: plant.x + Math.cos(angle) * (radius + 5), y: plant.y + Math.sin(angle) * (radius + 5), age: 0, rarity: plant.rarity });
     }
-    if (plant.hits <= 0) this.state.vegetablePlants = this.state.vegetablePlants.filter(value => value.id !== id);
+    if (plant.hits <= 0) {
+      for (let i = 0; i < CONFIG.vegetables.guaranteedDropAmounts[plant.size]; i++) {
+        const angle = this.random() * Math.PI * 2;
+        const radius = this.vegetableFootprintRadius(plant);
+        this.state.vegetableDrops.push({ id: this.nextId++, kind: plant.kind, x: plant.x + Math.cos(angle) * (radius + 5), y: plant.y + Math.sin(angle) * (radius + 5), age: 0, rarity: plant.rarity });
+      }
+      this.state.vegetablePlants = this.state.vegetablePlants.filter(value => value.id !== id);
+    }
   }
   private vegetableFootprintRadius(plant: VegetablePlant) { return plant.size === 'small' ? 12 : plant.size === 'medium' ? 18 : 24; }
 
