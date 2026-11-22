@@ -14,7 +14,7 @@ import { createProficiencyBuffer } from './game/proficiencyBuffer';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, fetchPdLoadout, savePdLoadout, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, fetchPdLoadout, savePdLoadout, fetchClassChoice, chooseClasses, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readAdventurerGuideEnabled, readGameZoom, writeAdventurerGuideEnabled, writeGameZoom } from './game/devicePreferences';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
@@ -25,6 +25,7 @@ import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
 import { craftAccessory, deleteAccessory, listMyAccessories, type AccessoryType, type CraftedAccessory } from './game/accessoryCrafting';
 import { computeAccessoryAttributeBonuses, equipAccessoryForClass, readEquippedAccessorySelections, removeAccessoryFromSelections, resolveEquippedAccessories, sanitizeEquippedAccessorySelections, unequipAccessoryForClass, writeEquippedAccessorySelections, type EquippedAccessorySelections } from './game/accessoryEquipment';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
+import ClassChoiceOnboarding from './ui/ClassChoiceOnboarding';
 import type { ArmorPiece } from './game/armor';
 
 import { drawFishingRod, drawFloatingTool } from './game/tools';
@@ -873,6 +874,65 @@ export default function App() {
     }
     return ['guerreiro', 'druida'];
   });
+  const [classChoice, setClassChoice] = useState<'loading' | 'needs-choice' | 'chosen' | 'unknown'>('loading');
+  const [classChoiceUserId, setClassChoiceUserId] = useState<string | null>(null);
+  const [classChoiceRetry, setClassChoiceRetry] = useState(0);
+
+  useEffect(() => {
+    const userId = session.user.sub;
+    let active = true;
+    setClassChoice('loading');
+    setClassChoiceUserId(null);
+
+    const loadChoice = async () => {
+      const choice = fibulaSupabase ? await fetchClassChoice(fibulaSupabase) : undefined;
+      if (!active || session.user.sub !== userId) return;
+
+      if (choice === undefined) {
+        let cached: { primary: ClassId; secondary: ClassId } | null = null;
+        try {
+          const raw = window.localStorage.getItem(`fibula-class-choice:${userId}`);
+          const parsed: unknown = raw ? JSON.parse(raw) : null;
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const value = parsed as Record<string, unknown>;
+            if (isProfileClassId(value.primary) && isProfileClassId(value.secondary)
+              && value.primary !== value.secondary) {
+              cached = { primary: value.primary, secondary: value.secondary };
+            }
+          }
+        } catch { /* Cache ausente ou inválido: exige verificação online. */ }
+
+        if (cached) {
+          setCharacterPreferences([cached.primary, cached.secondary]);
+          setClassChoice('chosen');
+        } else {
+          setClassChoice('unknown');
+        }
+        setClassChoiceUserId(userId);
+        return;
+      }
+
+      if (choice === null) {
+        setClassChoice('needs-choice');
+        setClassChoiceUserId(userId);
+        return;
+      }
+
+      setCharacterPreferences([choice.primary, choice.secondary]);
+      try {
+        window.localStorage.setItem(`fibula-class-choice:${userId}`, JSON.stringify({
+          primary: choice.primary,
+          secondary: choice.secondary,
+        }));
+      } catch { /* A resposta do servidor continua sendo a fonte de verdade. */ }
+      setClassChoice('chosen');
+      setClassChoiceUserId(userId);
+    };
+
+    void loadChoice();
+    return () => { active = false; };
+  }, [session.user.sub, classChoiceRetry]);
+
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [duoPeer, setDuoPeer] = useState<LobbyDuoPeer | null>(null);
@@ -1151,7 +1211,7 @@ export default function App() {
   useEffect(() => {
     const userId = session.user.sub;
     const supabase = fibulaSupabase;
-    const listsReady = !!userId && !!supabase && weaponsLoaded && !weaponsLoading
+    const listsReady = classChoice === 'chosen' && !!userId && !!supabase && weaponsLoaded && !weaponsLoading
       && (!CONFIG.rulesV2.armorCraftingEnabled || armorListReady)
       && accessoryListReady;
     if (!listsReady || !supabase || equipmentHydrationDoneRef.current === userId) return;
@@ -1203,6 +1263,7 @@ export default function App() {
     };
   }, [
     session.user.sub,
+    classChoice,
     weaponsLoaded,
     weaponsLoading,
     armorListReady,
@@ -1281,7 +1342,7 @@ export default function App() {
     const primaryClass = characterPreferences[0];
     const secondaryClass = characterPreferences[1];
     const supabase = fibulaSupabase;
-    if (!supabase || !session.user.sub || equipmentHydratedUserId !== session.user.sub
+    if (classChoice !== 'chosen' || !supabase || !session.user.sub || equipmentHydratedUserId !== session.user.sub
       || !weaponsLoaded || weaponsLoading || !accessoryListReady || !statusPowerReady
       || (!primaryClass && !secondaryClass)
       || (CONFIG.rulesV2.armorCraftingEnabled && !armorListReady)) return;
@@ -1314,6 +1375,7 @@ export default function App() {
       }
     }).catch(() => undefined);
   }, [
+    classChoice,
     statusPowerReady,
     equipmentHydratedUserId,
     weaponsLoaded,
@@ -1705,12 +1767,13 @@ export default function App() {
   }, [interfaceScale]);
 
   useEffect(() => {
+    if (classChoice !== 'chosen') return;
     window.localStorage.setItem('fibula-character-preferences', JSON.stringify(characterPreferences));
-  }, [characterPreferences]);
+  }, [characterPreferences, classChoice]);
 
   const primaryCharacter = characterPreferences[0];
   useEffect(() => {
-    if (!fibulaSupabase || !session.user.sub || !primaryCharacter) return;
+    if (classChoice !== 'chosen' || !fibulaSupabase || !session.user.sub || !primaryCharacter) return;
     if (lastReportedMainCharacterRef.current?.userId === session.user.sub
       && lastReportedMainCharacterRef.current.character === primaryCharacter) return;
     lastReportedMainCharacterRef.current = { userId: session.user.sub, character: primaryCharacter };
@@ -1718,7 +1781,7 @@ export default function App() {
       .update({ main_character: primaryCharacter, updated_at: new Date().toISOString() })
       .eq('user_id', session.user.sub)
       .then(() => undefined, () => undefined);
-  }, [primaryCharacter, session.user.sub]);
+  }, [primaryCharacter, session.user.sub, classChoice]);
 
   useEffect(() => {
     window.localStorage.setItem('fibula-arsenal-items', JSON.stringify(arsenalItems));
@@ -2315,7 +2378,7 @@ export default function App() {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (activeGameRoute.page !== 'lobby') return;
+    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby') return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const userId = session.user.sub;
@@ -3230,7 +3293,7 @@ export default function App() {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeGameRoute.page, session.user.sub]);
+  }, [activeGameRoute.page, session.user.sub, classChoice]);
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
@@ -4938,7 +5001,47 @@ export default function App() {
     }
   };
 
+  const confirmClassChoice = async (primary: ClassId, secondary: ClassId): Promise<{ success: boolean; message?: string }> => {
+    if (!fibulaSupabase) return { success: false, message: 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.' };
+    const result = await chooseClasses(fibulaSupabase, primary, secondary);
+    if (!result.choice) return { success: false, message: result.error || 'Não foi possível confirmar suas classes.' };
+
+    const serverChoice = result.choice;
+    setCharacterPreferences([serverChoice.primary, serverChoice.secondary]);
+    try {
+      window.localStorage.setItem(`fibula-class-choice:${session.user.sub}`, JSON.stringify({
+        primary: serverChoice.primary,
+        secondary: serverChoice.secondary,
+      }));
+    } catch { /* A confirmação do servidor não depende do cache local. */ }
+    setClassChoiceUserId(session.user.sub);
+    setClassChoice('chosen');
+    return { success: true };
+  };
+
+  const retryClassChoiceCheck = () => {
+    setClassChoice('loading');
+    setClassChoiceUserId(null);
+    setClassChoiceRetry(value => value + 1);
+  };
+
   const stationPresentation = activeCraftingStation as { icon: string; description: string; products: string };
+
+  if (classChoiceUserId !== session.user.sub || classChoice === 'loading') {
+    return <main className="class-choice-gate" aria-live="polite"><div className="class-choice-gate-card"><span className="class-choice-spinner" aria-hidden="true" /><p>Verificando suas classes…</p></div></main>;
+  }
+  if (classChoice === 'needs-choice') {
+    return <ClassChoiceOnboarding onConfirm={confirmClassChoice} />;
+  }
+  if (classChoice === 'unknown') {
+    return <main className="class-choice-gate" aria-live="polite">
+      <div className="class-choice-gate-card">
+        <h1>Não foi possível verificar suas classes</h1>
+        <p>Conecte-se à internet e tente novamente. Não entraremos no jogo até confirmar suas classes.</p>
+        <button type="button" className="class-choice-retry" onClick={retryClassChoiceCheck}>Tentar novamente</button>
+      </div>
+    </main>;
+  }
 
   return <>{activeCraftingStation ? <><div className="lobby-screen is-page-backdrop" aria-hidden="true">
       <div className="lobby-sky"><i className="lobby-moon"/><i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/><i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/><i className="lobby-comet"/></div>
@@ -5734,7 +5837,7 @@ export default function App() {
             </div>
             <div className="lobby-profile-content classes-content">
               <section className={`profile-class-details class-${profileClassTab}`} aria-label={`Comparação de atributos: ${CLASSES[profileClassTab].label}`}>
-                <ClassStatBars classId={profileClassTab} preferences={characterPreferences} onPreferencesChange={setCharacterPreferences} />
+                <ClassStatBars classId={profileClassTab} preferences={characterPreferences} onPreferencesChange={next => { if (classChoice !== 'chosen') setCharacterPreferences(next); }} />
               </section>
             </div>
           </section></div>

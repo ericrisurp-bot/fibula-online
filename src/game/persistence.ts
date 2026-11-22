@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ClassId } from './config';
 
 export type PersistedHouseStack = { itemId: string; quantity: number };
 export type SoloMatchResult = {
@@ -438,6 +439,67 @@ function removeSoloMatchResultOutboxEntry(userId: string, sessionId: string): vo
     window.localStorage.setItem(SOLO_MATCH_RESULT_OUTBOX_KEY, JSON.stringify(outbox));
   } catch {
     // Se a confirmação não puder ser removida localmente, o retry será idempotente.
+  }
+}
+
+
+export type ClassChoice = {
+  primary: ClassId;
+  secondary: ClassId;
+  source: 'player' | 'grandfathered';
+};
+
+export type ClassChoiceRequestResult = {
+  choice: ClassChoice | null;
+  error: string | null;
+};
+
+const CLASS_CHOICE_IDS = ['guerreiro', 'mago', 'arqueiro', 'druida'] as const;
+
+function isClassChoiceId(value: unknown): value is ClassId {
+  return typeof value === 'string' && (CLASS_CHOICE_IDS as readonly string[]).includes(value);
+}
+
+function parseClassChoice(value: unknown): ClassChoice | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const data = value as Record<string, unknown>;
+  if (data.chosen !== true || !isClassChoiceId(data.primary) || !isClassChoiceId(data.secondary)
+    || data.primary === data.secondary || (data.source !== 'player' && data.source !== 'grandfathered')) return null;
+  return { primary: data.primary, secondary: data.secondary, source: data.source };
+}
+
+export async function fetchClassChoice(client: SupabaseClient): Promise<ClassChoice | null | undefined> {
+  try {
+    const { data, error } = await client.rpc('fibula_get_class_choice');
+    if (error) return undefined;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return undefined;
+    const response = data as Record<string, unknown>;
+    if (response.chosen === false) return null;
+    return parseClassChoice(data) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function chooseClasses(
+  client: SupabaseClient,
+  primary: ClassId,
+  secondary: ClassId,
+): Promise<ClassChoiceRequestResult> {
+  if (!isClassChoiceId(primary) || !isClassChoiceId(secondary) || primary === secondary) {
+    return { choice: null, error: 'Escolha duas classes diferentes.' };
+  }
+  try {
+    const { data, error } = await client.rpc('fibula_choose_classes', {
+      p_primary_class: primary,
+      p_secondary_class: secondary,
+    });
+    if (error) return { choice: null, error: error.message || 'O servidor não aceitou a escolha. Tente novamente.' };
+    const choice = parseClassChoice(data);
+    if (!choice) return { choice: null, error: 'O servidor retornou uma confirmação inválida. Tente novamente.' };
+    return { choice, error: null };
+  } catch {
+    return { choice: null, error: 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.' };
   }
 }
 
