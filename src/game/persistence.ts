@@ -32,6 +32,12 @@ export type HouseDeltaApplyResult =
   | { kind: 'network' };
 
 const HOUSE_OUTBOX_KEY = 'fibula-house-outbox';
+let persistenceResetGeneration = 0;
+
+/** Invalida respostas de outboxes iniciadas antes da limpeza de época. */
+export function discardPendingPersistenceOutboxes(): void {
+  persistenceResetGeneration += 1;
+}
 
 function normalizeHouseDelta(value: unknown): HouseDeltaEntry[] {
   if (!Array.isArray(value)) return [];
@@ -107,11 +113,13 @@ export async function applyHouseDelta(
   delta: HouseDeltaEntry[],
 ): Promise<HouseDeltaApplyResult> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return { kind: 'network' };
+  const resetGeneration = persistenceResetGeneration;
   try {
     const { data, error } = await client.rpc('fibula_house_apply_delta', {
       p_op_id: opId,
       p_delta: delta,
     });
+    if (resetGeneration !== persistenceResetGeneration) return { kind: 'network' };
     if (error) {
       return typeof error.code === 'string' && error.code.length > 0
         ? { kind: 'rejected', message: error.message || 'O servidor recusou a alteração do Baú.' }
@@ -406,6 +414,7 @@ export async function flushSoloMatchResultOutbox(
   let accepted = 0;
   let duplicate = 0;
   let rejected = 0;
+  const resetGeneration = persistenceResetGeneration;
   const pending = readSoloMatchResultOutbox().filter(entry => entry.userId === userId);
   for (const entry of pending) {
     try {
@@ -413,6 +422,7 @@ export async function flushSoloMatchResultOutbox(
         kills: entry.kills,
         survivalNights: entry.survivalNights,
       });
+      if (resetGeneration !== persistenceResetGeneration) break;
       if (result === 'accepted') accepted += 1;
       else if (result === 'duplicate') duplicate += 1;
       else rejected += 1;
