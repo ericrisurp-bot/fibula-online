@@ -7,6 +7,8 @@ import { DownloadModal } from './DownloadModal';
 
 const RELEASES_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases?per_page=10';
 const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const RELEASE_RETRY_INTERVAL_MS = 30 * 1000;
+const RELEASE_CACHE_KEY = 'fibula-android-release-cache-v1';
 
 type ApkInstallerPlugin = {
   checkInstallPermission: () => Promise<{ canInstall: boolean }>;
@@ -34,11 +36,13 @@ type AndroidReleaseContextValue = {
   isAndroid: boolean;
   updateAvailable: boolean;
   checking: boolean;
+  checkFailed: boolean;
   downloading: boolean;
   downloadProgress: number;
   pendingApkPath: string | null;
   isSupported: boolean;
   downloadLatest: () => Promise<void>;
+  retryCheck: () => Promise<void>;
 };
 
 const AndroidReleaseContext = createContext<AndroidReleaseContextValue | null>(null);
@@ -76,6 +80,64 @@ function parseRelease(value: unknown): AndroidRelease | null {
   };
 }
 
+function isCachedRelease(value: unknown): value is AndroidRelease {
+  if (!value || typeof value !== 'object') return false;
+  const cached = value as Partial<AndroidRelease>;
+  return typeof cached.versionName === 'string'
+    && /^\\d+\\.\\d+\\.\\d+$/.test(cached.versionName)
+    && (cached.versionCode === null || (typeof cached.versionCode === 'number' && Number.isFinite(cached.versionCode)))
+    && typeof cached.apkUrl === 'string'
+    && typeof cached.apkSize === 'number' && Number.isSafeInteger(cached.apkSize) && cached.apkSize > 0
+    && typeof cached.apkSha256 === 'string' && /^[a-f0-9]{64}$/i.test(cached.apkSha256)
+    && (cached.publishedAt === null || typeof cached.publishedAt === 'string');
+}
+
+type ReleaseCache = {
+  release: AndroidRelease;
+  previousRelease: AndroidRelease | null;
+  savedAt: number;
+};
+
+function readReleaseCache(): ReleaseCache | null {
+  try {
+    const stored = window.localStorage.getItem(RELEASE_CACHE_KEY);
+    if (!stored) return null;
+    const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const cache = parsed as Partial<ReleaseCache>;
+    if (!isCachedRelease(cache.release)
+      || !(cache.previousRelease === null || isCachedRelease(cache.previousRelease))
+      || typeof cache.savedAt !== 'number' || !Number.isFinite(cache.savedAt)) return null;
+    return {
+      release: cache.release,
+      previousRelease: cache.previousRelease,
+      savedAt: cache.savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeReleaseCache(release: AndroidRelease, previousRelease: AndroidRelease | null): void {
+  try {
+    window.localStorage.setItem(RELEASE_CACHE_KEY, JSON.stringify({
+      release,
+      previousRelease,
+      savedAt: Date.now(),
+    } satisfies ReleaseCache));
+  } catch {
+    // O cache é opcional; indisponibilidade do armazenamento não bloqueia a consulta.
+  }
+}
+
+function clearReleaseCache(): void {
+  try {
+    window.localStorage.removeItem(RELEASE_CACHE_KEY);
+  } catch {
+    // A consulta bem-sucedida continua válida mesmo se não for possível limpar o cache.
+  }
+}
+
 function compareVersionNames(left: string, right: string): number {
   const leftParts = left.split('.').map(Number);
   const rightParts = right.split('.').map(Number);
@@ -95,15 +157,19 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
   const [currentVersionName, setCurrentVersionName] = useState<string | null>(null);
   const [currentVersionCode, setCurrentVersionCode] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
+  const [checkFailed, setCheckFailed] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [pendingApkPath, setPendingApkPath] = useState<string | null>(null);
   const lastCheckAt = useRef(0);
+  const lastRetryAt = useRef(0);
 
-  const refresh = useCallback(async () => {
-    if (Date.now() - lastCheckAt.current < RELEASE_CHECK_INTERVAL_MS) return;
-    lastCheckAt.current = Date.now();
+  const refresh = useCallback(async (ignoreMinimumInterval = false) => {
+    const checkStartedAt = Date.now();
+    if (!ignoreMinimumInterval && checkStartedAt - lastCheckAt.current < RELEASE_CHECK_INTERVAL_MS) return;
+    lastCheckAt.current = checkStartedAt;
     setChecking(true);
+    let useCacheOnFailure = false;
 
     try {
       if (isAndroid) {
@@ -118,16 +184,27 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const response = await fetch(RELEASES_URL, {
-        headers: { Accept: 'application/vnd.github+json' },
-        cache: 'no-cache',
-      });
+      let response: Response;
+      try {
+        response = await fetch(RELEASES_URL, {
+          headers: { Accept: 'application/vnd.github+json' },
+          cache: 'no-cache',
+        });
+      } catch (error) {
+        useCacheOnFailure = true;
+        throw error;
+      }
       if (response.status === 404) {
         setRelease(null);
         setPreviousRelease(null);
+        setCheckFailed(false);
+        clearReleaseCache();
         return;
       }
-      if (!response.ok) throw new Error('Não foi possível consultar a versão publicada.');
+      if (response.status === 403 || response.status === 429 || response.status >= 500) {
+        useCacheOnFailure = true;
+      }
+      if (!response.ok) throw new Error(`Não foi possível consultar a versão publicada (HTTP ${response.status}).`);
       const payload: unknown = await response.json();
       if (!Array.isArray(payload)) throw new Error('A resposta de versões do GitHub é inválida.');
       const validReleases = payload
@@ -141,14 +218,33 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
           return { ...parsed, publishedAt: typeof publishedAt === 'string' ? publishedAt : null };
         })
         .filter((item): item is AndroidRelease => item !== null);
-      setRelease(validReleases[0] ?? null);
-      setPreviousRelease(validReleases[1] ?? null);
+      const latestRelease = validReleases[0] ?? null;
+      const previousLatestRelease = validReleases[1] ?? null;
+      setRelease(latestRelease);
+      setPreviousRelease(previousLatestRelease);
+      setCheckFailed(false);
+      if (latestRelease) writeReleaseCache(latestRelease, previousLatestRelease);
+      else clearReleaseCache();
     } catch {
-      // Falhas temporárias do GitHub não bloqueiam o acesso ao jogo.
+      if (useCacheOnFailure) {
+        const cached = readReleaseCache();
+        if (cached) {
+          setRelease(cached.release);
+          setPreviousRelease(cached.previousRelease);
+        }
+      }
+      setCheckFailed(true);
     } finally {
       setChecking(false);
     }
   }, [isAndroid]);
+
+  const retryCheck = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastRetryAt.current < RELEASE_RETRY_INTERVAL_MS) return;
+    lastRetryAt.current = now;
+    await refresh(true);
+  }, [refresh]);
 
   useEffect(() => {
     void refresh();
@@ -292,12 +388,14 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
     isAndroid,
     updateAvailable,
     checking,
+    checkFailed,
     downloading,
     downloadProgress,
     pendingApkPath,
     isSupported,
     downloadLatest,
-  }), [release, previousRelease, currentVersionName, currentVersionCode, isAndroid, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest]);
+    retryCheck,
+  }), [release, previousRelease, currentVersionName, currentVersionCode, isAndroid, updateAvailable, checking, checkFailed, downloading, downloadProgress, pendingApkPath, isSupported, downloadLatest, retryCheck]);
 
   return <AndroidReleaseContext.Provider value={value}>{children}</AndroidReleaseContext.Provider>;
 }
