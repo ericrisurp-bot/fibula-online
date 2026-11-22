@@ -8475,8 +8475,8 @@ sem backdrop ou caixa de modal. */
 
 /* SP6 — Navegação lateral fixa e clareamento dos controles do Lobby. */
 :root { --side-nav-clearance:calc(40px + 10px + 8px + 6px + env(safe-area-inset-bottom)); }
-.side-nav{position:fixed;z-index:11000;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:4px;border:1px solid #e0d9ca;border-radius:12px;background:#fffdf8;box-shadow:0 4px 16px #29272024}
-.side-nav-button{display:flex;min-width:0;min-height:40px;align-items:center;justify-content:center;padding:4px 2px;border:1px solid #cfc6b3;border-radius:8px;background:#f1ece0;color:#292720;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.1;text-align:center;white-space:normal}
+.side-nav{position:fixed;z-index:11000;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));display:flex;gap:4px;padding:4px;border:1px solid #e0d9ca;border-radius:12px;background:#fffdf8;box-shadow:0 4px 16px #29272024}
+.side-nav-button{display:flex;flex:1 1 0;min-width:0;min-height:40px;align-items:center;justify-content:center;padding:4px 2px;border:1px solid #cfc6b3;border-radius:8px;background:#f1ece0;color:#292720;font-size:11px;font-weight:800;letter-spacing:0;line-height:1.1;text-align:center;white-space:normal}
 .side-nav-button.is-active{border-color:#292720;background:#292720;color:#fffdf8}
 .side-nav-button.side-nav-lobby{border-color:#8a744c;background:#fffdf8;color:#292720}
 .side-nav-button:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
