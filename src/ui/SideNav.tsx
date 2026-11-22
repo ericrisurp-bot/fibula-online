@@ -7,7 +7,6 @@ type SideNavProps = {
 };
 
 const SIDE_NAV_ITEMS: { id: SideNavId; label: string }[] = [
-  { id: 'classes', label: 'Classes' },
   { id: 'status', label: 'Status' },
   { id: 'arsenal', label: 'Arsenal' },
   { id: 'amigos', label: 'Amigos' },
