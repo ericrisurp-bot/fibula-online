@@ -205,6 +205,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
         useCacheOnFailure = true;
       }
       if (!response.ok) throw new Error(`Não foi possível consultar a versão publicada (HTTP ${response.status}).`);
+      useCacheOnFailure = true;
       const payload: unknown = await response.json();
       if (!Array.isArray(payload)) throw new Error('A resposta de versões do GitHub é inválida.');
       const validReleases = payload
