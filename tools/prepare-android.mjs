@@ -409,8 +409,35 @@ public class ApkInstallerPlugin extends Plugin {
                         return;
                     }
 
-                    String failure = "A instalação do APK foi recusada pelo Android. Código do status: "
-                        + status + ". Detalhes do Android: "
+                    String statusLabel;
+                    switch (status) {
+                        case PackageInstaller.STATUS_FAILURE:
+                            statusLabel = "falha na instalação";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_ABORTED:
+                            statusLabel = "instalação cancelada ou interrompida";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_BLOCKED:
+                            statusLabel = "instalação bloqueada pelo Android";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_CONFLICT:
+                            statusLabel = "conflito com pacote já instalado";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_INCOMPATIBLE:
+                            statusLabel = "APK incompatível com o dispositivo";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_INVALID:
+                            statusLabel = "pacote APK inválido";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_STORAGE:
+                            statusLabel = "espaço de armazenamento insuficiente";
+                            break;
+                        default:
+                            statusLabel = "falha não identificada na instalação";
+                            break;
+                    }
+                    String failure = "Não foi possível concluir a instalação: " + statusLabel
+                        + ". Código do status: " + status + ". Detalhes do Android: "
                         + (statusMessage == null || statusMessage.trim().isEmpty()
                             ? "nenhum detalhe informado."
                             : statusMessage);
@@ -492,7 +519,8 @@ public class ApkInstallerPlugin extends Plugin {
         activeInstallSessionId = -1;
     }
 
-    public void handleOnDestroy() {
+    @Override
+    protected void handleOnDestroy() {
         unregisterInstallStatusReceiver();
         activeInstallCall = null;
         super.handleOnDestroy();
