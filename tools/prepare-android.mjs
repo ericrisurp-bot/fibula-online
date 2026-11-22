@@ -237,7 +237,11 @@ public class ApkInstallerPlugin extends Plugin {
             getActivity().startActivity(intent);
             call.resolve();
         } catch (Exception error) {
-            call.reject("O Android não conseguiu abrir o instalador do APK.", error);
+            String detail = error.getClass().getSimpleName();
+            if (error.getMessage() != null && !error.getMessage().trim().isEmpty()) {
+                detail += ": " + error.getMessage();
+            }
+            call.reject("O Android não conseguiu abrir o instalador do APK (" + detail + ").", error);
         }
     }
 }
