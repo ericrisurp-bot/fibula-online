@@ -377,7 +377,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
             const sessionMessage = describeError(sessionInstallError);
             const fallbackMessage = describeError(fallbackError);
             const openDownload = window.confirm(
-              `Não foi possível instalar o APK pelos métodos do Android.\\n\\nPackageInstaller (sessão): ${sessionMessage}\\n\\nInstalador tradicional (ACTION_VIEW): ${fallbackMessage}\\n\\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
+              `Não foi possível instalar o APK pelos métodos do Android.\n\nPackageInstaller (sessão): ${sessionMessage}\n\nInstalador tradicional (ACTION_VIEW): ${fallbackMessage}\n\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
             );
             if (openDownload) window.location.assign(release.apkUrl);
             return;
