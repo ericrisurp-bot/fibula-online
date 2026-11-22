@@ -2055,7 +2055,7 @@ export default function App() {
       observer?.disconnect();
       window.removeEventListener('resize', drawGrass);
     };
-  }, [showStart, activeGameRoute.page]);
+  }, [showStart, activeGameRoute.page, activeCraftingStation, classChoice, classChoiceUserId]);
 
   useEffect(() => {
     const showLobbyBackdrop = showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau', 'jogador', 'ranking'].includes(activeGameRoute.page) || Boolean(activeCraftingStation));
