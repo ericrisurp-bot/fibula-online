@@ -215,7 +215,15 @@ try {
     'a tabela de rate limit deve manter RLS habilitado');
   assert.match(rateLimitMigration, /revoke all on table public\.fibula_proficiency_rate_limits from public, anon, authenticated/i,
     'o cliente não pode acessar diretamente a tabela de rate limit');
-  passed.push('paridade SQL × TypeScript: catálogo e ProficiencyKey');
+  const extremeMigration = await readFile(
+    'supabase/migrations/20261122150000_extreme_proficiency_progression.sql',
+    'utf8',
+  );
+  assert.match(extremeMigration, /add column progression_preserved_level/i);
+  assert.match(extremeMigration, /add column progression_baseline_counter/i);
+  assert.match(extremeMigration, /update public\.fibula_proficiencies/i);
+  assert.match(extremeMigration, /legacy_milestones/i);
+  passed.push('paridade SQL × TypeScript: catálogo, chaves e migração de baseline');
 
   // Simula uma instalação v3 com progresso local ainda não sincronizado.
   const legacyLocalUser = user('legacy-local');
