@@ -375,6 +375,7 @@ public class ApkInstallerPlugin extends Plugin {
             unregisterInstallStatusReceiver();
             activeInstallCall = call;
             activeInstallCallResolved = false;
+            call.setKeepAlive(true);
             final int currentSessionId = sessionId;
             final String statusAction = getContext().getPackageName() + ".INSTALL_STATUS";
             installStatusReceiver = new BroadcastReceiver() {
@@ -393,10 +394,8 @@ public class ApkInstallerPlugin extends Plugin {
                         try {
                             confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                             getContext().startActivity(confirmation);
-                            if (activeInstallCall != null && !activeInstallCallResolved) {
-                                activeInstallCallResolved = true;
-                                activeInstallCall.resolve();
-                            }
+                            // Mantém a chamada viva até o status final para que falhas após a confirmação
+                            // sejam rejeitadas e o plano B JavaScript possa ser executado.
                         } catch (Exception error) {
                             String details = formatInstallError("4) abrir confirmação do Android", error);
                             Log.e("ApkInstallerPlugin", "Falha na sessão de instalação: " + details, error);
@@ -509,6 +508,7 @@ public class ApkInstallerPlugin extends Plugin {
         }
         activeInstallCallResolved = true;
         activeInstallCall = null;
+        call.setKeepAlive(false);
         if (success) call.resolve();
         else call.reject(message);
     }
