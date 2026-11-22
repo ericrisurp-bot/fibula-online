@@ -2033,6 +2033,9 @@ export default function App() {
     const drawGrass = () => {
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
+      // O lobby pode montar antes de o canvas receber seu tamanho final.
+      // Aguarda dimensões válidas para não deixar o chão permanentemente vazio.
+      if (width <= 0 || height <= 0) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
@@ -2043,9 +2046,16 @@ export default function App() {
       ctx.fillRect(0, 0, width, height);
     };
     drawGrass();
+    const observer = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(drawGrass)
+      : null;
+    observer?.observe(canvas);
     window.addEventListener('resize', drawGrass);
-    return () => window.removeEventListener('resize', drawGrass);
-  }, [showStart, activeGameRoute.page]);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', drawGrass);
+    };
+  }, [showStart, activeGameRoute.page, activeCraftingStation, classChoice, classChoiceUserId]);
 
   useEffect(() => {
     const showLobbyBackdrop = showStart && (activeGameRoute.page === 'lobby' || ['classes', 'status', 'arsenal', 'amigos', 'bau', 'jogador', 'ranking'].includes(activeGameRoute.page) || Boolean(activeCraftingStation));
