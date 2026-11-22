@@ -2007,10 +2007,11 @@ export class GameEngine {
       * level / CONFIG.lake.fishingProficiencyBonus.maxLevel;
     if (this.random() >= bonusChance) return undefined;
 
-    let selectionRoll = this.random() * totalWeight;
+    const selectionRoll = this.random();
+    let cumulativeWeight = 0;
     for (const fish of eligible) {
-      if (selectionRoll < fish.chancePercent) return fish.itemId;
-      selectionRoll -= fish.chancePercent;
+      cumulativeWeight += fish.chancePercent;
+      if (selectionRoll < cumulativeWeight / totalWeight) return fish.itemId;
     }
     return eligible[eligible.length - 1]?.itemId;
   }
