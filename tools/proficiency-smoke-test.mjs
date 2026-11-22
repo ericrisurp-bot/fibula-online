@@ -1063,6 +1063,159 @@ try {
   passed.push('motor headless: flecha atravessa três alvos, aplica fatores atuais e conta um arco');
 
 
+  // B2 — bônus de espécie na pesca, limitado ao lago atual e escalado pela vara.
+  const b2Engine = makeEngine();
+  const b2Total100 = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES
+    .find(table => table.key === 'vara_pesca').milestones
+    .find(milestone => milestone.level === 100).totalRequired;
+  const b2Total50 = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES
+    .find(table => table.key === 'vara_pesca').milestones
+    .find(milestone => milestone.level === 50).totalRequired;
+  let b2RandomCalls = 0;
+  b2Engine.random = () => { b2RandomCalls++; return 0; };
+  assert.equal(b2Engine.rollFishingSpeciesBonus(), undefined);
+  assert.equal(b2RandomCalls, 0, 'vara no nível 0 não pode consumir RNG para o bônus');
+  b2Engine.setProficiencyTotal('vara_pesca', b2Total50);
+  const b2RollAt50 = (chance, selection, normalFish, lakeSize = 'large') => {
+    b2Engine.state.lake = { ...b2Engine.state.lake, size: lakeSize };
+    const values = [chance, selection];
+    let index = 0;
+    b2Engine.random = () => values[index++] ?? 0.999999;
+    return b2Engine.rollFishingSpeciesBonus(normalFish);
+  };
+  assert.equal(b2RollAt50(0.014999, 0, 'tilapia'), 'tambaqui',
+    'nível 50 deve aplicar chance máxima proporcional de 1,5%');
+  assert.equal(b2RollAt50(0.015, 0, 'tilapia'), undefined,
+    'chance exatamente 1,5% deve falhar no nível 50');
+  b2Engine.setProficiencyTotal('vara_pesca', b2Total100);
+  const b2Roll = (chance, selection, normalFish, lakeSize = 'large') => {
+    b2Engine.state.lake = { ...b2Engine.state.lake, size: lakeSize };
+    const values = [chance, selection];
+    let index = 0;
+    b2Engine.random = () => values[index++] ?? 0.999999;
+    return b2Engine.rollFishingSpeciesBonus(normalFish);
+  };
+  assert.deepEqual([
+    b2Roll(0, 0.1, 'tilapia'),
+    b2Roll(0, 0.5, 'tilapia'),
+    b2Roll(0, 0.85, 'tilapia'),
+    b2Roll(0, 0.97, 'tilapia'),
+  ], ['tambaqui', 'pintado_surubim', 'lambari', 'tucunare'],
+  'lago grande com normal=tilápia deve permitir as quatro espécies elegíveis');
+  assert.deepEqual([
+    b2Roll(0, 0.1, 'tambaqui'),
+    b2Roll(0, 0.7, 'tambaqui'),
+    b2Roll(0, 0.95, 'tambaqui'),
+  ], ['pintado_surubim', 'lambari', 'tucunare'],
+  'normal=tambaqui deve permitir somente espécies posteriores');
+  assert.deepEqual([
+    b2Roll(0, 0.1, 'pintado_surubim'),
+    b2Roll(0, 0.8, 'pintado_surubim'),
+  ], ['lambari', 'tucunare'],
+  'normal=pintado deve permitir somente lambari e tucunaré');
+  assert.equal(b2Roll(0, 0.5, 'lambari'), 'tucunare',
+    'normal=lambari deve permitir somente tucunaré');
+  assert.equal(b2Roll(0, 0.5, 'tucunare'), undefined,
+    'normal=tucunaré não pode receber bônus');
+  assert.deepEqual([
+    b2Roll(0, 0.1, undefined),
+    b2Roll(0, 0.5, undefined),
+    b2Roll(0, 0.85, undefined),
+    b2Roll(0, 0.97, undefined),
+  ], ['tambaqui', 'pintado_surubim', 'lambari', 'tucunare'],
+  'sem peixe normal, todas as quatro espécies de índice >= 1 ficam elegíveis');
+  assert.deepEqual([
+    b2Roll(0, 0.5, 'tilapia', 'small'),
+    b2Roll(0, 0.5, 'tilapia', 'medium'),
+    b2Roll(0, 0.9, 'tilapia', 'medium'),
+  ], ['tambaqui', 'tambaqui', 'pintado_surubim'],
+  'lago pequeno só permite tambaqui; lago médio permite tambaqui e pintado');
+  assert.equal(b2Roll(0, 0.999, 'tilapia', 'small'), 'tambaqui');
+  assert.equal(b2Roll(0, 0.999, 'tilapia', 'medium'), 'pintado_surubim');
+  assert.equal(b2Roll(0, 0.03, 'tilapia'), undefined,
+    'chance exatamente 3% deve falhar no nível 100');
+  assert.equal(b2Roll(0.029999, 0, 'tilapia'), 'tambaqui',
+    'chance imediatamente abaixo de 3% deve permitir o bônus');
+
+  // Fronteiras exatas da seleção proporcional: pesos 0,8 / 0,6 / 0,3 / 0,1.
+  const b2LargeThresholds = 0.8 + 0.6 + 0.3 + 0.1;
+  assert.equal(b2Roll(0, 0, 'tilapia'), 'tambaqui');
+  assert.equal(b2Roll(0, 0.8 / b2LargeThresholds, 'tilapia'), 'pintado_surubim');
+  assert.equal(b2Roll(0, 1.4 / b2LargeThresholds, 'tilapia'), 'lambari');
+  assert.equal(b2Roll(0, 1.7 / b2LargeThresholds, 'tilapia'), 'tucunare');
+  assert.equal(b2Roll(0, 0.999999, 'tilapia'), 'tucunare');
+
+  // Simulação determinística: frequência total próxima de 3% e distribuição entre as quatro espécies.
+  const b2Simulate = (lakeSize, attempts, seed) => {
+    b2Engine.state.lake = { ...b2Engine.state.lake, size: lakeSize };
+    let randomState = seed >>> 0;
+    b2Engine.random = () => {
+      randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+      return randomState / 0x100000000;
+    };
+    const counts = { tambaqui: 0, pintado_surubim: 0, lambari: 0, tucunare: 0 };
+    for (let i = 0; i < attempts; i++) {
+      const fish = b2Engine.rollFishingSpeciesBonus();
+      if (fish) counts[fish]++;
+    }
+    return counts;
+  };
+  const b2LargeCounts = b2Simulate('large', 200000, 0xB202611);
+  const b2LargeTotal = Object.values(b2LargeCounts).reduce((sum, count) => sum + count, 0);
+  assert.ok(Math.abs(b2LargeTotal / 200000 - 0.03) < 0.0015,
+    `frequência total do bônus no lago grande deve ficar próxima de 3%; recebida ${b2LargeTotal / 200000}`);
+  assert.ok(Object.values(b2LargeCounts).every(count => count > 0),
+    'simulação no lago grande deve produzir tambaqui, pintado, lambari e tucunaré');
+  const b2ExpectedShares = {
+    tambaqui: 0.8 / 1.8,
+    pintado_surubim: 0.6 / 1.8,
+    lambari: 0.3 / 1.8,
+    tucunare: 0.1 / 1.8,
+  };
+  for (const [fish, expectedShare] of Object.entries(b2ExpectedShares)) {
+    assert.ok(Math.abs(b2LargeCounts[fish] / b2LargeTotal - expectedShare) < 0.025,
+      `proporção de ${fish} deve seguir chancePercent renormalizado`);
+  }
+  const b2SmallCounts = b2Simulate('small', 200000, 0xB202612);
+  assert.ok(b2SmallCounts.tambaqui > 0, 'simulação no lago pequeno deve produzir tambaqui');
+  assert.equal(b2SmallCounts.pintado_surubim + b2SmallCounts.lambari + b2SmallCounts.tucunare, 0,
+    'ignorar fishByLakeSize e usar a lista grande no lago pequeno deve quebrar este teste');
+
+  // Integração real de updateFishing: proficiência, bônus extra e mochila cheia.
+  const b2DeliveryEngine = makeEngine();
+  b2DeliveryEngine.setProficiencyTotal('vara_pesca', b2Total100);
+  b2DeliveryEngine.state.lake = {
+    ...b2DeliveryEngine.state.lake, x: 1000, y: 1000, rx: 120, ry: 85, size: 'large',
+  };
+  b2DeliveryEngine.state.player.x = 1000;
+  b2DeliveryEngine.state.player.y = 1000 + 85 + 10 - CONFIG.player.footOffset;
+  b2DeliveryEngine.state.player.moving = false;
+  b2DeliveryEngine.state.cart.carried = false;
+  b2DeliveryEngine.state.enemies = [];
+  b2DeliveryEngine.state.inventory = [
+    { itemId: 'wood', quantity: 1 },
+    { itemId: 'stone', quantity: 1 },
+    { itemId: 'cotton', quantity: 1 },
+  ];
+  b2DeliveryEngine.fishingTimer = 6.99;
+  const b2DeliveryValues = [0.99, 0, 0.999999, 0.5, 0.5];
+  let b2DeliveryIndex = 0;
+  b2DeliveryEngine.random = () => b2DeliveryValues[b2DeliveryIndex++] ?? 0.5;
+  const b2DeliveryEvents = [];
+  b2DeliveryEngine.onProficiencyEvent = event => b2DeliveryEvents.push(event);
+  b2DeliveryEngine.updateFishing(0.02);
+  assert.deepEqual(b2DeliveryEvents, [{ key: 'vara_pesca', amount: 1 }],
+    'a puxada que gera bônus deve contar exatamente uma proficiência de vara');
+  const b2BonusDrops = b2DeliveryEngine.state.wildlifeDrops.filter(drop => drop.kind === 'tucunare');
+  assert.equal(b2BonusDrops.length, 1, 'o bônus deve adicionar exatamente um peixe extra');
+  assert.equal(b2BonusDrops[0].lifetime, CONFIG.lake.fishDropLifetime,
+    'peixe bônus fora da mochila deve respeitar fishDropLifetime');
+  assert.ok(b2DeliveryEngine.state.floatingDamage.some(label => label.label === 'Mochila cheia'),
+    'peixe bônus com mochila cheia deve exibir o aviso atual');
+  b2DeliveryEngine.stop();
+  b2Engine.stop();
+  passed.push('B2: bônus de espécie escalado pela vara, elegibilidade por lago/índice, pesos proporcionais, mochila cheia e simulações');
+
   console.log('Grupos aprovados:');
   for (const name of passed) console.log(' - ' + name);
   console.log('NÃO testado: dano exatamente zero em golpes_recebidos. O cálculo atual applyArmorToDamage aplica Math.max(1, ...) nos dois ramos de configuração, portanto o motor garante dano mínimo 1; não há estado válido que produza dano 0 para esse caminho sem adulterar a função de dano.');
