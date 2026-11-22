@@ -254,7 +254,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
             ? installError.message
             : 'O Android não informou o motivo da falha.';
           const openDownload = window.confirm(
-            `Não foi possível iniciar a instalação do APK.\\n\\nDetalhes: ${installMessage}\\n\\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
+            `Não foi possível iniciar a instalação do APK.\n\nDetalhes: ${installMessage}\n\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
           );
           if (openDownload) window.location.assign(release.apkUrl);
           return;
