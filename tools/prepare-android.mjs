@@ -382,7 +382,7 @@ public class ApkInstallerPlugin extends Plugin {
                     int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
                     String statusMessage = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
                     if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                        Intent confirmation = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+                        Intent confirmation = (Intent) intent.getParcelableExtra(Intent.EXTRA_INTENT);
                         if (confirmation == null) {
                             finishInstallCall(false, "O Android solicitou confirmação, mas não forneceu a tela de instalação. Código: " + status + ". Detalhes: " + statusMessage);
                             unregisterInstallStatusReceiver();
