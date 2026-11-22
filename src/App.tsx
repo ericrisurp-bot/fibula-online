@@ -913,6 +913,7 @@ export default function App() {
       }
 
       if (choice === null) {
+        setCharacterPreferences([null, null]);
         setClassChoice('needs-choice');
         setClassChoiceUserId(userId);
         return;
@@ -5027,11 +5028,48 @@ export default function App() {
 
   const stationPresentation = activeCraftingStation as { icon: string; description: string; products: string };
 
+  const classesPage = (profileOpen || classChoice === 'needs-choice') && <PageFrame eyebrow="" title="" onBack={classChoice === 'needs-choice' ? undefined : closeGamePage} hideHeader stateClassName="side-page classes-page">
+    <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
+      <div className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
+        {PROFILE_CLASS_IDS.map(classId => <button
+          type="button"
+          role="tab"
+          aria-selected={profileClassTab === classId}
+          tabIndex={profileClassTab === classId ? 0 : -1}
+          className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
+          key={classId}
+          onClick={() => setProfileClassTab(classId)}
+        >
+          <ClassFace classId={classId} size={36} />
+          <strong>{CLASSES[classId].label}</strong>
+        </button>)}
+      </div>
+      <div className="lobby-profile-content classes-content">
+        <section className={`profile-class-details class-${profileClassTab}`} aria-label={`Comparação de atributos: ${CLASSES[profileClassTab].label}`}>
+          <ClassStatBars classId={profileClassTab} preferences={characterPreferences} onPreferencesChange={next => { if (classChoice !== 'chosen') setCharacterPreferences(next); }} />
+        </section>
+      </div>
+    </section></div>
+    {classChoice !== 'needs-choice' && <SideNav current="classes" onLobby={closeGamePage} onOpenPage={openSidePage} />}
+  </PageFrame>;
+
+
+
   if (classChoiceUserId !== session.user.sub || classChoice === 'loading') {
     return <main className="class-choice-gate" aria-live="polite"><div className="class-choice-gate-card"><span className="class-choice-spinner" aria-hidden="true" /><p>Verificando suas classes…</p></div></main>;
   }
   if (classChoice === 'needs-choice') {
-    return <ClassChoiceOnboarding onConfirm={confirmClassChoice} />;
+    return <main className="class-first-entry">
+      <div className="lobby-screen is-page-backdrop" aria-hidden="true">
+        <div className="lobby-sky"><i className="lobby-moon"/><i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/><i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/><i className="lobby-comet"/></div>
+      </div>
+      {classesPage}
+      <ClassChoiceOnboarding
+        primary={characterPreferences[0]}
+        secondary={characterPreferences[1]}
+        onConfirm={confirmClassChoice}
+      />
+    </main>;
   }
   if (classChoice === 'unknown') {
     return <main className="class-choice-gate" aria-live="polite">
@@ -5819,30 +5857,7 @@ export default function App() {
           </section></div>
           <SideNav current="status" onLobby={closeGamePage} onOpenPage={openSidePage} />
         </PageFrame>}
-        {profileOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
-          <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
-            <div className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
-              {PROFILE_CLASS_IDS.map(classId => <button
-                type="button"
-                role="tab"
-                aria-selected={profileClassTab === classId}
-                tabIndex={profileClassTab === classId ? 0 : -1}
-                className={`profile-class-tab class-${classId} ${profileClassTab === classId ? 'active' : ''}`}
-                key={classId}
-                onClick={() => setProfileClassTab(classId)}
-              >
-                <ClassFace classId={classId} size={36} />
-                <strong>{CLASSES[classId].label}</strong>
-              </button>)}
-            </div>
-            <div className="lobby-profile-content classes-content">
-              <section className={`profile-class-details class-${profileClassTab}`} aria-label={`Comparação de atributos: ${CLASSES[profileClassTab].label}`}>
-                <ClassStatBars classId={profileClassTab} preferences={characterPreferences} onPreferencesChange={next => { if (classChoice !== 'chosen') setCharacterPreferences(next); }} />
-              </section>
-            </div>
-          </section></div>
-          <SideNav current="classes" onLobby={closeGamePage} onOpenPage={openSidePage} />
-        </PageFrame>}
+        {classesPage}
         {rankingOpen && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page ranking-page">
           <div className="station-page-content side-page-content ranking-page-content"><section className="side-page-panel ranking-panel">
             <nav className="ranking-mode-tabs" role="tablist" aria-label="Modalidade do ranking">
