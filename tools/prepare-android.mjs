@@ -84,6 +84,7 @@ const pluginPath = join(javaDirectory, 'ApkInstallerPlugin.java');
 
 const pluginSource = `package ${javaPackage};
 
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -221,10 +222,18 @@ public class ApkInstallerPlugin extends Plugin {
                 getContext().getPackageName() + ".apkprovider",
                 apkFile
             );
-            Intent intent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+            // Use the same generic APK-opening flow used when the user taps
+            // an APK in Downloads: Android resolves the package installer and
+            // keeps its normal security / Play Protect checks in control.
+            Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.setClipData(ClipData.newUri(
+                getContext().getContentResolver(),
+                "Fíbula APK",
+                contentUri
+            ));
             getActivity().startActivity(intent);
             call.resolve();
         } catch (Exception error) {
