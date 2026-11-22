@@ -5051,7 +5051,7 @@ export default function App() {
 
   const stationPresentation = activeCraftingStation as { icon: string; description: string; products: string };
 
-  const classesPage = (profileOpen || classChoice === 'needs-choice') && <PageFrame eyebrow="" title="" onBack={classChoice === 'needs-choice' ? undefined : closeGamePage} hideHeader stateClassName="side-page classes-page">
+  const classesPage = (profileOpen || classChoice === 'needs-choice') && <PageFrame eyebrow="" title="" onBack={closeGamePage} hideHeader stateClassName="side-page classes-page">
     <div className="station-page-content side-page-content"><section className="lobby-profile-modal lobby-classes-page side-page-panel">
       <div className="lobby-profile-tabs classes-tabs" role="tablist" aria-label="Classes disponíveis">
         {PROFILE_CLASS_IDS.map(classId => <button
