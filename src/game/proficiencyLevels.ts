@@ -20,6 +20,38 @@ type ExtremeProgressionConfig = {
 
 const PROGRESSION_EXPONENT = 1.8;
 
+const LEGACY_PROFICIENCY_LEVEL_CONFIG: Readonly<Record<ProficiencyKey, readonly [number, number, number]>> = {
+  espada: [14.65, 1.10, 150],
+  arco: [14.65, 1.10, 150],
+  cajado: [14.65, 1.10, 150],
+  bastao_natureza: [14.65, 1.10, 150],
+  golpes_recebidos: [3.66, 1.10, 150],
+  machado_madeira: [10.96, 1.08, 100],
+  picareta: [10.96, 1.08, 100],
+  foice_mao: [10.96, 1.08, 100],
+  vara_pesca: [5.48, 1.08, 100],
+  faca_esfolar: [1.37, 1.08, 100],
+  carroca_distancia: [13.57, 1.07, 100],
+};
+
+/** Reproduz exatamente a curva levels-v1 para migrar progresso local ainda não sincronizado. */
+export function getLegacyProficiencyLevel(key: ProficiencyKey, total: number): number {
+  if (!Number.isSafeInteger(total) || total < 0) return 0;
+  const [base, growth, maxLevel] = LEGACY_PROFICIENCY_LEVEL_CONFIG[key];
+  let level = 0;
+  let previous = 0;
+
+  for (let currentLevel = 1; currentLevel <= maxLevel; currentLevel += 1) {
+    const calculated = Math.round(base * (Math.pow(growth, currentLevel) - 1) / (growth - 1));
+    const required = calculated <= previous ? previous + 1 : calculated;
+    if (total < required) break;
+    level = currentLevel;
+    previous = required;
+  }
+
+  return level;
+}
+
 /**
  * Metas extremas de atividade contínua. Os totais máximos são calibrados
  * pelos intervalos de evento do jogo; não alteram a frequência dos eventos.
