@@ -84,8 +84,13 @@ const pluginPath = join(javaDirectory, 'ApkInstallerPlugin.java');
 
 const pluginSource = `package ${javaPackage};
 
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
+import android.content.pm.PackageInstaller;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
@@ -324,6 +329,224 @@ public class ApkInstallerPlugin extends Plugin {
                 );
             }
         }
+    }
+
+
+    private BroadcastReceiver installStatusReceiver;
+    private PluginCall activeInstallCall;
+    private boolean activeInstallCallResolved = false;
+
+    @PluginMethod
+    public void installApkSession(PluginCall call) {
+        String step = "1) verificar permissão";
+        File apkFile;
+        PackageInstaller installer = null;
+        int sessionId = -1;
+        boolean committed = false;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && !getContext().getPackageManager().canRequestPackageInstalls()) {
+                call.reject("O Fíbula ainda não tem autorização para solicitar instalações.");
+                return;
+            }
+
+            step = "2) validar arquivo";
+            String filePath = call.getString("filePath");
+            if (filePath == null || filePath.trim().isEmpty()) {
+                throw new IllegalArgumentException("Caminho do APK não informado.");
+            }
+            Uri fileUri = Uri.parse(filePath);
+            apkFile = new File(fileUri.getPath());
+            if (!apkFile.isFile() || apkFile.length() <= 0) {
+                throw new IllegalArgumentException("O APK baixado não foi encontrado ou está vazio.");
+            }
+
+            step = "3) obter PackageInstaller";
+            installer = getContext().getPackageManager().getPackageInstaller();
+
+            step = "4) criar sessão PackageInstaller";
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+                PackageInstaller.SessionParams.MODE_FULL_INSTALL
+            );
+            params.setSize(apkFile.length());
+            sessionId = installer.createSession(params);
+
+            step = "5) registrar receptor de status";
+            unregisterInstallStatusReceiver();
+            activeInstallCall = call;
+            activeInstallCallResolved = false;
+            call.setKeepAlive(true);
+            final int currentSessionId = sessionId;
+            final String statusAction = getContext().getPackageName() + ".INSTALL_STATUS";
+            installStatusReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent == null || !statusAction.equals(intent.getAction())) return;
+                    int status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
+                    String statusMessage = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
+                    if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                        Intent confirmation = (Intent) intent.getParcelableExtra(Intent.EXTRA_INTENT);
+                        if (confirmation == null) {
+                            finishInstallCall(false, "O Android solicitou confirmação, mas não forneceu a tela de instalação. Código: " + status + ". Detalhes: " + statusMessage);
+                            unregisterInstallStatusReceiver();
+                            return;
+                        }
+                        try {
+                            confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            getContext().startActivity(confirmation);
+                            // Mantém a chamada viva até o status final para que falhas após a confirmação
+                            // sejam rejeitadas e o plano B JavaScript possa ser executado.
+                        } catch (Exception error) {
+                            String details = formatInstallError("4) abrir confirmação do Android", error);
+                            Log.e("ApkInstallerPlugin", "Falha na sessão de instalação: " + details, error);
+                            finishInstallCall(false, "Não foi possível abrir a confirmação de instalação. " + details);
+                            unregisterInstallStatusReceiver();
+                        }
+                        return;
+                    }
+                    if (status == PackageInstaller.STATUS_FAILURE_ABORTED) {
+                        String abortedMessage = "A instalação foi cancelada pelo usuário. Código do status: "
+                            + status + ". Detalhes do Android: "
+                            + (statusMessage == null || statusMessage.trim().isEmpty()
+                                ? "nenhum detalhe informado."
+                                : statusMessage);
+                        finishInstallCall(false, abortedMessage, "INSTALL_ABORTED");
+                        unregisterInstallStatusReceiver();
+                        return;
+                    }
+
+                    if (status == PackageInstaller.STATUS_SUCCESS) {
+                        finishInstallCall(true, null);
+                        unregisterInstallStatusReceiver();
+                        return;
+                    }
+
+                    String statusLabel;
+                    switch (status) {
+                        case PackageInstaller.STATUS_FAILURE:
+                            statusLabel = "falha na instalação";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_ABORTED:
+                            statusLabel = "instalação cancelada ou interrompida";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_BLOCKED:
+                            statusLabel = "instalação bloqueada pelo Android";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_CONFLICT:
+                            statusLabel = "conflito com pacote já instalado";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_INCOMPATIBLE:
+                            statusLabel = "APK incompatível com o dispositivo";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_INVALID:
+                            statusLabel = "pacote APK inválido";
+                            break;
+                        case PackageInstaller.STATUS_FAILURE_STORAGE:
+                            statusLabel = "espaço de armazenamento insuficiente";
+                            break;
+                        default:
+                            statusLabel = "falha não identificada na instalação";
+                            break;
+                    }
+                    String failure = "Não foi possível concluir a instalação: " + statusLabel
+                        + ". Código do status: " + status + ". Detalhes do Android: "
+                        + (statusMessage == null || statusMessage.trim().isEmpty()
+                            ? "nenhum detalhe informado."
+                            : statusMessage);
+                    Log.e("ApkInstallerPlugin", failure);
+                    finishInstallCall(false, failure);
+                    unregisterInstallStatusReceiver();
+                }
+            };
+            IntentFilter filter = new IntentFilter(statusAction);
+            if (Build.VERSION.SDK_INT >= 33) {
+                getContext().registerReceiver(installStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                getContext().registerReceiver(installStatusReceiver, filter);
+            }
+
+            step = "6) gravar APK na sessão";
+            try (PackageInstaller.Session session = installer.openSession(sessionId)) {
+                try (java.io.FileInputStream input = new java.io.FileInputStream(apkFile);
+                     java.io.OutputStream output = session.openWrite("base.apk", 0, apkFile.length())) {
+                    byte[] buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, read);
+                    }
+                    session.fsync(output);
+                }
+
+                step = "7) confirmar sessão";
+                Intent statusIntent = new Intent(statusAction);
+                statusIntent.setPackage(getContext().getPackageName());
+                int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    pendingIntentFlags |= PendingIntent.FLAG_MUTABLE;
+                }
+                PendingIntent statusPendingIntent = PendingIntent.getBroadcast(
+                    getContext(),
+                    currentSessionId,
+                    statusIntent,
+                    pendingIntentFlags
+                );
+                session.commit(statusPendingIntent.getIntentSender());
+                committed = true;
+            }
+        } catch (Exception error) {
+            if (!committed && sessionId >= 0 && installer != null) {
+                try {
+                    installer.abandonSession(sessionId);
+                } catch (Exception abandonError) {
+                    Log.e("ApkInstallerPlugin", "Não foi possível abandonar a sessão " + sessionId, abandonError);
+                }
+            }
+            String details = formatInstallError(step, error);
+            Log.e("ApkInstallerPlugin", "Falha na sessão de instalação do APK: " + details, error);
+            unregisterInstallStatusReceiver();
+            if (activeInstallCall == call && !activeInstallCallResolved) {
+                activeInstallCall = null;
+                call.setKeepAlive(false);
+                call.reject("Não foi possível instalar o APK pela sessão do Android. " + details, error);
+            }
+        }
+    }
+
+    private void finishInstallCall(boolean success, String message) {
+        finishInstallCall(success, message, null);
+    }
+
+    private void finishInstallCall(boolean success, String message, String code) {
+        PluginCall call = activeInstallCall;
+        if (call == null) return;
+        if (activeInstallCallResolved) {
+            activeInstallCall = null;
+            return;
+        }
+        activeInstallCallResolved = true;
+        activeInstallCall = null;
+        call.setKeepAlive(false);
+        if (success) call.resolve();
+        else if (code != null) call.reject(message, code);
+        else call.reject(message);
+    }
+
+    private void unregisterInstallStatusReceiver() {
+        if (installStatusReceiver != null) {
+            try {
+                getContext().unregisterReceiver(installStatusReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // O receptor pode já ter sido removido pelo ciclo de vida.
+            }
+            installStatusReceiver = null;
+        }
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        unregisterInstallStatusReceiver();
+        activeInstallCall = null;
+        super.handleOnDestroy();
     }
 
     private String formatInstallError(String step, Exception error) {

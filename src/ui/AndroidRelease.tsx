@@ -13,6 +13,7 @@ const RELEASE_CACHE_KEY = 'fibula-android-release-cache-v1';
 type ApkInstallerPlugin = {
   checkInstallPermission: () => Promise<{ canInstall: boolean }>;
   openInstallSettings: () => Promise<void>;
+  installApkSession: (options: { filePath: string }) => Promise<void>;
   installApk: (options: { filePath: string }) => Promise<void>;
   verifyApk: (options: { filePath: string; expectedSize: number; expectedSha256: string }) => Promise<{ valid: boolean; size: number; sha256: string }>;
 };
@@ -358,18 +359,35 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        let sessionInstallError: unknown = null;
         try {
-          await ApkInstaller.installApk({ filePath: apkPath });
+          await ApkInstaller.installApkSession({ filePath: apkPath });
           setPendingApkPath(null);
-        } catch (installError) {
-          const installMessage = installError instanceof Error && installError.message
-            ? installError.message
-            : 'O Android não informou o motivo da falha.';
-          const openDownload = window.confirm(
-            `Não foi possível iniciar a instalação do APK.\n\nDetalhes: ${installMessage}\n\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
-          );
-          if (openDownload) window.location.assign(release.apkUrl);
-          return;
+        } catch (error) {
+          const installErrorCode = error && typeof error === 'object' && 'code' in error
+            ? (error as { code?: unknown }).code
+            : undefined;
+          if (installErrorCode === 'INSTALL_ABORTED') {
+            return;
+          }
+          sessionInstallError = error;
+          try {
+            await ApkInstaller.installApk({ filePath: apkPath });
+            setPendingApkPath(null);
+          } catch (fallbackError) {
+            const describeError = (value: unknown) => value instanceof Error && value.message
+              ? value.message
+              : typeof value === 'string' && value.trim()
+                ? value
+                : 'O Android não informou o motivo da falha.';
+            const sessionMessage = describeError(sessionInstallError);
+            const fallbackMessage = describeError(fallbackError);
+            const openDownload = window.confirm(
+              `Não foi possível instalar o APK pelos métodos do Android.\n\nPackageInstaller (sessão): ${sessionMessage}\n\nInstalador tradicional (ACTION_VIEW): ${fallbackMessage}\n\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
+            );
+            if (openDownload) window.location.assign(release.apkUrl);
+            return;
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : '';
