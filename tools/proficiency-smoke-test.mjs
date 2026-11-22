@@ -801,25 +801,25 @@ try {
   rockBonusEngine.stop();
 
   const cottonBonusEngine = b1EngineForTool('foice_mao');
-  cottonBonusEngine.state.cottonPlants = [{ id: 95103, x: 1000, y: 1000, hits: 2, size: 'small' }];
+  cottonBonusEngine.state.cottonPlants = [{ id: 95103, x: 1000, y: 1000, hits: 1, size: 'small' }];
   cottonBonusEngine.cottonFootprintRadius = () => 10;
   let cottonRollIndex = 0;
   cottonBonusEngine.random = () => [0, 0, 0.999][cottonRollIndex++] ?? 0.999;
   cottonBonusEngine.recordProficiency('foice_mao');
   cottonBonusEngine.hitCottonPlant(95103);
-  assert.equal(cottonBonusEngine.state.cottonDrops.length, 1, 'algodão deve receber somente o drop extra quando a rolagem normal falha');
+  assert.equal(cottonBonusEngine.state.cottonDrops.length, 2, 'algodão deve manter o bônus de proficiência e garantir uma unidade ao concluir a coleta');
   assert.equal(cottonBonusEngine.state.cottonDrops[0].rarity, 'common');
   cottonBonusEngine.stop();
 
   const vegetableBonusEngine = b1EngineForTool('foice_mao');
-  vegetableBonusEngine.state.vegetablePlants = [{ id: 95104, x: 1000, y: 1000, hits: 2, size: 'small', kind: 'tomato' }];
+  vegetableBonusEngine.state.vegetablePlants = [{ id: 95104, x: 1000, y: 1000, hits: 1, size: 'small', kind: 'tomato' }];
   vegetableBonusEngine.vegetableFootprintRadius = () => 10;
   let vegetableRollIndex = 0;
   vegetableBonusEngine.random = () => [0, 0, 0.999][vegetableRollIndex++] ?? 0.999;
   vegetableBonusEngine.recordProficiency('foice_mao');
   vegetableBonusEngine.hitVegetable(95104);
   assert.deepEqual(vegetableBonusEngine.state.vegetableDrops.map(drop => ({ kind: drop.kind, rarity: drop.rarity })),
-    [{ kind: 'tomato', rarity: 'common' }], 'vegetal deve preservar espécie e raridade do bônus');
+    [{ kind: 'tomato', rarity: 'common' }, { kind: 'tomato', rarity: undefined }], 'vegetal deve preservar o bônus de proficiência e garantir uma unidade ao concluir a coleta');
   vegetableBonusEngine.stop();
 
   for (const [animalKind, expectedDrop, choiceRoll] of [
@@ -854,13 +854,15 @@ try {
   jabuticabaBonusEngine.state.cottonPlants = [];
   jabuticabaBonusEngine.state.vegetablePlants = [];
   jabuticabaBonusEngine.state.enemies = [];
-  jabuticabaBonusEngine.state.jabuticabaTree = { id: 95107, x: 1000, y: 1000, hits: 5 };
+  jabuticabaBonusEngine.state.jabuticabaTree = { id: 95107, x: 1000, y: 1000, hits: 1 };
   jabuticabaBonusEngine.gatherDist = () => 0;
   jabuticabaBonusEngine.local.gatheringTimer = 10;
   jabuticabaBonusEngine.random = () => 0.999;
   jabuticabaBonusEngine.autoGather();
   assert.deepEqual(jabuticabaBonusEngine.state.woodDrops, [],
     'tronco de jabuticaba não pode receber bônus de proficiência');
+  assert.equal(jabuticabaBonusEngine.state.jabuticabaDrops.length, 1,
+    'jabuticabeira deve garantir uma fruta ao concluir a colheita');
   jabuticabaBonusEngine.stop();
 
   const frequencyEngine = b1EngineForTool('machado_madeira');
