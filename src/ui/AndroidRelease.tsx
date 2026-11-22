@@ -219,8 +219,23 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
           return { ...parsed, publishedAt: typeof publishedAt === 'string' ? publishedAt : null };
         })
         .filter((item): item is AndroidRelease => item !== null);
-      const latestRelease = validReleases[0] ?? null;
-      const previousLatestRelease = validReleases[1] ?? null;
+      const orderedReleases = [...validReleases].sort((left, right) => {
+        const versionOrder = compareVersionNames(right.versionName, left.versionName);
+        if (versionOrder !== 0) return versionOrder;
+
+        if (left.versionCode !== right.versionCode) {
+          if (left.versionCode === null) return 1;
+          if (right.versionCode === null) return -1;
+          return right.versionCode - left.versionCode;
+        }
+
+        if (left.publishedAt === right.publishedAt) return 0;
+        if (left.publishedAt === null) return 1;
+        if (right.publishedAt === null) return -1;
+        return right.publishedAt.localeCompare(left.publishedAt);
+      });
+      const latestRelease = orderedReleases[0] ?? null;
+      const previousLatestRelease = orderedReleases[1] ?? null;
       setRelease(latestRelease);
       setPreviousRelease(previousLatestRelease);
       setCheckFailed(false);
