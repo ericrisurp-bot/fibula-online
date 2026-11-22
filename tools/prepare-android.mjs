@@ -335,7 +335,6 @@ public class ApkInstallerPlugin extends Plugin {
     private BroadcastReceiver installStatusReceiver;
     private PluginCall activeInstallCall;
     private boolean activeInstallCallResolved = false;
-    private int activeInstallSessionId = -1;
 
     @PluginMethod
     public void installApkSession(PluginCall call) {
@@ -372,7 +371,6 @@ public class ApkInstallerPlugin extends Plugin {
             unregisterInstallStatusReceiver();
             activeInstallCall = call;
             activeInstallCallResolved = false;
-            activeInstallSessionId = sessionId;
             final int currentSessionId = sessionId;
             final String statusAction = getContext().getPackageName() + ".INSTALL_STATUS";
             installStatusReceiver = new BroadcastReceiver() {
@@ -500,7 +498,11 @@ public class ApkInstallerPlugin extends Plugin {
 
     private void finishInstallCall(boolean success, String message) {
         PluginCall call = activeInstallCall;
-        if (call == null || activeInstallCallResolved) return;
+        if (call == null) return;
+        if (activeInstallCallResolved) {
+            activeInstallCall = null;
+            return;
+        }
         activeInstallCallResolved = true;
         activeInstallCall = null;
         if (success) call.resolve();
@@ -516,7 +518,6 @@ public class ApkInstallerPlugin extends Plugin {
             }
             installStatusReceiver = null;
         }
-        activeInstallSessionId = -1;
     }
 
     @Override
