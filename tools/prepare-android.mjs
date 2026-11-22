@@ -527,7 +527,7 @@ public class ApkInstallerPlugin extends Plugin {
         activeInstallCall = null;
         call.setKeepAlive(false);
         if (success) call.resolve();
-        else if (code != null) call.reject(message, code, null);
+        else if (code != null) call.reject(message, code);
         else call.reject(message);
     }
 
