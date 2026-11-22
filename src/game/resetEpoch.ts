@@ -19,7 +19,11 @@ export const RESET_EPOCH_PRESERVED_LOCAL_STORAGE_PREFIXES = [
   RESET_EPOCH_STORAGE_PREFIX,
 ] as const;
 
-export const RESET_EPOCH_LOCAL_STORAGE_PREFIX = 'fibula-';
+export const RESET_EPOCH_LOCAL_STORAGE_PREFIXES = [
+  'fibula-',
+  'fibula:equipped-accessories:',
+  'fibula:equipped-armors:',
+] as const;
 
 export async function fetchResetEpoch(client: SupabaseClient): Promise<number | undefined> {
   try {
@@ -66,7 +70,8 @@ export async function clearLocalGameProgress(): Promise<void> {
     const keys: string[] = [];
     for (let index = 0; index < storage.length; index += 1) {
       const key = storage.key(index);
-      if (key?.startsWith(RESET_EPOCH_LOCAL_STORAGE_PREFIX) && !isPreservedResetEpochKey(key)) {
+      if (key && RESET_EPOCH_LOCAL_STORAGE_PREFIXES.some(prefix => key.startsWith(prefix))
+        && !isPreservedResetEpochKey(key)) {
         keys.push(key);
       }
     }
