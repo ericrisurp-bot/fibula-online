@@ -292,6 +292,22 @@ if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
 writeFileSync(mainActivityPath, activitySource);
 
 let installerManifest = readFileSync(manifestPath, 'utf8');
+if (!installerManifest.includes('application/vnd.android.package-archive')) {
+  const installerQuery = [
+    '        <intent>',
+    '            <action android:name="android.intent.action.VIEW" />',
+    '            <data android:mimeType="application/vnd.android.package-archive" />',
+    '        </intent>',
+  ].join('\\n');
+  if (installerManifest.includes('</queries>')) {
+    installerManifest = installerManifest.replace('</queries>', installerQuery + '\\n    </queries>');
+  } else {
+    installerManifest = installerManifest.replace(
+      /(<application\\b)/,
+      '    <queries>\\n' + installerQuery + '\\n    </queries>\\n\\n    $1'
+    );
+  }
+}
 if (!installerManifest.includes('android.permission.REQUEST_INSTALL_PACKAGES')) {
   installerManifest = installerManifest.replace(/(<application\b)/, '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n\n    $1');
 }
