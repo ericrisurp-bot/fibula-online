@@ -25,7 +25,6 @@ import { ARMOR_CORE_EQUIPMENT_TO_PIECE, type ArmorLining } from './game/armor';
 import { craftAccessory, deleteAccessory, listMyAccessories, type AccessoryType, type CraftedAccessory } from './game/accessoryCrafting';
 import { computeAccessoryAttributeBonuses, equipAccessoryForClass, readEquippedAccessorySelections, removeAccessoryFromSelections, resolveEquippedAccessories, sanitizeEquippedAccessorySelections, unequipAccessoryForClass, writeEquippedAccessorySelections, type EquippedAccessorySelections } from './game/accessoryEquipment';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, equipArmorForClass, readEquippedArmorSelections, removeArmorFromSelections, resolveEquippedArmors, sanitizeEquippedArmorSelections, unequipArmorForClass, writeEquippedArmorSelections, type EquippedArmorSelections } from './game/armorEquipment';
-import ClassChoiceOnboarding from './ui/ClassChoiceOnboarding';
 import type { ArmorPiece } from './game/armor';
 
 import { drawFishingRod, drawFloatingTool } from './game/tools';
@@ -1700,6 +1699,9 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [activeGameRoute.page, cookingClockOffset]);
   const [profileClassTab, setProfileClassTab] = useState<ClassId>('guerreiro');
+  const [classChoiceConfirmOpen, setClassChoiceConfirmOpen] = useState(false);
+  const [classChoiceSubmitting, setClassChoiceSubmitting] = useState(false);
+  const [classChoiceFeedback, setClassChoiceFeedback] = useState('');
   const [interfaceScale, setInterfaceScale] = useState<70 | 100 | 130>(() => {
     if (typeof window === 'undefined') return 100;
     const saved = window.localStorage.getItem('fibula-interface-scale');
@@ -5043,6 +5045,22 @@ export default function App() {
     return { success: true };
   };
 
+  const submitFirstClassChoice = async () => {
+    const [primary, secondary] = characterPreferences;
+    if (!primary || !secondary || primary === secondary || classChoiceSubmitting) return;
+    setClassChoiceSubmitting(true);
+    setClassChoiceFeedback('');
+    try {
+      const result = await confirmClassChoice(primary, secondary);
+      if (result.success) setClassChoiceConfirmOpen(false);
+      else setClassChoiceFeedback(result.message || 'Não foi possível confirmar suas classes. Tente novamente.');
+    } catch (error) {
+      setClassChoiceFeedback(error instanceof Error ? error.message : 'Não foi possível confirmar suas classes. Tente novamente.');
+    } finally {
+      setClassChoiceSubmitting(false);
+    }
+  };
+
   const retryClassChoiceCheck = () => {
     setClassChoice('loading');
     setClassChoiceUserId(null);
@@ -5073,6 +5091,21 @@ export default function App() {
         </section>
       </div>
     </section></div>
+    {classChoice === 'needs-choice' && <section className="classes-choice-footer">
+      <p>Escolha uma classe principal e uma secundária. As duas estrelas precisam estar preenchidas.</p>
+      <button type="button" className="classes-choice-confirm" disabled={!characterPreferences[0] || !characterPreferences[1] || characterPreferences[0] === characterPreferences[1] || classChoiceSubmitting} onClick={() => { setClassChoiceFeedback(''); setClassChoiceConfirmOpen(true); }}>Confirmar minhas classes</button>
+    </section>}
+    {classChoice === 'needs-choice' && classChoiceConfirmOpen && <div className="classes-choice-dialog-backdrop" role="presentation">
+      <section className="classes-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="classes-choice-confirm-title">
+        <h2 id="classes-choice-confirm-title">Confirmar escolha</h2>
+        <p>Esta escolha é definitiva para sua conta. Principal: {characterPreferences[0] ? CLASSES[characterPreferences[0]].label : '—'}. Secundária: {characterPreferences[1] ? CLASSES[characterPreferences[1]].label : '—'}. Não será possível trocar depois.</p>
+        {classChoiceFeedback && <p className="classes-choice-feedback" role="alert">{classChoiceFeedback}</p>}
+        <div className="classes-choice-actions">
+          <button type="button" disabled={classChoiceSubmitting} onClick={() => setClassChoiceConfirmOpen(false)}>Voltar</button>
+          <button type="button" disabled={classChoiceSubmitting || !characterPreferences[0] || !characterPreferences[1] || characterPreferences[0] === characterPreferences[1]} onClick={() => void submitFirstClassChoice()}>{classChoiceSubmitting ? 'Confirmando…' : 'Confirmar definitivamente'}</button>
+        </div>
+      </section>
+    </div>}
     {classChoice !== 'needs-choice' && <SideNav current="classes" onLobby={closeGamePage} onOpenPage={openSidePage} />}
   </PageFrame>;
 
@@ -5082,7 +5115,7 @@ export default function App() {
     return <main className="class-choice-gate" aria-live="polite"><div className="class-choice-gate-card"><span className="class-choice-spinner" aria-hidden="true" /><p>Verificando suas classes…</p></div></main>;
   }
   if (classChoice === 'needs-choice') {
-    return <main className="class-first-entry">
+    return <main className="first-class-entry">
       <div className="lobby-screen is-page-backdrop" aria-hidden="true">
         <div className="lobby-sky"><i className="lobby-moon"/><i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/><i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/><i className="lobby-comet"/></div>
         <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor"/>
@@ -5090,11 +5123,6 @@ export default function App() {
         <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas"/></div>
       </div>
       {classesPage}
-      <ClassChoiceOnboarding
-        primary={characterPreferences[0]}
-        secondary={characterPreferences[1]}
-        onConfirm={confirmClassChoice}
-      />
     </main>;
   }
   if (classChoice === 'unknown') {
