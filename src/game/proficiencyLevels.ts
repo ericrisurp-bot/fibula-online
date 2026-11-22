@@ -26,9 +26,9 @@ const PROGRESSION_EXPONENT = 1.8;
  */
 const PROFICIENCY_LEVEL_CONFIG: Readonly<Record<ProficiencyKey, ExtremeProgressionConfig>> = {
   espada: { maxLevel: 150, totalAtMax: 2_700_000, level1: 100, level2: 250, level3: 450 },
-  arco: { maxLevel: 150, totalAtMax: 2_700_000, level1: 100, level2: 250, level3: 450 },
-  cajado: { maxLevel: 150, totalAtMax: 2_700_000, level1: 100, level2: 250, level3: 450 },
-  bastao_natureza: { maxLevel: 150, totalAtMax: 2_700_000, level1: 100, level2: 250, level3: 450 },
+  arco: { maxLevel: 150, totalAtMax: 3_105_000, level1: 100, level2: 250, level3: 450 },
+  cajado: { maxLevel: 150, totalAtMax: 2_484_000, level1: 100, level2: 250, level3: 450 },
+  bastao_natureza: { maxLevel: 150, totalAtMax: 2_484_000, level1: 100, level2: 250, level3: 450 },
   golpes_recebidos: { maxLevel: 150, totalAtMax: 2_250_000, level1: 80, level2: 200, level3: 350 },
   machado_madeira: { maxLevel: 100, totalAtMax: 2_000_000, level1: 80, level2: 200, level3: 350 },
   picareta: { maxLevel: 100, totalAtMax: 2_000_000, level1: 80, level2: 200, level3: 350 },
