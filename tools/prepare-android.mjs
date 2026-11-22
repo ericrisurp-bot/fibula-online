@@ -371,7 +371,7 @@ public class ApkInstallerPlugin extends Plugin {
             params.setSize(apkFile.length());
             sessionId = installer.createSession(params);
 
-            step = "3) registrar receptor de status";
+            step = "5) registrar receptor de status";
             unregisterInstallStatusReceiver();
             activeInstallCall = call;
             activeInstallCallResolved = false;
@@ -454,7 +454,7 @@ public class ApkInstallerPlugin extends Plugin {
                 getContext().registerReceiver(installStatusReceiver, filter);
             }
 
-            step = "4) gravar APK na sessão";
+            step = "6) gravar APK na sessão";
             try (PackageInstaller.Session session = installer.openSession(sessionId);
                  java.io.FileInputStream input = new java.io.FileInputStream(apkFile);
                  java.io.OutputStream output = session.openWrite("base.apk", 0, apkFile.length())) {
@@ -465,7 +465,7 @@ public class ApkInstallerPlugin extends Plugin {
                 }
                 session.fsync(output);
 
-                step = "5) confirmar sessão";
+                step = "7) confirmar sessão";
                 Intent statusIntent = new Intent(statusAction);
                 statusIntent.setPackage(getContext().getPackageName());
                 int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
