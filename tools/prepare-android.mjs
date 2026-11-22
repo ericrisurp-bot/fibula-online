@@ -338,18 +338,19 @@ public class ApkInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void installApkSession(PluginCall call) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            && !getContext().getPackageManager().canRequestPackageInstalls()) {
-            call.reject("O Fíbula ainda não tem autorização para solicitar instalações.");
-            return;
-        }
-
-        String step = "1) validar arquivo";
+        String step = "1) verificar permissão";
         File apkFile;
-        PackageInstaller installer = getContext().getPackageManager().getPackageInstaller();
+        PackageInstaller installer = null;
         int sessionId = -1;
         boolean committed = false;
         try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && !getContext().getPackageManager().canRequestPackageInstalls()) {
+                call.reject("O Fíbula ainda não tem autorização para solicitar instalações.");
+                return;
+            }
+
+            step = "2) validar arquivo";
             String filePath = call.getString("filePath");
             if (filePath == null || filePath.trim().isEmpty()) {
                 throw new IllegalArgumentException("Caminho do APK não informado.");
@@ -360,7 +361,10 @@ public class ApkInstallerPlugin extends Plugin {
                 throw new IllegalArgumentException("O APK baixado não foi encontrado ou está vazio.");
             }
 
-            step = "2) criar sessão PackageInstaller";
+            step = "3) obter PackageInstaller";
+            installer = getContext().getPackageManager().getPackageInstaller();
+
+            step = "4) criar sessão PackageInstaller";
             PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
                 PackageInstaller.SessionParams.MODE_FULL_INSTALL
             );
@@ -479,7 +483,7 @@ public class ApkInstallerPlugin extends Plugin {
                 committed = true;
             }
         } catch (Exception error) {
-            if (!committed && sessionId >= 0) {
+            if (!committed && sessionId >= 0 && installer != null) {
                 try {
                     installer.abandonSession(sessionId);
                 } catch (Exception abandonError) {
