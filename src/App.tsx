@@ -1219,7 +1219,7 @@ export default function App() {
   useEffect(() => {
     const userId = session.user.sub;
     const supabase = fibulaSupabase;
-    const listsReady = !!userId && !!supabase && weaponsLoaded && !weaponsLoading
+    const listsReady = classChoice === 'chosen' && !!userId && !!supabase && weaponsLoaded && !weaponsLoading
       && (!CONFIG.rulesV2.armorCraftingEnabled || armorListReady)
       && accessoryListReady;
     if (!listsReady || !supabase || equipmentHydrationDoneRef.current === userId) return;
@@ -1271,6 +1271,7 @@ export default function App() {
     };
   }, [
     session.user.sub,
+    classChoice,
     weaponsLoaded,
     weaponsLoading,
     armorListReady,
@@ -2385,7 +2386,7 @@ export default function App() {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (activeGameRoute.page !== 'lobby') return;
+    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby') return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const userId = session.user.sub;
@@ -3300,7 +3301,7 @@ export default function App() {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeGameRoute.page, session.user.sub]);
+  }, [activeGameRoute.page, session.user.sub, classChoice]);
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
