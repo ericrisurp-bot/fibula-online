@@ -246,14 +246,25 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await ApkInstaller.installApk({ filePath: apkPath });
-        setPendingApkPath(null);
+        try {
+          await ApkInstaller.installApk({ filePath: apkPath });
+          setPendingApkPath(null);
+        } catch (installError) {
+          const installMessage = installError instanceof Error && installError.message
+            ? installError.message
+            : 'O Android não informou o motivo da falha.';
+          const openDownload = window.confirm(
+            `Não foi possível iniciar a instalação do APK.\\n\\nDetalhes: ${installMessage}\\n\\nDeseja abrir o download oficial no navegador do Android para tentar instalar manualmente?`,
+          );
+          if (openDownload) window.location.assign(release.apkUrl);
+          return;
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : '';
         window.alert(
           message
-            ? `Não foi possível abrir o instalador do Android: ${message}`
-            : 'Não foi possível concluir o download ou abrir o instalador. Tente novamente.',
+            ? `Não foi possível baixar ou verificar o APK: ${message}`
+            : 'Não foi possível concluir o download ou a verificação do APK. Tente novamente.',
         );
       } finally {
         if (progressListener) {
