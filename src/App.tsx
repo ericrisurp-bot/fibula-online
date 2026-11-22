@@ -933,6 +933,26 @@ export default function App() {
     void loadChoice();
     return () => { active = false; };
   }, [session.user.sub, classChoiceRetry]);
+  useEffect(() => {
+    if (classChoice !== 'needs-choice' || classChoiceUserId !== session.user.sub) return;
+    const forceClassesPage = () => {
+      if (window.location.pathname !== '/classes') {
+        window.history.replaceState({ page: 'classes' }, '', '/classes');
+      }
+      setActiveGameRoute({ page: 'classes' });
+      setProfileOpen(true);
+      setArsenalOpen(false);
+      setFriendsOpen(false);
+      setChestOpen(false);
+      setStatusOpen(false);
+      setRankingOpen(false);
+      setPlayerProfileOpen(false);
+    };
+    forceClassesPage();
+    window.addEventListener('popstate', forceClassesPage);
+    return () => window.removeEventListener('popstate', forceClassesPage);
+  }, [classChoice, classChoiceUserId, session.user.sub]);
+
 
   const [arsenalOpen, setArsenalOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -5017,6 +5037,9 @@ export default function App() {
     } catch { /* A confirmação do servidor não depende do cache local. */ }
     setClassChoiceUserId(session.user.sub);
     setClassChoice('chosen');
+    setProfileOpen(false);
+    navigateToLobby();
+    setActiveGameRoute({ page: 'lobby' });
     return { success: true };
   };
 
