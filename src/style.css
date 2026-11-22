@@ -13288,17 +13288,18 @@ sem backdrop ou caixa de modal. */
 .player-proficiency-group:nth-child(3)>h5{color:#bd83ff}
 .player-proficiency-group:nth-child(3)>h5>span{background:#a855f71a;border-color:#bd83ff80}
 .player-proficiency-row{display:grid;gap:5px;min-width:0;padding-top:1px}
-.player-proficiency-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
-.player-proficiency-meta>span{overflow-wrap:anywhere;color:#222322;font-size:11px;font-weight:650}
+.player-proficiency-meta{
+  display:grid;grid-template-columns:minmax(0,1fr) 44px 66px;
+  align-items:center;column-gap:8px;min-width:0;
+}
+.player-proficiency-meta>span{min-width:0;overflow-wrap:anywhere;color:#222322;font-size:11px;font-weight:650}
 .player-proficiency-meta>strong{
-  flex:0 0 auto;color:#222322;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;
+  display:block;min-width:0;color:#222322;font-size:12px;font-weight:900;
+  font-variant-numeric:tabular-nums;text-align:center;
 }
-.player-proficiency-xp-line{display:flex;align-items:center;gap:7px}
-.player-proficiency-xp-line>small{
-  width:17px;color:#167a35;font-size:8px;font-weight:900;letter-spacing:.06em;
-}
+.player-proficiency-xp-line{display:block;min-width:0}
 .player-proficiency-xp-track{
-  height:7px;flex:1 1 auto;overflow:hidden;border:1px solid #39ff7550;
+  width:100%;height:7px;overflow:hidden;border:1px solid #39ff7550;
   border-radius:99px;background:#e5e9e5;
   box-shadow:inset 0 1px 2px #00000012,0 0 3px #22232212;
 }
@@ -13308,12 +13309,10 @@ sem backdrop ou caixa de modal. */
   box-shadow:0 0 7px #39ff75,0 0 13px #39ff7580;
 }
 .player-proficiency-level{
-  flex:0 0 auto;padding:2px 5px;border:1px solid #22232225;border-radius:4px;
-  color:#555555;font-size:9px;font-weight:850;font-variant-numeric:tabular-nums;
-}
-.player-proficiency-progress-text{
-  flex:0 0 auto;min-width:66px;color:#555555;font-size:8px;font-weight:750;
-  text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
+  display:block;width:66px;box-sizing:border-box;padding:2px 4px;
+  border:1px solid #8a744c55;border-radius:5px;background:#8a744c12;
+  color:#5d4b30;font-size:9px;font-weight:850;text-align:center;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
 }
 .player-proficiency-message{
   margin:0;padding:10px 11px;border:1px solid #22232220;border-radius:8px;

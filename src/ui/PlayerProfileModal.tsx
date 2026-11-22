@@ -102,18 +102,13 @@ function ProficiencyPanel({
             const progressWidth = progression.isMaxLevel
               ? 100
               : Math.max(0, progression.progressRatio * 100);
-            const progressText = progression.isMaxLevel
-              ? 'MAX'
-              : `${progression.progressInLevel.toLocaleString('en-US')} / ${progression.requiredForNextLevel?.toLocaleString('en-US') ?? '—'}`;
-
             return <div className="player-proficiency-row" key={item.key}>
               <div className="player-proficiency-meta">
                 <span>{item.label}</span>
-                <small className="player-proficiency-level">Lv {progression.level}</small>
-                <strong>{total.toLocaleString('en-US')}</strong>
+                <strong aria-label={`Quantidade: ${total}`}>{total.toLocaleString('en-US')}</strong>
+                <small className="player-proficiency-level">Nível {String(progression.level).padStart(2, '0')}</small>
               </div>
               <div className="player-proficiency-xp-line">
-                <small>XP</small>
                 <div
                   className="player-proficiency-xp-track"
                   role="progressbar"
@@ -127,7 +122,6 @@ function ProficiencyPanel({
                     style={{ width: `${progressWidth}%` }}
                   />
                 </div>
-                <small className="player-proficiency-progress-text">{progressText}</small>
               </div>
             </div>;
           })}
