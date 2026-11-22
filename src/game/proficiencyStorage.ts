@@ -1,4 +1,5 @@
 import type { ProficiencyEvent, ProficiencyKey } from './engine';
+import { getLegacyProficiencyLevel, type ProficiencyProgressionBaseline } from './proficiencyLevels';
 
 export type ProficiencyCounter = {
   userId: string;
@@ -9,11 +10,12 @@ export type ProficiencyCounter = {
 };
 
 const DATABASE_NAME = 'fibula-proficiency-local-v1';
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 const STORE_NAME = 'counters';
 const USER_INDEX = 'by_user_id';
 const PENDING_BATCH_STORE = 'pending_batches';
 const DISPLAY_BASELINE_STORE = 'display_baselines';
+const PROGRESSION_BASELINE_STORE = 'progression_baselines';
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
@@ -26,8 +28,9 @@ function openDatabase(): Promise<IDBDatabase> {
   databasePromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result;
+      const transaction = request.transaction;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         const store = database.createObjectStore(STORE_NAME, { keyPath: ['userId', 'key'] });
         store.createIndex(USER_INDEX, 'userId', { unique: false });
@@ -37,6 +40,30 @@ function openDatabase(): Promise<IDBDatabase> {
       }
       if (!database.objectStoreNames.contains(DISPLAY_BASELINE_STORE)) {
         database.createObjectStore(DISPLAY_BASELINE_STORE, { keyPath: 'userId' });
+      }
+      if (!database.objectStoreNames.contains(PROGRESSION_BASELINE_STORE)) {
+        const baselines = database.createObjectStore(PROGRESSION_BASELINE_STORE, { keyPath: ['userId', 'key'] });
+        baselines.createIndex(USER_INDEX, 'userId', { unique: false });
+      }
+
+      // Capture levels from the previous curve before any offline-only counters
+      // can be interpreted by the new progression table.
+      if (event.oldVersion < 4 && transaction) {
+        const counters = transaction.objectStore(STORE_NAME);
+        const baselines = transaction.objectStore(PROGRESSION_BASELINE_STORE);
+        const cursorRequest = counters.openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          const counter = cursor.value as ProficiencyCounter;
+          baselines.put({
+            userId: counter.userId,
+            key: counter.key,
+            preservedLevel: getLegacyProficiencyLevel(counter.key, counter.total),
+            baselineCounter: counter.total,
+          });
+          cursor.continue();
+        };
       }
     };
 
@@ -270,6 +297,41 @@ export async function reconcileProficiencyCounters(
   });
 }
 
+/** Lê os baselines locais migrados para uma única conta. */
+export async function readLocalProficiencyProgressionBaselines(
+  userId: string,
+): Promise<Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>>> {
+  if (!userId.trim()) return {};
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(PROGRESSION_BASELINE_STORE, 'readonly');
+    const request = transaction.objectStore(PROGRESSION_BASELINE_STORE)
+      .index(USER_INDEX).getAll(userId);
+    let baselines: Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>> = {};
+    request.onsuccess = () => {
+      baselines = {};
+      for (const row of request.result as Array<{
+        userId: string;
+        key: ProficiencyKey;
+        preservedLevel: number;
+        baselineCounter: number;
+      }>) {
+        if (row.userId !== userId || !isProficiencyKey(row.key)
+          || !Number.isSafeInteger(row.preservedLevel) || row.preservedLevel < 0
+          || !Number.isSafeInteger(row.baselineCounter) || row.baselineCounter < 0) continue;
+        baselines[row.key] = {
+          preservedLevel: row.preservedLevel,
+          baselineCounter: row.baselineCounter,
+        };
+      }
+    };
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível ler os baselines locais de proficiência.'));
+    transaction.oncomplete = () => resolve(baselines);
+    transaction.onabort = () => reject(transaction.error ?? new Error('Leitura dos baselines locais cancelada.'));
+  });
+}
+
 /** Lê os totais locais de uma única conta, sem acessar dados de outras contas do dispositivo. */
 export async function readProficiencyCounters(userId: string): Promise<ProficiencyCounter[]> {
   if (!userId.trim()) return [];
@@ -297,12 +359,13 @@ export async function clearProficiencyStorage(): Promise<void> {
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = database.transaction(
-      [STORE_NAME, PENDING_BATCH_STORE, DISPLAY_BASELINE_STORE],
+      [STORE_NAME, PENDING_BATCH_STORE, DISPLAY_BASELINE_STORE, PROGRESSION_BASELINE_STORE],
       'readwrite',
     );
     transaction.objectStore(STORE_NAME).clear();
     transaction.objectStore(PENDING_BATCH_STORE).clear();
     transaction.objectStore(DISPLAY_BASELINE_STORE).clear();
+    transaction.objectStore(PROGRESSION_BASELINE_STORE).clear();
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error ?? new Error('Não foi possível limpar o armazenamento local de proficiências.'));
     transaction.onabort = () => reject(transaction.error ?? new Error('Limpeza do armazenamento local de proficiências cancelada.'));
