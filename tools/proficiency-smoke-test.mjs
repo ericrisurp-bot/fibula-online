@@ -217,6 +217,38 @@ try {
     'o cliente não pode acessar diretamente a tabela de rate limit');
   passed.push('paridade SQL × TypeScript: catálogo e ProficiencyKey');
 
+  // Simula uma instalação v3 com progresso local ainda não sincronizado.
+  const legacyLocalUser = user('legacy-local');
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.open('fibula-proficiency-local-v1', 3);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      const counters = database.createObjectStore('counters', { keyPath: ['userId', 'key'] });
+      counters.createIndex('by_user_id', 'userId', { unique: false });
+      database.createObjectStore('pending_batches', { keyPath: 'userId' });
+      database.createObjectStore('display_baselines', { keyPath: 'userId' });
+    };
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction('counters', 'readwrite');
+      transaction.objectStore('counters').put({
+        userId: legacyLocalUser, key: 'machado_madeira',
+        total: 36, syncedTotal: 0, updatedAt: 1,
+      });
+      transaction.oncomplete = () => { database.close(); resolve(); };
+      transaction.onerror = () => { database.close(); reject(transaction.error); };
+    };
+    request.onerror = () => reject(request.error);
+  });
+  const localLegacyBaselines = await storage.readLocalProficiencyProgressionBaselines(legacyLocalUser);
+  assert.deepEqual(localLegacyBaselines.machado_madeira, {
+    preservedLevel: 3, baselineCounter: 36,
+  }, 'a atualização IndexedDB deve preservar níveis ainda não sincronizados');
+  assert.equal(proficiencyLevels.getProficiencyProgression(
+    'machado_madeira', 36, localLegacyBaselines.machado_madeira,
+  ).level, 3);
+  passed.push('IndexedDB v3→v4: preserva níveis locais offline antes da curva extrema');
+
   const storageUser = user('storage');
   await storage.recordProficiencyEvent(storageUser, { key: 'espada', amount: 2 });
   await storage.recordProficiencyEvents(storageUser, { espada: 3, arco: 4 });
