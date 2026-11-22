@@ -404,6 +404,17 @@ public class ApkInstallerPlugin extends Plugin {
                         }
                         return;
                     }
+                    if (status == PackageInstaller.STATUS_FAILURE_ABORTED) {
+                        String abortedMessage = "A instalação foi cancelada pelo usuário. Código do status: "
+                            + status + ". Detalhes do Android: "
+                            + (statusMessage == null || statusMessage.trim().isEmpty()
+                                ? "nenhum detalhe informado."
+                                : statusMessage);
+                        finishInstallCall(false, abortedMessage, "INSTALL_ABORTED");
+                        unregisterInstallStatusReceiver();
+                        return;
+                    }
+
                     if (status == PackageInstaller.STATUS_SUCCESS) {
                         finishInstallCall(true, null);
                         unregisterInstallStatusReceiver();
@@ -455,15 +466,16 @@ public class ApkInstallerPlugin extends Plugin {
             }
 
             step = "6) gravar APK na sessão";
-            try (PackageInstaller.Session session = installer.openSession(sessionId);
-                 java.io.FileInputStream input = new java.io.FileInputStream(apkFile);
-                 java.io.OutputStream output = session.openWrite("base.apk", 0, apkFile.length())) {
-                byte[] buffer = new byte[64 * 1024];
-                int read;
-                while ((read = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, read);
+            try (PackageInstaller.Session session = installer.openSession(sessionId)) {
+                try (java.io.FileInputStream input = new java.io.FileInputStream(apkFile);
+                     java.io.OutputStream output = session.openWrite("base.apk", 0, apkFile.length())) {
+                    byte[] buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, read);
+                    }
+                    session.fsync(output);
                 }
-                session.fsync(output);
 
                 step = "7) confirmar sessão";
                 Intent statusIntent = new Intent(statusAction);
@@ -501,6 +513,10 @@ public class ApkInstallerPlugin extends Plugin {
     }
 
     private void finishInstallCall(boolean success, String message) {
+        finishInstallCall(success, message, null);
+    }
+
+    private void finishInstallCall(boolean success, String message, String code) {
         PluginCall call = activeInstallCall;
         if (call == null) return;
         if (activeInstallCallResolved) {
@@ -511,6 +527,7 @@ public class ApkInstallerPlugin extends Plugin {
         activeInstallCall = null;
         call.setKeepAlive(false);
         if (success) call.resolve();
+        else if (code != null) call.reject(message, code);
         else call.reject(message);
     }
 
