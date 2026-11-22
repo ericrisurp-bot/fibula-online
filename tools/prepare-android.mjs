@@ -127,12 +127,36 @@ public class ApkInstallerPlugin extends Plugin {
     @PluginMethod
     public void verifyApk(PluginCall call) {
         String filePath = call.getString("filePath");
-        Long expectedSize = call.getLong("expectedSize");
+        Object expectedSizeValue = call.getData().opt("expectedSize");
+        Long expectedSize = null;
+        if (expectedSizeValue instanceof Number) {
+            Number numericSize = (Number) expectedSizeValue;
+            double sizeAsDouble = numericSize.doubleValue();
+            long sizeAsLong = numericSize.longValue();
+            if (Double.isFinite(sizeAsDouble) && sizeAsDouble == (double) sizeAsLong && sizeAsLong > 0) {
+                expectedSize = sizeAsLong;
+            }
+        } else if (expectedSizeValue instanceof String) {
+            try {
+                expectedSize = Long.parseLong(((String) expectedSizeValue).trim());
+            } catch (NumberFormatException ignored) {
+                // O tamanho será apontado como inválido abaixo.
+            }
+        }
         String expectedSha256 = call.getString("expectedSha256");
-        if (filePath == null || filePath.trim().isEmpty()
-            || expectedSize == null || expectedSize <= 0
-            || expectedSha256 == null || !expectedSha256.matches("(?i)[a-f0-9]{64}")) {
-            call.reject("Dados de validação do APK inválidos.");
+
+        StringBuilder invalidFields = new StringBuilder();
+        if (filePath == null || filePath.trim().isEmpty()) invalidFields.append("filePath");
+        if (expectedSize == null || expectedSize <= 0) {
+            if (invalidFields.length() > 0) invalidFields.append(", ");
+            invalidFields.append("expectedSize");
+        }
+        if (expectedSha256 == null || !expectedSha256.matches("(?i)[a-f0-9]{64}")) {
+            if (invalidFields.length() > 0) invalidFields.append(", ");
+            invalidFields.append("expectedSha256");
+        }
+        if (invalidFields.length() > 0) {
+            call.reject("Dados de validação do APK inválidos: " + invalidFields + ".");
             return;
         }
 
