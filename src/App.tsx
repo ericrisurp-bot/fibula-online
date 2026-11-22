@@ -885,15 +885,7 @@ export default function App() {
     setClassChoiceUserId(null);
 
     const loadChoice = async () => {
-      if (!fibulaSupabase) {
-        if (active && session.user.sub === userId) {
-          setClassChoice('unknown');
-          setClassChoiceUserId(userId);
-        }
-        return;
-      }
-
-      const choice = await fetchClassChoice(fibulaSupabase);
+      const choice = fibulaSupabase ? await fetchClassChoice(fibulaSupabase) : undefined;
       if (!active || session.user.sub !== userId) return;
 
       if (choice === undefined) {
