@@ -291,6 +291,24 @@ export async function readProficiencyCounters(userId: string): Promise<Proficien
 }
 
 
+
+/** Apaga todos os contadores, lotes pendentes e bases locais de proficiência. */
+export async function clearProficiencyStorage(): Promise<void> {
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(
+      [STORE_NAME, PENDING_BATCH_STORE, DISPLAY_BASELINE_STORE],
+      'readwrite',
+    );
+    transaction.objectStore(STORE_NAME).clear();
+    transaction.objectStore(PENDING_BATCH_STORE).clear();
+    transaction.objectStore(DISPLAY_BASELINE_STORE).clear();
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error('Não foi possível limpar o armazenamento local de proficiências.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Limpeza do armazenamento local de proficiências cancelada.'));
+  });
+}
+
 export type PendingProficiencyBatch = {
   userId: string;
   batchId: string;

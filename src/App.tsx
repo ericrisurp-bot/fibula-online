@@ -11,6 +11,7 @@ import { getArmedClassPower } from './game/power';
 import { GameEngine, type GameSnapshot } from './game/engine';
 import { acknowledgeProficiencyBatch, isProficiencyKey, prepareProficiencyBatch, readProficiencyProgress, reconcileProficiencyCounters } from './game/proficiencyStorage';
 import { createProficiencyBuffer } from './game/proficiencyBuffer';
+import { clearLocalGameProgress, fetchResetEpoch, readLocalResetEpoch, writeLocalResetEpoch } from './game/resetEpoch';
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
@@ -620,8 +621,41 @@ function drawWildlifeSprite(ctx: CanvasRenderingContext2D, animal: GameSnapshot[
   }
   ctx.restore();
 }
+type ArenaSession = ReturnType<typeof useArenaAuth>['session'];
+
 export default function App() {
   const { session } = useArenaAuth();
+  const userId = session.user.sub;
+  const [resetStatus, setResetStatus] = useState<{ userId: string; status: 'ready' | 'failed' } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setResetStatus(null);
+    void (async () => {
+      const epoch = fibulaSupabase ? await fetchResetEpoch(fibulaSupabase) : undefined;
+      if (epoch !== undefined) {
+        if (epoch > 0 && readLocalResetEpoch(userId) !== epoch) {
+          await clearLocalGameProgress();
+        }
+        writeLocalResetEpoch(userId, epoch);
+      }
+      if (active) setResetStatus({ userId, status: 'ready' });
+    })().catch(() => {
+      if (active) setResetStatus({ userId, status: 'failed' });
+    });
+    return () => { active = false; };
+  }, [userId]);
+
+  if (resetStatus?.userId !== userId) {
+    return <main role="status">Preparando os dados da sessão…</main>;
+  }
+  if (resetStatus.status === 'failed') {
+    return <main role="alert">Não foi possível concluir a limpeza local de progresso. Feche e abra o jogo novamente para tentar outra vez.</main>;
+  }
+  return <AuthenticatedGameApp session={session} />;
+}
+
+function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const { updateAvailable } = useAndroidRelease();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);

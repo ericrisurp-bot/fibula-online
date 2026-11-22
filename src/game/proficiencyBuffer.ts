@@ -8,6 +8,8 @@ type AccountTotals = Partial<Record<ProficiencyKey, number>>;
 const pendingByUser = new Map<string, AccountTotals>();
 let flushInFlight: Promise<boolean> | null = null;
 let activeBuffer: ProficiencyBuffer | null = null;
+let resetDiscardInProgress = false;
+let flushGeneration = 0;
 
 function hasPendingTotals(): boolean {
   return Array.from(pendingByUser.values()).some(totals => Object.keys(totals).length > 0);
@@ -56,6 +58,7 @@ export class ProficiencyBuffer {
   }
 
   flush(): Promise<void> {
+    if (resetDiscardInProgress) return Promise.resolve();
     if (flushInFlight) {
       return flushInFlight.then(async succeeded => {
         // Se a gravação em curso concluiu, drena também eventos acumulados durante ela.
@@ -72,6 +75,7 @@ export class ProficiencyBuffer {
     for (const snapshot of snapshots) pendingByUser.delete(snapshot.userId);
     if (snapshots.length === 0) return Promise.resolve();
 
+    const generation = flushGeneration;
     const work = (async () => {
       let succeeded = true;
       for (const snapshot of snapshots) {
@@ -79,13 +83,15 @@ export class ProficiencyBuffer {
           await recordProficiencyEvents(snapshot.userId, snapshot.totals);
         } catch (error) {
           succeeded = false;
-          try {
-            // Soma sobre qualquer evento que chegou enquanto a transação estava aberta.
-            mergeTotals(snapshot.userId, snapshot.totals);
-          } catch (mergeError) {
-            this.onStorageError(mergeError);
+          if (generation === flushGeneration && !resetDiscardInProgress) {
+            try {
+              // Soma sobre qualquer evento que chegou enquanto a transação estava aberta.
+              mergeTotals(snapshot.userId, snapshot.totals);
+            } catch (mergeError) {
+              this.onStorageError(mergeError);
+            }
+            this.onStorageError(error);
           }
-          this.onStorageError(error);
         }
       }
       return succeeded;
@@ -95,7 +101,7 @@ export class ProficiencyBuffer {
       flushInFlight = null;
       // Se o efeito antigo foi descartado durante a gravação, a instância nova
       // assume o agendamento dos valores que precisaram ser restaurados.
-      if (hasPendingTotals()) activeBuffer?.scheduleFlush();
+      if (!resetDiscardInProgress && hasPendingTotals()) activeBuffer?.scheduleFlush();
     });
     return flushInFlight.then(() => undefined);
   }
@@ -107,6 +113,10 @@ export class ProficiencyBuffer {
     await this.flush();
     this.detachListeners();
     if (activeBuffer === this) activeBuffer = null;
+  }
+
+  cancelScheduledFlushForReset(): void {
+    this.clearTimer();
   }
 
   private readonly flushWhenHidden = () => {
@@ -132,7 +142,7 @@ export class ProficiencyBuffer {
   }
 
   private scheduleFlush(): void {
-    if (this.disposed || this.timer !== null || !hasPendingTotals()) return;
+    if (this.disposed || resetDiscardInProgress || this.timer !== null || !hasPendingTotals()) return;
     this.timer = window.setTimeout(() => {
       this.timer = null;
       void this.flush();
@@ -143,6 +153,21 @@ export class ProficiencyBuffer {
     if (this.timer === null) return;
     window.clearTimeout(this.timer);
     this.timer = null;
+  }
+}
+
+export async function discardPendingProficiencyBuffer(): Promise<void> {
+  resetDiscardInProgress = true;
+  flushGeneration += 1;
+  pendingByUser.clear();
+  activeBuffer?.cancelScheduledFlushForReset();
+  const inFlight = flushInFlight;
+  try {
+    if (inFlight) await inFlight;
+  } finally {
+    // Uma falha do envio antigo não pode restaurar seu snapshot após o reset.
+    pendingByUser.clear();
+    resetDiscardInProgress = false;
   }
 }
 
