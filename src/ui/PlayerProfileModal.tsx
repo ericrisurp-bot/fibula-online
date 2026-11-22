@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { fibulaSupabase } from '../auth/supabase';
 import { useArenaAuth } from '../auth/AuthGate';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
-import { isProficiencyKey, readProficiencyProgress } from '../game/proficiencyStorage';
+import { isProficiencyKey, readLocalProficiencyProgressionBaselines, readProficiencyProgress } from '../game/proficiencyStorage';
 import { getProficiencyProgression, type ProficiencyProgressionBaseline } from '../game/proficiencyLevels';
 import type { ProficiencyKey } from '../game/engine';
 import { drawLadino } from '../game/ladino';
@@ -234,6 +234,16 @@ export default function PlayerProfileModal({
           }
         }
         const progress = await readProficiencyProgress(userId, serverTotals);
+        const localBaselines = await readLocalProficiencyProgressionBaselines(userId);
+        for (const [key, localBaseline] of Object.entries(localBaselines) as [
+          ProficiencyKey,
+          ProficiencyProgressionBaseline,
+        ][]) {
+          const serverBaseline = serverBaselines[key];
+          if (!serverBaseline || localBaseline.preservedLevel > serverBaseline.preservedLevel) {
+            serverBaselines[key] = localBaseline;
+          }
+        }
         if (active) {
           setProficiencyCounts(progress);
           setProficiencyBaselines(serverBaselines);
