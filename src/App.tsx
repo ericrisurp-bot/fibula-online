@@ -3537,6 +3537,7 @@ export default function App() {
   };
 
   const openSidePage = (id: SideNavId): void => {
+    if (id === 'classes' && classChoice === 'chosen') return;
     if (id === 'bau') {
       openLobbyChest();
     } else {
