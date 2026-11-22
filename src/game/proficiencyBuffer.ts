@@ -142,7 +142,7 @@ export class ProficiencyBuffer {
   }
 
   private scheduleFlush(): void {
-    if (this.disposed || this.timer !== null || !hasPendingTotals()) return;
+    if (this.disposed || resetDiscardInProgress || this.timer !== null || !hasPendingTotals()) return;
     this.timer = window.setTimeout(() => {
       this.timer = null;
       void this.flush();
