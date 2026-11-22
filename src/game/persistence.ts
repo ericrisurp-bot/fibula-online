@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ClassId } from './config';
 
 export type PersistedHouseStack = { itemId: string; quantity: number };
 export type SoloMatchResult = {
