@@ -319,21 +319,32 @@ export async function readProficiencyProgress(
     const countersRequest = transaction.objectStore(STORE_NAME).index(USER_INDEX).getAll(userId);
     let progress: Partial<Record<ProficiencyKey, number>> = {};
 
+    let failure: Error | null = null;
     countersRequest.onsuccess = () => {
-      const localTotals = new Map<ProficiencyKey, number>();
+      const localCounters = new Map<ProficiencyKey, ProficiencyCounter>();
       for (const counter of countersRequest.result as ProficiencyCounter[]) {
         if (counter.userId === userId && isProficiencyKey(counter.key)) {
-          localTotals.set(counter.key, counter.total);
+          localCounters.set(counter.key, counter);
         }
       }
       for (const key of PROFICIENCY_KEYS) {
-        progress[key] = Math.max(serverTotals[key] ?? 0, localTotals.get(key) ?? 0);
+        const local = localCounters.get(key);
+        const serverTotal = serverTotals[key] ?? 0;
+        const syncedTotal = local?.syncedTotal ?? 0;
+        const unsyncedTotal = Math.max(0, (local?.total ?? 0) - syncedTotal);
+        const total = Math.max(serverTotal, syncedTotal) + unsyncedTotal;
+        if (!Number.isSafeInteger(total)) {
+          failure = new Error('O total exibido de proficiência excedeu o limite seguro.');
+          transaction.abort();
+          return;
+        }
+        progress[key] = total;
       }
     };
     countersRequest.onerror = () => reject(countersRequest.error ?? new Error('Falha ao ler contadores de proficiência.'));
     transaction.oncomplete = () => resolve(progress);
-    transaction.onerror = () => reject(transaction.error ?? new Error('Falha ao preparar o painel de proficiências.'));
-    transaction.onabort = () => reject(transaction.error ?? new Error('Leitura do painel de proficiências cancelada.'));
+    transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('Falha ao preparar o painel de proficiências.'));
+    transaction.onabort = () => reject(failure ?? transaction.error ?? new Error('Leitura do painel de proficiências cancelada.'));
   });
 }
 
