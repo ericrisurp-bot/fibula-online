@@ -86,9 +86,12 @@ const pluginSource = `package ${javaPackage};
 
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 
 import androidx.core.content.FileProvider;
 
@@ -99,6 +102,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.io.File;
+import java.util.List;
 
 @CapacitorPlugin(name = "ApkInstaller")
 public class ApkInstallerPlugin extends Plugin {
@@ -234,10 +238,40 @@ public class ApkInstallerPlugin extends Plugin {
                 "Fíbula APK",
                 contentUri
             ));
+
+            PackageManager packageManager = getContext().getPackageManager();
+            List<ResolveInfo> installers = packageManager.queryIntentActivities(
+                intent,
+                PackageManager.MATCH_DEFAULT_ONLY
+            );
+            if (installers.isEmpty()) {
+                call.reject("Nenhum instalador de APK encontrado neste aparelho.");
+                return;
+            }
+            for (ResolveInfo installer : installers) {
+                if (installer.activityInfo != null) {
+                    getContext().grantUriPermission(
+                        installer.activityInfo.packageName,
+                        contentUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    );
+                }
+            }
+
             getActivity().startActivity(intent);
             call.resolve();
         } catch (Exception error) {
-            call.reject("O Android não conseguiu abrir o instalador do APK.", error);
+            String exceptionName = error.getClass().getSimpleName();
+            String exceptionMessage = error.getMessage();
+            String details = exceptionName
+                + (exceptionMessage == null || exceptionMessage.trim().isEmpty()
+                    ? ""
+                    : ": " + exceptionMessage);
+            Log.e("ApkInstallerPlugin", "Falha ao abrir o instalador do APK: " + details, error);
+            call.reject(
+                "O Android não conseguiu abrir o instalador do APK. " + details,
+                error
+            );
         }
     }
 }
