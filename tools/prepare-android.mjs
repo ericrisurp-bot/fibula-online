@@ -125,6 +125,53 @@ public class ApkInstallerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void verifyApk(PluginCall call) {
+        String filePath = call.getString("filePath");
+        Long expectedSize = call.getLong("expectedSize");
+        String expectedSha256 = call.getString("expectedSha256");
+        if (filePath == null || filePath.trim().isEmpty()
+            || expectedSize == null || expectedSize <= 0
+            || expectedSha256 == null || !expectedSha256.matches("(?i)[a-f0-9]{64}")) {
+            call.reject("Dados de validação do APK inválidos.");
+            return;
+        }
+
+        try {
+            Uri fileUri = Uri.parse(filePath);
+            File apkFile = new File(fileUri.getPath());
+            if (!apkFile.isFile() || apkFile.length() != expectedSize) {
+                JSObject result = new JSObject();
+                result.put("valid", false);
+                result.put("size", apkFile.isFile() ? apkFile.length() : 0);
+                result.put("sha256", "");
+                call.resolve(result);
+                return;
+            }
+
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            try (java.io.FileInputStream input = new java.io.FileInputStream(apkFile)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            StringBuilder hash = new StringBuilder();
+            for (byte value : digest.digest()) {
+                hash.append(String.format(java.util.Locale.ROOT, "%02x", value & 0xff));
+            }
+
+            JSObject result = new JSObject();
+            result.put("valid", hash.toString().equalsIgnoreCase(expectedSha256));
+            result.put("size", apkFile.length());
+            result.put("sha256", hash.toString());
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject("Não foi possível validar a integridade do APK.", error);
+        }
+    }
+
+    @PluginMethod
     public void installApk(PluginCall call) {
         String filePath = call.getString("filePath");
         if (filePath == null || filePath.trim().isEmpty()) {

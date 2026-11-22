@@ -12,6 +12,7 @@ type ApkInstallerPlugin = {
   checkInstallPermission: () => Promise<{ canInstall: boolean }>;
   openInstallSettings: () => Promise<void>;
   installApk: (options: { filePath: string }) => Promise<void>;
+  verifyApk: (options: { filePath: string; expectedSize: number; expectedSha256: string }) => Promise<{ valid: boolean; size: number; sha256: string }>;
 };
 
 const ApkInstaller = registerPlugin<ApkInstallerPlugin>('ApkInstaller');
@@ -20,6 +21,8 @@ type AndroidRelease = {
   versionName: string;
   versionCode: number | null;
   apkUrl: string;
+  apkSize: number;
+  apkSha256: string;
   publishedAt: string | null;
 };
 
@@ -55,8 +58,9 @@ function parseRelease(value: unknown): AndroidRelease | null {
     !!asset && typeof asset === 'object'
       && (asset as { name?: unknown }).name === 'app-release.apk'
       && typeof (asset as { browser_download_url?: unknown }).browser_download_url === 'string',
-  ) as { browser_download_url: string } | undefined;
-  if (!apk) return null;
+  ) as { browser_download_url: string; size?: unknown; digest?: unknown } | undefined;
+  if (!apk || typeof apk.size !== 'number' || !Number.isSafeInteger(apk.size) || apk.size <= 0) return null;
+  if (typeof apk.digest !== 'string' || !/^sha256:[a-f0-9]{64}$/i.test(apk.digest)) return null;
 
   const versionCodeMatch = typeof release.body === 'string'
     ? /Código da versão:\s*(\d+)/i.exec(release.body)
@@ -66,6 +70,8 @@ function parseRelease(value: unknown): AndroidRelease | null {
     versionName: versionMatch[1],
     versionCode: versionCodeMatch ? Number(versionCodeMatch[1]) : null,
     apkUrl: apk.browser_download_url,
+    apkSize: apk.size,
+    apkSha256: apk.digest.slice('sha256:'.length).toLowerCase(),
     publishedAt: null,
   };
 }
@@ -173,13 +179,35 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
       setDownloadProgress(0);
       let progressListener: { remove: () => Promise<void> } | null = null;
       try {
+        const fileName = `fibula-online-${release.versionName}.apk`;
+        const destination = await Filesystem.getUri({
+          directory: Directory.Cache,
+          path: fileName,
+        });
         let apkPath = pendingApkPath;
+        if (apkPath) {
+          let cachedVerification = false;
+          try {
+            const result = await ApkInstaller.verifyApk({
+              filePath: apkPath,
+              expectedSize: release.apkSize,
+              expectedSha256: release.apkSha256,
+            });
+            cachedVerification = result.valid;
+          } catch {
+            // Um arquivo em cache ausente ou ilegível deve ser baixado novamente.
+          }
+          if (!cachedVerification) {
+            setPendingApkPath(null);
+            apkPath = null;
+          }
+        }
         if (!apkPath) {
-          const fileName = `fibula-online-${release.versionName}.apk`;
-          const destination = await Filesystem.getUri({
-            directory: Directory.Cache,
-            path: fileName,
-          });
+          try {
+            await Filesystem.deleteFile({ directory: Directory.Cache, path: fileName });
+          } catch {
+            // O arquivo pode ainda não existir no cache.
+          }
           progressListener = await FileTransfer.addListener('progress', ({ bytes, contentLength }) => {
             if (contentLength > 0) {
               setDownloadProgress(Math.min(100, Math.round((bytes / contentLength) * 100)));
@@ -190,11 +218,20 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
             path: destination.uri,
             progress: true,
           });
-          const downloadedFile = await Filesystem.stat({
-            directory: Directory.Cache,
-            path: fileName,
+          const verification = await ApkInstaller.verifyApk({
+            filePath: destination.uri,
+            expectedSize: release.apkSize,
+            expectedSha256: release.apkSha256,
           });
-          if (downloadedFile.size <= 0) throw new Error('O arquivo baixado está vazio.');
+          if (!verification.valid) {
+            try {
+              await Filesystem.deleteFile({ directory: Directory.Cache, path: fileName });
+            } catch {
+              // A falha de limpeza não deve permitir instalar o arquivo inválido.
+            }
+            setPendingApkPath(null);
+            throw new Error('O APK baixado não corresponde ao arquivo oficial. O download foi descartado; tente novamente.');
+          }
           setDownloadProgress(100);
           apkPath = destination.uri;
           setPendingApkPath(apkPath);
