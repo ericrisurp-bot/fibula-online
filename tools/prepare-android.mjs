@@ -202,6 +202,12 @@ public class ApkInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void installApk(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            && !getContext().getPackageManager().canRequestPackageInstalls()) {
+            call.reject("O Fíbula ainda não tem autorização para solicitar instalações.");
+            return;
+        }
+
         String step = "1) validar arquivo";
         File apkFile;
         Uri contentUri;
@@ -216,7 +222,9 @@ public class ApkInstallerPlugin extends Plugin {
                 throw new IllegalArgumentException("O APK baixado não foi encontrado ou está vazio.");
             }
         } catch (Exception error) {
-            rejectInstallStep(call, step, error, null);
+            String details = formatInstallError(step, error);
+            Log.e("ApkInstallerPlugin", "Falha na instalação do APK: " + details, error);
+            call.reject("Não foi possível instalar o APK. " + details, error);
             return;
         }
 
@@ -228,7 +236,9 @@ public class ApkInstallerPlugin extends Plugin {
                 apkFile
             );
         } catch (Exception error) {
-            rejectInstallStep(call, step, error, null);
+            String details = formatInstallError(step, error);
+            Log.e("ApkInstallerPlugin", "Falha na instalação do APK: " + details, error);
+            call.reject("Não foi possível instalar o APK. " + details, error);
             return;
         }
 
@@ -245,7 +255,9 @@ public class ApkInstallerPlugin extends Plugin {
                 new ClipData.Item(contentUri)
             ));
         } catch (Exception error) {
-            rejectInstallStep(call, step, error, null);
+            String details = formatInstallError(step, error);
+            Log.e("ApkInstallerPlugin", "Falha na instalação do APK: " + details, error);
+            call.reject("Não foi possível instalar o APK. " + details, error);
             return;
         }
 
