@@ -494,6 +494,7 @@ public class ApkInstallerPlugin extends Plugin {
             unregisterInstallStatusReceiver();
             if (activeInstallCall == call && !activeInstallCallResolved) {
                 activeInstallCall = null;
+                call.setKeepAlive(false);
                 call.reject("Não foi possível instalar o APK pela sessão do Android. " + details, error);
             }
         }
