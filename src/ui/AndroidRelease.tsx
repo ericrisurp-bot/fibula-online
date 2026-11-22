@@ -84,7 +84,7 @@ function isCachedRelease(value: unknown): value is AndroidRelease {
   if (!value || typeof value !== 'object') return false;
   const cached = value as Partial<AndroidRelease>;
   return typeof cached.versionName === 'string'
-    && /^\\d+\\.\\d+\\.\\d+$/.test(cached.versionName)
+    && /^\d+\.\d+\.\d+$/.test(cached.versionName)
     && (cached.versionCode === null || (typeof cached.versionCode === 'number' && Number.isFinite(cached.versionCode)))
     && typeof cached.apkUrl === 'string'
     && typeof cached.apkSize === 'number' && Number.isSafeInteger(cached.apkSize) && cached.apkSize > 0
