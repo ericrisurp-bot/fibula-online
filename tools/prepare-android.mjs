@@ -202,52 +202,61 @@ public class ApkInstallerPlugin extends Plugin {
 
     @PluginMethod
     public void installApk(PluginCall call) {
-        String filePath = call.getString("filePath");
-        if (filePath == null || filePath.trim().isEmpty()) {
-            call.reject("Caminho do APK não informado.");
-            return;
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            && !getContext().getPackageManager().canRequestPackageInstalls()) {
-            call.reject("O Fíbula ainda não tem autorização para solicitar instalações.");
-            return;
-        }
-
+        String step = "1) validar arquivo";
+        File apkFile;
+        Uri contentUri;
         try {
-            Uri fileUri = Uri.parse(filePath);
-            File apkFile = new File(fileUri.getPath());
-            if (!apkFile.isFile() || apkFile.length() <= 0) {
-                call.reject("O APK baixado não foi encontrado ou está vazio.");
-                return;
+            String filePath = call.getString("filePath");
+            if (filePath == null || filePath.trim().isEmpty()) {
+                throw new IllegalArgumentException("Caminho do APK não informado.");
             }
+            Uri fileUri = Uri.parse(filePath);
+            apkFile = new File(fileUri.getPath());
+            if (!apkFile.isFile() || apkFile.length() <= 0) {
+                throw new IllegalArgumentException("O APK baixado não foi encontrado ou está vazio.");
+            }
+        } catch (Exception error) {
+            rejectInstallStep(call, step, error, null);
+            return;
+        }
 
-            Uri contentUri = FileProvider.getUriForFile(
+        step = "2) FileProvider.getUriForFile";
+        try {
+            contentUri = FileProvider.getUriForFile(
                 getContext(),
                 getContext().getPackageName() + ".apkprovider",
                 apkFile
             );
-            // Use the same generic APK-opening flow used when the user taps
-            // an APK in Downloads: Android resolves the package installer and
-            // keeps its normal security / Play Protect checks in control.
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.setClipData(ClipData.newUri(
-                getContext().getContentResolver(),
-                "Fíbula APK",
-                contentUri
-            ));
+        } catch (Exception error) {
+            rejectInstallStep(call, step, error, null);
+            return;
+        }
 
+        step = "3) montar a intent";
+        Intent viewIntent;
+        try {
+            viewIntent = new Intent(Intent.ACTION_VIEW);
+            viewIntent.setDataAndType(contentUri, "application/vnd.android.package-archive");
+            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            viewIntent.setClipData(new ClipData(
+                "Fíbula APK",
+                new String[] {"application/vnd.android.package-archive"},
+                new ClipData.Item(contentUri)
+            ));
+        } catch (Exception error) {
+            rejectInstallStep(call, step, error, null);
+            return;
+        }
+
+        String permissionWarning = null;
+        step = "4) queryIntentActivities e grantUriPermission";
+        try {
             PackageManager packageManager = getContext().getPackageManager();
             List<ResolveInfo> installers = packageManager.queryIntentActivities(
-                intent,
+                viewIntent,
                 PackageManager.MATCH_DEFAULT_ONLY
             );
-            if (installers.isEmpty()) {
-                call.reject("Nenhum instalador de APK encontrado neste aparelho.");
-                return;
-            }
             for (ResolveInfo installer : installers) {
                 if (installer.activityInfo != null) {
                     getContext().grantUriPermission(
@@ -257,22 +266,65 @@ public class ApkInstallerPlugin extends Plugin {
                     );
                 }
             }
-
-            getActivity().startActivity(intent);
-            call.resolve();
+            if (installers.isEmpty()) {
+                permissionWarning = "A consulta não encontrou instaladores; será tentada a abertura direta.";
+                Log.w("ApkInstallerPlugin", permissionWarning);
+            }
         } catch (Exception error) {
-            String exceptionName = error.getClass().getSimpleName();
-            String exceptionMessage = error.getMessage();
-            String details = exceptionName
-                + (exceptionMessage == null || exceptionMessage.trim().isEmpty()
-                    ? ""
-                    : ": " + exceptionMessage);
-            Log.e("ApkInstallerPlugin", "Falha ao abrir o instalador do APK: " + details, error);
-            call.reject(
-                "O Android não conseguiu abrir o instalador do APK. " + details,
-                error
-            );
+            permissionWarning = formatInstallError(step, error);
+            Log.e("ApkInstallerPlugin", "Falha não bloqueante no passo 4: " + permissionWarning, error);
         }
+
+        step = "5) startActivity (ACTION_VIEW)";
+        try {
+            getActivity().startActivity(viewIntent);
+            call.resolve();
+            return;
+        } catch (Exception viewError) {
+            String viewDetails = formatInstallError(step, viewError);
+            Log.e("ApkInstallerPlugin", "Falha ao iniciar ACTION_VIEW: " + viewDetails, viewError);
+
+            step = "5) startActivity (ACTION_INSTALL_PACKAGE)";
+            try {
+                Intent installIntent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+                installIntent.setData(contentUri);
+                installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                installIntent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+                installIntent.setClipData(new ClipData(
+                    "Fíbula APK",
+                    new String[] {"application/vnd.android.package-archive"},
+                    new ClipData.Item(contentUri)
+                ));
+                getActivity().startActivity(installIntent);
+                call.resolve();
+                return;
+            } catch (Exception installError) {
+                String installDetails = formatInstallError(step, installError);
+                Log.e("ApkInstallerPlugin", "Falha também ao iniciar ACTION_INSTALL_PACKAGE: " + installDetails, installError);
+                String diagnostics = viewDetails + " | " + installDetails;
+                if (permissionWarning != null) {
+                    diagnostics += " | Aviso do passo 4 (não bloqueante): " + permissionWarning;
+                }
+                call.reject(
+                    "Não foi possível abrir o instalador do APK. " + diagnostics,
+                    installError
+                );
+            }
+        }
+    }
+
+    private String formatInstallError(String step, Exception error) {
+        String exceptionName = error.getClass().getSimpleName();
+        String exceptionMessage = error.getMessage();
+        String firstStackLine = error.getStackTrace().length > 0
+            ? error.getStackTrace()[0].toString()
+            : "pilha indisponível";
+        return step + " falhou: " + exceptionName
+            + (exceptionMessage == null || exceptionMessage.trim().isEmpty()
+                ? ""
+                : ": " + exceptionMessage)
+            + " | Pilha: " + firstStackLine;
     }
 }
 `;
