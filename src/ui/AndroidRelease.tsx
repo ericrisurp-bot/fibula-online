@@ -364,6 +364,12 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
           await ApkInstaller.installApkSession({ filePath: apkPath });
           setPendingApkPath(null);
         } catch (error) {
+          const installErrorCode = error && typeof error === 'object' && 'code' in error
+            ? (error as { code?: unknown }).code
+            : undefined;
+          if (installErrorCode === 'INSTALL_ABORTED') {
+            return;
+          }
           sessionInstallError = error;
           try {
             await ApkInstaller.installApk({ filePath: apkPath });
