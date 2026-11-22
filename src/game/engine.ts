@@ -1999,7 +1999,7 @@ export class GameEngine {
     const normalFishIndex = normalFishItemId
       ? species.findIndex(fish => fish.itemId === normalFishItemId)
       : -1;
-    const eligible = species.filter((fish, index) => index >= 1 && index > normalFishIndex);
+    const eligible = species.filter((_, index) => index >= 1 && index > normalFishIndex);
     const totalWeight = eligible.reduce((sum, fish) => sum + fish.chancePercent, 0);
     if (eligible.length === 0 || totalWeight <= 0) return undefined;
 
