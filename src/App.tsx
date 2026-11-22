@@ -5085,6 +5085,9 @@ export default function App() {
     return <main className="class-first-entry">
       <div className="lobby-screen is-page-backdrop" aria-hidden="true">
         <div className="lobby-sky"><i className="lobby-moon"/><i className="lobby-star star-one"/><i className="lobby-star star-two"/><i className="lobby-star star-three"/><i className="lobby-star star-four"/><i className="lobby-star star-five"/><i className="lobby-star star-six"/><i className="lobby-star star-seven"/><i className="lobby-comet"/></div>
+        <canvas ref={lobbyGrassCanvasRef} className="lobby-grass-floor"/>
+        <i className="lobby-ground-light"/>
+        <div className="lobby-character-wrap"><canvas ref={lobbyCharacterCanvasRef} className="lobby-character-canvas"/></div>
       </div>
       {classesPage}
       <ClassChoiceOnboarding
