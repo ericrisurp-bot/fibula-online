@@ -2468,7 +2468,7 @@ export default function App() {
       try {
         const progress = await readProficiencyProgress(userId, serverTotals);
         if (!engineActive || engineRef.current !== engine || engine.state.dead) return;
-        for (const key of ['machado_madeira', 'picareta', 'foice_mao', 'faca_esfolar', 'carroca_distancia'] as const) {
+        for (const key of ['machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao', 'carroca_distancia'] as const) {
           engine.setProficiencyTotal(key, progress[key] ?? 0);
         }
       } catch {

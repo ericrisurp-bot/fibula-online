@@ -50,6 +50,7 @@ export const CONFIG = {
     shoreBand: 150, shoreAttractChance: 0.65, shoreMinGap: 28, shoreMaxGap: 130,
     shoreSpacing: 80, shoreAttempts: 200,
     fishingRange: 58, fishingInterval: 8.5, fishingVisibleDuration: 7, fishDropLifetime: 60,
+    fishingProficiencyBonus: { maxChance: 0.03, maxLevel: 100 },
     fishByLakeSize: {
       small: [
         { itemId: 'tilapia', chancePercent: 10 },

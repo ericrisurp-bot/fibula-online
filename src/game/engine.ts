@@ -400,7 +400,7 @@ export class GameEngine {
 
   private recordProficiency(key: ProficiencyKey, amount = 1): void {
     if (!Number.isSafeInteger(amount) || amount <= 0) return;
-    if (['machado_madeira', 'picareta', 'foice_mao', 'faca_esfolar', 'carroca_distancia'].includes(key)) {
+    if (['machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao', 'carroca_distancia'].includes(key)) {
       const current = key === 'carroca_distancia' ? this.cartProficiencyTotal : (this.proficiencyTotals[key] ?? 0);
       const next = current + amount;
       if (Number.isSafeInteger(next)) {
@@ -444,7 +444,7 @@ export class GameEngine {
 
   /** Define um acumulado inicial validado; dados inválidos são ignorados. */
   setProficiencyTotal(key: ProficiencyKey, total: number): void {
-    if (!['machado_madeira', 'picareta', 'foice_mao', 'faca_esfolar', 'carroca_distancia'].includes(key)
+    if (!['machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao', 'carroca_distancia'].includes(key)
       || !Number.isSafeInteger(total) || total < 0) return;
     this.proficiencyTotals[key] = total;
     if (key === 'carroca_distancia') {
@@ -1806,16 +1806,19 @@ export class GameEngine {
         cumulativeChance += fish.chancePercent;
         return fishRoll < cumulativeChance;
       });
-      if (caughtFish) {
-        const result = addToInventory(this.state.inventory, caughtFish.itemId, 1, CONFIG.inventory);
+      const deliverFish = (itemId: string) => {
+        const result = addToInventory(this.state.inventory, itemId, 1, CONFIG.inventory);
         if (result.added > 0) {
           this.state.inventory = result.inventory;
           this.addFloatingLabel(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, '+1', '#d7b66e');
         } else {
-          this.state.wildlifeDrops.push({ id: this.nextId++, kind: caughtFish.itemId as WildlifeDropKind, amount: 1, x: feet.x + (this.random() - 0.5) * 16, y: feet.y + (this.random() - 0.5) * 16, age: 0, lifetime: CONFIG.lake.fishDropLifetime });
+          this.state.wildlifeDrops.push({ id: this.nextId++, kind: itemId as WildlifeDropKind, amount: 1, x: feet.x + (this.random() - 0.5) * 16, y: feet.y + (this.random() - 0.5) * 16, age: 0, lifetime: CONFIG.lake.fishDropLifetime });
           this.addFloatingLabel(this.state.player.x, this.state.player.y - CONFIG.player.radius * 1.8, 'Mochila cheia', '#ff4545');
         }
-      }
+      };
+      if (caughtFish) deliverFish(caughtFish.itemId);
+      const bonusFish = this.rollFishingSpeciesBonus(caughtFish?.itemId);
+      if (bonusFish) deliverFish(bonusFish);
     }
     if (this.fishingTimer >= CONFIG.lake.fishingInterval) this.fishingTimer %= CONFIG.lake.fishingInterval;
     this.state.fishing = this.fishingTimer < pullAt;
@@ -1985,6 +1988,32 @@ export class GameEngine {
       if (roll < 0) return rarity;
     }
     return undefined;
+  }
+
+  private rollFishingSpeciesBonus(normalFishItemId?: string): string | undefined {
+    const total = this.proficiencyTotals['vara_pesca'] ?? 0;
+    const level = getProficiencyProgression('vara_pesca', total).level;
+    if (level <= 0) return undefined;
+
+    const species = CONFIG.lake.fishByLakeSize[this.state.lake.size];
+    const normalFishIndex = normalFishItemId
+      ? species.findIndex(fish => fish.itemId === normalFishItemId)
+      : -1;
+    const eligible = species.filter((_, index) => index >= 1 && index > normalFishIndex);
+    const totalWeight = eligible.reduce((sum, fish) => sum + fish.chancePercent, 0);
+    if (eligible.length === 0 || totalWeight <= 0) return undefined;
+
+    const bonusChance = CONFIG.lake.fishingProficiencyBonus.maxChance
+      * level / CONFIG.lake.fishingProficiencyBonus.maxLevel;
+    if (this.random() >= bonusChance) return undefined;
+
+    const selectionRoll = this.random();
+    let cumulativeWeight = 0;
+    for (const fish of eligible) {
+      cumulativeWeight += fish.chancePercent;
+      if (selectionRoll < cumulativeWeight / totalWeight) return fish.itemId;
+    }
+    return eligible[eligible.length - 1]?.itemId;
   }
 
   private rollProficiencyRarityBonus(key: ProficiencyKey, targetRarity?: ResourceRarity): ResourceRarity | undefined {
