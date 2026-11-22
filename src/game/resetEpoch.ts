@@ -91,6 +91,6 @@ export async function clearLocalGameProgress(): Promise<void> {
   await discardPendingProficiencyBuffer();
   await clearProficiencyStorage();
   if (storageFailure) {
-    throw new Error('Não foi possível limpar todas as chaves locais de progresso.', { cause: storageFailure });
+    throw new Error('Não foi possível limpar todas as chaves locais de progresso.');
   }
 }
