@@ -56,12 +56,15 @@ function openDatabase(): Promise<IDBDatabase> {
           const cursor = cursorRequest.result;
           if (!cursor) return;
           const counter = cursor.value as ProficiencyCounter;
-          baselines.put({
-            userId: counter.userId,
-            key: counter.key,
-            preservedLevel: getLegacyProficiencyLevel(counter.key, counter.total),
-            baselineCounter: counter.total,
-          });
+          if (isProficiencyKey(counter.key)
+            && Number.isSafeInteger(counter.total) && counter.total >= 0) {
+            baselines.put({
+              userId: counter.userId,
+              key: counter.key,
+              preservedLevel: getLegacyProficiencyLevel(counter.key, counter.total),
+              baselineCounter: counter.total,
+            });
+          }
           cursor.continue();
         };
       }
