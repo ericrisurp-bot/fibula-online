@@ -765,7 +765,6 @@ try {
   b1Engine.random = () => { b1RandomCalls++; return 0; };
   assert.equal(b1Engine.rollProficiencyRarityBonus('machado_madeira'), undefined);
   assert.equal(b1RandomCalls, 0, 'nível 0 não pode consumir nenhuma chamada de RNG');
-  b1Engine.setProficiencyTotal('machado_madeira', b1Total100);
   const b1Roll = (chance, band, target, night = 30) => {
     b1Engine.nightNumber = night;
     const values = [chance, band];
@@ -773,6 +772,14 @@ try {
     b1Engine.random = () => values[index++] ?? 0.999999;
     return b1Engine.rollProficiencyRarityBonus('machado_madeira', target);
   };
+  b1Engine.setProficiencyTotal('machado_madeira', 36, {
+    preservedLevel: 3, baselineCounter: 36,
+  });
+  assert.equal(b1Roll(0.00209, 0), 'common',
+    'o baseline deve manter o bônus de raridade do nível 3 antigo');
+  assert.equal(b1Roll(0.0021, 0), undefined,
+    'o baseline preserva o nível, sem alterar o percentual do bônus');
+  b1Engine.setProficiencyTotal('machado_madeira', b1Total100);
   assert.equal(b1Roll(0, 0.599999), 'common');
   assert.equal(b1Roll(0, 0.6), 'uncommon');
   assert.equal(b1Roll(0, 0.88), 'rare');
@@ -1123,7 +1130,6 @@ try {
   b2Engine.random = () => { b2RandomCalls++; return 0; };
   assert.equal(b2Engine.rollFishingSpeciesBonus(), undefined);
   assert.equal(b2RandomCalls, 0, 'vara no nível 0 não pode consumir RNG para o bônus');
-  b2Engine.setProficiencyTotal('vara_pesca', b2Total50);
   const b2RollAt50 = (chance, selection, normalFish, lakeSize = 'large') => {
     b2Engine.state.lake = { ...b2Engine.state.lake, size: lakeSize };
     const values = [chance, selection];
@@ -1131,6 +1137,14 @@ try {
     b2Engine.random = () => values[index++] ?? 0.999999;
     return b2Engine.rollFishingSpeciesBonus(normalFish);
   };
+  b2Engine.setProficiencyTotal('vara_pesca', 18, {
+    preservedLevel: 3, baselineCounter: 18,
+  });
+  assert.equal(b2RollAt50(0.00089, 0, 'tilapia'), 'tambaqui',
+    'o baseline deve manter o bônus de espécie do nível 3 antigo');
+  assert.equal(b2RollAt50(0.0009, 0, 'tilapia'), undefined,
+    'o baseline não altera a chance proporcional da vara');
+  b2Engine.setProficiencyTotal('vara_pesca', b2Total50);
   assert.equal(b2RollAt50(0.014999, 0, 'tilapia'), 'tambaqui',
     'nível 50 deve aplicar chance máxima proporcional de 1,5%');
   assert.equal(b2RollAt50(0.015, 0, 'tilapia'), undefined,
