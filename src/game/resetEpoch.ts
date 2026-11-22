@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { clearProficiencyStorage } from './proficiencyStorage';
+import { discardPendingProficiencyBuffer } from './proficiencyBuffer';
 
 export const RESET_EPOCH_STORAGE_PREFIX = 'fibula-reset-epoch:';
 
@@ -80,6 +81,7 @@ export async function clearLocalGameProgress(): Promise<void> {
     storageFailure ??= error;
   }
 
+  await discardPendingProficiencyBuffer();
   await clearProficiencyStorage();
   if (storageFailure) {
     throw new Error('Não foi possível limpar todas as chaves locais de progresso.', { cause: storageFailure });
