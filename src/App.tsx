@@ -725,13 +725,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 
   useEffect(() => {
     let active = true;
+    let loaded = false;
     setCampProgressReady(false);
     setCampProgressLoadedUserId(null);
     campProgressRef.current = emptyCampProgress;
     setCompletedMissions([]);
     void (async () => {
       try {
-        if (!fibulaSupabase) return;
+        if (!fibulaSupabase) { loaded = true; return; }
         const { data, error } = await fibulaSupabase
           .from('fibula_adventurer_progress')
           .select('completed_missions,objectives,chest_position,refinery_position,tecelaria_position')
@@ -760,12 +761,13 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           tecelariaPosition: position(data?.tecelaria_position),
         };
         setCompletedMissions(campProgressRef.current.completedMissions);
+        loaded = true;
       } catch (error) {
         console.warn('[Guia do Aventureiro] Não foi possível carregar o progresso permanente.', error);
       } finally {
         if (active) {
           setCampProgressReady(true);
-          setCampProgressLoadedUserId(userId);
+          if (loaded) setCampProgressLoadedUserId(userId);
         }
       }
     })();
@@ -2544,6 +2546,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     setAdventurerGuideFinishedHidden(false);
     let guideCurrent = initialGuideObjectives;
     let lastPersistedCampProgress = JSON.stringify(campProgressRef.current);
+    let progressWriteQueue: Promise<unknown> = Promise.resolve();
     let previousCarried = { wood: 0, stone: 0, cotton: 0 };
     let previousGuideSnapshot: GameSnapshot | null = null;
     const collected = {
@@ -2673,15 +2676,18 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         lastPersistedCampProgress = serializedCampProgress;
         setCompletedMissions(nextCampProgress.completedMissions);
         if (fibulaSupabase) {
-          void fibulaSupabase.from('fibula_adventurer_progress').upsert({
-            user_id: userId,
-            completed_missions: nextCampProgress.completedMissions,
-            objectives: nextCampProgress.objectives,
-            chest_position: nextCampProgress.chestPosition,
-            refinery_position: nextCampProgress.refineryPosition,
-            tecelaria_position: nextCampProgress.tecelariaPosition,
-          }, { onConflict: 'user_id' }).then(({ error }) => {
-            if (error) console.warn('[Guia do Aventureiro] Não foi possível salvar o progresso permanente.', error);
+          progressWriteQueue = progressWriteQueue.then(async () => {
+            const { error } = await fibulaSupabase.from('fibula_adventurer_progress').upsert({
+              user_id: userId,
+              completed_missions: nextCampProgress.completedMissions,
+              objectives: nextCampProgress.objectives,
+              chest_position: nextCampProgress.chestPosition,
+              refinery_position: nextCampProgress.refineryPosition,
+              tecelaria_position: nextCampProgress.tecelariaPosition,
+            }, { onConflict: 'user_id' });
+            if (error) throw error;
+          }).catch(error => {
+            console.warn('[Guia do Aventureiro] Não foi possível salvar o progresso permanente.', error);
           });
         }
       }
