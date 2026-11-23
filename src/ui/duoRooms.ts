@@ -94,6 +94,13 @@ export async function setDuoReady(roomId: string, ready: boolean): Promise<boole
   return data;
 }
 
+export async function kickDuoGuest(roomId: string): Promise<boolean> {
+  const { data, error } = await getClient().rpc('fibula_kick_duo_guest', { p_room_id: roomId });
+  throwRpcError(error);
+  if (data !== true) throw new Error('O servidor não confirmou a expulsão do parceiro.');
+  return true;
+}
+
 export async function leaveDuoRoom(roomId: string): Promise<boolean> {
   const { data, error } = await getClient().rpc('fibula_leave_duo_room', { p_room_id: roomId });
   throwRpcError(error);
