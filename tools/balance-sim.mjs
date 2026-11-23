@@ -243,8 +243,8 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     };
 
     engine.start();
-    // Alinha o relógio virtual ao timestamp usado pelo start() no motor.
-    frameNow = performance.now();
+    // Parte do mesmo instante registrado por start(); evita um delta variável no primeiro quadro.
+    frameNow = engine.lastTime;
 
     const durationLimit = nightDiagnostic ? 360 : immortal
       ? CONFIG.dayNight.cycle * 10
