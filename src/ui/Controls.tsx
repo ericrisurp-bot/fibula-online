@@ -17,6 +17,7 @@ type Props = {
   campMenuVisible: boolean;
   onOpenCampMenu: () => void;
   flagWheelOpen: boolean;
+  flagWheelPointerId: number | null;
   onLongPress: (clientX: number, clientY: number, pointerId: number) => void;
   onFlagTap: (clientX: number, clientY: number) => boolean;
   onWheelMove: (clientX: number, clientY: number, pointerId: number) => void;
@@ -55,7 +56,7 @@ const getControlsMetrics = (element: HTMLDivElement) => {
   return { rect, scaleX: scaleX || 1, scaleY: scaleY || 1 };
 };
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, availableClassIds, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, flagWheelPointerId, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, availableClassIds, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originClientX: number; originClientY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -121,7 +122,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   };
 
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (flagWheelOpen) { onWheelMove(e.clientX, e.clientY, e.pointerId); return; }
+    if (flagWheelOpen && e.pointerId === flagWheelPointerId) { onWheelMove(e.clientX, e.clientY, e.pointerId); return; }
     const active = activePointer.current;
     if (!active || active.id !== e.pointerId) return;
     e.preventDefault();
@@ -144,7 +145,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
   };
 
   const resetStick = (e: PointerEvent<HTMLDivElement>) => {
-    if (flagWheelOpen) { onWheelEnd(e.clientX, e.clientY, e.pointerId); return; }
+    if (flagWheelOpen && e.pointerId === flagWheelPointerId) { onWheelEnd(e.clientX, e.clientY, e.pointerId); return; }
     if (activePointer.current?.id !== e.pointerId) return;
     const pending = longPressRef.current;
     if (pending?.id === e.pointerId) { window.clearTimeout(pending.timer); longPressRef.current = null; }
@@ -152,6 +153,30 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
     onMove(0, 0);
     setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
   };
+
+  useEffect(() => {
+    const resetActiveStick = () => {
+      const active = activePointer.current;
+      if (!active) return;
+      const pending = longPressRef.current;
+      if (pending?.id === active.id) {
+        window.clearTimeout(pending.timer);
+        longPressRef.current = null;
+      }
+      activePointer.current = null;
+      onMove(0, 0);
+      setStick(current => ({ ...current, dx: 0, dy: 0, active: false }));
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') resetActiveStick();
+    };
+    window.addEventListener('blur', resetActiveStick);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('blur', resetActiveStick);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [onMove]);
 
   const onSecondaryPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     const movement = activePointer.current;
