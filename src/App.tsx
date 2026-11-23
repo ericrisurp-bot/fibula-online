@@ -4565,8 +4565,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         matchSessionIdRef.current = null;
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
-        adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+        adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+    setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
         engine.restart();
         await activatePendingCookingMeals(engine);
@@ -4963,8 +4963,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     await proficiencyBufferRef.current?.flush();
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
-    adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+    setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
     engine.restart();
     engine.stop();
@@ -5065,8 +5065,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       setWheel(null);
       closeFlagMenu();
       closeInventoryPanel();
-      adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+      adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+    setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
       engine.restart();
       await activatePendingCookingMeals(engine);
