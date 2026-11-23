@@ -360,6 +360,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         if (projectedMovement > 0.05) aiTelemetry.playerTowardTarget += 1;
         else if (projectedMovement < -0.05) aiTelemetry.playerAwayFromTarget += 1;
         else aiTelemetry.playerLateralOrStill += 1;
+      }
 
       if (determinismTrace) {
         const snapshot = {
