@@ -62,6 +62,37 @@ function getProfileErrorMessage(cause: unknown, action: 'carregar' | 'salvar'): 
 }
 
 
+function getProficiencyErrorMessage(cause: unknown): string {
+  if (cause && typeof cause === 'object') {
+    const error = cause as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
+    const code = typeof error.code === 'string' ? error.code : '';
+    const message = typeof error.message === 'string' ? error.message : '';
+    const details = typeof error.details === 'string' ? error.details : '';
+    const hint = typeof error.hint === 'string' ? error.hint : '';
+
+    if (code === '42703' || code === 'PGRST204') {
+      return 'A estrutura de proficiências está desatualizada no Supabase. A migration 20261122150000_extreme_proficiency_progression.sql precisa estar aplicada.';
+    }
+    if (code === '42P01' || code === 'PGRST205') {
+      return 'A tabela de proficiências não foi encontrada no Supabase. Verifique as migrations da fundação de proficiências.';
+    }
+    if (code === '42501' || code === 'PGRST301' || code === '401') {
+      return 'O Supabase recusou o acesso às proficiências. Verifique a sessão Arena e as políticas RLS.';
+    }
+    if (cause instanceof TypeError && /fetch|network/i.test(cause.message)) {
+      return 'Falha de conexão ao consultar as proficiências. Verifique sua internet e tente novamente.';
+    }
+    if (message) {
+      const diagnostic = [code, message, details, hint].filter(Boolean).join(' — ');
+      return `Falha ao carregar proficiências: ${diagnostic}`;
+    }
+  }
+  return cause instanceof Error
+    ? `Falha ao carregar proficiências: ${cause.message}`
+    : 'Falha inesperada ao carregar proficiências. Tente novamente.';
+}
+
+
 const PROFICIENCY_SECTIONS: { title: string; icon: string; items: { label: string; key: ProficiencyKey }[] }[] = [
   { title: 'Combat', icon: '⚔', items: [
     { label: 'Sword', key: 'espada' },
@@ -248,8 +279,8 @@ export default function PlayerProfileModal({
           setProficiencyCounts(progress);
           setProficiencyBaselines(serverBaselines);
         }
-      } catch {
-        if (active) setProficiencyError('Não foi possível carregar as proficiências. Verifique sua conexão.');
+      } catch (cause) {
+        if (active) setProficiencyError(getProficiencyErrorMessage(cause));
       } finally {
         if (active) setProficiencyLoading(false);
       }
