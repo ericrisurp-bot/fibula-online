@@ -576,9 +576,6 @@ if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
     activitySource = activitySource.replace(/(public class MainActivity extends BridgeActivity\s*\{)/, '$1\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(ApkInstallerPlugin.class);\n        super.onCreate(savedInstanceState);\n    }');
   }
 }
-if (!activitySource.includes('import android.os.Build;')) {
-  activitySource = activitySource.replace(/^(package [^;]+;\s*)/m, '$1\nimport android.os.Build;');
-}
 if (!activitySource.includes('applyImmersiveMode()')) {
   activitySource = activitySource.replace(
     /super\.onCreate\(savedInstanceState\);/,
