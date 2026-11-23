@@ -4,6 +4,7 @@
  *   node tools/balance-sim.mjs          # 30 sementes por classe
  *   node tools/balance-sim.mjs 30
  *   node tools/balance-sim.mjs 30 --imortal
+ *   node tools/balance-sim.mjs 1 --diagnostico-noites
  *
  * O simulador carrega todos os módulos TypeScript de src/game para um diretório
  * temporário e fornece um requestAnimationFrame virtual a 30 FPS. Math.random
@@ -47,7 +48,7 @@ const RUN_CLASSES = nightDiagnostic ? ['mago'] : CLASSES;
 const RUN_PROFILES = nightDiagnostic ? ['proximo'] : PROFILE_IDS;
 
 if (!Number.isInteger(seedCount) || seedCount < 1 || seedCount > 10000) {
-  console.error('Uso: node tools/balance-sim.mjs [N] [--imortal] [--json], com N entre 1 e 10000.');
+  console.error('Uso: node tools/balance-sim.mjs [N] [--imortal] [--json] [--diagnostico-noites], com N entre 1 e 10000.');
   process.exit(2);
 }
 
@@ -464,7 +465,7 @@ try {
       console.log('Relatório detalhado salvo em balance-sim-results.json');
     }
   } else {
-    console.log(`Fíbula Online — auditoria individual | modo: IMORTAL | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${CONFIG.dayNight.cycle * 10}s | nível/abates aos 300s`);
+    console.log(`Fíbula Online — auditoria individual | modo: IMORTAL | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${nightDiagnostic ? 360 : CONFIG.dayNight.cycle * 10}s | nível/abates aos 300s`);
     console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
     if (nightDiagnostic) console.log('MODO DIAGNÓSTICO: apenas Mago/próximo por 360s simulados; exibe fase, número da noite, progresso da horda e contagens por noite.');
     const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
