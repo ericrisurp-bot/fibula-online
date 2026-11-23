@@ -577,16 +577,16 @@ if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
   }
 }
 if (!activitySource.includes('import android.os.Build;')) {
-  activitySource = activitySource.replace(/^(package [^;]+;\\s*)/m, '$1\\nimport android.os.Build;');
+  activitySource = activitySource.replace(/^(package [^;]+;\s*)/m, '$1\nimport android.os.Build;');
 }
 if (!activitySource.includes('applyImmersiveMode()')) {
   activitySource = activitySource.replace(
-    /super\\.onCreate\\(savedInstanceState\\);/,
-    'super.onCreate(savedInstanceState);\\n        applyImmersiveMode();'
+    /super\.onCreate\(savedInstanceState\);/,
+    'super.onCreate(savedInstanceState);\n        applyImmersiveMode();'
   );
   activitySource = activitySource.replace(
-    /\\n}\\s*$/,
-    `
+    /\n}\s*$/,
+    \`
     private void applyImmersiveMode() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
             android.view.WindowInsetsController controller = getWindow().getInsetsController();
@@ -614,7 +614,7 @@ if (!activitySource.includes('applyImmersiveMode()')) {
         if (hasFocus) applyImmersiveMode();
     }
 }
-`
+\`
   );
 }
 writeFileSync(mainActivityPath, activitySource);
