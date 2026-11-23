@@ -685,6 +685,34 @@ export class GameEngine {
     this.appliedEquipmentHealth = nextEquipmentHealth;
   }
 
+  /** Restaura estruturas permanentes do acampamento sem alterar o inventário da casa. */
+  restorePermanentCamp(progress: {
+    chestPosition?: { x: number; y: number } | null;
+    refineryPosition?: { x: number; y: number } | null;
+    tecelariaPosition?: { x: number; y: number } | null;
+  }): void {
+    const validPosition = (value: { x: number; y: number } | null | undefined): value is { x: number; y: number } =>
+      value !== null && value !== undefined
+        && Number.isFinite(value.x) && Number.isFinite(value.y)
+        && value.x >= 0 && value.x <= this.world && value.y >= 0 && value.y <= this.world;
+    if (validPosition(progress.chestPosition)) {
+      this.state.house.x = progress.chestPosition.x;
+      this.state.house.y = progress.chestPosition.y;
+      this.state.house.built = true;
+    }
+    if (validPosition(progress.refineryPosition)) {
+      this.state.refinery.x = progress.refineryPosition.x;
+      this.state.refinery.y = progress.refineryPosition.y;
+      this.state.refinery.built = true;
+    }
+    if (validPosition(progress.tecelariaPosition)) {
+      this.state.tecelaria.x = progress.tecelariaPosition.x;
+      this.state.tecelaria.y = progress.tecelariaPosition.y;
+      this.state.tecelaria.built = true;
+    }
+    this.emit();
+  }
+
   setHouseInventory(inventory: InventoryStack[]) {
     this.state.house.inventory = inventory.map(item => ({ ...item }));
     persistHouseStorage(this.state.house.inventory);

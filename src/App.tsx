@@ -111,6 +111,22 @@ const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   chickensKilled: 0, leatherRefined: false, survivedNights: 0,
 };
 
+function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>, completedMissions: number[] = []): AdventurerGuideObjectives {
+  return {
+    ...EMPTY_ADVENTURER_GUIDE_OBJECTIVES,
+    ...saved,
+    cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
+    mission2WoodCollected: false, mission2WoodRemaining: 5,
+    mission2StoneCollected: false, mission2StoneRemaining: 5,
+    mission2CottonCollected: false, mission2CottonRemaining: 5,
+    campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
+    campfireReached: completedMissions.includes(4),
+    chestBuilt: completedMissions.includes(4),
+    refineryBuilt: completedMissions.includes(6),
+    tecelariaBuilt: completedMissions.includes(8),
+  };
+}
+
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; duoPower: number; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
   | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[] }
@@ -657,6 +673,7 @@ export default function App() {
 }
 
 function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
+  const userId = session.user.sub;
   const { updateAvailable } = useAndroidRelease();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -689,11 +706,88 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+  type CampPosition = { x: number; y: number };
+  type SavedCampProgress = {
+    completedMissions: number[];
+    objectives: Partial<AdventurerGuideObjectives>;
+    chestPosition: CampPosition | null;
+    refineryPosition: CampPosition | null;
+    tecelariaPosition: CampPosition | null;
+  };
+  const emptyCampProgress: SavedCampProgress = {
+    completedMissions: [], objectives: {}, chestPosition: null, refineryPosition: null, tecelariaPosition: null,
+  };
+  const campProgressRef = useRef<SavedCampProgress>(emptyCampProgress);
+  const [completedMissions, setCompletedMissions] = useState<number[]>([]);
+  const [campProgressReady, setCampProgressReady] = useState(false);
+  const [campProgressLoadedUserId, setCampProgressLoadedUserId] = useState<string | null>(null);
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const cloudChestLoadedRef = useRef(false);
   const lobbyChestRefreshRequestRef = useRef(0);
   const [lobbyChestStatus, setLobbyChestStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const houseInventoryJson = JSON.stringify(state.house.inventory);
+
+  useEffect(() => {
+    let active = true;
+    let loaded = false;
+    setCampProgressReady(false);
+    setCampProgressLoadedUserId(null);
+    campProgressRef.current = emptyCampProgress;
+    setCompletedMissions([]);
+    void (async () => {
+      try {
+        if (!fibulaSupabase) { loaded = true; return; }
+        const { data, error } = await fibulaSupabase
+          .from('fibula_adventurer_progress')
+          .select('completed_missions,objectives,chest_position,refinery_position,tecelaria_position')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!active) return;
+        const position = (value: unknown): CampPosition | null => {
+          if (!value || typeof value !== 'object') return null;
+          const candidate = value as { x?: unknown; y?: unknown };
+          return typeof candidate.x === 'number' && Number.isFinite(candidate.x)
+            && typeof candidate.y === 'number' && Number.isFinite(candidate.y)
+            ? { x: candidate.x, y: candidate.y } : null;
+        };
+        const missions = Array.isArray(data?.completed_missions)
+          ? data.completed_missions.filter((value: unknown): value is number =>
+              typeof value === 'number' && Number.isInteger(value) && value >= 4 && value <= 9)
+          : [];
+        const completedMissions = [...new Set(missions)].sort((a, b) => a - b);
+        const savedObjectives = data?.objectives && typeof data.objectives === 'object' && !Array.isArray(data.objectives)
+          ? data.objectives as Partial<AdventurerGuideObjectives> : {};
+        const objectives: Partial<AdventurerGuideObjectives> = {
+          ...savedObjectives,
+          ...(completedMissions.includes(4) ? { mission4WoodCollected: true, mission4WoodRemaining: 0, campfireReached: true, chestBuilt: true } : {}),
+          ...(completedMissions.includes(5) ? { itemStored: true, refineryWoodRemaining: 0, refineryStoneRemaining: 0 } : {}),
+          ...(completedMissions.includes(6) ? { refineryBuilt: true, stoneRefined: true, nightSurvived: true } : {}),
+          ...(completedMissions.includes(7) ? { mission7WoodCollected: true, mission7WoodRemaining: 0, mission7CottonCollected: true, mission7CottonRemaining: 0, mission7StoneCollected: true, mission7StoneRemaining: 0 } : {}),
+          ...(completedMissions.includes(8) ? { tecelariaBuilt: true, cottonRefined: true, wolvesKilled: 2 } : {}),
+          ...(completedMissions.includes(9) ? { chickensKilled: 3, leatherRefined: true, survivedNights: 5 } : {}),
+        };
+        campProgressRef.current = {
+          completedMissions,
+          objectives,
+          chestPosition: position(data?.chest_position),
+          refineryPosition: position(data?.refinery_position),
+          tecelariaPosition: position(data?.tecelaria_position),
+        };
+        setCompletedMissions(campProgressRef.current.completedMissions);
+        loaded = true;
+      } catch (error) {
+        console.warn('[Guia do Aventureiro] Não foi possível carregar o progresso permanente.', error);
+        if (active) window.alert('Não foi possível carregar seu progresso do acampamento. Recarregue o jogo e tente novamente.');
+      } finally {
+        if (active) {
+          setCampProgressReady(true);
+          if (loaded) setCampProgressLoadedUserId(userId);
+        }
+      }
+    })();
+    return () => { active = false; };
+  }, [userId]);
 
   useEffect(() => {
     const userId = session.user.sub;
@@ -2451,7 +2545,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby') return;
+    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby' || !campProgressReady || campProgressLoadedUserId !== session.user.sub) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const userId = session.user.sub;
@@ -2461,25 +2555,31 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
     proficiencyBufferRef.current = proficiencyBuffer;
-    adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    const initialGuideObjectives = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
+    adventurerGuideObjectivesRef.current = initialGuideObjectives;
+    setAdventurerGuideObjectives(initialGuideObjectives);
     setAdventurerGuideFinishedHidden(false);
-    let guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    adventurerGuideObjectivesRef.current = guideCurrent;
+    let guideCurrent = initialGuideObjectives;
+    let lastPersistedCampProgress = JSON.stringify(campProgressRef.current);
+    let progressWriteQueue: Promise<unknown> = Promise.resolve();
     let previousCarried = { wood: 0, stone: 0, cotton: 0 };
     let previousGuideSnapshot: GameSnapshot | null = null;
     const collected = {
       mission1Wood: 0,
       mission2Wood: 0, mission2Stone: 0, mission2Cotton: 0,
-      mission4Wood: 0,
-      mission5Wood: 0, mission5Stone: 0,
-      mission7Wood: 0, mission7Cotton: 0, mission7Stone: 0,
+      mission4Wood: Math.max(0, 20 - guideCurrent.mission4WoodRemaining),
+      mission5Wood: Math.max(0, 20 - guideCurrent.refineryWoodRemaining),
+      mission5Stone: Math.max(0, 15 - guideCurrent.refineryStoneRemaining),
+      mission7Wood: Math.max(0, 15 - guideCurrent.mission7WoodRemaining),
+      mission7Cotton: Math.max(0, 8 - guideCurrent.mission7CottonRemaining),
+      mission7Stone: Math.max(0, 8 - guideCurrent.mission7StoneRemaining),
     };
     let engineActive = true;
     const engine = new GameEngine((next) => {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
-      if (previousGuideSnapshot && next.elapsed < previousGuideSnapshot.elapsed) previousGuideSnapshot = null;
+      const matchRestarted = !!previousGuideSnapshot && next.elapsed < previousGuideSnapshot.elapsed;
+      if (matchRestarted) previousGuideSnapshot = null;
       const previousGuide = previousGuideSnapshot;
       const cartFound = Math.hypot(playerFeetPosition.x - next.cart.x, playerFeetPosition.y - next.cart.y) <= CONFIG.cart.interactRadius;
       const countItem = (itemId: string) => [...next.inventory, ...next.cart.inventory].reduce((total, item) => total + (getBaseItemId(item.itemId) === itemId ? item.quantity : 0), 0);
@@ -2487,9 +2587,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       const carriedStone = countItem('stone');
       const carriedCotton = countItem('cotton');
       const gained = {
-        wood: Math.max(0, carriedWood - previousCarried.wood),
-        stone: Math.max(0, carriedStone - previousCarried.stone),
-        cotton: Math.max(0, carriedCotton - previousCarried.cotton),
+        wood: matchRestarted ? 0 : Math.max(0, carriedWood - previousCarried.wood),
+        stone: matchRestarted ? 0 : Math.max(0, carriedStone - previousCarried.stone),
+        cotton: matchRestarted ? 0 : Math.max(0, carriedCotton - previousCarried.cotton),
       };
       previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
       const cartRepaired = next.cart.stage === 'built';
@@ -2500,9 +2600,18 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
       const lakeFound = next.lake.rx > 0 && next.lake.ry > 0 && lakeNormalizedDistance <= 1.2;
       const chestBuilt = next.house.built;
-      if (adventurerGuideObjectivesRef.current === EMPTY_ADVENTURER_GUIDE_OBJECTIVES && guideCurrent !== EMPTY_ADVENTURER_GUIDE_OBJECTIVES) {
-        guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-        for (const key of Object.keys(collected) as (keyof typeof collected)[]) collected[key] = 0;
+      if (matchRestarted) {
+        guideCurrent = adventurerGuideObjectivesRef.current;
+        collected.mission1Wood = 0;
+        collected.mission2Wood = 0;
+        collected.mission2Stone = 0;
+        collected.mission2Cotton = 0;
+        collected.mission4Wood = Math.max(0, 20 - guideCurrent.mission4WoodRemaining);
+        collected.mission5Wood = Math.max(0, 20 - guideCurrent.refineryWoodRemaining);
+        collected.mission5Stone = Math.max(0, 15 - guideCurrent.refineryStoneRemaining);
+        collected.mission7Wood = Math.max(0, 15 - guideCurrent.mission7WoodRemaining);
+        collected.mission7Cotton = Math.max(0, 8 - guideCurrent.mission7CottonRemaining);
+        collected.mission7Stone = Math.max(0, 8 - guideCurrent.mission7StoneRemaining);
         previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
       }
       guideCurrent = adventurerGuideObjectivesRef.current;
@@ -2565,8 +2674,46 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       guideCurrent = nextObjectives;
       adventurerGuideObjectivesRef.current = nextObjectives;
       setAdventurerGuideObjectives(nextObjectives);
+      const nextMission = getAdventurerGuideMission(nextObjectives);
+      const completed = new Set(campProgressRef.current.completedMissions);
+      if (mission >= 4 && (nextMission > mission || (mission === 9 && nextObjectives.chickensKilled >= 3 && nextObjectives.leatherRefined && nextObjectives.survivedNights >= 5))) completed.add(mission);
+      const nextCampProgress: SavedCampProgress = {
+        ...campProgressRef.current,
+        completedMissions: [...completed].sort((a, b) => a - b),
+        objectives: nextObjectives,
+        chestPosition: next.house.built ? { x: next.house.x, y: next.house.y } : campProgressRef.current.chestPosition,
+        refineryPosition: next.refinery.built ? { x: next.refinery.x, y: next.refinery.y } : campProgressRef.current.refineryPosition,
+        tecelariaPosition: next.tecelaria.built ? { x: next.tecelaria.x, y: next.tecelaria.y } : campProgressRef.current.tecelariaPosition,
+      };
+      const serializedCampProgress = JSON.stringify(nextCampProgress);
+      if (serializedCampProgress !== lastPersistedCampProgress) {
+        campProgressRef.current = nextCampProgress;
+        lastPersistedCampProgress = serializedCampProgress;
+        setCompletedMissions(nextCampProgress.completedMissions);
+        const supabase = fibulaSupabase;
+        if (supabase) {
+          progressWriteQueue = progressWriteQueue.then(async () => {
+            const { error } = await supabase.from('fibula_adventurer_progress').upsert({
+              user_id: userId,
+              completed_missions: nextCampProgress.completedMissions,
+              objectives: nextCampProgress.objectives,
+              chest_position: nextCampProgress.chestPosition,
+              refinery_position: nextCampProgress.refineryPosition,
+              tecelaria_position: nextCampProgress.tecelariaPosition,
+            }, { onConflict: 'user_id' });
+            if (error) throw error;
+          }).catch(error => {
+            console.warn('[Guia do Aventureiro] Não foi possível salvar o progresso permanente.', error);
+          });
+        }
+      }
       previousGuideSnapshot = next;
     }, { accountLevel });
+    engine.restorePermanentCamp({
+      chestPosition: campProgressRef.current.completedMissions.includes(4) ? campProgressRef.current.chestPosition : null,
+      refineryPosition: campProgressRef.current.completedMissions.includes(6) ? campProgressRef.current.refineryPosition : null,
+      tecelariaPosition: campProgressRef.current.completedMissions.includes(8) ? campProgressRef.current.tecelariaPosition : null,
+    });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
       try {
@@ -3393,7 +3540,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeGameRoute.page, session.user.sub, classChoice]);
+  }, [activeGameRoute.page, session.user.sub, classChoice, campProgressReady, campProgressLoadedUserId]);
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
@@ -4466,8 +4613,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         matchSessionIdRef.current = null;
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
-        adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+        adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
+    setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
         engine.restart();
         await activatePendingCookingMeals(engine);
@@ -4864,8 +5011,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     await proficiencyBufferRef.current?.flush();
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
-    adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
+    setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
     engine.restart();
     engine.stop();
@@ -4966,8 +5113,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       setWheel(null);
       closeFlagMenu();
       closeInventoryPanel();
-      adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+      adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
+    setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
       engine.restart();
       await activatePendingCookingMeals(engine);
@@ -6128,7 +6275,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     </span>)}
   </div>;
 })()}
-{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} adventurerGuideEnabled={adventurerGuideEnabled && !adventurerGuideFinishedHidden} adventurerGuideObjectives={adventurerGuideObjectives} onGuideToggle={() => setAdventurerGuideEnabled(current => { const next = !current; if (next) setAdventurerGuideFinishedHidden(false); writeAdventurerGuideEnabled(next); return next; })} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); writeGameZoom(zoomRef.current); }} onClass={pickClass} classId={state.classId} availableClassIds={characterPreferences.filter(isProfileClassId)} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
+{!showStart && !state.dead && <Controls onInventoryToggle={toggleInventoryPanel} onCartToggle={toggleCart} cartActionVisible={cartActionVisible && !state.dead && !showStart} cartFollowing={state.cart.following} storeToCartVisible={cartCanStore && !state.dead && !showStart} storeToCartDisabled={state.inventory.length === 0} onStoreToCart={storeAllBagToCart} storeToHouseVisible={houseAccessible && !state.dead && !showStart} storeToHouseDisabled={lobbyChestStatus !== 'ready' || (state.inventory.length === 0 && !((state.cart.carried || Math.hypot(state.cart.x - state.house.x, state.cart.y - state.house.y) <= CONFIG.house.cartDeliveryRadius) && state.cart.inventory.length > 0))} onStoreToHouse={storeAllBagToHouse} buildCartVisible={cartBuildAccessible && !state.dead && !showStart} onBuildCart={buildCart} campMenuVisible={campMenuVisible && !state.dead && !showStart} onOpenCampMenu={openCampMenu} flagWheelOpen={flagWheel !== null} onLongPress={onJoystickLongPress} onFlagTap={onFlagTap} onWheelMove={onWheelMove} onWheelEnd={onWheelEnd} onMovementStart={() => { closeFlagMenu(); closeCampMenu(); }} onMove={(x, y) => { if (gameStartedRef.current) engineRef.current?.setMove(x, y); }} onRange={toggleRange} adventurerGuideEnabled={adventurerGuideEnabled && !adventurerGuideFinishedHidden} adventurerGuideObjectives={adventurerGuideObjectives} completedMissions={[...completedMissions, ...([adventurerGuideObjectives.cartFound, adventurerGuideObjectives.woodCollected, adventurerGuideObjectives.cartRepaired].every(Boolean) ? [1] : []), ...([adventurerGuideObjectives.mission2WoodCollected, adventurerGuideObjectives.mission2StoneCollected, adventurerGuideObjectives.mission2CottonCollected].every(Boolean) ? [2] : []), ...([adventurerGuideObjectives.campfireBuilt, adventurerGuideObjectives.lakeFound, adventurerGuideObjectives.fishingRodAvailable].every(Boolean) ? [3] : [])]} onGuideToggle={() => setAdventurerGuideEnabled(current => { const next = !current; if (next) setAdventurerGuideFinishedHidden(false); writeAdventurerGuideEnabled(next); return next; })} onZoom={(delta) => { const maxZoom = window.matchMedia('(pointer: coarse)').matches ? 1.75 : 1.45; zoomRef.current = Math.max(0.8, Math.min(maxZoom, zoomRef.current + delta)); writeGameZoom(zoomRef.current); }} onClass={pickClass} classId={state.classId} availableClassIds={characterPreferences.filter(isProfileClassId)} showRange={state.showRange} weaponLabel={CONFIG.weapons[state.weapon].label} inventoryPanelOpen={inventoryPanelOpen} audioVolume={audioVolume} onAudioVolumeChange={(volume) => { setAudioVolume(volume); audioManager.setVolume(volume); }} interfaceScale={interfaceScale} onInterfaceScaleChange={setInterfaceScale} landscapeMode={landscapeMode} onToggleLandscape={() => { void toggleLandscapeMode(); }} />}
     </section>
 
   </main>}
