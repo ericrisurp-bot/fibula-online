@@ -144,10 +144,13 @@ function ProficiencyPanel({
                 <div
                   className="player-proficiency-xp-track"
                   role="progressbar"
-                  aria-label={`${item.label} XP progress, level ${progression.level}`}
+                  aria-label={`Progresso de ${item.label} no nível ${progression.level}`}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={progressWidth}
+                  aria-valuetext={progression.isMaxLevel
+                    ? 'Nível máximo'
+                    : `${progression.progressInLevel.toLocaleString('en-US')} de ${progression.requiredForNextLevel?.toLocaleString('en-US')}; faltam ${progression.remainingForNextLevel.toLocaleString('en-US')}`}
                 >
                   <span
                     className="player-proficiency-xp-fill"
@@ -157,6 +160,11 @@ function ProficiencyPanel({
                     }}
                   />
                 </div>
+                <small className="player-proficiency-progress-label">
+                  {progression.isMaxLevel
+                    ? 'Nível máximo'
+                    : `${progression.progressInLevel.toLocaleString('en-US')} / ${progression.requiredForNextLevel?.toLocaleString('en-US')} · faltam ${progression.remainingForNextLevel.toLocaleString('en-US')}`}
+                </small>
               </div>
             </div>;
           })}

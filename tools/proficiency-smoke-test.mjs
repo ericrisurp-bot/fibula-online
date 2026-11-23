@@ -92,7 +92,18 @@ try {
     'espada', 16, { preservedLevel: 1, baselineCounter: 15 },
   );
   assert.equal(baselineAtLevelOne.level, 1);
-  assert.ok(baselineAtLevelOne.progressRatio > 0);
+  assert.equal(baselineAtLevelOne.progressInLevel, 1);
+  assert.equal(baselineAtLevelOne.requiredForNextLevel, 150);
+  assert.equal(baselineAtLevelOne.remainingForNextLevel, 149);
+  assert.equal(baselineAtLevelOne.progressRatio, 1 / 150);
+  const baselineHalfway = proficiencyLevels.getProficiencyProgression(
+    'espada', 90, { preservedLevel: 1, baselineCounter: 15 },
+  );
+  assert.equal(baselineHalfway.level, 1);
+  assert.equal(baselineHalfway.progressInLevel, 75);
+  assert.equal(baselineHalfway.requiredForNextLevel, 150);
+  assert.equal(baselineHalfway.remainingForNextLevel, 75);
+  assert.equal(baselineHalfway.progressRatio, 0.5);
   const axeSurplus = proficiencyLevels.getProficiencyProgression('machado_madeira', 2001000);
   assert.equal(axeSurplus.level, 100);
   assert.equal(axeSurplus.isMaxLevel, true);
