@@ -1785,7 +1785,7 @@ export class GameEngine {
     const feet = playerFeet(this.state.player);
     const edgeDistance = distanceToLakeEdge(this.state.lake, feet.x, feet.y);
     const nearShore = edgeDistance >= -12 && edgeDistance <= CONFIG.lake.fishingRange;
-    const threatened = this.state.enemies.some(enemy => (!enemy.animalKind || enemy.animalKind === 'wolf') && Math.hypot(enemy.x - this.state.player.x, enemy.y - this.state.player.y) <= CONFIG.weapons[this.state.weapon].range);
+    const threatened = this.state.enemies.some(enemy => (!enemy.animalKind || enemy.animalKind === 'wolf') && Math.hypot(enemy.x - feet.x, enemy.y - feet.y) <= CONFIG.weapons[this.state.weapon].range);
     const canFish = nearShore && !this.state.player.moving && !this.state.cart.carried && !threatened;
     if (!canFish) {
       this.fishingTimer = 0;
@@ -2351,10 +2351,10 @@ export class GameEngine {
     return true;
   }
 
-  /** Distância de coleta oval a partir do centro do corpo: vertical dividida por rangeAspect. */
+  /** Distância de interação medida a partir dos pés, a base física do personagem. */
   private gatherDist(tx: number, ty: number) {
-    const p = this.state.player;
-    return Math.hypot(tx - p.x, (ty - p.y) / CONFIG.gathering.rangeAspect);
+    const feet = playerFeet(this.state.player);
+    return Math.hypot(tx - feet.x, ty - feet.y);
   }
 
   /** Alcance de mineração medido a partir da base do personagem, no chão. */
@@ -3308,14 +3308,13 @@ export class GameEngine {
   private isPlayerAtTreeShadow(tree: Tree) {
     const scale = this.treeScale(tree);
     const shadow = this.treeBase(tree);
-    const p = this.state.player;
-    const dx = p.x - shadow.x;
-    const dy = (p.y - shadow.y) / CONFIG.gathering.rangeAspect;
+    const feet = playerFeet(this.state.player);
+    const dx = feet.x - shadow.x;
+    const dy = feet.y - shadow.y;
     const collisionR = 9.6 * scale + CONFIG.player.footRadius;
     const oldRx = (19 * scale + CONFIG.player.footRadius) * 1.2;
-    const rx = Math.max(oldRx, collisionR + CONFIG.interaction.margin);
-    const ry = collisionR + CONFIG.interaction.margin;
-    return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
+    const interactionRadius = Math.max(oldRx, collisionR + CONFIG.interaction.margin);
+    return Math.hypot(dx, dy) <= interactionRadius;
   }
 
   private separateEnemies() {
@@ -3447,16 +3446,16 @@ export class GameEngine {
 
   private autoKnife() {
     if (this.state.cart.carried || this.local.knifeHitTimer > 0) return;
-    const p = this.state.player;
+    const feet = playerFeet(this.state.player);
     const target = this.state.enemies
       .filter((enemy): enemy is Enemy & { animalKind: 'wolf' | 'chicken' } => !!enemy.animalKind)
       .map(enemy => ({
         enemy,
-        distance: Math.hypot(enemy.x - p.x, enemy.y - p.y),
+        distance: Math.hypot(enemy.x - feet.x, enemy.y - feet.y),
         radius: CONFIG.wildlife[enemy.animalKind === 'wolf' ? 'wolves' : 'chickens'].radius,
       }))
       .filter(({ enemy, distance, radius }) =>
-        distance - radius <= CONFIG.knife.reach && !this.arrowHitsSolidObstacle(p, enemy),
+        distance - radius <= CONFIG.knife.reach && !this.arrowHitsSolidObstacle(feet, enemy),
       )
       .sort((a, b) => a.distance - b.distance)[0];
     if (!target) return;
@@ -3500,16 +3499,16 @@ export class GameEngine {
       : undefined;
     const treeTarget = this.state.trees
       .filter(tree => this.isPlayerAtTreeShadow(tree))
-      .map(tree => ({ tree, d: this.gatherDist(this.treeBase(tree).x, this.treeBase(tree).y), centerD: Math.hypot(this.treeBase(tree).x - p.x, this.treeBase(tree).y - p.y) }))
+      .map(tree => ({ tree, d: this.gatherDist(this.treeBase(tree).x, this.treeBase(tree).y) }))
       .sort((a, b) => a.d - b.d)[0];
     const rockTarget = this.state.rocks
       .filter(rock => rock.hits > 0 && this.isPlayerAtRock(rock))
-      .map(rock => ({ rock, d: this.rockGatherDist(rock.x, rock.y), centerD: Math.hypot(rock.x - p.x, rock.y - p.y) }))
+      .map(rock => ({ rock, d: this.rockGatherDist(rock.x, rock.y) }))
       .sort((a, b) => a.d - b.d)[0];
     const vegetableTarget = this.state.vegetablePlants.filter(plant => this.isPlayerAtVegetable(plant)).map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y) })).sort((a, b) => a.d - b.d)[0];
     const cottonTarget = this.state.cottonPlants
       .filter(plant => this.isPlayerAtCottonPlant(plant))
-      .map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y), centerD: Math.hypot(plant.x - p.x, plant.y - p.y) }))
+      .map(plant => ({ plant, d: this.gatherDist(plant.x, plant.y) }))
       .sort((a, b) => a.d - b.d)[0];
     if (!treeTarget && !jabuticabaTarget && !rockTarget && !cottonTarget && !vegetableTarget) return;
 
