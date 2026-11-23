@@ -2531,7 +2531,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
     proficiencyBufferRef.current = proficiencyBuffer;
-    const initialGuideObjectives = createNewMatchGuideObjectives(campProgressRef.current.objectives);\n    adventurerGuideObjectivesRef.current = initialGuideObjectives;
+    const initialGuideObjectives = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+    adventurerGuideObjectivesRef.current = initialGuideObjectives;
     setAdventurerGuideObjectives(initialGuideObjectives);
     setAdventurerGuideFinishedHidden(false);
     let guideCurrent = initialGuideObjectives;
@@ -2679,7 +2680,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
       previousGuideSnapshot = next;
     }, { accountLevel });
-    engine.restorePermanentCamp(campProgressRef.current);\n    engine.onSound = (event) => audioManager.play(event);
+    engine.restorePermanentCamp(campProgressRef.current);
+    engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
       try {
         proficiencyBuffer.add(userId, event);
