@@ -28,9 +28,10 @@ const require = createRequire(import.meta.url);
 const ts = require('typescript');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
-const immortal = args.includes('--imortal');
+const nightDiagnostic = args.includes('--diagnostico-noites');
+const immortal = args.includes('--imortal') || nightDiagnostic;
 const jsonOutput = args.includes('--json');
-const countArg = args.find(arg => arg !== '--imortal' && arg !== '--json');
+const countArg = args.find(arg => !['--imortal', '--json', '--diagnostico-noites'].includes(arg));
 const seedCount = Number.parseInt(countArg ?? '30', 10);
 const FPS = 30;
 const STEP = 1 / FPS;
@@ -42,6 +43,8 @@ const BOT_PROFILES = {
   distancia: { label: 'distância', desired: 300, retreatBelow: 255 },
 };
 const PROFILE_IDS = Object.keys(BOT_PROFILES);
+const RUN_CLASSES = nightDiagnostic ? ['mago'] : CLASSES;
+const RUN_PROFILES = nightDiagnostic ? ['proximo'] : PROFILE_IDS;
 
 if (!Number.isInteger(seedCount) || seedCount < 1 || seedCount > 10000) {
   console.error('Uso: node tools/balance-sim.mjs [N] [--imortal] [--json], com N entre 1 e 10000.');
@@ -238,7 +241,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     // Alinha o relógio virtual ao timestamp usado pelo start() no motor.
     frameNow = performance.now();
 
-    const durationLimit = immortal
+    const durationLimit = nightDiagnostic ? 360 : immortal
       ? CONFIG.dayNight.cycle * 10
       : MAX_SECONDS;
     while (
@@ -302,12 +305,12 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       }
 
       if (engine.state.elapsed >= nextProgressAt) {
-        onProgress?.({ elapsed: engine.state.elapsed, limit: durationLimit, kills: engine.state.kills });
+        onProgress?.({ elapsed: engine.state.elapsed, limit: durationLimit, kills: engine.state.kills, phase: engine.state.dayNight, nightNumber: engine.state.nightNumber, spawned: engine.hordeSpawned, target: engine.hordeTarget, alive: engine.state.enemies.filter(enemy => !enemy.animalKind).length });
         nextProgressAt += 60;
       }
     }
 
-    onProgress?.({ elapsed: engine.state.elapsed, limit: durationLimit, kills: engine.state.kills, final: true });
+    onProgress?.({ elapsed: engine.state.elapsed, limit: durationLimit, kills: engine.state.kills, phase: engine.state.dayNight, nightNumber: engine.state.nightNumber, spawned: engine.hordeSpawned, target: engine.hordeTarget, alive: engine.state.enemies.filter(enemy => !enemy.animalKind).length, final: true });
 
     if (immortal) {
       if (currentNight) {
@@ -332,6 +335,10 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         spawnedByNight,
         cohortKillsByNight,
         killsDuringNight,
+        finalElapsed: engine.state.elapsed,
+        finalNightNumber: engine.state.nightNumber,
+        finalPhase: engine.state.dayNight,
+        totalKills: engine.state.kills,
       };
     }
 
@@ -379,7 +386,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
 
 const tempDir = mkdtempSync(join(tmpdir(), 'fibula-balance-sim-'));
 try {
-  const totalRuns = CLASSES.length * PROFILE_IDS.length * seedCount;
+  const totalRuns = RUN_CLASSES.length * RUN_PROFILES.length * seedCount;
   console.log(`Preparando simulador: ${totalRuns} execução(ões) | modo: ${immortal ? 'IMORTAL' : 'normal'}.`);
   console.log('Compilando módulos do jogo...');
   compileRuntimeModules(tempDir);
@@ -391,8 +398,8 @@ try {
   const results = [];
   let runIndex = 0;
 
-  for (const classId of CLASSES) {
-    for (const profileId of PROFILE_IDS) {
+  for (const classId of RUN_CLASSES) {
+    for (const profileId of RUN_PROFILES) {
       for (let seed = 1; seed <= seedCount; seed++) {
         runIndex += 1;
         const profileLabel = BOT_PROFILES[profileId].label;
@@ -400,9 +407,10 @@ try {
         console.log(`[${runIndex}/${totalRuns}] INICIANDO ${classId} | ${profileLabel} | semente ${seed}/${seedCount}.`);
         const result = await simulate(GameEngine, CONFIG, classId, profileId, seed, {
           immortal,
-          onProgress: ({ elapsed, limit, kills, final }) => {
+          onProgress: ({ elapsed, limit, kills, phase, nightNumber, spawned, target, alive, final }) => {
             const status = final ? 'FINALIZANDO' : 'PROGRESSO';
-            console.log(`[${runIndex}/${totalRuns}] ${status} ${classId} | ${profileLabel} | ${Math.floor(elapsed)}s/${Math.floor(limit)}s simulados | ${kills} abates.`);
+            const phaseInfo = nightDiagnostic ? ` | noite ${nightNumber} | fase ${phase} | horda ${spawned}/${target} | vivos ${alive}` : '';
+            console.log(`[${runIndex}/${totalRuns}] ${status} ${classId} | ${profileLabel} | ${Math.floor(elapsed)}s/${Math.floor(limit)}s simulados | ${kills} abates${phaseInfo}.`);
           },
         });
         results.push(result);
@@ -458,10 +466,11 @@ try {
   } else {
     console.log(`Fíbula Online — auditoria individual | modo: IMORTAL | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${CONFIG.dayNight.cycle * 10}s | nível/abates aos 300s`);
     console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
+    if (nightDiagnostic) console.log('MODO DIAGNÓSTICO: apenas Mago/próximo por 360s simulados; exibe fase, número da noite, progresso da horda e contagens por noite.');
     const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
     console.log(`Classe      ${nightHeaders} Nível aos 300s M/Md`);
-    for (const classId of CLASSES) {
-      for (const profileId of PROFILE_IDS) {
+    for (const classId of RUN_CLASSES) {
+      for (const profileId of RUN_PROFILES) {
       const rows = results.filter(row => row.classId === classId && row.profileId === profileId);
       const nightCells = Array.from({ length: 10 }, (_, index) => {
         const night = index + 1;
@@ -476,7 +485,15 @@ try {
       console.log(`${classId.padEnd(11)} ${BOT_PROFILES[profileId].label.padEnd(17)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
       }
     }
-    console.log(`Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.`);
+    console.log(`Nota: % derrotados = slimes nascidos na noite e derrotados até ${nightDiagnostic ? 360 : CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.`);
+    if (nightDiagnostic) {
+      for (const row of results) {
+        console.log(`DIAGNÓSTICO FINAL | kills=${row.totalKills} | elapsed=${row.finalElapsed}s | night=${row.finalNightNumber} | phase=${row.finalPhase} | level@300=${row.levelAt300} | kills@300=${row.killsAt300}`);
+        console.log(`SPAWN POR NOITE: ${JSON.stringify(row.spawnedByNight)}`);
+        console.log(`ABATES POR COORTE: ${JSON.stringify(row.cohortKillsByNight)}`);
+        console.log(`ABATES NA FASE NOTURNA: ${JSON.stringify(row.killsDuringNight)}`);
+      }
+    }
     if (jsonOutput) {
       writeFileSync(resolve(process.cwd(), 'balance-sim-results.json'), JSON.stringify({
         mode: 'immortal',
