@@ -238,7 +238,7 @@ class PrimaryPlayerView implements PlayerEntity {
     } else if (changed && state.classId === 'druida' && classId !== 'druida') {
       const orbCount = Math.min(state.healingOrbs.length, CONFIG.druidHeal.maxOrbs);
       if (orbCount > 0) {
-        player.hp = Math.min(player.maxHp, player.hp + player.maxHp * CONFIG.druidBlessing.healPerOrb * orbCount);
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + state.player.maxHp * CONFIG.druidBlessing.healPerOrb * orbCount);
         this.runtime.druidBlessingRemaining = CONFIG.druidBlessing.duration;
         this.runtime.druidBlessingSpeedBonus = CONFIG.druidBlessing.speedPerOrb[classId as Exclude<ClassId, 'druida'>] * orbCount;
         this.runtime.druidBlessingDamageReduction = classId === 'guerreiro'
