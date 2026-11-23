@@ -673,6 +673,7 @@ export default function App() {
 }
 
 function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
+  const userId = session.user.sub;
   const { updateAvailable } = useAndroidRelease();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lobbyCharacterCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -2689,9 +2690,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         campProgressRef.current = nextCampProgress;
         lastPersistedCampProgress = serializedCampProgress;
         setCompletedMissions(nextCampProgress.completedMissions);
-        if (fibulaSupabase) {
+        const supabase = fibulaSupabase;
+        if (supabase) {
           progressWriteQueue = progressWriteQueue.then(async () => {
-            const { error } = await fibulaSupabase.from('fibula_adventurer_progress').upsert({
+            const { error } = await supabase.from('fibula_adventurer_progress').upsert({
               user_id: userId,
               completed_missions: nextCampProgress.completedMissions,
               objectives: nextCampProgress.objectives,
