@@ -578,8 +578,8 @@ if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
 }
 if (!activitySource.includes('applyImmersiveMode();')) {
   activitySource = activitySource.replace(
-    /(super\\.onCreate\\(savedInstanceState\\);)/,
-    '$1\\n        applyImmersiveMode();'
+    /(super\.onCreate\(savedInstanceState\);)/,
+    '$1\n        applyImmersiveMode();'
   );
 }
 if (!activitySource.includes('private void applyImmersiveMode()')) {
