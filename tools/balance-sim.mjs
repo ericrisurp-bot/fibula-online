@@ -10,17 +10,12 @@
  * é substituído por um PRNG com semente fixa. --imortal mantém HP alto apenas
  * no simulador.
  *
- * Bots determinísticos (sem decisões aleatórias):
- * - guerreiro: aproxima-se até 42 px, recua abaixo de 30 px e circula no meio
- *   para tentar manter o combate corpo a corpo.
- * - mago/druida: tentam manter 185 px do slime mais próximo e fazem strafe.
- * - arqueiro: tenta manter 300 px e faz strafe.
- * O strafe troca de lado a cada 4 s, com o lado inicial derivado da semente.
+ * Todas as classes usam os mesmos perfis de IA: próximo, bater-e-recuar e
+ * distância. O strafe troca de lado a cada 4 s, com lado inicial derivado da semente.
  *
- * Modo normal: noites completas sobrevividas, tempo até morte, abates totais,
- * nível na morte e abates por minuto sobrevivido; limite de segurança de 600 s.
- * Modo --imortal: abates durante cada noite, percentual da coorte de slimes
- * nascida em cada noite derrotada até o fim da simulação e nível aos 300 s.
+ * O modo normal mede sobrevivência, HP, dano causado/recebido, pressão de horda,
+ * tempo em combate e exposição. --json salva também os dados individuais e por noite.
+ * --imortal mantém HP alto apenas no simulador para comparar capacidade ofensiva.
  * Esse arquivo não altera CONFIG nem o motor de gameplay.
  */
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -34,7 +29,8 @@ const ts = require('typescript');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const immortal = args.includes('--imortal');
-const countArg = args.find(arg => arg !== '--imortal');
+const jsonOutput = args.includes('--json');
+const countArg = args.find(arg => arg !== '--imortal' && arg !== '--json');
 const seedCount = Number.parseInt(countArg ?? '30', 10);
 const FPS = 30;
 const STEP = 1 / FPS;
@@ -48,7 +44,7 @@ const BOT_PROFILES = {
 const PROFILE_IDS = Object.keys(BOT_PROFILES);
 
 if (!Number.isInteger(seedCount) || seedCount < 1 || seedCount > 10000) {
-  console.error('Uso: node tools/balance-sim.mjs [N] [--imortal], com N entre 1 e 10000.');
+  console.error('Uso: node tools/balance-sim.mjs [N] [--imortal] [--json], com N entre 1 e 10000.');
   process.exit(2);
 }
 
@@ -123,6 +119,10 @@ function mean(values) {
 
 function fmt(value, digits = 1) {
   return value == null ? '—' : value.toFixed(digits);
+}
+
+function summary(values, digits = 1) {
+  return `${fmt(mean(values), digits)}/${fmt(median(values), digits)} [${fmt(percentile(values, .25), digits)}–${fmt(percentile(values, .75), digits)}]`;
 }
 
 function botMove(engine, profileId, seed, frame) {
@@ -389,7 +389,8 @@ try {
   if (!immortal) {
     console.log(`Fíbula Online — auditoria individual | modo: normal | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${MAX_SECONDS}s`);
     console.log('Cada classe é executada nos mesmos três perfis. HP mínimo e dano recebido são métricas observadas no motor; exposição é proximidade de contato, não número de golpes.');
-    console.log('Classe      Perfil             Noites M/Md   Morte s M/Md   Abates M/Md   Dano causado M/Md   Dano recebido M/Md   HP mín. M/Md   Slimes máx M/Md   Combate min M/Md   Exposto min M/Md   P25-P75 noites');
+    console.log('M/Md [P25–P75]; morte s considera apenas partidas encerradas por morte.');
+    console.log('Classe      Perfil             Mortes %   Noites M/Md [P25–P75]   Morte s   Abates   Dano causado   Dano recebido*   HP mín. %   Slimes máx   Combate min   Exposto min');
     for (const classId of CLASSES) {
       for (const profileId of PROFILE_IDS) {
         const rows = results.filter(row => row.classId === classId && row.profileId === profileId);
@@ -403,24 +404,30 @@ try {
         const maxSlimes = rows.map(row => row.maxConcurrentSlimes);
         const combat = rows.map(row => row.timeInCombat / 60);
         const exposed = rows.map(row => row.timeExposed / 60);
+        const deathRate = 100 * deaths.length / rows.length;
         console.log(
           `${classId.padEnd(11)} ${BOT_PROFILES[profileId].label.padEnd(17)} ` +
-          `${fmt(mean(nights),1)}/${fmt(median(nights),1)} ` +
-          `${fmt(mean(deathTimes),0)}/${fmt(median(deathTimes),0)} ` +
-          `${fmt(mean(kills),1)}/${fmt(median(kills),1)} ` +
-          `${fmt(mean(damage),0)}/${fmt(median(damage),0)} ` +
-          `${fmt(mean(received),1)}/${fmt(median(received),1)} ` +
-          `${fmt(mean(hpMin),1)}%/${fmt(median(hpMin),1)}% ` +
-          `${fmt(mean(maxSlimes),1)}/${fmt(median(maxSlimes),1)} ` +
-          `${fmt(mean(combat),1)}/${fmt(median(combat),1)} ` +
-          `${fmt(mean(exposed),1)}/${fmt(median(exposed),1)} ` +
-          `${fmt(percentile(nights,.25),1)}–${fmt(percentile(nights,.75),1)}`,
+          `${fmt(deathRate,1)}% ${summary(nights)} ${summary(deathTimes,0)} ${summary(kills)} ` +
+          `${summary(damage,0)} ${summary(received)} ${summary(hpMin)}% ` +
+          `${summary(maxSlimes)} ${summary(combat)} ${summary(exposed)}`,
         );
       }
     }
     const survivors = results.filter(row => !row.died);
     if (survivors.length) console.log(`Aviso: ${survivors.length} simulação(ões) atingiram o limite de ${MAX_SECONDS}s sem morrer.`);
-    console.log('Detalhe por noite: cada execução registra HP inicial/final, HP mínimo, maior horda simultânea, tempo em combate e tempo em alcance de contato.');
+    console.log('*Dano recebido efetivo = valores de dano aplicados pelo motor após esquiva/armadura/reduções; não é dano bruto nem dano evitado.');
+    console.log('Exposição = tempo em que pelo menos um slime está na distância geométrica de contato; não equivale a golpes recebidos.');
+    if (jsonOutput) {
+      writeFileSync(resolve(process.cwd(), 'balance-sim-results.json'), JSON.stringify({
+        mode: 'normal',
+        seedCount,
+        fps: FPS,
+        maxSeconds: MAX_SECONDS,
+        profiles: BOT_PROFILES,
+        results,
+      }, null, 2));
+      console.log('Relatório detalhado salvo em balance-sim-results.json');
+    }
   } else {
     console.log(`Fíbula Online — auditoria individual | modo: IMORTAL | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${CONFIG.dayNight.cycle * 10}s | nível/abates aos 300s`);
     console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
@@ -443,6 +450,16 @@ try {
       }
     }
     console.log(`Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.`);
+    if (jsonOutput) {
+      writeFileSync(resolve(process.cwd(), 'balance-sim-results.json'), JSON.stringify({
+        mode: 'immortal',
+        seedCount,
+        fps: FPS,
+        profiles: BOT_PROFILES,
+        results,
+      }, null, 2));
+      console.log('Relatório detalhado salvo em balance-sim-results.json');
+    }
   }
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
