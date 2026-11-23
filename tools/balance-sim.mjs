@@ -40,12 +40,12 @@ const FPS = 30;
 const STEP = 1 / FPS;
 const MAX_SECONDS = 600;
 const CLASSES = ['guerreiro', 'mago', 'arqueiro', 'druida'];
-const BOT_STYLE = {
-  guerreiro: { desired: 42, retreatBelow: 30 },
-  mago: { desired: 185, retreatBelow: 165 },
-  arqueiro: { desired: 300, retreatBelow: 280 },
-  druida: { desired: 185, retreatBelow: 165 },
+const BOT_PROFILES = {
+  proximo: { label: 'próximo', desired: 42, retreatBelow: 30 },
+  recuo: { label: 'bater-e-recuar', desired: 170, retreatBelow: 115 },
+  distancia: { label: 'distância', desired: 300, retreatBelow: 255 },
 };
+const PROFILE_IDS = Object.keys(BOT_PROFILES);
 
 if (!Number.isInteger(seedCount) || seedCount < 1 || seedCount > 10000) {
   console.error('Uso: node tools/balance-sim.mjs [N] [--imortal], com N entre 1 e 10000.');
@@ -108,6 +108,15 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+function percentile(values, fraction) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const position = (sorted.length - 1) * fraction;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+}
+
 function mean(values) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
 }
@@ -116,7 +125,7 @@ function fmt(value, digits = 1) {
   return value == null ? '—' : value.toFixed(digits);
 }
 
-function botMove(engine, classId, seed, frame) {
+function botMove(engine, profileId, seed, frame) {
   const player = engine.state.player;
   const nearest = engine.state.enemies
     .map(enemy => ({ enemy, dx: enemy.x - player.x, dy: enemy.y - player.y }))
@@ -132,7 +141,7 @@ function botMove(engine, classId, seed, frame) {
   const towardX = nearest.dx / distance;
   const towardY = nearest.dy / distance;
   const side = ((Math.floor(frame * STEP / 4) + seed) % 2 === 0) ? 1 : -1;
-  const style = BOT_STYLE[classId];
+  const style = BOT_PROFILES[profileId];
   let radial = 0;
   if (distance > style.desired + 20) radial = 1;
   else if (distance < style.retreatBelow) radial = -1;
@@ -144,7 +153,7 @@ function botMove(engine, classId, seed, frame) {
   engine.setMove(x / length, y / length);
 }
 
-async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } = {}) {
+async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false } = {}) {
   const oldRandom = Math.random;
   const oldRaf = globalThis.requestAnimationFrame;
   const oldCancel = globalThis.cancelAnimationFrame;
@@ -159,6 +168,14 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
   const spawnedByNight = {};
   const cohortKillsByNight = {};
   const killsDuringNight = {};
+  const nightMetrics = [];
+  let currentNight = null;
+  let maxConcurrentSlimes = 0;
+  let minHpPercent = 100;
+  let damageDealt = 0;
+  let damageReceivedEffective = 0;
+  let timeInCombat = 0;
+  let timeExposed = 0;
 
   Math.random = random;
   globalThis.requestAnimationFrame = callback => {
@@ -173,6 +190,22 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
   try {
     const engine = new GameEngine(() => {});
     engine.setClass(classId);
+
+    // Instrumentação somente do simulador: os wrappers preservam os métodos reais.
+    const originalRecordClassDamage = engine.recordClassDamage.bind(engine);
+    engine.recordClassDamage = function (enemy, amount) {
+      if (!enemy.animalKind && Number.isFinite(enemy.hp) && Number.isFinite(amount) && amount > 0) {
+        damageDealt += Math.min(amount, Math.max(0, enemy.hp));
+      }
+      return originalRecordClassDamage(enemy, amount);
+    };
+    const originalAddFloatingDamage = engine.addFloatingDamage.bind(engine);
+    engine.addFloatingDamage = function (x, y, amount, color, scale) {
+      if (color === '#ff4545' && Number.isFinite(amount) && amount > 0) {
+        damageReceivedEffective += amount;
+      }
+      return originalAddFloatingDamage(x, y, amount, color, scale);
+    };
 
     // Acompanhe o nascimento de cada slime e a noite em que ele surgiu.
     const originalSpawn = engine.spawnHordeEnemy.bind(engine);
@@ -213,12 +246,51 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
         ? engine.state.elapsed < durationLimit
         : !engine.state.dead && engine.state.elapsed < durationLimit)
     ) {
-      botMove(engine, classId, seed, frame);
+      botMove(engine, profileId, seed, frame);
       if (immortal) engine.state.player.hp = Number.MAX_SAFE_INTEGER;
       const scheduled = queue.shift();
       frameNow += STEP * 1000;
       frame += 1;
       scheduled.callback(frameNow);
+
+      const player = engine.state.player;
+      const slimes = engine.state.enemies.filter(enemy => !enemy.animalKind);
+      maxConcurrentSlimes = Math.max(maxConcurrentSlimes, slimes.length);
+      if (player.maxHp > 0) minHpPercent = Math.min(minHpPercent, 100 * player.hp / player.maxHp);
+      if (slimes.length > 0) timeInCombat += STEP;
+      const feetY = player.y + CONFIG.player.footOffset;
+      if (slimes.some(enemy => Math.hypot(enemy.x - player.x, enemy.y - feetY)
+        <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack)) {
+        timeExposed += STEP;
+      }
+
+      if (engine.state.dayNight === 'night') {
+        if (!currentNight || currentNight.night !== engine.state.nightNumber) {
+          currentNight = {
+            night: engine.state.nightNumber,
+            hpStart: player.hp,
+            hpMax: player.maxHp,
+            minHpPercent: player.maxHp > 0 ? 100 * player.hp / player.maxHp : 0,
+            maxConcurrentSlimes: slimes.length,
+            timeInCombat: 0,
+            timeExposed: 0,
+          };
+        }
+        currentNight.minHpPercent = Math.min(currentNight.minHpPercent, player.maxHp > 0 ? 100 * player.hp / player.maxHp : 0);
+        currentNight.maxConcurrentSlimes = Math.max(currentNight.maxConcurrentSlimes, slimes.length);
+        if (slimes.length > 0) currentNight.timeInCombat += STEP;
+        if (slimes.some(enemy => Math.hypot(enemy.x - player.x, enemy.y - feetY)
+          <= CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack)) {
+          currentNight.timeExposed += STEP;
+        }
+      } else if (engine.state.dayNight === 'dawn' && currentNight) {
+        currentNight.hpEnd = player.hp;
+        currentNight.hpEndPercent = player.maxHp > 0 ? 100 * player.hp / player.maxHp : 0;
+        currentNight.complete = true;
+        nightMetrics.push(currentNight);
+        currentNight = null;
+      }
+
       if (immortal) {
         // Repor a vida apenas no simulador, inclusive depois de level-ups.
         engine.state.player.hp = Number.MAX_SAFE_INTEGER;
@@ -230,9 +302,23 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
     }
 
     if (immortal) {
+      if (currentNight) {
+        currentNight.hpEnd = engine.state.player.hp;
+        currentNight.hpEndPercent = engine.state.player.maxHp > 0 ? 100 * engine.state.player.hp / engine.state.player.maxHp : 0;
+        currentNight.complete = false;
+        nightMetrics.push(currentNight);
+      }
       return {
         classId,
+        profileId,
         seed,
+        maxConcurrentSlimes,
+        minHpPercent,
+        damageDealt,
+        damageReceivedEffective,
+        timeInCombat,
+        timeExposed,
+        nightMetrics,
         killsAt300: killsAt300 ?? engine.state.kills,
         levelAt300: levelAt300 ?? engine.state.player.level,
         spawnedByNight,
@@ -247,9 +333,23 @@ async function simulate(GameEngine, CONFIG, classId, seed, { immortal = false } 
       0,
       engine.state.nightNumber - (engine.state.dayNight === 'night' ? 1 : 0),
     );
+    if (currentNight) {
+      currentNight.hpEnd = engine.state.player.hp;
+      currentNight.hpEndPercent = engine.state.player.maxHp > 0 ? 100 * engine.state.player.hp / engine.state.player.maxHp : 0;
+      currentNight.complete = false;
+      nightMetrics.push(currentNight);
+    }
     const result = {
       classId,
+      profileId,
       seed,
+      maxConcurrentSlimes,
+      minHpPercent,
+      damageDealt,
+      damageReceivedEffective,
+      timeInCombat,
+      timeExposed,
+      nightMetrics,
       totalKills: engine.state.kills,
       killsPerMinute: survivedSeconds > 0 ? engine.state.kills * 60 / survivedSeconds : 0,
       nightsSurvived: completeNightsSurvived,
@@ -279,42 +379,56 @@ try {
   const results = [];
 
   for (const classId of CLASSES) {
-    for (let seed = 1; seed <= seedCount; seed++) {
-      results.push(await simulate(GameEngine, CONFIG, classId, seed, { immortal }));
+    for (const profileId of PROFILE_IDS) {
+      for (let seed = 1; seed <= seedCount; seed++) {
+        results.push(await simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal }));
+      }
     }
   }
 
   if (!immortal) {
-    console.log(`Fíbula Online — simulação determinística | modo: normal | sementes por classe: ${seedCount} | FPS: ${FPS} | limite: ${MAX_SECONDS}s`);
-    console.log('Sobrevivência medida em noites completas; tempo até morte e nível na morte consideram apenas execuções que morreram.');
-    console.log('Classe      Noites sobrevividas M/Md   Tempo até morte (s) M/Md   Abates totais M/Md   Nível na morte M/Md   Abates/min M/Md');
+    console.log(`Fíbula Online — auditoria individual | modo: normal | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${MAX_SECONDS}s`);
+    console.log('Cada classe é executada nos mesmos três perfis. HP mínimo e dano recebido são métricas observadas no motor; exposição é proximidade de contato, não número de golpes.');
+    console.log('Classe      Perfil             Noites M/Md   Morte s M/Md   Abates M/Md   Dano causado M/Md   Dano recebido M/Md   HP mín. M/Md   Slimes máx M/Md   Combate min M/Md   Exposto min M/Md   P25-P75 noites');
     for (const classId of CLASSES) {
-      const rows = results.filter(row => row.classId === classId);
-      const deathRows = rows.filter(row => row.died);
-      const nights = rows.map(row => row.nightsSurvived);
-      const deathTimes = deathRows.map(row => row.deathSeconds);
-      const kills = rows.map(row => row.totalKills);
-      const levels = deathRows.map(row => row.levelAtDeath);
-      const killsPerMinute = rows.map(row => row.killsPerMinute);
-      console.log(
-        `${classId.padEnd(11)} ${fmt(mean(nights), 1).padStart(5)} / ${fmt(median(nights), 1).padEnd(5)}              ` +
-        `${fmt(mean(deathTimes), 1).padStart(6)} / ${fmt(median(deathTimes), 1).padEnd(6)}          ` +
-        `${fmt(mean(kills), 1).padStart(5)} / ${fmt(median(kills), 1).padEnd(5)}       ` +
-        `${fmt(mean(levels), 1).padStart(5)} / ${fmt(median(levels), 1).padEnd(5)}       ` +
-        `${fmt(mean(killsPerMinute), 2)} / ${fmt(median(killsPerMinute), 2)}`,
-      );
+      for (const profileId of PROFILE_IDS) {
+        const rows = results.filter(row => row.classId === classId && row.profileId === profileId);
+        const deaths = rows.filter(row => row.died);
+        const nights = rows.map(row => row.nightsSurvived);
+        const deathTimes = deaths.map(row => row.deathSeconds);
+        const kills = rows.map(row => row.totalKills);
+        const damage = rows.map(row => row.damageDealt);
+        const received = rows.map(row => row.damageReceivedEffective);
+        const hpMin = rows.map(row => row.minHpPercent);
+        const maxSlimes = rows.map(row => row.maxConcurrentSlimes);
+        const combat = rows.map(row => row.timeInCombat / 60);
+        const exposed = rows.map(row => row.timeExposed / 60);
+        console.log(
+          `${classId.padEnd(11)} ${BOT_PROFILES[profileId].label.padEnd(17)} ` +
+          `${fmt(mean(nights),1)}/${fmt(median(nights),1)} ` +
+          `${fmt(mean(deathTimes),0)}/${fmt(median(deathTimes),0)} ` +
+          `${fmt(mean(kills),1)}/${fmt(median(kills),1)} ` +
+          `${fmt(mean(damage),0)}/${fmt(median(damage),0)} ` +
+          `${fmt(mean(received),1)}/${fmt(median(received),1)} ` +
+          `${fmt(mean(hpMin),1)}%/${fmt(median(hpMin),1)}% ` +
+          `${fmt(mean(maxSlimes),1)}/${fmt(median(maxSlimes),1)} ` +
+          `${fmt(mean(combat),1)}/${fmt(median(combat),1)} ` +
+          `${fmt(mean(exposed),1)}/${fmt(median(exposed),1)} ` +
+          `${fmt(percentile(nights,.25),1)}–${fmt(percentile(nights,.75),1)}`,
+        );
+      }
     }
     const survivors = results.filter(row => !row.died);
-    if (survivors.length) {
-      console.log(`Aviso: ${survivors.length} simulação(ões) não morreram antes do limite de ${MAX_SECONDS}s; não têm tempo/nível de morte.`);
-    }
+    if (survivors.length) console.log(`Aviso: ${survivors.length} simulação(ões) atingiram o limite de ${MAX_SECONDS}s sem morrer.`);
+    console.log('Detalhe por noite: cada execução registra HP inicial/final, HP mínimo, maior horda simultânea, tempo em combate e tempo em alcance de contato.');
   } else {
-    console.log(`Fíbula Online — simulação determinística | modo: IMORTAL | sementes por classe: ${seedCount} | FPS: ${FPS} | simulação: ${CONFIG.dayNight.cycle * 10}s | nível/abates registrados aos 300s`);
+    console.log(`Fíbula Online — auditoria individual | modo: IMORTAL | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${CONFIG.dayNight.cycle * 10}s | nível/abates aos 300s`);
     console.log('Abates durante cada noite e percentagem de slimes nascidos naquela noite derrotados até ao fim da simulação (média / mediana).');
     const nightHeaders = Array.from({ length: 10 }, (_, index) => `Noite ${index + 1} abates / % derrotados`.padEnd(25)).join(' ');
     console.log(`Classe      ${nightHeaders} Nível aos 300s M/Md`);
     for (const classId of CLASSES) {
-      const rows = results.filter(row => row.classId === classId);
+      for (const profileId of PROFILE_IDS) {
+      const rows = results.filter(row => row.classId === classId && row.profileId === profileId);
       const nightCells = Array.from({ length: 10 }, (_, index) => {
         const night = index + 1;
         const killValues = rows.map(row => row.killsDuringNight[night] ?? 0);
@@ -325,7 +439,8 @@ try {
         return `${fmt(mean(killValues), 1)}/${fmt(median(killValues), 1)}; ${fmt(mean(percentValues), 1)}%/${fmt(median(percentValues), 1)}%`.padEnd(25);
       }).join(' ');
       const levels = rows.map(row => row.levelAt300);
-      console.log(`${classId.padEnd(11)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
+      console.log(`${classId.padEnd(11)} ${BOT_PROFILES[profileId].label.padEnd(17)} ${nightCells} ${fmt(mean(levels), 1)} / ${fmt(median(levels), 1)}`);
+      }
     }
     console.log(`Nota: % derrotados = slimes nascidos na noite e derrotados até ${CONFIG.dayNight.cycle * 10}s ÷ slimes nascidos nessa noite; noites sem nascimento são —.`);
   }
