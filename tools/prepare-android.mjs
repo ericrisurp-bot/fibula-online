@@ -612,7 +612,7 @@ if (!activitySource.includes('private void applyImmersiveMode()')) {
     '        if (hasFocus) applyImmersiveMode();',
     '    }',
     '',
-  ].join('\\n');
+  ].join('\n');
   const finalBrace = activitySource.lastIndexOf('}');
   if (finalBrace < 0) throw new Error('Não foi possível localizar a última chave de fechamento da MainActivity.java.');
   activitySource = activitySource.slice(0, finalBrace) + immersiveMethods + activitySource.slice(finalBrace);
