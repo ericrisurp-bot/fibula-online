@@ -2518,11 +2518,22 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
     proficiencyBufferRef.current = proficiencyBuffer;
-    adventurerGuideObjectivesRef.current = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    setAdventurerGuideObjectives(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+    const savedObjectives = campProgressRef.current.objectives;
+    const initialGuideObjectives: AdventurerGuideObjectives = {
+      ...EMPTY_ADVENTURER_GUIDE_OBJECTIVES,
+      ...savedObjectives,
+      cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
+      mission2WoodCollected: false, mission2WoodRemaining: 5,
+      mission2StoneCollected: false, mission2StoneRemaining: 5,
+      mission2CottonCollected: false, mission2CottonRemaining: 5,
+      campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
+      campfireReached: false,
+    };
+    adventurerGuideObjectivesRef.current = initialGuideObjectives;
+    setAdventurerGuideObjectives(initialGuideObjectives);
     setAdventurerGuideFinishedHidden(false);
-    let guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-    adventurerGuideObjectivesRef.current = guideCurrent;
+    let guideCurrent = initialGuideObjectives;
+    let lastPersistedCampProgress = JSON.stringify(campProgressRef.current);
     let previousCarried = { wood: 0, stone: 0, cotton: 0 };
     let previousGuideSnapshot: GameSnapshot | null = null;
     const collected = {
@@ -2622,9 +2633,38 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       guideCurrent = nextObjectives;
       adventurerGuideObjectivesRef.current = nextObjectives;
       setAdventurerGuideObjectives(nextObjectives);
+      const nextMission = getAdventurerGuideMission(nextObjectives);
+      const completed = new Set(campProgressRef.current.completedMissions);
+      if (mission >= 4 && nextMission > mission) completed.add(mission);
+      const nextCampProgress: SavedCampProgress = {
+        ...campProgressRef.current,
+        completedMissions: [...completed].sort((a, b) => a - b),
+        objectives: nextObjectives,
+        chestPosition: next.house.built ? { x: next.house.x, y: next.house.y } : campProgressRef.current.chestPosition,
+        refineryPosition: next.refinery.built ? { x: next.refinery.x, y: next.refinery.y } : campProgressRef.current.refineryPosition,
+        tecelariaPosition: next.tecelaria.built ? { x: next.tecelaria.x, y: next.tecelaria.y } : campProgressRef.current.tecelariaPosition,
+      };
+      const serializedCampProgress = JSON.stringify(nextCampProgress);
+      if (serializedCampProgress !== lastPersistedCampProgress) {
+        campProgressRef.current = nextCampProgress;
+        lastPersistedCampProgress = serializedCampProgress;
+        setCompletedMissions(nextCampProgress.completedMissions);
+        if (fibulaSupabase) {
+          void fibulaSupabase.from('fibula_adventurer_progress').upsert({
+            user_id: userId,
+            completed_missions: nextCampProgress.completedMissions,
+            objectives: nextCampProgress.objectives,
+            chest_position: nextCampProgress.chestPosition,
+            refinery_position: nextCampProgress.refineryPosition,
+            tecelaria_position: nextCampProgress.tecelariaPosition,
+          }, { onConflict: 'user_id' }).then(({ error }) => {
+            if (error) console.warn('[Guia do Aventureiro] Não foi possível salvar o progresso permanente.', error);
+          });
+        }
+      }
       previousGuideSnapshot = next;
     }, { accountLevel });
-    engine.onSound = (event) => audioManager.play(event);
+    engine.restorePermanentCamp(campProgressRef.current);\n    engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
       try {
         proficiencyBuffer.add(userId, event);
