@@ -84,11 +84,13 @@ class AudioManager {
     });
   }
 
-  async unlock() {
+  async unlock(): Promise<boolean> {
     const context = this.ensureContext();
-    if (context && context.state !== 'running') {
+    if (!context) return false;
+    if (context.state !== 'running') {
       try { await context.resume(); } catch { /* Browser may require another gesture. */ }
     }
+    return context.state === 'running';
   }
 
   register<T extends SoundType>(type: T, fn: SoundHandler<T>) {
@@ -99,7 +101,7 @@ class AudioManager {
     const handler = this.handlers.get(event.type);
     if (!handler) return;
     const context = this.ensureContext();
-    if (!context || context.state !== 'running' || this.voices >= MAX_VOICES) return;
+    if (!context || context.state !== 'running' || (event.type !== 'dayNight' && this.voices >= MAX_VOICES)) return;
     handler(event as never, context, {
       sfxBus: this.sfxBus!,
       ambienceBus: this.ambienceBus!,
