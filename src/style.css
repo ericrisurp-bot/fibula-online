@@ -4118,16 +4118,15 @@ button, button * {
 
 /* O segundo jogador ocupa o mesmo slot do convite + no lobby principal. */
 /* Parceiro Duo como personagem independente; somente o botão Sair é interativo. */
-.lobby-duo-peer{position:absolute;z-index:6;left:calc(50% + 7vw);top:calc(50% + 15vh);display:flex;min-width:clamp(88px,12vw,150px);max-width:min(38vw,170px);flex-direction:column;align-items:center;gap:3px;padding:5px 6px;border:0;border-radius:12px;background:rgba(24,35,29,.28);color:#f0f2e9;text-align:center;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-.lobby-duo-peer-name{display:block;width:100%;overflow:hidden;color:#f0f2e9;font-size:clamp(10px,1.2vw,13px);font-weight:850;text-overflow:ellipsis;white-space:nowrap}
-.lobby-duo-peer-status{display:block;color:#c6d2c4;font-size:9px;font-weight:750;line-height:1.2;white-space:nowrap}
-.lobby-duo-peer-avatar{display:block;flex:0 0 auto;width:clamp(66px,9vw,104px);height:clamp(84px,15vh,116px);border:0;border-radius:0;background:transparent}
+.lobby-duo-peer{position:absolute;z-index:6;left:calc(50% + 12vw);top:calc(50% + 7vh);display:flex;width:clamp(150px,22vw,250px);flex-direction:column;align-items:center;gap:2px;padding:0;border:0;background:transparent;color:#f0f2e9;text-align:center;pointer-events:none}
+.lobby-duo-peer-name{display:block;width:100%;overflow:hidden;color:#f0f2e9;font-size:clamp(11px,1.35vw,15px);font-weight:900;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 4px #000}
+.lobby-duo-peer-status{display:block;color:#f0f2e9;font-size:10px;font-weight:900;line-height:1.2;white-space:nowrap;text-shadow:0 2px 4px #000}
+.lobby-duo-peer-avatar{display:block;flex:0 0 auto;width:clamp(150px,22vw,250px);height:clamp(210px,42vh,340px);border:0;border-radius:0;background:transparent;pointer-events:none}
 .lobby-duo-peer.connecting{opacity:.62;filter:saturate(.55)}
-.lobby-duo-peer-leave{min-height:22px;margin-top:0;padding:2px 8px;border:1px solid rgba(220,225,216,.3);border-radius:6px;background:rgba(35,40,35,.78);color:#cbd2c8;font:inherit;font-size:9px;font-weight:700;line-height:1.2;cursor:pointer}
-.lobby-duo-peer-leave:hover{border-color:rgba(220,225,216,.58);background:rgba(55,62,55,.9);color:#fff}
-.lobby-duo-peer-leave:focus-visible{outline:2px solid rgba(232,231,220,.85);outline-offset:2px}
-@media(max-width:650px){.lobby-duo-peer{left:calc(50% + 8vw);top:calc(50% + 15vh);min-width:clamp(76px,23vw,112px);max-width:42vw;gap:2px;padding:3px 4px}.lobby-duo-peer-name{font-size:10px}.lobby-duo-peer-status{font-size:8px}.lobby-duo-peer-avatar{width:clamp(58px,17vw,82px);height:clamp(74px,17vh,92px)}.lobby-duo-peer-leave{min-height:20px;padding:2px 7px;font-size:8px}}
-@media(orientation:landscape) and (max-height:520px){.lobby-duo-peer{left:calc(50% + 9vw);top:calc(50% + 10vh);min-width:clamp(72px,12vh,100px)}.lobby-duo-peer-avatar{width:clamp(54px,10vh,76px);height:clamp(62px,24vh,86px)}.lobby-duo-peer-status{font-size:8px}}
+.lobby-duo-peer-actions{display:flex;gap:6px;justify-content:center;pointer-events:auto}.lobby-duo-peer-actions button{min-height:24px;padding:3px 9px;border:1px solid rgba(220,225,216,.55);border-radius:6px;background:rgba(35,40,35,.82);color:#fff;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
+.lobby-duo-peer-actions button:hover{background:#444}.lobby-duo-peer-actions button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:650px){.lobby-duo-peer{left:calc(50% + 12vw);top:calc(50% + 8vh);width:clamp(130px,39vw,190px);gap:1px}.lobby-duo-peer-name{font-size:10px}.lobby-duo-peer-status{font-size:9px}.lobby-duo-peer-avatar{width:clamp(130px,39vw,190px);height:clamp(180px,42vh,270px)}.lobby-duo-peer-actions button{min-height:21px;padding:2px 7px;font-size:8px}}
+@media(orientation:landscape) and (max-height:520px){.lobby-duo-peer{left:calc(50% + 13vw);top:calc(50% + 2vh);width:clamp(120px,20vw,190px)}.lobby-duo-peer-avatar{width:clamp(120px,20vw,190px);height:clamp(150px,55vh,230px)}.lobby-duo-peer-status{font-size:8px}}
 .lobby-duo-peer-ready{color:#8fd39a;font-weight:950;text-shadow:0 0 8px rgba(89,190,111,.3)}
 .lobby-play-trigger:disabled{border-color:#666b65!important;background:#555a55!important;color:#aeb4aa!important;box-shadow:none!important;opacity:.72;cursor:not-allowed}
 .lobby-play-trigger.duo-ready-trigger[aria-pressed="true"]{border-color:#8fc79a;background:#355b3e;color:#f2f3ef}
@@ -8574,10 +8573,10 @@ sem backdrop ou caixa de modal. */
 .lobby-screen .lobby-character-profile-trigger:focus-visible{outline:2px solid #fff1c9;outline-offset:2px}
 
 /* O Jogar e o Pronto do Duo mantêm integralmente o estilo original da main. */
-.lobby-screen .lobby-duo-peer{padding:6px 8px;border:1px solid #e0d9ca;border-radius:10px;background:rgba(255,253,248,.92);color:#292720;box-shadow:0 3px 12px #0005;backdrop-filter:none;-webkit-backdrop-filter:none}
+.lobby-screen .lobby-duo-peer{padding:0;border:0;border-radius:0;background:transparent;color:#f0f2e9;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 .lobby-screen .lobby-duo-peer-name,.lobby-screen .lobby-duo-peer-status{color:#292720;text-shadow:none}
 .lobby-screen .lobby-duo-peer.connecting{opacity:1;filter:none}
-.lobby-screen .lobby-duo-peer-leave{min-height:24px;border:1px solid #cfc6b3;background:#f1ece0;color:#292720}
+.lobby-screen .lobby-duo-peer-actions button{border:1px solid #e0d9ca;background:rgba(24,21,17,.72);color:#fff}
 .lobby-screen .lobby-duo-notice{border-color:#e0d9ca;background:rgba(255,253,248,.92);color:#292720;box-shadow:0 3px 12px #0005;font-size:11px}
 .lobby-screen .lobby-character-profile-trigger:focus-visible{outline:2px solid #8a744c;outline-offset:2px}
 .duo-lobby-invite-toast{border-color:#e0d9ca;background:#fffdf8;color:#292720;box-shadow:0 12px 32px #29272040}
