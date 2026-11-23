@@ -89,21 +89,30 @@ try {
     }
   }
   const baselineAtLevelOne = proficiencyLevels.getProficiencyProgression(
-    'espada', 16, { preservedLevel: 1, baselineCounter: 15 },
+    'espada', 17, { preservedLevel: 1, baselineCounter: 16 },
   );
   assert.equal(baselineAtLevelOne.level, 1);
   assert.equal(baselineAtLevelOne.progressInLevel, 1);
   assert.equal(baselineAtLevelOne.requiredForNextLevel, 150);
   assert.equal(baselineAtLevelOne.remainingForNextLevel, 149);
   assert.equal(baselineAtLevelOne.progressRatio, 1 / 150);
+  const legacyHalfway = proficiencyLevels.getLegacyProficiencyProgress('espada', 24);
+  assert.equal(legacyHalfway.level, 1);
+  assert.equal(legacyHalfway.progressRatio, 8 / 15);
   const baselineHalfway = proficiencyLevels.getProficiencyProgression(
-    'espada', 90, { preservedLevel: 1, baselineCounter: 15 },
+    'espada', 24, { preservedLevel: 1, baselineCounter: 24 },
   );
   assert.equal(baselineHalfway.level, 1);
-  assert.equal(baselineHalfway.progressInLevel, 75);
+  assert.equal(baselineHalfway.progressInLevel, 80);
   assert.equal(baselineHalfway.requiredForNextLevel, 150);
-  assert.equal(baselineHalfway.remainingForNextLevel, 75);
-  assert.equal(baselineHalfway.progressRatio, 0.5);
+  assert.equal(baselineHalfway.remainingForNextLevel, 70);
+  assert.equal(baselineHalfway.progressRatio, 80 / 150);
+  const postBaselineEvents = proficiencyLevels.getProficiencyProgression(
+    'espada', 29, { preservedLevel: 1, baselineCounter: 24 },
+  );
+  assert.equal(postBaselineEvents.level, 1);
+  assert.equal(postBaselineEvents.progressInLevel, 85);
+  assert.equal(postBaselineEvents.progressRatio, 85 / 150);
   const axeSurplus = proficiencyLevels.getProficiencyProgression('machado_madeira', 2001000);
   assert.equal(axeSurplus.level, 100);
   assert.equal(axeSurplus.isMaxLevel, true);
