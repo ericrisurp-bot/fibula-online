@@ -716,6 +716,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const campProgressRef = useRef<SavedCampProgress>(emptyCampProgress);
   const [completedMissions, setCompletedMissions] = useState<number[]>([]);
   const [campProgressReady, setCampProgressReady] = useState(false);
+  const [campProgressLoadedUserId, setCampProgressLoadedUserId] = useState<string | null>(null);
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const cloudChestLoadedRef = useRef(false);
   const lobbyChestRefreshRequestRef = useRef(0);
@@ -725,6 +726,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   useEffect(() => {
     let active = true;
     setCampProgressReady(false);
+    setCampProgressLoadedUserId(null);
+    campProgressRef.current = emptyCampProgress;
+    setCompletedMissions([]);
     void (async () => {
       try {
         if (!fibulaSupabase) return;
@@ -759,7 +763,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       } catch (error) {
         console.warn('[Guia do Aventureiro] Não foi possível carregar o progresso permanente.', error);
       } finally {
-        if (active) setCampProgressReady(true);
+        if (active) {
+          setCampProgressReady(true);
+          setCampProgressLoadedUserId(userId);
+        }
       }
     })();
     return () => { active = false; };
@@ -2521,7 +2528,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby' || !campProgressReady) return;
+    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby' || !campProgressReady || campProgressLoadedUserId !== userId) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const userId = session.user.sub;
@@ -3507,7 +3514,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeGameRoute.page, session.user.sub, classChoice, campProgressReady]);
+  }, [activeGameRoute.page, session.user.sub, classChoice, campProgressReady, campProgressLoadedUserId]);
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
