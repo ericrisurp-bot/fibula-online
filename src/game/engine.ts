@@ -691,8 +691,9 @@ export class GameEngine {
     refineryPosition?: { x: number; y: number } | null;
     tecelariaPosition?: { x: number; y: number } | null;
   }): void {
-    const validPosition = (value: { x: number; y: number } | null | undefined) =>
-      value && Number.isFinite(value.x) && Number.isFinite(value.y)
+    const validPosition = (value: { x: number; y: number } | null | undefined): value is { x: number; y: number } =>
+      value !== null && value !== undefined
+        && Number.isFinite(value.x) && Number.isFinite(value.y)
         && value.x >= 0 && value.x <= this.world && value.y >= 0 && value.y <= this.world;
     if (validPosition(progress.chestPosition)) {
       this.state.house.x = progress.chestPosition.x;
