@@ -246,8 +246,9 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     };
 
     engine.start();
-    // Parte do mesmo instante registrado por start(); evita um delta variável no primeiro quadro.
-    frameNow = engine.lastTime;
+    // Usa uma origem virtual fixa; não deixa a precisão de performance.now() contaminar o delta.
+    frameNow = 0;
+    engine.lastTime = 0;
 
     const durationLimit = nightDiagnostic ? 360 : immortal
       ? CONFIG.dayNight.cycle * 10
@@ -261,8 +262,8 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       botMove(engine, profileId, seed, frame);
       if (immortal) engine.state.player.hp = Number.MAX_SAFE_INTEGER;
       const scheduled = queue.shift();
-      frameNow += STEP * 1000;
       frame += 1;
+      frameNow = frame * STEP * 1000;
       scheduled.callback(frameNow);
 
       if (determinismTrace) {
