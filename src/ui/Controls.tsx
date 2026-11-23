@@ -250,6 +250,9 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       ];
       const doneCount = objectives.filter(objective => objective.done).length;
       const missionTitles: Record<number, string> = {
+        1: 'Carroça',
+        2: 'Recursos para a fogueira',
+        3: 'Exploração',
         4: 'Construção do baú',
         5: 'Armazenamento e recursos',
         6: 'Refinaria',
@@ -260,7 +263,7 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
         <header className="adventurer-guide-heading"><strong>{mission === 9 && doneCount === 3 ? 'Guia do Aventureiro · Fim' : `Guia do Aventureiro · Missão ${mission}`}</strong><span>{doneCount}/3</span></header>
       {completedMissions.length > 0 && <div className="adventurer-guide-history">
-        <strong>Missões únicas concluídas</strong>
+        <strong>Missões concluídas</strong>
         {completedMissions.map(id => <span key={id}>Missão {id} · {missionTitles[id]} ✓</span>)}
       </div>}
         {objectives.map((objective, index) => <div key={index} className={objective.icon ? `adventurer-guide-objective is-wood-only${objective.done ? ' is-complete' : ''}` : `adventurer-guide-objective is-text-only${objective.done ? ' is-complete' : ''}`}>
