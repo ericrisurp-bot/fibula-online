@@ -706,19 +706,13 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
-  type CampPosition = { x: number; y: number };
   type SavedCampProgress = {
     completedMissions: number[];
     objectives: Partial<AdventurerGuideObjectives>;
-    chestPosition: CampPosition | null;
-    refineryPosition: CampPosition | null;
-    tecelariaPosition: CampPosition | null;
   };
-  const emptyCampProgress: SavedCampProgress = {
-    completedMissions: [], objectives: {}, chestPosition: null, refineryPosition: null, tecelariaPosition: null,
-  };
+  const emptyCampProgress: SavedCampProgress = { completedMissions: [], objectives: {} };
   const campProgressRef = useRef<SavedCampProgress>(emptyCampProgress);
-  const [, setCompletedMissions] = useState<number[]>([]);
+  const [completedMissions, setCompletedMissions] = useState<number[]>([]);
   const [campProgressReady, setCampProgressReady] = useState(false);
   const [campProgressLoadedUserId, setCampProgressLoadedUserId] = useState<string | null>(null);
   const [houseLoadReady, setHouseLoadReady] = useState(false);
@@ -726,6 +720,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const lobbyChestRefreshRequestRef = useRef(0);
   const [lobbyChestStatus, setLobbyChestStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const houseInventoryJson = JSON.stringify(state.house.inventory);
+
+  useEffect(() => {
+    engineRef.current?.setPermanentCamp({
+      bau: completedMissions.includes(4),
+      refinery: completedMissions.includes(6),
+      tecelaria: completedMissions.includes(8),
+    });
+  }, [completedMissions]);
 
   useEffect(() => {
     let active = true;
@@ -739,23 +741,16 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         if (!fibulaSupabase) { loaded = true; return; }
         const { data, error } = await fibulaSupabase
           .from('fibula_adventurer_progress')
-          .select('completed_missions,objectives,chest_position,refinery_position,tecelaria_position')
+          .select('completed_missions,objectives')
           .eq('user_id', userId)
           .maybeSingle();
         if (error) throw error;
         if (!active) return;
-        const position = (value: unknown): CampPosition | null => {
-          if (!value || typeof value !== 'object') return null;
-          const candidate = value as { x?: unknown; y?: unknown };
-          return typeof candidate.x === 'number' && Number.isFinite(candidate.x)
-            && typeof candidate.y === 'number' && Number.isFinite(candidate.y)
-            ? { x: candidate.x, y: candidate.y } : null;
-        };
         const missions = Array.isArray(data?.completed_missions)
           ? data.completed_missions.filter((value: unknown): value is number =>
               typeof value === 'number' && Number.isInteger(value) && value >= 4 && value <= 9)
           : [];
-        const completedMissions = [...new Set(missions)].sort((a, b) => a - b);
+        const completedMissions = [...new Set([...campProgressRef.current.completedMissions, ...missions])].sort((a, b) => a - b);
         const savedObjectives = data?.objectives && typeof data.objectives === 'object' && !Array.isArray(data.objectives)
           ? data.objectives as Partial<AdventurerGuideObjectives> : {};
         const objectives: Partial<AdventurerGuideObjectives> = {
@@ -767,14 +762,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           ...(completedMissions.includes(8) ? { tecelariaBuilt: true, cottonRefined: true, wolvesKilled: 2 } : {}),
           ...(completedMissions.includes(9) ? { chickensKilled: 3, leatherRefined: true, survivedNights: 5 } : {}),
         };
-        campProgressRef.current = {
-          completedMissions,
-          objectives,
-          chestPosition: position(data?.chest_position),
-          refineryPosition: position(data?.refinery_position),
-          tecelariaPosition: position(data?.tecelaria_position),
-        };
-        setCompletedMissions(campProgressRef.current.completedMissions);
+        campProgressRef.current = { completedMissions, objectives };
+        setCompletedMissions(current => [...new Set([...current, ...completedMissions])].sort((a, b) => a - b));
         loaded = true;
       } catch (error) {
         console.warn('[Guia do Aventureiro] Não foi possível carregar o progresso permanente.', error);
@@ -2679,17 +2668,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       if (mission >= 4 && (nextMission > mission || (mission === 9 && nextObjectives.chickensKilled >= 3 && nextObjectives.leatherRefined && nextObjectives.survivedNights >= 5))) completed.add(mission);
       const nextCampProgress: SavedCampProgress = {
         ...campProgressRef.current,
-        completedMissions: [...completed].sort((a, b) => a - b),
+        completedMissions: [...new Set([...campProgressRef.current.completedMissions, ...completed])].sort((a, b) => a - b),
         objectives: nextObjectives,
-        chestPosition: next.house.built ? { x: next.house.x, y: next.house.y } : campProgressRef.current.chestPosition,
-        refineryPosition: next.refinery.built ? { x: next.refinery.x, y: next.refinery.y } : campProgressRef.current.refineryPosition,
-        tecelariaPosition: next.tecelaria.built ? { x: next.tecelaria.x, y: next.tecelaria.y } : campProgressRef.current.tecelariaPosition,
       };
       const serializedCampProgress = JSON.stringify(nextCampProgress);
       if (serializedCampProgress !== lastPersistedCampProgress) {
         campProgressRef.current = nextCampProgress;
         lastPersistedCampProgress = serializedCampProgress;
-        setCompletedMissions(nextCampProgress.completedMissions);
+        setCompletedMissions(current => [...new Set([...current, ...nextCampProgress.completedMissions])].sort((a, b) => a - b));
         const supabase = fibulaSupabase;
         if (supabase) {
           progressWriteQueue = progressWriteQueue.then(async () => {
@@ -2697,9 +2683,6 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
               user_id: userId,
               completed_missions: nextCampProgress.completedMissions,
               objectives: nextCampProgress.objectives,
-              chest_position: nextCampProgress.chestPosition,
-              refinery_position: nextCampProgress.refineryPosition,
-              tecelaria_position: nextCampProgress.tecelariaPosition,
             }, { onConflict: 'user_id' });
             if (error) throw error;
           }).catch(error => {
@@ -2709,10 +2692,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
       previousGuideSnapshot = next;
     }, { accountLevel });
-    engine.restorePermanentCamp({
-      chestPosition: campProgressRef.current.completedMissions.includes(4) ? campProgressRef.current.chestPosition : null,
-      refineryPosition: campProgressRef.current.completedMissions.includes(6) ? campProgressRef.current.refineryPosition : null,
-      tecelariaPosition: campProgressRef.current.completedMissions.includes(8) ? campProgressRef.current.tecelariaPosition : null,
+    engine.setPermanentCamp({
+      bau: campProgressRef.current.completedMissions.includes(4),
+      refinery: campProgressRef.current.completedMissions.includes(6),
+      tecelaria: campProgressRef.current.completedMissions.includes(8),
     });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {

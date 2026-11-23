@@ -16,6 +16,83 @@ try {
     houseInventory: [],
   });
 
+  const { CONFIG } = await server.ssrLoadModule('/src/game/config.ts');
+  const prepareCampfirePlacement = (engine) => {
+    engine.state.player.x = CONFIG.map.size / 2;
+    engine.state.player.y = CONFIG.map.size / 2;
+    engine.state.trees = [];
+    engine.state.rocks = [];
+    engine.state.lake = { ...engine.state.lake, x: 0, y: 0, rx: 0, ry: 0 };
+    engine.state.cart.x = CONFIG.map.size * 0.9;
+    engine.state.cart.y = CONFIG.map.size * 0.9;
+    engine.state.inventory = [
+      { itemId: 'wood', quantity: 9 },
+      { itemId: 'stone', quantity: 8 },
+      { itemId: 'cotton', quantity: 7 },
+    ];
+    engine.state.cart.inventory = [];
+  };
+  const campPosition = (campfire, slot) => ({
+    x: campfire.x + CONFIG.campLayout[slot].dx,
+    y: campfire.y + CONFIG.campLayout[slot].dy,
+  });
+
+  // Estruturas permanentes surgem nos slots quando a fogueira é acesa,
+  // sem consumir materiais além do custo normal da própria fogueira.
+  const permanentChest = createEngine(0x12345678);
+  permanentChest.setPermanentCamp({ bau: true, refinery: false, tecelaria: false });
+  prepareCampfirePlacement(permanentChest);
+  const inventoryBeforeCampfire = permanentChest.state.inventory.map(item => ({ ...item }));
+  assert.deepEqual(permanentChest.placeCampfire(), { ok: true });
+  const chestSlot = campPosition(permanentChest.state.campfire, 'bau');
+  assert.equal(permanentChest.state.house.built, true);
+  assert.deepEqual(
+    { x: permanentChest.state.house.x, y: permanentChest.state.house.y },
+    chestSlot,
+    'O baú permanente deve nascer no slot definido pelo layout do acampamento.',
+  );
+  assert.deepEqual(
+    permanentChest.state.inventory,
+    [
+      { itemId: 'wood', quantity: inventoryBeforeCampfire.find(item => item.itemId === 'wood').quantity - CONFIG.campfire.woodCost },
+      { itemId: 'stone', quantity: inventoryBeforeCampfire.find(item => item.itemId === 'stone').quantity - CONFIG.campfire.stoneCost },
+      { itemId: 'cotton', quantity: inventoryBeforeCampfire.find(item => item.itemId === 'cotton').quantity - CONFIG.campfire.cottonCost },
+    ],
+    'Somente os materiais da fogueira podem ser consumidos; o baú permanente é gratuito.',
+  );
+  assert.deepEqual(permanentChest.state.house.inventory, [], 'A restauração não deve alterar o inventário do baú.');
+
+  // restart limpa as estruturas da partida, preserva as flags permanentes e exige nova fogueira.
+  permanentChest.restart();
+  assert.deepEqual(permanentChest.permanentCamp, { bau: true, refinery: false, tecelaria: false });
+  assert.equal(permanentChest.state.campfire, null);
+  assert.equal(permanentChest.state.house.built, false, 'Sem fogueira, o baú não deve existir.');
+  assert.equal(permanentChest.state.refinery.built, false, 'Sem fogueira, a refinaria não deve existir.');
+  assert.equal(permanentChest.state.tecelaria.built, false, 'Sem fogueira, a tecelaria não deve existir.');
+  prepareCampfirePlacement(permanentChest);
+  assert.deepEqual(permanentChest.placeCampfire(), { ok: true });
+  assert.equal(permanentChest.state.house.built, true, 'O novo acampamento deve recriar o baú após acender a fogueira.');
+
+  // As três estruturas permanentes devem ocupar seus slots relativos à fogueira.
+  const fullPermanentCamp = createEngine(0x87654321);
+  fullPermanentCamp.setPermanentCamp({ bau: true, refinery: true, tecelaria: true });
+  prepareCampfirePlacement(fullPermanentCamp);
+  assert.deepEqual(fullPermanentCamp.placeCampfire(), { ok: true });
+  for (const [slot, structure] of [
+    ['bau', fullPermanentCamp.state.house],
+    ['refinery', fullPermanentCamp.state.refinery],
+    ['tecelaria', fullPermanentCamp.state.tecelaria],
+  ]) {
+    assert.equal(structure.built, true, `A estrutura ${slot} deve ser recriada junto com a fogueira.`);
+    assert.deepEqual(
+      { x: structure.x, y: structure.y },
+      campPosition(fullPermanentCamp.state.campfire, slot),
+      `A estrutura ${slot} deve respeitar CONFIG.campLayout.`,
+    );
+  }
+  permanentChest.stop();
+  fullPermanentCamp.stop();
+
   // Uma seed fixa deve reproduzir o mesmo estado inicial.
   const first = createEngine(0x12345678);
   const repeated = createEngine(0x12345678);
