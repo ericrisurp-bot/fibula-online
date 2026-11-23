@@ -2552,7 +2552,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     const engine = new GameEngine((next) => {
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
-      if (previousGuideSnapshot && next.elapsed < previousGuideSnapshot.elapsed) previousGuideSnapshot = null;
+      const matchRestarted = !!previousGuideSnapshot && next.elapsed < previousGuideSnapshot.elapsed;
+      if (matchRestarted) previousGuideSnapshot = null;
       const previousGuide = previousGuideSnapshot;
       const cartFound = Math.hypot(playerFeetPosition.x - next.cart.x, playerFeetPosition.y - next.cart.y) <= CONFIG.cart.interactRadius;
       const countItem = (itemId: string) => [...next.inventory, ...next.cart.inventory].reduce((total, item) => total + (getBaseItemId(item.itemId) === itemId ? item.quantity : 0), 0);
@@ -2573,9 +2574,18 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       const fishingRodAvailable = next.lake.rx > 0 && next.lake.ry > 0 && lakeEdgeDistance <= CONFIG.lake.fishingRange;
       const lakeFound = next.lake.rx > 0 && next.lake.ry > 0 && lakeNormalizedDistance <= 1.2;
       const chestBuilt = next.house.built;
-      if (adventurerGuideObjectivesRef.current === EMPTY_ADVENTURER_GUIDE_OBJECTIVES && guideCurrent !== EMPTY_ADVENTURER_GUIDE_OBJECTIVES) {
-        guideCurrent = EMPTY_ADVENTURER_GUIDE_OBJECTIVES;
-        for (const key of Object.keys(collected) as (keyof typeof collected)[]) collected[key] = 0;
+      if (matchRestarted) {
+        guideCurrent = adventurerGuideObjectivesRef.current;
+        collected.mission1Wood = 0;
+        collected.mission2Wood = 0;
+        collected.mission2Stone = 0;
+        collected.mission2Cotton = 0;
+        collected.mission4Wood = Math.max(0, 20 - guideCurrent.mission4WoodRemaining);
+        collected.mission5Wood = Math.max(0, 20 - guideCurrent.refineryWoodRemaining);
+        collected.mission5Stone = Math.max(0, 15 - guideCurrent.refineryStoneRemaining);
+        collected.mission7Wood = Math.max(0, 15 - guideCurrent.mission7WoodRemaining);
+        collected.mission7Cotton = Math.max(0, 8 - guideCurrent.mission7CottonRemaining);
+        collected.mission7Stone = Math.max(0, 8 - guideCurrent.mission7StoneRemaining);
         previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
       }
       guideCurrent = adventurerGuideObjectivesRef.current;
