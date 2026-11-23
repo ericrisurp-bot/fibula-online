@@ -194,8 +194,9 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
 
   try {
     // A seed deve chegar diretamente ao PRNG interno do motor; não dependa de
-    // Math.random para gerar a seed implícita do GameEngine.
-    const engine = new GameEngine(() => {}, { seed, headless: true });
+    // Math.random para gerar a seed implícita do GameEngine. Não habilite
+    // headless: start() precisa agendar os quadros virtuais do simulador.
+    const engine = new GameEngine(() => {}, { seed });
     engine.setClass(classId);
 
     // Instrumentação somente do simulador: os wrappers preservam os métodos reais.
