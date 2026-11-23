@@ -131,26 +131,37 @@ function summary(values, digits = 1) {
   return `${fmt(mean(values), digits)}/${fmt(median(values), digits)} [${fmt(percentile(values, .25), digits)}–${fmt(percentile(values, .75), digits)}]`;
 }
 
-function botMove(engine, CONFIG, profileId, seed, frame) {
+function botMove(engine, CONFIG, profileId, seed, frame, currentTargetId) {
   const player = engine.state.player;
   const playerFeetY = player.y + CONFIG.player.footOffset;
   // A IA de combate só persegue slimes: animais não são alvos do autoAttack.
-  const nearest = engine.state.enemies
-    .filter(enemy => !enemy.animalKind)
+  const slimes = engine.state.enemies.filter(enemy => !enemy.animalKind);
+  // Mantém o alvo atual enquanto ele continuar vivo; só procura outro quando
+  // o alvo anterior sair da lista de inimigos.
+  const currentTarget = currentTargetId === null
+    ? null
+    : slimes.find(enemy => enemy.id === currentTargetId);
+  const target = currentTarget ?? slimes
     .map(enemy => ({
       enemy,
       dx: enemy.x - player.x,
       dy: enemy.y - playerFeetY,
       centerDistance: Math.hypot(enemy.x - player.x, enemy.y - player.y),
     }))
-    .sort((a, b) => Math.hypot(a.dx, a.dy) - Math.hypot(b.dx, b.dy))[0];
+    .sort((a, b) => Math.hypot(a.dx, a.dy) - Math.hypot(b.dx, b.dy))[0]?.enemy;
 
-  if (!nearest) {
+  if (!target) {
     const angle = frame * STEP * 0.7 + (seed % 17) * 0.19;
     engine.setMove(Math.cos(angle), Math.sin(angle));
     return null;
   }
 
+  const nearest = {
+    enemy: target,
+    dx: target.x - player.x,
+    dy: target.y - playerFeetY,
+    centerDistance: Math.hypot(target.x - player.x, target.y - player.y),
+  };
   const distance = Math.hypot(nearest.dx, nearest.dy) || 1;
   const towardX = nearest.dx / distance;
   const towardY = nearest.dy / distance;
@@ -212,6 +223,9 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     currentTargetId: null,
     targetFrames: 0,
     noTargetFrames: 0,
+    slimesAvailableFrames: 0,
+    noSlimeFrames: 0,
+    noTargetWithSlimesFrames: 0,
     playerTowardTarget: 0,
     playerAwayFromTarget: 0,
     playerLateralOrStill: 0,
@@ -317,7 +331,10 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         ? engine.state.elapsed < durationLimit
         : !engine.state.dead && engine.state.elapsed < durationLimit)
     ) {
-      const aiDecision = botMove(engine, CONFIG, profileId, seed, frame);
+      const availableSlimes = engine.state.enemies.filter(enemy => !enemy.animalKind).length;
+      if (availableSlimes > 0) aiTelemetry.slimesAvailableFrames += 1;
+      else aiTelemetry.noSlimeFrames += 1;
+      const aiDecision = botMove(engine, CONFIG, profileId, seed, frame, aiTelemetry.currentTargetId);
       if (aiDecision) {
         if (aiTelemetry.currentTargetId !== aiDecision.enemyId) {
           if (aiTelemetry.currentTargetId !== null) aiTelemetry.targetSwitches += 1;
@@ -337,6 +354,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         else aiTelemetry.strafing += 1;
       } else {
         aiTelemetry.noTargetFrames += 1;
+        if (availableSlimes > 0) aiTelemetry.noTargetWithSlimesFrames += 1;
         if (aiTelemetry.currentTargetId !== null) aiTelemetry.targetLosses += 1;
         aiTelemetry.currentTargetId = null;
       }
@@ -472,6 +490,9 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
           targetSwitches: aiTelemetry.targetSwitches,
           targetLosses: aiTelemetry.targetLosses,
           noTargetPercent: frame ? 100 * aiTelemetry.noTargetFrames / frame : 0,
+          slimesAvailablePercent: frame ? 100 * aiTelemetry.slimesAvailableFrames / frame : 0,
+          noSlimePercent: frame ? 100 * aiTelemetry.noSlimeFrames / frame : 0,
+          noTargetWithSlimesPercent: frame ? 100 * aiTelemetry.noTargetWithSlimesFrames / frame : 0,
           playerTowardPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerTowardTarget / aiTelemetry.samples : 0,
           playerAwayPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerAwayFromTarget / aiTelemetry.samples : 0,
           playerLateralPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerLateralOrStill / aiTelemetry.samples : 0,
@@ -671,6 +692,9 @@ try {
             targetSwitches: mean(aiRows.map(value => value.targetSwitches)),
             targetLosses: mean(aiRows.map(value => value.targetLosses)),
             noTargetPercent: mean(aiRows.map(value => value.noTargetPercent)),
+            slimesAvailablePercent: mean(aiRows.map(value => value.slimesAvailablePercent)),
+            noSlimePercent: mean(aiRows.map(value => value.noSlimePercent)),
+            noTargetWithSlimesPercent: mean(aiRows.map(value => value.noTargetWithSlimesPercent)),
             playerTowardPercent: mean(aiRows.map(value => value.playerTowardPercent)),
             playerAwayPercent: mean(aiRows.map(value => value.playerAwayPercent)),
             playerLateralPercent: mean(aiRows.map(value => value.playerLateralPercent)),
@@ -686,7 +710,7 @@ try {
           console.log(
             `  IA (média por execução): distância pés média/p50/p90/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.medianDistance)}/${fmt(ai.p90Distance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
             `dentro do alcance ${fmt(ai.weaponRangePercent)}%; aproxima/strafe/recua ${fmt(ai.approachPercent)}/${fmt(ai.strafePercent)}/${fmt(ai.retreatPercent)}%; ` +
-            `movimento bloqueado ${fmt(ai.blockedPercent)}%; alvo trocado/perdido ${fmt(ai.targetSwitches,0)}/${fmt(ai.targetLosses,0)}; sem alvo ${fmt(ai.noTargetPercent)}%.`,
+            `movimento bloqueado ${fmt(ai.blockedPercent)}%; alvo trocado/perdido ${fmt(ai.targetSwitches,0)}/${fmt(ai.targetLosses,0)}; sem alvo ${fmt(ai.noTargetPercent)}% (sem slime ${fmt(ai.noSlimePercent)}%; slimes disponíveis ${fmt(ai.slimesAvailablePercent)}%; sem alvo apesar de slime ${fmt(ai.noTargetWithSlimesPercent)}%).`,
           );
           console.log(
             `  Movimento real do jogador: em direção ao alvo ${fmt(ai.playerTowardPercent)}%; afastando ${fmt(ai.playerAwayPercent)}%; lateral/parado ${fmt(ai.playerLateralPercent)}%. Ataques disparados ${fmt(ai.attacks)}.`,
