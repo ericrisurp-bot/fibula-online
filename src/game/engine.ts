@@ -1659,7 +1659,7 @@ export class GameEngine {
       const healingPerSecond = this.state.activeMeals.reduce((sum, meal) => sum + (meal.effects.healingPerSecond ?? 0), 0);
       if (healingPerSecond > 0) this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + healingPerSecond * dt);
     }
-    this.elapsed = (this.elapsed + dt) % CONFIG.dayNight.cycle;
+    this.elapsed += dt;
     this.state.elapsed = this.elapsed;
     if (this.phase === 'day') {
       const previousPhaseElapsed = this.phaseElapsed;
