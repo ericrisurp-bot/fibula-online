@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { fibulaSupabase } from '../auth/supabase';
 import PageFrame from './PageFrame';
 import SideNav, { type SideNavId } from './SideNav';
-import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, leaveDuoRoom, listDuoInvites, setDuoReady, startDuoMatch } from './duoRooms';
+import { createDuoRoom, duoHeartbeat, getMyDuoRoom, joinDuoRoom, kickDuoGuest, leaveDuoRoom, listDuoInvites, setDuoReady, startDuoMatch } from './duoRooms';
 
 type ClassId = 'guerreiro' | 'mago' | 'arqueiro' | 'druida';
 type RequestStatus = 'pending' | 'accepted' | 'declined';
@@ -23,7 +23,7 @@ type FriendProfile = {
 };
 type DuoRole = 'host' | 'guest';
 type DuoStatus = 'connecting' | 'connected';
-type DuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
+type DuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; duoPower: number; role: DuoRole; status: DuoStatus; selfReady: boolean; peerReady: boolean };
 type Props = {
   userId: string;
   myClassId: ClassId;
@@ -34,7 +34,7 @@ type Props = {
   onOpenSidePage: (id: SideNavId) => void;
   onLobby: () => void;
   onOpenProfile: (userId: string) => void;
-  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void | Promise<boolean>) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null) => void;
+  onLobbyChange: (peer: DuoPeer | null, leave?: (() => void | Promise<boolean>) | null, toggleReady?: (() => void) | null, startMatch?: (() => void) | null, notifyHouseInventoryChanged?: (() => Promise<void>) | null, kickGuest?: (() => Promise<boolean>) | null) => void;
   onLobbyConnected: () => void;
   onLobbyNotice: (message: string) => void;
   onHouseInventoryChanged: () => void;
@@ -97,7 +97,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     const current = lobbyRef.current;
     const next = current ? { ...current } : null;
     setActiveDuo(next);
-    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null, current?.role === 'host' ? startMatch : null, current ? notifyHouseInventoryChanged : null);
+    onLobbyChangeRef.current(next, current ? leaveLobby : null, current ? toggleReady : null, current?.role === 'host' ? startMatch : null, current ? notifyHouseInventoryChanged : null, current?.role === 'host' ? kickGuest : null);
   };
   const clearLobby = () => {
     lobbyRef.current = null;
@@ -111,6 +111,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     to: friendId,
     classId: identityRef.current.myClassId,
     displayName: profilesRef.current[userId]?.display_name || identityRef.current.myDisplayName || 'Jogador',
+    duoPower: 0,
   });
 
   const load = useCallback(async () => {
@@ -335,6 +336,20 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     return true;
   }
 
+  async function kickGuest(): Promise<boolean> {
+    const current = lobbyRef.current;
+    if (!current || current.role !== 'host' || current.status !== 'connected' || current.matchId) return false;
+    await kickDuoGuest(current.roomId);
+    const channel = inboxChannels.current.get(current.friendId);
+    if (channel) {
+      const result = await channel.send({ type: 'broadcast', event: 'duo_kicked', payload: { from: userId, to: current.friendId, room_id: current.roomId } });
+      if (result !== 'ok') setError('O parceiro foi removido no servidor, mas o aviso imediato não foi entregue.');
+    }
+    clearLobby();
+    setNotice('Parceiro removido do lobby Duo.');
+    return true;
+  }
+
   async function toggleReady() {
     const current = lobbyRef.current;
     if (!current || current.status !== 'connected' || current.role !== 'guest') return;
@@ -373,6 +388,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
       ? payload.displayName.trim()
       : current.friendName;
     current.friendName = current.displayName;
+    current.duoPower = Number.isSafeInteger(payload?.duoPower) && payload.duoPower >= 0 ? payload.duoPower : current.duoPower;
     publishLobby();
   };
 
@@ -545,6 +561,12 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
             || lobbyRef.current?.friendId !== friendId || lobbyRef.current?.matchId) return;
           onHouseInventoryChangedRef.current();
         });
+        inbox.on('broadcast', { event: 'duo_kicked' }, ({ payload }) => {
+          if (!validPeerEvent(payload) || payload?.room_id !== lobbyRef.current?.roomId || lobbyRef.current?.friendId !== friendId) return;
+          clearLobby();
+          setNotice('Você foi removido do grupo Duo pelo anfitrião.');
+          onLobbyNoticeRef.current('Você foi removido do grupo Duo pelo anfitrião.');
+        });
         inbox.on('broadcast', { event: 'duo_left' }, ({ payload }) => {
           if (!validPeerEvent(payload) || lobbyRef.current?.friendId !== friendId) return;
           refreshOnDuoSignal();
@@ -601,7 +623,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
       setError('');
       const roomId = await createDuoRoom(friendId);
       const peer: DuoPeer = {
-        roomId, matchId: null, friendId,
+        roomId, matchId: null, friendId, duoPower: 0,
         friendName: profilesRef.current[friendId]?.display_name || 'Seu amigo',
         displayName: profilesRef.current[friendId]?.display_name || 'Seu amigo',
         avatarCharacter: validClassId(profilesRef.current[friendId]?.avatar_character),
@@ -656,7 +678,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
       const roomId = await joinDuoRoom(invite.room_id);
       const profile = await loadPeerProfile(invite.from);
       const peer: DuoPeer = {
-        roomId, matchId: null, friendId: invite.from,
+        roomId, matchId: null, friendId: invite.from, duoPower: 0,
         friendName: profile?.display_name || invite.sender_name || 'Seu amigo',
         displayName: profile?.display_name || invite.sender_name || 'Seu amigo',
         avatarCharacter: validClassId(profile?.avatar_character),
