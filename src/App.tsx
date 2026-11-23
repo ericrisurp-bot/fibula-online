@@ -2561,9 +2561,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       const carriedStone = countItem('stone');
       const carriedCotton = countItem('cotton');
       const gained = {
-        wood: Math.max(0, carriedWood - previousCarried.wood),
-        stone: Math.max(0, carriedStone - previousCarried.stone),
-        cotton: Math.max(0, carriedCotton - previousCarried.cotton),
+        wood: matchRestarted ? 0 : Math.max(0, carriedWood - previousCarried.wood),
+        stone: matchRestarted ? 0 : Math.max(0, carriedStone - previousCarried.stone),
+        cotton: matchRestarted ? 0 : Math.max(0, carriedCotton - previousCarried.cotton),
       };
       previousCarried = { wood: carriedWood, stone: carriedStone, cotton: carriedCotton };
       const cartRepaired = next.cart.stage === 'built';
