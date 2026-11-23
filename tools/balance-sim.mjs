@@ -133,14 +133,22 @@ function summary(values, digits = 1) {
 
 function botMove(engine, profileId, seed, frame) {
   const player = engine.state.player;
+  const playerFeetY = player.y + CONFIG.player.footOffset;
+  // A IA de combate só persegue slimes: animais não são alvos do autoAttack.
   const nearest = engine.state.enemies
-    .map(enemy => ({ enemy, dx: enemy.x - player.x, dy: enemy.y - player.y }))
+    .filter(enemy => !enemy.animalKind)
+    .map(enemy => ({
+      enemy,
+      dx: enemy.x - player.x,
+      dy: enemy.y - playerFeetY,
+      centerDistance: Math.hypot(enemy.x - player.x, enemy.y - player.y),
+    }))
     .sort((a, b) => Math.hypot(a.dx, a.dy) - Math.hypot(b.dx, b.dy))[0];
 
   if (!nearest) {
     const angle = frame * STEP * 0.7 + (seed % 17) * 0.19;
     engine.setMove(Math.cos(angle), Math.sin(angle));
-    return;
+    return null;
   }
 
   const distance = Math.hypot(nearest.dx, nearest.dy) || 1;
@@ -157,6 +165,7 @@ function botMove(engine, profileId, seed, frame) {
   let y = towardY * radial + towardX * side * 0.72;
   const length = Math.hypot(x, y) || 1;
   engine.setMove(x / length, y / length);
+  return { distance, centerDistance: nearest.centerDistance, radial };
 }
 
 async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false, onProgress, traceDeterminism = false } = {}) {
@@ -180,6 +189,24 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
   let minHpPercent = 100;
   let damageDealt = 0;
   let damageReceivedEffective = 0;
+  const damageBySource = {
+    slime: { hits: 0, damage: 0 },
+    wolf: { hits: 0, damage: 0 },
+    mixed: { hits: 0, damage: 0 },
+    unknown: { hits: 0, damage: 0 },
+  };
+  const aiTelemetry = {
+    samples: 0,
+    distanceTotal: 0,
+    minDistance: null,
+    maxDistance: 0,
+    withinWeaponRange: 0,
+    approaching: 0,
+    retreating: 0,
+    strafing: 0,
+    blockedMovement: 0,
+    attacks: 0,
+  };
   let timeInCombat = 0;
   let timeExposed = 0;
   let nextProgressAt = 60;
@@ -214,8 +241,30 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     engine.addFloatingDamage = function (x, y, amount, color, scale) {
       if (color === '#ff4545' && Number.isFinite(amount) && amount > 0) {
         damageReceivedEffective += amount;
+        const feetY = this.state.player.y + CONFIG.player.footOffset;
+        const touching = this.state.enemies.filter(enemy => {
+          const contactRadius = enemy.animalKind === 'wolf'
+            ? CONFIG.wildlife.wolves.radius + CONFIG.player.footRadius + 3
+            : !enemy.animalKind
+              ? CONFIG.player.footRadius + CONFIG.enemy.radius + CONFIG.enemy.playerContactSlack
+              : 0;
+          return contactRadius > 0
+            && Math.hypot(enemy.x - this.state.player.x, enemy.y - feetY) <= contactRadius + 2;
+        });
+        const hasSlime = touching.some(enemy => !enemy.animalKind);
+        const hasWolf = touching.some(enemy => enemy.animalKind === 'wolf');
+        const source = hasSlime && hasWolf ? 'mixed' : hasSlime ? 'slime' : hasWolf ? 'wolf' : 'unknown';
+        damageBySource[source].hits += 1;
+        damageBySource[source].damage += amount;
       }
       return originalAddFloatingDamage(x, y, amount, color, scale);
+    };
+
+    const originalAutoAttack = engine.autoAttack.bind(engine);
+    engine.autoAttack = function () {
+      const ready = this.local.attackTimer >= 1 / CONFIG.weapons[this.state.weapon].attackSpeed;
+      originalAutoAttack();
+      if (ready && this.local.attackTimer === 0) aiTelemetry.attacks += 1;
     };
 
     // Acompanhe o nascimento de cada slime e a noite em que ele surgiu.
@@ -259,12 +308,33 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         ? engine.state.elapsed < durationLimit
         : !engine.state.dead && engine.state.elapsed < durationLimit)
     ) {
-      botMove(engine, profileId, seed, frame);
+      const aiDecision = botMove(engine, profileId, seed, frame);
+      if (aiDecision) {
+        aiTelemetry.samples += 1;
+        aiTelemetry.distanceTotal += aiDecision.distance;
+        aiTelemetry.minDistance = aiTelemetry.minDistance === null
+          ? aiDecision.distance
+          : Math.min(aiTelemetry.minDistance, aiDecision.distance);
+        aiTelemetry.maxDistance = Math.max(aiTelemetry.maxDistance, aiDecision.distance);
+        if (aiDecision.centerDistance <= CONFIG.weapons[engine.state.weapon].range) aiTelemetry.withinWeaponRange += 1;
+        if (aiDecision.radial > 0) aiTelemetry.approaching += 1;
+        else if (aiDecision.radial < 0) aiTelemetry.retreating += 1;
+        else aiTelemetry.strafing += 1;
+      }
       if (immortal) engine.state.player.hp = Number.MAX_SAFE_INTEGER;
+      const previousPlayerPosition = { x: engine.state.player.x, y: engine.state.player.y };
       const scheduled = queue.shift();
       frame += 1;
       frameNow = frame * STEP * 1000;
       scheduled.callback(frameNow);
+      if (aiDecision) {
+        const moved = Math.hypot(
+          engine.state.player.x - previousPlayerPosition.x,
+          engine.state.player.y - previousPlayerPosition.y,
+        );
+        const expected = engine.getPlayerMoveSpeed() * STEP;
+        if (expected > 0 && moved < expected * 0.15) aiTelemetry.blockedMovement += 1;
+      }
 
       if (determinismTrace) {
         const snapshot = {
@@ -362,6 +432,16 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         minHpPercent,
         damageDealt,
         damageReceivedEffective,
+        damageBySource,
+        aiTelemetry: {
+          ...aiTelemetry,
+          meanDistance: aiTelemetry.samples ? aiTelemetry.distanceTotal / aiTelemetry.samples : null,
+          weaponRangePercent: aiTelemetry.samples ? 100 * aiTelemetry.withinWeaponRange / aiTelemetry.samples : 0,
+          approachPercent: aiTelemetry.samples ? 100 * aiTelemetry.approaching / aiTelemetry.samples : 0,
+          retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
+          strafePercent: aiTelemetry.samples ? 100 * aiTelemetry.strafing / aiTelemetry.samples : 0,
+          blockedPercent: aiTelemetry.samples ? 100 * aiTelemetry.blockedMovement / aiTelemetry.samples : 0,
+        },
         timeInCombat,
         timeExposed,
         nightMetrics,
@@ -398,6 +478,16 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       minHpPercent,
       damageDealt,
       damageReceivedEffective,
+      damageBySource,
+      aiTelemetry: {
+        ...aiTelemetry,
+        meanDistance: aiTelemetry.samples ? aiTelemetry.distanceTotal / aiTelemetry.samples : null,
+        weaponRangePercent: aiTelemetry.samples ? 100 * aiTelemetry.withinWeaponRange / aiTelemetry.samples : 0,
+        approachPercent: aiTelemetry.samples ? 100 * aiTelemetry.approaching / aiTelemetry.samples : 0,
+        retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
+        strafePercent: aiTelemetry.samples ? 100 * aiTelemetry.strafing / aiTelemetry.samples : 0,
+        blockedPercent: aiTelemetry.samples ? 100 * aiTelemetry.blockedMovement / aiTelemetry.samples : 0,
+      },
       timeInCombat,
       timeExposed,
       nightMetrics,
@@ -522,6 +612,20 @@ try {
           `${summary(damage,0)} ${summary(received)} ${summary(hpMin)}% ` +
           `${summary(maxSlimes)} ${summary(combat)} ${summary(exposed)}`,
         );
+        const ai = rows[0]?.aiTelemetry;
+        const sources = rows[0]?.damageBySource;
+        if (ai && sources) {
+          console.log(
+            `  IA: distância pés média/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
+            `dentro do alcance ${fmt(ai.weaponRangePercent)}%; aproxima/strafe/recua ${fmt(ai.approachPercent)}/${fmt(ai.strafePercent)}/${fmt(ai.retreatPercent)}%; ` +
+            `movimento bloqueado ${fmt(ai.blockedPercent)}%; ataques ${ai.attacks}.`,
+          );
+          console.log(
+            `  Dano recebido por origem: slimes ${sources.slime.hits}x/${fmt(sources.slime.damage)}; ` +
+            `lobos ${sources.wolf.hits}x/${fmt(sources.wolf.damage)}; misto ${sources.mixed.hits}x/${fmt(sources.mixed.damage)}; ` +
+            `não identificado ${sources.unknown.hits}x/${fmt(sources.unknown.damage)}.`,
+          );
+        }
       }
     }
     const survivors = results.filter(row => !row.died);
