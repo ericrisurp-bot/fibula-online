@@ -10,6 +10,8 @@ export type ClosedCore = { category: CoreCategory; rarity: CoreRarity; weaponMod
 export type Core = { id: string; category: CoreCategory; rarity: CoreRarity; surp: boolean; attributes: CoreAttribute[]; weaponModel?: CoreWeaponModel; affinity?: 'dano' | 'natureza'; equipmentType?: CoreEquipmentType };
 export type CoreDrop = { id: number; x: number; y: number; age: number; core: ClosedCore };
 export const CORE_DROP_CHANCE = 0.02;
+// Após o teste de drop de 2%, somente 1/3.6 das tentativas gera um núcleo.
+export const CORE_DROP_APPEARANCE_CHANCE = 1 / 3.6;
 export const CORE_SURP_CHANCE = 0.02;
 export const CORE_CATEGORY_CHANCES: ReadonlyArray<{ category: CoreCategory; chance: number }> = [
   { category: 'weapon', chance: 1 / 3 }, { category: 'armor', chance: 1 / 3 }, { category: 'accessory', chance: 1 / 3 },
