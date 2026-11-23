@@ -2528,7 +2528,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby' || !campProgressReady || campProgressLoadedUserId !== userId) return;
+    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby' || !campProgressReady || campProgressLoadedUserId !== session.user.sub) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const userId = session.user.sub;
