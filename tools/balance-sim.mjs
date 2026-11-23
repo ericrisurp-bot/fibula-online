@@ -612,16 +612,34 @@ try {
           `${summary(damage,0)} ${summary(received)} ${summary(hpMin)}% ` +
           `${summary(maxSlimes)} ${summary(combat)} ${summary(exposed)}`,
         );
-        const ai = rows[0]?.aiTelemetry;
-        const sources = rows[0]?.damageBySource;
-        if (ai && sources) {
+        const aiRows = rows.map(row => row.aiTelemetry).filter(Boolean);
+        const sourceRows = rows.map(row => row.damageBySource).filter(Boolean);
+        if (aiRows.length && sourceRows.length) {
+          const ai = {
+            meanDistance: mean(aiRows.map(value => value.meanDistance)),
+            minDistance: mean(aiRows.map(value => value.minDistance)),
+            maxDistance: mean(aiRows.map(value => value.maxDistance)),
+            weaponRangePercent: mean(aiRows.map(value => value.weaponRangePercent)),
+            approachPercent: mean(aiRows.map(value => value.approachPercent)),
+            retreatPercent: mean(aiRows.map(value => value.retreatPercent)),
+            strafePercent: mean(aiRows.map(value => value.strafePercent)),
+            blockedPercent: mean(aiRows.map(value => value.blockedPercent)),
+            attacks: mean(aiRows.map(value => value.attacks)),
+          };
+          const sources = Object.fromEntries(['slime', 'wolf', 'mixed', 'unknown'].map(source => [
+            source,
+            {
+              hits: sourceRows.reduce((sum, value) => sum + value[source].hits, 0),
+              damage: sourceRows.reduce((sum, value) => sum + value[source].damage, 0),
+            },
+          ]));
           console.log(
-            `  IA: distância pés média/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
+            `  IA (média por execução): distância pés média/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
             `dentro do alcance ${fmt(ai.weaponRangePercent)}%; aproxima/strafe/recua ${fmt(ai.approachPercent)}/${fmt(ai.strafePercent)}/${fmt(ai.retreatPercent)}%; ` +
-            `movimento bloqueado ${fmt(ai.blockedPercent)}%; ataques ${ai.attacks}.`,
+            `movimento bloqueado ${fmt(ai.blockedPercent)}%; ataques ${fmt(ai.attacks)}.`,
           );
           console.log(
-            `  Dano recebido por origem: slimes ${sources.slime.hits}x/${fmt(sources.slime.damage)}; ` +
+            `  Dano recebido por origem (soma): slimes ${sources.slime.hits}x/${fmt(sources.slime.damage)}; ` +
             `lobos ${sources.wolf.hits}x/${fmt(sources.wolf.damage)}; misto ${sources.mixed.hits}x/${fmt(sources.mixed.damage)}; ` +
             `não identificado ${sources.unknown.hits}x/${fmt(sources.unknown.damage)}.`,
           );
