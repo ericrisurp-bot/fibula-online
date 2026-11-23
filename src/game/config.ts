@@ -1,6 +1,6 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
 const AURA_RADIUS = 40;
-const SWORD_REACH_BEYOND_AURA = 95;
+const SWORD_REACH_BEYOND_AURA = 50;
 
 export type ResourceRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
@@ -140,7 +140,7 @@ export const CONFIG = {
   druidSlow: { speedMultiplier: 0.7, duration: 2 },
   druidPoison: { duration: 4, tickInterval: 1, damagePerTickFactor: 0.2 },
   druidContagion: { radius: 40, maxPoisoned: 5, checkInterval: 0.25 },
-  archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6, 0.5], speedFactors: [0.9, 0.75, 0.6, 0.45, 0.3] },
+  archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6], speedFactors: [0.9, 0.75, 0.6, 0.45, 0.3] },
   archerHeal: { arrowsPerHeal: 15, amount: 1 },
   druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
   weapons: {
