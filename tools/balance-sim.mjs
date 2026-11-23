@@ -486,8 +486,8 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       aiTelemetry: {
         ...aiTelemetry,
         meanDistance: aiTelemetry.samples ? aiTelemetry.distanceTotal / aiTelemetry.samples : null,
-          medianDistance: median(aiDistanceSamples),
-          p90Distance: percentile(aiDistanceSamples, 0.9),
+        medianDistance: median(aiDistanceSamples),
+        p90Distance: percentile(aiDistanceSamples, 0.9),
         weaponRangePercent: aiTelemetry.samples ? 100 * aiTelemetry.withinWeaponRange / aiTelemetry.samples : 0,
         approachPercent: aiTelemetry.samples ? 100 * aiTelemetry.approaching / aiTelemetry.samples : 0,
         retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
