@@ -143,6 +143,7 @@ export const CONFIG = {
   archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6], speedFactors: [0.9, 0.75, 0.6, 0.45, 0.3] },
   archerHeal: { arrowsPerHeal: 15, amount: 1 },
   druidHeal: { basicHitsPerHeal: 4, basicHitAmount: 2, killsPerOrb: 4, maxOrbs: 5 },
+  druidBlessing: { healPerOrb: 0.04, duration: 6, speedPerOrb: { guerreiro: 0.016, mago: 0.008, arqueiro: 0.004 }, damageReductionPerOrb: 0.03 },
   weapons: {
     espada: { label: 'Espada', range: AURA_RADIUS + SWORD_REACH_BEYOND_AURA, damage: 16, attackSpeed: 1.0, maxTargets: 4, knockback: 12, kind: 'melee' as const, projectileSpeed: 0 },
     cajado: { label: 'Cajado', range: 290, damage: 17, attackSpeed: 0.92, kind: 'orb' as const, projectileSpeed: 390 },
