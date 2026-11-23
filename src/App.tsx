@@ -764,6 +764,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         loaded = true;
       } catch (error) {
         console.warn('[Guia do Aventureiro] Não foi possível carregar o progresso permanente.', error);
+        if (active) window.alert('Não foi possível carregar seu progresso do acampamento. Recarregue o jogo e tente novamente.');
       } finally {
         if (active) {
           setCampProgressReady(true);
