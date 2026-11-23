@@ -151,7 +151,10 @@ function ProficiencyPanel({
                 >
                   <span
                     className="player-proficiency-xp-fill"
-                    style={{ width: `${progressWidth}%` }}
+                    style={{
+                      width: `${progressWidth}%`,
+                      minWidth: progressWidth > 0 ? '2px' : 0,
+                    }}
                   />
                 </div>
               </div>
