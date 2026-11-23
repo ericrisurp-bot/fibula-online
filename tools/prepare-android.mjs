@@ -576,11 +576,13 @@ if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
     activitySource = activitySource.replace(/(public class MainActivity extends BridgeActivity\s*\{)/, '$1\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(ApkInstallerPlugin.class);\n        super.onCreate(savedInstanceState);\n    }');
   }
 }
-if (!activitySource.includes('applyImmersiveMode()')) {
+if (!activitySource.includes('applyImmersiveMode();')) {
   activitySource = activitySource.replace(
-    /super\.onCreate\(savedInstanceState\);/,
-    'super.onCreate(savedInstanceState);\n        applyImmersiveMode();'
+    /(super\\.onCreate\\(savedInstanceState\\);)/,
+    '$1\\n        applyImmersiveMode();'
   );
+}
+if (!activitySource.includes('private void applyImmersiveMode()')) {
   const immersiveMethods = [
     '',
     '    private void applyImmersiveMode() {',
@@ -609,8 +611,17 @@ if (!activitySource.includes('applyImmersiveMode()')) {
     '        super.onWindowFocusChanged(hasFocus);',
     '        if (hasFocus) applyImmersiveMode();',
     '    }',
-  ].join('\n');
-  activitySource = activitySource.replace(/\n}\s*$/, '\n' + immersiveMethods + '\n}');
+    '',
+  ].join('\\n');
+  const finalBrace = activitySource.lastIndexOf('}');
+  if (finalBrace < 0) throw new Error('Não foi possível localizar a última chave de fechamento da MainActivity.java.');
+  activitySource = activitySource.slice(0, finalBrace) + immersiveMethods + activitySource.slice(finalBrace);
+}
+if (
+  activitySource.includes('applyImmersiveMode();')
+  && !activitySource.includes('private void applyImmersiveMode()')
+) {
+  throw new Error('Geração inválida da MainActivity.java: chamada applyImmersiveMode(); sem definição do método. Preparação Android interrompida.');
 }
 writeFileSync(mainActivityPath, activitySource);
 
