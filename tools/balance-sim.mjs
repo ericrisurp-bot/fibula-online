@@ -131,7 +131,7 @@ function summary(values, digits = 1) {
   return `${fmt(mean(values), digits)}/${fmt(median(values), digits)} [${fmt(percentile(values, .25), digits)}–${fmt(percentile(values, .75), digits)}]`;
 }
 
-function botMove(engine, profileId, seed, frame) {
+function botMove(engine, CONFIG, profileId, seed, frame) {
   const player = engine.state.player;
   const playerFeetY = player.y + CONFIG.player.footOffset;
   // A IA de combate só persegue slimes: animais não são alvos do autoAttack.
@@ -308,7 +308,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         ? engine.state.elapsed < durationLimit
         : !engine.state.dead && engine.state.elapsed < durationLimit)
     ) {
-      const aiDecision = botMove(engine, profileId, seed, frame);
+      const aiDecision = botMove(engine, CONFIG, profileId, seed, frame);
       if (aiDecision) {
         aiTelemetry.samples += 1;
         aiTelemetry.distanceTotal += aiDecision.distance;
