@@ -395,6 +395,14 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, myDuoPo
   };
 
   useEffect(() => {
+    const current = lobbyRef.current;
+    if (!current || current.status !== 'connected') return;
+    const channel = inboxChannels.current.get(current.friendId);
+    if (!channel) return;
+    void channel.send({ type: 'broadcast', event: 'duo_ready_ack', payload: ownReadyPayload(current.friendId) });
+  }, [myDuoPower, myClassId, myDisplayName, activeDuo?.roomId]);
+
+  useEffect(() => {
     friendIdsRef.current = friendIds;
   }, [friendIdsKey]);
 
