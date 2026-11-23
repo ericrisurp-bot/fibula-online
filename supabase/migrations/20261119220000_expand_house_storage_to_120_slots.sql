@@ -1,5 +1,8 @@
 -- Expande o Baú de 50 para 120 espaços sem alterar ou regravar os itens existentes.
--- Atualiza os limites de todas as rotas ativas de armazenamento e troca.
+-- Atualiza os limites de capacidade das três funções de armazenamento e troca
+-- atualmente instaladas. A antiga fibula_inventory_adjust_stack(text,bigint) foi
+-- removida da lista porque pertencia à migration 20261102000900, nunca aplicada,
+-- e foi substituída por fibula_house_apply_delta(uuid,jsonb).
 
 alter table public.fibula_house_storage
   drop constraint if exists fibula_house_storage_inventory_array;
@@ -14,9 +17,9 @@ alter table public.fibula_house_storage
     end
   );
 
--- As funções abaixo foram criadas em migrations anteriores. Atualizamos apenas
--- os limites explícitos de capacidade nos corpos atualmente instalados, sem
--- executar a migration nem modificar o banco durante a criação desta PR.
+-- As três funções abaixo já existem nas instalações atuais. Atualizamos apenas
+-- os limites explícitos de capacidade nos corpos instalados, sem executar esta
+-- migration nem modificar o banco durante a criação desta PR.
 do $$
 declare
   v_signature text;
@@ -24,7 +27,6 @@ declare
   v_definition text;
   v_updated text;
   v_signatures text[] := array[
-    'public.fibula_inventory_adjust_stack(text,bigint)',
     'public.fibula_house_apply_delta(uuid,jsonb)',
     'public.fibula_duo_house_transfer(uuid,text,bigint)',
     'public.fibula_duo_trade_confirm(uuid)'
@@ -46,6 +48,12 @@ begin
     end if;
 
     execute v_updated;
+
+    v_definition := pg_catalog.pg_get_functiondef(v_function);
+    if position('>= 120' in v_definition) = 0
+      or position('>= 50' in v_definition) > 0 then
+      raise exception 'A definição instalada de % não confirmou o limite >= 120 sem >= 50.', v_signature;
+    end if;
   end loop;
 end;
 $$;
