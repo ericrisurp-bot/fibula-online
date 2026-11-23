@@ -754,10 +754,20 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           ? data.completed_missions.filter((value: unknown): value is number =>
               typeof value === 'number' && Number.isInteger(value) && value >= 4 && value <= 9)
           : [];
-        const objectives = data?.objectives && typeof data.objectives === 'object' && !Array.isArray(data.objectives)
+        const completedMissions = [...new Set(missions)].sort((a, b) => a - b);
+        const savedObjectives = data?.objectives && typeof data.objectives === 'object' && !Array.isArray(data.objectives)
           ? data.objectives as Partial<AdventurerGuideObjectives> : {};
+        const objectives: Partial<AdventurerGuideObjectives> = {
+          ...savedObjectives,
+          ...(completedMissions.includes(4) ? { mission4WoodCollected: true, mission4WoodRemaining: 0, campfireReached: true, chestBuilt: true } : {}),
+          ...(completedMissions.includes(5) ? { itemStored: true, refineryWoodRemaining: 0, refineryStoneRemaining: 0 } : {}),
+          ...(completedMissions.includes(6) ? { refineryBuilt: true, stoneRefined: true, nightSurvived: true } : {}),
+          ...(completedMissions.includes(7) ? { mission7WoodCollected: true, mission7WoodRemaining: 0, mission7CottonCollected: true, mission7CottonRemaining: 0, mission7StoneCollected: true, mission7StoneRemaining: 0 } : {}),
+          ...(completedMissions.includes(8) ? { tecelariaBuilt: true, cottonRefined: true, wolvesKilled: 2 } : {}),
+          ...(completedMissions.includes(9) ? { chickensKilled: 3, leatherRefined: true, survivedNights: 5 } : {}),
+        };
         campProgressRef.current = {
-          completedMissions: [...new Set(missions)].sort((a, b) => a - b),
+          completedMissions,
           objectives,
           chestPosition: position(data?.chest_position),
           refineryPosition: position(data?.refinery_position),
