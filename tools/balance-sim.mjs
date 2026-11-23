@@ -24,15 +24,17 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const nightDiagnostic = args.includes('--diagnostico-noites');
+const determinismDiagnostic = args.includes('--diagnostico-determinismo');
 const immortal = args.includes('--imortal') || nightDiagnostic;
 const jsonOutput = args.includes('--json');
-const countArg = args.find(arg => !['--imortal', '--json', '--diagnostico-noites'].includes(arg));
+const countArg = args.find(arg => !['--imortal', '--json', '--diagnostico-noites', '--diagnostico-determinismo'].includes(arg));
 const seedCount = Number.parseInt(countArg ?? '30', 10);
 const FPS = 30;
 const STEP = 1 / FPS;
@@ -157,7 +159,7 @@ function botMove(engine, profileId, seed, frame) {
   engine.setMove(x / length, y / length);
 }
 
-async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false, onProgress } = {}) {
+async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false, onProgress, traceDeterminism = false } = {}) {
   const oldRandom = Math.random;
   const oldRaf = globalThis.requestAnimationFrame;
   const oldCancel = globalThis.cancelAnimationFrame;
@@ -181,6 +183,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
   let timeInCombat = 0;
   let timeExposed = 0;
   let nextProgressAt = 60;
+  const determinismTrace = traceDeterminism ? [] : null;
 
   Math.random = random;
   globalThis.requestAnimationFrame = callback => {
@@ -261,6 +264,31 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       frameNow += STEP * 1000;
       frame += 1;
       scheduled.callback(frameNow);
+
+      if (determinismTrace) {
+        const snapshot = {
+          frame,
+          elapsed: engine.state.elapsed,
+          randomState: engine.randomState,
+          nextId: engine.nextId,
+          kills: engine.state.kills,
+          phase: engine.state.dayNight,
+          nightNumber: engine.state.nightNumber,
+          horde: [engine.hordeScheduled, engine.hordeSpawned, engine.hordeTarget],
+          player: [engine.state.player.x, engine.state.player.y, engine.state.player.hp, engine.state.player.level],
+          enemies: engine.state.enemies.map(enemy => [
+            enemy.id, enemy.x, enemy.y, enemy.hp, enemy.hitWait, enemy.wobble, enemy.animalKind ?? null,
+          ]),
+        };
+        determinismTrace.push({
+          frame,
+          elapsed: engine.state.elapsed,
+          kills: engine.state.kills,
+          enemies: engine.state.enemies.length,
+          randomState: engine.randomState,
+          hash: createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'),
+        });
+      }
 
       const player = engine.state.player;
       const slimes = engine.state.enemies.filter(enemy => !enemy.animalKind);
@@ -344,6 +372,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         finalNightNumber: engine.state.nightNumber,
         finalPhase: engine.state.dayNight,
         totalKills: engine.state.kills,
+        ...(determinismTrace ? { determinismTrace } : {}),
       };
     }
 
@@ -377,6 +406,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       levelAtDeath: died ? engine.state.player.level : null,
       survivedSeconds,
       died,
+      ...(determinismTrace ? { determinismTrace } : {}),
     };
     engine.stop();
     return result;
@@ -402,6 +432,40 @@ try {
   ]);
   const results = [];
   let runIndex = 0;
+
+  if (determinismDiagnostic) {
+    const classId = 'guerreiro';
+    const profileId = 'proximo';
+    const seed = 1;
+    console.log('Diagnóstico de determinismo: Guerreiro / próximo / seed 1, duas execuções no mesmo processo.');
+    const first = await simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal: true, traceDeterminism: true });
+    const second = await simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal: true, traceDeterminism: true });
+    const firstTrace = first.determinismTrace;
+    const secondTrace = second.determinismTrace;
+    const limit = Math.min(firstTrace.length, secondTrace.length);
+    let divergence = -1;
+    for (let index = 0; index < limit; index += 1) {
+      if (firstTrace[index].hash !== secondTrace[index].hash) {
+        divergence = index;
+        break;
+      }
+    }
+    if (divergence >= 0) {
+      const a = firstTrace[divergence];
+      const b = secondTrace[divergence];
+      console.log(`DIVERGÊNCIA no quadro ${a.frame} (~${a.elapsed.toFixed(3)}s).`);
+      console.log(`Execução 1: kills=${a.kills}, inimigos=${a.enemies}, randomState=${a.randomState}`);
+      console.log(`Execução 2: kills=${b.kills}, inimigos=${b.enemies}, randomState=${b.randomState}`);
+      console.log('O hash considera posição/vida do jogador, estado da horda e estado/ordem dos inimigos.');
+    } else if (firstTrace.length !== secondTrace.length) {
+      console.log(`DURAÇÕES DIFERENTES: execução 1=${firstTrace.length} quadros; execução 2=${secondTrace.length} quadros.`);
+    } else {
+      console.log(`IGUAIS: ${firstTrace.length} quadros comparados sem divergência de estado.`);
+      console.log(`Abates finais: ${first.totalKills} / ${second.totalKills}`);
+    }
+    rmSync(tempDir, { recursive: true, force: true });
+    process.exit(0);
+  }
 
   for (const classId of RUN_CLASSES) {
     for (const profileId of RUN_PROFILES) {
