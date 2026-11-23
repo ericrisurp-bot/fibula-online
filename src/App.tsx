@@ -111,7 +111,7 @@ const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   chickensKilled: 0, leatherRefined: false, survivedNights: 0,
 };
 
-function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>): AdventurerGuideObjectives {
+function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>, completedMissions: number[] = []): AdventurerGuideObjectives {
   return {
     ...EMPTY_ADVENTURER_GUIDE_OBJECTIVES,
     ...saved,
@@ -121,6 +121,8 @@ function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>
     mission2CottonCollected: false, mission2CottonRemaining: 5,
     campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
     campfireReached: false,
+    refineryBuilt: completedMissions.includes(6) && !!saved.refineryBuilt,
+    tecelariaBuilt: completedMissions.includes(8) && !!saved.tecelariaBuilt,
   };
 }
 
@@ -2541,7 +2543,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
     proficiencyBufferRef.current = proficiencyBuffer;
-    const initialGuideObjectives = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+    const initialGuideObjectives = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
     adventurerGuideObjectivesRef.current = initialGuideObjectives;
     setAdventurerGuideObjectives(initialGuideObjectives);
     setAdventurerGuideFinishedHidden(false);
@@ -2694,7 +2696,11 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
       previousGuideSnapshot = next;
     }, { accountLevel });
-    engine.restorePermanentCamp(campProgressRef.current);
+    engine.restorePermanentCamp({
+      chestPosition: campProgressRef.current.completedMissions.includes(4) ? campProgressRef.current.chestPosition : null,
+      refineryPosition: campProgressRef.current.completedMissions.includes(6) ? campProgressRef.current.refineryPosition : null,
+      tecelariaPosition: campProgressRef.current.completedMissions.includes(8) ? campProgressRef.current.tecelariaPosition : null,
+    });
     engine.onSound = (event) => audioManager.play(event);
     engine.onProficiencyEvent = (event) => {
       try {
