@@ -493,7 +493,7 @@ export default function PlayerProfileModal({
           <article><span>RECORDE DE DIAS</span><strong>{profile.highest_survival_level.toLocaleString('pt-BR')}</strong></article>
           <article><span>ABATES</span><strong>{profile.kills.toLocaleString('pt-BR')}</strong></article>
         </div>
-        {canEdit && <ProficiencyPanel counts={proficiencyCounts} loading={proficiencyLoading} error={proficiencyError} />}
+        {canEdit && <ProficiencyPanel counts={proficiencyCounts} baselines={proficiencyBaselines} loading={proficiencyLoading} error={proficiencyError} />}
         {avatarPickerOpen && canEdit && <div className="player-profile-avatar-backdrop player-profile-side-avatar-backdrop" onClick={() => !savingAvatar && setAvatarPickerOpen(false)}>
           <section className="player-profile-avatar-dialog player-profile-side-avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="player-profile-avatar-title" onClick={event => event.stopPropagation()}>
             <header><div><span>PERSONALIZAÇÃO</span><h3 id="player-profile-avatar-title">Escolher foto</h3></div>
