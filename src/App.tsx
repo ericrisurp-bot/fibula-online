@@ -111,6 +111,19 @@ const EMPTY_ADVENTURER_GUIDE_OBJECTIVES: AdventurerGuideObjectives = {
   chickensKilled: 0, leatherRefined: false, survivedNights: 0,
 };
 
+function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>): AdventurerGuideObjectives {
+  return {
+    ...EMPTY_ADVENTURER_GUIDE_OBJECTIVES,
+    ...saved,
+    cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
+    mission2WoodCollected: false, mission2WoodRemaining: 5,
+    mission2StoneCollected: false, mission2StoneRemaining: 5,
+    mission2CottonCollected: false, mission2CottonRemaining: 5,
+    campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
+    campfireReached: false,
+  };
+}
+
 type LobbyDuoPeer = { roomId: string; matchId: string | null; friendId: string; friendName: string; avatarCharacter: ClassId; classId: ClassId; displayName: string; duoPower: number; role: 'host' | 'guest'; status: 'connecting' | 'connected'; selfReady: boolean; peerReady: boolean };
 type ForgeProductionPreviewState =
   | { kind: 'weapon'; weapon: CraftedWeapon; materials: string[] }
@@ -2518,18 +2531,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       console.warn('[Proficiências] Não foi possível persistir os contadores locais.', error);
     });
     proficiencyBufferRef.current = proficiencyBuffer;
-    const savedObjectives = campProgressRef.current.objectives;
-    const initialGuideObjectives: AdventurerGuideObjectives = {
-      ...EMPTY_ADVENTURER_GUIDE_OBJECTIVES,
-      ...savedObjectives,
-      cartFound: false, woodCollected: false, woodRemaining: 15, cartRepaired: false,
-      mission2WoodCollected: false, mission2WoodRemaining: 5,
-      mission2StoneCollected: false, mission2StoneRemaining: 5,
-      mission2CottonCollected: false, mission2CottonRemaining: 5,
-      campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
-      campfireReached: false,
-    };
-    adventurerGuideObjectivesRef.current = initialGuideObjectives;
+    const initialGuideObjectives = createNewMatchGuideObjectives(campProgressRef.current.objectives);\n    adventurerGuideObjectivesRef.current = initialGuideObjectives;
     setAdventurerGuideObjectives(initialGuideObjectives);
     setAdventurerGuideFinishedHidden(false);
     let guideCurrent = initialGuideObjectives;
