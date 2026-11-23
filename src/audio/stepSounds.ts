@@ -20,7 +20,7 @@ export function playStep(
   const duration = Math.max(0.05, Math.min(0.12, 0.5 * safeInterval));
   const attack = Math.min(0.01, duration * 0.3);
   const nightVolume = Math.max(0.45, 1 - 0.5 * n);
-  const cutoffScale = 1 - 0.35 * n;
+  const cutoffScale = 1 - 0.2 * n;
   const footPitch = foot === 'left' ? 0.985 : 1.015;
   const pitch = footPitch * audioManager.rand(0.98, 1.02);
   const baseGain = carrying ? 0.026 : 0.031;
@@ -40,7 +40,7 @@ export function playStep(
 
   const lowpass = context.createBiquadFilter();
   lowpass.type = 'lowpass';
-  lowpass.frequency.setValueAtTime((carrying ? 330 : 420) * cutoffScale, start);
+  lowpass.frequency.setValueAtTime((carrying ? 2100 : 2600) * cutoffScale, start);
   lowpass.Q.setValueAtTime(0.7, start);
 
   const grassPeak = context.createBiquadFilter();
