@@ -16,7 +16,7 @@ import type { CraftedArmor } from './armorCrafting';
 import { ARMOR_PIECE_ORDER, computeArmorBonuses, type ArmorBonuses } from './armorEquipment';
 import { accessoryEffectiveValue, type AccessoryType, type CraftedAccessory } from './accessoryCrafting';
 import { ACCESSORY_SLOT_ORDER } from './accessoryEquipment';
-import { getProficiencyProgression } from './proficiencyLevels';
+import { getProficiencyProgression, type ProficiencyProgressionBaseline } from './proficiencyLevels';
 
 type Vec = { x: number; y: number };
 
@@ -349,6 +349,7 @@ export class GameEngine {
   private cartProficiencyTotal = 0;
   private cartProficiencyLevel = 0;
   private proficiencyTotals: Partial<Record<ProficiencyKey, number>> = {};
+  private proficiencyBaselines: Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>> = {};
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -407,7 +408,7 @@ export class GameEngine {
         this.proficiencyTotals[key] = next;
         if (key === 'carroca_distancia') {
           this.cartProficiencyTotal = next;
-          this.cartProficiencyLevel = getProficiencyProgression(key, next).level;
+          this.cartProficiencyLevel = getProficiencyProgression(key, next, this.proficiencyBaselines[key]).level;
         }
       }
     }
@@ -443,19 +444,25 @@ export class GameEngine {
   }
 
   /** Define um acumulado inicial validado; dados inválidos são ignorados. */
-  setProficiencyTotal(key: ProficiencyKey, total: number): void {
+  setProficiencyTotal(
+    key: ProficiencyKey,
+    total: number,
+    baseline?: ProficiencyProgressionBaseline,
+  ): void {
     if (!['machado_madeira', 'picareta', 'faca_esfolar', 'vara_pesca', 'foice_mao', 'carroca_distancia'].includes(key)
       || !Number.isSafeInteger(total) || total < 0) return;
     this.proficiencyTotals[key] = total;
+    if (baseline) this.proficiencyBaselines[key] = baseline;
+    else delete this.proficiencyBaselines[key];
     if (key === 'carroca_distancia') {
       this.cartProficiencyTotal = total;
-      this.cartProficiencyLevel = getProficiencyProgression(key, total).level;
+      this.cartProficiencyLevel = getProficiencyProgression(key, total, baseline).level;
     }
   }
 
   /** Compatibilidade com os chamadores existentes da proficiência da carroça. */
-  setCartProficiencyTotal(total: number): void {
-    this.setProficiencyTotal('carroca_distancia', total);
+  setCartProficiencyTotal(total: number, baseline?: ProficiencyProgressionBaseline): void {
+    this.setProficiencyTotal('carroca_distancia', total, baseline);
   }
 
   setAccountLevel(level: number): void { this.accountLevel = Number.isFinite(level) ? Math.max(0, Math.floor(level)) : 0; this.emit(); }
@@ -1992,7 +1999,7 @@ export class GameEngine {
 
   private rollFishingSpeciesBonus(normalFishItemId?: string): string | undefined {
     const total = this.proficiencyTotals['vara_pesca'] ?? 0;
-    const level = getProficiencyProgression('vara_pesca', total).level;
+    const level = getProficiencyProgression('vara_pesca', total, this.proficiencyBaselines['vara_pesca']).level;
     if (level <= 0) return undefined;
 
     const species = CONFIG.lake.fishByLakeSize[this.state.lake.size];
@@ -2018,7 +2025,7 @@ export class GameEngine {
 
   private rollProficiencyRarityBonus(key: ProficiencyKey, targetRarity?: ResourceRarity): ResourceRarity | undefined {
     const total = key === 'carroca_distancia' ? this.cartProficiencyTotal : (this.proficiencyTotals[key] ?? 0);
-    const level = getProficiencyProgression(key, total).level;
+    const level = getProficiencyProgression(key, total, this.proficiencyBaselines[key]).level;
     if (level <= 0) return undefined;
     if (this.random() >= CONFIG.proficiencyRarityBonus.maxChance * level / CONFIG.proficiencyRarityBonus.maxLevel) return undefined;
     const targetRank = targetRarity ? (['common', 'uncommon', 'rare', 'legendary'] as const).indexOf(targetRarity) : -1;

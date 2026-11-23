@@ -19,28 +19,28 @@ try {
   const { GameEngine } = await server.ssrLoadModule('/src/game/engine.ts');
   const { CONFIG } = await server.ssrLoadModule('/src/game/config.ts');
 
-  // Balanceamento versionado: tabelas e marcos exatos de levels-v1.
+  // Balanceamento versionado: tabelas e marcos exatos de levels-v2-extreme.
   const levelTables = proficiencyLevels.PROFICIENCY_PROGRESSION_TABLES;
   assert.equal(levelTables.length, 11, 'devem existir exatamente 11 tabelas de proficiência');
   for (const table of levelTables) {
     progression.validateProficiencyProgressionTable(table);
-    assert.equal(table.version, 'levels-v1');
+    assert.equal(table.version, 'levels-v2-extreme');
     assert.equal(table.initialLevel, 0);
     assert.equal(table.milestones[0].totalRequired, 0);
     assert.equal(table.maxLevel, ['espada', 'arco', 'cajado', 'bastao_natureza', 'golpes_recebidos'].includes(table.key) ? 150 : 100);
   }
   const expectedLevelTotals = {
-    espada: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
-    arco: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
-    cajado: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
-    bastao_natureza: { 1: 15, 2: 31, 10: 233, 30: 2410, 50: 17051, 80: 299944, 90: 778211, 100: 2018713 },
-    golpes_recebidos: { 1: 4, 2: 8, 10: 58, 30: 602, 50: 4260, 80: 74935, 90: 194420, 100: 504334 },
-    machado_madeira: { 1: 11, 2: 23, 10: 159, 30: 1242, 50: 6289, 80: 64521, 90: 139454, 100: 301230 },
-    picareta: { 1: 11, 2: 23, 10: 159, 30: 1242, 50: 6289, 80: 64521, 90: 139454, 100: 301230 },
-    foice_mao: { 1: 11, 2: 23, 10: 159, 30: 1242, 50: 6289, 80: 64521, 90: 139454, 100: 301230 },
-    vara_pesca: { 1: 5, 2: 11, 10: 79, 30: 621, 50: 3144, 80: 32260, 90: 69727, 100: 150615 },
-    faca_esfolar: { 1: 1, 2: 3, 10: 20, 30: 155, 50: 786, 80: 8065, 90: 17432, 100: 37654 },
-    carroca_distancia: { 1: 14, 2: 28, 10: 187, 30: 1282, 50: 5517, 80: 43276, 90: 85317, 100: 168019 },
+    espada: { 1: 100, 2: 250, 3: 450, 10: 11704, 30: 128263, 50: 347104, 80: 843403, 90: 1050608, 150: 2700000 },
+    arco: { 1: 100, 2: 250, 3: 450, 10: 13392, 30: 147438, 50: 399111, 80: 969867, 90: 1208158, 150: 3105000 },
+    cajado: { 1: 100, 2: 250, 3: 450, 10: 10803, 30: 118036, 50: 319367, 80: 775956, 90: 966582, 150: 2484000 },
+    bastao_natureza: { 1: 100, 2: 250, 3: 450, 10: 10803, 30: 118036, 50: 319367, 80: 775956, 90: 966582, 150: 2484000 },
+    golpes_recebidos: { 1: 80, 2: 200, 3: 350, 10: 9728, 30: 106862, 50: 289232, 80: 702819, 90: 875492, 150: 2250000 },
+    machado_madeira: { 1: 80, 2: 200, 3: 350, 10: 17967, 30: 200437, 50: 543026, 80: 1319968, 90: 1644341, 100: 2000000 },
+    picareta: { 1: 80, 2: 200, 3: 350, 10: 17967, 30: 200437, 50: 543026, 80: 1319968, 90: 1644341, 100: 2000000 },
+    foice_mao: { 1: 80, 2: 200, 3: 350, 10: 17967, 30: 200437, 50: 543026, 80: 1319968, 90: 1644341, 100: 2000000 },
+    vara_pesca: { 1: 12, 2: 30, 3: 55, 10: 1920, 30: 21239, 50: 57510, 80: 139768, 90: 174110, 100: 211765 },
+    faca_esfolar: { 1: 150, 2: 350, 3: 600, 10: 16453, 30: 180650, 50: 488931, 80: 1188068, 90: 1479958, 100: 1800000 },
+    carroca_distancia: { 1: 500, 2: 1500, 3: 3000, 10: 7895, 30: 58598, 50: 153794, 80: 369682, 90: 459816, 100: 558643 },
   };
   assert.deepEqual(
     levelTables.map(table => table.key).sort(),
@@ -55,16 +55,49 @@ try {
     }
   }
   assert.equal(proficiencyLevels.getProficiencyProgression('espada', 0).level, 0);
-  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 15).level, 1);
-  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 14).level, 0);
-  const axeMax = proficiencyLevels.getProficiencyProgression('machado_madeira', 301230);
-  assert.equal(axeMax.level, 100);
-  assert.equal(axeMax.isMaxLevel, true);
-  const axeSurplus = proficiencyLevels.getProficiencyProgression('machado_madeira', 400000);
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 99).level, 0);
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 100).level, 1);
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 250).level, 2);
+  assert.equal(proficiencyLevels.getProficiencyProgression('espada', 450).level, 3);
+  for (const table of levelTables) {
+    const maximum = table.milestones[table.milestones.length - 1];
+    const atMax = proficiencyLevels.getProficiencyProgression(table.key, maximum.totalRequired);
+    assert.equal(atMax.level, table.maxLevel);
+    assert.equal(atMax.isMaxLevel, true);
+    assert.equal(proficiencyLevels.getProficiencyProgression(
+      table.key, maximum.totalRequired + 1000,
+    ).isMaxLevel, true);
+  }
+
+  // Os níveis obtidos pela curva anterior continuam visíveis após o baseline.
+  const legacyConfigs = {
+    espada: [14.65, 1.10, 150], arco: [14.65, 1.10, 150],
+    cajado: [14.65, 1.10, 150], bastao_natureza: [14.65, 1.10, 150],
+    golpes_recebidos: [3.66, 1.10, 150],
+    machado_madeira: [10.96, 1.08, 100], picareta: [10.96, 1.08, 100],
+    foice_mao: [10.96, 1.08, 100], vara_pesca: [5.48, 1.08, 100],
+    faca_esfolar: [1.37, 1.08, 100], carroca_distancia: [13.57, 1.07, 100],
+  };
+  for (const table of levelTables) {
+    const [base, growth, maxLevel] = legacyConfigs[table.key];
+    for (const level of [1, 2, 3, 10, 30, 50, 80, 90, maxLevel].filter(value => value <= maxLevel)) {
+      const legacyTotal = Math.round(base * (Math.pow(growth, level) - 1) / (growth - 1));
+      const preserved = proficiencyLevels.getProficiencyProgression(
+        table.key, legacyTotal, { preservedLevel: level, baselineCounter: legacyTotal },
+      );
+      assert.equal(preserved.level, level, `${table.key}: o baseline deve preservar o nível antigo ${level}`);
+    }
+  }
+  const baselineAtLevelOne = proficiencyLevels.getProficiencyProgression(
+    'espada', 16, { preservedLevel: 1, baselineCounter: 15 },
+  );
+  assert.equal(baselineAtLevelOne.level, 1);
+  assert.ok(baselineAtLevelOne.progressRatio > 0);
+  const axeSurplus = proficiencyLevels.getProficiencyProgression('machado_madeira', 2001000);
   assert.equal(axeSurplus.level, 100);
   assert.equal(axeSurplus.isMaxLevel, true);
   assert.ok(axeSurplus.surplusAtMaxLevel > 0);
-  passed.push('levels-v1: 11 tabelas validadas, marcos exatos, nível inicial e excedente no MAX');
+  passed.push('levels-v2-extreme: 11 tabelas, marcos exatos, limites e preservação de níveis antigos');
 
   // Fixture de teste, NÃO é balanceamento.
   const fixture = { version: 'fixture-v1', key: 'espada', initialLevel: 1, maxLevel: 3,
@@ -182,7 +215,47 @@ try {
     'a tabela de rate limit deve manter RLS habilitado');
   assert.match(rateLimitMigration, /revoke all on table public\.fibula_proficiency_rate_limits from public, anon, authenticated/i,
     'o cliente não pode acessar diretamente a tabela de rate limit');
-  passed.push('paridade SQL × TypeScript: catálogo e ProficiencyKey');
+  const extremeMigration = await readFile(
+    'supabase/migrations/20261122150000_extreme_proficiency_progression.sql',
+    'utf8',
+  );
+  assert.match(extremeMigration, /add column progression_preserved_level/i);
+  assert.match(extremeMigration, /add column progression_baseline_counter/i);
+  assert.match(extremeMigration, /update public\.fibula_proficiencies/i);
+  assert.match(extremeMigration, /legacy_milestones/i);
+  passed.push('paridade SQL × TypeScript: catálogo, chaves e migração de baseline');
+
+  // Simula uma instalação v3 com progresso local ainda não sincronizado.
+  const legacyLocalUser = user('legacy-local');
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.open('fibula-proficiency-local-v1', 3);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      const counters = database.createObjectStore('counters', { keyPath: ['userId', 'key'] });
+      counters.createIndex('by_user_id', 'userId', { unique: false });
+      database.createObjectStore('pending_batches', { keyPath: 'userId' });
+      database.createObjectStore('display_baselines', { keyPath: 'userId' });
+    };
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction('counters', 'readwrite');
+      transaction.objectStore('counters').put({
+        userId: legacyLocalUser, key: 'machado_madeira',
+        total: 36, syncedTotal: 0, updatedAt: 1,
+      });
+      transaction.oncomplete = () => { database.close(); resolve(); };
+      transaction.onerror = () => { database.close(); reject(transaction.error); };
+    };
+    request.onerror = () => reject(request.error);
+  });
+  const localLegacyBaselines = await storage.readLocalProficiencyProgressionBaselines(legacyLocalUser);
+  assert.deepEqual(localLegacyBaselines.machado_madeira, {
+    preservedLevel: 3, baselineCounter: 36,
+  }, 'a atualização IndexedDB deve preservar níveis ainda não sincronizados');
+  assert.equal(proficiencyLevels.getProficiencyProgression(
+    'machado_madeira', 36, localLegacyBaselines.machado_madeira,
+  ).level, 3);
+  passed.push('IndexedDB v3→v4: preserva níveis locais offline antes da curva extrema');
 
   const storageUser = user('storage');
   await storage.recordProficiencyEvent(storageUser, { key: 'espada', amount: 2 });
@@ -639,18 +712,18 @@ try {
 
   const invalidTotalEngine = makeEngine();
   invalidTotalEngine.state.cart.inventory = [{ itemId: 'wood', quantity: 1 }];
-  invalidTotalEngine.setCartProficiencyTotal(5516);
+  invalidTotalEngine.setCartProficiencyTotal(cartLevel50Total - 1);
   for (const invalidTotal of [-1, NaN, 1.5]) {
     invalidTotalEngine.setCartProficiencyTotal(invalidTotal);
-    assert.equal(invalidTotalEngine.cartProficiencyTotal, 5516,
+    assert.equal(invalidTotalEngine.cartProficiencyTotal, cartLevel50Total - 1,
       `setCartProficiencyTotal não deve aceitar ${String(invalidTotal)}`);
   }
   invalidTotalEngine.recordCartProficiencyDistance(280);
-  assert.equal(invalidTotalEngine.cartProficiencyTotal, 5517,
+  assert.equal(invalidTotalEngine.cartProficiencyTotal, cartLevel50Total,
     'pontos inteiros emitidos pela distância devem incrementar o acumulado do motor');
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 50,
     'o nível em cache deve subir ao cruzar o marco de nível 50 durante a partida');
-  invalidTotalEngine.setCartProficiencyTotal(168019);
+  invalidTotalEngine.setCartProficiencyTotal(cartLevel100Total);
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 100);
   invalidTotalEngine.setCartProficiencyTotal(0);
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 0);
@@ -732,7 +805,6 @@ try {
   b1Engine.random = () => { b1RandomCalls++; return 0; };
   assert.equal(b1Engine.rollProficiencyRarityBonus('machado_madeira'), undefined);
   assert.equal(b1RandomCalls, 0, 'nível 0 não pode consumir nenhuma chamada de RNG');
-  b1Engine.setProficiencyTotal('machado_madeira', b1Total100);
   const b1Roll = (chance, band, target, night = 30) => {
     b1Engine.nightNumber = night;
     const values = [chance, band];
@@ -740,6 +812,16 @@ try {
     b1Engine.random = () => values[index++] ?? 0.999999;
     return b1Engine.rollProficiencyRarityBonus('machado_madeira', target);
   };
+  b1Engine.setProficiencyTotal('machado_madeira', 36, {
+    preservedLevel: 3, baselineCounter: 36,
+  });
+  const b1Level3Chance = CONFIG.proficiencyRarityBonus.maxChance * 3
+    / CONFIG.proficiencyRarityBonus.maxLevel;
+  assert.equal(b1Roll(b1Level3Chance - 0.0000001, 0), 'common',
+    'o baseline deve manter o bônus de raridade do nível 3 antigo');
+  assert.equal(b1Roll(b1Level3Chance, 0), undefined,
+    'o baseline preserva o nível, sem alterar o percentual do bônus');
+  b1Engine.setProficiencyTotal('machado_madeira', b1Total100);
   assert.equal(b1Roll(0, 0.599999), 'common');
   assert.equal(b1Roll(0, 0.6), 'uncommon');
   assert.equal(b1Roll(0, 0.88), 'rare');
@@ -1090,7 +1172,6 @@ try {
   b2Engine.random = () => { b2RandomCalls++; return 0; };
   assert.equal(b2Engine.rollFishingSpeciesBonus(), undefined);
   assert.equal(b2RandomCalls, 0, 'vara no nível 0 não pode consumir RNG para o bônus');
-  b2Engine.setProficiencyTotal('vara_pesca', b2Total50);
   const b2RollAt50 = (chance, selection, normalFish, lakeSize = 'large') => {
     b2Engine.state.lake = { ...b2Engine.state.lake, size: lakeSize };
     const values = [chance, selection];
@@ -1098,6 +1179,16 @@ try {
     b2Engine.random = () => values[index++] ?? 0.999999;
     return b2Engine.rollFishingSpeciesBonus(normalFish);
   };
+  b2Engine.setProficiencyTotal('vara_pesca', 18, {
+    preservedLevel: 3, baselineCounter: 18,
+  });
+  const b2Level3Chance = CONFIG.lake.fishingProficiencyBonus.maxChance * 3
+    / CONFIG.lake.fishingProficiencyBonus.maxLevel;
+  assert.equal(b2RollAt50(b2Level3Chance - 0.0000001, 0, 'tilapia'), 'tambaqui',
+    'o baseline deve manter o bônus de espécie do nível 3 antigo');
+  assert.equal(b2RollAt50(b2Level3Chance, 0, 'tilapia'), undefined,
+    'o baseline não altera a chance proporcional da vara');
+  b2Engine.setProficiencyTotal('vara_pesca', b2Total50);
   assert.equal(b2RollAt50(0.014999, 0, 'tilapia'), 'tambaqui',
     'nível 50 deve aplicar chance máxima proporcional de 1,5%');
   assert.equal(b2RollAt50(0.015, 0, 'tilapia'), undefined,
