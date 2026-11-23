@@ -249,11 +249,19 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         { label: `Sobreviver a 5 noites (${Math.min(5, adventurerGuideObjectives.survivedNights)}/5)`, done: adventurerGuideObjectives.survivedNights >= 5 },
       ];
       const doneCount = objectives.filter(objective => objective.done).length;
+      const missionTitles: Record<number, string> = {
+        4: 'Construção do baú',
+        5: 'Armazenamento e recursos',
+        6: 'Refinaria',
+        7: 'Recursos para a tecelaria',
+        8: 'Tecelaria e lobos',
+        9: 'Sobrevivência',
+      };
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
         <header className="adventurer-guide-heading"><strong>{mission === 9 && doneCount === 3 ? 'Guia do Aventureiro · Fim' : `Guia do Aventureiro · Missão ${mission}`}</strong><span>{doneCount}/3</span></header>
       {completedMissions.length > 0 && <div className="adventurer-guide-history">
         <strong>Missões únicas concluídas</strong>
-        {completedMissions.map(id => <span key={id}>Missão {id} ✓</span>)}
+        {completedMissions.map(id => <span key={id}>Missão {id} · {missionTitles[id]} ✓</span>)}
       </div>}
         {objectives.map((objective, index) => <div key={index} className={objective.icon ? `adventurer-guide-objective is-wood-only${objective.done ? ' is-complete' : ''}` : `adventurer-guide-objective is-text-only${objective.done ? ' is-complete' : ''}`}>
           {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Coletadas ${objective.total - objective.remaining} de ${objective.total} unidades`}>{objective.total - objective.remaining}/{objective.total}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
