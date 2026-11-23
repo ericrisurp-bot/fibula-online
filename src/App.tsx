@@ -689,11 +689,68 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
+  type CampPosition = { x: number; y: number };
+  type SavedCampProgress = {
+    completedMissions: number[];
+    objectives: Partial<AdventurerGuideObjectives>;
+    chestPosition: CampPosition | null;
+    refineryPosition: CampPosition | null;
+    tecelariaPosition: CampPosition | null;
+  };
+  const emptyCampProgress: SavedCampProgress = {
+    completedMissions: [], objectives: {}, chestPosition: null, refineryPosition: null, tecelariaPosition: null,
+  };
+  const campProgressRef = useRef<SavedCampProgress>(emptyCampProgress);
+  const [completedMissions, setCompletedMissions] = useState<number[]>([]);
+  const [campProgressReady, setCampProgressReady] = useState(false);
   const [houseLoadReady, setHouseLoadReady] = useState(false);
   const cloudChestLoadedRef = useRef(false);
   const lobbyChestRefreshRequestRef = useRef(0);
   const [lobbyChestStatus, setLobbyChestStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const houseInventoryJson = JSON.stringify(state.house.inventory);
+
+  useEffect(() => {
+    let active = true;
+    setCampProgressReady(false);
+    void (async () => {
+      try {
+        if (!fibulaSupabase) return;
+        const { data, error } = await fibulaSupabase
+          .from('fibula_adventurer_progress')
+          .select('completed_missions,objectives,chest_position,refinery_position,tecelaria_position')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!active) return;
+        const position = (value: unknown): CampPosition | null => {
+          if (!value || typeof value !== 'object') return null;
+          const candidate = value as { x?: unknown; y?: unknown };
+          return typeof candidate.x === 'number' && Number.isFinite(candidate.x)
+            && typeof candidate.y === 'number' && Number.isFinite(candidate.y)
+            ? { x: candidate.x, y: candidate.y } : null;
+        };
+        const missions = Array.isArray(data?.completed_missions)
+          ? data.completed_missions.filter((value: unknown): value is number =>
+              typeof value === 'number' && Number.isInteger(value) && value >= 4 && value <= 9)
+          : [];
+        const objectives = data?.objectives && typeof data.objectives === 'object' && !Array.isArray(data.objectives)
+          ? data.objectives as Partial<AdventurerGuideObjectives> : {};
+        campProgressRef.current = {
+          completedMissions: [...new Set(missions)].sort((a, b) => a - b),
+          objectives,
+          chestPosition: position(data?.chest_position),
+          refineryPosition: position(data?.refinery_position),
+          tecelariaPosition: position(data?.tecelaria_position),
+        };
+        setCompletedMissions(campProgressRef.current.completedMissions);
+      } catch (error) {
+        console.warn('[Guia do Aventureiro] Não foi possível carregar o progresso permanente.', error);
+      } finally {
+        if (active) setCampProgressReady(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [userId]);
 
   useEffect(() => {
     const userId = session.user.sub;
@@ -2451,7 +2508,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   }, [session.user.sub]);
 
   useEffect(() => {
-    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby') return;
+    if (classChoice !== 'chosen' || activeGameRoute.page !== 'lobby' || !campProgressReady) return;
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const userId = session.user.sub;
@@ -3393,7 +3450,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
     return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
-  }, [activeGameRoute.page, session.user.sub, classChoice]);
+  }, [activeGameRoute.page, session.user.sub, classChoice, campProgressReady]);
 
   useEffect(() => {
     if (!CONFIG.rulesV2.armorCraftingEnabled) return;
