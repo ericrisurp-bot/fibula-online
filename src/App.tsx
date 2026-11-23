@@ -2675,7 +2675,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       if (serializedCampProgress !== lastPersistedCampProgress) {
         campProgressRef.current = nextCampProgress;
         lastPersistedCampProgress = serializedCampProgress;
-        setCompletedMissions(nextCampProgress.completedMissions);
+        setCompletedMissions(current => [...new Set([...current, ...nextCampProgress.completedMissions])].sort((a, b) => a - b));
         const supabase = fibulaSupabase;
         if (supabase) {
           progressWriteQueue = progressWriteQueue.then(async () => {
