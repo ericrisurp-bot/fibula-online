@@ -815,9 +815,11 @@ try {
   b1Engine.setProficiencyTotal('machado_madeira', 36, {
     preservedLevel: 3, baselineCounter: 36,
   });
-  assert.equal(b1Roll(0.00209, 0), 'common',
+  const b1Level3Chance = CONFIG.proficiencyRarityBonus.maxChance * 3
+    / CONFIG.proficiencyRarityBonus.maxLevel;
+  assert.equal(b1Roll(b1Level3Chance - 0.0000001, 0), 'common',
     'o baseline deve manter o bônus de raridade do nível 3 antigo');
-  assert.equal(b1Roll(0.0021, 0), undefined,
+  assert.equal(b1Roll(b1Level3Chance, 0), undefined,
     'o baseline preserva o nível, sem alterar o percentual do bônus');
   b1Engine.setProficiencyTotal('machado_madeira', b1Total100);
   assert.equal(b1Roll(0, 0.599999), 'common');
@@ -1180,9 +1182,11 @@ try {
   b2Engine.setProficiencyTotal('vara_pesca', 18, {
     preservedLevel: 3, baselineCounter: 18,
   });
-  assert.equal(b2RollAt50(0.00089, 0, 'tilapia'), 'tambaqui',
+  const b2Level3Chance = CONFIG.lake.fishingProficiencyBonus.maxChance * 3
+    / CONFIG.lake.fishingProficiencyBonus.maxLevel;
+  assert.equal(b2RollAt50(b2Level3Chance - 0.0000001, 0, 'tilapia'), 'tambaqui',
     'o baseline deve manter o bônus de espécie do nível 3 antigo');
-  assert.equal(b2RollAt50(0.0009, 0, 'tilapia'), undefined,
+  assert.equal(b2RollAt50(b2Level3Chance, 0, 'tilapia'), undefined,
     'o baseline não altera a chance proporcional da vara');
   b2Engine.setProficiencyTotal('vara_pesca', b2Total50);
   assert.equal(b2RollAt50(0.014999, 0, 'tilapia'), 'tambaqui',
