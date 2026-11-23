@@ -712,18 +712,18 @@ try {
 
   const invalidTotalEngine = makeEngine();
   invalidTotalEngine.state.cart.inventory = [{ itemId: 'wood', quantity: 1 }];
-  invalidTotalEngine.setCartProficiencyTotal(5516);
+  invalidTotalEngine.setCartProficiencyTotal(cartLevel50Total - 1);
   for (const invalidTotal of [-1, NaN, 1.5]) {
     invalidTotalEngine.setCartProficiencyTotal(invalidTotal);
-    assert.equal(invalidTotalEngine.cartProficiencyTotal, 5516,
+    assert.equal(invalidTotalEngine.cartProficiencyTotal, cartLevel50Total - 1,
       `setCartProficiencyTotal não deve aceitar ${String(invalidTotal)}`);
   }
   invalidTotalEngine.recordCartProficiencyDistance(280);
-  assert.equal(invalidTotalEngine.cartProficiencyTotal, 5517,
+  assert.equal(invalidTotalEngine.cartProficiencyTotal, cartLevel50Total,
     'pontos inteiros emitidos pela distância devem incrementar o acumulado do motor');
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 50,
     'o nível em cache deve subir ao cruzar o marco de nível 50 durante a partida');
-  invalidTotalEngine.setCartProficiencyTotal(168019);
+  invalidTotalEngine.setCartProficiencyTotal(cartLevel100Total);
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 100);
   invalidTotalEngine.setCartProficiencyTotal(0);
   assert.equal(invalidTotalEngine.cartProficiencyLevel, 0);
