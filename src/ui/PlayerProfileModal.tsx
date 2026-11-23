@@ -150,7 +150,7 @@ function ProficiencyPanel({
                   aria-valuenow={progressWidth}
                   aria-valuetext={progression.isMaxLevel
                     ? 'Nível máximo'
-                    : `${progression.progressInLevel.toLocaleString('en-US')} de ${progression.requiredForNextLevel?.toLocaleString('en-US')}; faltam ${progression.remainingForNextLevel.toLocaleString('en-US')}`} 
+                    : `${progression.progressInLevel.toLocaleString('en-US')} de ${progression.requiredForNextLevel?.toLocaleString('en-US')}; faltam ${progression.remainingForNextLevel.toLocaleString('en-US')}`}
                 >
                   <span
                     className="player-proficiency-xp-fill"
