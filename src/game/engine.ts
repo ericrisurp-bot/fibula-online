@@ -373,6 +373,7 @@ export class GameEngine {
   private cartProficiencyLevel = 0;
   private proficiencyTotals: Partial<Record<ProficiencyKey, number>> = {};
   private proficiencyBaselines: Partial<Record<ProficiencyKey, ProficiencyProgressionBaseline>> = {};
+  permanentCamp: { bau: boolean; refinery: boolean; tecelaria: boolean } = { bau: false, refinery: false, tecelaria: false };
   seed: number;
 
   constructor(private onUpdate: (state: GameSnapshot) => void, options: GameEngineOptions = {}) {
@@ -685,32 +686,12 @@ export class GameEngine {
     this.appliedEquipmentHealth = nextEquipmentHealth;
   }
 
-  /** Restaura estruturas permanentes do acampamento sem alterar o inventário da casa. */
-  restorePermanentCamp(progress: {
-    chestPosition?: { x: number; y: number } | null;
-    refineryPosition?: { x: number; y: number } | null;
-    tecelariaPosition?: { x: number; y: number } | null;
-  }): void {
-    const validPosition = (value: { x: number; y: number } | null | undefined): value is { x: number; y: number } =>
-      value !== null && value !== undefined
-        && Number.isFinite(value.x) && Number.isFinite(value.y)
-        && value.x >= 0 && value.x <= this.world && value.y >= 0 && value.y <= this.world;
-    if (validPosition(progress.chestPosition)) {
-      this.state.house.x = progress.chestPosition.x;
-      this.state.house.y = progress.chestPosition.y;
-      this.state.house.built = true;
-    }
-    if (validPosition(progress.refineryPosition)) {
-      this.state.refinery.x = progress.refineryPosition.x;
-      this.state.refinery.y = progress.refineryPosition.y;
-      this.state.refinery.built = true;
-    }
-    if (validPosition(progress.tecelariaPosition)) {
-      this.state.tecelaria.x = progress.tecelariaPosition.x;
-      this.state.tecelaria.y = progress.tecelariaPosition.y;
-      this.state.tecelaria.built = true;
-    }
-    this.emit();
+  setPermanentCamp(progress: { bau: boolean; refinery: boolean; tecelaria: boolean }): void {
+    this.permanentCamp = {
+      bau: progress.bau === true,
+      refinery: progress.refinery === true,
+      tecelaria: progress.tecelaria === true,
+    };
   }
 
   setHouseInventory(inventory: InventoryStack[]) {
@@ -892,6 +873,18 @@ export class GameEngine {
       }
     }
     this.state.campfire = { x: feet.x, y: feet.y };
+    const permanentSlots = [
+      { enabled: this.permanentCamp.bau, slot: 'bau' as const, target: this.state.house },
+      { enabled: this.permanentCamp.refinery, slot: 'refinery' as const, target: this.state.refinery },
+      { enabled: this.permanentCamp.tecelaria, slot: 'tecelaria' as const, target: this.state.tecelaria },
+    ];
+    for (const structure of permanentSlots) {
+      if (!structure.enabled) continue;
+      const position = this.getCampSlotPosition(structure.slot)!;
+      structure.target.x = position.x;
+      structure.target.y = position.y;
+      structure.target.built = true;
+    }
     this.emit();
     return { ok: true };
   }
@@ -910,7 +903,7 @@ export class GameEngine {
       (sum, stack) => sum + (getBaseItemId(stack.itemId) === 'wood' ? stack.quantity : 0),
       0,
     );
-    if (countWood(this.state.inventory) + countWood(this.state.cart.inventory) < CONFIG.campChest.woodCost) {
+    if (!this.permanentCamp.bau && countWood(this.state.inventory) + countWood(this.state.cart.inventory) < CONFIG.campChest.woodCost) {
       return { ok: false, reason: 'resources' };
     }
 
@@ -932,10 +925,12 @@ export class GameEngine {
       });
       return { inventory: next, consumed: requested - remaining };
     };
-    const bagResult = consumeWood(this.state.inventory, CONFIG.campChest.woodCost);
-    this.state.inventory = bagResult.inventory;
-    const remaining = CONFIG.campChest.woodCost - bagResult.consumed;
-    if (remaining > 0) this.state.cart.inventory = consumeWood(this.state.cart.inventory, remaining).inventory;
+    if (!this.permanentCamp.bau) {
+      const bagResult = consumeWood(this.state.inventory, CONFIG.campChest.woodCost);
+      this.state.inventory = bagResult.inventory;
+      const remaining = CONFIG.campChest.woodCost - bagResult.consumed;
+      if (remaining > 0) this.state.cart.inventory = consumeWood(this.state.cart.inventory, remaining).inventory;
+    }
 
     const slot = this.getCampSlotPosition('bau')!;
     this.state.house.x = slot.x;
@@ -962,7 +957,7 @@ export class GameEngine {
       ['stone', machineCosts.stoneCost],
       ['cotton', machineCosts.cottonCost],
     ] as const;
-    if (!this.applyBatchCosts(costs, false)) return { ok: false, reason: 'resources' };
+    if (!this.permanentCamp[machine] && !this.applyBatchCosts(costs, false)) return { ok: false, reason: 'resources' };
 
     if (this.isCampSlotBlocked(machine)) return { ok: false, reason: 'blocked' };
     return { ok: true };
@@ -980,7 +975,7 @@ export class GameEngine {
       ['stone', CONFIG.campMachines.refinery.stoneCost],
       ['cotton', CONFIG.campMachines.refinery.cottonCost],
     ] as const;
-    if (!this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
+    if (!this.permanentCamp.refinery && !this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
     const slot = this.getCampSlotPosition('refinery')!;
     this.state.refinery.x = slot.x;
     this.state.refinery.y = slot.y;
@@ -1001,7 +996,7 @@ export class GameEngine {
       ['stone', CONFIG.campMachines.tecelaria.stoneCost],
       ['cotton', CONFIG.campMachines.tecelaria.cottonCost],
     ] as const;
-    if (!this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
+    if (!this.permanentCamp.tecelaria && !this.applyBatchCosts(costs, true)) return { ok: false, reason: 'resources' };
     const slot = this.getCampSlotPosition('tecelaria')!;
     this.state.tecelaria.x = slot.x;
     this.state.tecelaria.y = slot.y;
