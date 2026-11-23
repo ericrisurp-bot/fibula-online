@@ -24,7 +24,7 @@ class FakeNode {
   disconnect() {}
   addEventListener(type, callback) { this.listeners.set(type, callback); }
   start() {}
-  stop() {}
+  stop(when) { this.stopAt = when; }
 }
 
 class FakeGainNode extends FakeNode {
@@ -41,6 +41,7 @@ class FakeAudioContext {
     this.currentTime = 1;
     this.destination = new FakeNode('destination');
     this.createdSources = 0;
+    this.lastBufferSource = null;
     this.createdOscillators = 0;
     this.filters = [];
   }
@@ -56,7 +57,8 @@ class FakeAudioContext {
   }
   createBufferSource() {
     this.createdSources++;
-    return new FakeNode('buffer-source');
+    this.lastBufferSource = new FakeNode('buffer-source');
+    return this.lastBufferSource;
   }
   createBiquadFilter() {
     const node = new FakeNode('filter');
@@ -109,6 +111,15 @@ try {
   ambience.setActive(true);
   assert.equal(context.createdSources, sourcesBeforeNightActivation, 'A noite não deve iniciar fontes de coruja/ruído.');
   assert.equal(context.createdOscillators, oscillatorsBeforeNightActivation, 'A noite deve permanecer sem a antiga coruja sintetizada.');
+
+  ambience.setActive(false);
+  audioManager.play({ type: 'dayNight', phase: 'day' });
+  ambience.setActive(true);
+  const daytimeAmbienceSource = context.lastBufferSource;
+  assert.ok(daytimeAmbienceSource, 'A ambiência diurna deve iniciar uma fonte de áudio.');
+  audioManager.play({ type: 'dayNight', phase: 'night' });
+  assert.ok(daytimeAmbienceSource.stopAt <= context.currentTime + 0.22,
+    'A transição para a noite deve encerrar rapidamente as fontes diurnas ainda ativas.');
 
   playStep(context, {
     sfxBus: new FakeGainNode(),
