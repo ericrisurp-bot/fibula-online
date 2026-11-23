@@ -5,7 +5,7 @@ import type { SoundEvent } from '../audio/types';
 import { ATTRIBUTE_USAGE, applyArmorToDamage, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
-import { CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
+import { CORE_DROP_APPEARANCE_CHANCE, CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
 import { distanceToLakeEdge, isInsideLake, lakeColliderCircles, lakeSteeringCircles, lakeSlideDirection, pushOutOfLake, type Lake, type LakeCircle } from './lake';
@@ -3795,7 +3795,7 @@ export class GameEngine {
     }
     this.state.dyingEnemies.push({ ...e, deathAge: 0 });
     this.state.xpOrbs.push({ id: this.nextId++, x: e.x, y: e.y, value: CONFIG.xp.perSlime });
-    if (this.random() < CORE_DROP_CHANCE) {
+    if (this.random() < CORE_DROP_CHANCE && this.random() < CORE_DROP_APPEARANCE_CHANCE) {
       const core = createClosedCore(() => this.random());
       this.state.coreDrops.push({ id: this.nextId++, x: e.x, y: e.y, age: 0, core });
     }
