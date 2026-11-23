@@ -165,7 +165,7 @@ function botMove(engine, CONFIG, profileId, seed, frame) {
   let y = towardY * radial + towardX * side * 0.72;
   const length = Math.hypot(x, y) || 1;
   engine.setMove(x / length, y / length);
-  return { distance, centerDistance: nearest.centerDistance, radial };
+  return { enemyId: nearest.enemy.id, dx: nearest.dx, dy: nearest.dy, distance, centerDistance: nearest.centerDistance, radial };
 }
 
 async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false, onProgress, traceDeterminism = false } = {}) {
@@ -207,6 +207,14 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     strafing: 0,
     blockedMovement: 0,
     attacks: 0,
+    targetSwitches: 0,
+    targetLosses: 0,
+    currentTargetId: null,
+    targetFrames: 0,
+    noTargetFrames: 0,
+    playerTowardTarget: 0,
+    playerAwayFromTarget: 0,
+    playerLateralOrStill: 0,
   };
   let timeInCombat = 0;
   let timeExposed = 0;
@@ -311,6 +319,11 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     ) {
       const aiDecision = botMove(engine, CONFIG, profileId, seed, frame);
       if (aiDecision) {
+        if (aiTelemetry.currentTargetId !== aiDecision.enemyId) {
+          if (aiTelemetry.currentTargetId !== null) aiTelemetry.targetSwitches += 1;
+          aiTelemetry.currentTargetId = aiDecision.enemyId;
+        }
+        aiTelemetry.targetFrames += 1;
         aiTelemetry.samples += 1;
         aiTelemetry.distanceTotal += aiDecision.distance;
         aiDistanceSamples.push(aiDecision.distance);
@@ -322,6 +335,10 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         if (aiDecision.radial > 0) aiTelemetry.approaching += 1;
         else if (aiDecision.radial < 0) aiTelemetry.retreating += 1;
         else aiTelemetry.strafing += 1;
+      } else {
+        aiTelemetry.noTargetFrames += 1;
+        if (aiTelemetry.currentTargetId !== null) aiTelemetry.targetLosses += 1;
+        aiTelemetry.currentTargetId = null;
       }
       if (immortal) engine.state.player.hp = Number.MAX_SAFE_INTEGER;
       const previousPlayerPosition = { x: engine.state.player.x, y: engine.state.player.y };
@@ -336,7 +353,13 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         );
         const expected = engine.getPlayerMoveSpeed() * STEP;
         if (expected > 0 && moved < expected * 0.15) aiTelemetry.blockedMovement += 1;
-      }
+        const projectedMovement = (
+          (engine.state.player.x - previousPlayerPosition.x) * aiDecision.dx
+          + (engine.state.player.y - previousPlayerPosition.y) * aiDecision.dy
+        ) / (aiDecision.distance || 1);
+        if (projectedMovement > 0.05) aiTelemetry.playerTowardTarget += 1;
+        else if (projectedMovement < -0.05) aiTelemetry.playerAwayFromTarget += 1;
+        else aiTelemetry.playerLateralOrStill += 1;
 
       if (determinismTrace) {
         const snapshot = {
@@ -445,6 +468,12 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
           retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
           strafePercent: aiTelemetry.samples ? 100 * aiTelemetry.strafing / aiTelemetry.samples : 0,
           blockedPercent: aiTelemetry.samples ? 100 * aiTelemetry.blockedMovement / aiTelemetry.samples : 0,
+          targetSwitches: aiTelemetry.targetSwitches,
+          targetLosses: aiTelemetry.targetLosses,
+          noTargetPercent: frame ? 100 * aiTelemetry.noTargetFrames / frame : 0,
+          playerTowardPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerTowardTarget / aiTelemetry.samples : 0,
+          playerAwayPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerAwayFromTarget / aiTelemetry.samples : 0,
+          playerLateralPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerLateralOrStill / aiTelemetry.samples : 0,
         },
         timeInCombat,
         timeExposed,
@@ -493,6 +522,12 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
         strafePercent: aiTelemetry.samples ? 100 * aiTelemetry.strafing / aiTelemetry.samples : 0,
         blockedPercent: aiTelemetry.samples ? 100 * aiTelemetry.blockedMovement / aiTelemetry.samples : 0,
+        targetSwitches: aiTelemetry.targetSwitches,
+        targetLosses: aiTelemetry.targetLosses,
+        noTargetPercent: frame ? 100 * aiTelemetry.noTargetFrames / frame : 0,
+        playerTowardPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerTowardTarget / aiTelemetry.samples : 0,
+        playerAwayPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerAwayFromTarget / aiTelemetry.samples : 0,
+        playerLateralPercent: aiTelemetry.samples ? 100 * aiTelemetry.playerLateralOrStill / aiTelemetry.samples : 0,
       },
       timeInCombat,
       timeExposed,
@@ -632,6 +667,12 @@ try {
             retreatPercent: mean(aiRows.map(value => value.retreatPercent)),
             strafePercent: mean(aiRows.map(value => value.strafePercent)),
             blockedPercent: mean(aiRows.map(value => value.blockedPercent)),
+            targetSwitches: mean(aiRows.map(value => value.targetSwitches)),
+            targetLosses: mean(aiRows.map(value => value.targetLosses)),
+            noTargetPercent: mean(aiRows.map(value => value.noTargetPercent)),
+            playerTowardPercent: mean(aiRows.map(value => value.playerTowardPercent)),
+            playerAwayPercent: mean(aiRows.map(value => value.playerAwayPercent)),
+            playerLateralPercent: mean(aiRows.map(value => value.playerLateralPercent)),
             attacks: mean(aiRows.map(value => value.attacks)),
           };
           const sources = Object.fromEntries(['slime', 'wolf', 'mixed', 'unknown'].map(source => [
@@ -644,7 +685,10 @@ try {
           console.log(
             `  IA (média por execução): distância pés média/p50/p90/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.medianDistance)}/${fmt(ai.p90Distance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
             `dentro do alcance ${fmt(ai.weaponRangePercent)}%; aproxima/strafe/recua ${fmt(ai.approachPercent)}/${fmt(ai.strafePercent)}/${fmt(ai.retreatPercent)}%; ` +
-            `movimento bloqueado ${fmt(ai.blockedPercent)}%; ataques ${fmt(ai.attacks)}.`,
+            `movimento bloqueado ${fmt(ai.blockedPercent)}%; alvo trocado/perdido ${fmt(ai.targetSwitches,0)}/${fmt(ai.targetLosses,0)}; sem alvo ${fmt(ai.noTargetPercent)}%.`,
+          );
+          console.log(
+            `  Movimento real do jogador: em direção ao alvo ${fmt(ai.playerTowardPercent)}%; afastando ${fmt(ai.playerAwayPercent)}%; lateral/parado ${fmt(ai.playerLateralPercent)}%. Ataques disparados ${fmt(ai.attacks)}.`,
           );
           console.log(
             `  Dano recebido por origem (soma): slimes ${sources.slime.hits}x/${fmt(sources.slime.damage)}; ` +
