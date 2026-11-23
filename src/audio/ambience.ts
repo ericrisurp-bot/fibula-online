@@ -358,7 +358,7 @@ export const ambience = {
     } else {
       clearTimers(birdTimers);
       clearTimers(windTimers);
-      stopSourcesSoon(5);
+      stopSourcesSoon(0.16);
       fadeMaster(0, 5);
     }
   },
