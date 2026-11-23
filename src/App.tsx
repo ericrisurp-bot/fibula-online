@@ -2541,9 +2541,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     const collected = {
       mission1Wood: 0,
       mission2Wood: 0, mission2Stone: 0, mission2Cotton: 0,
-      mission4Wood: 0,
-      mission5Wood: 0, mission5Stone: 0,
-      mission7Wood: 0, mission7Cotton: 0, mission7Stone: 0,
+      mission4Wood: Math.max(0, 20 - guideCurrent.mission4WoodRemaining),
+      mission5Wood: Math.max(0, 20 - guideCurrent.refineryWoodRemaining),
+      mission5Stone: Math.max(0, 15 - guideCurrent.refineryStoneRemaining),
+      mission7Wood: Math.max(0, 15 - guideCurrent.mission7WoodRemaining),
+      mission7Cotton: Math.max(0, 8 - guideCurrent.mission7CottonRemaining),
+      mission7Stone: Math.max(0, 8 - guideCurrent.mission7StoneRemaining),
     };
     let engineActive = true;
     const engine = new GameEngine((next) => {
@@ -2637,7 +2640,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       setAdventurerGuideObjectives(nextObjectives);
       const nextMission = getAdventurerGuideMission(nextObjectives);
       const completed = new Set(campProgressRef.current.completedMissions);
-      if (mission >= 4 && nextMission > mission) completed.add(mission);
+      if (mission >= 4 && (nextMission > mission || (mission === 9 && nextObjectives.chickensKilled >= 3 && nextObjectives.leatherRefined && nextObjectives.survivedNights >= 5))) completed.add(mission);
       const nextCampProgress: SavedCampProgress = {
         ...campProgressRef.current,
         completedMissions: [...completed].sort((a, b) => a - b),
