@@ -718,7 +718,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     completedMissions: [], objectives: {}, chestPosition: null, refineryPosition: null, tecelariaPosition: null,
   };
   const campProgressRef = useRef<SavedCampProgress>(emptyCampProgress);
-  const [completedMissions, setCompletedMissions] = useState<number[]>([]);
+  const [, setCompletedMissions] = useState<number[]>([]);
   const [campProgressReady, setCampProgressReady] = useState(false);
   const [campProgressLoadedUserId, setCampProgressLoadedUserId] = useState<string | null>(null);
   const [houseLoadReady, setHouseLoadReady] = useState(false);
