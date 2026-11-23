@@ -121,6 +121,7 @@ function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>
     mission2CottonCollected: false, mission2CottonRemaining: 5,
     campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
     campfireReached: false,
+    chestBuilt: completedMissions.includes(4) && !!saved.chestBuilt,
     refineryBuilt: completedMissions.includes(6) && !!saved.refineryBuilt,
     tecelariaBuilt: completedMissions.includes(8) && !!saved.tecelariaBuilt,
   };
