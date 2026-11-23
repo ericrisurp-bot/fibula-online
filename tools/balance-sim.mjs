@@ -216,13 +216,14 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     const originalSpawn = engine.spawnHordeEnemy.bind(engine);
     engine.spawnHordeEnemy = function () {
       const beforeIds = new Set(this.state.enemies.map(enemy => enemy.id));
-      originalSpawn();
+      const spawned = originalSpawn();
       for (const enemy of this.state.enemies) {
         if (beforeIds.has(enemy.id)) continue;
         const night = this.state.nightNumber;
         enemyNightById.set(enemy.id, night);
         spawnedByNight[night] = (spawnedByNight[night] ?? 0) + 1;
       }
+      return spawned;
     };
 
     const originalKill = engine.killEnemy.bind(engine);
