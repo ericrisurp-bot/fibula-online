@@ -4600,7 +4600,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         matchSessionIdRef.current = null;
         matchSummaryHandledRef.current = false;
         houseMatchClosedRef.current = false;
-        adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+        adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
         engine.restart();
@@ -4998,7 +4998,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     await proficiencyBufferRef.current?.flush();
     setExitConfirmationOpen(false);
     setExitConfirmationError('');
-    adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+    adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
     engine.restart();
@@ -5100,7 +5100,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       setWheel(null);
       closeFlagMenu();
       closeInventoryPanel();
-      adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives);
+      adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
       engine.restart();
