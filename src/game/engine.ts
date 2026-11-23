@@ -124,6 +124,9 @@ export type PlayerRuntime = {
   druidBasicHitCount: number;
   druidKillsSinceOrb: number;
   druidOrbHealTimer: number;
+  druidBlessingRemaining: number;
+  druidBlessingSpeedBonus: number;
+  druidBlessingDamageReduction: number;
   druidContagionTimer: number;
   input: InputState;
   keys: Set<string>;
@@ -145,6 +148,9 @@ function createPlayerRuntime(): PlayerRuntime {
     druidBasicHitCount: 0,
     druidKillsSinceOrb: 0,
     druidOrbHealTimer: 0,
+    druidBlessingRemaining: 0,
+    druidBlessingSpeedBonus: 0,
+    druidBlessingDamageReduction: 0,
     druidContagionTimer: 0,
     input: { x: 0, y: 0 },
     keys: new Set<string>(),
@@ -224,6 +230,23 @@ class PrimaryPlayerView implements PlayerEntity {
         this.runtime.healthTransitionRate = this.runtime.healthTransitionRemaining / CONFIG.classSwitch.healthTransitionSeconds;
       }
     }
+    if (changed && classId === 'druida') {
+      // Voltar ao Druida encerra qualquer bênção ainda ativa.
+      this.runtime.druidBlessingRemaining = 0;
+      this.runtime.druidBlessingSpeedBonus = 0;
+      this.runtime.druidBlessingDamageReduction = 0;
+    } else if (changed && state.classId === 'druida' && classId !== 'druida') {
+      const orbCount = Math.min(state.healingOrbs.length, CONFIG.druidHeal.maxOrbs);
+      if (orbCount > 0) {
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + state.player.maxHp * CONFIG.druidBlessing.healPerOrb * orbCount);
+        this.runtime.druidBlessingRemaining = CONFIG.druidBlessing.duration;
+        this.runtime.druidBlessingSpeedBonus = CONFIG.druidBlessing.speedPerOrb[classId as Exclude<ClassId, 'druida'>] * orbCount;
+        this.runtime.druidBlessingDamageReduction = classId === 'guerreiro'
+          ? CONFIG.druidBlessing.damageReductionPerOrb * orbCount
+          : 0;
+      }
+    }
+
     state.classId = classId;
 
     // A classe selecionada define a arma; não existe troca independente de arma.
@@ -1657,6 +1680,11 @@ export class GameEngine {
     }
     this.state.dyingEnemies.length = dyingEnemiesWrite;
     this.local.attackTimer += dt; this.local.combatLockTimer = Math.max(0, this.local.combatLockTimer - dt); this.local.gatheringTimer += dt; this.local.enemyDamageTimer -= dt;
+    this.local.druidBlessingRemaining = Math.max(0, this.local.druidBlessingRemaining - dt);
+    if (this.local.druidBlessingRemaining <= 0) {
+      this.local.druidBlessingSpeedBonus = 0;
+      this.local.druidBlessingDamageReduction = 0;
+    }
     const p = this.state.player;
     if (this.local.healthTransitionRemaining !== 0) {
       const transitionStep = Math.sign(this.local.healthTransitionRemaining) * Math.min(Math.abs(this.local.healthTransitionRemaining), Math.abs(this.local.healthTransitionRate) * dt);
@@ -2682,7 +2710,8 @@ export class GameEngine {
         animal.wolfRecoilRemaining = CONFIG.wildlife.wolves.recoilDuration;
         const levelStats = this.getLevelStats();
         if (this.random() > this.getDodgeChance()) {
-          const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor);
+          const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor)
+            * (1 - this.local.druidBlessingDamageReduction);
           if (damage > 0 && !this.state.dead && this.state.player.hp > 0) {
             this.recordProficiency('golpes_recebidos');
           }
@@ -3094,7 +3123,8 @@ export class GameEngine {
   }
 
   getPlayerMoveSpeed(): number {
-    return CONFIG.player.classSpeed[this.state.classId] + this.getLevelStats().speed;
+    return (CONFIG.player.classSpeed[this.state.classId] + this.getLevelStats().speed)
+      * (1 + this.local.druidBlessingSpeedBonus);
   }
 
   private getLevelStats() {
@@ -3186,7 +3216,8 @@ export class GameEngine {
         if (this.random() > this.getDodgeChance()) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const rawDamage = waveDamage * (this.getDayNightState().isNight ? 1 : 1.5);
-          const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor);
+          const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor)
+            * (1 - this.local.druidBlessingDamageReduction);
           if (damage > 0 && !this.state.dead && p.hp > 0) {
             this.recordProficiency('golpes_recebidos');
           }
