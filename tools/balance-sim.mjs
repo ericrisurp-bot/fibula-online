@@ -286,6 +286,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
           kills: engine.state.kills,
           enemies: engine.state.enemies.length,
           randomState: engine.randomState,
+          snapshot,
           hash: createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'),
         });
       }
@@ -456,7 +457,12 @@ try {
       console.log(`DIVERGÊNCIA no quadro ${a.frame} (~${a.elapsed.toFixed(3)}s).`);
       console.log(`Execução 1: kills=${a.kills}, inimigos=${a.enemies}, randomState=${a.randomState}`);
       console.log(`Execução 2: kills=${b.kills}, inimigos=${b.enemies}, randomState=${b.randomState}`);
-      console.log('O hash considera posição/vida do jogador, estado da horda e estado/ordem dos inimigos.');
+      const fields = [...new Set([...Object.keys(a.snapshot), ...Object.keys(b.snapshot)])];
+      const differences = fields.filter(field => JSON.stringify(a.snapshot[field]) !== JSON.stringify(b.snapshot[field]));
+      console.log('Campos divergentes:');
+      for (const field of differences) {
+        console.log(`- ${field}: execução 1=${JSON.stringify(a.snapshot[field])} | execução 2=${JSON.stringify(b.snapshot[field])}`);
+      }
     } else if (firstTrace.length !== secondTrace.length) {
       console.log(`DURAÇÕES DIFERENTES: execução 1=${firstTrace.length} quadros; execução 2=${secondTrace.length} quadros.`);
     } else {
