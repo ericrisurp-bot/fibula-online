@@ -327,8 +327,19 @@ export const ambience = {
   },
 
   resume() {
-    if (active && audioContext?.state === 'running') {
+    if (!active) return;
+    if (!audioContext) {
       audioManager.play({ type: 'dayNight', phase });
+      return;
+    }
+    if (audioContext.state !== 'running') return;
+    if (phase === 'day') {
+      if (!windSource) startWind();
+      else if (windTimers.size === 0) scheduleWindGust();
+      if (birdTimers.size === 0) scheduleBirds();
+      fadeMaster(1, 5);
+    } else {
+      fadeMaster(0, 4);
     }
   },
 
