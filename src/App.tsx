@@ -120,7 +120,7 @@ function createNewMatchGuideObjectives(saved: Partial<AdventurerGuideObjectives>
     mission2StoneCollected: false, mission2StoneRemaining: 5,
     mission2CottonCollected: false, mission2CottonRemaining: 5,
     campfireBuilt: false, lakeFound: false, fishingRodAvailable: false,
-    campfireReached: false,
+    campfireReached: completedMissions.includes(4),
     chestBuilt: completedMissions.includes(4),
     refineryBuilt: completedMissions.includes(6),
     tecelariaBuilt: completedMissions.includes(8),
