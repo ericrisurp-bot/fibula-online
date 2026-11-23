@@ -195,6 +195,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
     mixed: { hits: 0, damage: 0 },
     unknown: { hits: 0, damage: 0 },
   };
+  const aiDistanceSamples = [];
   const aiTelemetry = {
     samples: 0,
     distanceTotal: 0,
@@ -312,6 +313,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       if (aiDecision) {
         aiTelemetry.samples += 1;
         aiTelemetry.distanceTotal += aiDecision.distance;
+        aiDistanceSamples.push(aiDecision.distance);
         aiTelemetry.minDistance = aiTelemetry.minDistance === null
           ? aiDecision.distance
           : Math.min(aiTelemetry.minDistance, aiDecision.distance);
@@ -436,6 +438,8 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
         aiTelemetry: {
           ...aiTelemetry,
           meanDistance: aiTelemetry.samples ? aiTelemetry.distanceTotal / aiTelemetry.samples : null,
+          medianDistance: median(aiDistanceSamples),
+          p90Distance: percentile(aiDistanceSamples, 0.9),
           weaponRangePercent: aiTelemetry.samples ? 100 * aiTelemetry.withinWeaponRange / aiTelemetry.samples : 0,
           approachPercent: aiTelemetry.samples ? 100 * aiTelemetry.approaching / aiTelemetry.samples : 0,
           retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
@@ -482,6 +486,8 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
       aiTelemetry: {
         ...aiTelemetry,
         meanDistance: aiTelemetry.samples ? aiTelemetry.distanceTotal / aiTelemetry.samples : null,
+          medianDistance: median(aiDistanceSamples),
+          p90Distance: percentile(aiDistanceSamples, 0.9),
         weaponRangePercent: aiTelemetry.samples ? 100 * aiTelemetry.withinWeaponRange / aiTelemetry.samples : 0,
         approachPercent: aiTelemetry.samples ? 100 * aiTelemetry.approaching / aiTelemetry.samples : 0,
         retreatPercent: aiTelemetry.samples ? 100 * aiTelemetry.retreating / aiTelemetry.samples : 0,
@@ -591,7 +597,7 @@ try {
     console.log(`Fíbula Online — auditoria individual | modo: normal | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${MAX_SECONDS}s`);
     console.log('Cada classe é executada nos mesmos três perfis. HP mínimo e dano recebido são métricas observadas no motor; exposição é proximidade de contato, não número de golpes.');
     console.log('M/Md [P25–P75]; morte s considera apenas partidas encerradas por morte.');
-    console.log('Classe      Perfil             Mortes %   Noites M/Md [P25–P75]   Morte s   Abates   Dano causado   Dano recebido*   HP mín. %   Slimes máx   Combate min   Exposto min');
+    console.log('Classe      Perfil             Mortes %   Noites M/Md [P25–P75]   Morte s   Abates   Dano causado   Dano recebido*   HP mín. %   Slimes máx   Combate min   Exposto s');
     for (const classId of CLASSES) {
       for (const profileId of PROFILE_IDS) {
         const rows = results.filter(row => row.classId === classId && row.profileId === profileId);
@@ -604,7 +610,7 @@ try {
         const hpMin = rows.map(row => row.minHpPercent);
         const maxSlimes = rows.map(row => row.maxConcurrentSlimes);
         const combat = rows.map(row => row.timeInCombat / 60);
-        const exposed = rows.map(row => row.timeExposed / 60);
+        const exposed = rows.map(row => row.timeExposed);
         const deathRate = 100 * deaths.length / rows.length;
         console.log(
           `${classId.padEnd(11)} ${BOT_PROFILES[profileId].label.padEnd(17)} ` +
@@ -617,6 +623,8 @@ try {
         if (aiRows.length && sourceRows.length) {
           const ai = {
             meanDistance: mean(aiRows.map(value => value.meanDistance)),
+            medianDistance: mean(aiRows.map(value => value.medianDistance)),
+            p90Distance: mean(aiRows.map(value => value.p90Distance)),
             minDistance: mean(aiRows.map(value => value.minDistance)),
             maxDistance: mean(aiRows.map(value => value.maxDistance)),
             weaponRangePercent: mean(aiRows.map(value => value.weaponRangePercent)),
@@ -634,7 +642,7 @@ try {
             },
           ]));
           console.log(
-            `  IA (média por execução): distância pés média/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
+            `  IA (média por execução): distância pés média/p50/p90/mín/máx ${fmt(ai.meanDistance)}/${fmt(ai.medianDistance)}/${fmt(ai.p90Distance)}/${fmt(ai.minDistance)}/${fmt(ai.maxDistance)}; ` +
             `dentro do alcance ${fmt(ai.weaponRangePercent)}%; aproxima/strafe/recua ${fmt(ai.approachPercent)}/${fmt(ai.strafePercent)}/${fmt(ai.retreatPercent)}%; ` +
             `movimento bloqueado ${fmt(ai.blockedPercent)}%; ataques ${fmt(ai.attacks)}.`,
           );
@@ -649,7 +657,7 @@ try {
     const survivors = results.filter(row => !row.died);
     if (survivors.length) console.log(`Aviso: ${survivors.length} simulação(ões) atingiram o limite de ${MAX_SECONDS}s sem morrer.`);
     console.log('*Dano recebido efetivo = valores de dano aplicados pelo motor após esquiva/armadura/reduções; não é dano bruto nem dano evitado.');
-    console.log('Exposição = tempo em que pelo menos um slime está na distância geométrica de contato; não equivale a golpes recebidos.');
+    console.log('Exposição em segundos = tempo em que pelo menos um slime está na distância geométrica de contato usada pelo motor; não equivale a golpes recebidos.');
     if (jsonOutput) {
       writeFileSync(resolve(process.cwd(), 'balance-sim-results.json'), JSON.stringify({
         mode: 'normal',
