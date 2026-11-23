@@ -25,7 +25,6 @@ type Props = {
   onMove: (x: number, y: number) => void;
   onRange: () => void;
   adventurerGuideEnabled: boolean;
-  completedMissions: number[];
   onGuideToggle: () => void;
   adventurerGuideObjectives: { cartFound: boolean; woodCollected: boolean; woodRemaining: number; cartRepaired: boolean; mission2WoodCollected: boolean; mission2WoodRemaining: number; mission2StoneCollected: boolean; mission2StoneRemaining: number; mission2CottonCollected: boolean; mission2CottonRemaining: number; campfireBuilt: boolean; lakeFound: boolean; fishingRodAvailable: boolean; mission4WoodCollected: boolean; mission4WoodRemaining: number; campfireReached: boolean; chestBuilt: boolean; itemStored: boolean; refineryWoodRemaining: number; refineryStoneRemaining: number; refineryBuilt: boolean; stoneRefined: boolean; nightSurvived: boolean; mission7WoodCollected: boolean; mission7WoodRemaining: number; mission7CottonCollected: boolean; mission7CottonRemaining: number; mission7StoneCollected: boolean; mission7StoneRemaining: number; tecelariaBuilt: boolean; cottonRefined: boolean; wolvesKilled: number; chickensKilled: number; leatherRefined: boolean; survivedNights: number };
   onZoom: (delta: number) => void;
@@ -56,7 +55,7 @@ const getControlsMetrics = (element: HTMLDivElement) => {
   return { rect, scaleX: scaleX || 1, scaleY: scaleY || 1 };
 };
 
-export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, completedMissions, onGuideToggle, onZoom, onClass, classId, availableClassIds, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
+export default function Controls({ onInventoryToggle, onCartToggle, cartActionVisible, cartFollowing, storeToCartVisible, storeToCartDisabled, onStoreToCart, storeToHouseVisible, storeToHouseDisabled, onStoreToHouse, buildCartVisible, onBuildCart, campMenuVisible, onOpenCampMenu, flagWheelOpen, onLongPress, onFlagTap, onWheelMove, onWheelEnd, onMovementStart, onMove, onRange, adventurerGuideEnabled, adventurerGuideObjectives, onGuideToggle, onZoom, onClass, classId, availableClassIds, showRange, weaponLabel, inventoryPanelOpen, audioVolume, onAudioVolumeChange, interfaceScale, onInterfaceScaleChange, landscapeMode, onToggleLandscape }: Props) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{ id: number; originClientX: number; originClientY: number; clientX: number; clientY: number } | null>(null);
   const classSwipePointer = useRef<{ id: number; startX: number; startY: number; changed: boolean } | null>(null);
@@ -249,23 +248,8 @@ export default function Controls({ onInventoryToggle, onCartToggle, cartActionVi
         { label: `Sobreviver a 5 noites (${Math.min(5, adventurerGuideObjectives.survivedNights)}/5)`, done: adventurerGuideObjectives.survivedNights >= 5 },
       ];
       const doneCount = objectives.filter(objective => objective.done).length;
-      const missionTitles: Record<number, string> = {
-        1: 'Carroça',
-        2: 'Recursos para a fogueira',
-        3: 'Exploração',
-        4: 'Construção do baú',
-        5: 'Armazenamento e recursos',
-        6: 'Refinaria',
-        7: 'Recursos para a tecelaria',
-        8: 'Tecelaria e lobos',
-        9: 'Sobrevivência',
-      };
       return <aside className="adventurer-guide-panel" aria-label={`Guia do Aventureiro, missão número ${mission}`}>
         <header className="adventurer-guide-heading"><strong>{mission === 9 && doneCount === 3 ? 'Guia do Aventureiro · Fim' : `Guia do Aventureiro · Missão ${mission}`}</strong><span>{doneCount}/3</span></header>
-      {completedMissions.length > 0 && <div className="adventurer-guide-history">
-        <strong>Missões concluídas</strong>
-        {completedMissions.map(id => <span key={id}>Missão {id} · {missionTitles[id]} ✓</span>)}
-      </div>}
         {objectives.map((objective, index) => <div key={index} className={objective.icon ? `adventurer-guide-objective is-wood-only${objective.done ? ' is-complete' : ''}` : `adventurer-guide-objective is-text-only${objective.done ? ' is-complete' : ''}`}>
           {objective.icon ? <><span className="adventurer-guide-art" aria-hidden="true"><img src={`/assets/items/${objective.icon}.png`} alt="" draggable={false} /></span><b aria-label={`Coletadas ${objective.total - objective.remaining} de ${objective.total} unidades`}>{objective.total - objective.remaining}/{objective.total}</b></> : <span className="adventurer-guide-label">{objective.label}</span>}
           <i aria-hidden="true" />
