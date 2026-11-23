@@ -28,6 +28,7 @@ type Props = {
   userId: string;
   myClassId: ClassId;
   myDisplayName: string;
+  myDuoPower: number;
   open: boolean;
   pageMode?: boolean;
   onClose: () => void;
@@ -47,7 +48,7 @@ const AVATARS = {
   druida: { label: 'Druida' },
 } as const;
 
-export default function FriendsModal({ userId, myClassId, myDisplayName, open, pageMode = false, onClose, onOpenSidePage, onLobby, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
+export default function FriendsModal({ userId, myClassId, myDisplayName, myDuoPower, open, pageMode = false, onClose, onOpenSidePage, onLobby, onOpenProfile, onLobbyChange, onLobbyConnected, onLobbyNotice, onHouseInventoryChanged }: Props) {
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [profiles, setProfiles] = useState<Record<string, FriendProfile>>({});
   const [searchName, setSearchName] = useState('');
@@ -67,7 +68,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
   const inboxChannels = useRef<Map<string, any>>(new Map());
   const [connectedInboxFriends, setConnectedInboxFriends] = useState<string[]>([]);
   const profilesRef = useRef(profiles);
-  const identityRef = useRef({ myClassId, myDisplayName });
+  const identityRef = useRef({ myClassId, myDisplayName, myDuoPower });
   const onLobbyChangeRef = useRef(onLobbyChange);
   const onLobbyConnectedRef = useRef(onLobbyConnected);
   const onLobbyNoticeRef = useRef(onLobbyNotice);
@@ -75,7 +76,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
   const friendIdsRef = useRef<string[]>([]);
   const friendListLoadSucceededRef = useRef(false);
   profilesRef.current = profiles;
-  identityRef.current = { myClassId, myDisplayName };
+  identityRef.current = { myClassId, myDisplayName, myDuoPower };
   onLobbyChangeRef.current = onLobbyChange;
   onLobbyConnectedRef.current = onLobbyConnected;
   onLobbyNoticeRef.current = onLobbyNotice;
@@ -111,7 +112,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     to: friendId,
     classId: identityRef.current.myClassId,
     displayName: profilesRef.current[userId]?.display_name || identityRef.current.myDisplayName || 'Jogador',
-    duoPower: 0,
+    duoPower: identityRef.current.myDuoPower,
   });
 
   const load = useCallback(async () => {
@@ -507,7 +508,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, open, p
     setOnlineFriends([]);
     void start().catch(() => setOnlineFriends([]));
     return () => { active = false; channels.forEach(channel => void supabase.removeChannel(channel)); };
-  }, [userId, friendIdsKey]);
+  }, [userId, friendIdsKey, myDuoPower]);
 
   useEffect(() => {
     const supabase = fibulaSupabase;
