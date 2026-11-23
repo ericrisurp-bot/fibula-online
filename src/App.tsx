@@ -2188,10 +2188,13 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 
   useEffect(() => {
     const unlockAudio = () => {
-      void audioManager.unlock();
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
+      void audioManager.unlock().then((unlocked) => {
+        if (!unlocked) return;
+        ambience.resume();
+        window.removeEventListener('pointerdown', unlockAudio);
+        window.removeEventListener('keydown', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
+      });
     };
     window.addEventListener('pointerdown', unlockAudio, { passive: true });
     window.addEventListener('keydown', unlockAudio);
