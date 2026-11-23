@@ -576,6 +576,47 @@ if (!activitySource.includes('registerPlugin(ApkInstallerPlugin.class)')) {
     activitySource = activitySource.replace(/(public class MainActivity extends BridgeActivity\s*\{)/, '$1\n    @Override\n    public void onCreate(Bundle savedInstanceState) {\n        registerPlugin(ApkInstallerPlugin.class);\n        super.onCreate(savedInstanceState);\n    }');
   }
 }
+if (!activitySource.includes('import android.os.Build;')) {
+  activitySource = activitySource.replace(/^(package [^;]+;\\s*)/m, '$1\\nimport android.os.Build;');
+}
+if (!activitySource.includes('applyImmersiveMode()')) {
+  activitySource = activitySource.replace(
+    /super\\.onCreate\\(savedInstanceState\\);/,
+    'super.onCreate(savedInstanceState);\\n        applyImmersiveMode();'
+  );
+  activitySource = activitySource.replace(
+    /\\n}\\s*$/,
+    `
+    private void applyImmersiveMode() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            android.view.WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.systemBars());
+                controller.setSystemBarsBehavior(
+                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                );
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) applyImmersiveMode();
+    }
+}
+`
+  );
+}
 writeFileSync(mainActivityPath, activitySource);
 
 let installerManifest = readFileSync(manifestPath, 'utf8');
