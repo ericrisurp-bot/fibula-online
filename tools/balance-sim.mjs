@@ -153,7 +153,7 @@ function botMove(engine, profileId, seed, frame) {
   engine.setMove(x / length, y / length);
 }
 
-async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false } = {}) {
+async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal = false, onProgress } = {}) {
   const oldRandom = Math.random;
   const oldRaf = globalThis.requestAnimationFrame;
   const oldCancel = globalThis.cancelAnimationFrame;
@@ -176,6 +176,7 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
   let damageReceivedEffective = 0;
   let timeInCombat = 0;
   let timeExposed = 0;
+  let nextProgressAt = 60;
 
   Math.random = random;
   globalThis.requestAnimationFrame = callback => {
@@ -299,7 +300,14 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
           levelAt300 = engine.state.player.level;
         }
       }
+
+      if (engine.state.elapsed >= nextProgressAt) {
+        onProgress?.({ elapsed: engine.state.elapsed, limit: durationLimit, kills: engine.state.kills });
+        nextProgressAt += 60;
+      }
     }
+
+    onProgress?.({ elapsed: engine.state.elapsed, limit: durationLimit, kills: engine.state.kills, final: true });
 
     if (immortal) {
       if (currentNight) {
@@ -371,20 +379,39 @@ async function simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal
 
 const tempDir = mkdtempSync(join(tmpdir(), 'fibula-balance-sim-'));
 try {
+  const totalRuns = CLASSES.length * PROFILE_IDS.length * seedCount;
+  console.log(`Preparando simulador: ${totalRuns} execução(ões) | modo: ${immortal ? 'IMORTAL' : 'normal'}.`);
+  console.log('Compilando módulos do jogo...');
   compileRuntimeModules(tempDir);
+  console.log('Módulos compilados. Iniciando simulações; haverá atualizações a cada 60 segundos simulados.');
   const [{ GameEngine }, { CONFIG }] = await Promise.all([
     import(pathToFileURL(join(tempDir, 'engine.mjs')).href),
     import(pathToFileURL(join(tempDir, 'config.mjs')).href),
   ]);
   const results = [];
+  let runIndex = 0;
 
   for (const classId of CLASSES) {
     for (const profileId of PROFILE_IDS) {
       for (let seed = 1; seed <= seedCount; seed++) {
-        results.push(await simulate(GameEngine, CONFIG, classId, profileId, seed, { immortal }));
+        runIndex += 1;
+        const profileLabel = BOT_PROFILES[profileId].label;
+        const startedAt = performance.now();
+        console.log(`[${runIndex}/${totalRuns}] INICIANDO ${classId} | ${profileLabel} | semente ${seed}/${seedCount}.`);
+        const result = await simulate(GameEngine, CONFIG, classId, profileId, seed, {
+          immortal,
+          onProgress: ({ elapsed, limit, kills, final }) => {
+            const status = final ? 'FINALIZANDO' : 'PROGRESSO';
+            console.log(`[${runIndex}/${totalRuns}] ${status} ${classId} | ${profileLabel} | ${Math.floor(elapsed)}s/${Math.floor(limit)}s simulados | ${kills} abates.`);
+          },
+        });
+        results.push(result);
+        const durationSeconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+        console.log(`[${runIndex}/${totalRuns}] CONCLUÍDO ${classId} | ${profileLabel} | ${durationSeconds}s de execução real.`);
       }
     }
   }
+  console.log(`Todas as ${totalRuns} simulações foram concluídas. Gerando relatório...`);
 
   if (!immortal) {
     console.log(`Fíbula Online — auditoria individual | modo: normal | sementes/cenário: ${seedCount} | FPS: ${FPS} | limite: ${MAX_SECONDS}s`);
