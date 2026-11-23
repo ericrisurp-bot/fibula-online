@@ -34,22 +34,41 @@ const LEGACY_PROFICIENCY_LEVEL_CONFIG: Readonly<Record<ProficiencyKey, readonly 
   carroca_distancia: [13.57, 1.07, 100],
 };
 
-/** Reproduz exatamente a curva levels-v1 para migrar progresso local ainda não sincronizado. */
-export function getLegacyProficiencyLevel(key: ProficiencyKey, total: number): number {
-  if (!Number.isSafeInteger(total) || total < 0) return 0;
-  const [base, growth, maxLevel] = LEGACY_PROFICIENCY_LEVEL_CONFIG[key];
+/** Reproduz os marcos levels-v1 usados pela migration, incluindo o arredondamento SQL. */
+function getLegacyProficiencyMilestone(key: ProficiencyKey, level: number): number {
+  if (level <= 0) return 0;
+  const [base, growth] = LEGACY_PROFICIENCY_LEVEL_CONFIG[key];
+  return Math.round(base * (Math.pow(growth, level) - 1) / (growth - 1));
+}
+
+/** Retorna o nível e a fração já percorrida dentro dele na curva levels-v1. */
+export function getLegacyProficiencyProgress(
+  key: ProficiencyKey,
+  total: number,
+): { level: number; progressRatio: number } {
+  if (!Number.isSafeInteger(total) || total < 0) return { level: 0, progressRatio: 0 };
+  const [, , maxLevel] = LEGACY_PROFICIENCY_LEVEL_CONFIG[key];
   let level = 0;
-  let previous = 0;
-
   for (let currentLevel = 1; currentLevel <= maxLevel; currentLevel += 1) {
-    const calculated = Math.round(base * (Math.pow(growth, currentLevel) - 1) / (growth - 1));
-    const required = calculated <= previous ? previous + 1 : calculated;
-    if (total < required) break;
+    if (total < getLegacyProficiencyMilestone(key, currentLevel)) break;
     level = currentLevel;
-    previous = required;
   }
+  if (level >= maxLevel) return { level, progressRatio: 1 };
 
-  return level;
+  const currentRequired = getLegacyProficiencyMilestone(key, level);
+  const nextRequired = getLegacyProficiencyMilestone(key, level + 1);
+  const interval = nextRequired - currentRequired;
+  return {
+    level,
+    progressRatio: interval > 0
+      ? Math.min(1, Math.max(0, (total - currentRequired) / interval))
+      : 0,
+  };
+}
+
+/** Mantém a API de leitura do nível legado usada na migração de dados locais. */
+export function getLegacyProficiencyLevel(key: ProficiencyKey, total: number): number {
+  return getLegacyProficiencyProgress(key, total).level;
 }
 
 /**
@@ -112,8 +131,8 @@ const TABLE_BY_KEY: Readonly<Record<ProficiencyKey, ProficiencyProgressionTable>
     Record<ProficiencyKey, ProficiencyProgressionTable>;
 
 /**
- * O baseline mantém o nível alcançado na curva anterior. Somente eventos
- * posteriores ao contador registrado na migração avançam na curva nova.
+ * O baseline preserva o nível e a fração conquistada na curva anterior.
+ * Eventos posteriores ao contador de migração são somados sem serem reescalados.
  */
 export function getProficiencyProgression(
   key: ProficiencyKey,
@@ -130,8 +149,14 @@ export function getProficiencyProgression(
     && Number.isSafeInteger(baseline.baselineCounter)
     && baseline.baselineCounter >= 0) {
     const preservedMilestone = table.milestones[baseline.preservedLevel];
+    const legacyProgress = getLegacyProficiencyProgress(key, baseline.baselineCounter);
+    const nextMilestone = table.milestones[baseline.preservedLevel + 1];
+    const preservedProgress = nextMilestone
+      ? Math.round(legacyProgress.progressRatio
+        * (nextMilestone.totalRequired - preservedMilestone.totalRequired))
+      : 0;
     const eventsAfterBaseline = Math.max(0, total - baseline.baselineCounter);
-    effectiveTotal = preservedMilestone.totalRequired + eventsAfterBaseline;
+    effectiveTotal = preservedMilestone.totalRequired + preservedProgress + eventsAfterBaseline;
   }
 
   return evaluateProficiencyProgression(effectiveTotal, table);
