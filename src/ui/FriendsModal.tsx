@@ -285,6 +285,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, myDuoPo
       displayName: previous?.friendId === friendId ? previous.displayName : profile?.display_name || 'Amigo',
       avatarCharacter: previous?.friendId === friendId ? previous.avatarCharacter : validClassId(profile?.avatar_character),
       classId: previous?.friendId === friendId ? previous.classId : validClassId(profile?.avatar_character),
+      duoPower: previous?.friendId === friendId ? previous.duoPower : 0,
       role: self.role,
       status: other ? 'connected' : 'connecting',
       selfReady: self.ready,
@@ -508,7 +509,7 @@ export default function FriendsModal({ userId, myClassId, myDisplayName, myDuoPo
     setOnlineFriends([]);
     void start().catch(() => setOnlineFriends([]));
     return () => { active = false; channels.forEach(channel => void supabase.removeChannel(channel)); };
-  }, [userId, friendIdsKey, myDuoPower]);
+  }, [userId, friendIdsKey]);
 
   useEffect(() => {
     const supabase = fibulaSupabase;
