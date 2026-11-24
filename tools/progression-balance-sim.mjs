@@ -53,15 +53,8 @@ function compileModule(sourcePath, outputPath) {
     },
     fileName: sourcePath,
   }).outputText;
-  const fixedImports = output.replace(
-    /(from\\s*|import\\s*\\()(['"])(\\.\\.?\\/[^'"]+)\\2/g,
-    (match, prefix, quote, importPath) => {
-      const pathWithoutTs = importPath.endsWith('.ts') ? importPath.slice(0, -3) : importPath;
-      const pathWithExtension = /\\.[a-z0-9]+$/i.test(pathWithoutTs) ? pathWithoutTs : pathWithoutTs + '.mjs';
-      return prefix + quote + pathWithExtension + quote;
-    },
-  );
-  writeFileSync(outputPath, fixedImports);
+  // attributes.ts importa somente ./config; ajusta a extensão do módulo temporário.
+  writeFileSync(outputPath, output.replace("from './config'", "from './config.mjs'"));
 }
 
 function round(value, digits = 2) {
