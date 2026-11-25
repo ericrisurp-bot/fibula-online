@@ -353,9 +353,12 @@ try {
     damage: 10, kind: 'orb', life: 1, targetId: impactTarget.id,
     weapon: 'cajado', explosive: true,
   }];
+  const impactVulnerability = 1 + mageImpact.getDayNightState().vulnerability;
   mageImpact.moveShots(0.01);
-  assert.equal(impactTarget.hp, 990, 'O alvo principal deve receber apenas o dano básico.');
-  assert.equal(nearbySlime.hp, 985, 'Outro slime dentro do raio deve receber dano 1,5×.');
+  assert.equal(impactTarget.hp, 1000 - 10 * impactVulnerability,
+    'O alvo principal deve receber apenas o dano básico, com a vulnerabilidade vigente.');
+  assert.equal(nearbySlime.hp, 1000 - 10 * CONFIG.mageExplosion.damageMultiplier * impactVulnerability,
+    'Outro slime dentro do raio deve receber dano 1,5×, com a mesma vulnerabilidade.');
   assert.equal(distantSlime.hp, 1000, 'Slime fora do raio não deve receber dano da explosão.');
   assert.equal(nearbyAnimal.hp, 1000, 'Animais não devem receber dano da explosão.');
 
