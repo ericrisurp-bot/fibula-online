@@ -198,7 +198,94 @@ try {
 
   first.stop();
   repeated.stop();
-  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, estado encerrado e reinício.');
+
+  // O Guerreiro mantém o arco nos golpes 1, 2 e 4; o terceiro golpe atinge 360°.
+  const shockwaveEngine = createEngine(0x13572468);
+  const ringEnemies = () => Array.from({ length: 8 }, (_, index) => {
+    const angle = index * Math.PI / 4;
+    return {
+      id: 100 + index,
+      x: shockwaveEngine.state.player.x + Math.cos(angle) * 60,
+      y: shockwaveEngine.state.player.y + Math.sin(angle) * 60,
+      hp: 1000,
+      hitWait: 0,
+      wobble: 0,
+    };
+  });
+  const strikeRing = () => {
+    shockwaveEngine.state.enemies = ringEnemies();
+    shockwaveEngine.primaryPlayer.runtime.attackTimer = 2;
+    shockwaveEngine.autoAttack();
+    return shockwaveEngine.state.enemies
+      .filter(enemy => enemy.hp < 1000)
+      .map(enemy => ({ id: enemy.id, damage: 1000 - enemy.hp }));
+  };
+  const firstWarriorStrike = strikeRing();
+  const secondWarriorStrike = strikeRing();
+  const thirdWarriorStrike = strikeRing();
+  const fourthWarriorStrike = strikeRing();
+  assert.equal(firstWarriorStrike.length, 3, 'O primeiro golpe deve atingir somente o arco normal.');
+  assert.equal(secondWarriorStrike.length, 3, 'O segundo golpe deve atingir somente o arco normal.');
+  assert.equal(thirdWarriorStrike.length, 8, 'O terceiro golpe deve atingir os oito slimes em 360 graus.');
+  assert.equal(fourthWarriorStrike.length, 3, 'O quarto golpe deve voltar ao arco normal.');
+  assert.ok(Math.abs(thirdWarriorStrike[0].damage / firstWarriorStrike[0].damage - CONFIG.warriorShockwave.damageMultiplier) < 1e-9,
+    'O terceiro golpe deve aplicar exatamente o multiplicador de dano configurado.');
+  assert.equal(shockwaveEngine.state.explosions.at(-1)?.radius, CONFIG.warriorShockwave.radius,
+    'A onda deve publicar seu raio visual configurado.');
+  assert.equal(shockwaveEngine.state.explosions.at(-1)?.color, '#f2d06b');
+
+  // Um slime além do raio não pode ser atingido pela onda; animais também ficam excluídos.
+  shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = CONFIG.warriorShockwave.everyAttack - 1;
+  const outsideEnemies = ringEnemies();
+  outsideEnemies.push({
+    id: 199, x: shockwaveEngine.state.player.x + 150, y: shockwaveEngine.state.player.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  });
+  outsideEnemies.push({
+    id: 200, x: shockwaveEngine.state.player.x + 20, y: shockwaveEngine.state.player.y,
+    hp: 1000, hitWait: 0, wobble: 0, animalKind: 'wolf',
+  });
+  shockwaveEngine.state.enemies = outsideEnemies;
+  shockwaveEngine.primaryPlayer.runtime.attackTimer = 2;
+  shockwaveEngine.autoAttack();
+  assert.equal(shockwaveEngine.state.enemies.find(enemy => enemy.id === 199)?.hp, 1000,
+    'A onda não deve atingir slimes além do raio de 90.');
+  assert.equal(shockwaveEngine.state.enemies.find(enemy => enemy.id === 200)?.hp, 1000,
+    'A onda não deve atingir animais.');
+
+  // O contador zera no restart e ao trocar de classe.
+  shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = 2;
+  shockwaveEngine.restart();
+  assert.equal(shockwaveEngine.primaryPlayer.runtime.warriorAttackCount, 0, 'restart() deve zerar o contador do Guerreiro.');
+  shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = 2;
+  shockwaveEngine.setClass('mago');
+  assert.equal(shockwaveEngine.primaryPlayer.runtime.warriorAttackCount, 0, 'A troca de classe deve zerar o contador do Guerreiro.');
+
+  // As classes de ataque à distância mantêm alvo e dano-base do disparo original.
+  for (const [classId, weaponId, targetId] of [
+    ['mago', 'cajado', 301],
+    ['arqueiro', 'arco', 301],
+    ['druida', 'bastao', 301],
+  ]) {
+    const rangedEngine = createEngine(0x24681357);
+    rangedEngine.setClass(classId);
+    const player = rangedEngine.state.player;
+    rangedEngine.state.enemies = [
+      { id: 301, x: player.x + 60, y: player.y, hp: 1000, hitWait: 0, wobble: 0 },
+      { id: 302, x: player.x + 100, y: player.y, hp: 1000, hitWait: 0, wobble: 0 },
+    ];
+    rangedEngine.primaryPlayer.runtime.attackTimer = 2;
+    rangedEngine.autoAttack();
+    assert.equal(rangedEngine.state.shots.length, 1, `${classId} deve continuar criando um único disparo.`);
+    assert.equal(rangedEngine.state.shots[0].targetId, targetId, `${classId} deve preservar o alvo mais próximo.`);
+    assert.equal(rangedEngine.state.shots[0].weapon, weaponId);
+    assert.equal(rangedEngine.state.shots[0].damage, CONFIG.weapons[weaponId].damage,
+      `${classId} deve preservar o dano-base do projétil.`);
+    rangedEngine.stop();
+  }
+  shockwaveEngine.stop();
+
+  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, estado encerrado, reinício e onda do Guerreiro.');
 } finally {
   await server.close();
 }
