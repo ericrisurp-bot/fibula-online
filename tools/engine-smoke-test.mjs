@@ -221,8 +221,16 @@ try {
       .map(enemy => ({ id: enemy.id, damage: 1000 - enemy.hp }));
   };
   const firstWarriorStrike = strikeRing();
+  const firstWarriorKnockback = Math.hypot(
+    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).x - shockwaveEngine.state.player.x,
+    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).y - shockwaveEngine.state.player.y,
+  );
   const secondWarriorStrike = strikeRing();
   const thirdWarriorStrike = strikeRing();
+  const thirdWarriorKnockback = Math.hypot(
+    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).x - shockwaveEngine.state.player.x,
+    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).y - shockwaveEngine.state.player.y,
+  );
   const fourthWarriorStrike = strikeRing();
   assert.equal(firstWarriorStrike.length, 3, 'O primeiro golpe deve atingir somente o arco normal.');
   assert.equal(secondWarriorStrike.length, 3, 'O segundo golpe deve atingir somente o arco normal.');
@@ -230,6 +238,10 @@ try {
   assert.equal(fourthWarriorStrike.length, 3, 'O quarto golpe deve voltar ao arco normal.');
   assert.ok(Math.abs(thirdWarriorStrike[0].damage / firstWarriorStrike[0].damage - CONFIG.warriorShockwave.damageMultiplier) < 1e-9,
     'O terceiro golpe deve aplicar exatamente o multiplicador de dano configurado.');
+  assert.ok(Math.abs(firstWarriorKnockback - (60 + CONFIG.weapons.espada.knockback)) < 1e-6,
+    'O golpe normal deve preservar o empurrão original.');
+  assert.ok(Math.abs(thirdWarriorKnockback - (60 + CONFIG.weapons.espada.knockback * CONFIG.warriorShockwave.knockbackMultiplier)) < 1e-6,
+    'A onda deve aplicar o multiplicador de empurrão configurado.');
   assert.equal(shockwaveEngine.state.explosions.at(-1)?.radius, CONFIG.warriorShockwave.radius,
     'A onda deve publicar seu raio visual configurado.');
   assert.equal(shockwaveEngine.state.explosions.at(-1)?.color, '#f2d06b');
