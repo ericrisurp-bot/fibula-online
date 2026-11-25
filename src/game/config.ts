@@ -138,7 +138,7 @@ export const CONFIG = {
   },
   mageExplosion: { everyAttack: 3, radius: 120, damageMultiplier: 1.5, maxTargets: 999 },
   warriorShockwave: { everyAttack: 3, radius: AURA_RADIUS + SWORD_REACH_BEYOND_AURA, damageMultiplier: 1.5, knockbackMultiplier: 2 },
-  druidSlow: { speedMultiplier: 0.7, duration: 2 },
+  druidSlow: { speedMultiplier: 0.7, duration: 2, radius: 100 },
   druidPoison: { duration: 4, tickInterval: 1, damagePerTickFactor: 0.2 },
   druidContagion: { radius: 40, maxPoisoned: 5, checkInterval: 0.25 },
   archerPierce: { damageFactors: [1, 0.8, 0.8, 0.7, 0.6], speedFactors: [0.9, 0.75, 0.6, 0.45, 0.3] },

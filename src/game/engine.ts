@@ -3773,7 +3773,10 @@ export class GameEngine {
           target.hp -= effectiveDamage;
           this.addFloatingDamage(target.x, target.y - CONFIG.enemy.radius * 1.7, effectiveDamage, '#ffffff');
           if (this.state.classId === 'druida') {
-            target.slowRemaining = CONFIG.druidSlow.duration;
+            for (const enemy of this.state.enemies) {
+              if (enemy.animalKind || Math.hypot(enemy.x - target.x, enemy.y - target.y) > CONFIG.druidSlow.radius) continue;
+              enemy.slowRemaining = Math.max(enemy.slowRemaining ?? 0, CONFIG.druidSlow.duration);
+            }
             const newPoisonDamage = shot.damage * CONFIG.druidPoison.damagePerTickFactor * (1 + this.getDayNightState().vulnerability);
             const currentPoisonDamage = (target.poisonRemaining ?? 0) > 0 ? target.poisonDamage ?? 0 : 0;
             target.poisonDamage = Math.max(currentPoisonDamage, newPoisonDamage);

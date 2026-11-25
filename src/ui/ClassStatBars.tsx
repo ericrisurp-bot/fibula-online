@@ -9,7 +9,7 @@ const CLASS_WEAPONS: Record<ClassId, WeaponId> = { guerreiro: 'espada', mago: 'c
 export const CLASS_STAT_ICONS = { hp: '❤️', damage: '⚔️', attackSpeed: '⚡', armor: '🛡️', mobility: '🥾', damagePerSecond: '💥', enemiesPerSecond: '👾', hits: '🛡️', range: '🎯' } as const;
 export const CLASS_STORIES: Record<ClassId, string> = {
   guerreiro: 'A linha de frente de Fíbula. A espada resolve o combate de perto, enquanto a maior reserva de vida e a armadura ajudam a segurar a horda quando o cerco fecha.',
-  mago: 'O poder arcano vem de longe: o cajado mantém a pressão e cada quarto disparo explode. Sua força é enorme, mas sua defesa exige distância e posicionamento.',
+  mago: 'O poder arcano vem de longe: o cajado mantém a pressão e cada terceiro disparo explode. Sua força é enorme, mas sua defesa exige distância e posicionamento.',
   arqueiro: 'Precisão e movimento. As flechas alcançam longe e atravessam a linha de inimigos; sequências de acertos devolvem vida para continuar sempre em movimento.',
   druida: 'A natureza luta ao seu lado. O cajado mantém distância, enquanto lentidão, veneno e cura sustentam o combate por mais tempo.'
 };
