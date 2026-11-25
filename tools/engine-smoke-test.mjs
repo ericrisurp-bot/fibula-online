@@ -448,14 +448,17 @@ try {
   druidSlowReference.setClass('druida');
   druidSlowReference.state.player.x = druidArea.state.player.x;
   druidSlowReference.state.player.y = druidArea.state.player.y;
-  const speedTestEnemy = {
-    id: 520, x: druidArea.state.player.x + 300, y: druidArea.state.player.y,
-    hp: 1000, hitWait: 0, wobble: 0,
-  };
-  const normalSpeedEnemy = { ...speedTestEnemy };
-  druidArea.state.enemies = [{ ...speedTestEnemy, slowRemaining: 2 }];
-  druidSlowReference.state.enemies = [normalSpeedEnemy];
-  const speedStart = { x: speedTestEnemy.x, y: speedTestEnemy.y };
+  slowedNeighbor.x = druidArea.state.player.x + 300;
+  slowedNeighbor.y = druidArea.state.player.y;
+  druidArea.state.enemies = [slowedNeighbor];
+  druidSlowReference.state.enemies = [{
+    ...slowedNeighbor,
+    slowRemaining: undefined,
+    poisonRemaining: undefined,
+    poisonTick: undefined,
+    poisonDamage: undefined,
+  }];
+  const speedStart = { x: slowedNeighbor.x, y: slowedNeighbor.y };
   druidArea.moveEnemies(0.1);
   druidSlowReference.moveEnemies(0.1);
   const slowedDistance = Math.hypot(druidArea.state.enemies[0].x - speedStart.x, druidArea.state.enemies[0].y - speedStart.y);
@@ -485,7 +488,15 @@ try {
     unchangedSlowEngine.state.enemies = [target, neighbor];
     unchangedSlowEngine.primaryPlayer.runtime.attackTimer = 2;
     unchangedSlowEngine.autoAttack();
-    if (classId !== 'guerreiro') unchangedSlowEngine.moveShots(0.01);
+    if (classId !== 'guerreiro') {
+      const shot = unchangedSlowEngine.state.shots[0];
+      shot.x = target.x - 1;
+      shot.y = target.y;
+      shot.vx = 200;
+      shot.vy = 0;
+      shot.life = 1;
+      unchangedSlowEngine.moveShots(0.01);
+    }
     assert.equal(target.slowRemaining, undefined, `${classId} não deve aplicar lentidão ao alvo.`);
     assert.equal(neighbor.slowRemaining, undefined, `${classId} não deve aplicar lentidão a inimigos próximos.`);
     assert.equal(unchangedSlowEngine.state.enemies.some(enemy => (enemy.slowRemaining ?? 0) > 0), false,
