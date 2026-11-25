@@ -297,7 +297,103 @@ try {
   }
   shockwaveEngine.stop();
 
-  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, estado encerrado, reinício e onda do Guerreiro.');
+
+  // M1: o Mago dispara explosões no 3º e no 6º tiro, sem alterar o restante do ciclo.
+  const mageCycle = createEngine(0x31415926);
+  mageCycle.setClass('mago');
+  const mageShotFlags = [];
+  for (let shotNumber = 1; shotNumber <= 6; shotNumber++) {
+    mageCycle.state.enemies = [{
+      id: 400, x: mageCycle.state.player.x + 60, y: mageCycle.state.player.y,
+      hp: 1000, hitWait: 0, wobble: 0,
+    }];
+    mageCycle.state.shots = [];
+    mageCycle.primaryPlayer.runtime.attackTimer = 2;
+    mageCycle.autoAttack();
+    assert.equal(mageCycle.state.shots.length, 1, `O tiro ${shotNumber} do Mago deve gerar um projétil.`);
+    mageShotFlags.push(mageCycle.state.shots[0].explosive);
+    assert.equal(
+      mageCycle.state.shots[0].explosive,
+      shotNumber === 3 || shotNumber === 6,
+      `Somente os tiros 3 e 6 devem ser explosivos (tiro ${shotNumber}).`,
+    );
+  }
+  assert.deepEqual(mageShotFlags, [false, false, true, false, false, true]);
+
+  // O contador de explosões do Mago zera no restart e na troca de classe.
+  mageCycle.primaryPlayer.runtime.mageAttackCount = 2;
+  mageCycle.restart();
+  assert.equal(mageCycle.primaryPlayer.runtime.mageAttackCount, 0, 'restart() deve zerar o contador do Mago.');
+  mageCycle.primaryPlayer.runtime.mageAttackCount = 2;
+  mageCycle.setClass('guerreiro');
+  assert.equal(mageCycle.primaryPlayer.runtime.mageAttackCount, 0, 'A troca de classe deve zerar o contador do Mago.');
+
+  // A explosão mantém o dano básico no alvo e aplica 1,5× somente aos outros slimes dentro do raio.
+  const mageImpact = createEngine(0x27182818);
+  mageImpact.setClass('mago');
+  const impactTarget = {
+    id: 410, x: mageImpact.state.player.x + 100, y: mageImpact.state.player.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const nearbySlime = {
+    id: 411, x: impactTarget.x + 50, y: impactTarget.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const distantSlime = {
+    id: 412, x: impactTarget.x + CONFIG.mageExplosion.radius + 10, y: impactTarget.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const nearbyAnimal = {
+    id: 413, x: impactTarget.x + 40, y: impactTarget.y,
+    hp: 1000, hitWait: 0, wobble: 0, animalKind: 'wolf',
+  };
+  mageImpact.state.enemies = [impactTarget, nearbySlime, distantSlime, nearbyAnimal];
+  mageImpact.state.shots = [{
+    id: 900, x: impactTarget.x - 1, y: impactTarget.y, vx: 200, vy: 0,
+    damage: 10, kind: 'orb', life: 1, targetId: impactTarget.id,
+    weapon: 'cajado', explosive: true,
+  }];
+  const impactVulnerability = 1 + mageImpact.getDayNightState().vulnerability;
+  mageImpact.moveShots(0.01);
+  assert.equal(impactTarget.hp, 1000 - 10 * impactVulnerability,
+    'O alvo principal deve receber apenas o dano básico, com a vulnerabilidade vigente.');
+  assert.equal(nearbySlime.hp, 1000 - 10 * CONFIG.mageExplosion.damageMultiplier * impactVulnerability,
+    'Outro slime dentro do raio deve receber dano 1,5×, com a mesma vulnerabilidade.');
+  assert.equal(distantSlime.hp, 1000, 'Slime fora do raio não deve receber dano da explosão.');
+  assert.equal(nearbyAnimal.hp, 1000, 'Animais não devem receber dano da explosão.');
+
+  // Arqueiro e Druida não ganham projéteis explosivos; Guerreiro continua no ataque melee.
+  for (const [classId, weaponId] of [
+    ['arqueiro', 'arco'],
+    ['druida', 'bastao'],
+  ]) {
+    const unchangedEngine = createEngine(0x16180339);
+    unchangedEngine.setClass(classId);
+    unchangedEngine.state.enemies = [{
+      id: 420, x: unchangedEngine.state.player.x + 60, y: unchangedEngine.state.player.y,
+      hp: 1000, hitWait: 0, wobble: 0,
+    }];
+    unchangedEngine.primaryPlayer.runtime.attackTimer = 2;
+    unchangedEngine.autoAttack();
+    assert.equal(unchangedEngine.state.shots.length, 1);
+    assert.equal(unchangedEngine.state.shots[0].weapon, weaponId);
+    assert.equal(unchangedEngine.state.shots[0].explosive, false,
+      `${classId} não deve herdar a explosão periódica do Mago.`);
+    unchangedEngine.stop();
+  }
+  const unchangedWarrior = createEngine(0x14142135);
+  unchangedWarrior.state.enemies = [{
+    id: 430, x: unchangedWarrior.state.player.x + 60, y: unchangedWarrior.state.player.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  }];
+  unchangedWarrior.primaryPlayer.runtime.attackTimer = 2;
+  unchangedWarrior.autoAttack();
+  assert.equal(unchangedWarrior.state.shots.length, 0, 'Guerreiro deve continuar atacando com melee.');
+  unchangedWarrior.stop();
+  mageCycle.stop();
+  mageImpact.stop();
+
+  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro e explosão M1 do Mago.');
 } finally {
   await server.close();
 }
