@@ -393,7 +393,107 @@ try {
   mageCycle.stop();
   mageImpact.stop();
 
-  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro e explosão M1 do Mago.');
+
+  // D1: o impacto básico do Druida aplica lentidão em área, sem espalhar dano ou veneno.
+  const druidArea = createEngine(0xD1D1D1D1);
+  druidArea.setClass('druida');
+  const druidTarget = {
+    id: 510, x: druidArea.state.player.x + 100, y: druidArea.state.player.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const slowedNeighbor = {
+    id: 511, x: druidTarget.x + 60, y: druidTarget.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const outsideNeighbor = {
+    id: 512, x: druidTarget.x + CONFIG.druidSlow.radius + 1, y: druidTarget.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const nearbyWolf = {
+    id: 513, x: druidTarget.x + 30, y: druidTarget.y,
+    hp: 1000, hitWait: 0, wobble: 0, animalKind: 'wolf',
+  };
+  const nearbyChicken = {
+    id: 514, x: druidTarget.x, y: druidTarget.y + 40,
+    hp: 1000, hitWait: 0, wobble: 0, animalKind: 'chicken',
+  };
+  druidArea.state.enemies = [druidTarget, slowedNeighbor, outsideNeighbor, nearbyWolf, nearbyChicken];
+  const applyDruidImpact = (engine, target, id) => {
+    engine.state.shots = [{
+      id, x: target.x - 1, y: target.y, vx: 200, vy: 0,
+      damage: 10, kind: 'orb', life: 1, targetId: target.id,
+      weapon: 'bastao',
+    }];
+    engine.moveShots(0.01);
+  };
+  applyDruidImpact(druidArea, druidTarget, 910);
+  assert.equal(druidTarget.slowRemaining, CONFIG.druidSlow.duration, 'O alvo atingido deve receber lentidão.');
+  assert.equal(slowedNeighbor.slowRemaining, 2, 'O slime a 60 px do alvo deve receber 2 s de lentidão.');
+  assert.equal(outsideNeighbor.slowRemaining, undefined, 'O slime além de 100 px do alvo não deve receber lentidão.');
+  assert.equal(nearbyWolf.slowRemaining, undefined, 'Lobos próximos não devem receber lentidão.');
+  assert.equal(nearbyChicken.slowRemaining, undefined, 'Galinhas próximas não devem receber lentidão.');
+  assert.equal(slowedNeighbor.hp, 1000, 'A lentidão em área não deve causar dano ao vizinho.');
+  assert.equal(slowedNeighbor.poisonRemaining, undefined, 'A lentidão em área não deve aplicar veneno ao vizinho.');
+  assert.equal(slowedNeighbor.poisonDamage, undefined, 'A lentidão em área não deve definir dano de veneno no vizinho.');
+  assert.equal(druidTarget.poisonRemaining, CONFIG.druidPoison.duration, 'O veneno original continua restrito ao alvo atingido.');
+
+  // Slow mais longo é preservado; dois impactos não multiplicam nem empilham o efeito.
+  slowedNeighbor.slowRemaining = 5;
+  applyDruidImpact(druidArea, druidTarget, 911);
+  assert.equal(slowedNeighbor.slowRemaining, 5, 'Um slow de 5 s não pode ser reduzido para 2 s.');
+  slowedNeighbor.slowRemaining = 0;
+  applyDruidImpact(druidArea, druidTarget, 912);
+  assert.equal(slowedNeighbor.slowRemaining, 2, 'Dois acertos renovam o tempo, mas não acumulam duração.');
+  const druidSlowReference = createEngine(0xD1D1D1D1);
+  druidSlowReference.setClass('druida');
+  druidSlowReference.state.player.x = druidArea.state.player.x;
+  druidSlowReference.state.player.y = druidArea.state.player.y;
+  const speedTestEnemy = {
+    id: 520, x: druidArea.state.player.x + 300, y: druidArea.state.player.y,
+    hp: 1000, hitWait: 0, wobble: 0,
+  };
+  const normalSpeedEnemy = { ...speedTestEnemy };
+  druidArea.state.enemies = [{ ...speedTestEnemy, slowRemaining: 2 }];
+  druidSlowReference.state.enemies = [normalSpeedEnemy];
+  const speedStart = { x: speedTestEnemy.x, y: speedTestEnemy.y };
+  druidArea.moveEnemies(0.1);
+  druidSlowReference.moveEnemies(0.1);
+  const slowedDistance = Math.hypot(druidArea.state.enemies[0].x - speedStart.x, druidArea.state.enemies[0].y - speedStart.y);
+  const normalDistance = Math.hypot(druidSlowReference.state.enemies[0].x - speedStart.x, druidSlowReference.state.enemies[0].y - speedStart.y);
+  assert.ok(normalDistance > 0, 'O inimigo de referência precisa se mover no teste.');
+  assert.ok(Math.abs(slowedDistance / normalDistance - CONFIG.druidSlow.speedMultiplier) < 1e-6,
+    'Dois acertos devem manter a velocidade efetiva em exatamente 0,7×, sem empilhar multiplicadores.');
+  druidArea.stop();
+  druidSlowReference.stop();
+
+  // Guerreiro, Mago e Arqueiro não aplicam lentidão.
+  for (const [classId, weaponId] of [
+    ['guerreiro', 'espada'],
+    ['mago', 'cajado'],
+    ['arqueiro', 'arco'],
+  ]) {
+    const unchangedSlowEngine = createEngine(0xD1D1D1D1);
+    unchangedSlowEngine.setClass(classId);
+    const target = {
+      id: 530, x: unchangedSlowEngine.state.player.x + 60, y: unchangedSlowEngine.state.player.y,
+      hp: 1000, hitWait: 0, wobble: 0,
+    };
+    const neighbor = {
+      id: 531, x: target.x + 50, y: target.y,
+      hp: 1000, hitWait: 0, wobble: 0,
+    };
+    unchangedSlowEngine.state.enemies = [target, neighbor];
+    unchangedSlowEngine.primaryPlayer.runtime.attackTimer = 2;
+    unchangedSlowEngine.autoAttack();
+    if (classId !== 'guerreiro') unchangedSlowEngine.moveShots(0.01);
+    assert.equal(target.slowRemaining, undefined, `${classId} não deve aplicar lentidão ao alvo.`);
+    assert.equal(neighbor.slowRemaining, undefined, `${classId} não deve aplicar lentidão a inimigos próximos.`);
+    assert.equal(unchangedSlowEngine.state.enemies.some(enemy => (enemy.slowRemaining ?? 0) > 0), false,
+      `${classId} não deve aplicar lentidão a ninguém.`);
+    unchangedSlowEngine.stop();
+  }
+
+  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro, explosão M1 do Mago e área de lentidão D1.');
 } finally {
   await server.close();
 }
