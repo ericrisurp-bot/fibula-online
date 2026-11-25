@@ -1,5 +1,5 @@
 -- Expande o Baú de 50 para 120 espaços sem alterar ou regravar os itens existentes.
--- Atualiza os limites de capacidade das três funções de armazenamento e troca
+-- Atualiza os limites de capacidade das quatro funções de armazenamento e troca
 -- atualmente instaladas. A antiga fibula_inventory_adjust_stack(text,bigint) foi
 -- removida da lista porque pertencia à migration 20261102000900, nunca aplicada,
 -- e foi substituída por fibula_house_apply_delta(uuid,jsonb).
@@ -29,7 +29,8 @@ declare
   v_signatures text[] := array[
     'public.fibula_house_apply_delta(uuid,jsonb)',
     'public.fibula_duo_house_transfer(uuid,text,bigint)',
-    'public.fibula_duo_trade_confirm(uuid)'
+    'public.fibula_duo_trade_confirm(uuid)',
+    'public.fibula_core_reveal(text)'
   ];
 begin
   foreach v_signature in array v_signatures loop
