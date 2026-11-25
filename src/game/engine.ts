@@ -85,7 +85,7 @@ type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | VegetableDrop | LinenDro
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; weapon: WeaponId; explosive?: boolean; hitEnemyIds?: number[] };
-type ExplosionEffect = Vec & { id: number; age: number; duration: number };
+type ExplosionEffect = Vec & { id: number; age: number; duration: number; radius?: number; color?: string };
 type FloatingDamage = Vec & { id: number; amount: number; label?: string; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = DonkeyCartState;
@@ -117,6 +117,7 @@ export type PlayerRuntime = {
   knifeHitTimer: number;
   stepSpeed: number;
   mageAttackCount: number;
+  warriorAttackCount: number;
   archerHealArrowCount: number;
   healthTransitionRemaining: number;
   healthTransitionRate: number;
@@ -141,6 +142,7 @@ function createPlayerRuntime(): PlayerRuntime {
     knifeHitTimer: 0,
     stepSpeed: 0,
     mageAttackCount: 0,
+    warriorAttackCount: 0,
     archerHealArrowCount: 0,
     healthTransitionRemaining: 0,
     healthTransitionRate: 0,
@@ -205,6 +207,7 @@ class PrimaryPlayerView implements PlayerEntity {
       // Evita que projéteis da classe anterior contem como acertos básicos da nova classe.
       state.shots = [];
       this.runtime.mageAttackCount = 0;
+      this.runtime.warriorAttackCount = 0;
       this.runtime.archerHealArrowCount = 0;
 
       const player = state.player;
@@ -1614,7 +1617,7 @@ export class GameEngine {
   toggleRange() { if (this.state.dead) return; this.state.showRange = !this.state.showRange; this.emit(); }
   restart() {
     const classId = this.state.classId;
-    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.pendingRockRemovalId = null; this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepSpeed = 0;
+    this.stop(); this.randomState = this.seed; this.state = this.freshState(classId); this.pendingRockRemovalId = null; this.classUsage = createEmptyClassUsage(); this.state.house.inventory = readHouseStorage(); this.jabuticabaSunsetChecked = false; this.local.mageAttackCount = 0; this.local.warriorAttackCount = 0; this.local.archerHealArrowCount = 0; this.nextId = 1; this.nextRockClusterId = 1; this.hordeTarget = 0; this.hordeSpawned = 0; this.hordeScheduled = 0; this.nightNumber = 0; this.phase = 'day'; this.phaseElapsed = 0; this.treeSpawnCountdown = 0; this.rockSpawnCountdown = 0; this.cottonSpawnCountdown = 0; this.chickenSpawnCountdown = 0; this.wolfSpawnCountdown = 0; this.local.attackTimer = 0; this.local.combatLockTimer = 0; this.local.gatheringTimer = 0; this.local.knifeHitTimer = 0; this.local.stepSpeed = 0;
     this.donkeySpeed = 0; this.donkeyAvoidSide = 1; this.donkeyAvoidTimer = 0; this.donkeyProgressSamples = []; this.donkeyStalled = false; this.donkeyStallDistance = 0; this.donkeyClock = 0; this.cartProficiencyDistanceRemainder = 0;
     this.elapsed = 0; this.refineryProcessTimer = 0; this.tecelariaProcessTimer = 0; this.tecelariaHideProcessTimer = 0; this.local.healthTransitionRemaining = 0; this.local.healthTransitionRate = 0;
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
@@ -3442,19 +3445,33 @@ export class GameEngine {
       this.state.swordSwingAngle = Math.atan2(target.e.y - p.y, target.e.x - p.x);
       this.state.swordSwingTimer = 0.24;
       this.onSound?.({ type: 'attack', classId: this.state.classId });
+      const shockwaveConfig = CONFIG.warriorShockwave;
+      const warriorShockwave = this.state.classId === 'guerreiro'
+        && (this.local.warriorAttackCount + 1) % shockwaveConfig.everyAttack === 0;
+      if (this.state.classId === 'guerreiro') {
+        this.local.warriorAttackCount = (this.local.warriorAttackCount + 1) % shockwaveConfig.everyAttack;
+      }
       const arc = Math.PI * 0.62;
       const hits = this.state.enemies.filter(e => {
         if (e.animalKind) return false;
         const ex = e.x - p.x, ey = e.y - p.y;
         const distance = Math.hypot(ex, ey);
+        if (warriorShockwave) return distance <= shockwaveConfig.radius;
         const angle = Math.atan2(ey, ex);
         const difference = Math.abs(Math.atan2(Math.sin(angle - this.state.swordSwingAngle), Math.cos(angle - this.state.swordSwingAngle)));
         return distance <= weapon.range && difference <= arc / 2;
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+      if (warriorShockwave) {
+        this.state.explosions.push({
+          x: p.x, y: p.y, id: this.nextId++, age: 0, duration: 0.24,
+          radius: shockwaveConfig.radius, color: '#f2d06b',
+        });
+      }
       if (hits.length > 0) this.recordWeaponProficiencyHit();
       for (const enemy of hits) {
         const vulnerability = this.getDayNightState().vulnerability;
-        const damage = this.getWeaponBaseDamage() * this.getCookingDamageMultiplier() * (1 + vulnerability);
+        const damage = this.getWeaponBaseDamage() * this.getCookingDamageMultiplier() * (1 + vulnerability)
+          * (warriorShockwave ? shockwaveConfig.damageMultiplier : 1);
         this.recordClassDamage(enemy, damage);
         enemy.hp -= damage;
         this.addFloatingDamage(enemy.x, enemy.y - CONFIG.enemy.radius * 1.7, damage, '#ffffff');
@@ -3466,9 +3483,11 @@ export class GameEngine {
         const dx = enemy.x - p.x;
         const dy = enemy.y - p.y;
         const distance = Math.hypot(dx, dy) || 1;
+        const knockback = CONFIG.weapons.espada.knockback
+          * (warriorShockwave ? shockwaveConfig.knockbackMultiplier : 1);
         const destination = {
-          x: enemy.x + dx / distance * CONFIG.weapons.espada.knockback,
-          y: enemy.y + dy / distance * CONFIG.weapons.espada.knockback,
+          x: enemy.x + dx / distance * knockback,
+          y: enemy.y + dy / distance * knockback,
         };
         this.resolveObstacleCollisions(destination, CONFIG.enemy.radius);
         enemy.x = destination.x;

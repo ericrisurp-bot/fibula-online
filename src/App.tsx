@@ -2873,8 +2873,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       for (const effect of s.explosions) {
         const progress = effect.age / effect.duration;
         ctx.save(); ctx.globalAlpha = Math.max(0, 1 - progress);
-        ctx.strokeStyle = '#c8a8ff'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(effect.x, effect.y, CONFIG.mageExplosion.radius * (0.75 + progress * 0.25), 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = effect.color ?? '#c8a8ff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(effect.x, effect.y, (effect.radius ?? CONFIG.mageExplosion.radius) * (0.75 + progress * 0.25), 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
       }
       for (const shot of s.shots) {
