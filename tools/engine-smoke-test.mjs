@@ -314,73 +314,106 @@ try {
   first.stop();
   repeated.stop();
 
-  // O Guerreiro mantém o arco nos golpes 1, 2 e 4; o terceiro golpe atinge 360°.
+  // G2: a onda do Guerreiro é um leque frontal de 180° e alcance 140.
+  assert.equal(CONFIG.warriorShockwave.radius, 140);
+  assert.equal(CONFIG.warriorShockwave.arc, Math.PI);
   const shockwaveEngine = createEngine(0x13572468);
-  const ringEnemies = () => Array.from({ length: 8 }, (_, index) => {
-    const angle = index * Math.PI / 4;
+  const playerPosition = () => ({ x: shockwaveEngine.state.player.x, y: shockwaveEngine.state.player.y });
+  const enemyAt = (id, distance, angle, extra = {}) => {
+    const player = playerPosition();
     return {
-      id: 100 + index,
-      x: shockwaveEngine.state.player.x + Math.cos(angle) * 60,
-      y: shockwaveEngine.state.player.y + Math.sin(angle) * 60,
+      id,
+      x: player.x + Math.cos(angle) * distance,
+      y: player.y + Math.sin(angle) * distance,
       hp: 1000,
       hitWait: 0,
       wobble: 0,
+      ...extra,
     };
-  });
-  const strikeRing = () => {
-    shockwaveEngine.state.enemies = ringEnemies();
+  };
+  const strikeShockwave = (enemies, attackCount = CONFIG.warriorShockwave.everyAttack - 1) => {
+    shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = attackCount;
+    shockwaveEngine.state.enemies = enemies;
     shockwaveEngine.primaryPlayer.runtime.attackTimer = 2;
     shockwaveEngine.autoAttack();
-    return shockwaveEngine.state.enemies
-      .filter(enemy => enemy.hp < 1000)
-      .map(enemy => ({ id: enemy.id, damage: 1000 - enemy.hp }));
+    return shockwaveEngine.state.enemies;
   };
-  const firstWarriorStrike = strikeRing();
-  const firstWarriorKnockback = Math.hypot(
-    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).x - shockwaveEngine.state.player.x,
-    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).y - shockwaveEngine.state.player.y,
-  );
-  const secondWarriorStrike = strikeRing();
-  const thirdWarriorStrike = strikeRing();
-  const thirdWarriorKnockback = Math.hypot(
-    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).x - shockwaveEngine.state.player.x,
-    shockwaveEngine.state.enemies.find(enemy => enemy.id === 100).y - shockwaveEngine.state.player.y,
-  );
-  const fourthWarriorStrike = strikeRing();
-  assert.equal(firstWarriorStrike.length, 3, 'O primeiro golpe deve atingir somente o arco normal.');
-  assert.equal(secondWarriorStrike.length, 3, 'O segundo golpe deve atingir somente o arco normal.');
-  assert.equal(thirdWarriorStrike.length, 8, 'O terceiro golpe deve atingir os oito slimes em 360 graus.');
-  assert.equal(fourthWarriorStrike.length, 3, 'O quarto golpe deve voltar ao arco normal.');
-  assert.ok(Math.abs(thirdWarriorStrike[0].damage / firstWarriorStrike[0].damage - CONFIG.warriorShockwave.damageMultiplier) < 1e-9,
-    'O terceiro golpe deve aplicar exatamente o multiplicador de dano configurado.');
-  assert.ok(Math.abs(firstWarriorKnockback - (60 + CONFIG.weapons.espada.knockback)) < 1e-6,
-    'O golpe normal deve preservar o empurrão original.');
-  assert.ok(Math.abs(thirdWarriorKnockback - (60 + CONFIG.weapons.espada.knockback * CONFIG.warriorShockwave.knockbackMultiplier)) < 1e-6,
-    'A onda deve aplicar o multiplicador de empurrão configurado.');
-  assert.equal(shockwaveEngine.state.explosions.at(-1)?.radius, CONFIG.warriorShockwave.radius,
-    'A onda deve publicar seu raio visual configurado.');
-  assert.equal(shockwaveEngine.state.explosions.at(-1)?.color, '#f2d06b');
+  const anchor = () => enemyAt(100, 40, 0);
+  const normalTarget = anchor();
+  strikeShockwave([normalTarget], 0);
+  const normalDamage = 1000 - normalTarget.hp;
+  assert.ok(normalDamage > 0, 'O golpe normal deve atingir o alvo frontal de referência.');
 
-  // Um slime além do raio não pode ser atingido pela onda; animais também ficam excluídos.
-  shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = CONFIG.warriorShockwave.everyAttack - 1;
-  const outsideEnemies = ringEnemies();
-  outsideEnemies.push({
-    id: 199, x: shockwaveEngine.state.player.x + 150, y: shockwaveEngine.state.player.y,
-    hp: 1000, hitWait: 0, wobble: 0,
-  });
-  outsideEnemies.push({
-    id: 200, x: shockwaveEngine.state.player.x + 20, y: shockwaveEngine.state.player.y,
-    hp: 1000, hitWait: 0, wobble: 0, animalKind: 'wolf',
-  });
-  shockwaveEngine.state.enemies = outsideEnemies;
-  shockwaveEngine.primaryPlayer.runtime.attackTimer = 2;
-  shockwaveEngine.autoAttack();
-  assert.equal(shockwaveEngine.state.enemies.find(enemy => enemy.id === 199)?.hp, 1000,
-    'A onda não deve atingir slimes além do raio de 90.');
-  assert.equal(shockwaveEngine.state.enemies.find(enemy => enemy.id === 200)?.hp, 1000,
-    'A onda não deve atingir animais.');
+  // Frente próxima: alvo a 120 px, fora do alcance normal de 90, recebe 1,5× na terceira pancada.
+  const frontAnchor = anchor();
+  const frontNear = enemyAt(101, 120, 0);
+  strikeShockwave([frontAnchor, frontNear]);
+  assert.ok(frontNear.hp < 1000, 'A onda deve atingir o slime à frente dentro de 140 px.');
+  assert.ok(Math.abs((1000 - frontNear.hp) / normalDamage - CONFIG.warriorShockwave.damageMultiplier) < 1e-9,
+    'O slime frontal atingido pela onda deve receber exatamente 1,5× de dano.');
+  assert.ok(Math.abs(frontNear.x - (playerPosition().x + 120 + CONFIG.weapons.espada.knockback * 2)) < 1e-6,
+    'O slime frontal deve ser empurrado para longe do jogador com força 2×.');
 
-  // O contador zera no restart e ao trocar de classe.
+  // Atrás: mesmo a 50 px, não recebe a onda nem é empurrado.
+  const behindAnchor = anchor();
+  const behind = enemyAt(102, 50, Math.PI);
+  const behindStart = { x: behind.x, y: behind.y };
+  strikeShockwave([behindAnchor, behind]);
+  assert.equal(behind.hp, 1000, 'O slime atrás do jogador não deve receber a onda.');
+  assert.deepEqual({ x: behind.x, y: behind.y }, behindStart, 'O slime atrás não deve sofrer empurrão.');
+
+  // Frente além de 140 px: permanece intacta.
+  const farAnchor = anchor();
+  const frontFar = enemyAt(103, 150, 0);
+  strikeShockwave([farAnchor, frontFar]);
+  assert.equal(frontFar.hp, 1000, 'O slime frontal além de 140 px não deve receber a onda.');
+
+  // Lateral dentro do limite angular de 90° recebe; além de 90° não recebe.
+  const lateralAnchor = anchor();
+  const lateralInside = enemyAt(104, 80, Math.PI * 80 / 180);
+  const lateralOutside = enemyAt(105, 80, Math.PI * 100 / 180);
+  const lateralOutsideStart = { x: lateralOutside.x, y: lateralOutside.y };
+  strikeShockwave([lateralAnchor, lateralInside, lateralOutside]);
+  assert.ok(lateralInside.hp < 1000, 'O slime lateral dentro de 90° deve receber a onda.');
+  assert.equal(lateralOutside.hp, 1000, 'O slime lateral fora de 90° não deve receber a onda.');
+  assert.deepEqual({ x: lateralOutside.x, y: lateralOutside.y }, lateralOutsideStart,
+    'O slime fora do leque não deve sofrer empurrão.');
+
+  // O empurrão 2× é exclusivo dos atingidos e aponta para longe do jogador.
+  const knockbackAnchor = anchor();
+  const knockbackHit = enemyAt(106, 100, 0);
+  const knockbackMiss = enemyAt(107, 50, Math.PI);
+  const hitStart = { x: knockbackHit.x, y: knockbackHit.y };
+  const missStart = { x: knockbackMiss.x, y: knockbackMiss.y };
+  strikeShockwave([knockbackAnchor, knockbackHit, knockbackMiss]);
+  assert.ok(Math.abs(knockbackHit.x - hitStart.x - CONFIG.weapons.espada.knockback * 2) < 1e-6);
+  assert.ok(Math.abs(knockbackHit.y - hitStart.y) < 1e-6);
+  assert.deepEqual({ x: knockbackMiss.x, y: knockbackMiss.y }, missStart);
+
+  // O visual publica o mesmo ângulo da pancada e o arco configurado.
+  const visualAnchor = anchor();
+  strikeShockwave([visualAnchor]);
+  const warriorEffect = shockwaveEngine.state.explosions.at(-1);
+  assert.equal(warriorEffect?.radius, CONFIG.warriorShockwave.radius);
+  assert.equal(warriorEffect?.color, '#f2d06b');
+  assert.equal(warriorEffect?.angle, shockwaveEngine.state.swordSwingAngle);
+  assert.equal(warriorEffect?.arc, CONFIG.warriorShockwave.arc);
+
+  // A contagem permanece 1, 2, onda, 1; a onda não altera os golpes normais.
+  shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = 0;
+  const cycleAnchor = () => anchor();
+  const cycleExtra = () => enemyAt(108, 120, 0);
+  for (const [count, shouldHit] of [[1, false], [2, false], [0, true], [1, false]]) {
+    const cycleTarget = cycleAnchor();
+    const cycleSlime = cycleExtra();
+    shockwaveEngine.state.enemies = [cycleTarget, cycleSlime];
+    shockwaveEngine.primaryPlayer.runtime.attackTimer = 2;
+    shockwaveEngine.autoAttack();
+    assert.equal(cycleSlime.hp < 1000, shouldHit, `A contagem periódica deve manter o ciclo no golpe ${count + (count === 0 ? 3 : 0)}.`);
+    assert.equal(shockwaveEngine.primaryPlayer.runtime.warriorAttackCount, count === 0 ? 0 : count);
+  }
+
+  // O contador zera no restart e na troca de classe.
   shockwaveEngine.primaryPlayer.runtime.warriorAttackCount = 2;
   shockwaveEngine.restart();
   assert.equal(shockwaveEngine.primaryPlayer.runtime.warriorAttackCount, 0, 'restart() deve zerar o contador do Guerreiro.');
@@ -470,6 +503,8 @@ try {
   }];
   const impactVulnerability = 1 + mageImpact.getDayNightState().vulnerability;
   mageImpact.moveShots(0.01);
+  assert.equal(mageImpact.state.explosions.at(-1)?.arc, undefined, 'A explosão do Mago deve continuar sem arco limitado (círculo completo).');
+  assert.equal(mageImpact.state.explosions.at(-1)?.angle, undefined);
   assert.equal(impactTarget.hp, 1000 - 10 * impactVulnerability,
     'O alvo principal deve receber apenas o dano básico, com a vulnerabilidade vigente.');
   assert.equal(nearbySlime.hp, 1000 - 10 * CONFIG.mageExplosion.damageMultiplier * impactVulnerability,
