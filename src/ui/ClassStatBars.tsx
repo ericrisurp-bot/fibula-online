@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ATTRIBUTE_USAGE, applyArmorToDamage, getDamageMultiplier, getPlayerAttributes } from '../game/attributes';
+import { ATTRIBUTE_USAGE, applyArmorToDamage, getDamageMultiplier, getPlayerAttributes, getDerivedArmor } from '../game/attributes';
 import { drawLadino } from '../game/ladino';
 import { CONFIG, type ClassId, type WeaponId } from '../game/config';
 
@@ -49,7 +49,8 @@ export function computeClassStats(classId: ClassId): ComputedClassStats {
   const firstNightContactDamage = CONFIG.enemy.contactDamage
     + Math.floor((FIRST_NIGHT - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
   const levelZeroArmor = (playerAttributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
-  const damageTakenPerHit = applyArmorToDamage(firstNightContactDamage, CONFIG.player.armor + levelZeroArmor);
+  const initialDerivedArmor = getDerivedArmor(classId, initialHealth, 0);
+  const damageTakenPerHit = applyArmorToDamage(firstNightContactDamage, CONFIG.player.armor + levelZeroArmor + initialDerivedArmor);
   const initialHealth = CONFIG.attributes.classStartHealth[classId];
 
   return {
