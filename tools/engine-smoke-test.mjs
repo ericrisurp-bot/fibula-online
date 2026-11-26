@@ -59,7 +59,7 @@ try {
     engine.random = () => 0;
     engine.getDodgeChance = () => 0;
   };
-  const measureSlimeDamage = (classId, nightNumber) => {
+  const measureSlimeDamage = (classId, nightNumber, equipmentArmor = 0) => {
     const engine = createEngine(0x51A000 + nightNumber);
     engine.setClass(classId);
     engine.nightNumber = nightNumber;
@@ -74,6 +74,7 @@ try {
       id: 5100 + nightNumber, x: player.x + 29, y: feetY,
       hp: 30, hitWait: 0, wobble: 0,
     }];
+    if (equipmentArmor > 0) engine.getLevelStats = () => ({ speed: 0, armor: equipmentArmor, dodge: 0 });
     forceHit(engine);
     engine.moveEnemies(0.01);
     const damage = player.maxHp - player.hp;
@@ -128,6 +129,8 @@ try {
   }
   assert.equal(measureSlimeDamage('guerreiro', 0), 14,
     'No dia 1, antes da noite 1, o dano de contato deve continuar igual ao da main (9 × 1,5 = 13,5 arredondado para 14).');
+  assert.equal(measureSlimeDamage('guerreiro', 15, 7), 9,
+    'O motor deve somar os 7 pontos de armadura do equipamento aos 18 pontos derivados na noite 15.');
 
   const prepareCampfirePlacement = (engine) => {
     engine.state.player.x = CONFIG.map.size / 2;
