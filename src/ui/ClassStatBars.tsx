@@ -34,6 +34,7 @@ export type ComputedClassStats = {
   enemiesPerSecond: number;
   hitsToSurvive: number;
   initialArmor: number;
+  fullArmor: number;
   damageTakenPerHit: number;
   range: number;
 };
@@ -54,6 +55,8 @@ export function computeClassStats(classId: ClassId): ComputedClassStats {
   const initialHealth = CONFIG.attributes.classStartHealth[classId];
   const initialDerivedArmor = getDerivedArmor(classId, initialHealth, 0);
   const initialArmor = CONFIG.player.armor + levelZeroArmor + initialDerivedArmor;
+  const fullArmor = CONFIG.player.armor + levelZeroArmor
+    + getDerivedArmor(classId, initialHealth, CONFIG.player.armorFromHealthFullNight);
   const damageTakenPerHit = applyArmorToDamage(firstNightContactDamage, initialArmor);
 
   return {
@@ -61,6 +64,7 @@ export function computeClassStats(classId: ClassId): ComputedClassStats {
     enemiesPerSecond: firstNightEnemyHealth > 0 ? damagePerSecond / firstNightEnemyHealth : 0,
     hitsToSurvive: Math.floor(initialHealth / damageTakenPerHit),
     initialArmor,
+    fullArmor,
     damageTakenPerHit,
     range: weapon.range,
   };
@@ -174,7 +178,7 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   const computedStats = computeClassStats(classId);
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
-    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura inicial', value: computedStats.initialArmor.toFixed(0) },
+    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura (noite 15)', value: computedStats.fullArmor.toFixed(0) },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
     { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Ataques/s', value: weapon.attackSpeed.toFixed(2) },
     { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. de movimento', value: initialMobility.toFixed(0) },
