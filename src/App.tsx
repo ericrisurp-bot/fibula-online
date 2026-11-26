@@ -1834,7 +1834,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     catch { return urlEnabled; }
   });
   const perfReactRenderCountRef = useRef(0);
-  if (perfTelemetryEnabled) perfReactRenderCountRef.current += 1;
+  const perfTelemetryActiveRef = useRef(false);
+  if (perfTelemetryActiveRef.current) perfReactRenderCountRef.current += 1;
   const [adventurerGuideEnabled, setAdventurerGuideEnabled] = useState(readAdventurerGuideEnabled);
   const [adventurerGuideFinishedHidden, setAdventurerGuideFinishedHidden] = useState(false);
 
@@ -2571,15 +2572,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       mission7Stone: Math.max(0, 8 - guideCurrent.mission7StoneRemaining),
     };
     let engineActive = true;
-    const perfEnabled = new URLSearchParams(window.location.search).get('fps') === '1' || (() => {
-      try { return window.localStorage.getItem('fibula-perf') === '1'; }
-      catch { return false; }
-    })();
-    const perfMetrics = perfEnabled ? {
-      frameTimeTotal: 0, frameTimeCount: 0, worstFrame: 0, slowFrames: 0, lastFrameAt: 0,
-      stepTotal: 0, stepCount: 0, renderTotal: 0, renderCount: 0,
-      drawablesTotal: 0, drawablesCount: 0, overlayTotal: 0, overlayCount: 0, emits: 0,
-    } : null;
+    let perfMetrics: {
+      frameTimeTotal: number; frameTimeCount: number; worstFrame: number; slowFrames: number; lastFrameAt: number;
+      stepTotal: number; stepCount: number; renderTotal: number; renderCount: number;
+      drawablesTotal: number; drawablesCount: number; overlayTotal: number; overlayCount: number; emits: number;
+    } | null = null;
+    let fpsDisplay: HTMLDivElement | null = null;
+    let fpsFrameCount = 0;
+    let fpsWindowStart = 0;
     const engine = new GameEngine((next) => {
       if (perfMetrics) perfMetrics.emits += 1;
       setState(next);
@@ -2710,17 +2710,53 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       previousGuideSnapshot = next;
     }, { accountLevel });
     let originalEngineStep: GameEngine['step'] | null = null;
-    if (perfMetrics) {
-      originalEngineStep = engine.step;
-      engine.step = (dt: number) => {
-        const startedAt = performance.now();
-        try { originalEngineStep!.call(engine, dt); }
-        finally {
-          perfMetrics.stepTotal += performance.now() - startedAt;
-          perfMetrics.stepCount += 1;
-        }
-      };
-    }
+    const originalEngineStart = engine.start;
+    const syncPerfTelemetryForNextMatch = () => {
+      const enabled = new URLSearchParams(window.location.search).get('fps') === '1' || (() => {
+        try { return window.localStorage.getItem('fibula-perf') === '1'; }
+        catch { return false; }
+      })();
+      if (enabled && !perfMetrics) {
+        perfMetrics = {
+          frameTimeTotal: 0, frameTimeCount: 0, worstFrame: 0, slowFrames: 0, lastFrameAt: 0,
+          stepTotal: 0, stepCount: 0, renderTotal: 0, renderCount: 0,
+          drawablesTotal: 0, drawablesCount: 0, overlayTotal: 0, overlayCount: 0, emits: 0,
+        };
+        fpsFrameCount = 0;
+        fpsWindowStart = performance.now();
+        fpsDisplay = document.createElement('div');
+        Object.assign(fpsDisplay.style, {
+          position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
+          zIndex: '2147483647', padding: '3px 6px', color: '#fff',
+          background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
+        });
+        fpsDisplay.textContent = 'FPS: --';
+        document.body.appendChild(fpsDisplay);
+        originalEngineStep = engine.step;
+        engine.step = (dt: number) => {
+          const startedAt = performance.now();
+          try { originalEngineStep!.call(engine, dt); }
+          finally {
+            if (perfMetrics) {
+              perfMetrics.stepTotal += performance.now() - startedAt;
+              perfMetrics.stepCount += 1;
+            }
+          }
+        };
+        perfTelemetryActiveRef.current = true;
+      } else if (!enabled && perfMetrics) {
+        if (originalEngineStep) engine.step = originalEngineStep;
+        originalEngineStep = null;
+        perfMetrics = null;
+        fpsDisplay?.remove();
+        fpsDisplay = null;
+        perfTelemetryActiveRef.current = false;
+      }
+    };
+    engine.start = () => {
+      syncPerfTelemetryForNextMatch();
+      originalEngineStart.call(engine);
+    };
     engine.setPermanentCamp({
       bau: campProgressRef.current.completedMissions.includes(4),
       refinery: campProgressRef.current.completedMissions.includes(6),
@@ -2803,19 +2839,6 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       pendingCloudHouseInventoryRef.current = null;
     }
     let frame = 0;
-    let fpsDisplay: HTMLDivElement | null = null;
-    let fpsFrameCount = 0;
-    let fpsWindowStart = perfEnabled ? performance.now() : 0;
-    if (perfEnabled) {
-      fpsDisplay = document.createElement('div');
-      Object.assign(fpsDisplay.style, {
-        position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
-        zIndex: '2147483647', padding: '3px 6px', color: '#fff',
-        background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
-      });
-      fpsDisplay.textContent = 'FPS: --';
-      document.body.appendChild(fpsDisplay);
-    }
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
     const terrainScale = 0.5;
     const terrainCanvas = document.createElement('canvas');
@@ -3593,7 +3616,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); if (originalEngineStep) engine.step = originalEngineStep; engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); if (originalEngineStep) engine.step = originalEngineStep; engine.start = originalEngineStart; perfTelemetryActiveRef.current = false; engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
   }, [activeGameRoute.page, session.user.sub, classChoice, campProgressReady, campProgressLoadedUserId]);
 
   useEffect(() => {
