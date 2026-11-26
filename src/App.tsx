@@ -3748,9 +3748,18 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     if (!fibulaSupabase || !session.user.sub) return;
     let active = true;
     const retryOutboxWhenOnline = () => {
-      if (houseOutboxStartupReadyRef.current && !houseMatchActiveRef.current && !houseMatchClosedRef.current) {
+      if (houseMatchActiveRef.current || houseMatchClosedRef.current) return;
+      if (houseOutboxStartupReadyRef.current) {
         void houseOutboxDrainRef.current();
+        return;
       }
+      // Se a confirmação inicial falhou offline, tenta confirmar o snapshot
+      // novamente antes de liberar a drenagem da fila local.
+      void refreshLobbyChestFromCloud().then(success => {
+        if (!success || houseMatchActiveRef.current || houseMatchClosedRef.current) return;
+        houseOutboxStartupReadyRef.current = true;
+        void houseOutboxDrainRef.current();
+      });
     };
     const retryOutboxWhenVisible = () => {
       if (document.visibilityState === 'visible') retryOutboxWhenOnline();
