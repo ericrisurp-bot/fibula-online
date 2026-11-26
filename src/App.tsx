@@ -2728,7 +2728,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         Object.assign(fpsDisplay.style, {
           position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
           zIndex: '2147483647', padding: '3px 6px', color: '#fff',
-          background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
+          background: 'rgba(0, 0, 0, 0.65)', font: '11px monospace', whiteSpace: 'pre-wrap',
+          maxWidth: 'calc(100vw - 16px)', overflowWrap: 'anywhere',
         });
         fpsDisplay.textContent = 'FPS: --';
         document.body.appendChild(fpsDisplay);
