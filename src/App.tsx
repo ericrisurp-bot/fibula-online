@@ -2981,15 +2981,15 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color, s.elapsed) });
       }
       if (s.campfire) {
-        if (!s.tecelaria.built) {
+        if (campMenuOpenRef.current && !s.tecelaria.built) {
           const slot = CONFIG.campLayout.tecelaria;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Tecelaria', 42) });
         }
-        if (!s.refinery.built) {
+        if (campMenuOpenRef.current && !s.refinery.built) {
           const slot = CONFIG.campLayout.refinery;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Refinaria', 38) });
         }
-        if (!s.house.built) {
+        if (campMenuOpenRef.current && !s.house.built) {
           const slot = CONFIG.campLayout.bau;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Baú', 38) });
         }
