@@ -828,9 +828,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       if (houseInventoryJson !== initialHouseInventoryRef.current) houseChangedDuringLoadRef.current = true;
       return;
     }
-    if (!houseOutboxStartupReadyRef.current) return;
+    if (!houseOutboxStartupReadyRef.current && !houseMatchActiveRef.current) return;
     if (pendingCloudHouseInventoryRef.current !== null) return;
-    if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
+    if ((!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') && !houseMatchActiveRef.current) {
       console.warn('[Baú] Sincronização ignorada: inventário da nuvem ainda não foi confirmado.');
       return;
     }
