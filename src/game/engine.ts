@@ -3340,10 +3340,41 @@ export class GameEngine {
     p.y = this.clamp(feet.y - off, CONFIG.map.wall + CONFIG.player.radius, this.world - CONFIG.map.wall - CONFIG.player.footRadius - off);
   }
 
+  private resolveStructureBox(entity: Vec, radius: number, centerX: number, centerY: number, halfWidth: number, halfHeight: number) {
+    const nearestX = this.clamp(entity.x, centerX - halfWidth, centerX + halfWidth);
+    const nearestY = this.clamp(entity.y, centerY - halfHeight, centerY + halfHeight);
+    let dx = entity.x - nearestX;
+    let dy = entity.y - nearestY;
+    let distance = Math.hypot(dx, dy);
+    if (distance >= radius) return;
+    if (distance === 0) {
+      const toLeft = entity.x - (centerX - halfWidth);
+      const toRight = centerX + halfWidth - entity.x;
+      const toTop = entity.y - (centerY - halfHeight);
+      const toBottom = centerY + halfHeight - entity.y;
+      const edge = Math.min(toLeft, toRight, toTop, toBottom);
+      if (edge === toLeft) dx = -1;
+      else if (edge === toRight) dx = 1;
+      else if (edge === toTop) dy = -1;
+      else dy = 1;
+      distance = 0;
+    }
+    const push = radius - distance;
+    const length = Math.hypot(dx, dy) || 1;
+    entity.x = this.clamp(entity.x + dx / length * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
+    entity.y = this.clamp(entity.y + dy / length * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
+  }
+
   private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false, cached?: Array<Vec & { radius: number }>) {
     const obstacleList = cached ?? this.obstacleCircles(ignoreCart);
+    const house = this.state.house.built ? this.state.house : null;
+    const refinery = this.state.refinery.built ? this.state.refinery : null;
     for (let pass = 0; pass < 3; pass++) {
       for (const obstacle of obstacleList) {
+        // Baú e refinaria usam caixas baixas na base do sprite, não círculos
+        // grandes centrados na imagem. Isso evita bloquear a aproximação por cima.
+        if (house && obstacle.x === house.x && obstacle.y === house.y + 1) continue;
+        if (refinery && obstacle.x === refinery.x && obstacle.y === refinery.y + 1) continue;
         let dx = entity.x - obstacle.x;
         let dy = entity.y - obstacle.y;
         let distance = Math.hypot(dx, dy);
@@ -3358,6 +3389,8 @@ export class GameEngine {
         entity.x = this.clamp(entity.x + dx / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
         entity.y = this.clamp(entity.y + dy / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
       }
+      if (house) this.resolveStructureBox(entity, radius, house.x, house.y + 24, 25, 9);
+      if (refinery) this.resolveStructureBox(entity, radius, refinery.x, refinery.y + 34, 39, 12);
     }
     pushOutOfLake(this.state.lake, entity, radius);
   }
