@@ -787,6 +787,11 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     let cancelled = false;
     void loadHouseInventory(fibulaSupabase, userId).then(({ inventory, source }) => {
       if (cancelled) return;
+      if (houseMatchActiveRef.current) {
+        houseLoadReadyRef.current = true;
+        setHouseLoadReady(true);
+        return;
+      }
       if (chestRefreshVersion !== lobbyChestRefreshRequestRef.current) {
         houseLoadReadyRef.current = true;
         setHouseLoadReady(true);
