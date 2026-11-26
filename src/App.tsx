@@ -6563,7 +6563,7 @@ function drawCampChest(ctx: CanvasRenderingContext2D, house: GameSnapshot['house
   if (typeof Image === 'undefined') return;
   if (!campChestSprite) {
     campChestSprite = new Image();
-    campChestSprite.src = '/assets/bau/Bau.png';
+    campChestSprite.src = '/assets/bau/Bau.png?v=20261126';
   }
   if (!campChestSprite.complete || campChestSprite.naturalWidth === 0) return;
   ctx.save();
