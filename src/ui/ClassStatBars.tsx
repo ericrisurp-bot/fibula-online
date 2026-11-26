@@ -49,9 +49,9 @@ export function computeClassStats(classId: ClassId): ComputedClassStats {
   const firstNightContactDamage = CONFIG.enemy.contactDamage
     + Math.floor((FIRST_NIGHT - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
   const levelZeroArmor = (playerAttributes.armadura - CONFIG.attributes.baseValue) * CONFIG.attributes.effectPerPointGained.armadura;
+  const initialHealth = CONFIG.attributes.classStartHealth[classId];
   const initialDerivedArmor = getDerivedArmor(classId, initialHealth, 0);
   const damageTakenPerHit = applyArmorToDamage(firstNightContactDamage, CONFIG.player.armor + levelZeroArmor + initialDerivedArmor);
-  const initialHealth = CONFIG.attributes.classStartHealth[classId];
 
   return {
     damagePerSecond,
