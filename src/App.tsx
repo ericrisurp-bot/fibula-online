@@ -6558,26 +6558,17 @@ function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: n
   ctx.restore();
 }
 
+let campChestSprite: HTMLImageElement | null = null;
 function drawCampChest(ctx: CanvasRenderingContext2D, house: GameSnapshot['house']) {
-  const { x, y } = house;
+  if (typeof Image === 'undefined') return;
+  if (!campChestSprite) {
+    campChestSprite = new Image();
+    campChestSprite.src = '/assets/bau/Bau.png';
+  }
+  if (!campChestSprite.complete || campChestSprite.naturalWidth === 0) return;
   ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,.3)';
-  ctx.beginPath(); ctx.ellipse(0, 19, 36, 10, 0, 0, Math.PI * 2); ctx.fill();
-
-  ctx.beginPath(); ctx.moveTo(-28, -5); ctx.lineTo(28, -5); ctx.lineTo(28, 22); ctx.quadraticCurveTo(0, 28, -28, 22); ctx.closePath(); fillCampTexture(ctx, 'wood', '#755038');
-  ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.stroke();
-
-  ctx.beginPath(); ctx.moveTo(-28, -6); ctx.quadraticCurveTo(-28, -28, 0, -30); ctx.quadraticCurveTo(28, -28, 28, -6); ctx.closePath(); fillCampTexture(ctx, 'wood', '#503323');
-  ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(0, -29, 28, 52);
-  ctx.strokeStyle = '#38271d'; ctx.lineWidth = 3; ctx.stroke();
-
-  ctx.strokeStyle = '#514f49'; ctx.lineWidth = 1.5;
-  fillCampTexturedRect(ctx, 'stone', -23, -5, 5, 28, '#8d8b84'); ctx.strokeRect(-23, -5, 5, 28);
-  fillCampTexturedRect(ctx, 'stone', 18, -5, 5, 28, '#8d8b84'); ctx.strokeRect(18, -5, 5, 28);
-  fillCampTexturedRect(ctx, 'stone', -28, 5, 56, 4, '#8d8b84'); ctx.strokeRect(-28, 5, 56, 4);
-  fillCampTexturedRect(ctx, 'stone', -5, 2, 10, 10, '#8d8b84'); ctx.strokeRect(-5, 2, 10, 10);
-  ctx.fillStyle = '#38271d'; ctx.beginPath(); ctx.arc(0, 7, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(campChestSprite, house.x - 32, house.y - 32, 64, 64);
   ctx.restore();
 }
 
