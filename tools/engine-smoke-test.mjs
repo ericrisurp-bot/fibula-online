@@ -56,7 +56,7 @@ try {
   }
 
   const forceHit = (engine) => {
-    engine.random = () => 0;
+    engine.random = () => 1;
     engine.getDodgeChance = () => 0;
   };
   const measureSlimeDamage = (classId, nightNumber, equipmentArmor = 0) => {
