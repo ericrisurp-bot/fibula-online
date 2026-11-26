@@ -3964,13 +3964,17 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const finalizeHouseAtMatchEnd = (timeoutMs: number): Promise<boolean> => {
     if (houseMatchFinalizeInFlightRef.current) return houseMatchFinalizeInFlightRef.current;
     const finalizePromise = (async () => {
-      const inFlightSync = houseSyncInFlightRef.current;
-      if (inFlightSync) await inFlightSync;
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
       let drainCompleted = false;
       try {
+        // O prazo cobre tanto a RPC já em andamento quanto os lotes restantes.
+        const drainAfterInFlight = async () => {
+          const inFlightSync = houseSyncInFlightRef.current;
+          if (inFlightSync) await inFlightSync;
+          return houseOutboxDrainRef.current(true);
+        };
         const result = await Promise.race([
-          houseOutboxDrainRef.current(true).then(outcome => ({ kind: 'result' as const, outcome })),
+          drainAfterInFlight().then(outcome => ({ kind: 'result' as const, outcome })),
           new Promise<{ kind: 'timeout' }>(resolve => {
             timeoutHandle = setTimeout(() => resolve({ kind: 'timeout' }), timeoutMs);
           }),
@@ -3981,6 +3985,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       } finally {
         if (timeoutHandle !== null) clearTimeout(timeoutHandle);
       }
+
       if (!drainCompleted || readHouseOutbox().length > 0) houseNeedsReconcileRef.current = true;
       pendingHouseInventoryRef.current = null;
       const confirmedSnapshot = lastSyncedHouseInventoryRef.current || JSON.stringify(readConfirmedHouseInventory());
