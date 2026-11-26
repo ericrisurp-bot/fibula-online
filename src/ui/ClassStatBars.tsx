@@ -33,6 +33,8 @@ export type ComputedClassStats = {
   damagePerSecond: number;
   enemiesPerSecond: number;
   hitsToSurvive: number;
+  initialArmor: number;
+  damageTakenPerHit: number;
   range: number;
 };
 
@@ -57,6 +59,8 @@ export function computeClassStats(classId: ClassId): ComputedClassStats {
     damagePerSecond,
     enemiesPerSecond: firstNightEnemyHealth > 0 ? damagePerSecond / firstNightEnemyHealth : 0,
     hitsToSurvive: Math.floor(initialHealth / damageTakenPerHit),
+    initialArmor,
+    damageTakenPerHit,
     range: weapon.range,
   };
 }
@@ -166,17 +170,19 @@ export default function ClassStatBars({ classId, preferences, onPreferencesChang
   const weapon = CONFIG.weapons[CLASS_WEAPONS[classId]];
   const initialMobility = CONFIG.player.classSpeed[classId];
   const initialDamage = weapon.damage * getDamageMultiplier(classId, 0);
+  const computedStats = computeClassStats(classId);
   const stats = [
     { key: 'hp', icon: CLASS_STAT_ICONS.hp, label: 'HP inicial', value: CONFIG.attributes.classStartHealth[classId].toString() },
+    { key: 'armor', icon: CLASS_STAT_ICONS.armor, label: 'Armadura inicial', value: computedStats.initialArmor.toFixed(0) },
     { key: 'damage', icon: CLASS_STAT_ICONS.damage, label: 'Dano inicial', value: initialDamage.toFixed(0) },
     { key: 'attackSpeed', icon: CLASS_STAT_ICONS.attackSpeed, label: 'Ataques/s', value: weapon.attackSpeed.toFixed(2) },
     { key: 'mobility', icon: CLASS_STAT_ICONS.mobility, label: 'Vel. de movimento', value: initialMobility.toFixed(0) },
   ];
-  const computedStats = computeClassStats(classId);
   const computedStatCards = [
     { key: 'damagePerSecond', icon: CLASS_STAT_ICONS.damagePerSecond, label: 'Dano por segundo', value: computedStats.damagePerSecond.toFixed(1) },
     { key: 'enemiesPerSecond', icon: CLASS_STAT_ICONS.enemiesPerSecond, label: 'Inimigos/s (1 alvo)', value: computedStats.enemiesPerSecond.toFixed(2) },
     { key: 'hits', icon: CLASS_STAT_ICONS.hits, label: 'Aguenta (golpes)', value: computedStats.hitsToSurvive.toString() },
+    { key: 'damageTaken', icon: CLASS_STAT_ICONS.hits, label: 'Dano recebido/golpe', value: computedStats.damageTakenPerHit.toFixed(0) },
     { key: 'range', icon: CLASS_STAT_ICONS.range, label: 'Alcance', value: computedStats.range.toFixed(0) },
   ];
   const setPreference = (slot: 0 | 1) => onPreferencesChange(preferences[slot] === classId
