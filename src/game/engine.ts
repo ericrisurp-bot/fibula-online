@@ -800,7 +800,7 @@ export class GameEngine {
   private isCampSlotBlocked(slot: 'bau' | 'refinery' | 'tecelaria'): boolean {
     const position = this.getCampSlotPosition(slot);
     if (!position) return true;
-    const radius = slot === 'tecelaria' ? 42 : 38;
+    const radius = slot === 'tecelaria' ? 42 : slot === 'refinery' ? 47 : 32;
     const clearance = CONFIG.campfire.minDistance;
     const distance = (other: Vec) => Math.hypot(position.x - other.x, position.y - other.y);
     const blockedByTree = this.state.trees.some(tree =>
@@ -813,8 +813,8 @@ export class GameEngine {
     const outsideMap = position.x < margin || position.y < margin
       || position.x > this.world - margin || position.y > this.world - margin;
     const structures = [
-      ...(slot !== 'bau' && this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
-      ...(slot !== 'refinery' && this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 }] : []),
+      ...(slot !== 'bau' && this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 32 }] : []),
+      ...(slot !== 'refinery' && this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 47 }] : []),
       ...(slot !== 'tecelaria' && this.state.tecelaria.built ? [{ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 }] : []),
     ];
     const blockedByStructure = structures.some(other =>
@@ -838,8 +838,8 @@ export class GameEngine {
     const blockedByRock = this.state.rocks.some(rock => Math.hypot(feet.x - rock.x, feet.y - rock.y) < minDistance + this.rockFootprintRadius(rock));
     const blockedByLake = distanceToLakeEdge(this.state.lake, feet.x, feet.y) < minDistance;
     const obstacles = [
-      ...(this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 }] : []),
-      ...(this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 }] : []),
+      ...(this.state.house.built ? [{ x: this.state.house.x, y: this.state.house.y + 1, radius: 32 }] : []),
+      ...(this.state.refinery.built ? [{ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 47 }] : []),
       ...(this.state.tecelaria.built ? [{ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 }] : []),
       { x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius },
     ];
@@ -850,7 +850,7 @@ export class GameEngine {
       || (['tecelaria', 'refinery', 'bau'] as const).some(slot => {
         const offset = CONFIG.campLayout[slot];
         const position = { x: feet.x + offset.dx, y: feet.y + offset.dy };
-        const radius = slot === 'tecelaria' ? 42 : 38;
+        const radius = slot === 'tecelaria' ? 42 : slot === 'refinery' ? 47 : 32;
         const margin = CONFIG.map.wall + CONFIG.house.wallMargin + radius;
         if (position.x < margin || position.y < margin || position.x > this.world - margin || position.y > this.world - margin) return true;
         if (this.state.trees.some(tree => Math.hypot(position.x - this.treeBase(tree).x, position.y - this.treeBase(tree).y) < minDistance + radius + this.treeFootprintRadius(tree))) return true;
@@ -1892,9 +1892,9 @@ export class GameEngine {
       : sizeRoll < CONFIG.lake.sizeWeights.small + CONFIG.lake.sizeWeights.medium ? 'medium' : 'large';
     const vertical = this.random() >= 0.5;
     const structures = [
-      { x: this.state.house.x, y: this.state.house.y, radius: 38 },
+      { x: this.state.house.x, y: this.state.house.y, radius: 32 },
       { x: this.state.cart.x, y: this.state.cart.y, radius: 38 },
-      { x: this.state.refinery.x, y: this.state.refinery.y, radius: 38 },
+      { x: this.state.refinery.x, y: this.state.refinery.y, radius: 47 },
       { x: this.state.tecelaria.x, y: this.state.tecelaria.y, radius: 42 },
     ];
     const axes = (lakeSize: Lake['size']) => {
@@ -3309,8 +3309,8 @@ export class GameEngine {
     circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
     circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     if (this.state.jabuticabaTree) circles.push({ x: this.state.jabuticabaTree.x, y: this.state.jabuticabaTree.y + 94.25, radius: 29 });
-    if (this.state.house.built) circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 38 });
-    if (this.state.refinery.built || includeUnbuiltMachines) circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 38 });
+    if (this.state.house.built) circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 32 });
+    if (this.state.refinery.built || includeUnbuiltMachines) circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 47 });
     if (this.state.tecelaria.built || includeUnbuiltMachines) circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
     circles.push(...(useLakeSteering ? this.lakeAvoidanceCircles : this.lakeCollisionCircles));
     if (!ignoreCart) circles.push({ x: this.state.cart.x, y: this.state.cart.y + 1, radius: CONFIG.cart.collisionRadius });
