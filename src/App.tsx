@@ -5175,7 +5175,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     setExitConfirmationBusy(true);
     setExitConfirmationError('');
 
-    // Fecha novas gravações do Baú imediatamente. Uma operação já enviada ao
+    // Fecha novas alterações locais do Baú enquanto o servidor confirma o encerramento.
     // servidor pode terminar; o restante da fila ainda não confirmado será descartado.
     houseMatchClosedRef.current = true;
     try {
@@ -5216,7 +5216,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       await returnToLobby();
     } catch (cause) {
       // Se o servidor não confirmou o encerramento, a partida continua ativa.
-      // Reabre a sincronização para que o jogador possa tentar novamente.
+      // A partida continua ativa: não drenar nem iniciar rede do Baú neste catch.
       houseMatchClosedRef.current = false;
       // A partida continua ativa: não drenar nem iniciar rede do Baú neste catch.
       const errorMessage = cause instanceof Error
