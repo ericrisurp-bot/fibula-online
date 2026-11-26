@@ -3717,7 +3717,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     }
     try {
       const inventory = await loadCloudHouseInventory(fibulaSupabase, userId);
-      if (requestId !== lobbyChestRefreshRequestRef.current || session.user.sub !== userId) return false;
+      if (requestId !== lobbyChestRefreshRequestRef.current || session.user.sub !== userId
+        || houseMatchActiveRef.current) return false;
       lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
       houseSyncBaselineRef.current = JSON.stringify(inventory);
       pendingHouseInventoryRef.current = null;
@@ -3761,6 +3762,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       // que ficaram pendentes no dispositivo. Nunca drenar a fila contra baseline vazio.
       const success = await refreshLobbyChestFromCloud();
       if (!active) return;
+      if (houseMatchActiveRef.current) {
+        houseOutboxStartupReadyRef.current = true;
+        return;
+      }
       if (!success) {
         setCookingFeedback('Não foi possível confirmar o Baú no servidor. As alterações pendentes foram preservadas.');
         return;
@@ -3977,7 +3982,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       return drainCompleted;
     })();
     houseMatchFinalizeInFlightRef.current = finalizePromise;
-    void finalizePromise.finally(() => {
+    void finalizePromise.then(() => {
+      if (houseMatchFinalizeInFlightRef.current === finalizePromise) houseMatchFinalizeInFlightRef.current = null;
+    }, () => {
       if (houseMatchFinalizeInFlightRef.current === finalizePromise) houseMatchFinalizeInFlightRef.current = null;
     });
     return finalizePromise;
@@ -4613,6 +4620,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       await prepareEquippedWeaponForClass(engine, selectedClass);
       if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[selectedClass] ?? {});
        engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[selectedClass] ?? {} : {});
+      if (houseSyncInFlightRef.current) await houseSyncInFlightRef.current;
       engine.start();
       houseMatchActiveRef.current = true;
       houseMatchClosedRef.current = false;
@@ -4745,6 +4753,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
+        if (houseSyncInFlightRef.current) await houseSyncInFlightRef.current;
         engine.restart();
         houseMatchActiveRef.current = true;
         houseMatchClosedRef.current = false;
@@ -5246,6 +5255,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       adventurerGuideObjectivesRef.current = createNewMatchGuideObjectives(campProgressRef.current.objectives, campProgressRef.current.completedMissions);
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
+      if (houseSyncInFlightRef.current) await houseSyncInFlightRef.current;
       engine.restart();
       houseMatchActiveRef.current = true;
       houseMatchClosedRef.current = false;
