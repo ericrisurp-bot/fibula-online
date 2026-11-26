@@ -17,6 +17,118 @@ try {
   });
 
   const { CONFIG } = await server.ssrLoadModule('/src/game/config.ts');
+  const { getDerivedArmor, applyArmorToDamage } = await server.ssrLoadModule('/src/game/attributes.ts');
+  const { getClassPower } = await server.ssrLoadModule('/src/game/power.ts');
+
+  // S1: armadura derivada por classe, escalada linearmente até a noite 15.
+  const expectedArmor = {
+    guerreiro: [1, 9, 18],
+    druida: [0, 5, 11],
+    arqueiro: [0, 4, 8],
+    mago: [0, 2, 5],
+  };
+  const classIds = ['guerreiro', 'druida', 'arqueiro', 'mago'];
+  const testedNights = [1, 8, 15];
+  for (const classId of classIds) {
+    const maxHealth = CONFIG.attributes.classStartHealth[classId];
+    assert.deepEqual(
+      testedNights.map(night => getDerivedArmor(classId, maxHealth, night)),
+      expectedArmor[classId],
+      `Armadura derivada incorreta para ${classId}.`,
+    );
+    assert.equal(getDerivedArmor(classId, maxHealth, 30), expectedArmor[classId][2],
+      `A armadura de ${classId} não pode crescer após a noite 15.`);
+    assert.ok(getDerivedArmor(classId, maxHealth + 20, 15) > getDerivedArmor(classId, maxHealth, 15),
+      `Aumentar a vida máxima deve aumentar a armadura derivada de ${classId}.`);
+  }
+  assert.equal(getDerivedArmor('guerreiro', CONFIG.attributes.classStartHealth.guerreiro, 0), 0,
+    'Antes da primeira noite, a armadura derivada deve ser zero.');
+  assert.equal(applyArmorToDamage(100, 7 + getDerivedArmor('guerreiro', 150, 15)), 75,
+    'A armadura de equipamento deve somar à derivada.');
+  assert.equal(applyArmorToDamage(100, 100 + getDerivedArmor('guerreiro', 150, 15)), 40,
+    'A redução total de armadura deve respeitar o teto de 60%.');
+
+  // O PD de nível 0 permanece idêntico: a armadura derivada não participa de power.ts.
+  const expectedPower = { guerreiro: 444.33, mago: 400.61, arqueiro: 372.60, druida: 410.36 };
+  for (const [classId, expected] of Object.entries(expectedPower)) {
+    assert.equal(Number(getClassPower(classId, 0).total.toFixed(2)), expected,
+      `O PD de nível 0 mudou para ${classId}.`);
+  }
+
+  const forceHit = (engine) => {
+    engine.random = () => 0;
+    engine.getDodgeChance = () => 0;
+  };
+  const measureSlimeDamage = (classId, nightNumber) => {
+    const engine = createEngine(0x51A000 + nightNumber);
+    engine.setClass(classId);
+    engine.nightNumber = nightNumber;
+    engine.state.nightNumber = nightNumber;
+    engine.state.wave = Math.max(1, nightNumber);
+    engine.phase = nightNumber === 0 ? 'day' : 'night';
+    engine.state.dayNight = engine.phase;
+    const player = engine.state.player;
+    player.hp = player.maxHp;
+    const feetY = player.y + CONFIG.player.footOffset;
+    engine.state.enemies = [{
+      id: 5100 + nightNumber, x: player.x + 29, y: feetY,
+      hp: 30, hitWait: 0, wobble: 0,
+    }];
+    forceHit(engine);
+    engine.moveEnemies(0.01);
+    const damage = player.maxHp - player.hp;
+    engine.stop();
+    return damage;
+  };
+  const measureWolfDamage = (classId, nightNumber) => {
+    const engine = createEngine(0x52A000 + nightNumber);
+    engine.setClass(classId);
+    engine.nightNumber = nightNumber;
+    engine.state.nightNumber = nightNumber;
+    const player = engine.state.player;
+    player.hp = player.maxHp;
+    const wolf = {
+      id: 5200 + nightNumber,
+      x: player.x + CONFIG.wildlife.wolves.radius + CONFIG.player.footRadius,
+      y: player.y + CONFIG.player.footOffset,
+      hp: 34, hitWait: 0, wobble: 0, animalKind: 'wolf',
+      wanderAngle: 0, wanderTimer: 10,
+    };
+    engine.state.enemies = [wolf];
+    forceHit(engine);
+    engine.moveWildlife(wolf, 0.01, []);
+    const damage = player.maxHp - player.hp;
+    engine.stop();
+    return damage;
+  };
+
+  const expectedSlimeDamage = {
+    guerreiro: [9, 9, 10],
+    druida: [9, 10, 11],
+    arqueiro: [9, 10, 11],
+    mago: [9, 10, 11],
+  };
+  const expectedWolfDamage = {
+    guerreiro: [4, 4, 3],
+    druida: [4, 4, 4],
+    arqueiro: [4, 4, 4],
+    mago: [4, 4, 4],
+  };
+  for (const classId of classIds) {
+    assert.deepEqual(
+      testedNights.map(night => measureSlimeDamage(classId, night)),
+      expectedSlimeDamage[classId],
+      `O dano real de contato dos slimes não corresponde à armadura derivada de ${classId}.`,
+    );
+    assert.deepEqual(
+      testedNights.map(night => measureWolfDamage(classId, night)),
+      expectedWolfDamage[classId],
+      `O dano real dos lobos não corresponde à armadura derivada de ${classId}.`,
+    );
+  }
+  assert.equal(measureSlimeDamage('guerreiro', 0), 14,
+    'No dia 1, antes da noite 1, o dano de contato deve continuar igual ao da main (9 × 1,5 = 13,5 arredondado para 14).');
+
   const prepareCampfirePlacement = (engine) => {
     engine.state.player.x = CONFIG.map.size / 2;
     engine.state.player.y = CONFIG.map.size / 2;
