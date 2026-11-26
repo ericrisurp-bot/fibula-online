@@ -85,7 +85,7 @@ type MaterialDrop = WoodDrop | StoneDrop | CottonDrop | VegetableDrop | LinenDro
 type Orb = Vec & { id: number; value: number };
 type HealingOrb = { id: number; value: number };
 type Shot = Vec & { id: number; vx: number; vy: number; damage: number; kind: 'orb' | 'arrow'; life: number; targetId: number; weapon: WeaponId; explosive?: boolean; hitEnemyIds?: number[] };
-type ExplosionEffect = Vec & { id: number; age: number; duration: number; radius?: number; color?: string };
+type ExplosionEffect = Vec & { id: number; age: number; duration: number; radius?: number; color?: string; angle?: number; arc?: number };
 type FloatingDamage = Vec & { id: number; amount: number; label?: string; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = DonkeyCartState;
@@ -3451,20 +3451,21 @@ export class GameEngine {
       if (this.state.classId === 'guerreiro') {
         this.local.warriorAttackCount = (this.local.warriorAttackCount + 1) % shockwaveConfig.everyAttack;
       }
-      const arc = Math.PI * 0.62;
+      const normalAttackArc = Math.PI * 0.62;
       const hits = this.state.enemies.filter(e => {
         if (e.animalKind) return false;
         const ex = e.x - p.x, ey = e.y - p.y;
         const distance = Math.hypot(ex, ey);
-        if (warriorShockwave) return distance <= shockwaveConfig.radius;
         const angle = Math.atan2(ey, ex);
         const difference = Math.abs(Math.atan2(Math.sin(angle - this.state.swordSwingAngle), Math.cos(angle - this.state.swordSwingAngle)));
-        return distance <= weapon.range && difference <= arc / 2;
+        if (warriorShockwave) return distance <= shockwaveConfig.radius && difference <= shockwaveConfig.arc / 2;
+        return distance <= weapon.range && difference <= normalAttackArc / 2;
       }).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
       if (warriorShockwave) {
         this.state.explosions.push({
           x: p.x, y: p.y, id: this.nextId++, age: 0, duration: 0.24,
           radius: shockwaveConfig.radius, color: '#f2d06b',
+          angle: this.state.swordSwingAngle, arc: shockwaveConfig.arc,
         });
       }
       if (hits.length > 0) this.recordWeaponProficiencyHit();
