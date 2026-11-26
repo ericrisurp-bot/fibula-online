@@ -654,6 +654,185 @@ try {
     unchangedSlowEngine.stop();
   }
 
+  // B1a: módulo puro do outbox local-first do baú.
+  const houseOutbox = await server.ssrLoadModule('/src/game/houseOutbox.ts');
+  const {
+    computeNetDelta,
+    splitIntoBatches,
+    deriveOpId,
+    createMatchId,
+    buildPendingMatch,
+    savePendingMatch,
+    loadPendingMatch,
+    clearPendingMatch,
+    markBatchConfirmed,
+    getUnconfirmedBatches,
+    isFullyConfirmed,
+  } = houseOutbox;
+
+  // O delta agrega duplicatas, preserva ordem de primeira aparição e omite saldo zero.
+  assert.deepEqual(computeNetDelta(
+    [
+      { itemId: 'wood', quantity: 2 },
+      { itemId: 'stone', quantity: 5 },
+      { itemId: 'wood', quantity: 1 },
+      { itemId: 'removed', quantity: 4 },
+      { itemId: 'zero', quantity: 3 },
+    ],
+    [
+      { itemId: 'wood', quantity: 6 },
+      { itemId: 'stone', quantity: 2 },
+      { itemId: 'new', quantity: 7 },
+      { itemId: 'zero', quantity: 3 },
+    ],
+  ), [
+    { itemId: 'wood', quantity: 3 },
+    { itemId: 'stone', quantity: -3 },
+    { itemId: 'removed', quantity: -4 },
+    { itemId: 'new', quantity: 7 },
+  ]);
+
+  // Limites de lote: vazio, 1, 100, 101 e 250 entradas.
+  const makeDelta = (count) => Array.from({ length: count }, (_, index) => ({
+    itemId: `item-${index}`,
+    quantity: 1,
+  }));
+  for (const [count, expectedBatchCount] of [[0, 0], [1, 1], [100, 1], [101, 2], [250, 3]]) {
+    const batches = splitIntoBatches(makeDelta(count));
+    assert.equal(batches.length, expectedBatchCount, `Quantidade incorreta de lotes para ${count} entradas.`);
+    assert.equal(batches.flat().length, count, `Entradas perdidas ao dividir ${count} registros.`);
+    assert.ok(batches.every((batch) => batch.length <= 100), 'Nenhum lote pode exceder 100 entradas.');
+  }
+
+  // Quantidades acima do teto são fragmentadas sem perder soma nem sinal.
+  const largeQuantityBatches = splitIntoBatches([
+    { itemId: 'large-positive', quantity: 2_000_001 },
+    { itemId: 'large-negative', quantity: -2_000_000 },
+  ]);
+  const largeEntries = largeQuantityBatches.flat();
+  assert.deepEqual(largeEntries, [
+    { itemId: 'large-positive', quantity: 999_999 },
+    { itemId: 'large-positive', quantity: 999_999 },
+    { itemId: 'large-positive', quantity: 3 },
+    { itemId: 'large-negative', quantity: -999_999 },
+    { itemId: 'large-negative', quantity: -999_999 },
+    { itemId: 'large-negative', quantity: -2 },
+  ]);
+  assert.equal(largeEntries.filter((entry) => entry.itemId === 'large-positive')
+    .reduce((sum, entry) => sum + entry.quantity, 0), 2_000_001);
+  assert.equal(largeEntries.filter((entry) => entry.itemId === 'large-negative')
+    .reduce((sum, entry) => sum + entry.quantity, 0), -2_000_000);
+  assert.ok(largeEntries.every((entry) => Math.abs(entry.quantity) <= 999_999));
+  assert.ok(largeQuantityBatches.every((batch) => batch.length <= 100));
+
+  // OpIds têm formato UUID, são determinísticos e variam por partida/lote.
+  const opId = deriveOpId('match-alpha', 0);
+  assert.equal(opId, deriveOpId('match-alpha', 0));
+  assert.notEqual(opId, deriveOpId('match-alpha', 1));
+  assert.notEqual(opId, deriveOpId('match-beta', 0));
+  assert.match(opId, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  assert.equal(createMatchId(() => 'injected-match-id'), 'injected-match-id');
+
+  // Construção de partida mantém lotes/opIds estáveis e representa saldo vazio sem lotes.
+  const emptyPending = buildPendingMatch({
+    matchId: 'empty-match',
+    baseline: [{ itemId: 'wood', quantity: 2 }],
+    current: [{ itemId: 'wood', quantity: 2 }],
+    now: 123,
+  });
+  assert.deepEqual(emptyPending.batches, []);
+  assert.equal(isFullyConfirmed(emptyPending), true);
+
+  const manyBaseline = [];
+  const manyCurrent = [];
+  for (let index = 0; index < 205; index += 1) {
+    manyCurrent.push({ itemId: `crafted-${index}`, quantity: 1 });
+  }
+  const pendingInput = {
+    matchId: 'stable-match',
+    baseline: manyBaseline,
+    current: manyCurrent,
+    now: 456,
+  };
+  const pendingFirst = buildPendingMatch(pendingInput);
+  const pendingSecond = buildPendingMatch(pendingInput);
+  assert.deepEqual(pendingFirst, pendingSecond);
+  assert.equal(pendingFirst.batches.length, 3);
+  assert.deepEqual(
+    pendingFirst.batches.map((batch) => batch.opId),
+    pendingSecond.batches.map((batch) => batch.opId),
+  );
+  assert.ok(pendingFirst.batches.every((batch) => batch.delta.length <= 100));
+
+  // Persistência com storage em memória, dados corrompidos/inválidos e falhas de storage.
+  const memory = new Map();
+  const memoryStorage = {
+    getItem: (key) => memory.has(key) ? memory.get(key) : null,
+    setItem: (key, value) => memory.set(key, value),
+    removeItem: (key) => memory.delete(key),
+  };
+  assert.equal(savePendingMatch(memoryStorage, 'user-1', pendingFirst), true);
+  assert.deepEqual(loadPendingMatch(memoryStorage, 'user-1'), pendingFirst);
+  assert.equal(clearPendingMatch(memoryStorage, 'user-1'), true);
+  assert.equal(loadPendingMatch(memoryStorage, 'user-1'), null);
+
+  memoryStorage.setItem('fibula-house-pending:broken-json', '{not-json');
+  assert.doesNotThrow(() => assert.equal(loadPendingMatch(memoryStorage, 'broken-json'), null));
+  memoryStorage.setItem('fibula-house-pending:invalid-shape', JSON.stringify({
+    ...pendingFirst,
+    version: 2,
+  }));
+  assert.doesNotThrow(() => assert.equal(loadPendingMatch(memoryStorage, 'invalid-shape'), null));
+  memoryStorage.setItem('fibula-house-pending:invalid-batch', JSON.stringify({
+    ...pendingFirst,
+    batches: [{
+      opId: 'invalid',
+      delta: Array.from({ length: 101 }, (_, index) => ({ itemId: `x-${index}`, quantity: 1 })),
+    }],
+  }));
+  assert.equal(loadPendingMatch(memoryStorage, 'invalid-batch'), null);
+
+  const throwingStorage = {
+    getItem: () => { throw new Error('get failed'); },
+    setItem: () => { throw new Error('set failed'); },
+    removeItem: () => { throw new Error('remove failed'); },
+  };
+  assert.doesNotThrow(() => {
+    assert.equal(savePendingMatch(throwingStorage, 'user-1', pendingFirst), false);
+    assert.equal(loadPendingMatch(throwingStorage, 'user-1'), null);
+    assert.equal(clearPendingMatch(throwingStorage, 'user-1'), false);
+  });
+
+  // Confirmação é imutável, não duplica opId e detecta a conclusão integral.
+  const confirmationPending = buildPendingMatch({
+    matchId: 'confirm-match',
+    baseline: [],
+    current: Array.from({ length: 101 }, (_, index) => ({
+      itemId: `confirm-item-${index}`,
+      quantity: 1,
+    })),
+    now: 789,
+  });
+  assert.equal(confirmationPending.batches.length, 2);
+  const firstConfirmation = markBatchConfirmed(
+    confirmationPending,
+    confirmationPending.batches[0].opId,
+  );
+  assert.equal(isFullyConfirmed(firstConfirmation), false);
+  assert.equal(getUnconfirmedBatches(firstConfirmation).length, 1);
+  const repeatedConfirmation = markBatchConfirmed(
+    firstConfirmation,
+    confirmationPending.batches[0].opId,
+  );
+  assert.deepEqual(repeatedConfirmation.confirmedOpIds, [confirmationPending.batches[0].opId]);
+  const allConfirmed = markBatchConfirmed(
+    repeatedConfirmation,
+    confirmationPending.batches[1].opId,
+  );
+  assert.equal(getUnconfirmedBatches(allConfirmed).length, 0);
+  assert.equal(isFullyConfirmed(allConfirmed), true);
+  assert.deepEqual(confirmationPending.confirmedOpIds, [], 'A confirmação não pode mutar o objeto recebido.');
+
   console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro, explosão M1 do Mago e área de lentidão D1.');
 } finally {
   await server.close();
