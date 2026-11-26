@@ -693,10 +693,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const pendingCloudHouseInventoryRef = useRef<Array<{ itemId: string; quantity: number }> | null>(null);
   const pendingHouseInventoryRef = useRef<string | null>(null);
   const houseSyncInFlightRef = useRef<Promise<'done' | 'network' | 'closed'> | null>(null);
-  const houseOutboxDrainRef = useRef<() => Promise<'done' | 'network' | 'closed'>>(async () => 'done');
+  const houseOutboxDrainRef = useRef<(allowClosed?: boolean) => Promise<'done' | 'network' | 'closed'>>(async () => 'done');
   const houseOutboxStartupReadyRef = useRef(false);
   const houseNeedsReconcileRef = useRef(false);
+  const houseMatchActiveRef = useRef(false);
   const houseMatchClosedRef = useRef(false);
+  const houseMatchFinalizeInFlightRef = useRef<Promise<void> | null>(null);
   const houseDeathFinalizeRef = useRef<Promise<void> | null>(null);
   const matchSummaryHandledRef = useRef(false);
   const matchSessionIdRef = useRef<string | null>(null);
@@ -855,8 +857,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       houseSyncBaselineRef.current = houseInventoryJson;
     }
 
+    if (houseMatchActiveRef.current) return;
     const syncLatestHouseInventory = async (): Promise<void> => {
-      if (houseMatchClosedRef.current) return;
+      if (houseMatchActiveRef.current || houseMatchClosedRef.current) return;
       await houseOutboxDrainRef.current();
     };
     void syncLatestHouseInventory();
@@ -934,24 +937,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     if (matchSummaryHandledRef.current) return;
     matchSummaryHandledRef.current = true;
 
-    // Fecha a fila antes de finalizar: nenhuma alteração posterior à morte
-    // pode iniciar outra gravação na nuvem.
+    houseMatchActiveRef.current = false;
     houseMatchClosedRef.current = true;
-    const finalizeHouseFromConfirmedSnapshot = async () => {
-      const inFlightSync = houseSyncInFlightRef.current;
-      if (inFlightSync) await inFlightSync;
-      pendingHouseInventoryRef.current = null;
-
-      // A confirmação efetiva da gravação, e não navigator.onLine, define
-      // qual conteúdo da Casa pode sobreviver à partida.
-      const confirmedSnapshot = lastSyncedHouseInventoryRef.current
-        || JSON.stringify(readConfirmedHouseInventory());
-      const confirmedInventory = JSON.parse(confirmedSnapshot) as Array<{ itemId: string; quantity: number }>;
-      houseSyncBaselineRef.current = confirmedSnapshot;
-      if (readHouseOutbox().length > 0) houseNeedsReconcileRef.current = true;
-      engineRef.current?.setHouseInventory(confirmedInventory);
-    };
-    houseDeathFinalizeRef.current = finalizeHouseFromConfirmedSnapshot();
+    houseDeathFinalizeRef.current = finalizeHouseAtMatchEnd(15_000);
     void houseDeathFinalizeRef.current;
 
     if (duoStartedMatchIdRef.current) {
@@ -3717,6 +3705,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   }, [activeGameRoute.page]);
 
   const refreshLobbyChestFromCloud = async (): Promise<boolean> => {
+    if (houseMatchActiveRef.current) return false;
     const userId = session.user.sub;
     const requestId = ++lobbyChestRefreshRequestRef.current;
     cloudChestLoadedRef.current = false;
@@ -3758,11 +3747,15 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     if (!fibulaSupabase || !session.user.sub) return;
     let active = true;
     const retryOutboxWhenOnline = () => {
-      if (houseOutboxStartupReadyRef.current && !houseMatchClosedRef.current) {
+      if (houseOutboxStartupReadyRef.current && !houseMatchActiveRef.current && !houseMatchClosedRef.current) {
         void houseOutboxDrainRef.current();
       }
     };
+    const retryOutboxWhenVisible = () => {
+      if (document.visibilityState === 'visible') retryOutboxWhenOnline();
+    };
     window.addEventListener('online', retryOutboxWhenOnline);
+    document.addEventListener('visibilitychange', retryOutboxWhenVisible);
     void (async () => {
       // Primeiro confirma o estado atual do servidor; só depois reaplica operações
       // que ficaram pendentes no dispositivo. Nunca drenar a fila contra baseline vazio.
@@ -3778,6 +3771,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     return () => {
       active = false;
       window.removeEventListener('online', retryOutboxWhenOnline);
+      document.removeEventListener('visibilitychange', retryOutboxWhenVisible);
       houseOutboxStartupReadyRef.current = false;
       cloudChestLoadedRef.current = false;
       lobbyChestRefreshRequestRef.current += 1;
@@ -3862,14 +3856,17 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     try { window.localStorage.setItem(HOUSE_STORAGE_KEY, serverSnapshot); } catch { /* Armazenamento local indisponível. */ }
   };
 
-  const drainHouseOutbox = async (): Promise<'done' | 'network' | 'closed'> => {
+  const drainHouseOutbox = async (allowClosed = false): Promise<'done' | 'network' | 'closed'> => {
     if (!fibulaSupabase || !session.user.sub) return 'network';
+    if (houseMatchActiveRef.current && !allowClosed) return 'closed';
+    if (houseMatchClosedRef.current && !allowClosed) return 'closed';
     if (houseSyncInFlightRef.current) return houseSyncInFlightRef.current;
 
     const syncPromise = (async (): Promise<'done' | 'network' | 'closed'> => {
       let lastServerInventory: HouseStorageStack[] | null = null;
       while (true) {
-        if (houseMatchClosedRef.current) return 'closed';
+        if (houseMatchActiveRef.current && !allowClosed) return 'closed';
+        if (houseMatchClosedRef.current && !allowClosed) return 'closed';
         if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'network';
         const operation = readHouseOutbox()[0];
         if (!operation) {
@@ -3942,12 +3939,49 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     } finally {
       if (houseSyncInFlightRef.current === syncPromise) houseSyncInFlightRef.current = null;
     }
-    if (outcome === 'done' && !houseMatchClosedRef.current && readHouseOutbox().length > 0) {
-      return drainHouseOutbox();
+    if (outcome === 'done' && (!houseMatchClosedRef.current || allowClosed)
+      && (!houseMatchActiveRef.current || allowClosed) && readHouseOutbox().length > 0) {
+      return drainHouseOutbox(allowClosed);
     }
     return outcome;
   };
   houseOutboxDrainRef.current = drainHouseOutbox;
+
+  const finalizeHouseAtMatchEnd = (timeoutMs: number): Promise<void> => {
+    if (houseMatchFinalizeInFlightRef.current) return houseMatchFinalizeInFlightRef.current;
+    const finalizePromise = (async () => {
+      const inFlightSync = houseSyncInFlightRef.current;
+      if (inFlightSync) await inFlightSync;
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+      let drainCompleted = false;
+      try {
+        const result = await Promise.race([
+          houseOutboxDrainRef.current(true).then(outcome => ({ kind: 'result' as const, outcome })),
+          new Promise<{ kind: 'timeout' }>(resolve => {
+            timeoutHandle = setTimeout(() => resolve({ kind: 'timeout' }), timeoutMs);
+          }),
+        ]);
+        drainCompleted = result.kind === 'result' && result.outcome === 'done' && readHouseOutbox().length === 0;
+      } catch {
+        drainCompleted = false;
+      } finally {
+        if (timeoutHandle !== null) clearTimeout(timeoutHandle);
+      }
+      if (!drainCompleted || readHouseOutbox().length > 0) houseNeedsReconcileRef.current = true;
+      pendingHouseInventoryRef.current = null;
+      const confirmedSnapshot = lastSyncedHouseInventoryRef.current || JSON.stringify(readConfirmedHouseInventory());
+      const confirmedInventory = JSON.parse(confirmedSnapshot) as HouseStorageStack[];
+      houseSyncBaselineRef.current = confirmedSnapshot;
+      engineRef.current?.setHouseInventory(confirmedInventory);
+      houseMatchClosedRef.current = false;
+    })();
+    houseMatchFinalizeInFlightRef.current = finalizePromise;
+    void finalizePromise.finally(() => {
+      if (houseMatchFinalizeInFlightRef.current === finalizePromise) houseMatchFinalizeInFlightRef.current = null;
+    });
+    return finalizePromise;
+  };
+
   const openBauItemActions = (item:HouseStorageStack) => {setBauDeleteQuantity('1');setBauAction({kind:'item',item,view:'actions'});};
   const openBauCoreActions = (item: HouseStorageStack, onUse: (() => void) | undefined, armorTypes: ('couro'|'bronze')[], useDisabled = false) => {
     setBauDeleteQuantity('1');
@@ -4579,6 +4613,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       if (CONFIG.rulesV2.armorCraftingEnabled) engine.setEquippedArmors(equippedArmorsRef.current[selectedClass] ?? {});
        engine.setEquippedAccessories(accessoryListReady ? equippedAccessoriesRef.current[selectedClass] ?? {} : {});
       engine.start();
+      houseMatchActiveRef.current = true;
+      houseMatchClosedRef.current = false;
       await activatePendingCookingMeals(engine);
       gameStartedRef.current = true;
       installGameBackGuard();
@@ -4637,6 +4673,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           if (serverState.player_status === 'disconnected') {
             playerTimedOut = true;
             setDuoNotice('Sua conexão ficou ausente por mais de 15 segundos. Esta partida foi encerrada para você; voltou ao lobby.');
+            houseMatchActiveRef.current = false;
+            houseMatchClosedRef.current = true;
+            houseDeathFinalizeRef.current = finalizeHouseAtMatchEnd(15_000);
+            void houseDeathFinalizeRef.current;
             setShowStart(true);
             gameStartedRef.current = false;
             engine.configureSoloMatch();
@@ -4702,6 +4742,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
         engine.restart();
+        houseMatchActiveRef.current = true;
+        houseMatchClosedRef.current = false;
         await activatePendingCookingMeals(engine);
         gameStartedRef.current = true;
         installGameBackGuard();
@@ -5147,11 +5189,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         }
       }
 
-      // Somente o inventário cuja gravação foi confirmada permanece. Operações
-      // ainda na fila local não podem ser enviadas depois que a partida terminou.
-      for (const operation of readHouseOutbox()) removeHouseOutboxOperation(operation.opId);
-      pendingHouseInventoryRef.current = null;
-      houseNeedsReconcileRef.current = false;
+      houseMatchActiveRef.current = false;
+      await finalizeHouseAtMatchEnd(10_000);
       const confirmedSnapshot = lastSyncedHouseInventoryRef.current
         || JSON.stringify(readConfirmedHouseInventory());
       const confirmedInventory = JSON.parse(confirmedSnapshot) as HouseStorageStack[];
@@ -5164,7 +5203,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       // Se o servidor não confirmou o encerramento, a partida continua ativa.
       // Reabre a sincronização para que o jogador possa tentar novamente.
       houseMatchClosedRef.current = false;
-      void houseOutboxDrainRef.current();
+      // A partida continua ativa: não drenar nem iniciar rede do Baú neste catch.
       const errorMessage = cause instanceof Error
         ? cause.message
         : cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string'
@@ -5202,6 +5241,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     setAdventurerGuideObjectives(adventurerGuideObjectivesRef.current);
     setAdventurerGuideFinishedHidden(false);
       engine.restart();
+      houseMatchActiveRef.current = true;
+      houseMatchClosedRef.current = false;
       await activatePendingCookingMeals(engine);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Não foi possível registrar o início da nova partida.');
