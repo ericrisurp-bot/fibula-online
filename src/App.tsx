@@ -2874,7 +2874,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         const progress = effect.age / effect.duration;
         ctx.save(); ctx.globalAlpha = Math.max(0, 1 - progress);
         ctx.strokeStyle = effect.color ?? '#c8a8ff'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(effect.x, effect.y, (effect.radius ?? CONFIG.mageExplosion.radius) * (0.75 + progress * 0.25), 0, Math.PI * 2); ctx.stroke();
+        const effectRadius = (effect.radius ?? CONFIG.mageExplosion.radius) * (0.75 + progress * 0.25);
+        ctx.beginPath();
+        if (effect.arc !== undefined) {
+          ctx.arc(effect.x, effect.y, effectRadius, (effect.angle ?? 0) - effect.arc / 2, (effect.angle ?? 0) + effect.arc / 2);
+        } else {
+          ctx.arc(effect.x, effect.y, effectRadius, 0, Math.PI * 2);
+        }
+        ctx.stroke();
         ctx.restore();
       }
       for (const shot of s.shots) {
