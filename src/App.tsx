@@ -698,8 +698,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const houseNeedsReconcileRef = useRef(false);
   const houseMatchActiveRef = useRef(false);
   const houseMatchClosedRef = useRef(false);
-  const houseMatchFinalizeInFlightRef = useRef<Promise<void> | null>(null);
-  const houseDeathFinalizeRef = useRef<Promise<void> | null>(null);
+  const houseMatchFinalizeInFlightRef = useRef<Promise<boolean> | null>(null);
+  const houseDeathFinalizeRef = useRef<Promise<boolean> | null>(null);
   const matchSummaryHandledRef = useRef(false);
   const matchSessionIdRef = useRef<string | null>(null);
   const matchResultDrainRef = useRef<Promise<number> | null>(null);
@@ -3947,7 +3947,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   };
   houseOutboxDrainRef.current = drainHouseOutbox;
 
-  const finalizeHouseAtMatchEnd = (timeoutMs: number): Promise<void> => {
+  const finalizeHouseAtMatchEnd = (timeoutMs: number): Promise<boolean> => {
     if (houseMatchFinalizeInFlightRef.current) return houseMatchFinalizeInFlightRef.current;
     const finalizePromise = (async () => {
       const inFlightSync = houseSyncInFlightRef.current;
@@ -3974,6 +3974,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       houseSyncBaselineRef.current = confirmedSnapshot;
       engineRef.current?.setHouseInventory(confirmedInventory);
       houseMatchClosedRef.current = false;
+      return drainCompleted;
     })();
     houseMatchFinalizeInFlightRef.current = finalizePromise;
     void finalizePromise.finally(() => {
@@ -4676,13 +4677,16 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
             houseMatchActiveRef.current = false;
             houseMatchClosedRef.current = true;
             houseDeathFinalizeRef.current = finalizeHouseAtMatchEnd(15_000);
-            void houseDeathFinalizeRef.current;
-            setShowStart(true);
-            gameStartedRef.current = false;
-            engine.configureSoloMatch();
-            duoStartedMatchIdRef.current = peer.matchId;
-            if (duoTransportRef.current === transport) duoTransportRef.current = null;
-            void transport?.disconnect();
+            void (async () => {
+              const chestSynced = await houseDeathFinalizeRef.current;
+              if (!chestSynced) setCookingFeedback('Baú pendente: será enviado quando houver conexão.');
+              setShowStart(true);
+              gameStartedRef.current = false;
+              engine.configureSoloMatch();
+              duoStartedMatchIdRef.current = peer.matchId;
+              if (duoTransportRef.current === transport) duoTransportRef.current = null;
+              await transport?.disconnect();
+            })();
             return;
           }
           if (serverState.status === 'playing' && serverState.player_status === 'alive' && serverState.horde_target > 0) {
@@ -5134,6 +5138,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       if (!queued) return;
     }
     gameStartedRef.current = false;
+    houseMatchActiveRef.current = false;
     // Persiste os eventos pendentes antes que o perfil do lobby leia os contadores.
     await proficiencyBufferRef.current?.flush();
     setExitConfirmationOpen(false);
@@ -5190,7 +5195,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
 
       houseMatchActiveRef.current = false;
-      await finalizeHouseAtMatchEnd(10_000);
+      const chestSynced = await finalizeHouseAtMatchEnd(10_000);
+      if (!chestSynced) setCookingFeedback('Baú pendente: será enviado quando houver conexão.');
       const confirmedSnapshot = lastSyncedHouseInventoryRef.current
         || JSON.stringify(readConfirmedHouseInventory());
       const confirmedInventory = JSON.parse(confirmedSnapshot) as HouseStorageStack[];
