@@ -2997,7 +2997,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
       }
       if (s.house.built) worldDrawables.push({ depth: s.house.y + 28, draw: () => drawCampChest(ctx, s.house) });
-      if (s.refinery.built) worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery, s.elapsed) });
+      if (s.refinery.built) worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
       if (s.tecelaria.built) worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
         const playerGround = playerFeet(s.player);
@@ -6572,50 +6572,17 @@ function drawCampChest(ctx: CanvasRenderingContext2D, house: GameSnapshot['house
   ctx.restore();
 }
 
-function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery'], elapsed: number) {
-  if (!refinery.built) return;
-  const { x, y } = refinery;
-  ctx.save(); ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,.32)';
-  ctx.beginPath(); ctx.ellipse(0, 20, 40, 12, 0, 0, Math.PI * 2); ctx.fill();
-
-  // Moldura de madeira que sustenta o forno.
-  ctx.strokeStyle = '#2b1c14'; ctx.lineWidth = 2.5;
-  fillCampTexturedRect(ctx, 'wood', -34, -20, 68, 43, '#4b3020'); ctx.strokeRect(-34, -20, 68, 43);
-  fillCampTexturedRect(ctx, 'wood', -31, -17, 5, 36, '#a87542'); fillCampTexturedRect(ctx, 'wood', 26, -17, 5, 36, '#a87542');
-  fillCampTexturedRect(ctx, 'wood', -30, -18, 60, 4, '#a87542'); fillCampTexturedRect(ctx, 'wood', -30, 17, 60, 3, '#a87542');
-  ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(0, -20, 34, 43);
-
-  // Corpo de pedra com juntas visíveis.
-  ctx.strokeStyle = '#5c5a55'; ctx.lineWidth = 1.5;
-  fillCampTexturedRect(ctx, 'stone', -27, -13, 54, 34, '#8d8b84'); ctx.strokeRect(-27, -13, 54, 34);
-  ctx.beginPath(); ctx.moveTo(-27, -2); ctx.lineTo(27, -2); ctx.moveTo(-27, 9); ctx.lineTo(27, 9);
-  ctx.moveTo(-9, -13); ctx.lineTo(-9, -2); ctx.moveTo(10, -2); ctx.lineTo(10, 9); ctx.moveTo(-10, 9); ctx.lineTo(-10, 21); ctx.stroke();
-
-  // Chaminé de pedra, com topo aberto.
-  ctx.strokeStyle = '#5c5a55'; ctx.lineWidth = 2;
-  fillCampTexturedRect(ctx, 'stone', 12, -42, 15, 30, '#8d8b84'); ctx.strokeRect(12, -42, 15, 30);
-  ctx.fillStyle = '#6d6b65'; ctx.fillRect(10, -44, 19, 5);
-  ctx.fillStyle = '#a9a69d'; ctx.fillRect(15, -38, 3, 20);
-
-  // Boca escura e brasa animada.
-  ctx.fillStyle = '#211b17'; ctx.strokeStyle = '#44352a'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.roundRect(-12, 1, 24, 20, 4); ctx.fill(); ctx.stroke();
-  const ember = 0.72 + Math.sin(elapsed * 5.5) * 0.18;
-  ctx.globalAlpha = ember; ctx.fillStyle = '#f0782f';
-  ctx.beginPath(); ctx.ellipse(0, 16, 7, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#ffd06b'; ctx.beginPath(); ctx.ellipse(-2, 13, 2.3, 4.5, -.25, 0, Math.PI * 2); ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Fumaça leve acima da chaminé.
-  for (let i = 0; i < 3; i++) {
-    const phase = (elapsed * 0.34 + i / 3) % 1;
-    const smokeY = -49 - phase * 19;
-    const smokeX = 20 + Math.sin(elapsed * 1.2 + i) * (3 + phase * 3);
-    ctx.globalAlpha = (1 - phase) * 0.24;
-    ctx.fillStyle = '#d8d5ce';
-    ctx.beginPath(); ctx.arc(smokeX, smokeY, 3 + phase * 3, 0, Math.PI * 2); ctx.fill();
+let campRefinerySprite: HTMLImageElement | null = null;
+function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery']) {
+  if (!refinery.built || typeof Image === 'undefined') return;
+  if (!campRefinerySprite) {
+    campRefinerySprite = new Image();
+    campRefinerySprite.src = '/assets/bau/Refinaria.png?v=20261126';
   }
+  if (!campRefinerySprite.complete || campRefinerySprite.naturalWidth === 0) return;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(campRefinerySprite, refinery.x - 48, refinery.y - 45, 96, 90);
   ctx.restore();
 }
 
