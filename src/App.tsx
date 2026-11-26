@@ -3772,7 +3772,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       const success = await refreshLobbyChestFromCloud();
       if (!active) return;
       if (houseMatchActiveRef.current) {
-        houseOutboxStartupReadyRef.current = true;
+        if (success) houseOutboxStartupReadyRef.current = true;
         return;
       }
       if (!success) {
@@ -5225,7 +5225,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       await returnToLobby();
     } catch (cause) {
       // Se o servidor não confirmou o encerramento, a partida continua ativa.
-      // A partida continua ativa: não drenar nem iniciar rede do Baú neste catch.
+      // Não drenar nem iniciar rede do Baú neste catch.
       houseMatchClosedRef.current = false;
 
       const errorMessage = cause instanceof Error
