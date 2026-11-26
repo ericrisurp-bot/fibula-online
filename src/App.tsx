@@ -1828,6 +1828,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   });
   const [landscapeMode, setLandscapeMode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [perfTelemetryEnabled, setPerfTelemetryEnabled] = useState(() => {
+    const urlEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
+    try { return urlEnabled || window.localStorage.getItem('fibula-perf') === '1'; }
+    catch { return urlEnabled; }
+  });
+  const perfReactRenderCountRef = useRef(0);
+  const perfTelemetryActiveRef = useRef(false);
+  if (perfTelemetryActiveRef.current) perfReactRenderCountRef.current += 1;
   const [adventurerGuideEnabled, setAdventurerGuideEnabled] = useState(readAdventurerGuideEnabled);
   const [adventurerGuideFinishedHidden, setAdventurerGuideFinishedHidden] = useState(false);
 
@@ -2564,7 +2572,16 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       mission7Stone: Math.max(0, 8 - guideCurrent.mission7StoneRemaining),
     };
     let engineActive = true;
+    let perfMetrics: {
+      frameTimeTotal: number; frameTimeCount: number; worstFrame: number; slowFrames: number; lastFrameAt: number;
+      stepTotal: number; stepCount: number; renderTotal: number; renderCount: number;
+      drawablesTotal: number; drawablesCount: number; overlayTotal: number; overlayCount: number; emits: number;
+    } | null = null;
+    let fpsDisplay: HTMLDivElement | null = null;
+    let fpsFrameCount = 0;
+    let fpsWindowStart = 0;
     const engine = new GameEngine((next) => {
+      if (perfMetrics) perfMetrics.emits += 1;
       setState(next);
       const playerFeetPosition = playerFeet(next.player);
       const matchRestarted = !!previousGuideSnapshot && next.elapsed < previousGuideSnapshot.elapsed;
@@ -2692,6 +2709,55 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
       previousGuideSnapshot = next;
     }, { accountLevel });
+    let originalEngineStep: GameEngine['step'] | null = null;
+    const originalEngineStart = engine.start;
+    const syncPerfTelemetryForNextMatch = () => {
+      const enabled = new URLSearchParams(window.location.search).get('fps') === '1' || (() => {
+        try { return window.localStorage.getItem('fibula-perf') === '1'; }
+        catch { return false; }
+      })();
+      if (enabled && !perfMetrics) {
+        perfMetrics = {
+          frameTimeTotal: 0, frameTimeCount: 0, worstFrame: 0, slowFrames: 0, lastFrameAt: 0,
+          stepTotal: 0, stepCount: 0, renderTotal: 0, renderCount: 0,
+          drawablesTotal: 0, drawablesCount: 0, overlayTotal: 0, overlayCount: 0, emits: 0,
+        };
+        fpsFrameCount = 0;
+        fpsWindowStart = performance.now();
+        fpsDisplay = document.createElement('div');
+        Object.assign(fpsDisplay.style, {
+          position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
+          zIndex: '2147483647', padding: '3px 6px', color: '#fff',
+          background: 'rgba(0, 0, 0, 0.65)', font: '11px monospace', whiteSpace: 'pre-wrap',
+          maxWidth: 'calc(100vw - 16px)', overflowWrap: 'anywhere',
+        });
+        fpsDisplay.textContent = 'FPS: --';
+        document.body.appendChild(fpsDisplay);
+        originalEngineStep = engine.step;
+        engine.step = (dt: number) => {
+          const startedAt = performance.now();
+          try { originalEngineStep!.call(engine, dt); }
+          finally {
+            if (perfMetrics) {
+              perfMetrics.stepTotal += performance.now() - startedAt;
+              perfMetrics.stepCount += 1;
+            }
+          }
+        };
+        perfTelemetryActiveRef.current = true;
+      } else if (!enabled && perfMetrics) {
+        if (originalEngineStep) engine.step = originalEngineStep;
+        originalEngineStep = null;
+        perfMetrics = null;
+        fpsDisplay?.remove();
+        fpsDisplay = null;
+        perfTelemetryActiveRef.current = false;
+      }
+    };
+    engine.start = () => {
+      syncPerfTelemetryForNextMatch();
+      originalEngineStart.call(engine);
+    };
     engine.setPermanentCamp({
       bau: campProgressRef.current.completedMissions.includes(4),
       refinery: campProgressRef.current.completedMissions.includes(6),
@@ -2774,20 +2840,6 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       pendingCloudHouseInventoryRef.current = null;
     }
     let frame = 0;
-    const fpsEnabled = new URLSearchParams(window.location.search).get('fps') === '1';
-    let fpsDisplay: HTMLDivElement | null = null;
-    let fpsFrameCount = 0;
-    let fpsWindowStart = performance.now();
-    if (fpsEnabled) {
-      fpsDisplay = document.createElement('div');
-      Object.assign(fpsDisplay.style, {
-        position: 'fixed', top: '8px', right: '8px', pointerEvents: 'none',
-        zIndex: '2147483647', padding: '3px 6px', color: '#fff',
-        background: 'rgba(0, 0, 0, 0.65)', font: '12px monospace',
-      });
-      fpsDisplay.textContent = 'FPS: --';
-      document.body.appendChild(fpsDisplay);
-    }
     // O terreno estático é preparado uma vez antes de liberar o início da partida.
     const terrainScale = 0.5;
     const terrainCanvas = document.createElement('canvas');
@@ -2818,15 +2870,17 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     let vignetteTextureKey = '';
     const overlayScale = 0.0625;
     const render = () => {
-      if (fpsDisplay) {
+      const perfFrameStartedAt = perfMetrics ? performance.now() : 0;
+      if (perfMetrics) {
         fpsFrameCount++;
-        const now = performance.now();
-        const elapsed = now - fpsWindowStart;
-        if (elapsed >= 1000) {
-          fpsDisplay.textContent = `FPS: ${Math.round(fpsFrameCount * 1000 / elapsed)}`;
-          fpsFrameCount = 0;
-          fpsWindowStart = now;
+        if (perfMetrics.lastFrameAt > 0) {
+          const frameMs = perfFrameStartedAt - perfMetrics.lastFrameAt;
+          perfMetrics.frameTimeTotal += frameMs;
+          perfMetrics.frameTimeCount += 1;
+          perfMetrics.worstFrame = Math.max(perfMetrics.worstFrame, frameMs);
+          if (frameMs > 33) perfMetrics.slowFrames += 1;
         }
+        perfMetrics.lastFrameAt = perfFrameStartedAt;
       }
       const w = canvas.clientWidth, h = canvas.clientHeight;
       // Limita o buffer interno a Full HD conforme a orientação, sem alterar o tamanho visual.
@@ -2905,6 +2959,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           ? Math.atan2(aimTarget.y - bowGripY, aimTarget.x - bowGripX)
           : Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
+      const drawablesStartedAt = perfMetrics ? performance.now() : 0;
       const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
       if (s.classId === 'druida') {
         s.healingOrbs.forEach((_, index) => {
@@ -3373,6 +3428,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       }
       worldDrawables.sort((a, b) => a.depth - b.depth);
       for (const drawable of worldDrawables) drawable.draw();
+      if (perfMetrics) {
+        perfMetrics.drawablesTotal += performance.now() - drawablesStartedAt;
+        perfMetrics.drawablesCount += 1;
+      }
       for (const damage of s.floatingDamage) {
         const progress = Math.min(1, damage.age / damage.duration);
         const pop = progress < 0.18
@@ -3399,6 +3458,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
       // Neblina e vinheta são renderizadas em um overlay reutilizado a 6,25% da resolução para reduzir o custo de renderização.
+      const overlayStartedAt = perfMetrics ? performance.now() : 0;
       if (darkness > 0.01 && octx) {
         const overlayWidth = Math.ceil(w * overlayScale);
         const overlayHeight = Math.ceil(h * overlayScale);
@@ -3486,6 +3546,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         // ctx já voltou ao transform de DPR, como no desenho original da vinheta.
         ctx.drawImage(overlay, 0, 0, w, h);
       }
+      if (perfMetrics) {
+        perfMetrics.overlayTotal += performance.now() - overlayStartedAt;
+        perfMetrics.overlayCount += 1;
+      }
       // Indicadores discretos na borda para bandeiras fora da área visível.
       for (const flag of flagsRef.current) {
         const flagX = flag.attachedToCart ? s.cart.x : flag.x;
@@ -3517,12 +3581,43 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         ctx.fill();
         ctx.restore();
       }
+      if (perfMetrics && fpsDisplay) {
+        perfMetrics.renderTotal += performance.now() - perfFrameStartedAt;
+        perfMetrics.renderCount += 1;
+        const elapsed = performance.now() - fpsWindowStart;
+        if (elapsed >= 1000) {
+          const average = (total: number, count: number) => count > 0 ? (total / count).toFixed(2) : '0.00';
+          let liveSlimes = 0;
+          for (const enemy of s.enemies) if (!enemy.animalKind) liveSlimes += 1;
+          const emitsPerSecond = Math.round(perfMetrics.emits * 1000 / elapsed);
+          const reactRendersPerSecond = perfReactRenderCountRef.current;
+          fpsDisplay.textContent = [
+            `FPS: ${Math.round(fpsFrameCount * 1000 / elapsed)}`,
+            `Quadro: ${average(perfMetrics.frameTimeTotal, perfMetrics.frameTimeCount)} ms | pior ${perfMetrics.worstFrame.toFixed(2)} ms | >33 ms: ${perfMetrics.slowFrames}`,
+            `Engine.step: ${average(perfMetrics.stepTotal, perfMetrics.stepCount)} ms | Canvas: ${average(perfMetrics.renderTotal, perfMetrics.renderCount)} ms`,
+            `Drawables: ${average(perfMetrics.drawablesTotal, perfMetrics.drawablesCount)} ms | Overlay: ${average(perfMetrics.overlayTotal, perfMetrics.overlayCount)} ms`,
+            `Slimes: ${liveSlimes} | Tiros: ${s.shots.length} | Dano: ${s.floatingDamage.length} | Drawables: ${worldDrawables.length}`,
+            `Emits/s: ${emitsPerSecond} | React/s: ${reactRendersPerSecond}`,
+            `Noite: ${s.nightNumber} | Baú: ${s.house.built ? 'sim' : 'não'} | Canvas: ${canvas.width}×${canvas.height} px | DPR: ${(window.devicePixelRatio || 1).toFixed(2)}`,
+          ].join('\n');
+          fpsFrameCount = 0;
+          fpsWindowStart = performance.now();
+          perfReactRenderCountRef.current = 0;
+          perfMetrics.frameTimeTotal = 0; perfMetrics.frameTimeCount = 0;
+          perfMetrics.worstFrame = 0; perfMetrics.slowFrames = 0;
+          perfMetrics.stepTotal = 0; perfMetrics.stepCount = 0;
+          perfMetrics.renderTotal = 0; perfMetrics.renderCount = 0;
+          perfMetrics.drawablesTotal = 0; perfMetrics.drawablesCount = 0;
+          perfMetrics.overlayTotal = 0; perfMetrics.overlayCount = 0;
+          perfMetrics.emits = 0;
+        }
+      }
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
     const resize = () => { canvas.style.width = '100%'; };
     window.addEventListener('resize', resize);
-    return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
+    return () => { engineActive = false; cancelAnimationFrame(frame); fpsDisplay?.remove(); if (originalEngineStep) engine.step = originalEngineStep; engine.start = originalEngineStart; perfTelemetryActiveRef.current = false; engine.stop(); void proficiencyBuffer.dispose(); if (proficiencyBufferRef.current === proficiencyBuffer) proficiencyBufferRef.current = null; window.removeEventListener('resize', resize); engineRef.current = null; };
   }, [activeGameRoute.page, session.user.sub, classChoice, campProgressReady, campProgressLoadedUserId]);
 
   useEffect(() => {
@@ -6192,7 +6287,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           onAvatarChange={setAvatarCharacter}
           onClose={closeGamePage}
         />}
-      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta a carroça construída quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p></div>}
+      {showHelp && <div className="help-card"><button className="close-help" onClick={() => setShowHelp(false)}>×</button><h3>Como sobreviver</h3><p><b>WASD / setas</b> movem o personagem. <b>1 Guerreiro, 2 Mago, 3 Arqueiro e 4 Druida</b> selecionam a classe, sua aparência, habilidades e arma correspondente. <b>A câmera mantém a visão limitada ao redor do personagem.</b> <b>R</b> liga/desliga o alcance e, no celular, <b>Zoom + / Zoom −</b> aproximam ou afastam a visão. O Druida regenera vida ao acertar ataques e guarda até 7 orbes, que são consumidos automaticamente quando a vida cai abaixo de 40%. <b>Espaço</b> pega/solta a carroça construída quando estiver perto. <b>T</b> abre a roda de bandeiras; 1–4 colocam a bandeira na direção correspondente, e T sobre uma bandeira a remove. <b>B</b> abre a mochila e o conteúdo do carrinho. Ao puxar o carrinho, o ataque automático fica desativado.</p><label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}><input type="checkbox" checked={perfTelemetryEnabled} onChange={event => { const enabled = event.currentTarget.checked; try { if (enabled) window.localStorage.setItem('fibula-perf', '1'); else window.localStorage.removeItem('fibula-perf'); } catch { /* Preferência de telemetria indisponível. */ } setPerfTelemetryEnabled(enabled || new URLSearchParams(window.location.search).get('fps') === '1'); }} />Mostrar desempenho (FPS) — vale na próxima partida</label></div>}
       {state.dead && <div className="game-over"><div className="skull">✦</div><p className="eyebrow">FIM DE JOGO</p><h2>A névoa venceu.</h2><p>Você resistiu até a onda <b>{state.wave}</b>.</p><div className="summary"><div><span>DIAS</span><b>{survivalDay}</b></div><div><span>NÍVEL</span><b>{state.player.level}</b></div><div><span>SLIMES</span><b>{state.kills}</b></div></div><div className="game-over-actions"><button className="restart-button" onClick={restart}>↻ Tentar novamente</button><button className="lobby-return-button" onClick={returnToLobby}>⌂ Voltar ao lobby</button></div></div>}
       {showHelp && <div className="help-backdrop" onClick={() => setShowHelp(false)} />}
       {(flagWheel || flagHotkeyOpen) && <div className="flag-wheel" role="dialog" aria-label="Roda de bandeiras" style={flagWheel ? { left: flagWheel.screenX, top: flagWheel.screenY } : { left: '50%', top: '50%' }}>
