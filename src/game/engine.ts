@@ -2,7 +2,7 @@ import { CONFIG, RESOURCE_RARITY_RULES, VEGETABLE_RARITY_RULES, type ClassId, ty
 import { soloHordeTarget } from './horde';
 import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
-import { ATTRIBUTE_USAGE, applyArmorToDamage, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, type AttributeBaseBonuses } from './attributes';
+import { ATTRIBUTE_USAGE, applyArmorToDamage, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, getDerivedArmor, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
 import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_APPEARANCE_CHANCE, CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
@@ -2736,7 +2736,7 @@ export class GameEngine {
         animal.wolfRecoilRemaining = CONFIG.wildlife.wolves.recoilDuration;
         const levelStats = this.getLevelStats();
         if (this.random() > this.getDodgeChance()) {
-          const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor)
+          const damage = applyArmorToDamage(CONFIG.wildlife.wolves.contactDamage, CONFIG.player.armor + levelStats.armor + getDerivedArmor(this.state.classId, this.state.player.maxHp, this.state.nightNumber))
             * (1 - this.local.druidBlessingDamageReduction);
           if (damage > 0 && !this.state.dead && this.state.player.hp > 0) {
             this.recordProficiency('golpes_recebidos');
@@ -3242,7 +3242,7 @@ export class GameEngine {
         if (this.random() > this.getDodgeChance()) {
           const waveDamage = CONFIG.enemy.contactDamage + Math.floor((this.state.wave - 1) / CONFIG.enemy.contactDamageEveryWaves) * CONFIG.enemy.contactDamageIncrease;
           const rawDamage = waveDamage * (this.getDayNightState().isNight ? 1 : 1.5);
-          const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor)
+          const damage = applyArmorToDamage(rawDamage, CONFIG.player.armor + levelStats.armor + getDerivedArmor(this.state.classId, p.maxHp, this.state.nightNumber))
             * (1 - this.local.druidBlessingDamageReduction);
           if (damage > 0 && !this.state.dead && p.hp > 0) {
             this.recordProficiency('golpes_recebidos');

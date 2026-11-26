@@ -71,7 +71,7 @@ export const CONFIG = {
     },
   },
   player: { radius: 18, footOffset: 40, footRadius: 12, // footOffset ≈ ladinoFeetY(player.radius)
-    auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, classSpeed: { guerreiro: 145, mago: 150, druida: 150, arqueiro: 160 }, classDodge: { guerreiro: 0.032, mago: 0.04, druida: 0.04, arqueiro: 0.048 }, maxHealth: 100, armor: 0, dodge: 0.04, pickupRadius: 2 },
+    auraRadius: AURA_RADIUS, toolAuraRadius: 30, speed: 145, classSpeed: { guerreiro: 145, mago: 150, druida: 150, arqueiro: 160 }, classDodge: { guerreiro: 0.032, mago: 0.04, druida: 0.04, arqueiro: 0.048 }, maxHealth: 100, armor: 0, armorFromHealthPercent: { guerreiro: 0.12, druida: 0.10, arqueiro: 0.08, mago: 0.06 }, armorFromHealthFullNight: 15, dodge: 0.04, pickupRadius: 2 },
   interaction: { margin: 28, dropPickupRadius: 30 },
   enemy: {
     radius: 16,

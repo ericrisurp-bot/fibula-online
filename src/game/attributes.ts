@@ -9,6 +9,13 @@ export function applyArmorToDamage(rawDamage: number, armor: number): number {
   return Math.max(1, Math.round(rawDamage * (1 - reduction)));
 }
 
+/** Armadura progressiva derivada da vida máxima, limitada à noite configurada. */
+export function getDerivedArmor(classId: ClassId, maxHealth: number, nightNumber: number): number {
+  const fullNight = CONFIG.player.armorFromHealthFullNight;
+  const night = Math.min(fullNight, Math.max(0, nightNumber));
+  return Math.floor(Math.max(0, maxHealth) * CONFIG.player.armorFromHealthPercent[classId] * night / fullNight);
+}
+
 export type AttributeKey =
   | 'vida'
   | 'forca'
