@@ -3347,6 +3347,7 @@ export class GameEngine {
     let dy = entity.y - nearestY;
     let distance = Math.hypot(dx, dy);
     if (distance >= radius) return;
+    let push = radius - distance;
     if (distance === 0) {
       const toLeft = entity.x - (centerX - halfWidth);
       const toRight = centerX + halfWidth - entity.x;
@@ -3357,9 +3358,9 @@ export class GameEngine {
       else if (edge === toRight) dx = 1;
       else if (edge === toTop) dy = -1;
       else dy = 1;
+      push = radius + edge;
       distance = 0;
     }
-    const push = radius - distance;
     const length = Math.hypot(dx, dy) || 1;
     entity.x = this.clamp(entity.x + dx / length * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
     entity.y = this.clamp(entity.y + dy / length * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
