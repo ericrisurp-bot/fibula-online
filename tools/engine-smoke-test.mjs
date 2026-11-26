@@ -807,25 +807,30 @@ try {
   const confirmationPending = buildPendingMatch({
     matchId: 'confirm-match',
     baseline: [],
-    current: [
-      { itemId: 'wood', quantity: 1 },
-      { itemId: 'stone', quantity: 1 },
-    ],
+    current: Array.from({ length: 101 }, (_, index) => ({
+      itemId: `confirm-item-${index}`,
+      quantity: 1,
+    })),
     now: 789,
   });
-  assert.equal(confirmationPending.batches.length, 1);
+  assert.equal(confirmationPending.batches.length, 2);
   const firstConfirmation = markBatchConfirmed(
     confirmationPending,
     confirmationPending.batches[0].opId,
   );
-  assert.equal(isFullyConfirmed(confirmationPending), false);
-  assert.equal(getUnconfirmedBatches(firstConfirmation).length, 0);
-  assert.equal(isFullyConfirmed(firstConfirmation), true);
+  assert.equal(isFullyConfirmed(firstConfirmation), false);
+  assert.equal(getUnconfirmedBatches(firstConfirmation).length, 1);
   const repeatedConfirmation = markBatchConfirmed(
     firstConfirmation,
     confirmationPending.batches[0].opId,
   );
   assert.deepEqual(repeatedConfirmation.confirmedOpIds, [confirmationPending.batches[0].opId]);
+  const allConfirmed = markBatchConfirmed(
+    repeatedConfirmation,
+    confirmationPending.batches[1].opId,
+  );
+  assert.equal(getUnconfirmedBatches(allConfirmed).length, 0);
+  assert.equal(isFullyConfirmed(allConfirmed), true);
   assert.deepEqual(confirmationPending.confirmedOpIds, [], 'A confirmação não pode mutar o objeto recebido.');
 
   console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro, explosão M1 do Mago e área de lentidão D1.');
