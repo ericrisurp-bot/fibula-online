@@ -959,7 +959,7 @@ try {
     CONFIG.refinery.tinChance = originalTinChance;
   }
 
-  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro, explosão M1 do Mago e área de lentidão D1.');
+  console.log('OK: testes do motor, incluindo refinaria R1a (combustível, estanho, raridade e coleta).');
 } finally {
   await server.close();
 }
