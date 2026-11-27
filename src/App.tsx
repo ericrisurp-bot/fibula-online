@@ -6543,18 +6543,17 @@ function drawCampfireRange(ctx: CanvasRenderingContext2D, campfire: { x: number;
   ctx.restore();
 }
 
-function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }, elapsed: number) {
-  const flicker = Math.sin(elapsed * 9) * 1.8 + Math.sin(elapsed * 15) * 1.1;
-  ctx.save(); ctx.translate(campfire.x, campfire.y);
-  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0, 5, 27, 10, 0, 0, Math.PI * 2); ctx.fill();
-  for (let i = 0; i < 8; i++) { const angle = i * Math.PI / 4; ctx.save(); ctx.translate(Math.cos(angle) * 19, Math.sin(angle) * 7); ctx.rotate(angle); ctx.strokeStyle = '#45413b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(0, 0, 7, 4.5, 0, 0, Math.PI * 2); fillCampTexture(ctx, 'stone', i % 2 ? '#77736a' : '#aaa397'); ctx.stroke(); ctx.restore(); }
-  ctx.lineCap = 'round'; ctx.strokeStyle = campTexturePattern(ctx, 'wood') ?? '#4b3020'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(-11, 2); ctx.lineTo(11, -3); ctx.stroke();
-  ctx.strokeStyle = '#a87542'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-10, 1); ctx.lineTo(10, -2); ctx.stroke();
-  ctx.strokeStyle = campTexturePattern(ctx, 'wood') ?? '#4b3020'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(8, 4); ctx.stroke();
-  ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(0, -8, 12, 16);
-  ctx.fillStyle = 'rgba(255,115,25,.25)'; ctx.beginPath(); ctx.ellipse(0, -12, 13 + flicker, 17 + flicker, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#f07822'; ctx.beginPath(); ctx.moveTo(-9, -5); ctx.quadraticCurveTo(-12, -17 - flicker, 0, -29 - flicker); ctx.quadraticCurveTo(13, -16 + flicker, 8, -5); ctx.quadraticCurveTo(0, 1, -9, -5); ctx.fill();
-  ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.moveTo(-4, -5); ctx.quadraticCurveTo(-4, -15 - flicker, 2, -22 - flicker); ctx.quadraticCurveTo(9, -12, 4, -5); ctx.quadraticCurveTo(0, 0, -4, -5); ctx.fill();
+let campfireSprite: HTMLImageElement | null = null;
+function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }) {
+  if (typeof Image === 'undefined') return;
+  if (!campfireSprite) {
+    campfireSprite = new Image();
+    campfireSprite.src = '/assets/bau/Fogueira.png?v=20261126-1';
+  }
+  if (!campfireSprite.complete || campfireSprite.naturalWidth === 0) return;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(campfireSprite, campfire.x - 45, campfire.y - 45, 90, 90);
   ctx.restore();
 }
 
@@ -6586,44 +6585,17 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
   ctx.restore();
 }
 
+let campTecelariaSprite: HTMLImageElement | null = null;
 function drawTecelaria(ctx: CanvasRenderingContext2D, building: GameSnapshot['tecelaria']) {
-  if (!building.built) return;
-  const { x, y } = building;
-  ctx.save(); ctx.translate(x, y);
-  ctx.fillStyle = 'rgba(0,0,0,.32)';
-  ctx.beginPath(); ctx.ellipse(0, 20, 41, 12, 0, 0, Math.PI * 2); ctx.fill();
-
-  // Dois pés de pedra sustentam a armação.
-  ctx.strokeStyle = '#5c5a55'; ctx.lineWidth = 1.5;
-  fillCampTexturedRect(ctx, 'stone', -29, 9, 15, 13, '#8d8b84'); ctx.strokeRect(-29, 9, 15, 13);
-  fillCampTexturedRect(ctx, 'stone', 14, 9, 15, 13, '#8d8b84'); ctx.strokeRect(14, 9, 15, 13);
-  ctx.beginPath(); ctx.moveTo(-29, 15); ctx.lineTo(-14, 15); ctx.moveTo(14, 15); ctx.lineTo(29, 15); ctx.stroke();
-
-  // Tear de madeira escura com realces nas travessas.
-  ctx.strokeStyle = '#2b1c14'; ctx.lineWidth = 3;
-  fillCampTexturedRect(ctx, 'wood', -31, -27, 7, 39, '#4b3020'); ctx.strokeRect(-31, -27, 7, 39);
-  fillCampTexturedRect(ctx, 'wood', 24, -27, 7, 39, '#4b3020'); ctx.strokeRect(24, -27, 7, 39);
-  fillCampTexturedRect(ctx, 'wood', -34, -30, 68, 7, '#4b3020'); ctx.strokeRect(-34, -30, 68, 7);
-  fillCampTexturedRect(ctx, 'wood', -34, 5, 68, 6, '#4b3020'); ctx.strokeRect(-34, 5, 68, 6);
-  fillCampTexturedRect(ctx, 'wood', -29, -26, 3, 30, '#a87542'); fillCampTexturedRect(ctx, 'wood', 26, -26, 3, 30, '#a87542');
-  fillCampTexturedRect(ctx, 'wood', -31, -28, 62, 2, '#a87542'); fillCampTexturedRect(ctx, 'wood', -31, 7, 62, 2, '#a87542');
-  ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(0, -30, 34, 42);
-
-  // Fios claros e tecido pronto no centro.
-  ctx.strokeStyle = '#f3efe4'; ctx.lineWidth = 1.4;
-  for (let i = -18; i <= 18; i += 6) {
-    ctx.beginPath(); ctx.moveTo(i, -21); ctx.lineTo(i, 5); ctx.stroke();
+  if (!building.built || typeof Image === 'undefined') return;
+  if (!campTecelariaSprite) {
+    campTecelariaSprite = new Image();
+    campTecelariaSprite.src = '/assets/bau/Tecelaria.png?v=20261126-1';
   }
-  ctx.strokeStyle = '#c7bda8'; ctx.lineWidth = 1.2;
-  fillCampTexturedRect(ctx, 'linen', -18, -5, 36, 12, '#e9e2cf'); ctx.strokeRect(-18, -5, 36, 12);
-  ctx.strokeStyle = '#c7bda8'; ctx.lineWidth = 1;
-  for (let i = -14; i <= 14; i += 7) {
-    ctx.beginPath(); ctx.moveTo(i, -4); ctx.lineTo(i, 6); ctx.stroke();
-  }
-
-  // Lançadeira escura apoiada na borda do tecido.
-  ctx.fillStyle = '#29231d'; ctx.strokeStyle = '#120f0c'; ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.moveTo(-5, 1); ctx.lineTo(5, 1); ctx.lineTo(8, 4); ctx.lineTo(5, 7); ctx.lineTo(-5, 7); ctx.lineTo(-8, 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  if (!campTecelariaSprite.complete || campTecelariaSprite.naturalWidth === 0) return;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(campTecelariaSprite, building.x - 48, building.y - 47, 96, 94);
   ctx.restore();
 }
 
