@@ -1278,7 +1278,7 @@ export class GameEngine {
     if (cartCanDeliver && remaining > 0) this.state.cart.inventory = transfer(this.state.cart.inventory);
     refinery.stoneStock = refinery.stoneBuffer.reduce((total, stack) => total + stack.quantity, 0);
     if (moved > 0) this.emit();
-    return moved > 0 ? { ok: true, moved } : { ok: false, reason: refinery.stoneStock >= CONFIG.refinery.stoneCapacity ? 'full' : 'none' };
+    return moved > 0 ? { ok: true, moved } : { ok: false, reason: refinery.stoneStock >= CONFIG.refinery.stoneCapacity || refinery.stoneBuffer.length >= maxSlots ? 'full' : 'none' };
   }
 
   loadRefineryWood(amount: number): { ok: true; moved: number } | { ok: false; reason: 'notbuilt' | 'far' | 'full' | 'none' } {
