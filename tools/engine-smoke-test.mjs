@@ -867,6 +867,7 @@ try {
     assert.equal(capacityRefinery.state.refinery.woodStock, 6);
     assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'full' });
     capacityRefinery.state.player.x = 2400;
+    assert.deepEqual(capacityRefinery.loadRefineryStone(1), { ok: false, reason: 'far' });
     assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'far' });
     capacityRefinery.stop();
 
