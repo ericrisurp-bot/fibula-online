@@ -1883,7 +1883,11 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const houseDistance = Math.hypot(feet.x - state.house.x, feet.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const campfireDistance = state.campfire ? Math.hypot(feet.x - state.campfire.x, feet.y - state.campfire.y) : Infinity;
-  const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius;
+  const campHasBuildableStructure = !state.house.built || !state.refinery.built || !state.tecelaria.built;
+  const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius && (!state.house.built || !state.refinery.built || !state.tecelaria.built);
+  useEffect(() => {
+    if (!campHasBuildableStructure) setCampMenuOpen(false);
+  }, [campHasBuildableStructure]);
   const chestBuildStatus = engineRef.current?.getChestBuildStatus() ?? { ok: false as const, reason: 'nofire' as const };
   const chestBuildStatusLabel = chestBuildStatus.ok ? 'Construir'
     : chestBuildStatus.reason === 'already' ? 'Já construído'
@@ -2986,19 +2990,19 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         else worldDrawables.push({ depth: s.cart.y + 15, draw: () => drawFlag(ctx, s.cart.x, s.cart.y - 34, flag.color, s.elapsed) });
       }
       if (s.campfire) {
-        if (campMenuOpenRef.current && !s.tecelaria.built) {
+        if (campMenuOpenRef.current && (!s.house.built || !s.refinery.built || !s.tecelaria.built) && !s.tecelaria.built) {
           const slot = CONFIG.campLayout.tecelaria;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Tecelaria', 42) });
         }
-        if (campMenuOpenRef.current && !s.refinery.built) {
+        if (campMenuOpenRef.current && (!s.house.built || !s.refinery.built || !s.tecelaria.built) && !s.refinery.built) {
           const slot = CONFIG.campLayout.refinery;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Refinaria', 38) });
         }
-        if (campMenuOpenRef.current && !s.house.built) {
+        if (campMenuOpenRef.current && (!s.house.built || !s.refinery.built || !s.tecelaria.built) && !s.house.built) {
           const slot = CONFIG.campLayout.bau;
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Baú', 38) });
         }
-        if (campMenuOpenRef.current) worldDrawables.push({ depth: s.campfire.y + 10, draw: () => drawCampfireRange(ctx, s.campfire!) });
+        if (campMenuOpenRef.current && (!s.house.built || !s.refinery.built || !s.tecelaria.built)) worldDrawables.push({ depth: s.campfire.y + 10, draw: () => drawCampfireRange(ctx, s.campfire!) });
         worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed, fireGlowFactor) });
       }
       if (s.house.built) worldDrawables.push({ depth: s.house.y + 28, draw: () => drawCampChest(ctx, s.house) });
@@ -5084,6 +5088,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   };
   const closeCampMenu = () => setCampMenuOpen(false);
   const openCampMenu = () => {
+    if (!campMenuVisible || showStart || state.dead) return;
     closeFlagMenu();
     closeInventoryPanel();
     setCampMenuOpen(true);
@@ -6379,7 +6384,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         <div className={`flag-wheel-option camp ${flagWheel?.selected === 'camp' ? 'selected' : ''} ${state.campfire ? 'disabled' : ''}`} style={flagWheel ? undefined : { display: 'none' }} aria-label="Fogueira" title="Fogueira">⛺<small>Acampar</small></div>
         <div className="flag-wheel-center" aria-hidden="true">×</div>
       </div>}
-      {campMenuOpen && !showStart && !state.dead && state.campfire && <div className="camp-menu-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); closeCampMenu(); } }} onClick={event => { if (event.target === event.currentTarget) closeCampMenu(); }}>
+      {campMenuOpen && campHasBuildableStructure && !showStart && !state.dead && state.campfire && <div className="camp-menu-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) { event.preventDefault(); closeCampMenu(); } }} onClick={event => { if (event.target === event.currentTarget) closeCampMenu(); }}>
         <section className="camp-menu-panel" role="dialog" aria-modal="true" aria-label="Menu do acampamento" onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
           <header><strong>ACAMPAMENTO</strong><button type="button" className="camp-menu-close" aria-label="Fechar menu do acampamento" onClick={closeCampMenu}>×</button></header>
           <button type="button" className="camp-menu-row camp-menu-chest" disabled={!chestBuildStatus.ok} onClick={buildCampChest} aria-label={`Baú: ${chestBuildStatusLabel}`}>
