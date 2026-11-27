@@ -871,6 +871,20 @@ try {
     assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'far' });
     capacityRefinery.stop();
 
+    const cartLoadRefinery = makeRefineryEngine(0x1a000008);
+    cartLoadRefinery.state.cart.x = cartLoadRefinery.state.refinery.x;
+    cartLoadRefinery.state.cart.y = cartLoadRefinery.state.refinery.y;
+    cartLoadRefinery.state.cart.inventory = [
+      { itemId: 'stone:uncommon', quantity: 2 },
+      { itemId: 'wood:rare', quantity: 2 },
+    ];
+    assert.deepEqual(cartLoadRefinery.loadRefineryStone(2), { ok: true, moved: 2 });
+    assert.deepEqual(cartLoadRefinery.loadRefineryWood(2), { ok: true, moved: 2 });
+    assert.deepEqual(cartLoadRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:uncommon', quantity: 2 }]);
+    assert.equal(cartLoadRefinery.state.refinery.woodStock, 2);
+    assert.deepEqual(cartLoadRefinery.state.cart.inventory, []);
+    cartLoadRefinery.stop();
+
     CONFIG.refinery.tinChance = 0;
     const fuelRefinery = makeRefineryEngine(0x1a000002);
     fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 5 }];
