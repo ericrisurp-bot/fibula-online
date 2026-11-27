@@ -32,7 +32,6 @@ import type { ArmorPiece } from './game/armor';
 import { drawFishingRod, drawFloatingTool } from './game/tools';
 import { drawCart } from './game/cart';
 import { drawLake } from './game/lakeRender';
-import { fillCampTexture, fillCampTexturedRect, campTexturePattern } from './game/campTextures';
 import Controls from './ui/Controls';
 import PlayerProfileModal from './ui/PlayerProfileModal';
 import FriendsModal from './ui/FriendsModal';
