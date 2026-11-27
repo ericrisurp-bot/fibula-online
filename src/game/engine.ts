@@ -1327,7 +1327,7 @@ export class GameEngine {
     this.state.inventory = inventory;
     const left = refinery.outputInventory.reduce((total, stack) => total + stack.quantity, 0);
     if (moved > 0) this.emit();
-    return moved > 0 ? { ok: true, moved, left } : { ok: false, reason: 'empty' };
+    return { ok: true, moved, left };
   }
 
   private processRefinery(dt: number) {
