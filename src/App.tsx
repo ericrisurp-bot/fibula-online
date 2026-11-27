@@ -2958,6 +2958,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           ? Math.atan2(aimTarget.y - bowGripY, aimTarget.x - bowGripX)
           : Math.atan2(aimTarget.y - s.player.y, aimTarget.x - s.player.x)
         : s.player.facingX < -0.35 ? Math.PI : 0;
+      const transition = CONFIG.dayNight.transitionDuration;
+      const darkness = s.dayNight === 'night'
+        ? 1
+        : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
+      // Mantém 25% do brilho durante o dia e sobe suavemente até 100% com a escuridão.
+      const fireGlowFactor = 0.25 + 0.75 * darkness;
       const drawablesStartedAt = perfMetrics ? performance.now() : 0;
       const worldDrawables: Array<{ depth: number; draw: () => void }> = [];
       if (s.classId === 'druida') {
@@ -2993,10 +2999,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           worldDrawables.push({ depth: s.campfire.y + slot.dy + 12, draw: () => drawCampSlotGhost(ctx, s.campfire!.x + slot.dx, s.campfire!.y + slot.dy, 'Baú', 38) });
         }
         if (campMenuOpenRef.current) worldDrawables.push({ depth: s.campfire.y + 10, draw: () => drawCampfireRange(ctx, s.campfire!) });
-        worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed) });
+        worldDrawables.push({ depth: s.campfire.y + 12, draw: () => drawCampfire(ctx, s.campfire!, s.elapsed, fireGlowFactor) });
       }
       if (s.house.built) worldDrawables.push({ depth: s.house.y + 28, draw: () => drawCampChest(ctx, s.house) });
-      if (s.refinery.built) worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery) });
+      if (s.refinery.built) worldDrawables.push({ depth: s.refinery.y + 28, draw: () => drawRefinery(ctx, s.refinery, s.elapsed, fireGlowFactor) });
       if (s.tecelaria.built) worldDrawables.push({ depth: s.tecelaria.y + 28, draw: () => drawTecelaria(ctx, s.tecelaria) });
       worldDrawables.push({ depth: s.cart.y + 14, draw: () => {
         const playerGround = playerFeet(s.player);
@@ -3451,10 +3457,6 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         ctx.fillText(damage.label ?? (Number.isInteger(damage.amount) ? String(damage.amount) : damage.amount.toFixed(1)), 0, 0);
         ctx.restore();
       }
-      const transition = CONFIG.dayNight.transitionDuration;
-      const darkness = s.dayNight === 'night'
-        ? 1
-        : Math.max(0, Math.min(1, (s.phaseElapsed - (CONFIG.dayNight.dayDuration - transition)) / transition));
       ctx.restore();
       // Neblina e vinheta são renderizadas em um overlay reutilizado a 6,25% da resolução para reduzir o custo de renderização.
       const overlayStartedAt = perfMetrics ? performance.now() : 0;
@@ -6542,8 +6544,50 @@ function drawCampfireRange(ctx: CanvasRenderingContext2D, campfire: { x: number;
   ctx.restore();
 }
 
+// Brilho do fogo: canvas auxiliar criado uma única vez, fora do desenho por frame.
+const CAMPFIRE_GLOW_OFFSET_Y = -8; // Centro da chama em relação ao centro do sprite.
+const CAMPFIRE_GLOW_RADIUS = 66;
+const CAMPFIRE_GLOW_BASE_INTENSITY = 0.62;
+const REFINERY_GLOW_OFFSET_X = 14; // Boca do forno, à direita do centro do sprite.
+const REFINERY_GLOW_OFFSET_Y = 14; // Boca do forno, abaixo do centro do sprite.
+const REFINERY_GLOW_RADIUS = 40;
+const REFINERY_GLOW_BASE_INTENSITY = 0.48;
+let fireGlowCanvas: HTMLCanvasElement | null = null;
+let fireGlowCanvasAttempted = false;
+
+function getFireGlowCanvas(): HTMLCanvasElement | null {
+  if (fireGlowCanvasAttempted) return fireGlowCanvas;
+  fireGlowCanvasAttempted = true;
+  if (typeof document === 'undefined') return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const glowContext = canvas.getContext('2d');
+    if (!glowContext) return null;
+    const gradient = glowContext.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(255,170,60,0.9)');
+    gradient.addColorStop(1, 'rgba(255,120,30,0)');
+    glowContext.fillStyle = gradient;
+    glowContext.fillRect(0, 0, 64, 64);
+    fireGlowCanvas = canvas;
+    return fireGlowCanvas;
+  } catch {
+    return null;
+  }
+}
+
+function drawFireGlow(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, intensity: number) {
+  const glow = getFireGlowCanvas();
+  if (!glow || intensity <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, intensity));
+  ctx.drawImage(glow, x - radius, y - radius, radius * 2, radius * 2);
+  ctx.restore();
+}
+
 let campfireSprite: HTMLImageElement | null = null;
-function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }, _elapsed: number) {
+function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }, elapsed: number, glowFactor: number) {
   if (typeof Image === 'undefined') return;
   if (!campfireSprite) {
     campfireSprite = new Image();
@@ -6554,6 +6598,8 @@ function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: n
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(campfireSprite, campfire.x - 45, campfire.y - 45, 90, 90);
   ctx.restore();
+  const pulse = 0.9 + 0.1 * Math.sin(elapsed * 2.4);
+  drawFireGlow(ctx, campfire.x, campfire.y + CAMPFIRE_GLOW_OFFSET_Y, CAMPFIRE_GLOW_RADIUS, CAMPFIRE_GLOW_BASE_INTENSITY * pulse * glowFactor);
 }
 
 let campChestSprite: HTMLImageElement | null = null;
@@ -6571,7 +6617,7 @@ function drawCampChest(ctx: CanvasRenderingContext2D, house: GameSnapshot['house
 }
 
 let campRefinerySprite: HTMLImageElement | null = null;
-function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery']) {
+function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['refinery'], elapsed: number, glowFactor: number) {
   if (!refinery.built || typeof Image === 'undefined') return;
   if (!campRefinerySprite) {
     campRefinerySprite = new Image();
@@ -6582,6 +6628,8 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
   ctx.imageSmoothingEnabled = true;
   ctx.drawImage(campRefinerySprite, refinery.x - 48, refinery.y - 47, 96, 94);
   ctx.restore();
+  const pulse = 0.9 + 0.1 * Math.sin(elapsed * 2.4);
+  drawFireGlow(ctx, refinery.x + REFINERY_GLOW_OFFSET_X, refinery.y + REFINERY_GLOW_OFFSET_Y, REFINERY_GLOW_RADIUS, REFINERY_GLOW_BASE_INTENSITY * pulse * glowFactor);
 }
 
 let campTecelariaSprite: HTMLImageElement | null = null;
