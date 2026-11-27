@@ -30,9 +30,9 @@ export const CONFIG = {
   map: { size: 4320, wall: 34, grid: 80 },
   campfire: { woodCost: 5, stoneCost: 5, cottonCost: 5, buildRadius: 300, minDistance: 48 },
   campLayout: {
-    tecelaria: { dx: -120, dy: -90 },
-    refinery: { dx: 120, dy: -90 },
-    bau: { dx: 0, dy: 110 },
+    tecelaria: { dx: -150, dy: -115 },
+    refinery: { dx: 150, dy: -115 },
+    bau: { dx: 0, dy: 150 },
   },
   campChest: { woodCost: 20 },
   campMachines: {
