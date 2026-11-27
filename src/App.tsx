@@ -1887,12 +1887,16 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
   const refineryAccessible = state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
+  const refineryCartCanDeliver = state.cart.carried || Math.hypot(state.cart.x - state.refinery.x, state.cart.y - state.refinery.y) <= CONFIG.refinery.interactRadius;
   const campfireDistance = state.campfire ? Math.hypot(feet.x - state.campfire.x, feet.y - state.campfire.y) : Infinity;
   const campHasBuildableStructure = !state.house.built || !state.refinery.built || !state.tecelaria.built;
   const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius && (!state.house.built || !state.refinery.built || !state.tecelaria.built);
   useEffect(() => {
     if (!campHasBuildableStructure) setCampMenuOpen(false);
   }, [campHasBuildableStructure]);
+  useEffect(() => {
+    if (!refineryAccessible) setRefineryFeedback('');
+  }, [refineryAccessible]);
   const chestBuildStatus = engineRef.current?.getChestBuildStatus() ?? { ok: false as const, reason: 'nofire' as const };
   const chestBuildStatusLabel = chestBuildStatus.ok ? 'Construir'
     : chestBuildStatus.reason === 'already' ? 'Já construído'
@@ -6428,7 +6432,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 <strong>Baú de saída</strong>
 <div className="refinery-panel-items">{state.refinery.outputInventory.length ? state.refinery.outputInventory.map((item,index)=><span className="refinery-panel-item" key={item.itemId+'-'+index}><i style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</i><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></span>) : <small>Nada ainda</small>}</div>
 <div className="refinery-panel-actions">
-<button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(5);setRefineryFeedback(r?.ok? r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 5 pedras</button>
+<button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(refineryCartCanDeliver?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(5);setRefineryFeedback(r?.ok? r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 5 pedras</button>
 <button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(CONFIG.refinery.stoneCapacity);setRefineryFeedback(r?.ok?r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar todas as pedras</button>
 <button type="button" disabled={state.refinery.woodStock>=CONFIG.refinery.woodCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='wood')} onClick={()=>{const r=engineRef.current?.loadRefineryWood(CONFIG.refinery.woodPerBatch);setRefineryFeedback(r?.ok?r.moved+' madeiras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 2 madeiras</button>
 <button type="button" disabled={state.refinery.woodStock>=CONFIG.refinery.woodCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='wood')} onClick={()=>{const r=engineRef.current?.loadRefineryWood(CONFIG.refinery.woodCapacity);setRefineryFeedback(r?.ok?r.moved+' madeiras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar toda a madeira</button>
