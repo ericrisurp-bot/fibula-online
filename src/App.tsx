@@ -6544,7 +6544,7 @@ function drawCampfireRange(ctx: CanvasRenderingContext2D, campfire: { x: number;
 }
 
 let campfireSprite: HTMLImageElement | null = null;
-function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }) {
+function drawCampfire(ctx: CanvasRenderingContext2D, campfire: { x: number; y: number }, _elapsed: number) {
   if (typeof Image === 'undefined') return;
   if (!campfireSprite) {
     campfireSprite = new Image();
