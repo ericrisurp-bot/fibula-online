@@ -2076,10 +2076,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 120) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < CONFIG.refinery.treeClearRadius + this.treeFootprintRadius(tree))) continue;
       if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < CONFIG.refinery.rockClearRadius + this.rockFootprintRadius(rock))) continue;
-      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
+      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stoneBuffer: [], woodStock: 0, fuelCharges: 0, outputInventory: [], stonesProcessed: 0, tinProduced: 0 };
       return;
     }
-    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
+    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stoneBuffer: [], woodStock: 0, fuelCharges: 0, outputInventory: [], stonesProcessed: 0, tinProduced: 0 };
   }
 
   private placeTecelaria() {
