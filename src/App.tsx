@@ -6577,12 +6577,12 @@ function drawRefinery(ctx: CanvasRenderingContext2D, refinery: GameSnapshot['ref
   if (!refinery.built || typeof Image === 'undefined') return;
   if (!campRefinerySprite) {
     campRefinerySprite = new Image();
-    campRefinerySprite.src = '/assets/bau/Refinaria.png?v=20261126';
+    campRefinerySprite.src = '/assets/bau/Refinaria.png?v=20261126-2';
   }
   if (!campRefinerySprite.complete || campRefinerySprite.naturalWidth === 0) return;
   ctx.save();
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(campRefinerySprite, refinery.x - 48, refinery.y - 45, 96, 90);
+  ctx.drawImage(campRefinerySprite, refinery.x - 48, refinery.y - 47, 96, 94);
   ctx.restore();
 }
 
