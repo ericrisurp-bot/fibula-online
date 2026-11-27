@@ -242,7 +242,8 @@ function readSavedLoadouts(): ClassEquipmentLoadouts {
 const isProfileClassId = (value: unknown): value is ClassId =>
   typeof value === 'string' && PROFILE_CLASS_IDS.includes(value as ClassId);
 
-const itemIcon = (itemId: string) => parseCoreItemId(itemId)?.kind === 'closed' ? '💎' : parseCoreItemId(itemId)?.kind === 'revealed' ? '💠' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
+const itemIcon = (itemId: string) => parseCoreItemId(itemId)?.kind === 'closed' ? '💎' : parseCoreItemId(itemId)?.kind === 'revealed' ? '💠' : getBaseItemId(itemId) === 'wood' ? '🪵' : getBaseItemId(itemId) === 'stone' ? '🪨' : getBaseItemId(itemId) === 'tin' ? '🥫' : getBaseItemId(itemId) === 'bronze' ? '🟤' : getBaseItemId(itemId) === 'cotton' ? '☁️' : getBaseItemId(itemId) === 'tomato' ? '🍅' : getBaseItemId(itemId) === 'cabbage' ? '🥬' : getBaseItemId(itemId) === 'herbs' ? '🌿' : getBaseItemId(itemId) === 'linen' ? '🧵' : getBaseItemId(itemId) === 'wolf_meat' ? '🥩' : getBaseItemId(itemId) === 'wolf_hide' ? '🟫' : getBaseItemId(itemId) === 'chicken_meat' ? '🍗' : getBaseItemId(itemId) === 'feather' ? '🪶' : getBaseItemId(itemId) === 'jabuticaba' ? '🫐' : getBaseItemId(itemId) === 'tilapia' ? '🐟' : getBaseItemId(itemId) === 'tambaqui' ? '🐠' : getBaseItemId(itemId) === 'pintado_surubim' ? '🐡' : getBaseItemId(itemId) === 'lambari' ? '🐟' : getBaseItemId(itemId) === 'tucunare' ? '🐠' : '📦';
+// tin: 'tin.png' será adicionado aqui quando a imagem existir.
 const MATERIAL_SPRITE_FILES: Record<string, string> = { wood: 'wood.png', stone: 'stone.png', wolf_hide: 'wolf-hide.png', cotton: 'cotton.png', bronze: 'bronze.png', linen: 'linen.png', refined_leather: 'refined-leather.png' };
 const INGREDIENT_SPRITE_FILES: Record<string, string> = { wolf_meat: 'wolf-meat.png', chicken_meat: 'chicken-meat.png', tomato: 'tomato.png', cabbage: 'cabbage.png', herbs: 'herbs.png', sugarcane: 'sugarcane.png', jabuticaba: 'jabuticaba.png', potato: 'potato.png', carrot: 'carrot.png', feather: 'feather.png' };
 const ITEM_SPRITE_FILES: Record<string, string> = { ...MATERIAL_SPRITE_FILES, ...INGREDIENT_SPRITE_FILES };
@@ -266,6 +267,7 @@ function drawItemSprite(ctx: CanvasRenderingContext2D, itemId: string, x: number
 const inventoryItemIcon = (itemId: string) => {
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
+  if (base === 'tin') return '🥫';
   if (parsedCore) {
     const coreFile = parsedCore.kind === 'closed' ? CORE_SPRITE_FILES.closed : CORE_SPRITE_FILES[parsedCore.core.category];
     return <img src={`/assets/cores/${coreFile}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />;
@@ -379,7 +381,7 @@ const itemLabel = (itemId: string) => {
     };
     return `Núcleo de ${equipmentLabels[core.equipmentType ?? ''] ?? (core.category === 'armor' ? 'armadura' : 'acessório')}`;
   }
-  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'refined_leather' ? 'Couro refinado' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
+  const label = base === 'wood' ? 'Madeira' : base === 'stone' ? 'Pedra' : base === 'tin' ? 'Estanho' : base === 'bronze' ? 'Bronze' : base === 'cotton' ? 'Algodão' : base === 'tomato' ? 'Tomate' : base === 'cabbage' ? 'Repolho' : base === 'herbs' ? 'Ervas' : base === 'linen' ? 'Linho' : base === 'refined_leather' ? 'Couro refinado' : base === 'wolf_meat' ? 'Carne de lobo' : base === 'wolf_hide' ? 'Couro de lobo' : base === 'chicken_meat' ? 'Frango' : base === 'feather' ? 'Pena' : base === 'jabuticaba' ? 'Jabuticaba' : base === 'tilapia' ? 'Tilápia' : base === 'tambaqui' ? 'Tambaqui' : base === 'pintado_surubim' ? 'Pintado / Surubim' : base === 'lambari' ? 'Lambari' : base === 'tucunare' ? 'Tucunaré' : base;
   return label;
 };
 
@@ -1870,6 +1872,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const [flagHotkeyOpen, setFlagHotkeyOpen] = useState(false);
   const inventoryPanelOpenRef = useRef(false);
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
+  const [refineryFeedback, setRefineryFeedback] = useState('');
   const [campMenuOpen, setCampMenuOpen] = useState(false);
   const campMenuOpenRef = useRef(false);
   campMenuOpenRef.current = campMenuOpen;
@@ -1882,12 +1885,18 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const cartCanStore = state.cart.stage === 'built' && cartAccessible;
   const houseDistance = Math.hypot(feet.x - state.house.x, feet.y - state.house.y);
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
+  const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
+  const refineryAccessible = state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
+  const refineryCartCanDeliver = state.cart.carried || Math.hypot(state.cart.x - state.refinery.x, state.cart.y - state.refinery.y) <= CONFIG.refinery.interactRadius;
   const campfireDistance = state.campfire ? Math.hypot(feet.x - state.campfire.x, feet.y - state.campfire.y) : Infinity;
   const campHasBuildableStructure = !state.house.built || !state.refinery.built || !state.tecelaria.built;
   const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius && (!state.house.built || !state.refinery.built || !state.tecelaria.built);
   useEffect(() => {
     if (!campHasBuildableStructure) setCampMenuOpen(false);
   }, [campHasBuildableStructure]);
+  useEffect(() => {
+    if (!refineryAccessible) setRefineryFeedback('');
+  }, [refineryAccessible]);
   const chestBuildStatus = engineRef.current?.getChestBuildStatus() ?? { ok: false as const, reason: 'nofire' as const };
   const chestBuildStatusLabel = chestBuildStatus.ok ? 'Construir'
     : chestBuildStatus.reason === 'already' ? 'Já construído'
@@ -6402,7 +6411,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           </button>
         </section>
       </div>}
-      {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Baú, mochila e carrinho">
+      {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''} ${refineryAccessible ? 'has-refinery' : ''}`} role="dialog" aria-label="Baú, mochila e carrinho">
 <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onPointerDown={handleInventoryClosePointerDown} onClick={handleInventoryCloseClick} aria-label="Fechar mochila" title="Fechar">×</button></header>
 <div className="inventory-quick-content">
 <div className="inventory-quick-column inventory-quick-left">
@@ -6414,6 +6423,24 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 {Array.from({length:CONFIG.cart.capacitySlots},(_,index)=>{const item=state.cart.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?`${item.itemId} x${item.quantity}`:`Espaço ${index+1} vazio`}>
 {item?<button type="button" className="inventory-transfer-slot" disabled={!cartAccessible} onClick={event=>{event.stopPropagation();transferCartToBag(index);}} aria-label={`Retirar ${item.itemId} x${item.quantity} do carrinho para a mochila`} title="Retirar para a mochila"><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
 </div></section>}
+{refineryAccessible&&<section className="refinery-panel-section">
+<h3>Refinaria</h3>
+<p><strong>Pedras: {state.refinery.stoneStock}/{CONFIG.refinery.stoneCapacity}</strong></p>
+<div className="refinery-panel-items">{state.refinery.stoneBuffer.length ? state.refinery.stoneBuffer.map((item,index)=><span className="refinery-panel-item" key={item.itemId+'-'+index}><i style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</i><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></span>) : <small>Nenhuma pedra.</small>}</div>
+<p><strong>Madeira: {state.refinery.woodStock}/{CONFIG.refinery.woodCapacity}</strong></p>
+<p className="refinery-panel-status">{state.refinery.stoneStock===0?'Vazia':(state.refinery.fuelCharges>0||state.refinery.woodStock>=CONFIG.refinery.woodPerBatch)?'Refinando…':'Sem lenha: coloque 2 madeiras'}</p>
+<strong>Baú de saída</strong>
+<div className="refinery-panel-items">{state.refinery.outputInventory.length ? state.refinery.outputInventory.map((item,index)=><span className="refinery-panel-item" key={item.itemId+'-'+index}><i style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</i><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></span>) : <small>Nada ainda</small>}</div>
+<div className="refinery-panel-actions">
+<button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(refineryCartCanDeliver?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(5);setRefineryFeedback(r?.ok? r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 5 pedras</button>
+<button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(CONFIG.refinery.stoneCapacity);setRefineryFeedback(r?.ok?r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar todas as pedras</button>
+<button type="button" disabled={state.refinery.woodStock>=CONFIG.refinery.woodCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='wood')} onClick={()=>{const r=engineRef.current?.loadRefineryWood(CONFIG.refinery.woodPerBatch);setRefineryFeedback(r?.ok?r.moved+' madeiras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 2 madeiras</button>
+<button type="button" disabled={state.refinery.woodStock>=CONFIG.refinery.woodCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='wood')} onClick={()=>{const r=engineRef.current?.loadRefineryWood(CONFIG.refinery.woodCapacity);setRefineryFeedback(r?.ok?r.moved+' madeiras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar toda a madeira</button>
+<button type="button" disabled={!state.refinery.outputInventory.length || (state.inventory.length>=CONFIG.inventory.maxSlots && !state.refinery.outputInventory.some(out=>state.inventory.some(inv=>inv.itemId===out.itemId&&inv.quantity<CONFIG.inventory.maxPerSlot)))} onClick={()=>{const r=engineRef.current?.collectRefineryOutput();setRefineryFeedback(!r?'Não foi possível pegar.':!r.ok?r.reason==='far'?'Aproxime-se da refinaria.':'Nada para pegar.':r.left>0?'Mochila cheia: ficaram '+r.left+' no baú da refinaria.':r.moved+' estanho retirado.');}}>Pegar estanho</button>
+</div>
+{refineryFeedback&&<p className="refinery-panel-feedback" role="status">{refineryFeedback}</p>}
+<p className="refinery-panel-warning">O estanho só é salvo se você levar até o Baú do acampamento.</p>
+</section>}
 </div>
 {houseAccessible&&state.house.built&&<div className="inventory-quick-column inventory-quick-house"><section className="house-storage-section">
 <h3>Baú</h3><nav className="house-storage-tabs" role="tablist" aria-label="Itens do Baú">
