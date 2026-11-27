@@ -3268,6 +3268,11 @@ export class GameEngine {
     };
   }
 
+  /** Armadura final da classe/equipamentos atuais; leitura pontual no encerramento da partida. */
+  getFinalArmor(): number {
+    return this.getLevelStats().armor;
+  }
+
   private getDodgeChance(): number {
     const baseDodge = CONFIG.rulesV2.enabled ? CONFIG.player.classDodge[this.state.classId] : CONFIG.player.dodge;
     const chance = baseDodge + this.getLevelStats().dodge;

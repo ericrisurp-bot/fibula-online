@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type MouseEvent, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawGrassTerrainDetails, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
 import { getBaseItemId, getItemRarity } from './game/inventory';
@@ -16,7 +17,8 @@ import { clearLocalGameProgress, fetchResetEpoch, readLocalResetEpoch, writeLoca
 import { getCookingCapacity, getCookingIngredientStacks, getPanMeal, getPanMealError, getCookingServerState, startCookingProduction, collectCookingMeal, queueCookingMeal, returnCookingMeal, discardCookingMeal, consumeReadyCookingMeal as consumeReadyCookingMealOnServer, takePendingCookingMeals, getQuickRecipe, isCookingIngredient, type CookingMeal, type CookingServerState } from './game/cooking';
 import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
-import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, fetchPdLoadout, savePdLoadout, fetchClassChoice, chooseClasses, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
+import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, enqueueSoloMatchStats, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, fetchPdLoadout, savePdLoadout, fetchClassChoice, chooseClasses, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
+import { buildMatchStatsPayload } from './game/matchStats';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readAdventurerGuideEnabled, readGameZoom, writeAdventurerGuideEnabled, writeGameZoom } from './game/devicePreferences';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
@@ -897,7 +899,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<boolean> => {
     const sessionId = matchSessionIdRef.current;
     if (!sessionId) return true;
-    // Sair vivo abandona a sessão: nunca gera resultado nem entra na fila do ranking.
+    // Sair vivo continua usando o fluxo de abandono; não cria resultado de ranking.
     if (!snapshot.dead) {
       matchSessionIdRef.current = null;
       return true;
@@ -912,6 +914,18 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       window.alert('Não foi possível guardar o resultado desta partida neste dispositivo. Mantenha esta tela aberta e tente novamente.');
       return false;
     }
+    const nativePlatform = Capacitor.getPlatform();
+    const statsPayload = buildMatchStatsPayload({
+      classId: snapshot.classId,
+      endedBy: 'death',
+      nights: survivalNights,
+      kills: snapshot.kills,
+      platform: nativePlatform === 'android' ? 'android' : nativePlatform === 'web' ? 'web' : 'other',
+      matchLevel: snapshot.player.level,
+      armor: engineRef.current?.getFinalArmor() ?? 0,
+      maxHp: snapshot.player.maxHp,
+    });
+    if (statsPayload) enqueueSoloMatchStats(session.user.sub, sessionId, statsPayload, false);
     matchSessionIdRef.current = null;
     const rejected = await drainSoloMatchResults();
     if (rejected > 0) {
@@ -5207,6 +5221,21 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     setExitConfirmationBusy(true);
     setExitConfirmationError('');
 
+    // Snapshot pontual antes de qualquer espera; Duo permanece fora desta telemetria.
+    const exitSnapshot = engineRef.current?.state;
+    const exitEngine = engineRef.current;
+    const nativePlatform = Capacitor.getPlatform();
+    const exitStatsPayload = exitSnapshot ? buildMatchStatsPayload({
+      classId: exitSnapshot.classId,
+      endedBy: 'exit',
+      nights: Math.max(0, exitSnapshot.nightNumber - (exitSnapshot.dayNight === 'night' ? 1 : 0)),
+      kills: exitSnapshot.kills,
+      platform: nativePlatform === 'android' ? 'android' : nativePlatform === 'web' ? 'web' : 'other',
+      matchLevel: exitSnapshot.player.level,
+      armor: exitEngine?.getFinalArmor() ?? 0,
+      maxHp: exitSnapshot.player.maxHp,
+    }) : null;
+
     // Fecha novas alterações locais do Baú enquanto o servidor confirma o encerramento.
     // A fila permanece intacta até cada operação ser confirmada ou explicitamente rejeitada.
     houseMatchClosedRef.current = true;
@@ -5230,6 +5259,11 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           const result = await abandonSoloMatchSession(fibulaSupabase, sessionId);
           if (result === 'rejected') {
             throw new Error('O Supabase não confirmou o encerramento desta partida. Você continua nela.');
+          }
+          if (exitStatsPayload && session.user.sub) {
+            // accepted/duplicate do abandono libera a telemetria; a falha dela é isolada.
+            enqueueSoloMatchStats(session.user.sub, sessionId, exitStatsPayload, true);
+            void drainSoloMatchResults();
           }
           matchSessionIdRef.current = null;
         }

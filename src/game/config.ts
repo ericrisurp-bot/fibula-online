@@ -1,4 +1,6 @@
 // Ajustes de balanceamento centralizados para facilitar as próximas etapas.
+// Altere esta versão sempre que o balanceamento de classes ou inimigos mudar.
+export const BALANCE_VERSION = '2026-11-a';
 const AURA_RADIUS = 40;
 const SWORD_REACH_BEYOND_AURA = 50;
 

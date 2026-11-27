@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ClassId } from './config';
+import { isValidMatchStatsPayload, type MatchStatsPayload } from './matchStats';
 
 export type PersistedHouseStack = { itemId: string; quantity: number };
 export type SoloMatchResult = {
@@ -358,6 +359,157 @@ type SoloMatchResultOutboxEntry = {
 
 const SOLO_MATCH_RESULT_OUTBOX_KEY = 'fibula-solo-match-result-outbox';
 
+type SoloMatchStatsOutboxEntry = {
+  userId: string;
+  sessionId: string;
+  payload: MatchStatsPayload;
+  ready: boolean;
+  attempts: number;
+  createdAt: string;
+};
+
+const SOLO_MATCH_STATS_OUTBOX_KEY = 'fibula-solo-match-stats-outbox';
+const SOLO_MATCH_STATS_MAX_PENDING = 20;
+const SOLO_MATCH_STATS_MAX_ATTEMPTS = 3;
+
+function isValidSoloMatchStatsOutboxEntry(value: unknown): value is SoloMatchStatsOutboxEntry {
+  if (!value || typeof value !== 'object') return false;
+  const entry = value as Record<string, unknown>;
+  return typeof entry.userId === 'string' && entry.userId.length > 0
+    && typeof entry.sessionId === 'string' && entry.sessionId.length > 0
+    && isValidMatchStatsPayload(entry.payload)
+    && typeof entry.ready === 'boolean'
+    && Number.isSafeInteger(entry.attempts) && (entry.attempts as number) >= 0
+    && (entry.attempts as number) < SOLO_MATCH_STATS_MAX_ATTEMPTS
+    && typeof entry.createdAt === 'string' && Number.isFinite(Date.parse(entry.createdAt));
+}
+
+export function readSoloMatchStatsOutbox(): SoloMatchStatsOutboxEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(SOLO_MATCH_STATS_OUTBOX_KEY) ?? '[]');
+    return Array.isArray(stored)
+      ? stored.filter(isValidSoloMatchStatsOutboxEntry).slice(-SOLO_MATCH_STATS_MAX_PENDING)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function enqueueSoloMatchStats(
+  userId: string,
+  sessionId: string,
+  payload: MatchStatsPayload,
+  ready: boolean,
+): boolean {
+  if (typeof window === 'undefined' || !userId || !sessionId || !isValidMatchStatsPayload(payload)) return false;
+  try {
+    const outbox = readSoloMatchStatsOutbox();
+    const existingIndex = outbox.findIndex(entry => entry.userId === userId && entry.sessionId === sessionId);
+    if (existingIndex >= 0) {
+      const existing = outbox[existingIndex];
+      if (JSON.stringify(existing.payload) !== JSON.stringify(payload)) return false;
+      if (ready && !existing.ready) outbox[existingIndex] = { ...existing, ready: true };
+    } else {
+      outbox.push({
+        userId,
+        sessionId,
+        payload,
+        ready,
+        attempts: 0,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    window.localStorage.setItem(
+      SOLO_MATCH_STATS_OUTBOX_KEY,
+      JSON.stringify(outbox.slice(-SOLO_MATCH_STATS_MAX_PENDING)),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function markSoloMatchStatsReady(userId: string, sessionId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const outbox = readSoloMatchStatsOutbox().map(entry =>
+      entry.userId === userId && entry.sessionId === sessionId ? { ...entry, ready: true } : entry,
+    );
+    window.localStorage.setItem(SOLO_MATCH_STATS_OUTBOX_KEY, JSON.stringify(outbox));
+  } catch {
+    // A telemetria é best-effort e nunca interfere no resultado da partida.
+  }
+}
+
+function removeSoloMatchStatsOutboxEntry(userId: string, sessionId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const outbox = readSoloMatchStatsOutbox().filter(entry =>
+      entry.userId !== userId || entry.sessionId !== sessionId,
+    );
+    window.localStorage.setItem(SOLO_MATCH_STATS_OUTBOX_KEY, JSON.stringify(outbox));
+  } catch {
+    // A confirmação será idempotente se o armazenamento local estiver indisponível.
+  }
+}
+
+function recordSoloMatchStatsAttempt(entry: SoloMatchStatsOutboxEntry): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const nextAttempts = entry.attempts + 1;
+    if (nextAttempts >= SOLO_MATCH_STATS_MAX_ATTEMPTS) {
+      removeSoloMatchStatsOutboxEntry(entry.userId, entry.sessionId);
+      return;
+    }
+    const outbox = readSoloMatchStatsOutbox().map(current =>
+      current.userId === entry.userId && current.sessionId === entry.sessionId
+        ? { ...current, attempts: nextAttempts }
+        : current,
+    );
+    window.localStorage.setItem(SOLO_MATCH_STATS_OUTBOX_KEY, JSON.stringify(outbox));
+  } catch {
+    // Não propaga falhas locais de telemetria para o fluxo do jogo.
+  }
+}
+
+export async function flushSoloMatchStatsOutbox(
+  client: SupabaseClient,
+  userId: string,
+): Promise<{ sent: number; pending: number }> {
+  let sent = 0;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return { sent, pending: readSoloMatchStatsOutbox().filter(entry => entry.userId === userId).length };
+  }
+  const resetGeneration = persistenceResetGeneration;
+  const pending = readSoloMatchStatsOutbox().filter(entry => entry.userId === userId && entry.ready);
+  for (const entry of pending) {
+    try {
+      const { data, error } = await client.rpc('fibula_record_match_stats', {
+        p_session_id: entry.sessionId,
+        p_stats: entry.payload,
+      });
+      if (resetGeneration !== persistenceResetGeneration) break;
+      if (error) throw error;
+      if (data === 'recorded' || data === 'duplicate' || data === 'rejected') {
+        removeSoloMatchStatsOutboxEntry(userId, entry.sessionId);
+        sent += 1;
+      } else {
+        recordSoloMatchStatsAttempt(entry);
+        break;
+      }
+    } catch {
+      recordSoloMatchStatsAttempt(entry);
+      // Uma falha de rede encerra este ciclo; não fazemos retry agressivo.
+      break;
+    }
+  }
+  return {
+    sent,
+    pending: readSoloMatchStatsOutbox().filter(entry => entry.userId === userId).length,
+  };
+}
+
 function isValidSoloMatchResultOutboxEntry(value: unknown): value is SoloMatchResultOutboxEntry {
   if (!value || typeof value !== 'object') return false;
   const entry = value as Record<string, unknown>;
@@ -423,14 +575,27 @@ export async function flushSoloMatchResultOutbox(
         survivalNights: entry.survivalNights,
       });
       if (resetGeneration !== persistenceResetGeneration) break;
-      if (result === 'accepted') accepted += 1;
-      else if (result === 'duplicate') duplicate += 1;
-      else rejected += 1;
+      if (result === 'accepted') {
+        accepted += 1;
+        markSoloMatchStatsReady(userId, entry.sessionId);
+      } else if (result === 'duplicate') {
+        duplicate += 1;
+        markSoloMatchStatsReady(userId, entry.sessionId);
+      } else {
+        rejected += 1;
+        removeSoloMatchStatsOutboxEntry(userId, entry.sessionId);
+      }
       removeSoloMatchResultOutboxEntry(userId, entry.sessionId);
     } catch {
       // Falhas de rede ou respostas inesperadas mantêm o resultado para nova tentativa.
       break;
     }
+  }
+  // Envia apenas telemetrias já liberadas após confirmação do finish/abandono.
+  try {
+    await flushSoloMatchStatsOutbox(client, userId);
+  } catch {
+    // Falhas de telemetria nunca podem afetar o resultado da partida.
   }
   return {
     accepted,

@@ -10,6 +10,7 @@ const server = await createServer({
 
 try {
   const { GameEngine } = await server.ssrLoadModule('/src/game/engine.ts');
+  const { buildMatchStatsPayload, isValidMatchStatsPayload } = await server.ssrLoadModule('/src/game/matchStats.ts');
   const createEngine = (seed) => new GameEngine(() => {}, {
     seed,
     headless: true,
@@ -19,6 +20,41 @@ try {
   const { CONFIG } = await server.ssrLoadModule('/src/game/config.ts');
   const { getDerivedArmor, applyArmorToDamage } = await server.ssrLoadModule('/src/game/attributes.ts');
   const { getClassPower } = await server.ssrLoadModule('/src/game/power.ts');
+
+  // D2: getter de armadura somente de leitura e montagem/validação do payload.
+  const armorReadEngine = createEngine(0xD2000001);
+  armorReadEngine.setClass('guerreiro');
+  const stateBeforeArmorRead = JSON.stringify(armorReadEngine.state);
+  assert.equal(armorReadEngine.getFinalArmor(), armorReadEngine.getLevelStats().armor);
+  assert.equal(JSON.stringify(armorReadEngine.state), stateBeforeArmorRead,
+    'A leitura da armadura final não pode alterar o estado da partida.');
+  armorReadEngine.stop();
+
+  const validStatsPayload = buildMatchStatsPayload({
+    classId: 'arqueiro',
+    endedBy: 'exit',
+    nights: 4,
+    kills: 17,
+    platform: 'web',
+    matchLevel: 9,
+    armor: 12.4,
+    maxHp: 155,
+  });
+  assert.deepEqual(validStatsPayload, {
+    class: 'arqueiro',
+    balanceVersion: '2026-11-a',
+    endedBy: 'exit',
+    nights: 4,
+    kills: 17,
+    platform: 'web',
+    matchLevel: 9,
+    armor: 12,
+    maxHp: 155,
+  });
+  assert.equal(isValidMatchStatsPayload(validStatsPayload), true);
+  assert.equal(isValidMatchStatsPayload({ ...validStatsPayload, class: 'inválida' }), false);
+  assert.equal(isValidMatchStatsPayload({ ...validStatsPayload, balanceVersion: 'BAD VERSION' }), false);
+  assert.equal(isValidMatchStatsPayload({ ...validStatsPayload, nights: -1 }), false);
 
   // S1: armadura derivada por classe, escalada linearmente até a noite 15.
   const expectedArmor = {
