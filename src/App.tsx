@@ -896,6 +896,25 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     }
   };
 
+  const captureSoloMatchStats = (snapshot: GameSnapshot, endedBy: 'death' | 'exit') => {
+    try {
+      const nativePlatform = Capacitor.getPlatform();
+      return buildMatchStatsPayload({
+        classId: snapshot.classId,
+        endedBy,
+        nights: Math.max(0, snapshot.nightNumber - (snapshot.dayNight === 'night' ? 1 : 0)),
+        kills: snapshot.kills,
+        platform: nativePlatform === 'android' ? 'android' : nativePlatform === 'web' ? 'web' : 'other',
+        matchLevel: snapshot.player.level,
+        armor: engineRef.current?.getFinalArmor() ?? 0,
+        maxHp: snapshot.player.maxHp,
+      });
+    } catch {
+      // Captura de telemetria é best-effort e nunca pode bloquear o encerramento.
+      return null;
+    }
+  };
+
   const submitSoloMatchResult = async (snapshot: GameSnapshot): Promise<boolean> => {
     const sessionId = matchSessionIdRef.current;
     if (!sessionId) return true;
@@ -914,17 +933,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       window.alert('Não foi possível guardar o resultado desta partida neste dispositivo. Mantenha esta tela aberta e tente novamente.');
       return false;
     }
-    const nativePlatform = Capacitor.getPlatform();
-    const statsPayload = buildMatchStatsPayload({
-      classId: snapshot.classId,
-      endedBy: 'death',
-      nights: survivalNights,
-      kills: snapshot.kills,
-      platform: nativePlatform === 'android' ? 'android' : nativePlatform === 'web' ? 'web' : 'other',
-      matchLevel: snapshot.player.level,
-      armor: engineRef.current?.getFinalArmor() ?? 0,
-      maxHp: snapshot.player.maxHp,
-    });
+    const statsPayload = captureSoloMatchStats(snapshot, 'death');
     if (statsPayload) enqueueSoloMatchStats(session.user.sub, sessionId, statsPayload, false);
     matchSessionIdRef.current = null;
     const rejected = await drainSoloMatchResults();
@@ -5222,19 +5231,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     setExitConfirmationError('');
 
     // Snapshot pontual antes de qualquer espera; Duo permanece fora desta telemetria.
-    const exitSnapshot = engineRef.current?.state;
-    const exitEngine = engineRef.current;
-    const nativePlatform = Capacitor.getPlatform();
-    const exitStatsPayload = exitSnapshot ? buildMatchStatsPayload({
-      classId: exitSnapshot.classId,
-      endedBy: 'exit',
-      nights: Math.max(0, exitSnapshot.nightNumber - (exitSnapshot.dayNight === 'night' ? 1 : 0)),
-      kills: exitSnapshot.kills,
-      platform: nativePlatform === 'android' ? 'android' : nativePlatform === 'web' ? 'web' : 'other',
-      matchLevel: exitSnapshot.player.level,
-      armor: exitEngine?.getFinalArmor() ?? 0,
-      maxHp: exitSnapshot.player.maxHp,
-    }) : null;
+    const exitSnapshot = duoStartedMatchIdRef.current ? undefined : engineRef.current?.state;
+    const exitStatsPayload = exitSnapshot ? captureSoloMatchStats(exitSnapshot, 'exit') : null;
 
     // Fecha novas alterações locais do Baú enquanto o servidor confirma o encerramento.
     // A fila permanece intacta até cada operação ser confirmada ou explicitamente rejeitada.

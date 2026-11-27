@@ -25,7 +25,11 @@ try {
   const armorReadEngine = createEngine(0xD2000001);
   armorReadEngine.setClass('guerreiro');
   const stateBeforeArmorRead = JSON.stringify(armorReadEngine.state);
-  assert.equal(armorReadEngine.getFinalArmor(), armorReadEngine.getLevelStats().armor);
+  assert.equal(
+    armorReadEngine.getFinalArmor(),
+    CONFIG.player.armor + armorReadEngine.getLevelStats().armor
+      + getDerivedArmor(armorReadEngine.state.classId, armorReadEngine.state.player.maxHp, armorReadEngine.state.nightNumber),
+  );
   assert.equal(JSON.stringify(armorReadEngine.state), stateBeforeArmorRead,
     'A leitura da armadura final não pode alterar o estado da partida.');
   armorReadEngine.stop();

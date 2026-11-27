@@ -3270,7 +3270,9 @@ export class GameEngine {
 
   /** Armadura final da classe/equipamentos atuais; leitura pontual no encerramento da partida. */
   getFinalArmor(): number {
-    return this.getLevelStats().armor;
+    return CONFIG.player.armor
+      + this.getLevelStats().armor
+      + getDerivedArmor(this.state.classId, this.state.player.maxHp, this.state.nightNumber);
   }
 
   private getDodgeChance(): number {
