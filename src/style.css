@@ -13439,3 +13439,27 @@ sem backdrop ou caixa de modal. */
   .refinery-panel-section{width:100%;box-sizing:border-box}
   .refinery-panel-actions{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* R1b — especificidade do painel rápido, preservando o estilo base do inventário. */
+.game-shell .inventory-quick-panel .refinery-panel-section{
+  display:grid;align-content:start;gap:8px;min-width:0;padding:10px!important;
+  border:1px solid #6b6252!important;border-radius:8px;background:#292b28;color:#f0ece2;
+}
+.game-shell .inventory-quick-panel .refinery-panel-section h3{margin:0 0 2px!important;color:#ead5ad!important;font-size:13px!important}
+.game-shell .inventory-quick-panel .refinery-panel-section p{margin:0!important;font-size:11px!important;line-height:1.35}
+.game-shell .inventory-quick-panel .refinery-panel-items{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.game-shell .inventory-quick-panel .refinery-panel-item{display:flex;align-items:center;gap:4px;min-height:34px;padding:4px 6px;border:1px solid #55564f;border-radius:6px;background:#202320;font-size:10px}
+.game-shell .inventory-quick-panel .refinery-panel-item i{display:grid;place-items:center;width:25px;height:25px;font-style:normal}
+.game-shell .inventory-quick-panel .refinery-panel-item small{overflow-wrap:anywhere}
+.game-shell .inventory-quick-panel .refinery-panel-item b{font-variant-numeric:tabular-nums}
+.game-shell .inventory-quick-panel .refinery-panel-status{color:#e5c58b;font-weight:800}
+.game-shell .inventory-quick-panel .refinery-panel-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.game-shell .inventory-quick-panel .refinery-panel-actions button{min-width:0;min-height:46px;padding:8px 7px;border:1px solid #a98b5b;border-radius:7px;background:#403a30;color:#fff2d7;font:inherit;font-size:11px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;touch-action:manipulation}
+.game-shell .inventory-quick-panel .refinery-panel-actions button:disabled{opacity:.42}
+.game-shell .inventory-quick-panel .refinery-panel-feedback{padding:6px 7px!important;border:1px solid #786345!important;border-radius:6px;color:#f4d69d}
+.game-shell .inventory-quick-panel .refinery-panel-warning{padding-top:6px!important;border-top:1px solid #625a4b!important;color:#d7c6a7;font-size:10px!important}
+@media(max-width:600px){
+  .game-shell .inventory-quick-panel .refinery-panel-section{width:100%;box-sizing:border-box}
+  .game-shell .inventory-quick-panel .refinery-panel-actions{grid-template-columns:minmax(0,1fr)}
+}
