@@ -266,7 +266,6 @@ function drawItemSprite(ctx: CanvasRenderingContext2D, itemId: string, x: number
 const inventoryItemIcon = (itemId: string) => {
   const base = getBaseItemId(itemId);
   const parsedCore = parseCoreItemId(itemId);
-  if (base === 'tin') return '🥫';
   if (parsedCore) {
     const coreFile = parsedCore.kind === 'closed' ? CORE_SPRITE_FILES.closed : CORE_SPRITE_FILES[parsedCore.core.category];
     return <img src={`/assets/cores/${coreFile}`} width="30" height="30" alt="" aria-hidden="true" draggable={false} style={{ objectFit: 'contain', imageRendering: 'pixelated' }} />;
