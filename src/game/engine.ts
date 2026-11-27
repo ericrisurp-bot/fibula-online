@@ -1240,14 +1240,18 @@ export class GameEngine {
     const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
     if (!playerNear) return { ok: false, reason: 'far' };
     const requested = Math.max(0, Math.floor(amount));
-    if (requested <= 0 || this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')
-      && this.state.cart.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')) {
-      return { ok: false, reason: 'none' };
-    }
     const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
     const limits = { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity };
     const totalCapacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
-    if (totalCapacity <= 0) return { ok: false, reason: 'full' };
+    if (requested <= 0) return { ok: false, reason: 'none' };
+    if (totalCapacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
+      && refinery.stoneBuffer.every(stack => stack.quantity >= CONFIG.refinery.stoneSlotCapacity))) {
+      return { ok: false, reason: 'full' };
+    }
+    if (this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')
+      && this.state.cart.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')) {
+      return { ok: false, reason: 'none' };
+    }
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     let remaining = Math.min(requested, totalCapacity);
@@ -1284,12 +1288,13 @@ export class GameEngine {
     const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
     if (!playerNear) return { ok: false, reason: 'far' };
     const requested = Math.max(0, Math.floor(amount));
-    if (requested <= 0 || this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'wood')
+    const capacity = Math.max(0, CONFIG.refinery.woodCapacity - refinery.woodStock);
+    if (requested <= 0) return { ok: false, reason: 'none' };
+    if (capacity <= 0) return { ok: false, reason: 'full' };
+    if (this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'wood')
       && this.state.cart.inventory.every(stack => getBaseItemId(stack.itemId) !== 'wood')) {
       return { ok: false, reason: 'none' };
     }
-    const capacity = Math.max(0, CONFIG.refinery.woodCapacity - refinery.woodStock);
-    if (capacity <= 0) return { ok: false, reason: 'full' };
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     let remaining = Math.min(requested, capacity);
