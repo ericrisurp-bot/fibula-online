@@ -3309,6 +3309,7 @@ export class GameEngine {
     circles.push(...this.state.cottonPlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.cottonFootprintRadius(plant) })));
     circles.push(...this.state.vegetablePlants.map(plant => ({ x: plant.x, y: plant.y, radius: this.vegetableFootprintRadius(plant) })));
     if (this.state.jabuticabaTree) circles.push({ x: this.state.jabuticabaTree.x, y: this.state.jabuticabaTree.y + 94.25, radius: 29 });
+    if (this.state.campfire) circles.push({ x: this.state.campfire.x, y: this.state.campfire.y + 1, radius: 27 });
     if (this.state.house.built) circles.push({ x: this.state.house.x, y: this.state.house.y + 1, radius: 32 });
     if (this.state.refinery.built || includeUnbuiltMachines) circles.push({ x: this.state.refinery.x, y: this.state.refinery.y + 1, radius: 47 });
     if (this.state.tecelaria.built || includeUnbuiltMachines) circles.push({ x: this.state.tecelaria.x, y: this.state.tecelaria.y + 1, radius: 42 });
@@ -3368,14 +3369,17 @@ export class GameEngine {
 
   private resolveObstacleCollisions(entity: Vec, radius: number, ignoreCart = false, cached?: Array<Vec & { radius: number }>) {
     const obstacleList = cached ?? this.obstacleCircles(ignoreCart);
+    const campfire = this.state.campfire;
     const house = this.state.house.built ? this.state.house : null;
     const refinery = this.state.refinery.built ? this.state.refinery : null;
+    const tecelaria = this.state.tecelaria.built ? this.state.tecelaria : null;
     for (let pass = 0; pass < 3; pass++) {
       for (const obstacle of obstacleList) {
-        // Baú e refinaria usam caixas baixas na base do sprite, não círculos
-        // grandes centrados na imagem. Isso evita bloquear a aproximação por cima.
+        // Estruturas usam caixas baixas na base do sprite para liberar passagem por cima.
+        if (campfire && obstacle.x === campfire.x && obstacle.y === campfire.y + 1) continue;
         if (house && obstacle.x === house.x && obstacle.y === house.y + 1) continue;
         if (refinery && obstacle.x === refinery.x && obstacle.y === refinery.y + 1) continue;
+        if (tecelaria && obstacle.x === tecelaria.x && obstacle.y === tecelaria.y + 1) continue;
         let dx = entity.x - obstacle.x;
         let dy = entity.y - obstacle.y;
         let distance = Math.hypot(dx, dy);
@@ -3390,8 +3394,10 @@ export class GameEngine {
         entity.x = this.clamp(entity.x + dx / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
         entity.y = this.clamp(entity.y + dy / distance * push, CONFIG.map.wall + radius, this.world - CONFIG.map.wall - radius);
       }
+      if (campfire) this.resolveStructureBox(entity, radius, campfire.x, campfire.y + 30, 34, 9);
       if (house) this.resolveStructureBox(entity, radius, house.x, house.y + 24, 25, 9);
       if (refinery) this.resolveStructureBox(entity, radius, refinery.x, refinery.y + 34, 39, 12);
+      if (tecelaria) this.resolveStructureBox(entity, radius, tecelaria.x, tecelaria.y + 34, 39, 12);
     }
     pushOutOfLake(this.state.lake, entity, radius);
   }
