@@ -6407,7 +6407,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           </button>
         </section>
       </div>}
-      {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''}`} role="dialog" aria-label="Baú, mochila e carrinho">
+      {inventoryPanelOpen && !showStart && !state.dead && <div className={`inventory-quick-panel ${houseAccessible && state.house.built ? 'has-house' : ''} ${refineryAccessible ? 'has-refinery' : ''}`} role="dialog" aria-label="Baú, mochila e carrinho">
 <header><strong>INVENTÁRIO</strong><button type="button" className="inventory-close-button" onPointerDown={handleInventoryClosePointerDown} onClick={handleInventoryCloseClick} aria-label="Fechar mochila" title="Fechar">×</button></header>
 <div className="inventory-quick-content">
 <div className="inventory-quick-column inventory-quick-left">
