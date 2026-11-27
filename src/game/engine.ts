@@ -4,7 +4,7 @@ import { playerFeet } from './ground';
 import type { SoundEvent } from '../audio/types';
 import { ATTRIBUTE_USAGE, applyArmorToDamage, getAccountPointsPerLevel, getAttributeBaseValueEffect, getAttributeBonus, getAttributeEffectPerLevel, getDamageMultiplier, getDerivedArmor, type AttributeBaseBonuses } from './attributes';
 import { COOKING_DURATION_SECONDS, type ActiveCookingMeal, type CookingMeal } from './cooking';
-import { addToInventory, getBaseItemId, getRarityItemId, type InventoryStack } from './inventory';
+import { addToInventory, getBaseItemId, getItemRarity, getRarityItemId, type InventoryStack } from './inventory';
 import { CORE_DROP_APPEARANCE_CHANCE, CORE_DROP_CHANCE, closedCoreItemId, createClosedCore, type CoreDrop } from './cores';
 import { constructDonkeyCart, damageDonkeyCart, type DonkeyCartState } from './donkeyCart';
 import { getDrawnMuzzle, markArrowReleased, rangedMuzzle } from './rangedWeapons';
@@ -89,7 +89,7 @@ type ExplosionEffect = Vec & { id: number; age: number; duration: number; radius
 type FloatingDamage = Vec & { id: number; amount: number; label?: string; color: '#ff4545' | '#ffffff' | '#d7b66e' | '#3f8f45' | '#9c8be8'; scale: number; age: number; duration: number };
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = DonkeyCartState;
-type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stonesProcessed: number; bronzeProduced: number };
+type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stoneBuffer: InventoryStack[]; woodStock: number; fuelCharges: number; outputInventory: InventoryStack[]; stonesProcessed: number; tinProduced: number };
 type TecelariaState = Vec & { bronzeDelivered: number; woodDelivered: number; cottonDelivered: number; stoneDelivered: number; built: boolean; cottonStock: number; cottonProcessed: number; linenProduced: number; hideStock: number; hideProcessed: number; refinedLeatherProduced: number };
 export type GameSnapshot = {
   walkPhase: number;
@@ -718,7 +718,7 @@ export class GameEngine {
       player: { x: this.world / 2, y: this.world / 2, hp: startingHealth, maxHp: startingHealth, level: 0, xp: 0, nextXp: CONFIG.xp.levelBase, moving: false, facingX: 0, facingY: 1 },
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       campfire: null,
-      refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 },
+      refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stoneBuffer: [], woodStock: 0, fuelCharges: 0, outputInventory: [], stonesProcessed: 0, tinProduced: 0 },
       tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
       lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
@@ -1233,34 +1233,111 @@ export class GameEngine {
     if (building.cottonStock <= 0) this.tecelariaProcessTimer = 0;
   }
 
-  private deliverStonesToRefinery() {
+  loadRefineryStone(amount: number): { ok: true; moved: number } | { ok: false; reason: 'notbuilt' | 'far' | 'full' | 'none' } {
     const refinery = this.state.refinery;
-    if (!refinery.built || refinery.stoneStock >= CONFIG.refinery.stoneCapacity) return;
-    const playerNear = Math.hypot(playerFeet(this.state.player).x - refinery.x, playerFeet(this.state.player).y - refinery.y) <= CONFIG.refinery.interactRadius;
+    if (!refinery.built) return { ok: false, reason: 'notbuilt' };
+    const feet = playerFeet(this.state.player);
+    const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    if (!playerNear) return { ok: false, reason: 'far' };
+    const requested = Math.max(0, Math.floor(amount));
+    const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
+    const limits = { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity };
+    const totalCapacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
+    if (requested <= 0) return { ok: false, reason: 'none' };
+    if (totalCapacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
+      && refinery.stoneBuffer.every(stack => stack.quantity >= CONFIG.refinery.stoneSlotCapacity))) {
+      return { ok: false, reason: 'full' };
+    }
+    if (this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')
+      && this.state.cart.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')) {
+      return { ok: false, reason: 'none' };
+    }
     const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
-    const transferStones = (inventory: InventoryStack[]) => {
-      const room = CONFIG.refinery.stoneCapacity - refinery.stoneStock;
-      let toRemove = room;
-      let transferred = 0;
-      const nextInventory = inventory.flatMap(stack => {
-        if (getBaseItemId(stack.itemId) !== 'stone' || toRemove <= 0) return [stack];
-        const used = Math.min(stack.quantity, toRemove);
-        toRemove -= used;
-        transferred += used;
+    let remaining = Math.min(requested, totalCapacity);
+    let moved = 0;
+    const transfer = (inventory: InventoryStack[]) => {
+      const next: InventoryStack[] = [];
+      for (const stack of inventory) {
+        if (getBaseItemId(stack.itemId) !== 'stone' || remaining <= 0) {
+          next.push(stack);
+          continue;
+        }
+        const wanted = Math.min(stack.quantity, remaining);
+        const added = addToInventory(refinery.stoneBuffer, stack.itemId, wanted, limits);
+        const used = added.added;
+        if (used > 0) refinery.stoneBuffer = added.inventory;
+        remaining -= used;
+        moved += used;
         const left = stack.quantity - used;
-        return left > 0 ? [{ ...stack, quantity: left }] : [];
-      });
-      refinery.stoneStock += transferred;
-      return nextInventory;
+        if (left > 0) next.push({ ...stack, quantity: left });
+      }
+      return next;
     };
-    if (playerNear && refinery.stoneStock < CONFIG.refinery.stoneCapacity) this.state.inventory = transferStones(this.state.inventory);
-    if (cartCanDeliver && refinery.stoneStock < CONFIG.refinery.stoneCapacity) this.state.cart.inventory = transferStones(this.state.cart.inventory);
+    this.state.inventory = transfer(this.state.inventory);
+    if (cartCanDeliver && remaining > 0) this.state.cart.inventory = transfer(this.state.cart.inventory);
+    refinery.stoneStock = refinery.stoneBuffer.reduce((total, stack) => total + stack.quantity, 0);
+    if (moved > 0) this.emit();
+    return moved > 0 ? { ok: true, moved } : { ok: false, reason: refinery.stoneStock >= CONFIG.refinery.stoneCapacity || refinery.stoneBuffer.length >= maxSlots ? 'full' : 'none' };
+  }
+
+  loadRefineryWood(amount: number): { ok: true; moved: number } | { ok: false; reason: 'notbuilt' | 'far' | 'full' | 'none' } {
+    const refinery = this.state.refinery;
+    if (!refinery.built) return { ok: false, reason: 'notbuilt' };
+    const feet = playerFeet(this.state.player);
+    const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    if (!playerNear) return { ok: false, reason: 'far' };
+    const requested = Math.max(0, Math.floor(amount));
+    const capacity = Math.max(0, CONFIG.refinery.woodCapacity - refinery.woodStock);
+    if (requested <= 0) return { ok: false, reason: 'none' };
+    if (capacity <= 0) return { ok: false, reason: 'full' };
+    if (this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'wood')
+      && this.state.cart.inventory.every(stack => getBaseItemId(stack.itemId) !== 'wood')) {
+      return { ok: false, reason: 'none' };
+    }
+    const cartNear = Math.hypot(this.state.cart.x - refinery.x, this.state.cart.y - refinery.y) <= CONFIG.refinery.interactRadius;
+    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
+    let remaining = Math.min(requested, capacity);
+    let moved = 0;
+    const transfer = (inventory: InventoryStack[]) => inventory.flatMap(stack => {
+      if (getBaseItemId(stack.itemId) !== 'wood' || remaining <= 0) return [stack];
+      const used = Math.min(stack.quantity, remaining);
+      remaining -= used;
+      moved += used;
+      const left = stack.quantity - used;
+      return left > 0 ? [{ ...stack, quantity: left }] : [];
+    });
+    this.state.inventory = transfer(this.state.inventory);
+    if (cartCanDeliver && remaining > 0) this.state.cart.inventory = transfer(this.state.cart.inventory);
+    refinery.woodStock += moved;
+    if (moved > 0) this.emit();
+    return moved > 0 ? { ok: true, moved } : { ok: false, reason: refinery.woodStock >= CONFIG.refinery.woodCapacity ? 'full' : 'none' };
+  }
+
+  collectRefineryOutput(): { ok: true; moved: number; left: number } | { ok: false; reason: 'notbuilt' | 'far' | 'empty' } {
+    const refinery = this.state.refinery;
+    if (!refinery.built) return { ok: false, reason: 'notbuilt' };
+    const feet = playerFeet(this.state.player);
+    if (Math.hypot(feet.x - refinery.x, feet.y - refinery.y) > CONFIG.refinery.interactRadius) return { ok: false, reason: 'far' };
+    if (refinery.outputInventory.length === 0) return { ok: false, reason: 'empty' };
+    let inventory = this.state.inventory;
+    let moved = 0;
+    refinery.outputInventory = refinery.outputInventory.flatMap(stack => {
+      const result = addToInventory(inventory, stack.itemId, stack.quantity, CONFIG.inventory);
+      inventory = result.inventory;
+      moved += result.added;
+      const left = stack.quantity - result.added;
+      return left > 0 ? [{ ...stack, quantity: left }] : [];
+    });
+    this.state.inventory = inventory;
+    const left = refinery.outputInventory.reduce((total, stack) => total + stack.quantity, 0);
+    if (moved > 0) this.emit();
+    return { ok: true, moved, left };
   }
 
   private processRefinery(dt: number) {
     const refinery = this.state.refinery;
-    if (!refinery.built || refinery.stoneStock <= 0) {
+    if (!refinery.built || refinery.stoneBuffer.length === 0) {
       this.refineryProcessTimer = 0;
       return;
     }
@@ -1268,17 +1345,35 @@ export class GameEngine {
     this.refineryProcessTimer += dt;
     if (this.refineryProcessTimer < CONFIG.refinery.processInterval) return;
     this.refineryProcessTimer -= CONFIG.refinery.processInterval;
-    refinery.stoneStock -= 1;
-    refinery.stonesProcessed += 1;
-    if (this.random() < CONFIG.refinery.bronzeChance) {
-      const angle = this.random() * Math.PI * 2;
-      const distance = 42 + this.random() * 12;
-      this.state.bronzeDrops.push({ id: this.nextId++, x: refinery.x + Math.cos(angle) * distance, y: refinery.y + Math.sin(angle) * distance, age: 0 });
-      refinery.bronzeProduced += 1;
+    if (refinery.fuelCharges <= 0 && refinery.woodStock >= CONFIG.refinery.woodPerBatch) {
+      refinery.woodStock -= CONFIG.refinery.woodPerBatch;
+      refinery.fuelCharges += CONFIG.refinery.stonesPerBatch;
     }
-    if (refinery.stoneStock <= 0) this.refineryProcessTimer = 0;
+    if (refinery.fuelCharges <= 0) {
+      this.refineryProcessTimer = 0;
+      return;
+    }
+
+    const stone = refinery.stoneBuffer[0];
+    stone.quantity -= 1;
+    if (stone.quantity <= 0) refinery.stoneBuffer.shift();
+    refinery.stoneStock = refinery.stoneBuffer.reduce((total, stack) => total + stack.quantity, 0);
+    refinery.fuelCharges -= 1;
+    refinery.stonesProcessed += 1;
+    if (this.random() < CONFIG.refinery.tinChance) {
+      const tinItemId = getRarityItemId('tin', getItemRarity(stone.itemId));
+      const output = addToInventory(refinery.outputInventory, tinItemId, 1, {
+        maxSlots: CONFIG.refinery.outputCapacity,
+        maxPerSlot: CONFIG.inventory.maxPerSlot,
+      });
+      // Se o baú de saída estiver cheio, o estanho não cabe e se perde; a pedra já foi consumida.
+      refinery.outputInventory = output.inventory;
+      refinery.tinProduced += 1;
+    }
+    if (refinery.stoneBuffer.length === 0) this.refineryProcessTimer = 0;
   }
 
+  // Compatibilidade legada: a refinaria não cria mais bronzeDrops; este coletor fica inerte para a produção da refinaria.
   private collectBronze() {
     for (const drop of [...this.state.bronzeDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
@@ -1623,7 +1718,7 @@ export class GameEngine {
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
 
-  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, campfire: this.state.campfire ? { ...this.state.campfire } : null, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => enemy.animalKind ? { ...enemy } : enemy), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], refinedLeatherDrops: [...this.state.refinedLeatherDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], coreDrops: this.state.coreDrops.map(drop => ({ ...drop, core: { ...drop.core } })), inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, campfire: this.state.campfire ? { ...this.state.campfire } : null, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery, stoneBuffer: this.state.refinery.stoneBuffer.map(stack => ({ ...stack })), outputInventory: this.state.refinery.outputInventory.map(stack => ({ ...stack })) }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => enemy.animalKind ? { ...enemy } : enemy), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], refinedLeatherDrops: [...this.state.refinedLeatherDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], coreDrops: this.state.coreDrops.map(drop => ({ ...drop, core: { ...drop.core } })), inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -1638,7 +1733,7 @@ export class GameEngine {
     return [
       s.player.hp, s.player.maxHp, s.player.level, s.activeMeals.map(meal => `${meal.id}:${Math.ceil(meal.remainingSeconds)}`).join(','),
       s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.coreDrops.map(drop => drop.id).join(','), s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, ...(s.refinedLeatherDrops.length || s.tecelaria.hideStock || s.tecelaria.hideProcessed || s.tecelaria.refinedLeatherProduced ? [s.refinedLeatherDrops.length, s.tecelaria.hideStock, s.tecelaria.hideProcessed, s.tecelaria.refinedLeatherProduced] : []), s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange, campfireNear, chestBuildStatus.ok ? 'ready' : chestBuildStatus.reason, refineryBuildStatus.ok ? 'ready' : refineryBuildStatus.reason, tecelariaBuildStatus.ok ? 'ready' : tecelariaBuildStatus.reason,
-      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stonesProcessed, s.refinery.bronzeProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills, s.wolvesKilled ?? 0, s.chickensKilled ?? 0,
+      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stoneBuffer.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodStock, s.refinery.fuelCharges, s.refinery.outputInventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.stonesProcessed, s.refinery.tinProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills, s.wolvesKilled ?? 0, s.chickensKilled ?? 0,
     ].join('|');
   }
 
@@ -1799,7 +1894,7 @@ export class GameEngine {
       // Só conta como nascimento agendado quando o inimigo realmente entra no mapa.
       if (this.hordeScheduled < targetScheduled && this.spawnHordeEnemy()) this.hordeScheduled += 1;
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); if (this.state.rockMineTimer <= 0 && this.pendingRockRemovalId !== null) { const pendingId = this.pendingRockRemovalId; this.pendingRockRemovalId = null; this.state.rocks = this.state.rocks.filter(rock => rock.id !== pendingId); } this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.deliverStonesToRefinery(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); if (this.state.rockMineTimer <= 0 && this.pendingRockRemovalId !== null) { const pendingId = this.pendingRockRemovalId; this.pendingRockRemovalId = null; this.state.rocks = this.state.rocks.filter(rock => rock.id !== pendingId); } this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
     if (this.state.classId === 'druida') {
       this.local.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.local.druidOrbHealTimer <= 0) {
@@ -1981,10 +2076,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < 120) continue;
       if (this.state.trees.some(tree => Math.hypot(x - this.treeBase(tree).x, y - this.treeBase(tree).y) < CONFIG.refinery.treeClearRadius + this.treeFootprintRadius(tree))) continue;
       if (this.state.rocks.some(rock => Math.hypot(x - rock.x, y - rock.y) < CONFIG.refinery.rockClearRadius + this.rockFootprintRadius(rock))) continue;
-      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
+      this.state.refinery = { x, y, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stoneBuffer: [], woodStock: 0, fuelCharges: 0, outputInventory: [], stonesProcessed: 0, tinProduced: 0 };
       return;
     }
-    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stonesProcessed: 0, bronzeProduced: 0 };
+    this.state.refinery = { x: this.world * 0.72, y: this.world * 0.72, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stoneBuffer: [], woodStock: 0, fuelCharges: 0, outputInventory: [], stonesProcessed: 0, tinProduced: 0 };
   }
 
   private placeTecelaria() {

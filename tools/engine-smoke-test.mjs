@@ -833,7 +833,147 @@ try {
   assert.equal(isFullyConfirmed(allConfirmed), true);
   assert.deepEqual(confirmationPending.confirmedOpIds, [], 'A confirmação não pode mutar o objeto recebido.');
 
-  console.log('OK: seed fixa, ciclo dia/noite, troca de classe, reinício, onda do Guerreiro, explosão M1 do Mago e área de lentidão D1.');
+  // R1a: carga manual, combustível por lote, raridade e baú de saída da refinaria.
+  const makeRefineryEngine = (seed) => {
+    const engine = createEngine(seed);
+    engine.state.refinery.built = true;
+    engine.state.refinery.x = 1800;
+    engine.state.refinery.y = 1800;
+    engine.state.player.x = 1800;
+    engine.state.player.y = 1800 - CONFIG.player.footOffset;
+    engine.state.cart.x = 2600;
+    engine.state.cart.y = 2600;
+    engine.state.cart.carried = false;
+    engine.state.inventory = [];
+    engine.state.cart.inventory = [];
+    return engine;
+  };
+  const advanceRefinery = (engine, seconds) => {
+    const steps = Math.ceil(seconds / 0.04);
+    for (let index = 0; index < steps; index += 1) engine.step(0.04);
+  };
+  const originalTinChance = CONFIG.refinery.tinChance;
+  try {
+    const capacityRefinery = makeRefineryEngine(0x1a000001);
+    capacityRefinery.state.inventory = [
+      { itemId: 'stone', quantity: 20 },
+      { itemId: 'wood:rare', quantity: 8 },
+    ];
+    assert.deepEqual(capacityRefinery.loadRefineryStone(99), { ok: true, moved: 15 });
+    assert.equal(capacityRefinery.state.refinery.stoneStock, 15);
+    assert.deepEqual(capacityRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone', quantity: 5 }, { itemId: 'stone', quantity: 5 }, { itemId: 'stone', quantity: 5 }]);
+    assert.deepEqual(capacityRefinery.loadRefineryStone(1), { ok: false, reason: 'full' });
+    assert.deepEqual(capacityRefinery.loadRefineryWood(99), { ok: true, moved: 6 });
+    assert.equal(capacityRefinery.state.refinery.woodStock, 6);
+    assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'full' });
+    capacityRefinery.state.player.x = 2400;
+    assert.deepEqual(capacityRefinery.loadRefineryStone(1), { ok: false, reason: 'far' });
+    assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'far' });
+    capacityRefinery.stop();
+
+    const cartLoadRefinery = makeRefineryEngine(0x1a000008);
+    cartLoadRefinery.state.cart.x = cartLoadRefinery.state.refinery.x;
+    cartLoadRefinery.state.cart.y = cartLoadRefinery.state.refinery.y;
+    cartLoadRefinery.state.cart.inventory = [
+      { itemId: 'stone:uncommon', quantity: 2 },
+      { itemId: 'wood:rare', quantity: 2 },
+    ];
+    assert.deepEqual(cartLoadRefinery.loadRefineryStone(2), { ok: true, moved: 2 });
+    assert.deepEqual(cartLoadRefinery.loadRefineryWood(2), { ok: true, moved: 2 });
+    assert.deepEqual(cartLoadRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:uncommon', quantity: 2 }]);
+    assert.equal(cartLoadRefinery.state.refinery.woodStock, 2);
+    assert.deepEqual(cartLoadRefinery.state.cart.inventory, []);
+    cartLoadRefinery.stop();
+
+    CONFIG.refinery.tinChance = 0;
+    const fuelRefinery = makeRefineryEngine(0x1a000002);
+    fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 5 }];
+    fuelRefinery.state.refinery.stoneStock = 5;
+    advanceRefinery(fuelRefinery, 10);
+    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 0, 'Sem madeira, nenhuma pedra pode ser refinada.');
+    fuelRefinery.state.inventory = [{ itemId: 'wood', quantity: 2 }];
+    assert.deepEqual(fuelRefinery.loadRefineryWood(2), { ok: true, moved: 2 });
+    advanceRefinery(fuelRefinery, 10);
+    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 5, 'Duas madeiras devem financiar exatamente cinco pedras.');
+    assert.equal(fuelRefinery.state.refinery.fuelCharges, 0);
+    assert.equal(fuelRefinery.state.refinery.woodStock, 0);
+    fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 3 }];
+    fuelRefinery.state.refinery.stoneStock = 3;
+    fuelRefinery.state.inventory = [{ itemId: 'wood', quantity: 2 }];
+    fuelRefinery.loadRefineryWood(2);
+    advanceRefinery(fuelRefinery, 6);
+    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 8);
+    assert.equal(fuelRefinery.state.refinery.fuelCharges, 2, 'O combustível restante do lote deve continuar disponível.');
+    fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 2 }];
+    fuelRefinery.state.refinery.stoneStock = 2;
+    advanceRefinery(fuelRefinery, 4);
+    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 10);
+    assert.equal(fuelRefinery.state.refinery.fuelCharges, 0);
+    fuelRefinery.stop();
+
+    const tenStoneRefinery = makeRefineryEngine(0x1a000003);
+    tenStoneRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 10 }];
+    tenStoneRefinery.state.refinery.stoneStock = 10;
+    tenStoneRefinery.state.refinery.woodStock = 4;
+    advanceRefinery(tenStoneRefinery, 20);
+    assert.equal(tenStoneRefinery.state.refinery.stonesProcessed, 10, 'Dez pedras devem exigir quatro madeiras.');
+    assert.equal(tenStoneRefinery.state.refinery.woodStock, 0);
+    assert.equal(tenStoneRefinery.state.refinery.fuelCharges, 0);
+    tenStoneRefinery.stop();
+
+    CONFIG.refinery.tinChance = 1;
+    const rarityRefinery = makeRefineryEngine(0x1a000004);
+    rarityRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone:rare', quantity: 1 }];
+    rarityRefinery.state.refinery.stoneStock = 1;
+    rarityRefinery.state.refinery.woodStock = 2;
+    advanceRefinery(rarityRefinery, 2);
+    assert.deepEqual(rarityRefinery.state.refinery.outputInventory, [{ itemId: 'tin:rare', quantity: 1 }]);
+    assert.equal(rarityRefinery.state.refinery.tinProduced, 1);
+    rarityRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 1 }];
+    rarityRefinery.state.refinery.stoneStock = 1;
+    advanceRefinery(rarityRefinery, 2);
+    assert.ok(rarityRefinery.state.refinery.outputInventory.some(stack => stack.itemId === 'tin' && stack.quantity === 1));
+    assert.equal(rarityRefinery.state.bronzeDrops.length, 0, 'A refinaria não pode criar bronzeDrops.');
+    rarityRefinery.stop();
+
+    CONFIG.refinery.tinChance = 0;
+    const noTinRefinery = makeRefineryEngine(0x1a000005);
+    noTinRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 1 }];
+    noTinRefinery.state.refinery.stoneStock = 1;
+    noTinRefinery.state.refinery.woodStock = 2;
+    advanceRefinery(noTinRefinery, 2);
+    assert.equal(noTinRefinery.state.refinery.stoneStock, 0);
+    assert.equal(noTinRefinery.state.refinery.stonesProcessed, 1);
+    assert.deepEqual(noTinRefinery.state.refinery.outputInventory, []);
+    noTinRefinery.stop();
+
+    const outputRefinery = makeRefineryEngine(0x1a000006);
+    outputRefinery.state.refinery.outputInventory = [{ itemId: 'tin', quantity: 1 }];
+    outputRefinery.state.inventory = [
+      { itemId: 'wood', quantity: 1 },
+      { itemId: 'stone', quantity: 1 },
+      { itemId: 'cotton', quantity: 1 },
+    ];
+    assert.deepEqual(outputRefinery.collectRefineryOutput(), { ok: true, moved: 0, left: 1 });
+    assert.equal(outputRefinery.state.refinery.outputInventory[0].quantity, 1);
+    outputRefinery.state.inventory.pop();
+    assert.deepEqual(outputRefinery.collectRefineryOutput(), { ok: true, moved: 1, left: 0 });
+    assert.ok(outputRefinery.state.inventory.some(stack => stack.itemId === 'tin'));
+    assert.deepEqual(outputRefinery.state.refinery.outputInventory, []);
+    outputRefinery.stop();
+
+    const noAutoDelivery = makeRefineryEngine(0x1a000007);
+    noAutoDelivery.state.inventory = [{ itemId: 'stone', quantity: 2 }];
+    advanceRefinery(noAutoDelivery, 1);
+    assert.deepEqual(noAutoDelivery.state.inventory, [{ itemId: 'stone', quantity: 2 }], 'Pedras não podem ser transferidas automaticamente para a refinaria.');
+    assert.equal(noAutoDelivery.state.refinery.stoneStock, 0);
+    assert.equal(noAutoDelivery.state.bronzeDrops.length, 0);
+    noAutoDelivery.stop();
+  } finally {
+    CONFIG.refinery.tinChance = originalTinChance;
+  }
+
+  console.log('OK: testes do motor, incluindo refinaria R1a (combustível, estanho, raridade e coleta).');
 } finally {
   await server.close();
 }
