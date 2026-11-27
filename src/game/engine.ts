@@ -1363,11 +1363,12 @@ export class GameEngine {
       });
       // Se o baú de saída estiver cheio, o estanho não cabe e se perde; a pedra já foi consumida.
       refinery.outputInventory = output.inventory;
-      if (output.added > 0) refinery.tinProduced += output.added;
+      refinery.tinProduced += 1;
     }
     if (refinery.stoneBuffer.length === 0) this.refineryProcessTimer = 0;
   }
 
+  // Compatibilidade legada: a refinaria não cria mais bronzeDrops; este coletor fica inerte para a produção da refinaria.
   private collectBronze() {
     for (const drop of [...this.state.bronzeDrops]) {
       if (drop.age < MATERIAL_ATTRACTION_DELAY) continue;
