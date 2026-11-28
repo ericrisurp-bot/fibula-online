@@ -1240,8 +1240,7 @@ export class GameEngine {
     const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
     if (!playerNear) return { ok: false, reason: 'far' };
     const requested = Math.max(0, Math.floor(amount));
-    const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
-    const limits = { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity };
+    const { maxSlots, limits } = this.getRefineryStoneBufferLimits();
     const totalCapacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
     if (requested <= 0) return { ok: false, reason: 'none' };
     if (totalCapacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
@@ -1288,7 +1287,7 @@ export class GameEngine {
     const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
     if (!playerNear) return { ok: false, reason: 'far' };
     const requested = Math.max(0, Math.floor(amount));
-    const capacity = Math.max(0, CONFIG.refinery.woodCapacity - refinery.woodStock);
+    const capacity = this.getRefineryWoodRemainingCapacity();
     if (requested <= 0) return { ok: false, reason: 'none' };
     if (capacity <= 0) return { ok: false, reason: 'full' };
     if (this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'wood')
@@ -1344,21 +1343,29 @@ export class GameEngine {
     return null;
   }
 
+  private getRefineryStoneBufferLimits() {
+    const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
+    return { maxSlots, limits: { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity } };
+  }
+
+  private getRefineryWoodRemainingCapacity() {
+    return Math.max(0, CONFIG.refinery.woodCapacity - this.state.refinery.woodStock);
+  }
+
   loadRefineryStoneFromBag(bagIndex: number): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'none' } {
     const accessError = this.getRefineryAccessError();
     if (accessError) return { ok: false, moved: 0, reason: accessError };
     const refinery = this.state.refinery;
     const stack = this.state.inventory[bagIndex];
     if (!stack || getBaseItemId(stack.itemId) !== 'stone') return { ok: false, moved: 0, reason: 'none' };
-    const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
+    const { maxSlots } = this.getRefineryStoneBufferLimits();
     const capacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
     if (capacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
       && refinery.stoneBuffer.every(item => item.quantity >= CONFIG.refinery.stoneSlotCapacity))) {
       return { ok: false, moved: 0, reason: 'full' };
     }
-    const added = addToInventory(refinery.stoneBuffer, stack.itemId, Math.min(stack.quantity, capacity), {
-      maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity,
-    });
+    const { limits } = this.getRefineryStoneBufferLimits();
+    const added = addToInventory(refinery.stoneBuffer, stack.itemId, Math.min(stack.quantity, capacity), limits);
     if (added.added <= 0) return { ok: false, moved: 0, reason: 'full' };
     const left = stack.quantity - added.added;
     refinery.stoneBuffer = added.inventory;
@@ -1375,7 +1382,7 @@ export class GameEngine {
     const refinery = this.state.refinery;
     const stack = this.state.inventory[bagIndex];
     if (!stack || getBaseItemId(stack.itemId) !== 'wood') return { ok: false, moved: 0, reason: 'none' };
-    const capacity = Math.max(0, CONFIG.refinery.woodCapacity - refinery.woodStock);
+    const capacity = this.getRefineryWoodRemainingCapacity();
     if (capacity <= 0) return { ok: false, moved: 0, reason: 'full' };
     const moved = Math.min(stack.quantity, capacity);
     const left = stack.quantity - moved;
