@@ -82,10 +82,10 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
       ? 'Concluir instalação'
       : checking
         ? 'Verificando versões…'
-        : release
-          ? `Download da versão ${release.versionName}`
-          : checkFailed
-            ? 'Não foi possível verificar agora'
+        : checkFailed
+          ? 'Tentar verificar novamente'
+          : release
+            ? `Download da versão ${release.versionName}`
             : 'Nenhuma versão publicada ainda';
 
   return (
@@ -125,7 +125,7 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
             type="button"
             disabled={checking || downloading || (!release && !checkFailed)}
             onClick={() => {
-              if (!release && checkFailed) void retryCheck();
+              if (checkFailed) void retryCheck();
               else void downloadLatest();
             }}
             aria-busy={checking || downloading}
@@ -142,13 +142,19 @@ export function DownloadModal({ onClose, triggerRef }: DownloadModalProps) {
 
         <p className="download-modal-version-info">
           {isAndroid
-            ? `Instalada: ${currentVersionName ?? 'não identificada'} · Publicada: ${release?.versionName ?? (checkFailed ? 'não verificada' : 'não identificada')}`
+            ? `Instalada: ${currentVersionName ?? 'não identificada'} · ${checkFailed ? 'Última conhecida' : 'Publicada'}: ${release?.versionName ?? (checkFailed ? 'não verificada' : 'não identificada')}`
             : release
               ? `Publicada: ${formatPublishedDate(release.publishedAt)}`
               : checkFailed
                 ? 'Publicada: não verificada'
                 : 'Nenhuma versão publicada ainda'}
         </p>
+
+        {checkFailed && (
+          <p className="download-modal-version-info" role="status">
+            Não foi possível consultar o GitHub. A versão exibida pode estar desatualizada; toque no botão para tentar novamente.
+          </p>
+        )}
 
         {previousRelease && (
           <div className="download-modal-previous" aria-disabled="true">
