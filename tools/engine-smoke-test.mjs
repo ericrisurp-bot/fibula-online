@@ -1209,6 +1209,19 @@ try {
     tecelaria.stop();
   }
 
+  const normalCottonTecelaria = makeTecelariaEngine(0x3a000003);
+  try {
+    normalCottonTecelaria.state.tecelaria.cottonBuffer = [{ itemId: 'cotton', quantity: 3 }];
+    advanceTecelaria(normalCottonTecelaria, 2.1);
+    assert.deepEqual(normalCottonTecelaria.state.tecelaria.outputInventory, [{ itemId: 'linen', quantity: 1 }]);
+    assert.equal(normalCottonTecelaria.state.tecelaria.cottonProcessed, 3);
+    assert.equal(normalCottonTecelaria.state.tecelaria.linenProduced, 1);
+    assert.equal(normalCottonTecelaria.state.linenDrops.length, 0, 'A Tecelaria não deve mais gerar linenDrops.');
+    assert.equal(normalCottonTecelaria.state.refinedLeatherDrops.length, 0, 'A Tecelaria não deve mais gerar refinedLeatherDrops.');
+  } finally {
+    normalCottonTecelaria.stop();
+  }
+
   const autoTecelaria = makeTecelariaEngine(0x3a000002);
   try {
     autoTecelaria.state.inventory = [{ itemId: 'cotton:rare', quantity: 2 }];
