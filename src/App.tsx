@@ -19,6 +19,7 @@ import { duoHordeTotalForNight } from './game/coop/rules';
 import { DuoCycleTransport } from './game/coop/DuoCycleTransport';
 import { abandonSoloMatchSession, addHouseOutboxOperation, applyHouseDelta, computeHouseDelta, enqueueSoloMatchResult, enqueueSoloMatchStats, flushSoloMatchResultOutbox, loadCloudHouseInventory, loadHouseInventory, readConfirmedHouseInventory, readHouseOutbox, readLocalHouseInventory, removeHouseOutboxOperation, reportHighestPd, fetchPdLoadout, savePdLoadout, fetchClassChoice, chooseClasses, startSoloMatchSession, type HouseDeltaEntry } from './game/persistence';
 import { buildMatchStatsPayload } from './game/matchStats';
+import { evaluateHouseSyncGuard, type HouseServerSnapshotGuard } from './game/houseSyncGuard';
 import { readMatchHistory, recordMatch, type MatchHistoryEntry } from './game/matchHistory';
 import { readAdventurerGuideEnabled, readGameZoom, writeAdventurerGuideEnabled, writeGameZoom } from './game/devicePreferences';
 import { readClassUsage, recordClassUsage, type ClassUsageRecord } from './game/classUsage';
@@ -691,6 +692,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const initialHouseInventoryRef = useRef(JSON.stringify(readLocalHouseInventory()));
   const lastSyncedHouseInventoryRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
   const houseSyncBaselineRef = useRef(JSON.stringify(readConfirmedHouseInventory()));
+  const houseServerSnapshotGuardRef = useRef<HouseServerSnapshotGuard | null>(null);
+  const guardHouseServerSnapshot = (snapshot: string) => {
+    houseServerSnapshotGuardRef.current = { snapshot, expiresAt: Date.now() + 5000 };
+  };
   const pendingCloudHouseInventoryRef = useRef<Array<{ itemId: string; quantity: number }> | null>(null);
   const pendingHouseInventoryRef = useRef<string | null>(null);
   const houseSyncInFlightRef = useRef<Promise<'done' | 'network' | 'closed'> | null>(null);
@@ -822,9 +827,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
         && (!changedWhileLoading || currentHouseInventory?.length === 0 || !engineRef.current);
       if (shouldApplyCloudInventory) {
         cloudChestLoadedRef.current = true;
-        if (engineRef.current) engineRef.current.setHouseInventory(inventory);
-        else pendingCloudHouseInventoryRef.current = inventory;
-        lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
+        const serverSnapshot = JSON.stringify(inventory);
+        if (engineRef.current) {
+          guardHouseServerSnapshot(serverSnapshot);
+          engineRef.current.setHouseInventory(inventory);
+        } else pendingCloudHouseInventoryRef.current = inventory;
+        lastSyncedHouseInventoryRef.current = serverSnapshot;
         houseSyncBaselineRef.current = JSON.stringify(inventory);
       } else {
         lastSyncedHouseInventoryRef.current = '';
@@ -854,6 +862,14 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       return;
     }
     if (houseMatchClosedRef.current) return;
+
+    const guardDecision = evaluateHouseSyncGuard(
+      houseInventoryJson,
+      houseServerSnapshotGuardRef.current,
+      Date.now(),
+    );
+    houseServerSnapshotGuardRef.current = guardDecision.nextGuard;
+    if (!guardDecision.shouldSync) return;
 
     const baseline = JSON.parse(houseSyncBaselineRef.current || '[]') as HouseStorageStack[];
     const currentInventory = JSON.parse(houseInventoryJson) as HouseStorageStack[];
@@ -2879,6 +2895,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     })();
     const pendingCloudInventory = pendingCloudHouseInventoryRef.current;
     if (pendingCloudInventory !== null) {
+      guardHouseServerSnapshot(JSON.stringify(pendingCloudInventory));
       engine.setHouseInventory(pendingCloudInventory);
       pendingCloudHouseInventoryRef.current = null;
     }
@@ -3776,8 +3793,10 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       const inventory = await loadCloudHouseInventory(fibulaSupabase, userId);
       if (requestId !== lobbyChestRefreshRequestRef.current || session.user.sub !== userId
         || houseMatchActiveRef.current) return false;
-      lastSyncedHouseInventoryRef.current = JSON.stringify(inventory);
-      houseSyncBaselineRef.current = JSON.stringify(inventory);
+      const serverSnapshot = JSON.stringify(inventory);
+      if (engineRef.current) guardHouseServerSnapshot(serverSnapshot);
+      lastSyncedHouseInventoryRef.current = serverSnapshot;
+      houseSyncBaselineRef.current = serverSnapshot;
       pendingHouseInventoryRef.current = null;
       if (engineRef.current) engineRef.current.setHouseInventory(inventory);
       else pendingCloudHouseInventoryRef.current = inventory;
@@ -3920,6 +3939,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 
   const applyCookingInventory = (nextInventory: HouseStorageStack[]) => {
     const serverSnapshot = JSON.stringify(nextInventory);
+    guardHouseServerSnapshot(serverSnapshot);
     houseSyncBaselineRef.current = serverSnapshot;
     lastSyncedHouseInventoryRef.current = serverSnapshot;
     setLobbyChestItems(nextInventory);
@@ -4047,6 +4067,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       pendingHouseInventoryRef.current = null;
       const confirmedSnapshot = lastSyncedHouseInventoryRef.current || JSON.stringify(readConfirmedHouseInventory());
       const confirmedInventory = JSON.parse(confirmedSnapshot) as HouseStorageStack[];
+      guardHouseServerSnapshot(confirmedSnapshot);
       houseSyncBaselineRef.current = confirmedSnapshot;
       engineRef.current?.setHouseInventory(confirmedInventory);
       houseMatchClosedRef.current = false;
