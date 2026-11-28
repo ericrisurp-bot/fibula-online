@@ -1171,12 +1171,31 @@ export class GameEngine {
     return { maxSlots, limits, remaining, full };
   }
 
-  private getTecelariaBufferCapacity(material: 'cotton' | 'hide') {
-    const building = this.state.tecelaria;
-    const buffer = material === 'cotton' ? building.cottonBuffer : building.hideBuffer;
-    const slots = material === 'cotton' ? CONFIG.tecelaria.cottonSlots : CONFIG.tecelaria.hideSlots;
-    const slotCapacity = material === 'cotton' ? CONFIG.tecelaria.cottonSlotCapacity : CONFIG.tecelaria.hideSlotCapacity;
-    return this.getStackBufferCapacity(buffer, slots * slotCapacity, slotCapacity);
+  private addBatchToBuffer(buffer: InventoryStack[], itemId: string, requested: number, slotCount: number, slotCapacity: number, batchSize: number) {
+    const next = buffer.map(stack => ({ ...stack }));
+    const existingRoom = next.reduce((total, stack) => total + Math.max(0, slotCapacity - stack.quantity), 0);
+    const freeSlots = Math.max(0, slotCount - next.length);
+    const newStackCapacity = Math.floor(slotCapacity / batchSize) * batchSize;
+    const newCapacity = freeSlots * newStackCapacity;
+    const moved = Math.floor(Math.min(requested, existingRoom + newCapacity) / batchSize) * batchSize;
+    if (moved < batchSize) return { inventory: buffer, added: 0 };
+
+    let toExisting = Math.floor(Math.min(moved, existingRoom) / batchSize) * batchSize;
+    for (const stack of next) {
+      if (toExisting <= 0) break;
+      const room = Math.max(0, slotCapacity - stack.quantity);
+      const added = Math.min(toExisting, room);
+      stack.quantity += added;
+      toExisting -= added;
+    }
+
+    let toCreate = moved - (Math.floor(Math.min(moved, existingRoom) / batchSize) * batchSize);
+    while (toCreate >= batchSize && next.length < slotCount) {
+      const quantity = Math.min(toCreate, newStackCapacity);
+      next.push({ itemId, quantity });
+      toCreate -= quantity;
+    }
+    return { inventory: next, added: moved - toCreate };
   }
 
   private processTecelariaMaterial(dt: number, material: 'cotton' | 'hide') {
@@ -1250,14 +1269,14 @@ export class GameEngine {
     const building = this.state.tecelaria;
     const stack = this.state.inventory[bagIndex];
     if (!stack || getBaseItemId(stack.itemId) !== 'cotton') return { ok: false, moved: 0, reason: 'none' };
-    const { limits, remaining } = this.getTecelariaBufferCapacity('cotton');
-    if (remaining < 3) return { ok: false, moved: 0, reason: 'full' };
     if (stack.quantity < 3) return { ok: false, moved: 0, reason: 'min' };
-    const requested = Math.floor(Math.min(stack.quantity, remaining) / 3) * 3;
-    if (requested < 3) return { ok: false, moved: 0, reason: 'full' };
-    const added = addToInventory(building.cottonBuffer, stack.itemId, requested, limits);
+    const requested = Math.floor(stack.quantity / 3) * 3;
+    const added = this.addBatchToBuffer(
+      building.cottonBuffer, stack.itemId, requested,
+      CONFIG.tecelaria.cottonSlots, CONFIG.tecelaria.cottonSlotCapacity, 3,
+    );
     if (added.added < 3) return { ok: false, moved: 0, reason: 'full' };
-    const moved = Math.floor(added.added / 3) * 3;
+    const moved = added.added;
     const left = stack.quantity - moved;
     building.cottonBuffer = added.inventory;
     this.state.inventory = this.state.inventory.flatMap((item, index) =>
@@ -1272,14 +1291,14 @@ export class GameEngine {
     const building = this.state.tecelaria;
     const stack = this.state.inventory[bagIndex];
     if (!stack || getBaseItemId(stack.itemId) !== 'wolf_hide') return { ok: false, moved: 0, reason: 'none' };
-    const { limits, remaining } = this.getTecelariaBufferCapacity('hide');
-    if (remaining < 3) return { ok: false, moved: 0, reason: 'full' };
     if (stack.quantity < 3) return { ok: false, moved: 0, reason: 'min' };
-    const requested = Math.floor(Math.min(stack.quantity, remaining) / 3) * 3;
-    if (requested < 3) return { ok: false, moved: 0, reason: 'full' };
-    const added = addToInventory(building.hideBuffer, stack.itemId, requested, limits);
+    const requested = Math.floor(stack.quantity / 3) * 3;
+    const added = this.addBatchToBuffer(
+      building.hideBuffer, stack.itemId, requested,
+      CONFIG.tecelaria.hideSlots, CONFIG.tecelaria.hideSlotCapacity, 3,
+    );
     if (added.added < 3) return { ok: false, moved: 0, reason: 'full' };
-    const moved = Math.floor(added.added / 3) * 3;
+    const moved = added.added;
     const left = stack.quantity - moved;
     building.hideBuffer = added.inventory;
     this.state.inventory = this.state.inventory.flatMap((item, index) =>
@@ -1427,14 +1446,15 @@ export class GameEngine {
     const refinery = this.state.refinery;
     const stack = this.state.inventory[bagIndex];
     if (!stack || getBaseItemId(stack.itemId) !== 'stone') return { ok: false, moved: 0, reason: 'none' };
-    const { limits, remaining: capacity } = this.getRefineryStoneBufferCapacity();
-    if (capacity < CONFIG.refinery.stonesPerBatch) return { ok: false, moved: 0, reason: 'full' };
     if (stack.quantity < CONFIG.refinery.stonesPerBatch) return { ok: false, moved: 0, reason: 'min' };
-    const requested = Math.floor(Math.min(stack.quantity, capacity) / CONFIG.refinery.stonesPerBatch) * CONFIG.refinery.stonesPerBatch;
-    if (requested < CONFIG.refinery.stonesPerBatch) return { ok: false, moved: 0, reason: 'full' };
-    const added = addToInventory(refinery.stoneBuffer, stack.itemId, requested, limits);
+    const requested = Math.floor(stack.quantity / CONFIG.refinery.stonesPerBatch) * CONFIG.refinery.stonesPerBatch;
+    const added = this.addBatchToBuffer(
+      refinery.stoneBuffer, stack.itemId, requested,
+      CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity,
+      CONFIG.refinery.stoneSlotCapacity, CONFIG.refinery.stonesPerBatch,
+    );
     if (added.added < CONFIG.refinery.stonesPerBatch) return { ok: false, moved: 0, reason: 'full' };
-    const moved = Math.floor(added.added / CONFIG.refinery.stonesPerBatch) * CONFIG.refinery.stonesPerBatch;
+    const moved = added.added;
     const left = stack.quantity - moved;
     refinery.stoneBuffer = added.inventory;
     this.state.inventory = this.state.inventory.flatMap((item, index) =>
