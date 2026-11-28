@@ -1335,6 +1335,74 @@ export class GameEngine {
     return { ok: true, moved, left };
   }
 
+  private getRefineryAccessError(): 'notbuilt' | 'far' | 'dead' | null {
+    const refinery = this.state.refinery;
+    if (!refinery.built) return 'notbuilt';
+    if (this.state.dead) return 'dead';
+    const feet = playerFeet(this.state.player);
+    if (Math.hypot(feet.x - refinery.x, feet.y - refinery.y) > CONFIG.refinery.interactRadius) return 'far';
+    return null;
+  }
+
+  loadRefineryStoneFromBag(bagIndex: number): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'none' } {
+    const accessError = this.getRefineryAccessError();
+    if (accessError) return { ok: false, moved: 0, reason: accessError };
+    const refinery = this.state.refinery;
+    const stack = this.state.inventory[bagIndex];
+    if (!stack || getBaseItemId(stack.itemId) !== 'stone') return { ok: false, moved: 0, reason: 'none' };
+    const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
+    const capacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
+    if (capacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
+      && refinery.stoneBuffer.every(item => item.quantity >= CONFIG.refinery.stoneSlotCapacity))) {
+      return { ok: false, moved: 0, reason: 'full' };
+    }
+    const added = addToInventory(refinery.stoneBuffer, stack.itemId, Math.min(stack.quantity, capacity), {
+      maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity,
+    });
+    if (added.added <= 0) return { ok: false, moved: 0, reason: 'full' };
+    const left = stack.quantity - added.added;
+    refinery.stoneBuffer = added.inventory;
+    this.state.inventory = this.state.inventory.flatMap((item, index) =>
+      index !== bagIndex ? [item] : left > 0 ? [{ ...item, quantity: left }] : []);
+    refinery.stoneStock = refinery.stoneBuffer.reduce((total, item) => total + item.quantity, 0);
+    this.emit();
+    return { ok: true, moved: added.added };
+  }
+
+  loadRefineryWoodFromBag(bagIndex: number): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'none' } {
+    const accessError = this.getRefineryAccessError();
+    if (accessError) return { ok: false, moved: 0, reason: accessError };
+    const refinery = this.state.refinery;
+    const stack = this.state.inventory[bagIndex];
+    if (!stack || getBaseItemId(stack.itemId) !== 'wood') return { ok: false, moved: 0, reason: 'none' };
+    const capacity = Math.max(0, CONFIG.refinery.woodCapacity - refinery.woodStock);
+    if (capacity <= 0) return { ok: false, moved: 0, reason: 'full' };
+    const moved = Math.min(stack.quantity, capacity);
+    const left = stack.quantity - moved;
+    this.state.inventory = this.state.inventory.flatMap((item, index) =>
+      index !== bagIndex ? [item] : left > 0 ? [{ ...item, quantity: left }] : []);
+    refinery.woodStock += moved;
+    this.emit();
+    return { ok: true, moved };
+  }
+
+  takeRefineryOutputStack(itemId: string): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'empty' } {
+    const accessError = this.getRefineryAccessError();
+    if (accessError) return { ok: false, moved: 0, reason: accessError };
+    const refinery = this.state.refinery;
+    const index = refinery.outputInventory.findIndex(stack => stack.itemId === itemId);
+    if (index < 0) return { ok: false, moved: 0, reason: 'empty' };
+    const stack = refinery.outputInventory[index];
+    const result = addToInventory(this.state.inventory, stack.itemId, stack.quantity, CONFIG.inventory);
+    if (result.added <= 0) return { ok: false, moved: 0, reason: 'full' };
+    const left = stack.quantity - result.added;
+    refinery.outputInventory = refinery.outputInventory.flatMap((item, currentIndex) =>
+      currentIndex !== index ? [item] : left > 0 ? [{ ...item, quantity: left }] : []);
+    this.state.inventory = result.inventory;
+    this.emit();
+    return { ok: true, moved: result.added };
+  }
+
   private processRefinery(dt: number) {
     const refinery = this.state.refinery;
     if (!refinery.built || refinery.stoneBuffer.length === 0) {
