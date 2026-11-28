@@ -1201,7 +1201,7 @@ export class GameEngine {
       maxPerSlot: CONFIG.inventory.maxPerSlot,
     });
     if (guaranteed.added !== 1) {
-      setTimer(0);
+      setTimer(interval);
       return;
     }
 
@@ -1495,7 +1495,7 @@ export class GameEngine {
       maxPerSlot: CONFIG.inventory.maxPerSlot,
     });
     if (guaranteed.added !== 1) {
-      this.refineryProcessTimer = 0;
+      this.refineryProcessTimer = CONFIG.refinery.batchInterval;
       return;
     }
 
