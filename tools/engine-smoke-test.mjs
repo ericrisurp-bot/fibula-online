@@ -9,6 +9,41 @@ const server = await createServer({
 });
 
 try {
+  const { evaluateHouseSyncGuard } = await server.ssrLoadModule('/src/game/houseSyncGuard.ts');
+  const { computeHouseDelta } = await server.ssrLoadModule('/src/game/persistence.ts');
+
+  // C2: snapshots autoritativos não podem gerar deltas contra o estado React anterior.
+  const houseOldSnapshot = JSON.stringify([{ itemId: 'wolf_hide', quantity: 20 }]);
+  const houseServerSnapshot = JSON.stringify([{ itemId: 'wolf_hide', quantity: 10 }]);
+  const houseGuard = { snapshot: houseServerSnapshot, expiresAt: 5_000 };
+
+  const staleHouseDecision = evaluateHouseSyncGuard(houseOldSnapshot, houseGuard, 1_000);
+  assert.equal(staleHouseDecision.shouldSync, false,
+    'Estado antigo com baseline novo e guarda ativo deve adiar a sincronização.');
+  assert.deepEqual(staleHouseDecision.nextGuard, houseGuard);
+
+  const caughtUpHouseDecision = evaluateHouseSyncGuard(houseServerSnapshot, houseGuard, 1_000);
+  assert.equal(caughtUpHouseDecision.shouldSync, true);
+  assert.equal(caughtUpHouseDecision.nextGuard, null,
+    'Ao alcançar o snapshot do servidor, o guarda deve ser limpo.');
+  assert.deepEqual(computeHouseDelta(
+    [{ itemId: 'wolf_hide', quantity: 10 }],
+    [{ itemId: 'wolf_hide', quantity: 10 }],
+  ), [], 'O snapshot autoritativo deve produzir delta vazio.');
+
+  const legitimateHouseDecision = evaluateHouseSyncGuard(houseServerSnapshot, null, 1_001);
+  assert.equal(legitimateHouseDecision.shouldSync, true);
+  assert.deepEqual(computeHouseDelta(
+    [{ itemId: 'wolf_hide', quantity: 10 }],
+    [{ itemId: 'wolf_hide', quantity: 12 }],
+  ), [{ itemId: 'wolf_hide', quantity: 2 }],
+  'Após limpar o guarda, um depósito legítimo deve gerar delta normal.');
+
+  const expiredHouseDecision = evaluateHouseSyncGuard(houseOldSnapshot, houseGuard, 5_000);
+  assert.equal(expiredHouseDecision.shouldSync, true,
+    'O guarda expirado não pode bloquear a sincronização indefinidamente.');
+  assert.equal(expiredHouseDecision.nextGuard, null);
+
   const { GameEngine } = await server.ssrLoadModule('/src/game/engine.ts');
   const { buildMatchStatsPayload, isValidMatchStatsPayload } = await server.ssrLoadModule('/src/game/matchStats.ts');
   const createEngine = (seed) => new GameEngine(() => {}, {
