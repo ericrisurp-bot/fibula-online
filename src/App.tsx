@@ -755,11 +755,16 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       slots: state.refinery.outputInventory.map(item => ({ itemId: item.itemId, quantity: item.quantity })),
     };
   }, [refineryOutputTotal, state.refinery.outputInventory]);
-  const refineryHasFuel = state.refinery.fuelCharges > 0 || state.refinery.woodStock >= CONFIG.refinery.woodPerBatch;
-  const refineryVisualState = state.refinery.stoneStock === 0 ? 'empty' : refineryHasFuel ? 'refining' : 'waiting';
+  const refineryHasBatch = state.refinery.stoneBuffer.some(stack => stack.quantity >= CONFIG.refinery.stonesPerBatch);
+  const refineryHasFuel = state.refinery.woodStock >= CONFIG.refinery.woodPerBatch;
+  const refineryVisualState = state.refinery.stoneStock === 0 ? 'empty'
+    : !refineryHasBatch ? 'waiting-stones' : !refineryHasFuel ? 'waiting-wood' : 'refining';
   const tecelariaHasMaterial = state.tecelaria.cottonBuffer.length > 0 || state.tecelaria.hideBuffer.length > 0;
+  const tecelariaHasBatch = state.tecelaria.cottonBuffer.some(stack => stack.quantity >= 3)
+    || state.tecelaria.hideBuffer.some(stack => stack.quantity >= 3);
+  const tecelariaOutputFull = state.tecelaria.outputInventory.length >= CONFIG.tecelaria.outputCapacity;
   const tecelariaVisualState = !tecelariaHasMaterial ? 'empty'
-    : state.tecelaria.outputInventory.length >= CONFIG.tecelaria.outputCapacity ? 'blocked' : 'weaving';
+    : !tecelariaHasBatch ? 'waiting' : tecelariaOutputFull ? 'blocked' : 'weaving';
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   type SavedCampProgress = {
@@ -5168,7 +5173,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     if (!result) return;
     if (!result.ok) {
       setRefineryFeedback(result.reason === 'far' ? 'Aproxime-se da refinaria'
-        : result.reason === 'full' ? 'Refinaria cheia' : '');
+        : result.reason === 'full' ? 'Refinaria cheia'
+          : result.reason === 'min' ? 'Precisa de 5 pedras' : '');
       return;
     }
     const remaining = engine.state.inventory[index];
@@ -5188,7 +5194,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     if (!result) return;
     if (!result.ok) {
       setTecelariaFeedback(result.reason === 'far' ? 'Aproxime-se da tecelaria'
-        : result.reason === 'full' ? 'Tecelaria cheia' : '');
+        : result.reason === 'full' ? 'Tecelaria cheia'
+          : result.reason === 'min' ? 'Precisa de 3 itens' : '');
       return;
     }
     const remaining = engine.state.inventory[index];
@@ -6601,12 +6608,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 </div></section>}
 {refineryAccessible&&<section
   className={`refinery-panel-section is-${refineryVisualState}`}
-  style={{ '--refine-cycle': `${CONFIG.refinery.processInterval}s` } as CSSProperties}
+  style={{ '--refine-cycle': `${CONFIG.refinery.batchInterval}s` } as CSSProperties}
 >
   <header className="refinery-panel-heading">
     <h3>Refinaria</h3>
     <span className={`refinery-panel-status is-${refineryVisualState}`} role="status">
-      {refineryVisualState === 'empty' ? 'Vazia' : refineryVisualState === 'waiting' ? 'Sem lenha' : 'Refinando'}
+      {refineryVisualState === 'empty' ? 'Vazia' : refineryVisualState === 'waiting-stones' ? 'Aguardando 5 pedras' : refineryVisualState === 'waiting-wood' ? 'Sem lenha' : 'Refinando'}
     </span>
   </header>
   <div className="refinery-flow">
@@ -6618,7 +6625,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
           return <div
             key={index}
             className={item ? 'quick-slot filled refinery-mini-slot' : 'quick-slot refinery-mini-slot'}
-            aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity + ' de ' + CONFIG.refinery.stoneSlotCapacity : 'Espaço de pedra ' + (index + 1) + ' vazio'}
+            aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity + ' de ' + CONFIG.refinery.stoneSlotCapacity + ' (lote de ' + CONFIG.refinery.stonesPerBatch + ')' : 'Espaço de pedra ' + (index + 1) + ' vazio'}
           >
             {item
               ? <><span className="refinery-slot-icon" style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>×{item.quantity}/{CONFIG.refinery.stoneSlotCapacity}</b></>
@@ -6628,7 +6635,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       </div>
     </div>
     <div className="refinery-furnace-group">
-      <div className="refinery-furnace" aria-label={refineryVisualState === 'empty' ? 'Forno parado' : refineryVisualState === 'waiting' ? 'Forno aguardando lenha' : 'Forno refinando'}>
+      <div className="refinery-furnace" aria-label={refineryVisualState === 'empty' ? 'Forno parado' : refineryVisualState === 'waiting-stones' ? 'Forno aguardando cinco pedras' : refineryVisualState === 'waiting-wood' ? 'Forno aguardando lenha' : 'Forno refinando'}>
         <span className="refinery-furnace-chimney" />
         <span className="refinery-furnace-body">
           <span className="refinery-furnace-mouth">
@@ -6693,7 +6700,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   <header className="refinery-panel-heading">
     <h3>Tecelaria</h3>
     <span className={`refinery-panel-status is-${tecelariaVisualState}`} role="status">
-      {tecelariaVisualState === 'empty' ? 'Vazia' : tecelariaVisualState === 'blocked' ? 'Saída cheia' : 'Tecendo'}
+      {tecelariaVisualState === 'empty' ? 'Vazia' : tecelariaVisualState === 'waiting' ? 'Aguardando 3' : tecelariaVisualState === 'blocked' ? 'Saída cheia' : 'Tecendo'}
     </span>
   </header>
   <div className="tecelaria-flows">
