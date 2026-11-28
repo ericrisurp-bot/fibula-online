@@ -1222,22 +1222,50 @@ try {
     normalCottonTecelaria.stop();
   }
 
-  const autoTecelaria = makeTecelariaEngine(0x3a000002);
+  const manualTecelaria = makeTecelariaEngine(0x3a000002);
   try {
-    autoTecelaria.state.inventory = [{ itemId: 'cotton:rare', quantity: 2 }];
-    autoTecelaria.state.cart.x = autoTecelaria.state.tecelaria.x;
-    autoTecelaria.state.cart.y = autoTecelaria.state.tecelaria.y;
-    autoTecelaria.state.cart.inventory = [{ itemId: 'wolf_hide:uncommon', quantity: 2 }];
-    advanceTecelaria(autoTecelaria, 0.04);
-    assert.deepEqual(autoTecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton:rare', quantity: 2 }]);
-    assert.deepEqual(autoTecelaria.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:uncommon', quantity: 2 }]);
-    assert.deepEqual(autoTecelaria.state.inventory, []);
-    assert.deepEqual(autoTecelaria.state.cart.inventory, []);
+    // Materiais no chão, na mochila ou na carroça não alimentam os buffers automaticamente.
+    manualTecelaria.state.inventory = [{ itemId: 'cotton:rare', quantity: 3 }];
+    manualTecelaria.state.cart.x = manualTecelaria.state.tecelaria.x;
+    manualTecelaria.state.cart.y = manualTecelaria.state.tecelaria.y;
+    manualTecelaria.state.cart.inventory = [{ itemId: 'wolf_hide:uncommon', quantity: 3 }];
+    manualTecelaria.state.cottonDrops = [{ id: 9001, x: 1800, y: 1800 - CONFIG.player.footOffset, age: 1, rarity: 'rare' }];
+    manualTecelaria.state.wildlifeDrops = [{ id: 9002, x: 1800, y: 1800 - CONFIG.player.footOffset, age: 1, kind: 'wolf_hide', amount: 3, rarity: 'uncommon' }];
+    advanceTecelaria(manualTecelaria, 0.04);
+    assert.deepEqual(manualTecelaria.state.tecelaria.cottonBuffer, [], 'Algodão do chão/mochila não entra sozinho no buffer.');
+    assert.deepEqual(manualTecelaria.state.tecelaria.hideBuffer, [], 'Couro do chão/carroça não entra sozinho no buffer.');
+    assert.deepEqual(manualTecelaria.state.cart.inventory, [{ itemId: 'wolf_hide:uncommon', quantity: 3 }], 'A carroça nunca entrega material automaticamente.');
+
+    // A carga manual é o único caminho para iniciar a produção; a raridade é herdada.
+    manualTecelaria.state.inventory = [
+      { itemId: 'cotton:rare', quantity: 3 },
+      { itemId: 'wolf_hide:uncommon', quantity: 3 },
+    ];
+    const totalItems = () => manualTecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + manualTecelaria.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0)
+      + manualTecelaria.state.tecelaria.hideBuffer.reduce((sum, item) => sum + item.quantity, 0)
+      + manualTecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
+    const beforeLoad = totalItems();
+    assert.deepEqual(manualTecelaria.loadTecelariaCottonFromBag(0), { ok: true, moved: 3 });
+    assert.deepEqual(manualTecelaria.loadTecelariaHideFromBag(0), { ok: true, moved: 3 });
+    assert.equal(totalItems(), beforeLoad, 'Carregar da mochila conserva o total de itens.');
+    advanceTecelaria(manualTecelaria, 2.1);
+    assert.ok(manualTecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:rare' && item.quantity === 1));
+    assert.ok(manualTecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather:uncommon' && item.quantity === 1));
+    assert.equal(manualTecelaria.state.tecelaria.cottonProcessed, 3, 'Contador da missão 8 permanece incrementando três algodões por lote.');
+    assert.equal(manualTecelaria.state.tecelaria.linenProduced, 1);
+    assert.equal(manualTecelaria.state.tecelaria.hideProcessed, 3, 'Contador da missão 9 permanece incrementando três couros por lote.');
+    assert.equal(manualTecelaria.state.tecelaria.refinedLeatherProduced, 1);
+    assert.equal(totalItems(), beforeLoad - 4, 'Três matérias-primas viram uma saída em cada fluxo.');
+    const beforeTake = totalItems();
+    assert.deepEqual(manualTecelaria.takeTecelariaOutputStack('linen:rare'), { ok: true, moved: 1 });
+    assert.deepEqual(manualTecelaria.takeTecelariaOutputStack('refined_leather:uncommon'), { ok: true, moved: 1 });
+    assert.equal(totalItems(), beforeTake, 'Retirar da saída para a mochila conserva o total de itens.');
   } finally {
-    autoTecelaria.stop();
+    manualTecelaria.stop();
   }
 
-  console.log('OK: testes do motor, incluindo refinaria R1a e Tecelaria R3a.');
+  console.log('OK: testes do motor, incluindo refinaria R1a e painel/fluxo manual da Tecelaria R3b.');
 } finally {
   await server.close();
 }

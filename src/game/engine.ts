@@ -1152,56 +1152,6 @@ export class GameEngine {
     this.emit();
   }
 
-  private deliverCottonToTecelaria() {
-    const building = this.state.tecelaria;
-    if (!building.built) return;
-    const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
-    const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
-    const transfer = (inventory: InventoryStack[]) => {
-      const { limits, remaining } = this.getTecelariaBufferCapacity('cotton');
-      let room = remaining;
-      let buffer = building.cottonBuffer;
-      const next = inventory.flatMap(stack => {
-        if (getBaseItemId(stack.itemId) !== 'cotton' || room <= 0) return [stack];
-        const added = addToInventory(buffer, stack.itemId, Math.min(stack.quantity, room), limits);
-        buffer = added.inventory;
-        room -= added.added;
-        const left = stack.quantity - added.added;
-        return left > 0 ? [{ ...stack, quantity: left }] : [];
-      });
-      building.cottonBuffer = buffer;
-      return next;
-    };
-    if (playerNear) this.state.inventory = transfer(this.state.inventory);
-    if (cartCanDeliver) this.state.cart.inventory = transfer(this.state.cart.inventory);
-  }
-
-  private deliverHideToTecelaria() {
-    const building = this.state.tecelaria;
-    if (!building.built) return;
-    const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
-    const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
-    const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
-    const transfer = (inventory: InventoryStack[]) => {
-      const { limits, remaining } = this.getTecelariaBufferCapacity('hide');
-      let room = remaining;
-      let buffer = building.hideBuffer;
-      const next = inventory.flatMap(stack => {
-        if (getBaseItemId(stack.itemId) !== 'wolf_hide' || room <= 0) return [stack];
-        const added = addToInventory(buffer, stack.itemId, Math.min(stack.quantity, room), limits);
-        buffer = added.inventory;
-        room -= added.added;
-        const left = stack.quantity - added.added;
-        return left > 0 ? [{ ...stack, quantity: left }] : [];
-      });
-      building.hideBuffer = buffer;
-      return next;
-    };
-    if (playerNear) this.state.inventory = transfer(this.state.inventory);
-    if (cartCanDeliver) this.state.cart.inventory = transfer(this.state.cart.inventory);
-  }
-
   private getTecelariaAccessError(): 'notbuilt' | 'far' | 'dead' | null {
     const building = this.state.tecelaria;
     if (!building.built) return 'notbuilt';
@@ -2076,7 +2026,7 @@ export class GameEngine {
       // Só conta como nascimento agendado quando o inimigo realmente entra no mapa.
       if (this.hordeScheduled < targetScheduled && this.spawnHordeEnemy()) this.hordeScheduled += 1;
     }
-    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); if (this.state.rockMineTimer <= 0 && this.pendingRockRemovalId !== null) { const pendingId = this.pendingRockRemovalId; this.pendingRockRemovalId = null; this.state.rocks = this.state.rocks.filter(rock => rock.id !== pendingId); } this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.processRefinery(dt); this.deliverCottonToTecelaria(); this.deliverHideToTecelaria(); this.processTecelaria(dt); this.processRefinedLeather(dt);
+    this.updateDruidEffects(dt); this.updateTreeSpawner(dt); this.updateRockSpawner(dt); this.updateCottonSpawner(dt); this.updateVegetableSpawner(dt); this.updateWildlifeSpawner(dt); this.moveEnemies(dt); this.moveShots(dt); this.state.swordSwingTimer = Math.max(0, this.state.swordSwingTimer - dt); this.state.treeChopTimer = Math.max(0, this.state.treeChopTimer - dt); this.state.rockMineTimer = Math.max(0, this.state.rockMineTimer - dt); if (this.state.rockMineTimer <= 0 && this.pendingRockRemovalId !== null) { const pendingId = this.pendingRockRemovalId; this.pendingRockRemovalId = null; this.state.rocks = this.state.rocks.filter(rock => rock.id !== pendingId); } this.state.cottonHarvestTimer = Math.max(0, this.state.cottonHarvestTimer - dt); this.state.knifeSwingTimer = Math.max(0, this.state.knifeSwingTimer - dt); this.local.knifeHitTimer = Math.max(0, this.local.knifeHitTimer - dt); this.autoAttack(); this.autoKnife(); this.updateFishing(dt); this.autoGather(); this.collectXp(dt, playerSpeed); this.attractMaterials(dt, playerSpeed); this.collectWood(); this.collectStone(); this.collectCotton(); this.collectVegetables(); this.collectLinen(); this.collectRefinedLeather(); this.collectBronze(); this.collectWildlifeDrops(); this.collectCores(); this.collectJabuticaba(); this.processRefinery(dt); this.processTecelaria(dt); this.processRefinedLeather(dt);
     if (this.state.classId === 'druida') {
       this.local.druidOrbHealTimer -= dt;
       if (p.hp > 0 && p.hp / p.maxHp < 0.4 && this.state.healingOrbs.length > 0 && this.local.druidOrbHealTimer <= 0) {
