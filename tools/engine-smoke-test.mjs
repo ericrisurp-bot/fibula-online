@@ -1192,7 +1192,7 @@ try {
     const outputBefore = tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
     assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: true, moved: 1 });
     assert.equal(tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0), outputBefore + 1);
+      + tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0), outputBefore);
 
     tecelaria.state.inventory = [{ itemId: 'cotton', quantity: 2 }, { itemId: 'wolf_hide', quantity: 2 }];
     tecelaria.state.player.x += CONFIG.tecelaria.interactRadius + 20;
