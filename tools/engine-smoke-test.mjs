@@ -1215,7 +1215,6 @@ try {
   }
 
   console.log('OK: testes do motor, incluindo lotes garantidos e bônus da Refinaria/Tecelaria R3c.');
-  console.log('OK: testes do motor, incluindo refinaria R1a e painel/fluxo manual da Tecelaria R3b.');
 } finally {
   await server.close();
 }
