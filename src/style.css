@@ -13579,7 +13579,14 @@ sem backdrop ou caixa de modal. */
   .refinery-stone-group{justify-items:start}
   .refinery-furnace-group{justify-content:flex-start;padding-left:2px}
   .refinery-output-slots{grid-template-columns:repeat(5,var(--refinery-slot))!important}
-  .refinery-feed-stone{display:none}
+  .refinery-feed-stone{top:calc(var(--refinery-slot) + 5px);left:calc(var(--refinery-slot) * 2 + 12px)}
+  .refinery-panel-section.is-refining .refinery-feed-stone{animation-name:refinery-stone-feed-vertical}
+}
+@keyframes refinery-stone-feed-vertical{
+  0%{transform:translate3d(0,0,0) scale(1);opacity:0}
+  8%{opacity:1}
+  78%{transform:translate3d(-48px,18px,0) scale(.75);opacity:1}
+  100%{transform:translate3d(-55px,22px,0) scale(.2);opacity:0}
 }
 @media(min-width:380px) and (max-width:430px){
   .refinery-panel-section{--refinery-slot:32px}
