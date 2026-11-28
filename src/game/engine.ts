@@ -90,7 +90,7 @@ type FloatingDamage = Vec & { id: number; amount: number; label?: string; color:
 type DyingEnemy = Enemy & { deathAge: number };
 type CartState = DonkeyCartState;
 type RefineryState = Vec & { woodDelivered: number; stoneDelivered: number; built: boolean; stoneStock: number; stoneBuffer: InventoryStack[]; woodStock: number; fuelCharges: number; outputInventory: InventoryStack[]; stonesProcessed: number; tinProduced: number };
-type TecelariaState = Vec & { bronzeDelivered: number; woodDelivered: number; cottonDelivered: number; stoneDelivered: number; built: boolean; cottonStock: number; cottonProcessed: number; linenProduced: number; hideStock: number; hideProcessed: number; refinedLeatherProduced: number };
+type TecelariaState = Vec & { bronzeDelivered: number; woodDelivered: number; cottonDelivered: number; stoneDelivered: number; built: boolean; cottonBuffer: InventoryStack[]; hideBuffer: InventoryStack[]; outputInventory: InventoryStack[]; cottonProcessed: number; linenProduced: number; hideProcessed: number; refinedLeatherProduced: number };
 export type GameSnapshot = {
   walkPhase: number;
   player: Vec & { hp: number; maxHp: number; level: number; xp: number; nextXp: number; moving: boolean; facingX: number; facingY: number };
@@ -719,7 +719,7 @@ export class GameEngine {
       house: { x: this.world / 4, y: this.world / 4, woodDelivered: 0, built: false, inventory: [] },
       campfire: null,
       refinery: { x: this.world * 0.7, y: this.world * 0.7, woodDelivered: 0, stoneDelivered: 0, built: false, stoneStock: 0, stoneBuffer: [], woodStock: 0, fuelCharges: 0, outputInventory: [], stonesProcessed: 0, tinProduced: 0 },
-      tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
+      tecelaria: { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonBuffer: [], hideBuffer: [], outputInventory: [], cottonProcessed: 0, linenProduced: 0, hideProcessed: 0, refinedLeatherProduced: 0 },
       lake: { x: 0, y: 0, rx: 0, ry: 0, size: 'small' }, fishing: false, fishingProgress: 0,
       cart: { x: this.world * 0.75, y: this.world * 0.25, angle: Math.PI, wheelPhase: 0, following: true, stage: 'broken', health: 0, maxHealth: CONFIG.cart.maxHealth, everBuilt: false, carried: false, inventory: [] },
       enemies: [], trees: [], jabuticabaTree: null, jabuticabaDrops: [], rocks: [], cottonPlants: [], vegetablePlants: [], woodDrops: [], stoneDrops: [], cottonDrops: [], vegetableDrops: [], linenDrops: [], refinedLeatherDrops: [], bronzeDrops: [], wildlifeDrops: [], coreDrops: [], inventory: [], xpOrbs: [], healingOrbs: [], shots: [], explosions: [], floatingDamage: [], dyingEnemies: [], walkPhase: 0, wave: 1, elapsed: 0, dayNight: 'day', phaseElapsed: 0, nightNumber: 0, startedAtNight: false, weapon: classWeapon[classId], classId, swordSwingAngle: 0, swordSwingTimer: 0, treeChopAngle: 0, treeChopTimer: 0, rockMineAngle: 0, rockMineTimer: 0, cottonHarvestAngle: 0, cottonHarvestTimer: 0, knifeSwingAngle: 0, knifeSwingTimer: 0, gatherX: 0, gatherY: 0, gatherDepth: 0,
@@ -1154,83 +1154,196 @@ export class GameEngine {
 
   private deliverCottonToTecelaria() {
     const building = this.state.tecelaria;
-    if (!building.built || building.cottonStock >= CONFIG.tecelaria.cottonCapacity) return;
+    if (!building.built) return;
     const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     const transfer = (inventory: InventoryStack[]) => {
-      const room = CONFIG.tecelaria.cottonCapacity - building.cottonStock;
-      let toRemove = room, moved = 0;
-      const nextInventory = inventory.flatMap(stack => {
-        if (getBaseItemId(stack.itemId) !== 'cotton' || toRemove <= 0) return [stack];
-        const used = Math.min(stack.quantity, toRemove);
-        toRemove -= used; moved += used;
-        const left = stack.quantity - used;
+      const { limits, remaining } = this.getTecelariaBufferCapacity('cotton');
+      let room = remaining;
+      let buffer = building.cottonBuffer;
+      const next = inventory.flatMap(stack => {
+        if (getBaseItemId(stack.itemId) !== 'cotton' || room <= 0) return [stack];
+        const added = addToInventory(buffer, stack.itemId, Math.min(stack.quantity, room), limits);
+        buffer = added.inventory;
+        room -= added.added;
+        const left = stack.quantity - added.added;
         return left > 0 ? [{ ...stack, quantity: left }] : [];
       });
-      building.cottonStock += moved;
-      return nextInventory;
+      building.cottonBuffer = buffer;
+      return next;
     };
-    if (playerNear && building.cottonStock < CONFIG.tecelaria.cottonCapacity) this.state.inventory = transfer(this.state.inventory);
-    if (cartCanDeliver && building.cottonStock < CONFIG.tecelaria.cottonCapacity) this.state.cart.inventory = transfer(this.state.cart.inventory);
+    if (playerNear) this.state.inventory = transfer(this.state.inventory);
+    if (cartCanDeliver) this.state.cart.inventory = transfer(this.state.cart.inventory);
   }
-
 
   private deliverHideToTecelaria() {
     const building = this.state.tecelaria;
-    if (!building.built || building.hideStock >= CONFIG.tecelaria.hideCapacity) return;
+    if (!building.built) return;
     const playerNear = Math.hypot(playerFeet(this.state.player).x - building.x, playerFeet(this.state.player).y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartNear = Math.hypot(this.state.cart.x - building.x, this.state.cart.y - building.y) <= CONFIG.tecelaria.interactRadius;
     const cartCanDeliver = this.state.cart.carried ? playerNear : cartNear;
     const transfer = (inventory: InventoryStack[]) => {
-      const room = CONFIG.tecelaria.hideCapacity - building.hideStock;
-      let toRemove = room, moved = 0;
-      const nextInventory = inventory.flatMap(stack => {
-        if (getBaseItemId(stack.itemId) !== 'wolf_hide' || toRemove <= 0) return [stack];
-        const used = Math.min(stack.quantity, toRemove);
-        toRemove -= used; moved += used;
-        const left = stack.quantity - used;
+      const { limits, remaining } = this.getTecelariaBufferCapacity('hide');
+      let room = remaining;
+      let buffer = building.hideBuffer;
+      const next = inventory.flatMap(stack => {
+        if (getBaseItemId(stack.itemId) !== 'wolf_hide' || room <= 0) return [stack];
+        const added = addToInventory(buffer, stack.itemId, Math.min(stack.quantity, room), limits);
+        buffer = added.inventory;
+        room -= added.added;
+        const left = stack.quantity - added.added;
         return left > 0 ? [{ ...stack, quantity: left }] : [];
       });
-      building.hideStock += moved;
-      return nextInventory;
+      building.hideBuffer = buffer;
+      return next;
     };
-    if (playerNear && building.hideStock < CONFIG.tecelaria.hideCapacity && this.state.inventory.some(stack => getBaseItemId(stack.itemId) === 'wolf_hide')) this.state.inventory = transfer(this.state.inventory);
-    if (cartCanDeliver && building.hideStock < CONFIG.tecelaria.hideCapacity && this.state.cart.inventory.some(stack => getBaseItemId(stack.itemId) === 'wolf_hide')) this.state.cart.inventory = transfer(this.state.cart.inventory);
+    if (playerNear) this.state.inventory = transfer(this.state.inventory);
+    if (cartCanDeliver) this.state.cart.inventory = transfer(this.state.cart.inventory);
+  }
+
+  private getTecelariaAccessError(): 'notbuilt' | 'far' | 'dead' | null {
+    const building = this.state.tecelaria;
+    if (!building.built) return 'notbuilt';
+    if (this.state.dead) return 'dead';
+    const feet = playerFeet(this.state.player);
+    if (Math.hypot(feet.x - building.x, feet.y - building.y) > CONFIG.tecelaria.interactRadius) return 'far';
+    return null;
+  }
+
+  private getStackBufferCapacity(buffer: InventoryStack[], totalCapacity: number, slotCapacity: number, usedOverride?: number) {
+    const maxSlots = Math.floor(totalCapacity / slotCapacity);
+    const limits = { maxSlots, maxPerSlot: slotCapacity };
+    const used = usedOverride ?? buffer.reduce((total, stack) => total + stack.quantity, 0);
+    const remaining = Math.max(0, totalCapacity - used);
+    const full = remaining <= 0 || (buffer.length >= maxSlots
+      && buffer.every(item => item.quantity >= slotCapacity));
+    return { maxSlots, limits, remaining, full };
+  }
+
+  private getTecelariaBufferCapacity(material: 'cotton' | 'hide') {
+    const building = this.state.tecelaria;
+    const buffer = material === 'cotton' ? building.cottonBuffer : building.hideBuffer;
+    const slots = material === 'cotton' ? CONFIG.tecelaria.cottonSlots : CONFIG.tecelaria.hideSlots;
+    const slotCapacity = material === 'cotton' ? CONFIG.tecelaria.cottonSlotCapacity : CONFIG.tecelaria.hideSlotCapacity;
+    return this.getStackBufferCapacity(buffer, slots * slotCapacity, slotCapacity);
+  }
+
+  private processTecelariaMaterial(dt: number, material: 'cotton' | 'hide') {
+    const building = this.state.tecelaria;
+    const buffer = material === 'cotton' ? building.cottonBuffer : building.hideBuffer;
+    const timer = material === 'cotton' ? this.tecelariaProcessTimer : this.tecelariaHideProcessTimer;
+    const interval = CONFIG.tecelaria.processInterval;
+    const hasBatch = buffer.some(stack => buffer
+      .filter(candidate => getItemRarity(candidate.itemId) === getItemRarity(stack.itemId))
+      .reduce((sum, candidate) => sum + candidate.quantity, 0) >= 3);
+    if (!building.built || !hasBatch) {
+      if (material === 'cotton') this.tecelariaProcessTimer = 0;
+      else this.tecelariaHideProcessTimer = 0;
+      return;
+    }
+    const nextTimer = timer + dt;
+    if (nextTimer < interval) {
+      if (material === 'cotton') this.tecelariaProcessTimer = nextTimer;
+      else this.tecelariaHideProcessTimer = nextTimer;
+      return;
+    }
+    const eligible = buffer.find(stack => buffer
+      .filter(candidate => getItemRarity(candidate.itemId) === getItemRarity(stack.itemId))
+      .reduce((sum, candidate) => sum + candidate.quantity, 0) >= 3);
+    if (!eligible) return;
+    const rarity = getItemRarity(eligible.itemId);
+    const outputItemId = getRarityItemId(material === 'cotton' ? 'linen' : 'refined_leather', rarity);
+    const output = addToInventory(building.outputInventory, outputItemId, 1, {
+      maxSlots: CONFIG.tecelaria.outputCapacity,
+      maxPerSlot: CONFIG.inventory.maxPerSlot,
+    });
+    if (output.added !== 1) {
+      if (material === 'cotton') this.tecelariaProcessTimer = interval;
+      else this.tecelariaHideProcessTimer = interval;
+      return;
+    }
+    let toConsume = 3;
+    const nextBuffer = buffer.flatMap(stack => {
+      if (getItemRarity(stack.itemId) !== rarity || toConsume <= 0) return [stack];
+      const used = Math.min(stack.quantity, toConsume);
+      toConsume -= used;
+      const left = stack.quantity - used;
+      return left > 0 ? [{ ...stack, quantity: left }] : [];
+    });
+    if (material === 'cotton') {
+      building.cottonBuffer = nextBuffer;
+      building.cottonProcessed += 3;
+      building.linenProduced += 1;
+      this.tecelariaProcessTimer = nextTimer - interval;
+    } else {
+      building.hideBuffer = nextBuffer;
+      building.hideProcessed += 3;
+      building.refinedLeatherProduced += 1;
+      this.tecelariaHideProcessTimer = nextTimer - interval;
+    }
+    building.outputInventory = output.inventory;
   }
 
   private processRefinedLeather(dt: number) {
-    const building = this.state.tecelaria;
-    if (!building.built || building.hideStock <= 0) { this.tecelariaHideProcessTimer = 0; return; }
-    this.tecelariaHideProcessTimer += dt;
-    if (this.tecelariaHideProcessTimer < CONFIG.tecelaria.hideProcessInterval) return;
-    this.tecelariaHideProcessTimer -= CONFIG.tecelaria.hideProcessInterval;
-    building.hideStock -= 1;
-    building.hideProcessed += 1;
-    if (this.random() < CONFIG.tecelaria.refinedLeatherChance) {
-      const angle = this.random() * Math.PI * 2;
-      const distance = 42 + this.random() * 12;
-      this.state.refinedLeatherDrops.push({ id: this.nextId++, x: building.x + Math.cos(angle) * distance, y: building.y + Math.sin(angle) * distance, age: 0 });
-      building.refinedLeatherProduced += 1;
-    }
-    if (building.hideStock <= 0) this.tecelariaHideProcessTimer = 0;
+    this.processTecelariaMaterial(dt, 'hide');
   }
 
   private processTecelaria(dt: number) {
+    this.processTecelariaMaterial(dt, 'cotton');
+  }
+
+  loadTecelariaCottonFromBag(bagIndex: number): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'none' } {
+    const accessError = this.getTecelariaAccessError();
+    if (accessError) return { ok: false, moved: 0, reason: accessError };
     const building = this.state.tecelaria;
-    if (!building.built || building.cottonStock <= 0) { this.tecelariaProcessTimer = 0; return; }
-    this.tecelariaProcessTimer += dt;
-    if (this.tecelariaProcessTimer < CONFIG.tecelaria.processInterval) return;
-    this.tecelariaProcessTimer -= CONFIG.tecelaria.processInterval;
-    building.cottonStock -= 1;
-    building.cottonProcessed += 1;
-    if (this.random() < CONFIG.tecelaria.linenChance) {
-      const angle = this.random() * Math.PI * 2;
-      const distance = 42 + this.random() * 12;
-      this.state.linenDrops.push({ id: this.nextId++, x: building.x + Math.cos(angle) * distance, y: building.y + Math.sin(angle) * distance, age: 0 });
-      building.linenProduced += 1;
-    }
-    if (building.cottonStock <= 0) this.tecelariaProcessTimer = 0;
+    const stack = this.state.inventory[bagIndex];
+    if (!stack || getBaseItemId(stack.itemId) !== 'cotton') return { ok: false, moved: 0, reason: 'none' };
+    const { limits, remaining, full } = this.getTecelariaBufferCapacity('cotton');
+    if (full) return { ok: false, moved: 0, reason: 'full' };
+    const added = addToInventory(building.cottonBuffer, stack.itemId, Math.min(stack.quantity, remaining), limits);
+    if (added.added <= 0) return { ok: false, moved: 0, reason: 'full' };
+    const left = stack.quantity - added.added;
+    building.cottonBuffer = added.inventory;
+    this.state.inventory = this.state.inventory.flatMap((item, index) =>
+      index !== bagIndex ? [item] : left > 0 ? [{ ...item, quantity: left }] : []);
+    this.emit();
+    return { ok: true, moved: added.added };
+  }
+
+  loadTecelariaHideFromBag(bagIndex: number): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'none' } {
+    const accessError = this.getTecelariaAccessError();
+    if (accessError) return { ok: false, moved: 0, reason: accessError };
+    const building = this.state.tecelaria;
+    const stack = this.state.inventory[bagIndex];
+    if (!stack || getBaseItemId(stack.itemId) !== 'wolf_hide') return { ok: false, moved: 0, reason: 'none' };
+    const { limits, remaining, full } = this.getTecelariaBufferCapacity('hide');
+    if (full) return { ok: false, moved: 0, reason: 'full' };
+    const added = addToInventory(building.hideBuffer, stack.itemId, Math.min(stack.quantity, remaining), limits);
+    if (added.added <= 0) return { ok: false, moved: 0, reason: 'full' };
+    const left = stack.quantity - added.added;
+    building.hideBuffer = added.inventory;
+    this.state.inventory = this.state.inventory.flatMap((item, index) =>
+      index !== bagIndex ? [item] : left > 0 ? [{ ...item, quantity: left }] : []);
+    this.emit();
+    return { ok: true, moved: added.added };
+  }
+
+  takeTecelariaOutputStack(itemId: string): { ok: true; moved: number } | { ok: false; moved: 0; reason: 'notbuilt' | 'far' | 'dead' | 'full' | 'empty' } {
+    const accessError = this.getTecelariaAccessError();
+    if (accessError) return { ok: false, moved: 0, reason: accessError };
+    const building = this.state.tecelaria;
+    const index = building.outputInventory.findIndex(stack => stack.itemId === itemId);
+    if (index < 0) return { ok: false, moved: 0, reason: 'empty' };
+    const stack = building.outputInventory[index];
+    const result = addToInventory(this.state.inventory, stack.itemId, stack.quantity, CONFIG.inventory);
+    if (result.added <= 0) return { ok: false, moved: 0, reason: 'full' };
+    const left = stack.quantity - result.added;
+    building.outputInventory = building.outputInventory.flatMap((item, currentIndex) =>
+      currentIndex !== index ? [item] : left > 0 ? [{ ...item, quantity: left }] : []);
+    this.state.inventory = result.inventory;
+    this.emit();
+    return { ok: true, moved: result.added };
   }
 
   loadRefineryStone(amount: number): { ok: true; moved: number } | { ok: false; reason: 'notbuilt' | 'far' | 'full' | 'none' } {
@@ -1342,12 +1455,7 @@ export class GameEngine {
   }
 
   private getRefineryStoneBufferCapacity() {
-    const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
-    const limits = { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity };
-    const remaining = Math.max(0, CONFIG.refinery.stoneCapacity - this.state.refinery.stoneStock);
-    const full = remaining <= 0 || (this.state.refinery.stoneBuffer.length >= maxSlots
-      && this.state.refinery.stoneBuffer.every(item => item.quantity >= CONFIG.refinery.stoneSlotCapacity));
-    return { maxSlots, limits, remaining, full };
+    return this.getStackBufferCapacity(this.state.refinery.stoneBuffer, CONFIG.refinery.stoneCapacity, CONFIG.refinery.stoneSlotCapacity, this.state.refinery.stoneStock);
   }
 
   private getRefineryWoodRemainingCapacity() {
@@ -1792,7 +1900,7 @@ export class GameEngine {
     this.fishingTimer = 0; this.state.fishing = false; this.local.enemyDamageTimer = 0; this.local.druidBasicHitCount = 0; this.local.druidKillsSinceOrb = 0; this.local.druidOrbHealTimer = 0; this.local.keys.clear(); this.local.input = { x: 0, y: 0 }; this.initializeDayNight(); this.placeHouse(); this.placeCart(); this.placeRefinery(); this.placeTecelaria(); this.placeLake(); this.spawnInitialTrees(); this.treeSpawnCountdown = CONFIG.trees.spawnInterval; this.spawnInitialRocks(); this.rockSpawnCountdown = this.rockSpawnDuration(); this.spawnInitialCottonPlants(); this.cottonSpawnCountdown = CONFIG.cotton.spawnInterval; this.spawnInitialVegetables(); this.vegetableSpawnCountdown = CONFIG.vegetables.spawnInterval; this.spawnInitialWildlife(); this.chickenSpawnCountdown = CONFIG.wildlife.chickens.spawnInterval; this.wolfSpawnCountdown = CONFIG.wildlife.wolves.spawnInterval; this.start(); this.emit();
   }
 
-  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, campfire: this.state.campfire ? { ...this.state.campfire } : null, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery, stoneBuffer: this.state.refinery.stoneBuffer.map(stack => ({ ...stack })), outputInventory: this.state.refinery.outputInventory.map(stack => ({ ...stack })) }, tecelaria: { ...this.state.tecelaria }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => enemy.animalKind ? { ...enemy } : enemy), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], refinedLeatherDrops: [...this.state.refinedLeatherDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], coreDrops: this.state.coreDrops.map(drop => ({ ...drop, core: { ...drop.core } })), inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
+  private emit() { this.onUpdate({ ...this.state, lake: { ...this.state.lake }, player: { ...this.state.player }, house: { ...this.state.house, inventory: this.state.house.inventory.map(stack => ({ ...stack })) }, campfire: this.state.campfire ? { ...this.state.campfire } : null, activeMeals: this.state.activeMeals.map(meal => ({ ...meal, effects: { ...meal.effects }, ingredients: meal.ingredients.map(item => ({ ...item })) })), refinery: { ...this.state.refinery, stoneBuffer: this.state.refinery.stoneBuffer.map(stack => ({ ...stack })), outputInventory: this.state.refinery.outputInventory.map(stack => ({ ...stack })) }, tecelaria: { ...this.state.tecelaria, cottonBuffer: this.state.tecelaria.cottonBuffer.map(stack => ({ ...stack })), hideBuffer: this.state.tecelaria.hideBuffer.map(stack => ({ ...stack })), outputInventory: this.state.tecelaria.outputInventory.map(stack => ({ ...stack })) }, cart: { ...this.state.cart, inventory: this.state.cart.inventory.map(stack => ({ ...stack })) }, enemies: this.state.enemies.map(enemy => enemy.animalKind ? { ...enemy } : enemy), trees: [...this.state.trees], jabuticabaTree: this.state.jabuticabaTree ? { ...this.state.jabuticabaTree } : null, jabuticabaDrops: [...this.state.jabuticabaDrops], rocks: [...this.state.rocks], cottonPlants: [...this.state.cottonPlants], vegetablePlants: [...this.state.vegetablePlants], woodDrops: [...this.state.woodDrops], stoneDrops: [...this.state.stoneDrops], cottonDrops: [...this.state.cottonDrops], vegetableDrops: [...this.state.vegetableDrops], linenDrops: [...this.state.linenDrops], refinedLeatherDrops: [...this.state.refinedLeatherDrops], bronzeDrops: [...this.state.bronzeDrops], wildlifeDrops: [...this.state.wildlifeDrops], coreDrops: this.state.coreDrops.map(drop => ({ ...drop, core: { ...drop.core } })), inventory: this.state.inventory.map(stack => ({ ...stack })), xpOrbs: [...this.state.xpOrbs], healingOrbs: [...this.state.healingOrbs], shots: [...this.state.shots], explosions: [...this.state.explosions], floatingDamage: [...this.state.floatingDamage], dyingEnemies: this.state.dyingEnemies.map(enemy => ({ ...enemy })) }); }
 
   // Só valores apresentados na interface participam da comparação; posições e animações ficam no Canvas.
   private visibleStateKey() {
@@ -1806,8 +1914,8 @@ export class GameEngine {
     const tecelariaBuildStatus = this.getTecelariaCampStatus();
     return [
       s.player.hp, s.player.maxHp, s.player.level, s.activeMeals.map(meal => `${meal.id}:${Math.ceil(meal.remainingSeconds)}`).join(','),
-      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.coreDrops.map(drop => drop.id).join(','), s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, ...(s.refinedLeatherDrops.length || s.tecelaria.hideStock || s.tecelaria.hideProcessed || s.tecelaria.refinedLeatherProduced ? [s.refinedLeatherDrops.length, s.tecelaria.hideStock, s.tecelaria.hideProcessed, s.tecelaria.refinedLeatherProduced] : []), s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange, campfireNear, chestBuildStatus.ok ? 'ready' : chestBuildStatus.reason, refineryBuildStatus.ok ? 'ready' : refineryBuildStatus.reason, tecelariaBuildStatus.ok ? 'ready' : tecelariaBuildStatus.reason,
-      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stoneBuffer.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodStock, s.refinery.fuelCharges, s.refinery.outputInventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.stonesProcessed, s.refinery.tinProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonStock, s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills, s.wolvesKilled ?? 0, s.chickensKilled ?? 0,
+      s.player.xp, s.player.nextXp, s.wave, s.dayNight, s.dayNight === 'dawn' || (s.dayNight === 'day' && s.phaseElapsed >= CONFIG.dayNight.dayDuration - CONFIG.dayNight.transitionDuration) ? Math.floor(s.phaseElapsed * 10) / 10 : '', s.nightNumber, s.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.enemies.length, s.wildlifeDrops.length, s.coreDrops.map(drop => drop.id).join(','), s.trees.length, s.jabuticabaTree?.hits ?? 0, s.jabuticabaDrops.length, s.rocks.length, s.cottonPlants.length, s.vegetablePlants.length, s.woodDrops.length, s.stoneDrops.length, s.cottonDrops.length, s.vegetableDrops.length, s.linenDrops.length, ...(s.refinedLeatherDrops.length || s.tecelaria.hideBuffer.length || s.tecelaria.hideProcessed || s.tecelaria.refinedLeatherProduced ? [s.refinedLeatherDrops.length, s.tecelaria.hideBuffer.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.tecelaria.hideProcessed, s.tecelaria.refinedLeatherProduced] : []), s.bronzeDrops.length, s.weapon, s.classId, s.healingOrbs.length, s.fishing, s.fishingProgress, s.showRange, campfireNear, chestBuildStatus.ok ? 'ready' : chestBuildStatus.reason, refineryBuildStatus.ok ? 'ready' : refineryBuildStatus.reason, tecelariaBuildStatus.ok ? 'ready' : tecelariaBuildStatus.reason,
+      Math.hypot(playerFeet(s.player).x - s.house.x, playerFeet(s.player).y - s.house.y) <= CONFIG.house.interactRadius, Math.hypot(playerFeet(s.player).x - s.refinery.x, playerFeet(s.player).y - s.refinery.y) <= CONFIG.refinery.interactRadius, Math.hypot(playerFeet(s.player).x - s.tecelaria.x, playerFeet(s.player).y - s.tecelaria.y) <= CONFIG.tecelaria.interactRadius, Math.hypot(playerFeet(s.player).x - s.cart.x, playerFeet(s.player).y - s.cart.y) <= CONFIG.cart.interactRadius, s.house.woodDelivered, s.house.built, s.refinery.woodDelivered, s.refinery.stoneDelivered, s.refinery.built, s.refinery.stoneStock, s.refinery.stoneBuffer.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.woodStock, s.refinery.fuelCharges, s.refinery.outputInventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.refinery.stonesProcessed, s.refinery.tinProduced, s.tecelaria.bronzeDelivered, s.tecelaria.woodDelivered, s.tecelaria.cottonDelivered, s.tecelaria.stoneDelivered, s.tecelaria.built, s.tecelaria.cottonBuffer.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.tecelaria.hideBuffer.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.tecelaria.outputInventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.tecelaria.cottonProcessed, s.tecelaria.linenProduced, s.tecelaria.hideProcessed, s.tecelaria.refinedLeatherProduced, s.bronzeDrops.length, s.cart.x, s.cart.y, s.cart.angle, s.cart.wheelPhase, s.cart.following, Math.hypot(playerFeet(s.player).x - (s.cart.x + Math.cos(s.cart.angle) * CONFIG.donkey.cartDistance), playerFeet(s.player).y - (s.cart.y + Math.sin(s.cart.angle) * CONFIG.donkey.cartDistance)) <= CONFIG.cart.interactRadius, s.cart.stage, s.cart.health, s.cart.maxHealth, s.cart.everBuilt, s.cart.carried, s.cart.inventory.map(stack => `${stack.itemId}:${stack.quantity}`).join(','), s.cameraFull, s.dead, s.kills, s.wolvesKilled ?? 0, s.chickensKilled ?? 0,
     ].join('|');
   }
 
@@ -2165,10 +2273,10 @@ export class GameEngine {
       if (Math.hypot(x - this.state.house.x, y - this.state.house.y) < CONFIG.house.treeClearRadius + CONFIG.tecelaria.clearRadius) continue;
       if (Math.hypot(x - this.state.refinery.x, y - this.state.refinery.y) < CONFIG.tecelaria.clearRadius + CONFIG.refinery.rockClearRadius) continue;
       if (Math.hypot(x - this.state.cart.x, y - this.state.cart.y) < CONFIG.tecelaria.clearRadius + 38) continue;
-      this.state.tecelaria = { x, y, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 };
+      this.state.tecelaria = { x, y, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonBuffer: [], hideBuffer: [], outputInventory: [], cottonProcessed: 0, linenProduced: 0, hideProcessed: 0, refinedLeatherProduced: 0 };
       return;
     }
-    this.state.tecelaria = { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonStock: 0, cottonProcessed: 0, linenProduced: 0, hideStock: 0, hideProcessed: 0, refinedLeatherProduced: 0 };
+    this.state.tecelaria = { x: this.world * 0.25, y: this.world * 0.75, bronzeDelivered: 0, woodDelivered: 0, cottonDelivered: 0, stoneDelivered: 0, built: false, cottonBuffer: [], hideBuffer: [], outputInventory: [], cottonProcessed: 0, linenProduced: 0, hideProcessed: 0, refinedLeatherProduced: 0 };
   }
 
   private placeHouse() {
