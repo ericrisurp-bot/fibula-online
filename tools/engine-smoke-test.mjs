@@ -1074,7 +1074,9 @@ try {
     assert.equal(tecGuaranteed.state.tecelaria.cottonProcessed, 3);
     assert.equal(tecGuaranteed.state.tecelaria.linenProduced, 1);
     assert.equal(tecGuaranteed.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + tecGuaranteed.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0) + 3, totalBefore);
+      + tecGuaranteed.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0)
+      + tecGuaranteed.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0) + 2, totalBefore,
+      'Três unidades de algodão viram uma unidade de linho garantida.');
   } finally {
     tecGuaranteed.stop();
   }
