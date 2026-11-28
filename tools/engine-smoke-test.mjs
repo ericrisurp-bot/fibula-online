@@ -1265,7 +1265,7 @@ try {
     manualTecelaria.stop();
   }
 
-  console.log('OK: testes do motor, incluindo refinaria R1a e Tecelaria R3a.');
+  console.log('OK: testes do motor, incluindo refinaria R1a e painel/fluxo manual da Tecelaria R3b.');
 } finally {
   await server.close();
 }
