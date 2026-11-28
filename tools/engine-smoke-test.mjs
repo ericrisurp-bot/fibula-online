@@ -1007,6 +1007,23 @@ try {
     refineryShort.stop();
   }
 
+  const refineryFindBatch = makeRefineryEngine(0x3c000015);
+  try {
+    refineryFindBatch.random = () => 0.99;
+    refineryFindBatch.state.refinery.stoneBuffer = [
+      { itemId: 'stone:common', quantity: 3 },
+      { itemId: 'stone:rare', quantity: 5 },
+    ];
+    refineryFindBatch.state.refinery.stoneStock = 8;
+    refineryFindBatch.state.refinery.woodStock = 2;
+    advanceRefinery(refineryFindBatch, CONFIG.refinery.batchInterval);
+    assert.deepEqual(refineryFindBatch.state.refinery.outputInventory, [{ itemId: 'tin:rare', quantity: 1 }]);
+    assert.deepEqual(refineryFindBatch.state.refinery.stoneBuffer, [{ itemId: 'stone:common', quantity: 3 }]);
+    assert.equal(refineryFindBatch.state.refinery.stonesProcessed, 5);
+  } finally {
+    refineryFindBatch.stop();
+  }
+
   const refineryLoad = makeRefineryEngine(0x3c000004);
   try {
     refineryLoad.state.inventory = [{ itemId: 'stone:rare', quantity: 8 }];
