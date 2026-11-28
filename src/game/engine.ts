@@ -1240,11 +1240,9 @@ export class GameEngine {
     const playerNear = Math.hypot(feet.x - refinery.x, feet.y - refinery.y) <= CONFIG.refinery.interactRadius;
     if (!playerNear) return { ok: false, reason: 'far' };
     const requested = Math.max(0, Math.floor(amount));
-    const { maxSlots, limits } = this.getRefineryStoneBufferLimits();
-    const totalCapacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
+    const { maxSlots, limits, remaining: totalCapacity, full } = this.getRefineryStoneBufferCapacity();
     if (requested <= 0) return { ok: false, reason: 'none' };
-    if (totalCapacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
-      && refinery.stoneBuffer.every(stack => stack.quantity >= CONFIG.refinery.stoneSlotCapacity))) {
+    if (full) {
       return { ok: false, reason: 'full' };
     }
     if (this.state.inventory.every(stack => getBaseItemId(stack.itemId) !== 'stone')
@@ -1343,9 +1341,13 @@ export class GameEngine {
     return null;
   }
 
-  private getRefineryStoneBufferLimits() {
+  private getRefineryStoneBufferCapacity() {
     const maxSlots = Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity);
-    return { maxSlots, limits: { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity } };
+    const limits = { maxSlots, maxPerSlot: CONFIG.refinery.stoneSlotCapacity };
+    const remaining = Math.max(0, CONFIG.refinery.stoneCapacity - this.state.refinery.stoneStock);
+    const full = remaining <= 0 || (this.state.refinery.stoneBuffer.length >= maxSlots
+      && this.state.refinery.stoneBuffer.every(item => item.quantity >= CONFIG.refinery.stoneSlotCapacity));
+    return { maxSlots, limits, remaining, full };
   }
 
   private getRefineryWoodRemainingCapacity() {
@@ -1358,13 +1360,10 @@ export class GameEngine {
     const refinery = this.state.refinery;
     const stack = this.state.inventory[bagIndex];
     if (!stack || getBaseItemId(stack.itemId) !== 'stone') return { ok: false, moved: 0, reason: 'none' };
-    const { maxSlots } = this.getRefineryStoneBufferLimits();
-    const capacity = Math.max(0, CONFIG.refinery.stoneCapacity - refinery.stoneStock);
-    if (capacity <= 0 || (refinery.stoneBuffer.length >= maxSlots
-      && refinery.stoneBuffer.every(item => item.quantity >= CONFIG.refinery.stoneSlotCapacity))) {
+    const { limits, remaining: capacity, full } = this.getRefineryStoneBufferCapacity();
+    if (full) {
       return { ok: false, moved: 0, reason: 'full' };
     }
-    const { limits } = this.getRefineryStoneBufferLimits();
     const added = addToInventory(refinery.stoneBuffer, stack.itemId, Math.min(stack.quantity, capacity), limits);
     if (added.added <= 0) return { ok: false, moved: 0, reason: 'full' };
     const left = stack.quantity - added.added;
