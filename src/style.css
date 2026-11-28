@@ -13518,7 +13518,9 @@ sem backdrop ou caixa de modal. */
 }
 .refinery-panel-section.is-empty .refinery-furnace{opacity:.42}
 .refinery-panel-section.is-empty .refinery-furnace-body{border-color:#625d54;background:#37352f}
-.refinery-panel-section.is-waiting .refinery-furnace-flame{opacity:0}
+.refinery-panel-section.is-waiting .refinery-furnace-flame,
+.refinery-panel-section.is-waiting-stones .refinery-furnace-flame,
+.refinery-panel-section.is-waiting-wood .refinery-furnace-flame{opacity:0}
 .refinery-feed-stone{
   position:absolute;z-index:2;top:calc(50% - 4px);left:calc(var(--refinery-slot) * 2 + 12px);
   width:7px;height:7px;border:1px solid #d5d0c5;border-radius:2px;

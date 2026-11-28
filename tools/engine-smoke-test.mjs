@@ -908,7 +908,7 @@ try {
   assert.equal(isFullyConfirmed(allConfirmed), true);
   assert.deepEqual(confirmationPending.confirmedOpIds, [], 'A confirmação não pode mutar o objeto recebido.');
 
-  // R1a: carga manual, combustível por lote, raridade e baú de saída da refinaria.
+  // R3c: lotes garantidos e bônus determinísticos da Refinaria e Tecelaria.
   const makeRefineryEngine = (seed) => {
     const engine = createEngine(seed);
     engine.state.refinery.built = true;
@@ -927,203 +927,6 @@ try {
     const steps = Math.ceil(seconds / 0.04);
     for (let index = 0; index < steps; index += 1) engine.step(0.04);
   };
-  const originalTinChance = CONFIG.refinery.tinChance;
-  try {
-    const capacityRefinery = makeRefineryEngine(0x1a000001);
-    capacityRefinery.state.inventory = [
-      { itemId: 'stone', quantity: 20 },
-      { itemId: 'wood:rare', quantity: 8 },
-    ];
-    assert.deepEqual(capacityRefinery.loadRefineryStone(99), { ok: true, moved: 15 });
-    assert.equal(capacityRefinery.state.refinery.stoneStock, 15);
-    assert.deepEqual(capacityRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone', quantity: 5 }, { itemId: 'stone', quantity: 5 }, { itemId: 'stone', quantity: 5 }]);
-    assert.deepEqual(capacityRefinery.loadRefineryStone(1), { ok: false, reason: 'full' });
-    assert.deepEqual(capacityRefinery.loadRefineryWood(99), { ok: true, moved: 6 });
-    assert.equal(capacityRefinery.state.refinery.woodStock, 6);
-    assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'full' });
-    capacityRefinery.state.player.x = 2400;
-    assert.deepEqual(capacityRefinery.loadRefineryStone(1), { ok: false, reason: 'far' });
-    assert.deepEqual(capacityRefinery.loadRefineryWood(1), { ok: false, reason: 'far' });
-    capacityRefinery.stop();
-
-    const cartLoadRefinery = makeRefineryEngine(0x1a000008);
-    cartLoadRefinery.state.cart.x = cartLoadRefinery.state.refinery.x;
-    cartLoadRefinery.state.cart.y = cartLoadRefinery.state.refinery.y;
-    cartLoadRefinery.state.cart.inventory = [
-      { itemId: 'stone:uncommon', quantity: 2 },
-      { itemId: 'wood:rare', quantity: 2 },
-    ];
-    assert.deepEqual(cartLoadRefinery.loadRefineryStone(2), { ok: true, moved: 2 });
-    assert.deepEqual(cartLoadRefinery.loadRefineryWood(2), { ok: true, moved: 2 });
-    assert.deepEqual(cartLoadRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:uncommon', quantity: 2 }]);
-    assert.equal(cartLoadRefinery.state.refinery.woodStock, 2);
-    assert.deepEqual(cartLoadRefinery.state.cart.inventory, []);
-    cartLoadRefinery.stop();
-
-    CONFIG.refinery.tinChance = 0;
-    const fuelRefinery = makeRefineryEngine(0x1a000002);
-    fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 5 }];
-    fuelRefinery.state.refinery.stoneStock = 5;
-    advanceRefinery(fuelRefinery, 10);
-    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 0, 'Sem madeira, nenhuma pedra pode ser refinada.');
-    fuelRefinery.state.inventory = [{ itemId: 'wood', quantity: 2 }];
-    assert.deepEqual(fuelRefinery.loadRefineryWood(2), { ok: true, moved: 2 });
-    advanceRefinery(fuelRefinery, 10);
-    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 5, 'Duas madeiras devem financiar exatamente cinco pedras.');
-    assert.equal(fuelRefinery.state.refinery.fuelCharges, 0);
-    assert.equal(fuelRefinery.state.refinery.woodStock, 0);
-    fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 3 }];
-    fuelRefinery.state.refinery.stoneStock = 3;
-    fuelRefinery.state.inventory = [{ itemId: 'wood', quantity: 2 }];
-    fuelRefinery.loadRefineryWood(2);
-    advanceRefinery(fuelRefinery, 6);
-    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 8);
-    assert.equal(fuelRefinery.state.refinery.fuelCharges, 2, 'O combustível restante do lote deve continuar disponível.');
-    fuelRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 2 }];
-    fuelRefinery.state.refinery.stoneStock = 2;
-    advanceRefinery(fuelRefinery, 4);
-    assert.equal(fuelRefinery.state.refinery.stonesProcessed, 10);
-    assert.equal(fuelRefinery.state.refinery.fuelCharges, 0);
-    fuelRefinery.stop();
-
-    const tenStoneRefinery = makeRefineryEngine(0x1a000003);
-    tenStoneRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 10 }];
-    tenStoneRefinery.state.refinery.stoneStock = 10;
-    tenStoneRefinery.state.refinery.woodStock = 4;
-    advanceRefinery(tenStoneRefinery, 20);
-    assert.equal(tenStoneRefinery.state.refinery.stonesProcessed, 10, 'Dez pedras devem exigir quatro madeiras.');
-    assert.equal(tenStoneRefinery.state.refinery.woodStock, 0);
-    assert.equal(tenStoneRefinery.state.refinery.fuelCharges, 0);
-    tenStoneRefinery.stop();
-
-    CONFIG.refinery.tinChance = 1;
-    const rarityRefinery = makeRefineryEngine(0x1a000004);
-    rarityRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone:rare', quantity: 1 }];
-    rarityRefinery.state.refinery.stoneStock = 1;
-    rarityRefinery.state.refinery.woodStock = 2;
-    advanceRefinery(rarityRefinery, 2);
-    assert.deepEqual(rarityRefinery.state.refinery.outputInventory, [{ itemId: 'tin:rare', quantity: 1 }]);
-    assert.equal(rarityRefinery.state.refinery.tinProduced, 1);
-    rarityRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 1 }];
-    rarityRefinery.state.refinery.stoneStock = 1;
-    advanceRefinery(rarityRefinery, 2);
-    assert.ok(rarityRefinery.state.refinery.outputInventory.some(stack => stack.itemId === 'tin' && stack.quantity === 1));
-    assert.equal(rarityRefinery.state.bronzeDrops.length, 0, 'A refinaria não pode criar bronzeDrops.');
-    rarityRefinery.stop();
-
-    CONFIG.refinery.tinChance = 0;
-    const noTinRefinery = makeRefineryEngine(0x1a000005);
-    noTinRefinery.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 1 }];
-    noTinRefinery.state.refinery.stoneStock = 1;
-    noTinRefinery.state.refinery.woodStock = 2;
-    advanceRefinery(noTinRefinery, 2);
-    assert.equal(noTinRefinery.state.refinery.stoneStock, 0);
-    assert.equal(noTinRefinery.state.refinery.stonesProcessed, 1);
-    assert.deepEqual(noTinRefinery.state.refinery.outputInventory, []);
-    noTinRefinery.stop();
-
-    const outputRefinery = makeRefineryEngine(0x1a000006);
-    outputRefinery.state.refinery.outputInventory = [{ itemId: 'tin', quantity: 1 }];
-    outputRefinery.state.inventory = [
-      { itemId: 'wood', quantity: 1 },
-      { itemId: 'stone', quantity: 1 },
-      { itemId: 'cotton', quantity: 1 },
-    ];
-    assert.deepEqual(outputRefinery.collectRefineryOutput(), { ok: true, moved: 0, left: 1 });
-    assert.equal(outputRefinery.state.refinery.outputInventory[0].quantity, 1);
-    outputRefinery.state.inventory.pop();
-    assert.deepEqual(outputRefinery.collectRefineryOutput(), { ok: true, moved: 1, left: 0 });
-    assert.ok(outputRefinery.state.inventory.some(stack => stack.itemId === 'tin'));
-    assert.deepEqual(outputRefinery.state.refinery.outputInventory, []);
-    outputRefinery.stop();
-
-    // R2a: transferências por slot entre mochila e refinaria, sem perdas/duplicações.
-    const stoneBagRefinery = makeRefineryEngine(0x2a000001);
-    stoneBagRefinery.state.inventory = [{ itemId: 'stone:rare', quantity: 8 }];
-    const stoneBagBefore = stoneBagRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0);
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 8 });
-    assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:rare', quantity: 5 }, { itemId: 'stone:rare', quantity: 3 }]);
-    assert.deepEqual(stoneBagRefinery.state.inventory, []);
-    assert.equal(stoneBagRefinery.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0)
-      + stoneBagRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0), stoneBagBefore);
-    stoneBagRefinery.state.inventory = [
-      { itemId: 'stone:rare', quantity: 5 },
-      { itemId: 'stone:uncommon', quantity: 5 },
-      { itemId: 'stone:legendary', quantity: 5 },
-      { itemId: 'stone:common', quantity: 4 },
-    ];
-    stoneBagRefinery.state.refinery.stoneBuffer = [];
-    stoneBagRefinery.state.refinery.stoneStock = 0;
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
-    assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [
-      { itemId: 'stone:rare', quantity: 5 },
-      { itemId: 'stone:uncommon', quantity: 5 },
-      { itemId: 'stone:legendary', quantity: 5 },
-    ]);
-    assert.equal(stoneBagRefinery.state.refinery.stoneStock, CONFIG.refinery.stoneCapacity);
-    assert.equal(stoneBagRefinery.state.inventory[0].quantity, 4);
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'full' });
-    stoneBagRefinery.stop();
-
-    const woodBagRefinery = makeRefineryEngine(0x2a000002);
-    woodBagRefinery.state.inventory = [{ itemId: 'wood:rare', quantity: 10 }];
-    assert.deepEqual(woodBagRefinery.loadRefineryWoodFromBag(0), { ok: true, moved: CONFIG.refinery.woodCapacity });
-    assert.equal(woodBagRefinery.state.refinery.woodStock, CONFIG.refinery.woodCapacity);
-    assert.deepEqual(woodBagRefinery.state.inventory, [{ itemId: 'wood:rare', quantity: 4 }]);
-    assert.deepEqual(woodBagRefinery.loadRefineryWoodFromBag(0), { ok: false, moved: 0, reason: 'full' });
-    assert.equal(woodBagRefinery.state.refinery.woodStock + woodBagRefinery.state.inventory[0].quantity, 10);
-    woodBagRefinery.stop();
-
-    const outputStackRefinery = makeRefineryEngine(0x2a000003);
-    outputStackRefinery.state.inventory = Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => ({
-      itemId: index === 0 ? 'tin:rare' : 'occupied-' + index,
-      quantity: CONFIG.inventory.maxPerSlot,
-    }));
-    outputStackRefinery.state.refinery.outputInventory = [{ itemId: 'tin:rare', quantity: 3 }];
-    assert.deepEqual(outputStackRefinery.takeRefineryOutputStack('tin:rare'), { ok: false, moved: 0, reason: 'full' });
-    assert.equal(outputStackRefinery.state.refinery.outputInventory[0].quantity, 3);
-    outputStackRefinery.state.inventory[0].quantity -= 1;
-    const outputBefore = outputStackRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + outputStackRefinery.state.refinery.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
-    assert.deepEqual(outputStackRefinery.takeRefineryOutputStack('tin:rare'), { ok: true, moved: 1 });
-    assert.equal(outputStackRefinery.state.refinery.outputInventory[0].quantity, 2);
-    assert.equal(outputStackRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + outputStackRefinery.state.refinery.outputInventory.reduce((sum, item) => sum + item.quantity, 0), outputBefore);
-    outputStackRefinery.stop();
-
-    const farRefinery = makeRefineryEngine(0x2a000004);
-    farRefinery.state.inventory = [{ itemId: 'stone:rare', quantity: 2 }, { itemId: 'wood', quantity: 2 }];
-    farRefinery.state.refinery.outputInventory = [{ itemId: 'tin', quantity: 1 }];
-    farRefinery.state.player.x += CONFIG.refinery.interactRadius + 10;
-    assert.deepEqual(farRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'far' });
-    assert.deepEqual(farRefinery.loadRefineryWoodFromBag(1), { ok: false, moved: 0, reason: 'far' });
-    assert.deepEqual(farRefinery.takeRefineryOutputStack('tin'), { ok: false, moved: 0, reason: 'far' });
-    farRefinery.stop();
-
-    const deadRefinery = makeRefineryEngine(0x2a000005);
-    deadRefinery.state.inventory = [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 2 }];
-    deadRefinery.state.refinery.outputInventory = [{ itemId: 'tin', quantity: 1 }];
-    deadRefinery.state.dead = true;
-    assert.deepEqual(deadRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'dead' });
-    assert.deepEqual(deadRefinery.loadRefineryWoodFromBag(1), { ok: false, moved: 0, reason: 'dead' });
-    assert.deepEqual(deadRefinery.takeRefineryOutputStack('tin'), { ok: false, moved: 0, reason: 'dead' });
-    deadRefinery.stop();
-
-    const noAutoDelivery = makeRefineryEngine(0x1a000007);
-    noAutoDelivery.state.inventory = [{ itemId: 'stone', quantity: 2 }];
-    advanceRefinery(noAutoDelivery, 1);
-    assert.deepEqual(noAutoDelivery.state.inventory, [{ itemId: 'stone', quantity: 2 }], 'Pedras não podem ser transferidas automaticamente para a refinaria.');
-    assert.equal(noAutoDelivery.state.refinery.stoneStock, 0);
-    assert.equal(noAutoDelivery.state.bronzeDrops.length, 0);
-    noAutoDelivery.stop();
-  } finally {
-    CONFIG.refinery.tinChance = originalTinChance;
-  }
-
-
-  // R3a: Tecelaria por lotes, raridade herdada, reservatório e conservação.
   const makeTecelariaEngine = (seed) => {
     const engine = createEngine(seed);
     engine.state.tecelaria.built = true;
@@ -1142,130 +945,284 @@ try {
     const steps = Math.ceil(seconds / 0.04);
     for (let index = 0; index < steps; index += 1) engine.step(0.04);
   };
-  const tecelaria = makeTecelariaEngine(0x3a000001);
+
+  assert.equal(CONFIG.refinery.stonesPerBatch, 5);
+  assert.equal(CONFIG.refinery.batchInterval, 10);
+  assert.equal(CONFIG.refinery.tinBonusChance, 0.03);
+  assert.equal(CONFIG.tecelaria.cottonSlotCapacity, 9);
+  assert.equal(CONFIG.tecelaria.hideSlotCapacity, 9);
+  assert.equal(CONFIG.tecelaria.cottonSlots * CONFIG.tecelaria.cottonSlotCapacity, 36);
+  assert.equal(CONFIG.tecelaria.hideSlots * CONFIG.tecelaria.hideSlotCapacity, 36);
+  assert.equal(CONFIG.tecelaria.bonusChance, 0.03);
+
+  // Refinaria: lote de cinco pedras, estanho garantido e bônus determinístico.
+  const refineryGuaranteed = makeRefineryEngine(0x3c000001);
   try {
-    tecelaria.state.inventory = [{ itemId: 'cotton:uncommon', quantity: 25 }];
-    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: true, moved: 20 });
-    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, Array.from({ length: 4 }, () => ({ itemId: 'cotton:uncommon', quantity: 5 })));
-    assert.equal(tecelaria.state.inventory[0].quantity, 5);
-    assert.equal(tecelaria.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0)
-      + tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0), 25);
-    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'full' });
-
-    tecelaria.state.tecelaria.cottonBuffer = [{ itemId: 'cotton', quantity: 2 }, { itemId: 'cotton:uncommon', quantity: 3 }];
-    tecelaria.state.tecelaria.hideBuffer = [{ itemId: 'wolf_hide', quantity: 3 }, { itemId: 'wolf_hide:uncommon', quantity: 3 }];
-    tecelaria.state.tecelaria.outputInventory = [];
-    tecelaria.state.inventory = [];
-    advanceTecelaria(tecelaria, 2.1);
-    assert.equal(tecelaria.state.tecelaria.outputInventory.length, 2);
-    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:uncommon' && item.quantity === 1));
-    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather' && item.quantity === 1));
-    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton', quantity: 2 }], 'A sobra de duas unidades deve permanecer.');
-    assert.deepEqual(tecelaria.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:uncommon', quantity: 3 }], 'Raridades não podem se misturar no mesmo lote.');
-    assert.equal(tecelaria.state.tecelaria.cottonProcessed, 3);
-    assert.equal(tecelaria.state.tecelaria.linenProduced, 1);
-    assert.equal(tecelaria.state.tecelaria.hideProcessed, 3);
-    assert.equal(tecelaria.state.tecelaria.refinedLeatherProduced, 1);
-    advanceTecelaria(tecelaria, 2.1);
-    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather:uncommon'));
-    assert.equal(tecelaria.state.tecelaria.hideProcessed, 6);
-
-    tecelaria.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 3 }];
-    tecelaria.state.tecelaria.outputInventory = Array.from({ length: CONFIG.tecelaria.outputCapacity }, (_, index) => ({ itemId: `filled-${index}`, quantity: 1 }));
-    advanceTecelaria(tecelaria, 2.1);
-    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton:rare', quantity: 3 }], 'Reservatório cheio deve pausar sem consumir.');
-    assert.equal(tecelaria.state.tecelaria.cottonProcessed, 3);
-    tecelaria.state.inventory = [];
-    assert.deepEqual(tecelaria.takeTecelariaOutputStack('filled-0'), { ok: true, moved: 1 });
-    advanceTecelaria(tecelaria, 2.1);
-    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, []);
-    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:rare'));
-    assert.equal(tecelaria.state.tecelaria.cottonProcessed, 6);
-
-    tecelaria.state.inventory = [{ itemId: 'wolf_hide:uncommon', quantity: 8 }];
-    assert.deepEqual(tecelaria.loadTecelariaHideFromBag(0), { ok: true, moved: 8 });
-    assert.equal(tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + tecelaria.state.tecelaria.hideBuffer.reduce((sum, item) => sum + item.quantity, 0), 8);
-    tecelaria.state.inventory = Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => ({ itemId: `bag-${index}`, quantity: 1 }));
-    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'full' });
-    tecelaria.state.inventory = [];
-    const outputBefore = tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
-    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: true, moved: 1 });
-    assert.equal(tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0), outputBefore);
-
-    tecelaria.state.inventory = [{ itemId: 'cotton', quantity: 2 }, { itemId: 'wolf_hide', quantity: 2 }];
-    tecelaria.state.player.x += CONFIG.tecelaria.interactRadius + 20;
-    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'far' });
-    assert.deepEqual(tecelaria.loadTecelariaHideFromBag(1), { ok: false, moved: 0, reason: 'far' });
-    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'far' });
-    tecelaria.state.player.x = 1800;
-    tecelaria.state.player.y = 1800 - CONFIG.player.footOffset;
-    tecelaria.state.dead = true;
-    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'dead' });
-    assert.deepEqual(tecelaria.loadTecelariaHideFromBag(1), { ok: false, moved: 0, reason: 'dead' });
-    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'dead' });
+    refineryGuaranteed.random = () => 0.99;
+    refineryGuaranteed.state.refinery.stoneBuffer = [{ itemId: 'stone:rare', quantity: 5 }];
+    refineryGuaranteed.state.refinery.stoneStock = 5;
+    refineryGuaranteed.state.refinery.woodStock = 2;
+    const totalStonesBefore = refineryGuaranteed.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + refineryGuaranteed.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0);
+    advanceRefinery(refineryGuaranteed, CONFIG.refinery.batchInterval);
+    assert.deepEqual(refineryGuaranteed.state.refinery.outputInventory, [{ itemId: 'tin:rare', quantity: 1 }]);
+    assert.equal(refineryGuaranteed.state.refinery.stonesProcessed, 5);
+    assert.equal(refineryGuaranteed.state.refinery.tinProduced, 1);
+    assert.equal(refineryGuaranteed.state.refinery.woodStock, 0);
+    assert.equal(refineryGuaranteed.state.refinery.stoneStock, 0);
+    assert.equal(totalStonesBefore, refineryGuaranteed.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + refineryGuaranteed.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0) + 5,
+      'Cinco pedras consumidas devem conservar o total contabilizado.');
   } finally {
-    tecelaria.stop();
+    refineryGuaranteed.stop();
   }
 
-  const normalCottonTecelaria = makeTecelariaEngine(0x3a000003);
+  const refineryBonus = makeRefineryEngine(0x3c000002);
   try {
-    normalCottonTecelaria.state.tecelaria.cottonBuffer = [{ itemId: 'cotton', quantity: 3 }];
-    advanceTecelaria(normalCottonTecelaria, 2.1);
-    assert.deepEqual(normalCottonTecelaria.state.tecelaria.outputInventory, [{ itemId: 'linen', quantity: 1 }]);
-    assert.equal(normalCottonTecelaria.state.tecelaria.cottonProcessed, 3);
-    assert.equal(normalCottonTecelaria.state.tecelaria.linenProduced, 1);
-    assert.equal(normalCottonTecelaria.state.linenDrops.length, 0, 'A Tecelaria não deve mais gerar linenDrops.');
-    assert.equal(normalCottonTecelaria.state.refinedLeatherDrops.length, 0, 'A Tecelaria não deve mais gerar refinedLeatherDrops.');
+    refineryBonus.random = () => 0;
+    refineryBonus.state.refinery.stoneBuffer = [{ itemId: 'stone:uncommon', quantity: 5 }];
+    refineryBonus.state.refinery.stoneStock = 5;
+    refineryBonus.state.refinery.woodStock = 2;
+    advanceRefinery(refineryBonus, CONFIG.refinery.batchInterval);
+    assert.equal(refineryBonus.state.refinery.outputInventory.reduce((sum, item) => sum + item.quantity, 0), 6);
+    assert.ok(refineryBonus.state.refinery.outputInventory.every(item => item.itemId === 'tin:uncommon'));
+    assert.equal(refineryBonus.state.refinery.tinProduced, 6);
+    assert.equal(refineryBonus.state.refinery.stonesProcessed, 5);
   } finally {
-    normalCottonTecelaria.stop();
+    refineryBonus.stop();
   }
 
-  const manualTecelaria = makeTecelariaEngine(0x3a000002);
+  const refineryShort = makeRefineryEngine(0x3c000003);
   try {
-    // Materiais no chão, na mochila ou na carroça não alimentam os buffers automaticamente.
-    manualTecelaria.state.inventory = [{ itemId: 'cotton:rare', quantity: 3 }];
-    manualTecelaria.state.cart.x = manualTecelaria.state.tecelaria.x;
-    manualTecelaria.state.cart.y = manualTecelaria.state.tecelaria.y;
-    manualTecelaria.state.cart.inventory = [{ itemId: 'wolf_hide:uncommon', quantity: 3 }];
-    manualTecelaria.state.cottonDrops = [{ id: 9001, x: 1800, y: 1800 - CONFIG.player.footOffset, age: 1, rarity: 'rare' }];
-    manualTecelaria.state.wildlifeDrops = [{ id: 9002, x: 1800, y: 1800 - CONFIG.player.footOffset, age: 1, kind: 'wolf_hide', amount: 3, rarity: 'uncommon' }];
-    advanceTecelaria(manualTecelaria, 0.04);
-    assert.deepEqual(manualTecelaria.state.tecelaria.cottonBuffer, [], 'Algodão do chão/mochila não entra sozinho no buffer.');
-    assert.deepEqual(manualTecelaria.state.tecelaria.hideBuffer, [], 'Couro do chão/carroça não entra sozinho no buffer.');
-    assert.deepEqual(manualTecelaria.state.cart.inventory, [{ itemId: 'wolf_hide:uncommon', quantity: 3 }], 'A carroça nunca entrega material automaticamente.');
+    refineryShort.random = () => 0;
+    refineryShort.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 4 }];
+    refineryShort.state.refinery.stoneStock = 4;
+    refineryShort.state.refinery.woodStock = 2;
+    advanceRefinery(refineryShort, CONFIG.refinery.batchInterval * 2);
+    assert.equal(refineryShort.state.refinery.stoneStock, 4, 'Quatro pedras não iniciam lote.');
+    assert.equal(refineryShort.state.refinery.woodStock, 2, 'Sem lote, a madeira não é consumida.');
+    assert.equal(refineryShort.state.refinery.stonesProcessed, 0);
+    assert.deepEqual(refineryShort.state.refinery.outputInventory, []);
+  } finally {
+    refineryShort.stop();
+  }
 
-    // A carga manual é o único caminho para iniciar a produção; a raridade é herdada.
-    manualTecelaria.state.inventory = [
-      { itemId: 'cotton:rare', quantity: 3 },
-      { itemId: 'wolf_hide:uncommon', quantity: 3 },
+  const refineryFindBatch = makeRefineryEngine(0x3c000015);
+  try {
+    refineryFindBatch.random = () => 0.99;
+    refineryFindBatch.state.refinery.stoneBuffer = [
+      { itemId: 'stone:common', quantity: 3 },
+      { itemId: 'stone:rare', quantity: 5 },
     ];
-    const totalItems = () => manualTecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
-      + manualTecelaria.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0)
-      + manualTecelaria.state.tecelaria.hideBuffer.reduce((sum, item) => sum + item.quantity, 0)
-      + manualTecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
-    const beforeLoad = totalItems();
-    assert.deepEqual(manualTecelaria.loadTecelariaCottonFromBag(0), { ok: true, moved: 3 });
-    assert.deepEqual(manualTecelaria.loadTecelariaHideFromBag(0), { ok: true, moved: 3 });
-    assert.equal(totalItems(), beforeLoad, 'Carregar da mochila conserva o total de itens.');
-    advanceTecelaria(manualTecelaria, 2.1);
-    assert.ok(manualTecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:rare' && item.quantity === 1));
-    assert.ok(manualTecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather:uncommon' && item.quantity === 1));
-    assert.equal(manualTecelaria.state.tecelaria.cottonProcessed, 3, 'Contador da missão 8 permanece incrementando três algodões por lote.');
-    assert.equal(manualTecelaria.state.tecelaria.linenProduced, 1);
-    assert.equal(manualTecelaria.state.tecelaria.hideProcessed, 3, 'Contador da missão 9 permanece incrementando três couros por lote.');
-    assert.equal(manualTecelaria.state.tecelaria.refinedLeatherProduced, 1);
-    assert.equal(totalItems(), beforeLoad - 4, 'Três matérias-primas viram uma saída em cada fluxo.');
-    const beforeTake = totalItems();
-    assert.deepEqual(manualTecelaria.takeTecelariaOutputStack('linen:rare'), { ok: true, moved: 1 });
-    assert.deepEqual(manualTecelaria.takeTecelariaOutputStack('refined_leather:uncommon'), { ok: true, moved: 1 });
-    assert.equal(totalItems(), beforeTake, 'Retirar da saída para a mochila conserva o total de itens.');
+    refineryFindBatch.state.refinery.stoneStock = 8;
+    refineryFindBatch.state.refinery.woodStock = 2;
+    advanceRefinery(refineryFindBatch, CONFIG.refinery.batchInterval);
+    assert.deepEqual(refineryFindBatch.state.refinery.outputInventory, [{ itemId: 'tin:rare', quantity: 1 }]);
+    assert.deepEqual(refineryFindBatch.state.refinery.stoneBuffer, [{ itemId: 'stone:common', quantity: 3 }]);
+    assert.equal(refineryFindBatch.state.refinery.stonesProcessed, 5);
   } finally {
-    manualTecelaria.stop();
+    refineryFindBatch.stop();
   }
 
-  console.log('OK: testes do motor, incluindo refinaria R1a e painel/fluxo manual da Tecelaria R3b.');
+  const refineryLoad = makeRefineryEngine(0x3c000004);
+  try {
+    refineryLoad.state.inventory = [{ itemId: 'stone:rare', quantity: 8 }];
+    const before = refineryLoad.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + refineryLoad.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0);
+    assert.deepEqual(refineryLoad.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
+    assert.deepEqual(refineryLoad.state.inventory, [{ itemId: 'stone:rare', quantity: 3 }]);
+    assert.deepEqual(refineryLoad.state.refinery.stoneBuffer, [{ itemId: 'stone:rare', quantity: 5 }]);
+    assert.equal(refineryLoad.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + refineryLoad.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0), before);
+    refineryLoad.state.inventory = [{ itemId: 'stone', quantity: 4 }];
+    assert.deepEqual(refineryLoad.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'min' });
+    refineryLoad.state.refinery.stoneBuffer = Array.from({ length: 3 }, () => ({ itemId: 'stone', quantity: 5 }));
+    refineryLoad.state.refinery.stoneStock = 15;
+    refineryLoad.state.inventory = [{ itemId: 'stone', quantity: 5 }];
+    assert.deepEqual(refineryLoad.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'full' });
+  } finally {
+    refineryLoad.stop();
+  }
+
+  const refineryNoWood = makeRefineryEngine(0x3c000005);
+  try {
+    refineryNoWood.random = () => 0;
+    refineryNoWood.state.refinery.stoneBuffer = [{ itemId: 'stone', quantity: 5 }];
+    refineryNoWood.state.refinery.stoneStock = 5;
+    advanceRefinery(refineryNoWood, CONFIG.refinery.batchInterval * 2);
+    assert.equal(refineryNoWood.state.refinery.stoneStock, 5);
+    assert.equal(refineryNoWood.state.refinery.woodStock, 0);
+    assert.equal(refineryNoWood.state.refinery.stonesProcessed, 0);
+    assert.deepEqual(refineryNoWood.state.refinery.outputInventory, []);
+  } finally {
+    refineryNoWood.stop();
+  }
+
+  const refineryFull = makeRefineryEngine(0x3c000006);
+  try {
+    refineryFull.random = () => 0;
+    refineryFull.state.refinery.stoneBuffer = [{ itemId: 'stone:rare', quantity: 5 }];
+    refineryFull.state.refinery.stoneStock = 5;
+    refineryFull.state.refinery.woodStock = 2;
+    refineryFull.state.refinery.outputInventory = Array.from({ length: CONFIG.refinery.outputCapacity }, (_, index) => ({
+      itemId: 'occupied-' + index, quantity: 1,
+    }));
+    advanceRefinery(refineryFull, CONFIG.refinery.batchInterval * 2);
+    assert.equal(refineryFull.state.refinery.stoneStock, 5, 'Saída sem slot para o garantido pausa sem consumir pedras.');
+    assert.equal(refineryFull.state.refinery.woodStock, 2, 'Saída cheia pausa sem consumir madeira.');
+    assert.equal(refineryFull.state.refinery.stonesProcessed, 0);
+    assert.equal(refineryFull.state.refinery.tinProduced, 0);
+  } finally {
+    refineryFull.stop();
+  }
+
+  const refineryBonusOverflow = makeRefineryEngine(0x3c000013);
+  try {
+    refineryBonusOverflow.random = () => 0;
+    refineryBonusOverflow.state.refinery.stoneBuffer = [{ itemId: 'stone:rare', quantity: 5 }];
+    refineryBonusOverflow.state.refinery.stoneStock = 5;
+    refineryBonusOverflow.state.refinery.woodStock = 2;
+    refineryBonusOverflow.state.refinery.outputInventory = [
+      { itemId: 'tin:rare', quantity: 4 },
+      ...Array.from({ length: CONFIG.refinery.outputCapacity - 1 }, (_, index) => ({ itemId: 'occupied-' + index, quantity: CONFIG.inventory.maxPerSlot })),
+    ];
+    advanceRefinery(refineryBonusOverflow, CONFIG.refinery.batchInterval);
+    assert.equal(refineryBonusOverflow.state.refinery.tinProduced, 1, 'O estanho garantido cabe; os cinco bônus são descartados sem espaço.');
+    assert.equal(refineryBonusOverflow.state.refinery.outputInventory[0].quantity, 5);
+    assert.equal(refineryBonusOverflow.state.refinery.stonesProcessed, 5);
+  } finally {
+    refineryBonusOverflow.stop();
+  }
+
+  // Tecelaria: lote garantido de três, bônus até +3 e raridade preservada.
+  const tecGuaranteed = makeTecelariaEngine(0x3c000007);
+  try {
+    tecGuaranteed.random = () => 0.99;
+    tecGuaranteed.state.inventory = [{ itemId: 'cotton:rare', quantity: 5 }];
+    assert.deepEqual(tecGuaranteed.loadTecelariaCottonFromBag(0), { ok: true, moved: 3 });
+    assert.deepEqual(tecGuaranteed.state.inventory, [{ itemId: 'cotton:rare', quantity: 2 }]);
+    assert.deepEqual(tecGuaranteed.state.tecelaria.cottonBuffer, [{ itemId: 'cotton:rare', quantity: 3 }]);
+    assert.equal(tecGuaranteed.state.tecelaria.cottonBuffer[0].quantity <= CONFIG.tecelaria.cottonSlotCapacity, true);
+    assert.deepEqual(tecGuaranteed.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'min' });
+    const totalBefore = tecGuaranteed.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + tecGuaranteed.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0);
+    advanceTecelaria(tecGuaranteed, CONFIG.tecelaria.processInterval);
+    assert.deepEqual(tecGuaranteed.state.tecelaria.outputInventory, [{ itemId: 'linen:rare', quantity: 1 }]);
+    assert.equal(tecGuaranteed.state.tecelaria.cottonProcessed, 3);
+    assert.equal(tecGuaranteed.state.tecelaria.linenProduced, 1);
+    assert.equal(tecGuaranteed.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + tecGuaranteed.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0)
+      + tecGuaranteed.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0) + 2, totalBefore,
+      'Três unidades de algodão viram uma unidade de linho garantida.');
+  } finally {
+    tecGuaranteed.stop();
+  }
+
+  const tecBonus = makeTecelariaEngine(0x3c000008);
+  try {
+    tecBonus.random = () => 0;
+    tecBonus.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:uncommon', quantity: 9 }];
+    advanceTecelaria(tecBonus, CONFIG.tecelaria.processInterval);
+    assert.equal(tecBonus.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0), 4);
+    assert.ok(tecBonus.state.tecelaria.outputInventory.every(item => item.itemId === 'linen:uncommon'));
+    assert.equal(tecBonus.state.tecelaria.cottonProcessed, 3);
+    assert.equal(tecBonus.state.tecelaria.linenProduced, 4);
+    assert.deepEqual(tecBonus.state.tecelaria.cottonBuffer, [{ itemId: 'cotton:uncommon', quantity: 6 }]);
+  } finally {
+    tecBonus.stop();
+  }
+
+  const tecCapacity = makeTecelariaEngine(0x3c000009);
+  try {
+    tecCapacity.state.inventory = [{ itemId: 'cotton', quantity: 11 }];
+    assert.deepEqual(tecCapacity.loadTecelariaCottonFromBag(0), { ok: true, moved: 9 });
+    assert.deepEqual(tecCapacity.state.inventory, [{ itemId: 'cotton', quantity: 2 }]);
+    assert.deepEqual(tecCapacity.state.tecelaria.cottonBuffer, [{ itemId: 'cotton', quantity: 9 }]);
+    tecCapacity.state.inventory = [{ itemId: 'wolf_hide:rare', quantity: 5 }];
+    assert.deepEqual(tecCapacity.loadTecelariaHideFromBag(0), { ok: true, moved: 3 });
+    assert.deepEqual(tecCapacity.state.inventory, [{ itemId: 'wolf_hide:rare', quantity: 2 }]);
+    assert.deepEqual(tecCapacity.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:rare', quantity: 3 }]);
+    tecCapacity.state.inventory = [{ itemId: 'wolf_hide', quantity: 2 }];
+    assert.deepEqual(tecCapacity.loadTecelariaHideFromBag(0), { ok: false, moved: 0, reason: 'min' });
+    tecCapacity.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 1 }];
+    tecCapacity.state.inventory = [{ itemId: 'cotton:rare', quantity: 9 }];
+    assert.deepEqual(tecCapacity.loadTecelariaCottonFromBag(0), { ok: true, moved: 9 });
+    assert.deepEqual(tecCapacity.state.tecelaria.cottonBuffer, [
+      { itemId: 'cotton:rare', quantity: 7 },
+      { itemId: 'cotton:rare', quantity: 3 },
+    ], 'Carga múltipla de três não cria stack residual menor que três, mesmo sobre estado legado.');
+
+  } finally {
+    tecCapacity.stop();
+  }
+
+  const tecRarity = makeTecelariaEngine(0x3c000010);
+  try {
+    tecRarity.random = () => 0.99;
+    tecRarity.state.tecelaria.cottonBuffer = [
+      { itemId: 'cotton', quantity: 2 },
+      { itemId: 'cotton:rare', quantity: 3 },
+    ];
+    tecRarity.state.tecelaria.hideBuffer = [{ itemId: 'wolf_hide:uncommon', quantity: 3 }];
+    advanceTecelaria(tecRarity, CONFIG.tecelaria.processInterval);
+    assert.deepEqual(tecRarity.state.tecelaria.cottonBuffer, [{ itemId: 'cotton', quantity: 2 }], 'Stack legado com menos de três espera; não mistura raridades.');
+    assert.ok(tecRarity.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:rare' && item.quantity === 1));
+    assert.ok(tecRarity.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather:uncommon' && item.quantity === 1));
+    assert.equal(tecRarity.state.tecelaria.cottonProcessed, 3);
+    assert.equal(tecRarity.state.tecelaria.hideProcessed, 3);
+    assert.equal(tecRarity.state.tecelaria.linenProduced, 1);
+    assert.equal(tecRarity.state.tecelaria.refinedLeatherProduced, 1);
+  } finally {
+    tecRarity.stop();
+  }
+
+  const tecFull = makeTecelariaEngine(0x3c000011);
+  try {
+    tecFull.random = () => 0;
+    tecFull.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 3 }];
+    tecFull.state.tecelaria.hideBuffer = [{ itemId: 'wolf_hide:rare', quantity: 3 }];
+    tecFull.state.tecelaria.outputInventory = Array.from({ length: CONFIG.tecelaria.outputCapacity }, (_, index) => ({
+      itemId: 'occupied-' + index, quantity: 1,
+    }));
+    advanceTecelaria(tecFull, CONFIG.tecelaria.processInterval * 2);
+    assert.equal(tecFull.state.tecelaria.cottonBuffer[0].quantity, 3);
+    assert.equal(tecFull.state.tecelaria.hideBuffer[0].quantity, 3);
+    assert.equal(tecFull.state.tecelaria.cottonProcessed, 0);
+    assert.equal(tecFull.state.tecelaria.hideProcessed, 0);
+  } finally {
+    tecFull.stop();
+  }
+
+  const tecBonusOverflow = makeTecelariaEngine(0x3c000014);
+  try {
+    tecBonusOverflow.random = () => 0;
+    tecBonusOverflow.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 3 }];
+    tecBonusOverflow.state.tecelaria.outputInventory = [
+      { itemId: 'linen:rare', quantity: 4 },
+      ...Array.from({ length: CONFIG.tecelaria.outputCapacity - 1 }, (_, index) => ({ itemId: 'occupied-' + index, quantity: CONFIG.inventory.maxPerSlot })),
+    ];
+    advanceTecelaria(tecBonusOverflow, CONFIG.tecelaria.processInterval);
+    assert.equal(tecBonusOverflow.state.tecelaria.linenProduced, 1, 'O linho garantido cabe; os três bônus são descartados sem espaço.');
+    assert.equal(tecBonusOverflow.state.tecelaria.outputInventory[0].quantity, 5);
+    assert.equal(tecBonusOverflow.state.tecelaria.cottonProcessed, 3);
+  } finally {
+    tecBonusOverflow.stop();
+  }
+
+  const tecHideBonus = makeTecelariaEngine(0x3c000012);
+  try {
+    tecHideBonus.random = () => 0;
+    tecHideBonus.state.tecelaria.hideBuffer = [{ itemId: 'wolf_hide:rare', quantity: 3 }];
+    advanceTecelaria(tecHideBonus, CONFIG.tecelaria.processInterval);
+    assert.equal(tecHideBonus.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0), 4);
+    assert.ok(tecHideBonus.state.tecelaria.outputInventory.every(item => item.itemId === 'refined_leather:rare'));
+    assert.equal(tecHideBonus.state.tecelaria.hideProcessed, 3);
+    assert.equal(tecHideBonus.state.tecelaria.refinedLeatherProduced, 4);
+  } finally {
+    tecHideBonus.stop();
+  }
+
+  console.log('OK: testes do motor, incluindo lotes garantidos e bônus da Refinaria/Tecelaria R3c.');
 } finally {
   await server.close();
 }
