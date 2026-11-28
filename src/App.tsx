@@ -717,10 +717,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       if (item.quantity > previousQuantity) refineryOutputPopIndexes.add(index);
     });
   }
-  refineryOutputPreviousRef.current = {
-    total: refineryOutputTotal,
-    slots: state.refinery.outputInventory.map(item => ({ itemId: item.itemId, quantity: item.quantity })),
-  };
+  useEffect(() => {
+    refineryOutputPreviousRef.current = {
+      total: refineryOutputTotal,
+      slots: state.refinery.outputInventory.map(item => ({ itemId: item.itemId, quantity: item.quantity })),
+    };
+  }, [refineryOutputTotal, state.refinery.outputInventory]);
   const refineryHasFuel = state.refinery.fuelCharges > 0 || state.refinery.woodStock >= CONFIG.refinery.woodPerBatch;
   const refineryVisualState = state.refinery.stoneStock === 0 ? 'empty' : refineryHasFuel ? 'refining' : 'waiting';
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
