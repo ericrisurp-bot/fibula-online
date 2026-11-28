@@ -757,6 +757,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   }, [refineryOutputTotal, state.refinery.outputInventory]);
   const refineryHasFuel = state.refinery.fuelCharges > 0 || state.refinery.woodStock >= CONFIG.refinery.woodPerBatch;
   const refineryVisualState = state.refinery.stoneStock === 0 ? 'empty' : refineryHasFuel ? 'refining' : 'waiting';
+  const tecelariaHasMaterial = state.tecelaria.cottonBuffer.length > 0 || state.tecelaria.hideBuffer.length > 0;
+  const tecelariaVisualState = !tecelariaHasMaterial ? 'empty'
+    : state.tecelaria.outputInventory.length >= CONFIG.tecelaria.outputCapacity ? 'blocked' : 'weaving';
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   type SavedCampProgress = {
@@ -1958,6 +1961,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const inventoryPanelOpenRef = useRef(false);
   const [inventoryPanelOpen, setInventoryPanelOpen] = useState(false);
   const [refineryFeedback, setRefineryFeedback] = useState('');
+  const [tecelariaFeedback, setTecelariaFeedback] = useState('');
   const [campMenuOpen, setCampMenuOpen] = useState(false);
   const campMenuOpenRef = useRef(false);
   campMenuOpenRef.current = campMenuOpen;
@@ -1972,6 +1976,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
   const refineryAccessible = state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
+  const tecelariaDistance = Math.hypot(feet.x - state.tecelaria.x, feet.y - state.tecelaria.y);
+  const tecelariaAccessible = state.tecelaria.built && tecelariaDistance <= CONFIG.tecelaria.interactRadius;
   const campfireDistance = state.campfire ? Math.hypot(feet.x - state.campfire.x, feet.y - state.campfire.y) : Infinity;
   const campHasBuildableStructure = !state.house.built || !state.refinery.built || !state.tecelaria.built;
   const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius && (!state.house.built || !state.refinery.built || !state.tecelaria.built);
@@ -1981,6 +1987,9 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   useEffect(() => {
     if (!refineryAccessible) setRefineryFeedback('');
   }, [refineryAccessible]);
+  useEffect(() => {
+    if (!tecelariaAccessible) setTecelariaFeedback('');
+  }, [tecelariaAccessible]);
   const chestBuildStatus = engineRef.current?.getChestBuildStatus() ?? { ok: false as const, reason: 'nofire' as const };
   const chestBuildStatusLabel = chestBuildStatus.ok ? 'Construir'
     : chestBuildStatus.reason === 'already' ? 'Já construído'
@@ -5168,6 +5177,39 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
       : engine.state.refinery.woodStock >= CONFIG.refinery.woodCapacity;
     setRefineryFeedback(remaining && full ? 'Refinaria cheia' : '');
   };
+  const handleTecelariaBagClick = (index: number) => {
+    if (!tecelariaAccessible) return;
+    const engine = engineRef.current;
+    const item = engine?.state.inventory[index];
+    if (!engine || !item) return;
+    const base = getBaseItemId(item.itemId);
+    const result = base === 'cotton' ? engine.loadTecelariaCottonFromBag(index)
+      : base === 'wolf_hide' ? engine.loadTecelariaHideFromBag(index) : null;
+    if (!result) return;
+    if (!result.ok) {
+      setTecelariaFeedback(result.reason === 'far' ? 'Aproxime-se da tecelaria'
+        : result.reason === 'full' ? 'Tecelaria cheia' : '');
+      return;
+    }
+    const remaining = engine.state.inventory[index];
+    const buffer = base === 'cotton' ? engine.state.tecelaria.cottonBuffer : engine.state.tecelaria.hideBuffer;
+    const slots = base === 'cotton' ? CONFIG.tecelaria.cottonSlots : CONFIG.tecelaria.hideSlots;
+    const slotCapacity = base === 'cotton' ? CONFIG.tecelaria.cottonSlotCapacity : CONFIG.tecelaria.hideSlotCapacity;
+    const full = buffer.reduce((total, stack) => total + stack.quantity, 0) >= slots * slotCapacity;
+    setTecelariaFeedback(remaining && full ? 'Tecelaria cheia' : '');
+  };
+  const handleTecelariaOutputClick = (itemId: string) => {
+    const engine = engineRef.current;
+    const result = engine?.takeTecelariaOutputStack(itemId);
+    if (!engine || !result) return;
+    if (!result.ok) {
+      setTecelariaFeedback(result.reason === 'far' ? 'Aproxime-se da tecelaria'
+        : result.reason === 'full' ? 'Mochila cheia' : '');
+      return;
+    }
+    setTecelariaFeedback(engine.state.tecelaria.outputInventory.some(item => item.itemId === itemId)
+      ? 'Mochila cheia' : '');
+  };
   const handleRefineryOutputClick = (itemId: string) => {
     const engine = engineRef.current;
     const result = engine?.takeRefineryOutputStack(itemId);
@@ -6550,7 +6592,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 <div className="inventory-quick-content">
 <div className="inventory-quick-column inventory-quick-left">
 <section><h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3><div className="quick-slot-grid bag">
-{Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {const item=state.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} style={{position:'relative',cursor:refineryAccessible&&item&&['stone','wood'].includes(getBaseItemId(item.itemId))?'pointer':undefined}} onClick={()=>handleRefineryBagClick(index)} aria-label={item?`${item.itemId} x${item.quantity}`:`Espaço ${index+1} vazio`}>
+{Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {const item=state.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} style={{position:'relative',cursor:item&&((refineryAccessible&&['stone','wood'].includes(getBaseItemId(item.itemId)))||(tecelariaAccessible&&['cotton','wolf_hide'].includes(getBaseItemId(item.itemId))))?'pointer':undefined}} onClick={()=>{handleRefineryBagClick(index);handleTecelariaBagClick(index);}} aria-label={item?`${item.itemId} x${item.quantity}`:`Espaço ${index+1} vazio`}>
 {item?<><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{position:'absolute',top:2,right:2,width:18,height:18,padding:0,lineHeight:'16px',borderRadius:999,background:'#632f35',color:'#fff',border:'1px solid #d98b8b',fontSize:14}} onClick={event=>{event.stopPropagation();discardBagItem(index);}} aria-label={`Descartar ${item.itemId} x${item.quantity} da mochila`} title="Descartar item">×</button></>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
 </div></section>
 {state.cart.stage==='built'&&cartAccessible&&<section><h3>Carrinho <small>{state.cart.inventory.length}/{CONFIG.cart.capacitySlots}</small></h3><div className="quick-slot-grid cart">
@@ -6643,6 +6685,78 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     <span className="refinery-feed-stone" aria-hidden="true" />
   </div>
   {refineryFeedback && <p className="refinery-panel-feedback" role="status">{refineryFeedback}</p>}
+</section>}
+{tecelariaAccessible&&<section
+  className={`tecelaria-panel-section is-${tecelariaVisualState}`}
+  style={{ '--weave-cycle': `${CONFIG.tecelaria.processInterval}s` } as CSSProperties}
+>
+  <header className="refinery-panel-heading">
+    <h3>Tecelaria</h3>
+    <span className={`refinery-panel-status is-${tecelariaVisualState}`} role="status">
+      {tecelariaVisualState === 'empty' ? 'Vazia' : tecelariaVisualState === 'blocked' ? 'Saída cheia' : 'Tecendo'}
+    </span>
+  </header>
+  <div className="tecelaria-flows">
+    <div className="tecelaria-flow">
+      <div className="refinery-panel-group">
+        <strong>Algodão</strong>
+        <div className="quick-slot-grid tecelaria-input-slots">
+          {Array.from({ length: CONFIG.tecelaria.cottonSlots }, (_, index) => {
+            const item = state.tecelaria.cottonBuffer[index];
+            return <div key={index} className={item ? 'quick-slot filled refinery-mini-slot' : 'quick-slot refinery-mini-slot'}
+              aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity + ' de ' + CONFIG.tecelaria.cottonSlotCapacity : 'Espaço de algodão ' + (index + 1) + ' vazio'}>
+              {item ? <><span className="refinery-slot-icon" style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>{item.quantity}/{CONFIG.tecelaria.cottonSlotCapacity}</b></>
+                : <span className="quick-slot-empty" aria-hidden="true">·</span>}
+            </div>;
+          })}
+        </div>
+      </div>
+      <div className="tecelaria-loom" aria-label="Tear de algodão"><span>🧵</span><i /></div>
+      <div className="refinery-panel-group tecelaria-flow-output">
+        <strong>Linho</strong>
+        <span className="tecelaria-output-hint">↓ Reservatório</span>
+      </div>
+    </div>
+    <div className="tecelaria-flow">
+      <div className="refinery-panel-group">
+        <strong>Couro</strong>
+        <div className="quick-slot-grid tecelaria-input-slots">
+          {Array.from({ length: CONFIG.tecelaria.hideSlots }, (_, index) => {
+            const item = state.tecelaria.hideBuffer[index];
+            return <div key={index} className={item ? 'quick-slot filled refinery-mini-slot' : 'quick-slot refinery-mini-slot'}
+              aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity + ' de ' + CONFIG.tecelaria.hideSlotCapacity : 'Espaço de couro ' + (index + 1) + ' vazio'}>
+              {item ? <><span className="refinery-slot-icon" style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>{item.quantity}/{CONFIG.tecelaria.hideSlotCapacity}</b></>
+                : <span className="quick-slot-empty" aria-hidden="true">·</span>}
+            </div>;
+          })}
+        </div>
+      </div>
+      <div className="tecelaria-loom" aria-label="Tear de couro"><span>🪡</span><i /></div>
+      <div className="refinery-panel-group tecelaria-flow-output">
+        <strong>Couro refinado</strong>
+        <span className="tecelaria-output-hint">↓ Reservatório</span>
+      </div>
+    </div>
+  </div>
+  <div className="refinery-panel-group tecelaria-storage">
+    <strong>Reservatório de saída</strong>
+    <div className="quick-slot-grid tecelaria-output-slots">
+      {Array.from({ length: CONFIG.tecelaria.outputCapacity }, (_, index) => {
+        const item = state.tecelaria.outputInventory[index];
+        return <div key={index} className={item ? 'quick-slot filled refinery-mini-slot' : 'quick-slot refinery-mini-slot'}
+          aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity : 'Espaço de saída ' + (index + 1) + ' vazio'}>
+          {item ? <button type="button" className="inventory-transfer-slot refinery-output-transfer"
+              onClick={event => { event.stopPropagation(); handleTecelariaOutputClick(item.itemId); }}
+              aria-label={'Retirar ' + itemLabel(item.itemId) + ' ×' + item.quantity + ' para a mochila'} title="Retirar para a mochila">
+              <span className="refinery-slot-icon" style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>×{item.quantity}</b>
+            </button>
+            : <span className="quick-slot-empty" aria-hidden="true">·</span>}
+        </div>;
+      })}
+    </div>
+  </div>
+  <span className="tecelaria-shuttle" aria-hidden="true" />
+  {tecelariaFeedback && <p className="refinery-panel-feedback" role="status">{tecelariaFeedback}</p>}
 </section>}
 </div>
 {houseAccessible&&state.house.built&&<div className="inventory-quick-column inventory-quick-house"><section className="house-storage-section">
