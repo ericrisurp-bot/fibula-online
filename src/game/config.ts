@@ -105,7 +105,7 @@ export const CONFIG = {
   },
   gathering: { baseInterval: 0.9, toolAnimationDuration: 0.55, rangeAspect: 1.4 },
   knife: { hitInterval: 0.6, reach: 34, hitsToKill: { chicken: 2, wolf: 5 } },
-  tecelaria: { buildCostBronze: 0, buildCostWood: 15, buildCostCotton: 8, buildCostStone: 8, interactRadius: 104, clearRadius: 180, cottonCapacity: 20, processInterval: 2, linenChance: 0.03, hideCapacity: 20, hideProcessInterval: 2, refinedLeatherChance: 0.03 },
+  tecelaria: { buildCostBronze: 0, buildCostWood: 15, buildCostCotton: 8, buildCostStone: 8, interactRadius: 104, clearRadius: 180, cottonSlots: 4, cottonSlotCapacity: 5, hideSlots: 4, hideSlotCapacity: 5, outputCapacity: 10, processInterval: 2 },
   inventory: { maxSlots: 3, maxPerSlot: 5 },
   house: { buildCost: 30, interactRadius: 100, cartDeliveryRadius: 260, treeClearRadius: 220, playerClearRadius: 420, wallMargin: 120 },
   refinery: { buildCostWood: 20, buildCostStone: 15, interactRadius: 100, treeClearRadius: 220, rockClearRadius: 220, playerClearRadius: 420, wallMargin: 120, rareRockSpawnChance: 0.009, rareRockSpawnRadius: 220, tinChance: 0.02, processInterval: 2, stoneCapacity: 15, stoneSlotCapacity: 5, woodCapacity: 6, woodPerBatch: 2, stonesPerBatch: 5, outputCapacity: 10 },
