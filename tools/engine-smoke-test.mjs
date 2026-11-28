@@ -1122,7 +1122,95 @@ try {
     CONFIG.refinery.tinChance = originalTinChance;
   }
 
-  console.log('OK: testes do motor, incluindo refinaria R1a (combustível, estanho, raridade e coleta).');
+
+  // R3a: Tecelaria por lotes, raridade herdada, reservatório e conservação.
+  const makeTecelariaEngine = (seed) => {
+    const engine = createEngine(seed);
+    engine.state.tecelaria.built = true;
+    engine.state.tecelaria.x = 1800;
+    engine.state.tecelaria.y = 1800;
+    engine.state.player.x = 1800;
+    engine.state.player.y = 1800 - CONFIG.player.footOffset;
+    engine.state.cart.x = 2600;
+    engine.state.cart.y = 2600;
+    engine.state.cart.carried = false;
+    engine.state.inventory = [];
+    engine.state.cart.inventory = [];
+    return engine;
+  };
+  const advanceTecelaria = (engine, seconds) => {
+    const steps = Math.ceil(seconds / 0.04);
+    for (let index = 0; index < steps; index += 1) engine.step(0.04);
+  };
+  const tecelaria = makeTecelariaEngine(0x3a000001);
+  try {
+    tecelaria.state.inventory = [{ itemId: 'cotton:uncommon', quantity: 25 }];
+    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: true, moved: 20 });
+    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, Array.from({ length: 4 }, () => ({ itemId: 'cotton:uncommon', quantity: 5 })));
+    assert.equal(tecelaria.state.inventory[0].quantity, 5);
+    assert.equal(tecelaria.state.tecelaria.cottonBuffer.reduce((sum, item) => sum + item.quantity, 0)
+      + tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0), 25);
+    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'full' });
+
+    tecelaria.state.tecelaria.cottonBuffer = [{ itemId: 'cotton', quantity: 2 }, { itemId: 'cotton:uncommon', quantity: 3 }];
+    tecelaria.state.tecelaria.hideBuffer = [{ itemId: 'wolf_hide', quantity: 3 }, { itemId: 'wolf_hide:uncommon', quantity: 3 }];
+    tecelaria.state.tecelaria.outputInventory = [];
+    tecelaria.state.inventory = [];
+    advanceTecelaria(tecelaria, 2.1);
+    assert.deepEqual(tecelaria.state.tecelaria.outputInventory, [
+      { itemId: 'linen:uncommon', quantity: 1 },
+      { itemId: 'refined_leather', quantity: 1 },
+    ]);
+    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton', quantity: 2 }], 'A sobra de duas unidades deve permanecer.');
+    assert.deepEqual(tecelaria.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:uncommon', quantity: 3 }], 'Raridades não podem se misturar no mesmo lote.');
+    assert.equal(tecelaria.state.tecelaria.cottonProcessed, 3);
+    assert.equal(tecelaria.state.tecelaria.linenProduced, 1);
+    assert.equal(tecelaria.state.tecelaria.hideProcessed, 3);
+    assert.equal(tecelaria.state.tecelaria.refinedLeatherProduced, 1);
+    advanceTecelaria(tecelaria, 2.1);
+    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather:uncommon'));
+    assert.equal(tecelaria.state.tecelaria.hideProcessed, 6);
+
+    tecelaria.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 3 }];
+    tecelaria.state.tecelaria.outputInventory = Array.from({ length: CONFIG.tecelaria.outputCapacity }, (_, index) => ({ itemId: `filled-${index}`, quantity: 1 }));
+    advanceTecelaria(tecelaria, 2.1);
+    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton:rare', quantity: 3 }], 'Reservatório cheio deve pausar sem consumir.');
+    assert.equal(tecelaria.state.tecelaria.cottonProcessed, 3);
+    tecelaria.state.inventory = [];
+    assert.deepEqual(tecelaria.takeTecelariaOutputStack('filled-0'), { ok: true, moved: 1 });
+    advanceTecelaria(tecelaria, 2.1);
+    assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, []);
+    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:rare'));
+    assert.equal(tecelaria.state.tecelaria.cottonProcessed, 6);
+
+    tecelaria.state.inventory = [{ itemId: 'wolf_hide:uncommon', quantity: 8 }];
+    assert.deepEqual(tecelaria.loadTecelariaHideFromBag(0), { ok: true, moved: 8 });
+    assert.equal(tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + tecelaria.state.tecelaria.hideBuffer.reduce((sum, item) => sum + item.quantity, 0), 8);
+    tecelaria.state.inventory = Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => ({ itemId: `bag-${index}`, quantity: 1 }));
+    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'full' });
+    tecelaria.state.inventory = [];
+    const outputBefore = tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
+    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: true, moved: 1 });
+    assert.equal(tecelaria.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + tecelaria.state.tecelaria.outputInventory.reduce((sum, item) => sum + item.quantity, 0), outputBefore + 1);
+
+    tecelaria.state.inventory = [{ itemId: 'cotton', quantity: 2 }, { itemId: 'wolf_hide', quantity: 2 }];
+    tecelaria.state.player.x += CONFIG.tecelaria.interactRadius + 20;
+    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'far' });
+    assert.deepEqual(tecelaria.loadTecelariaHideFromBag(1), { ok: false, moved: 0, reason: 'far' });
+    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'far' });
+    tecelaria.state.player.x = 1800;
+    tecelaria.state.player.y = 1800 - CONFIG.player.footOffset;
+    tecelaria.state.dead = true;
+    assert.deepEqual(tecelaria.loadTecelariaCottonFromBag(0), { ok: false, moved: 0, reason: 'dead' });
+    assert.deepEqual(tecelaria.loadTecelariaHideFromBag(1), { ok: false, moved: 0, reason: 'dead' });
+    assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'dead' });
+  } finally {
+    tecelaria.stop();
+  }
+
+  console.log('OK: testes do motor, incluindo refinaria R1a e Tecelaria R3a.');
 } finally {
   await server.close();
 }
