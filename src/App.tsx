@@ -707,6 +707,22 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const matchResultDrainRequestedRef = useRef(false);
   const gameStartPendingRef = useRef(false);
   const [state, setState] = useState<GameSnapshot>(() => ({ ...initial, house: { ...initial.house, inventory: readLocalHouseInventory() } }));
+  const refineryOutputPreviousRef = useRef<{ total: number; slots: Array<{ itemId: string; quantity: number }> }>({ total: 0, slots: [] });
+  const refineryOutputTotal = state.refinery.outputInventory.reduce((total, item) => total + item.quantity, 0);
+  const refineryOutputPopIndexes = new Set<number>();
+  if (refineryOutputTotal > refineryOutputPreviousRef.current.total) {
+    state.refinery.outputInventory.forEach((item, index) => {
+      const previous = refineryOutputPreviousRef.current.slots[index];
+      const previousQuantity = previous?.itemId === item.itemId ? previous.quantity : 0;
+      if (item.quantity > previousQuantity) refineryOutputPopIndexes.add(index);
+    });
+  }
+  refineryOutputPreviousRef.current = {
+    total: refineryOutputTotal,
+    slots: state.refinery.outputInventory.map(item => ({ itemId: item.itemId, quantity: item.quantity })),
+  };
+  const refineryHasFuel = state.refinery.fuelCharges > 0 || state.refinery.woodStock >= CONFIG.refinery.woodPerBatch;
+  const refineryVisualState = state.refinery.stoneStock === 0 ? 'empty' : refineryHasFuel ? 'refining' : 'waiting';
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   const adventurerGuideObjectivesRef = useRef<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
   type SavedCampProgress = {
@@ -6484,28 +6500,92 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 {Array.from({length:CONFIG.cart.capacitySlots},(_,index)=>{const item=state.cart.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?`${item.itemId} x${item.quantity}`:`Espaço ${index+1} vazio`}>
 {item?<button type="button" className="inventory-transfer-slot" disabled={!cartAccessible} onClick={event=>{event.stopPropagation();transferCartToBag(index);}} aria-label={`Retirar ${item.itemId} x${item.quantity} do carrinho para a mochila`} title="Retirar para a mochila"><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
 </div></section>}
-{refineryAccessible&&<section className="refinery-panel-section">
-<h3>Refinaria</h3>
-<div className="refinery-panel-group">
-<strong>Pedra</strong>
-<div className="quick-slot-grid refinery-stone-slots">
-{Array.from({length:Math.floor(CONFIG.refinery.stoneCapacity/CONFIG.refinery.stoneSlotCapacity)},(_,index)=>{const item=state.refinery.stoneBuffer[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?item.itemId+' ×'+item.quantity+' de '+CONFIG.refinery.stoneSlotCapacity:'Espaço '+(index+1)+' vazio'}>{item?<><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}/{CONFIG.refinery.stoneSlotCapacity}</b></>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
-</div>
-</div>
-<div className="refinery-panel-group">
-<strong>Lenha</strong>
-<div className="quick-slot-grid refinery-wood-slots">
-<div className={state.refinery.woodStock>0?'quick-slot filled':'quick-slot'} aria-label={'Lenha ×'+state.refinery.woodStock+' de '+CONFIG.refinery.woodCapacity}>{state.refinery.woodStock>0?<><span>{inventoryItemIcon('wood')}</span><small>Madeira</small><b>×{state.refinery.woodStock}/{CONFIG.refinery.woodCapacity}</b></>:<span className="quick-slot-empty">1</span>}</div>
-</div>
-</div>
-<div className="refinery-panel-group">
-<strong>Reservatório</strong>
-<div className="quick-slot-grid cart refinery-output-slots">
-{Array.from({length:CONFIG.refinery.outputCapacity},(_,index)=>{const item=state.refinery.outputInventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?item.itemId+' x'+item.quantity:'Espaço '+(index+1)+' vazio'}>{item?<button type="button" className="inventory-transfer-slot" onClick={event=>{event.stopPropagation();handleRefineryOutputClick(item.itemId);}} aria-label={'Retirar '+itemLabel(item.itemId)+' x'+item.quantity+' para a mochila'} title="Retirar para a mochila"><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
-</div>
-</div>
-<p className="refinery-panel-status">{state.refinery.stoneStock===0?'Vazia':(state.refinery.fuelCharges>0||state.refinery.woodStock>=CONFIG.refinery.woodPerBatch)?'Refinando…':'Sem lenha'}</p>
-{refineryFeedback&&<p className="refinery-panel-feedback" role="status">{refineryFeedback}</p>}
+{refineryAccessible&&<section
+  className={`refinery-panel-section is-${refineryVisualState}`}
+  style={{ '--refine-cycle': `${CONFIG.refinery.processInterval}s` } as CSSProperties}
+>
+  <header className="refinery-panel-heading">
+    <h3>Refinaria</h3>
+    <span className={`refinery-panel-status is-${refineryVisualState}`} role="status">
+      {refineryVisualState === 'empty' ? 'Vazia' : refineryVisualState === 'waiting' ? 'Sem lenha' : 'Refinando'}
+    </span>
+  </header>
+  <div className="refinery-flow">
+    <div className="refinery-panel-group refinery-stone-group">
+      <strong>Pedra</strong>
+      <div className="quick-slot-grid refinery-stone-slots">
+        {Array.from({ length: Math.floor(CONFIG.refinery.stoneCapacity / CONFIG.refinery.stoneSlotCapacity) }, (_, index) => {
+          const item = state.refinery.stoneBuffer[index];
+          return <div
+            key={index}
+            className={item ? 'quick-slot filled refinery-mini-slot' : 'quick-slot refinery-mini-slot'}
+            aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity + ' de ' + CONFIG.refinery.stoneSlotCapacity : 'Espaço de pedra ' + (index + 1) + ' vazio'}
+          >
+            {item
+              ? <><span className="refinery-slot-icon" style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>×{item.quantity}/{CONFIG.refinery.stoneSlotCapacity}</b></>
+              : <span className="quick-slot-empty" aria-hidden="true">·</span>}
+          </div>;
+        })}
+      </div>
+    </div>
+    <div className="refinery-furnace-group">
+      <div className="refinery-furnace" aria-label={refineryVisualState === 'empty' ? 'Forno parado' : refineryVisualState === 'waiting' ? 'Forno aguardando lenha' : 'Forno refinando'}>
+        <span className="refinery-furnace-chimney" />
+        <span className="refinery-furnace-body">
+          <span className="refinery-furnace-mouth">
+            <i className="refinery-furnace-flame" />
+            <i className="refinery-furnace-spark refinery-furnace-spark-one" />
+            <i className="refinery-furnace-spark refinery-furnace-spark-two" />
+            <i className="refinery-furnace-spark refinery-furnace-spark-three" />
+          </span>
+        </span>
+        <span className="refinery-furnace-progress"><i /></span>
+      </div>
+      <div className="refinery-panel-group refinery-wood-group">
+        <strong>Lenha</strong>
+        <div className="quick-slot-grid refinery-wood-slots">
+          <div
+            className={`quick-slot refinery-mini-slot refinery-wood-slot ${state.refinery.woodStock > 0 ? 'filled' : ''}`}
+            aria-label={'Lenha ×' + state.refinery.woodStock + ' de ' + CONFIG.refinery.woodCapacity}
+          >
+            {state.refinery.woodStock > 0
+              ? <><span className="refinery-slot-icon" style={itemRarityGlow('wood')}>{inventoryItemIcon('wood')}</span><b>×{state.refinery.woodStock}/{CONFIG.refinery.woodCapacity}</b></>
+              : <span className="quick-slot-empty" aria-hidden="true">·</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div className="refinery-panel-group refinery-output-group">
+      <strong>Armazenamento</strong>
+      <div className="quick-slot-grid cart refinery-output-slots">
+        {Array.from({ length: CONFIG.refinery.outputCapacity }, (_, index) => {
+          const item = state.refinery.outputInventory[index];
+          const shouldPop = refineryOutputPopIndexes.has(index);
+          return <div
+            key={index}
+            className={item ? 'quick-slot filled refinery-mini-slot' : 'quick-slot refinery-mini-slot'}
+            aria-label={item ? itemLabel(item.itemId) + ' ×' + item.quantity : 'Espaço ' + (index + 1) + ' vazio'}
+          >
+            {item
+              ? <button
+                  key={item.itemId + ':' + item.quantity}
+                  type="button"
+                  className={`inventory-transfer-slot refinery-output-transfer ${shouldPop ? 'refinery-output-slot-pop' : ''}`}
+                  onClick={event => { event.stopPropagation(); handleRefineryOutputClick(item.itemId); }}
+                  aria-label={'Retirar ' + itemLabel(item.itemId) + ' ×' + item.quantity + ' para a mochila'}
+                  title="Retirar para a mochila"
+                >
+                  <span className="refinery-slot-icon" style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span>
+                  <b>×{item.quantity}</b>
+                </button>
+              : <span className="quick-slot-empty" aria-hidden="true">·</span>}
+          </div>;
+        })}
+      </div>
+    </div>
+    <span className="refinery-feed-stone" aria-hidden="true" />
+  </div>
+  {refineryFeedback && <p className="refinery-panel-feedback" role="status">{refineryFeedback}</p>}
 </section>}
 </div>
 {houseAccessible&&state.house.built&&<div className="inventory-quick-column inventory-quick-house"><section className="house-storage-section">
