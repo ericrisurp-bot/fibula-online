@@ -71,7 +71,9 @@ Depois da publicação de uma GitHub Release Android:
 - No Android, o botão abre o download do APK no navegador do sistema.
 - Quando o `versionCode` da Release for maior que o instalado, o botão mostra `NEW`.
 - Enquanto houver uma versão mais nova, os botões **Jogar** e **Pronto** do Duo ficam bloqueados.
-- O aplicativo consulta a Release ao abrir e quando volta ao primeiro plano, respeitando um intervalo mínimo de cinco minutos entre consultas.
+- O aplicativo consulta as Releases ao abrir e quando volta ao primeiro plano, respeitando um intervalo mínimo de 30 minutos.
+- A consulta usa ETag quando disponível para evitar baixar repetidamente a mesma lista de Releases.
+- Se o GitHub estiver indisponível ou limitar a consulta, o app identifica a versão exibida como última versão conhecida, informa que ela pode estar desatualizada e permite tentar consultar novamente pelo botão.
 - O APK continua hospedado somente nos assets do GitHub Releases; nenhum APK é copiado para o Cloudflare.
 
 O Android ainda exige que o jogador confirme a instalação do APK. O Fíbula não instala atualizações silenciosamente.
