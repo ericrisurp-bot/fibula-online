@@ -1200,10 +1200,7 @@ export class GameEngine {
       maxSlots: CONFIG.tecelaria.outputCapacity,
       maxPerSlot: CONFIG.inventory.maxPerSlot,
     });
-    if (guaranteed.added !== 1) {
-      setTimer(interval);
-      return;
-    }
+    if (guaranteed.added !== 1) return;
 
     const nextTimer = timer + dt;
     if (nextTimer < interval) {
@@ -1494,10 +1491,7 @@ export class GameEngine {
       maxSlots: CONFIG.refinery.outputCapacity,
       maxPerSlot: CONFIG.inventory.maxPerSlot,
     });
-    if (guaranteed.added !== 1) {
-      this.refineryProcessTimer = CONFIG.refinery.batchInterval;
-      return;
-    }
+    if (guaranteed.added !== 1) return;
 
     this.refineryProcessTimer += dt;
     if (this.refineryProcessTimer < CONFIG.refinery.batchInterval) return;
