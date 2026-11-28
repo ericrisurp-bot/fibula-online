@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { playerFeet } from './game/ground';
 import { createGrassTile, drawGrassTerrainDetails, drawResourceRarityAura, drawRock, drawTree } from './game/environment';
-import { getBaseItemId, getItemRarity } from './game/inventory';
+import { getBaseItemId, getItemRarity, getRarityItemId } from './game/inventory';
 import { parseCoreItemId, type CoreAttributeKey } from './game/cores';
 import { ARSENAL_CAPACITY, EQUIPMENT_SLOTS, equipArsenalItem, unequipArsenalSlot, type ArsenalEquipment, type EquipmentLoadout, type EquipmentSlotId } from './game/arsenal';
 import { CLASSES, CONFIG, type ClassId, type WeaponId } from './game/config';
@@ -760,9 +760,16 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const refineryVisualState = state.refinery.stoneStock === 0 ? 'empty'
     : !refineryHasBatch ? 'waiting-stones' : !refineryHasFuel ? 'waiting-wood' : 'refining';
   const tecelariaHasMaterial = state.tecelaria.cottonBuffer.length > 0 || state.tecelaria.hideBuffer.length > 0;
-  const tecelariaHasBatch = state.tecelaria.cottonBuffer.some(stack => stack.quantity >= 3)
-    || state.tecelaria.hideBuffer.some(stack => stack.quantity >= 3);
-  const tecelariaOutputFull = state.tecelaria.outputInventory.length >= CONFIG.tecelaria.outputCapacity;
+  const tecelariaCottonBatch = state.tecelaria.cottonBuffer.find(stack => stack.quantity >= 3);
+  const tecelariaHideBatch = state.tecelaria.hideBuffer.find(stack => stack.quantity >= 3);
+  const tecelariaHasBatch = Boolean(tecelariaCottonBatch || tecelariaHideBatch);
+  const tecelariaCanStoreOutput = (itemId: string) => state.tecelaria.outputInventory.length < CONFIG.tecelaria.outputCapacity
+    || state.tecelaria.outputInventory.some(stack => stack.itemId === itemId && stack.quantity < CONFIG.inventory.maxPerSlot);
+  const tecelariaHasOutputSpace = Boolean(
+    (tecelariaCottonBatch && tecelariaCanStoreOutput(getRarityItemId('linen', getItemRarity(tecelariaCottonBatch.itemId))))
+    || (tecelariaHideBatch && tecelariaCanStoreOutput(getRarityItemId('refined_leather', getItemRarity(tecelariaHideBatch.itemId)))),
+  );
+  const tecelariaOutputFull = tecelariaHasBatch && !tecelariaHasOutputSpace;
   const tecelariaVisualState = !tecelariaHasMaterial ? 'empty'
     : !tecelariaHasBatch ? 'waiting' : tecelariaOutputFull ? 'blocked' : 'weaving';
   const [adventurerGuideObjectives, setAdventurerGuideObjectives] = useState<AdventurerGuideObjectives>(EMPTY_ADVENTURER_GUIDE_OBJECTIVES);
