@@ -386,6 +386,33 @@ const itemLabel = (itemId: string) => {
   return label;
 };
 
+const HOUSE_ITEM_RARITY_ORDER: Record<string, number> = {
+  normal: 0,
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  legendary: 4,
+};
+
+const houseItemRarityRank = (itemId: string) => {
+  const parsedCore = parseCoreItemId(itemId);
+  const rarity = parsedCore
+    ? parsedCore.kind === 'closed' ? parsedCore.rarity : parsedCore.core.rarity
+    : getItemRarity(itemId);
+  return HOUSE_ITEM_RARITY_ORDER[rarity ?? 'normal'] ?? 0;
+};
+
+const sortHouseStorageStacks = (
+  items: HouseStorageStack[],
+  mode: 'rarity' | 'alphabetical',
+): HouseStorageStack[] => [...items].sort((a, b) => {
+  const nameOrder = itemLabel(a.itemId).localeCompare(itemLabel(b.itemId), 'pt-BR', { sensitivity: 'base' });
+  const rarityOrder = houseItemRarityRank(a.itemId) - houseItemRarityRank(b.itemId);
+  return mode === 'rarity'
+    ? rarityOrder || nameOrder || a.itemId.localeCompare(b.itemId)
+    : nameOrder || rarityOrder || a.itemId.localeCompare(b.itemId);
+});
+
 
 const forgeChestItemLabel = (itemId: string) => {
   const parsedCore = parseCoreItemId(itemId);
@@ -1136,6 +1163,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
   const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
+  const [houseSortMode, setHouseSortMode] = useState<'rarity' | 'alphabetical'>('rarity');
   const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [chestCloudReady, setChestCloudReady] = useState(false);
@@ -1692,6 +1720,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
     return () => window.removeEventListener('popstate', syncGameRoute);
   }, []);
   const cookingIngredientStacks = getCookingIngredientStacks(lobbyChestItems);
+  const sortedLobbyChestItems = sortHouseStorageStacks(lobbyChestItems, houseSortMode);
+  const sortedMatchHouseItems = sortHouseStorageStacks(state.house.inventory, houseSortMode);
   const cookingSelectedTotal = panCookingSelections.reduce((sum, item) => sum + item.quantity, 0);
   const cookingCapacity = getCookingCapacity(panCookingSelections.length);
   const jewelryChestStacks = lobbyChestItems.reduce<HouseStorageStack[]>((stacks, item) => {
@@ -6369,8 +6399,12 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
               <button type="button" role="tab" aria-selected={chestTab === 'resources'} className={chestTab === 'resources' ? 'active' : ''} onClick={() => setChestTab('resources')}>Recursos</button>
               <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
             </nav>
+            {chestTab === 'resources' && <nav className="lobby-chest-tabs lobby-chest-sort-tabs" role="tablist" aria-label="Organização dos itens do Baú">
+              <button type="button" role="tab" aria-selected={houseSortMode === 'rarity'} className={houseSortMode === 'rarity' ? 'active' : ''} onClick={() => setHouseSortMode('rarity')}>Raridade · Normal → Lendário</button>
+              <button type="button" role="tab" aria-selected={houseSortMode === 'alphabetical'} className={houseSortMode === 'alphabetical' ? 'active' : ''} onClick={() => setHouseSortMode('alphabetical')}>Alfabética · A → Z</button>
+            </nav>}
             {chestTab === 'resources' ? <div className="lobby-chest-grid bau-side-grid" aria-label="Itens guardados no Baú">
-              {lobbyChestItems.map(item => {
+              {sortedLobbyChestItems.map(item => {
                 const isJabuticaba = item.itemId === 'jabuticaba';
                 return <div key={item.itemId} className="bau-resource-slot">
                   <button type="button" className={`quick-slot filled lobby-chest-slot${isJabuticaba ? ' lobby-chest-slot-consumable' : ''}`}
@@ -6617,7 +6651,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 <button type="button" role="tab" aria-selected={houseStorageTab==='meals'} className={houseStorageTab==='meals'?'active':''} onClick={()=>setHouseStorageTab('meals')}>Refeições · {readyCookingMeals.length}</button>
 </nav>
 {houseStorageTab==='resources'?state.house.inventory.length>0?<div className="quick-slot-grid house-storage">
-{state.house.inventory.map(item=>{const itemName=itemLabel(item.itemId);const accessibleName=`${itemName}, ${item.quantity} guardadas`;return <div key={item.itemId} className="quick-slot filled house-storage-info-slot" title={accessibleName} aria-label={accessibleName}><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>×{item.quantity}</b></div>;})}
+{sortedMatchHouseItems.map(item=>{const itemName=itemLabel(item.itemId);const accessibleName=`${itemName}, ${item.quantity} guardadas`;return <div key={item.itemId} className="quick-slot filled house-storage-info-slot" title={accessibleName} aria-label={accessibleName}><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><b>×{item.quantity}</b></div>;})}
 </div>:<p className="house-storage-empty">Nada guardado ainda.</p>
 :<div className="house-meals-grid">
 {!cookingOnline&&<p className="house-storage-empty" role="status">Sem conexão: cozinhar exige internet.</p>}
