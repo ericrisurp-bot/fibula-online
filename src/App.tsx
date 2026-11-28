@@ -1908,7 +1908,6 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const houseAccessible = state.house.built && houseDistance <= CONFIG.house.interactRadius;
   const refineryDistance = Math.hypot(feet.x - state.refinery.x, feet.y - state.refinery.y);
   const refineryAccessible = state.refinery.built && refineryDistance <= CONFIG.refinery.interactRadius;
-  const refineryCartCanDeliver = state.cart.carried || Math.hypot(state.cart.x - state.refinery.x, state.cart.y - state.refinery.y) <= CONFIG.refinery.interactRadius;
   const campfireDistance = state.campfire ? Math.hypot(feet.x - state.campfire.x, feet.y - state.campfire.y) : Infinity;
   const campHasBuildableStructure = !state.house.built || !state.refinery.built || !state.tecelaria.built;
   const campMenuVisible = !!state.campfire && campfireDistance <= CONFIG.house.interactRadius && (!state.house.built || !state.refinery.built || !state.tecelaria.built);
@@ -5080,6 +5079,38 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const toggleCart = () => engineRef.current?.toggleCart();
   const discardBagItem = (index: number) => engineRef.current?.discardBagItem(index);
   const transferCartToBag = (index: number) => engineRef.current?.transferCartToBag(index);
+  const handleRefineryBagClick = (index: number) => {
+    if (!refineryAccessible) return;
+    const engine = engineRef.current;
+    const item = engine?.state.inventory[index];
+    if (!engine || !item) return;
+    const base = getBaseItemId(item.itemId);
+    const result = base === 'stone' ? engine.loadRefineryStoneFromBag(index)
+      : base === 'wood' ? engine.loadRefineryWoodFromBag(index) : null;
+    if (!result) return;
+    if (!result.ok) {
+      setRefineryFeedback(result.reason === 'far' ? 'Aproxime-se da refinaria'
+        : result.reason === 'full' ? 'Refinaria cheia' : '');
+      return;
+    }
+    const remaining = engine.state.inventory[index];
+    const full = base === 'stone'
+      ? engine.state.refinery.stoneStock >= CONFIG.refinery.stoneCapacity
+      : engine.state.refinery.woodStock >= CONFIG.refinery.woodCapacity;
+    setRefineryFeedback(remaining && full ? 'Refinaria cheia' : '');
+  };
+  const handleRefineryOutputClick = (itemId: string) => {
+    const engine = engineRef.current;
+    const result = engine?.takeRefineryOutputStack(itemId);
+    if (!engine || !result) return;
+    if (!result.ok) {
+      setRefineryFeedback(result.reason === 'far' ? 'Aproxime-se da refinaria'
+        : result.reason === 'full' ? 'Mochila cheia' : '');
+      return;
+    }
+    setRefineryFeedback(engine.state.refinery.outputInventory.some(item => item.itemId === itemId)
+      ? 'Mochila cheia' : '');
+  };
   const storeAllBagToHouse = () => {
     if (!cloudChestLoadedRef.current || lobbyChestStatus !== 'ready') {
       console.warn('[Baú] Depósito na casa bloqueado: inventário da nuvem ainda não foi confirmado.');
@@ -6446,7 +6477,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 <div className="inventory-quick-content">
 <div className="inventory-quick-column inventory-quick-left">
 <section><h3>Mochila <small>{state.inventory.length}/{CONFIG.inventory.maxSlots}</small></h3><div className="quick-slot-grid bag">
-{Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {const item=state.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} style={{position:'relative'}} aria-label={item?`${item.itemId} x${item.quantity}`:`Espaço ${index+1} vazio`}>
+{Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => {const item=state.inventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} style={{position:'relative',cursor:refineryAccessible&&item&&['stone','wood'].includes(getBaseItemId(item.itemId))?'pointer':undefined}} onClick={()=>handleRefineryBagClick(index)} aria-label={item?`${item.itemId} x${item.quantity}`:`Espaço ${index+1} vazio`}>
 {item?<><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b><button type="button" className="bag-discard-button" style={{position:'absolute',top:2,right:2,width:18,height:18,padding:0,lineHeight:'16px',borderRadius:999,background:'#632f35',color:'#fff',border:'1px solid #d98b8b',fontSize:14}} onClick={event=>{event.stopPropagation();discardBagItem(index);}} aria-label={`Descartar ${item.itemId} x${item.quantity} da mochila`} title="Descartar item">×</button></>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
 </div></section>
 {state.cart.stage==='built'&&cartAccessible&&<section><h3>Carrinho <small>{state.cart.inventory.length}/{CONFIG.cart.capacitySlots}</small></h3><div className="quick-slot-grid cart">
@@ -6455,21 +6486,26 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
 </div></section>}
 {refineryAccessible&&<section className="refinery-panel-section">
 <h3>Refinaria</h3>
-<p><strong>Pedras: {state.refinery.stoneStock}/{CONFIG.refinery.stoneCapacity}</strong></p>
-<div className="refinery-panel-items">{state.refinery.stoneBuffer.length ? state.refinery.stoneBuffer.map((item,index)=><span className="refinery-panel-item" key={item.itemId+'-'+index}><i style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</i><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></span>) : <small>Nenhuma pedra.</small>}</div>
-<p><strong>Madeira: {state.refinery.woodStock}/{CONFIG.refinery.woodCapacity}</strong></p>
-<p className="refinery-panel-status">{state.refinery.stoneStock===0?'Vazia':(state.refinery.fuelCharges>0||state.refinery.woodStock>=CONFIG.refinery.woodPerBatch)?'Refinando…':'Sem lenha: coloque 2 madeiras'}</p>
-<strong>Baú de saída</strong>
-<div className="refinery-panel-items">{state.refinery.outputInventory.length ? state.refinery.outputInventory.map((item,index)=><span className="refinery-panel-item" key={item.itemId+'-'+index}><i style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</i><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></span>) : <small>Nada ainda</small>}</div>
-<div className="refinery-panel-actions">
-<button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(refineryCartCanDeliver?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(5);setRefineryFeedback(r?.ok? r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 5 pedras</button>
-<button type="button" disabled={state.refinery.stoneStock>=CONFIG.refinery.stoneCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='stone')} onClick={()=>{const r=engineRef.current?.loadRefineryStone(CONFIG.refinery.stoneCapacity);setRefineryFeedback(r?.ok?r.moved+' pedras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar todas as pedras</button>
-<button type="button" disabled={state.refinery.woodStock>=CONFIG.refinery.woodCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='wood')} onClick={()=>{const r=engineRef.current?.loadRefineryWood(CONFIG.refinery.woodPerBatch);setRefineryFeedback(r?.ok?r.moved+' madeiras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar 2 madeiras</button>
-<button type="button" disabled={state.refinery.woodStock>=CONFIG.refinery.woodCapacity || ![...state.inventory,...(cartAccessible?state.cart.inventory:[])].some(item=>getBaseItemId(item.itemId)==='wood')} onClick={()=>{const r=engineRef.current?.loadRefineryWood(CONFIG.refinery.woodCapacity);setRefineryFeedback(r?.ok?r.moved+' madeiras colocadas.':r?.reason==='far'?'Aproxime-se da refinaria.':r?.reason==='full'?'A refinaria está cheia.':'Você não tem esse item.');}}>Colocar toda a madeira</button>
-<button type="button" disabled={!state.refinery.outputInventory.length || (state.inventory.length>=CONFIG.inventory.maxSlots && !state.refinery.outputInventory.some(out=>state.inventory.some(inv=>inv.itemId===out.itemId&&inv.quantity<CONFIG.inventory.maxPerSlot)))} onClick={()=>{const r=engineRef.current?.collectRefineryOutput();setRefineryFeedback(!r?'Não foi possível pegar.':!r.ok?r.reason==='far'?'Aproxime-se da refinaria.':'Nada para pegar.':r.left>0?'Mochila cheia: ficaram '+r.left+' no baú da refinaria.':r.moved+' estanho retirado.');}}>Pegar estanho</button>
+<div className="refinery-panel-group">
+<strong>Pedra</strong>
+<div className="quick-slot-grid refinery-stone-slots">
+{Array.from({length:Math.floor(CONFIG.refinery.stoneCapacity/CONFIG.refinery.stoneSlotCapacity)},(_,index)=>{const item=state.refinery.stoneBuffer[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?item.itemId+' ×'+item.quantity+' de '+CONFIG.refinery.stoneSlotCapacity:'Espaço '+(index+1)+' vazio'}>{item?<><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}/{CONFIG.refinery.stoneSlotCapacity}</b></>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
 </div>
+</div>
+<div className="refinery-panel-group">
+<strong>Lenha</strong>
+<div className="quick-slot-grid refinery-wood-slots">
+<div className={state.refinery.woodStock>0?'quick-slot filled':'quick-slot'} aria-label={'Lenha ×'+state.refinery.woodStock+' de '+CONFIG.refinery.woodCapacity}>{state.refinery.woodStock>0?<><span>{inventoryItemIcon('wood')}</span><small>Madeira</small><b>×{state.refinery.woodStock}/{CONFIG.refinery.woodCapacity}</b></>:<span className="quick-slot-empty">1</span>}</div>
+</div>
+</div>
+<div className="refinery-panel-group">
+<strong>Reservatório</strong>
+<div className="quick-slot-grid cart refinery-output-slots">
+{Array.from({length:CONFIG.refinery.outputCapacity},(_,index)=>{const item=state.refinery.outputInventory[index];return <div key={index} className={item?'quick-slot filled':'quick-slot'} aria-label={item?item.itemId+' x'+item.quantity:'Espaço '+(index+1)+' vazio'}>{item?<button type="button" className="inventory-transfer-slot" onClick={event=>{event.stopPropagation();handleRefineryOutputClick(item.itemId);}} aria-label={'Retirar '+itemLabel(item.itemId)+' x'+item.quantity+' para a mochila'} title="Retirar para a mochila"><span style={itemRarityGlow(item.itemId)}>{inventoryItemIcon(item.itemId)}</span><small>{itemLabel(item.itemId)}</small><b>×{item.quantity}</b></button>:<span className="quick-slot-empty">{index+1}</span>}</div>;})}
+</div>
+</div>
+<p className="refinery-panel-status">{state.refinery.stoneStock===0?'Vazia':(state.refinery.fuelCharges>0||state.refinery.woodStock>=CONFIG.refinery.woodPerBatch)?'Refinando…':'Sem lenha'}</p>
 {refineryFeedback&&<p className="refinery-panel-feedback" role="status">{refineryFeedback}</p>}
-<p className="refinery-panel-warning">O estanho só é salvo se você levar até o Baú do acampamento.</p>
 </section>}
 </div>
 {houseAccessible&&state.house.built&&<div className="inventory-quick-column inventory-quick-house"><section className="house-storage-section">
