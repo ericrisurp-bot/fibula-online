@@ -1002,6 +1002,75 @@ try {
     assert.deepEqual(outputRefinery.state.refinery.outputInventory, []);
     outputRefinery.stop();
 
+    // R2a: transferências por slot entre mochila e refinaria, sem perdas/duplicações.
+    const stoneBagRefinery = makeRefineryEngine(0x2a000001);
+    stoneBagRefinery.state.inventory = [{ itemId: 'stone:rare', quantity: 8 }];
+    const stoneBagBefore = stoneBagRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0);
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
+    assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:rare', quantity: 5 }]);
+    assert.deepEqual(stoneBagRefinery.state.inventory, [{ itemId: 'stone:rare', quantity: 3 }]);
+    assert.equal(stoneBagRefinery.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0)
+      + stoneBagRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0), stoneBagBefore);
+    stoneBagRefinery.state.inventory = [
+      { itemId: 'stone:rare', quantity: 3 },
+      { itemId: 'stone:uncommon', quantity: 5 },
+      { itemId: 'stone:legendary', quantity: 5 },
+      { itemId: 'stone:common', quantity: 4 },
+    ];
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'full' });
+    assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [
+      { itemId: 'stone:rare', quantity: 5 },
+      { itemId: 'stone:uncommon', quantity: 5 },
+      { itemId: 'stone:legendary', quantity: 5 },
+    ]);
+    assert.equal(stoneBagRefinery.state.inventory[0].quantity, 3);
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(3), { ok: false, moved: 0, reason: 'full' });
+    stoneBagRefinery.stop();
+
+    const woodBagRefinery = makeRefineryEngine(0x2a000002);
+    woodBagRefinery.state.inventory = [{ itemId: 'wood:rare', quantity: 10 }];
+    assert.deepEqual(woodBagRefinery.loadRefineryWoodFromBag(0), { ok: true, moved: CONFIG.refinery.woodCapacity });
+    assert.equal(woodBagRefinery.state.refinery.woodStock, CONFIG.refinery.woodCapacity);
+    assert.deepEqual(woodBagRefinery.state.inventory, [{ itemId: 'wood:rare', quantity: 4 }]);
+    assert.deepEqual(woodBagRefinery.loadRefineryWoodFromBag(0), { ok: false, moved: 0, reason: 'full' });
+    assert.equal(woodBagRefinery.state.refinery.woodStock + woodBagRefinery.state.inventory[0].quantity, 10);
+    woodBagRefinery.stop();
+
+    const outputStackRefinery = makeRefineryEngine(0x2a000003);
+    outputStackRefinery.state.inventory = Array.from({ length: CONFIG.inventory.maxSlots }, (_, index) => ({
+      itemId: index === 0 ? 'tin:rare' : 'occupied-' + index,
+      quantity: CONFIG.inventory.maxPerSlot,
+    }));
+    outputStackRefinery.state.refinery.outputInventory = [{ itemId: 'tin:rare', quantity: 3 }];
+    assert.deepEqual(outputStackRefinery.takeRefineryOutputStack('tin:rare'), { ok: false, moved: 0, reason: 'full' });
+    assert.equal(outputStackRefinery.state.refinery.outputInventory[0].quantity, 3);
+    outputStackRefinery.state.inventory[0].quantity -= 1;
+    const outputBefore = outputStackRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + outputStackRefinery.state.refinery.outputInventory.reduce((sum, item) => sum + item.quantity, 0);
+    assert.deepEqual(outputStackRefinery.takeRefineryOutputStack('tin:rare'), { ok: true, moved: 1 });
+    assert.equal(outputStackRefinery.state.refinery.outputInventory[0].quantity, 2);
+    assert.equal(outputStackRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0)
+      + outputStackRefinery.state.refinery.outputInventory.reduce((sum, item) => sum + item.quantity, 0), outputBefore);
+    outputStackRefinery.stop();
+
+    const farRefinery = makeRefineryEngine(0x2a000004);
+    farRefinery.state.inventory = [{ itemId: 'stone:rare', quantity: 2 }, { itemId: 'wood', quantity: 2 }];
+    farRefinery.state.refinery.outputInventory = [{ itemId: 'tin', quantity: 1 }];
+    farRefinery.state.player.x += CONFIG.refinery.interactRadius + 10;
+    assert.deepEqual(farRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'far' });
+    assert.deepEqual(farRefinery.loadRefineryWoodFromBag(1), { ok: false, moved: 0, reason: 'far' });
+    assert.deepEqual(farRefinery.takeRefineryOutputStack('tin'), { ok: false, moved: 0, reason: 'far' });
+    farRefinery.stop();
+
+    const deadRefinery = makeRefineryEngine(0x2a000005);
+    deadRefinery.state.inventory = [{ itemId: 'stone', quantity: 2 }, { itemId: 'wood', quantity: 2 }];
+    deadRefinery.state.refinery.outputInventory = [{ itemId: 'tin', quantity: 1 }];
+    deadRefinery.state.dead = true;
+    assert.deepEqual(deadRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'dead' });
+    assert.deepEqual(deadRefinery.loadRefineryWoodFromBag(1), { ok: false, moved: 0, reason: 'dead' });
+    assert.deepEqual(deadRefinery.takeRefineryOutputStack('tin'), { ok: false, moved: 0, reason: 'dead' });
+    deadRefinery.stop();
+
     const noAutoDelivery = makeRefineryEngine(0x1a000007);
     noAutoDelivery.state.inventory = [{ itemId: 'stone', quantity: 2 }];
     advanceRefinery(noAutoDelivery, 1);
