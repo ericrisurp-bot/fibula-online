@@ -951,6 +951,8 @@ try {
   assert.equal(CONFIG.refinery.tinBonusChance, 0.03);
   assert.equal(CONFIG.tecelaria.cottonSlotCapacity, 9);
   assert.equal(CONFIG.tecelaria.hideSlotCapacity, 9);
+  assert.equal(CONFIG.tecelaria.cottonSlots * CONFIG.tecelaria.cottonSlotCapacity, 36);
+  assert.equal(CONFIG.tecelaria.hideSlots * CONFIG.tecelaria.hideSlotCapacity, 36);
   assert.equal(CONFIG.tecelaria.bonusChance, 0.03);
 
   // Refinaria: lote de cinco pedras, estanho garantido e bônus determinístico.
@@ -1057,6 +1059,24 @@ try {
     refineryFull.stop();
   }
 
+  const refineryBonusOverflow = makeRefineryEngine(0x3c000013);
+  try {
+    refineryBonusOverflow.random = () => 0;
+    refineryBonusOverflow.state.refinery.stoneBuffer = [{ itemId: 'stone:rare', quantity: 5 }];
+    refineryBonusOverflow.state.refinery.stoneStock = 5;
+    refineryBonusOverflow.state.refinery.woodStock = 2;
+    refineryBonusOverflow.state.refinery.outputInventory = [
+      { itemId: 'tin:rare', quantity: 4 },
+      ...Array.from({ length: CONFIG.refinery.outputCapacity - 1 }, (_, index) => ({ itemId: 'occupied-' + index, quantity: CONFIG.inventory.maxPerSlot })),
+    ];
+    advanceRefinery(refineryBonusOverflow, CONFIG.refinery.batchInterval);
+    assert.equal(refineryBonusOverflow.state.refinery.tinProduced, 1, 'O estanho garantido cabe; os cinco bônus são descartados sem espaço.');
+    assert.equal(refineryBonusOverflow.state.refinery.outputInventory[0].quantity, 5);
+    assert.equal(refineryBonusOverflow.state.refinery.stonesProcessed, 5);
+  } finally {
+    refineryBonusOverflow.stop();
+  }
+
   // Tecelaria: lote garantido de três, bônus até +3 e raridade preservada.
   const tecGuaranteed = makeTecelariaEngine(0x3c000007);
   try {
@@ -1146,6 +1166,22 @@ try {
     assert.equal(tecFull.state.tecelaria.hideProcessed, 0);
   } finally {
     tecFull.stop();
+  }
+
+  const tecBonusOverflow = makeTecelariaEngine(0x3c000014);
+  try {
+    tecBonusOverflow.random = () => 0;
+    tecBonusOverflow.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 3 }];
+    tecBonusOverflow.state.tecelaria.outputInventory = [
+      { itemId: 'linen:rare', quantity: 4 },
+      ...Array.from({ length: CONFIG.tecelaria.outputCapacity - 1 }, (_, index) => ({ itemId: 'occupied-' + index, quantity: CONFIG.inventory.maxPerSlot })),
+    ];
+    advanceTecelaria(tecBonusOverflow, CONFIG.tecelaria.processInterval);
+    assert.equal(tecBonusOverflow.state.tecelaria.linenProduced, 1, 'O linho garantido cabe; os três bônus são descartados sem espaço.');
+    assert.equal(tecBonusOverflow.state.tecelaria.outputInventory[0].quantity, 5);
+    assert.equal(tecBonusOverflow.state.tecelaria.cottonProcessed, 3);
+  } finally {
+    tecBonusOverflow.stop();
   }
 
   const tecHideBonus = makeTecelariaEngine(0x3c000012);
