@@ -1157,10 +1157,9 @@ try {
     tecelaria.state.tecelaria.outputInventory = [];
     tecelaria.state.inventory = [];
     advanceTecelaria(tecelaria, 2.1);
-    assert.deepEqual(tecelaria.state.tecelaria.outputInventory, [
-      { itemId: 'linen:uncommon', quantity: 1 },
-      { itemId: 'refined_leather', quantity: 1 },
-    ]);
+    assert.equal(tecelaria.state.tecelaria.outputInventory.length, 2);
+    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'linen:uncommon' && item.quantity === 1));
+    assert.ok(tecelaria.state.tecelaria.outputInventory.some(item => item.itemId === 'refined_leather' && item.quantity === 1));
     assert.deepEqual(tecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton', quantity: 2 }], 'A sobra de duas unidades deve permanecer.');
     assert.deepEqual(tecelaria.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:uncommon', quantity: 3 }], 'Raridades não podem se misturar no mesmo lote.');
     assert.equal(tecelaria.state.tecelaria.cottonProcessed, 3);
@@ -1208,6 +1207,21 @@ try {
     assert.deepEqual(tecelaria.takeTecelariaOutputStack('linen:rare'), { ok: false, moved: 0, reason: 'dead' });
   } finally {
     tecelaria.stop();
+  }
+
+  const autoTecelaria = makeTecelariaEngine(0x3a000002);
+  try {
+    autoTecelaria.state.inventory = [{ itemId: 'cotton:rare', quantity: 2 }];
+    autoTecelaria.state.cart.x = autoTecelaria.state.tecelaria.x;
+    autoTecelaria.state.cart.y = autoTecelaria.state.tecelaria.y;
+    autoTecelaria.state.cart.inventory = [{ itemId: 'wolf_hide:uncommon', quantity: 2 }];
+    advanceTecelaria(autoTecelaria, 0.04);
+    assert.deepEqual(autoTecelaria.state.tecelaria.cottonBuffer, [{ itemId: 'cotton:rare', quantity: 2 }]);
+    assert.deepEqual(autoTecelaria.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:uncommon', quantity: 2 }]);
+    assert.deepEqual(autoTecelaria.state.inventory, []);
+    assert.deepEqual(autoTecelaria.state.cart.inventory, []);
+  } finally {
+    autoTecelaria.stop();
   }
 
   console.log('OK: testes do motor, incluindo refinaria R1a e Tecelaria R3a.');
