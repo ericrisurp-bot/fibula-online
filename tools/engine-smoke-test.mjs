@@ -1144,6 +1144,14 @@ try {
     assert.deepEqual(tecCapacity.state.tecelaria.hideBuffer, [{ itemId: 'wolf_hide:rare', quantity: 3 }]);
     tecCapacity.state.inventory = [{ itemId: 'wolf_hide', quantity: 2 }];
     assert.deepEqual(tecCapacity.loadTecelariaHideFromBag(0), { ok: false, moved: 0, reason: 'min' });
+    tecCapacity.state.tecelaria.cottonBuffer = [{ itemId: 'cotton:rare', quantity: 1 }];
+    tecCapacity.state.inventory = [{ itemId: 'cotton:rare', quantity: 9 }];
+    assert.deepEqual(tecCapacity.loadTecelariaCottonFromBag(0), { ok: true, moved: 9 });
+    assert.deepEqual(tecCapacity.state.tecelaria.cottonBuffer, [
+      { itemId: 'cotton:rare', quantity: 7 },
+      { itemId: 'cotton:rare', quantity: 3 },
+    ], 'Carga múltipla de três não cria stack residual menor que três, mesmo sobre estado legado.');
+
   } finally {
     tecCapacity.stop();
   }
