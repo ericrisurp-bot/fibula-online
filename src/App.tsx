@@ -1163,7 +1163,7 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
   const duoSoloFromNightRef = useRef(Number.MAX_SAFE_INTEGER);
   const [chestOpen, setChestOpen] = useState(false);
   const [chestTab, setChestTab] = useState<'resources' | 'meals'>('resources');
-  const [houseSortMode, setHouseSortMode] = useState<'rarity' | 'alphabetical'>('rarity');
+  const [houseSortMode, setHouseSortMode] = useState<'rarity' | 'alphabetical'>('alphabetical');
   const [houseStorageTab, setHouseStorageTab] = useState<'resources' | 'meals'>('resources');
   const [lobbyChestItems, setLobbyChestItems] = useState<HouseStorageStack[]>(readSavedHouseStorage);
   const [chestCloudReady, setChestCloudReady] = useState(false);
@@ -6400,8 +6400,8 @@ function AuthenticatedGameApp({ session }: { session: ArenaSession }) {
               <button type="button" role="tab" aria-selected={chestTab === 'meals'} className={chestTab === 'meals' ? 'active' : ''} onClick={() => setChestTab('meals')}>Refeições</button>
             </nav>
             {chestTab === 'resources' && <nav className="lobby-chest-tabs lobby-chest-sort-tabs" role="tablist" aria-label="Organização dos itens do Baú">
-              <button type="button" role="tab" aria-selected={houseSortMode === 'rarity'} className={houseSortMode === 'rarity' ? 'active' : ''} onClick={() => setHouseSortMode('rarity')}>Raridade · Normal → Lendário</button>
-              <button type="button" role="tab" aria-selected={houseSortMode === 'alphabetical'} className={houseSortMode === 'alphabetical' ? 'active' : ''} onClick={() => setHouseSortMode('alphabetical')}>Alfabética · A → Z</button>
+              <button type="button" role="tab" aria-selected={houseSortMode === 'alphabetical'} className={houseSortMode === 'alphabetical' ? 'active' : ''} onClick={() => setHouseSortMode('alphabetical')}>Nome + raridade · A → Z</button>
+              <button type="button" role="tab" aria-selected={houseSortMode === 'rarity'} className={houseSortMode === 'rarity' ? 'active' : ''} onClick={() => setHouseSortMode('rarity')}>Raridade global · Normal → Lendário</button>
             </nav>}
             {chestTab === 'resources' ? <div className="lobby-chest-grid bau-side-grid" aria-label="Itens guardados no Baú">
               {sortedLobbyChestItems.map(item => {
