@@ -1173,7 +1173,7 @@ export class GameEngine {
 
   private addBatchToBuffer(buffer: InventoryStack[], itemId: string, requested: number, slotCount: number, slotCapacity: number, batchSize: number) {
     const next = buffer.map(stack => ({ ...stack }));
-    const existingRoom = next.reduce((total, stack) => total + Math.max(0, slotCapacity - stack.quantity), 0);
+    const existingRoom = next.reduce((total, stack) => total + (stack.itemId === itemId ? Math.max(0, slotCapacity - stack.quantity) : 0), 0);
     const freeSlots = Math.max(0, slotCount - next.length);
     const newStackCapacity = Math.floor(slotCapacity / batchSize) * batchSize;
     const newCapacity = freeSlots * newStackCapacity;
@@ -1183,6 +1183,7 @@ export class GameEngine {
     let toExisting = Math.floor(Math.min(moved, existingRoom) / batchSize) * batchSize;
     for (const stack of next) {
       if (toExisting <= 0) break;
+      if (stack.itemId !== itemId) continue;
       const room = Math.max(0, slotCapacity - stack.quantity);
       const added = Math.min(toExisting, room);
       stack.quantity += added;
