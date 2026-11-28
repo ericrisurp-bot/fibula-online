@@ -6,9 +6,10 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { DownloadModal } from './DownloadModal';
 
 const RELEASES_URL = 'https://api.github.com/repos/ericrisurp-bot/fibula-online/releases?per_page=10';
-const RELEASE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const RELEASE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const RELEASE_RETRY_INTERVAL_MS = 30 * 1000;
 const RELEASE_CACHE_KEY = 'fibula-android-release-cache-v1';
+const RELEASE_ETAG_KEY = 'fibula-android-release-etag-v1';
 
 type ApkInstallerPlugin = {
   checkInstallPermission: () => Promise<{ canInstall: boolean }>;
@@ -119,6 +120,23 @@ function readReleaseCache(): ReleaseCache | null {
   }
 }
 
+function readReleaseEtag(): string | null {
+  try {
+    return window.localStorage.getItem(RELEASE_ETAG_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeReleaseEtag(etag: string | null): void {
+  try {
+    if (etag) window.localStorage.setItem(RELEASE_ETAG_KEY, etag);
+    else window.localStorage.removeItem(RELEASE_ETAG_KEY);
+  } catch {
+    // O ETag é opcional; a consulta continua funcionando sem armazenamento.
+  }
+}
+
 function writeReleaseCache(release: AndroidRelease, previousRelease: AndroidRelease | null): void {
   try {
     window.localStorage.setItem(RELEASE_CACHE_KEY, JSON.stringify({
@@ -187,15 +205,34 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
 
       let response: Response;
       try {
+        const etag = readReleaseEtag();
         response = await fetch(RELEASES_URL, {
-          headers: { Accept: 'application/vnd.github+json' },
+          headers: {
+            Accept: 'application/vnd.github+json',
+            ...(etag ? { 'If-None-Match': etag } : {}),
+          },
           cache: 'no-cache',
         });
       } catch (error) {
         useCacheOnFailure = true;
         throw error;
       }
+      if (response.status === 304) {
+        const cached = readReleaseCache();
+        if (cached) {
+          setRelease(cached.release);
+          setPreviousRelease(cached.previousRelease);
+          setCheckFailed(false);
+          return;
+        }
+        writeReleaseEtag(null);
+        response = await fetch(RELEASES_URL, {
+          headers: { Accept: 'application/vnd.github+json' },
+          cache: 'no-cache',
+        });
+      }
       if (response.status === 404) {
+        writeReleaseEtag(null);
         setRelease(null);
         setPreviousRelease(null);
         setCheckFailed(false);
@@ -207,6 +244,7 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
       }
       if (!response.ok) throw new Error(`Não foi possível consultar a versão publicada (HTTP ${response.status}).`);
       useCacheOnFailure = true;
+      writeReleaseEtag(response.headers.get('ETag'));
       const payload: unknown = await response.json();
       if (!Array.isArray(payload)) throw new Error('A resposta de versões do GitHub é inválida.');
       const validReleases = payload
@@ -241,7 +279,10 @@ export function AndroidReleaseProvider({ children }: { children: ReactNode }) {
       setPreviousRelease(previousLatestRelease);
       setCheckFailed(false);
       if (latestRelease) writeReleaseCache(latestRelease, previousLatestRelease);
-      else clearReleaseCache();
+      else {
+        clearReleaseCache();
+        writeReleaseEtag(null);
+      }
     } catch {
       if (useCacheOnFailure) {
         const cached = readReleaseCache();
@@ -441,7 +482,7 @@ export function useAndroidRelease(): AndroidReleaseContextValue {
 }
 
 export function AndroidReleaseButton() {
-  const { release, updateAvailable, checking, downloading, downloadProgress, pendingApkPath, isSupported } = useAndroidRelease();
+  const { release, updateAvailable, checking, checkFailed, downloading, downloadProgress, pendingApkPath, isSupported } = useAndroidRelease();
   const [modalOpen, setModalOpen] = useState(false);
   const closeModal = useCallback(() => setModalOpen(false), []);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -451,8 +492,10 @@ export function AndroidReleaseButton() {
     ? `Baixando APK: ${downloadProgress}%`
     : pendingApkPath
       ? 'Concluir instalação do APK'
-    : checking && !release
+    : checking
       ? 'Verificando versões publicadas'
+      : checkFailed
+        ? 'Falha ao verificar atualização. Toque para tentar novamente.'
       : updateAvailable
         ? 'Atualização obrigatória disponível. Baixar APK novo.'
         : 'Baixar aplicativo oficial do Fíbula';
@@ -460,8 +503,10 @@ export function AndroidReleaseButton() {
     ? `Baixando APK: ${downloadProgress}%`
     : pendingApkPath
       ? 'Autorizar ou continuar a instalação do APK baixado'
-    : checking && !release
+    : checking
       ? 'Verificando se existe uma versão nova'
+      : checkFailed
+        ? 'A consulta ao GitHub falhou. Toque para tentar novamente.'
       : updateAvailable
         ? `NEW · Atualizar para a versão ${release?.versionName ?? ''}`
         : release
@@ -485,6 +530,7 @@ export function AndroidReleaseButton() {
       </svg>
       {downloading && <span className="lobby-release-progress">{downloadProgress}%</span>}
       {updateAvailable && !downloading && <span className="lobby-release-new">NEW</span>}
+      {checkFailed && !updateAvailable && !downloading && <span className="lobby-release-new">!</span>}
     </button>
     {modalOpen && <DownloadModal onClose={closeModal} triggerRef={triggerRef} />}
     </>
