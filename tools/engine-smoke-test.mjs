@@ -1006,9 +1006,9 @@ try {
     const stoneBagRefinery = makeRefineryEngine(0x2a000001);
     stoneBagRefinery.state.inventory = [{ itemId: 'stone:rare', quantity: 8 }];
     const stoneBagBefore = stoneBagRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0);
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
-    assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:rare', quantity: 5 }]);
-    assert.deepEqual(stoneBagRefinery.state.inventory, [{ itemId: 'stone:rare', quantity: 3 }]);
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 8 });
+    assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [{ itemId: 'stone:rare', quantity: 5 }, { itemId: 'stone:rare', quantity: 3 }]);
+    assert.deepEqual(stoneBagRefinery.state.inventory, []);
     assert.equal(stoneBagRefinery.state.refinery.stoneBuffer.reduce((sum, item) => sum + item.quantity, 0)
       + stoneBagRefinery.state.inventory.reduce((sum, item) => sum + item.quantity, 0), stoneBagBefore);
     stoneBagRefinery.state.inventory = [
@@ -1020,16 +1020,16 @@ try {
     stoneBagRefinery.state.refinery.stoneBuffer = [];
     stoneBagRefinery.state.refinery.stoneStock = 0;
     assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(1), { ok: true, moved: 5 });
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(2), { ok: true, moved: 5 });
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: true, moved: 5 });
     assert.deepEqual(stoneBagRefinery.state.refinery.stoneBuffer, [
       { itemId: 'stone:rare', quantity: 5 },
       { itemId: 'stone:uncommon', quantity: 5 },
       { itemId: 'stone:legendary', quantity: 5 },
     ]);
     assert.equal(stoneBagRefinery.state.refinery.stoneStock, CONFIG.refinery.stoneCapacity);
-    assert.equal(stoneBagRefinery.state.inventory[3].quantity, 4);
-    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(3), { ok: false, moved: 0, reason: 'full' });
+    assert.equal(stoneBagRefinery.state.inventory[0].quantity, 4);
+    assert.deepEqual(stoneBagRefinery.loadRefineryStoneFromBag(0), { ok: false, moved: 0, reason: 'full' });
     stoneBagRefinery.stop();
 
     const woodBagRefinery = makeRefineryEngine(0x2a000002);
