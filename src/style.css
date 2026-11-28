@@ -13409,6 +13409,11 @@ sem backdrop ou caixa de modal. */
   padding:7px;border:1px solid #6b6252;border-radius:8px;
   overflow:hidden;background:#292b28;color:#f0ece2;
 }
+.game-shell .inventory-quick-panel .refinery-panel-section{
+  margin:0!important;padding:7px!important;border:1px solid #6b6252!important;
+  border-radius:8px!important;box-sizing:border-box!important;
+}
+.game-shell .inventory-quick-panel .refinery-panel-section h3{margin:0!important;font-size:12px!important}
 .refinery-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
 .refinery-panel-section h3{margin:0;color:#ead5ad;font-size:12px}
 .refinery-panel-status{
@@ -13515,7 +13520,7 @@ sem backdrop ou caixa de modal. */
 .refinery-panel-section.is-empty .refinery-furnace-body{border-color:#625d54;background:#37352f}
 .refinery-panel-section.is-waiting .refinery-furnace-flame{opacity:0}
 .refinery-feed-stone{
-  position:absolute;z-index:2;top:calc(50% - 4px);left:calc(var(--refinery-slot) * 3 + 4px);
+  position:absolute;z-index:2;top:calc(50% - 4px);left:calc(var(--refinery-slot) * 2 + 12px);
   width:7px;height:7px;border:1px solid #d5d0c5;border-radius:2px;
   background:#96958d;opacity:0;pointer-events:none;
 }
@@ -13547,8 +13552,8 @@ sem backdrop ou caixa de modal. */
 @keyframes refinery-stone-feed{
   0%{transform:translate3d(0,0,0) scale(1);opacity:0}
   8%{opacity:1}
-  78%{transform:translate3d(62px,-5px,0) scale(.75);opacity:1}
-  100%{transform:translate3d(70px,-7px,0) scale(.2);opacity:0}
+  78%{transform:translate3d(26px,-5px,0) scale(.75);opacity:1}
+  100%{transform:translate3d(32px,-7px,0) scale(.2);opacity:0}
 }
 @keyframes refinery-flame-flicker{
   from{transform:translateX(-50%) rotate(40deg) scale(.82);opacity:.72}
